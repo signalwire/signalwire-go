@@ -2,6 +2,7 @@ package swml
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -141,10 +142,11 @@ func NewService(opts ...ServiceOption) *Service {
 }
 
 // generatePassword creates a random password for auto-generated basic auth.
+// Panics if the system has no entropy source — never fall back to a weak password.
 func generatePassword() string {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
-		return "changeme" // fallback
+		panic("crypto/rand failed: cannot generate secure password: " + err.Error())
 	}
 	return hex.EncodeToString(bytes)
 }
@@ -506,7 +508,7 @@ func (s *Service) Serve() error {
 	s.mu.Unlock()
 
 	s.Logger.Info("serving on %s:%d%s", s.Host, s.Port, s.Route)
-	s.Logger.Info("auth: %s / %s", s.basicAuthUser, s.basicAuthPassword)
+	s.Logger.Info("auth user: %s", s.basicAuthUser)
 
 	return s.server.ListenAndServe()
 }
@@ -546,10 +548,14 @@ func (s *Service) buildMux() *http.ServeMux {
 	return mux
 }
 
+// maxRequestBody is the maximum allowed request body size (1MB).
+const maxRequestBody = 1 << 20
+
 // handleSWML serves the SWML document.
 func (s *Service) handleSWML(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
 	if r.Method == http.MethodPost {
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
 		json.NewDecoder(r.Body).Decode(&body)
 	}
 
@@ -567,9 +573,11 @@ func (s *Service) withSecurity(next http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Cache-Control", "no-store")
 
-		// Basic auth check
+		// Basic auth check (timing-safe comparison)
 		user, pass, ok := r.BasicAuth()
-		if !ok || user != s.basicAuthUser || pass != s.basicAuthPassword {
+		userMatch := subtle.ConstantTimeCompare([]byte(user), []byte(s.basicAuthUser)) == 1
+		passMatch := subtle.ConstantTimeCompare([]byte(pass), []byte(s.basicAuthPassword)) == 1
+		if !ok || !userMatch || !passMatch {
 			w.Header().Set("WWW-Authenticate", `Basic realm="SWML Service"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return

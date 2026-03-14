@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -1119,11 +1120,11 @@ func (a *AgentBase) AsRouter() http.Handler {
 func (a *AgentBase) buildAndServe() error {
 	mux := a.buildMux()
 
-	user, pass := a.swmlService.GetBasicAuthCredentials()
+	user, _ := a.swmlService.GetBasicAuthCredentials()
 	addr := fmt.Sprintf("%s:%d", a.swmlService.Host, a.swmlService.Port)
 
 	a.Logger.Info("serving agent %q on %s%s", a.name, addr, a.swmlService.Route)
-	a.Logger.Info("auth: %s / %s", user, pass)
+	a.Logger.Info("auth user: %s", user)
 
 	server := &http.Server{
 		Addr:    addr,
@@ -1182,10 +1183,14 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 	return mux
 }
 
+// maxAgentRequestBody is the maximum request body size (1MB).
+const maxAgentRequestBody = 1 << 20
+
 // handleSWML serves the SWML document for the agent.
 func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
 	if r.Method == http.MethodPost {
+		r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
 		json.NewDecoder(r.Body).Decode(&body)
 	}
 
@@ -1360,6 +1365,7 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
 	var body map[string]any
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
@@ -1407,6 +1413,7 @@ func (a *AgentBase) handlePostPrompt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
 	var body map[string]any
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
@@ -1434,7 +1441,9 @@ func (a *AgentBase) withAuth(next http.HandlerFunc) http.HandlerFunc {
 
 		user, pass := a.swmlService.GetBasicAuthCredentials()
 		reqUser, reqPass, ok := r.BasicAuth()
-		if !ok || reqUser != user || reqPass != pass {
+		userMatch := subtle.ConstantTimeCompare([]byte(reqUser), []byte(user)) == 1
+		passMatch := subtle.ConstantTimeCompare([]byte(reqPass), []byte(pass)) == 1
+		if !ok || !userMatch || !passMatch {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Agent"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
