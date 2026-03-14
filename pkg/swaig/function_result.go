@@ -621,6 +621,32 @@ func (fr *FunctionResult) SimulateUserInput(text string) *FunctionResult {
 	return fr.AddAction("simulate_user_input", text)
 }
 
+// --- Payment Helpers ---
+
+// CreatePaymentPrompt creates a payment prompt configuration.
+func CreatePaymentPrompt(forSituation string, actions []map[string]string) map[string]any {
+	return map[string]any{
+		"for":     forSituation,
+		"actions": actions,
+	}
+}
+
+// CreatePaymentAction creates a single payment action entry.
+func CreatePaymentAction(actionType string, phrase string) map[string]string {
+	return map[string]string{
+		"type":   actionType,
+		"phrase": phrase,
+	}
+}
+
+// CreatePaymentParameter creates a payment parameter entry.
+func CreatePaymentParameter(name string, value string) map[string]string {
+	return map[string]string{
+		"name":  name,
+		"value": value,
+	}
+}
+
 // String returns a human-readable representation including the response and action count.
 func (fr *FunctionResult) String() string {
 	resp := fr.response

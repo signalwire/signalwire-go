@@ -15,6 +15,7 @@ import (
 	"github.com/signalwire/signalwire-agents-go/pkg/contexts"
 	"github.com/signalwire/signalwire-agents-go/pkg/logging"
 	"github.com/signalwire/signalwire-agents-go/pkg/security"
+	"github.com/signalwire/signalwire-agents-go/pkg/skills"
 	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
 	"github.com/signalwire/signalwire-agents-go/pkg/swml"
 )
@@ -195,6 +196,9 @@ type AgentBase struct {
 	summaryCallback  SummaryCallback
 	debugEventHandler DebugEventHandler
 
+	// Skills
+	skillManager *skills.SkillManager
+
 	// SIP routing
 	sipRoutingEnabled bool
 	sipUsernames      map[string]bool
@@ -257,6 +261,9 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 
 	// Session manager for secure tools
 	a.sessionManager = security.NewSessionManager(a.tokenExpirySecs)
+
+	// Skill manager
+	a.skillManager = skills.NewSkillManager()
 
 	return a
 }
@@ -800,6 +807,88 @@ func (a *AgentBase) RegisterSipUsername(username string) *AgentBase {
 	defer a.mu.Unlock()
 	a.sipUsernames[username] = true
 	return a
+}
+
+// ---------------------------------------------------------------------------
+// Skills integration
+// ---------------------------------------------------------------------------
+
+// AddSkill loads a skill by name with optional params and registers its tools.
+func (a *AgentBase) AddSkill(skillName string, params map[string]any) *AgentBase {
+	if params == nil {
+		params = map[string]any{}
+	}
+	factory := skills.GetSkillFactory(skillName)
+	if factory == nil {
+		a.Logger.Error("unknown skill: %s", skillName)
+		return a
+	}
+	skill := factory(params)
+	ok, errMsg := a.skillManager.LoadSkill(skill)
+	if !ok {
+		a.Logger.Error("failed to load skill %s: %s", skillName, errMsg)
+		return a
+	}
+	// Register the skill's tools with the agent
+	for _, tool := range skill.RegisterTools() {
+		handler := tool.Handler
+		td := ToolDefinition{
+			Name:        tool.Name,
+			Description: tool.Description,
+			Parameters:  tool.Parameters,
+			Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+				return handler(args, rawData)
+			},
+			Secure: tool.Secure,
+		}
+		if tool.Fillers != nil {
+			td.Fillers = tool.Fillers
+		}
+		if tool.SwaigFields != nil {
+			td.SwaigFields = tool.SwaigFields
+		}
+		a.DefineTool(td)
+	}
+	// Add hints
+	hints := skill.GetHints()
+	if len(hints) > 0 {
+		a.AddHints(hints)
+	}
+	// Add global data
+	gd := skill.GetGlobalData()
+	if len(gd) > 0 {
+		a.UpdateGlobalData(gd)
+	}
+	// Add prompt sections (unless skip_prompt param is set)
+	skipPrompt, _ := params["skip_prompt"].(bool)
+	if !skipPrompt {
+		for _, section := range skill.GetPromptSections() {
+			title, _ := section["title"].(string)
+			body, _ := section["body"].(string)
+			if bullets, ok := section["bullets"].([]string); ok {
+				a.PromptAddSection(title, body, bullets)
+			} else {
+				a.PromptAddSection(title, body, nil)
+			}
+		}
+	}
+	return a
+}
+
+// RemoveSkill unloads a skill by name.
+func (a *AgentBase) RemoveSkill(skillName string) *AgentBase {
+	a.skillManager.UnloadSkill(skillName)
+	return a
+}
+
+// ListSkills returns the names of loaded skills.
+func (a *AgentBase) ListSkills() []string {
+	return a.skillManager.ListLoadedSkills()
+}
+
+// HasSkill returns whether a skill is loaded.
+func (a *AgentBase) HasSkill(skillName string) bool {
+	return a.skillManager.HasSkill(skillName)
 }
 
 // ---------------------------------------------------------------------------

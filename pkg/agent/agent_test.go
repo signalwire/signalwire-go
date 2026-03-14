@@ -8,6 +8,9 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+
+	// Import builtin skills so their init() functions register them
+	_ "github.com/signalwire/signalwire-agents-go/pkg/skills/builtin"
 )
 
 // ---------------------------------------------------------------------------
@@ -1414,4 +1417,139 @@ func TestRenderSWML_WithRoute(t *testing.T) {
 		}
 	}
 	t.Error("AI verb not found")
+}
+
+// ---------------------------------------------------------------------------
+// Skills integration tests
+// ---------------------------------------------------------------------------
+
+func TestAddSkill_DateTime(t *testing.T) {
+	a := NewAgentBase()
+	a.AddSkill("datetime", map[string]any{"timezone": "America/New_York"})
+
+	// Verify the skill is loaded
+	if !a.HasSkill("datetime") {
+		t.Error("expected datetime skill to be loaded")
+	}
+
+	// Verify ListSkills includes datetime
+	loaded := a.ListSkills()
+	found := false
+	for _, name := range loaded {
+		if name == "datetime" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected 'datetime' in loaded skills, got %v", loaded)
+	}
+
+	// Verify the tool was registered
+	tools := a.DefineTools()
+	toolFound := false
+	for _, tool := range tools {
+		if tool.Name == "get_datetime" {
+			toolFound = true
+			if tool.Handler == nil {
+				t.Error("expected handler to be set for get_datetime tool")
+			}
+			break
+		}
+	}
+	if !toolFound {
+		t.Error("expected get_datetime tool to be registered")
+	}
+
+	// Verify hints were added
+	if len(a.hints) == 0 {
+		t.Error("expected hints to be added from datetime skill")
+	}
+
+	// Verify prompt section was added (datetime adds a "Date and Time Information" section)
+	if !a.PromptHasSection("Date and Time Information") {
+		t.Error("expected 'Date and Time Information' prompt section from datetime skill")
+	}
+}
+
+func TestAddSkill_SkipPrompt(t *testing.T) {
+	a := NewAgentBase()
+	a.AddSkill("datetime", map[string]any{"skip_prompt": true})
+
+	if !a.HasSkill("datetime") {
+		t.Error("expected datetime skill to be loaded")
+	}
+
+	// With skip_prompt, the prompt section should NOT be added
+	if a.PromptHasSection("Date and Time Information") {
+		t.Error("expected no prompt section when skip_prompt=true")
+	}
+}
+
+func TestAddSkill_Unknown(t *testing.T) {
+	a := NewAgentBase()
+	a.AddSkill("nonexistent_skill_xyz", nil)
+
+	// Should not panic, and no skills should be loaded
+	if len(a.ListSkills()) != 0 {
+		t.Error("expected no skills loaded for unknown skill name")
+	}
+}
+
+func TestAddSkill_NilParams(t *testing.T) {
+	a := NewAgentBase()
+	a.AddSkill("datetime", nil)
+
+	// Should work with nil params
+	if !a.HasSkill("datetime") {
+		t.Error("expected datetime skill to be loaded with nil params")
+	}
+}
+
+func TestRemoveSkill(t *testing.T) {
+	a := NewAgentBase()
+	a.AddSkill("datetime", nil)
+	if !a.HasSkill("datetime") {
+		t.Fatal("expected datetime skill to be loaded")
+	}
+
+	a.RemoveSkill("datetime")
+	if a.HasSkill("datetime") {
+		t.Error("expected datetime skill to be unloaded after RemoveSkill")
+	}
+}
+
+func TestAddSkill_ToolExecutes(t *testing.T) {
+	a := NewAgentBase()
+	a.AddSkill("datetime", nil)
+
+	// Call the tool and verify it returns a valid result
+	result, err := a.OnFunctionCall("get_datetime", map[string]any{}, nil)
+	if err != nil {
+		t.Fatalf("unexpected error calling get_datetime: %v", err)
+	}
+	m, ok := result.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map result, got %T", result)
+	}
+	resp, ok := m["response"].(string)
+	if !ok || resp == "" {
+		t.Errorf("expected non-empty response from get_datetime, got %v", m["response"])
+	}
+}
+
+func TestAddSkill_Chaining(t *testing.T) {
+	a := NewAgentBase()
+	result := a.AddSkill("datetime", nil).
+		AddSkill("math", nil)
+
+	if result != a {
+		t.Error("AddSkill should return the same agent for chaining")
+	}
+	if !a.HasSkill("datetime") {
+		t.Error("expected datetime skill")
+	}
+	if !a.HasSkill("math") {
+		t.Error("expected math skill")
+	}
 }

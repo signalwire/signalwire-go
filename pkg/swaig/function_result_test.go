@@ -1195,6 +1195,79 @@ func TestAddActionsEmpty(t *testing.T) {
 	}
 }
 
+// --- Payment Helpers ---
+
+func TestCreatePaymentPrompt(t *testing.T) {
+	actions := []map[string]string{
+		CreatePaymentAction("payment-card-number", "Please enter your card number"),
+		CreatePaymentAction("payment-expiration-date", "Enter expiration date"),
+	}
+	prompt := CreatePaymentPrompt("credit-card-payment", actions)
+
+	if prompt["for"] != "credit-card-payment" {
+		t.Errorf("for = %v, want %q", prompt["for"], "credit-card-payment")
+	}
+	acts, ok := prompt["actions"].([]map[string]string)
+	if !ok {
+		t.Fatal("actions should be []map[string]string")
+	}
+	if len(acts) != 2 {
+		t.Fatalf("actions length = %d, want 2", len(acts))
+	}
+	if acts[0]["type"] != "payment-card-number" {
+		t.Errorf("action[0].type = %v, want %q", acts[0]["type"], "payment-card-number")
+	}
+	if acts[0]["phrase"] != "Please enter your card number" {
+		t.Errorf("action[0].phrase = %v, want %q", acts[0]["phrase"], "Please enter your card number")
+	}
+	if acts[1]["type"] != "payment-expiration-date" {
+		t.Errorf("action[1].type = %v, want %q", acts[1]["type"], "payment-expiration-date")
+	}
+}
+
+func TestCreatePaymentAction(t *testing.T) {
+	action := CreatePaymentAction("payment-card-number", "Enter your card number")
+
+	if action["type"] != "payment-card-number" {
+		t.Errorf("type = %v, want %q", action["type"], "payment-card-number")
+	}
+	if action["phrase"] != "Enter your card number" {
+		t.Errorf("phrase = %v, want %q", action["phrase"], "Enter your card number")
+	}
+	if len(action) != 2 {
+		t.Errorf("action should have exactly 2 keys, got %d", len(action))
+	}
+}
+
+func TestCreatePaymentParameter(t *testing.T) {
+	param := CreatePaymentParameter("min-postal-code-length", "5")
+
+	if param["name"] != "min-postal-code-length" {
+		t.Errorf("name = %v, want %q", param["name"], "min-postal-code-length")
+	}
+	if param["value"] != "5" {
+		t.Errorf("value = %v, want %q", param["value"], "5")
+	}
+	if len(param) != 2 {
+		t.Errorf("param should have exactly 2 keys, got %d", len(param))
+	}
+}
+
+func TestCreatePaymentPrompt_EmptyActions(t *testing.T) {
+	prompt := CreatePaymentPrompt("refund", []map[string]string{})
+
+	if prompt["for"] != "refund" {
+		t.Errorf("for = %v, want %q", prompt["for"], "refund")
+	}
+	acts, ok := prompt["actions"].([]map[string]string)
+	if !ok {
+		t.Fatal("actions should be []map[string]string")
+	}
+	if len(acts) != 0 {
+		t.Errorf("actions length = %d, want 0", len(acts))
+	}
+}
+
 // helper for string containment check
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsSubstring(s, substr))
