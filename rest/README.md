@@ -11,12 +11,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest"
 )
 
 func main() {
 	// Reads from SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
-	client, err := rest.NewSignalWireClient("", "", "")
+	client, err := rest.NewRestClient("", "", "")
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
@@ -42,7 +42,7 @@ func main() {
 
 ## Features
 
-- Single `SignalWireClient` with namespaced sub-objects for every API
+- Single `RestClient` with namespaced sub-objects for every API
 - All 37 calling commands: dial, play, record, collect, detect, tap, stream, AI, transcribe, and more
 - Full Fabric API: 13 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
@@ -55,7 +55,7 @@ func main() {
 ## Documentation
 
 - [Getting Started](docs/getting-started.md) -- installation, configuration, first API call
-- [Client Reference](docs/client-reference.md) -- SignalWireClient constructor, namespaces, error handling
+- [Client Reference](docs/client-reference.md) -- RestClient constructor, namespaces, error handling
 - [Fabric Resources](docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
 - [Calling Commands](docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
 - [Compatibility API](docs/compat.md) -- Twilio-compatible LAML endpoints
@@ -90,7 +90,7 @@ func main() {
 ```
 pkg/rest/
     client.go             // HttpClient -- HTTP transport, Basic Auth, JSON encoding
-    signalwire_client.go  // SignalWireClient -- namespace wiring, env var resolution
+    signalwire_client.go  // RestClient -- namespace wiring, env var resolution
     namespaces/
         common.go         // HTTPClient interface, Resource, CrudResource
         fabric.go         // 13 resource types + generic resources + addresses + tokens

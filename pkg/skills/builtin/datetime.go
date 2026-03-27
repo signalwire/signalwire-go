@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // DateTimeSkill provides current date and time information.

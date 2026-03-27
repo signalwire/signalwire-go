@@ -11,21 +11,21 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/rest/namespaces"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
-// SignalWireClient is the top-level REST client for the SignalWire platform.
+// RestClient is the top-level REST client for the SignalWire platform.
 // It provides namespaced access to all SignalWire API domains.
 //
 // Usage:
 //
-//	client, err := rest.NewSignalWireClient("project-id", "api-token", "your-space.signalwire.com")
+//	client, err := rest.NewRestClient("project-id", "api-token", "your-space.signalwire.com")
 //	// or use environment variables SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
-//	client, err := rest.NewSignalWireClient("", "", "")
+//	client, err := rest.NewRestClient("", "", "")
 //
 //	agents, err := client.Fabric.AIAgents.List(nil)
 //	client.Calling.Play("call-id", map[string]any{"play": [...]})
-type SignalWireClient struct {
+type RestClient struct {
 	http      *HttpClient
 	projectID string
 
@@ -71,7 +71,7 @@ type SignalWireClient struct {
 	Chat   *namespaces.ChatNamespace
 }
 
-// NewSignalWireClient creates a new SignalWireClient. If project, token, or
+// NewRestClient creates a new RestClient. If project, token, or
 // space are empty strings the corresponding environment variables are used:
 //
 //	SIGNALWIRE_PROJECT_ID
@@ -80,7 +80,7 @@ type SignalWireClient struct {
 //
 // An error is returned when any of the three values is still empty after the
 // environment lookup.
-func NewSignalWireClient(project, token, space string) (*SignalWireClient, error) {
+func NewRestClient(project, token, space string) (*RestClient, error) {
 	if project == "" {
 		project = os.Getenv("SIGNALWIRE_PROJECT_ID")
 	}
@@ -104,7 +104,7 @@ func NewSignalWireClient(project, token, space string) (*SignalWireClient, error
 	// can use it without importing the rest package (avoiding a cycle).
 	adapter := &httpAdapter{h}
 
-	c := &SignalWireClient{
+	c := &RestClient{
 		http:      h,
 		projectID: project,
 	}

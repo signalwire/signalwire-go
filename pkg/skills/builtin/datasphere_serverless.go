@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // DataSphereServerlessSkill provides DataSphere search using DataMap (serverless execution).

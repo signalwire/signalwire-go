@@ -12,12 +12,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/contexts"
-	"github.com/signalwire/signalwire-agents-go/pkg/logging"
-	"github.com/signalwire/signalwire-agents-go/pkg/security"
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
-	"github.com/signalwire/signalwire-agents-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/pkg/contexts"
+	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/pkg/security"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/swml"
 )
 
 // ---------------------------------------------------------------------------

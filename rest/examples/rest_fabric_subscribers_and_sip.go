@@ -2,7 +2,7 @@
 
 // Example: Provision a SIP-enabled user on Fabric.
 //
-// Set these env vars (or pass them directly to NewSignalWireClient):
+// Set these env vars (or pass them directly to NewRestClient):
 //
 //	SIGNALWIRE_PROJECT_ID   - your SignalWire project ID
 //	SIGNALWIRE_API_TOKEN    - your SignalWire API token
@@ -17,11 +17,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest"
 )
 
 func main() {
-	client, err := rest.NewSignalWireClient("", "", "")
+	client, err := rest.NewRestClient("", "", "")
 	if err != nil {
 		fmt.Printf("Failed to create client: %v\n", err)
 		os.Exit(1)

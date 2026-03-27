@@ -3,7 +3,7 @@ package datamap
 import (
 	"testing"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 func TestNew(t *testing.T) {

@@ -13,7 +13,7 @@
 // Then point a SignalWire phone number at http://your-host:3000/
 package main
 
-import "github.com/signalwire/signalwire-agents-go/pkg/livewire"
+import "github.com/signalwire/signalwire-go/pkg/livewire"
 
 func main() {
 	server := livewire.NewAgentServer()

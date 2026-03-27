@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/pkg/logging"
 )
 
 // userAgent is the User-Agent header sent with every request.
-const userAgent = "signalwire-agents-go-rest/1.0"
+const userAgent = "signalwire-go-rest/1.0"
 
 // ---------- SignalWireRestError ----------
 

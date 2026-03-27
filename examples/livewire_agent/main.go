@@ -4,7 +4,7 @@
 // Uses familiar LiveKit API symbols — just change your import path.
 package main
 
-import "github.com/signalwire/signalwire-agents-go/pkg/livewire"
+import "github.com/signalwire/signalwire-go/pkg/livewire"
 
 func main() {
 	server := livewire.NewAgentServer()

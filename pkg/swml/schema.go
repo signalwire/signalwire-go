@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/pkg/logging"
 )
 
 //go:embed schema.json

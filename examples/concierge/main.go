@@ -10,7 +10,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/prefabs"
+	"github.com/signalwire/signalwire-go/pkg/prefabs"
 )
 
 func main() {

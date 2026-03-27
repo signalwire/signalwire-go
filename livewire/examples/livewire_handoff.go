@@ -16,8 +16,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/livewire"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/livewire"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // createSalesAgent builds a sales-focused agent.

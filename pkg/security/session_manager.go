@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/pkg/logging"
 )
 
 // SessionManager creates and validates HMAC-SHA256 tokens for SWAIG function

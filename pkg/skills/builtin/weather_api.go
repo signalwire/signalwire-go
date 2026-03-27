@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // WeatherAPISkill gets current weather from WeatherAPI.com.

@@ -9,12 +9,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/agent"
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 
 	// Import builtin skills so their init() functions register them
-	_ "github.com/signalwire/signalwire-agents-go/pkg/skills/builtin"
+	_ "github.com/signalwire/signalwire-go/pkg/skills/builtin"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-module github.com/signalwire/signalwire-agents-go
+module github.com/signalwire/signalwire-go
 
 go 1.22.5
 

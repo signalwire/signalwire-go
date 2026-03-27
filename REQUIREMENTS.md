@@ -4,7 +4,7 @@ This document tracks the complete port of the SignalWire AI Agents SDK from Pyth
 
 ## Phase 1: Project Foundation
 
-- [x] Go module initialized (`github.com/signalwire/signalwire-agents-go`)
+- [x] Go module initialized (`github.com/signalwire/signalwire-go`)
 - [x] Directory structure matching Python/TS layout
 - [x] `.gitignore` for Go projects
 - [x] `README.md` with project overview

@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/pkg/swml"
 )
 
 func main() {

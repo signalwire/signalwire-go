@@ -10,8 +10,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/agent"
-	"github.com/signalwire/signalwire-agents-go/pkg/contexts"
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/contexts"
 )
 
 func main() {

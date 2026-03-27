@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/agent"
-	"github.com/signalwire/signalwire-agents-go/pkg/server"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/server"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 func main() {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 var whitespaceRE = regexp.MustCompile(`\s+`)

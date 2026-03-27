@@ -17,7 +17,7 @@ LiveWire lets you run LiveKit-style voice agents on SignalWire's infrastructure 
 ```go
 package main
 
-import "github.com/signalwire/signalwire-agents-go/pkg/livewire"
+import "github.com/signalwire/signalwire-go/pkg/livewire"
 
 func main() {
 	server := livewire.NewAgentServer()

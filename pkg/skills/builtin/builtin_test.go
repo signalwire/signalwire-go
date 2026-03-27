@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/skills"
 )
 
 // allSkillNames contains the 18 built-in skill names that must be registered.

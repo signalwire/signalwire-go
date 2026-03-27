@@ -1,8 +1,8 @@
 package builtin
 
 import (
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // CustomSkillsSkill is a meta-skill that registers user-defined tools.

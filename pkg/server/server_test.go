@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/agent"
 )
 
 // ---------------------------------------------------------------------------

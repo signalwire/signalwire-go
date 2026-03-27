@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/pkg/logging"
 )
 
 // RoutingCallback is a function called on incoming requests to customize responses.

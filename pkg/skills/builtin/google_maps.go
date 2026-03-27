@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/skills"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // GoogleMapsSkill validates addresses and computes routes using Google Maps.

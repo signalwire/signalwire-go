@@ -18,7 +18,7 @@ import (
 )
 
 // After (LiveWire)
-import "github.com/signalwire/signalwire-agents-go/pkg/livewire"
+import "github.com/signalwire/signalwire-go/pkg/livewire"
 ```
 
 All types are in a single package. No separate plugin packages needed.
@@ -186,7 +186,7 @@ func main() {
 ```go
 package main
 
-import "github.com/signalwire/signalwire-agents-go/pkg/livewire"
+import "github.com/signalwire/signalwire-go/pkg/livewire"
 
 func main() {
     server := livewire.NewAgentServer()

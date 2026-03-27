@@ -3,8 +3,8 @@ package prefabs
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/agent"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // ---------------------------------------------------------------------------

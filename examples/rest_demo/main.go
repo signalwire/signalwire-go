@@ -1,6 +1,6 @@
 // Example: rest_demo
 //
-// REST API usage with the SignalWireClient. Demonstrates creating a client,
+// REST API usage with the RestClient. Demonstrates creating a client,
 // listing phone numbers, and shows other namespace usage patterns.
 // Requires SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, and
 // SIGNALWIRE_SPACE environment variables.
@@ -11,12 +11,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest"
 )
 
 func main() {
 	// Create the REST client (reads from env vars if arguments are empty)
-	client, err := rest.NewSignalWireClient("", "", "")
+	client, err := rest.NewRestClient("", "", "")
 	if err != nil {
 		fmt.Printf("Failed to create client: %v\n", err)
 		fmt.Println("Set SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE environment variables.")

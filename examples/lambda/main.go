@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/signalwire/signalwire-agents-go/pkg/agent"
-	"github.com/signalwire/signalwire-agents-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // Create the agent at package level so it is initialised once per Lambda

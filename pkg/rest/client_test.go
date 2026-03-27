@@ -12,8 +12,8 @@ import (
 	"testing"
 )
 
-func TestNewSignalWireClient_ExplicitArgs(t *testing.T) {
-	client, err := NewSignalWireClient("proj-123", "tok-456", "example.signalwire.com")
+func TestNewRestClient_ExplicitArgs(t *testing.T) {
+	client, err := NewRestClient("proj-123", "tok-456", "example.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -25,7 +25,7 @@ func TestNewSignalWireClient_ExplicitArgs(t *testing.T) {
 	}
 }
 
-func TestNewSignalWireClient_EnvVars(t *testing.T) {
+func TestNewRestClient_EnvVars(t *testing.T) {
 	os.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
 	os.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
 	os.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
@@ -35,7 +35,7 @@ func TestNewSignalWireClient_EnvVars(t *testing.T) {
 		os.Unsetenv("SIGNALWIRE_SPACE")
 	}()
 
-	client, err := NewSignalWireClient("", "", "")
+	client, err := NewRestClient("", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestNewSignalWireClient_EnvVars(t *testing.T) {
 	}
 }
 
-func TestNewSignalWireClient_ExplicitOverridesEnv(t *testing.T) {
+func TestNewRestClient_ExplicitOverridesEnv(t *testing.T) {
 	os.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
 	os.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
 	os.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
@@ -54,7 +54,7 @@ func TestNewSignalWireClient_ExplicitOverridesEnv(t *testing.T) {
 		os.Unsetenv("SIGNALWIRE_SPACE")
 	}()
 
-	client, err := NewSignalWireClient("explicit-proj", "explicit-tok", "explicit.signalwire.com")
+	client, err := NewRestClient("explicit-proj", "explicit-tok", "explicit.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -63,31 +63,31 @@ func TestNewSignalWireClient_ExplicitOverridesEnv(t *testing.T) {
 	}
 }
 
-func TestNewSignalWireClient_MissingCredentials(t *testing.T) {
+func TestNewRestClient_MissingCredentials(t *testing.T) {
 	// Clear env vars
 	os.Unsetenv("SIGNALWIRE_PROJECT_ID")
 	os.Unsetenv("SIGNALWIRE_API_TOKEN")
 	os.Unsetenv("SIGNALWIRE_SPACE")
 
-	_, err := NewSignalWireClient("", "", "")
+	_, err := NewRestClient("", "", "")
 	if err == nil {
 		t.Fatal("expected error for missing credentials")
 	}
 }
 
-func TestNewSignalWireClient_PartialCredentials(t *testing.T) {
+func TestNewRestClient_PartialCredentials(t *testing.T) {
 	os.Unsetenv("SIGNALWIRE_PROJECT_ID")
 	os.Unsetenv("SIGNALWIRE_API_TOKEN")
 	os.Unsetenv("SIGNALWIRE_SPACE")
 
-	_, err := NewSignalWireClient("proj-123", "", "")
+	_, err := NewRestClient("proj-123", "", "")
 	if err == nil {
 		t.Fatal("expected error for partial credentials")
 	}
 }
 
 func TestAllNamespacesInitialized(t *testing.T) {
-	client, err := NewSignalWireClient("proj", "tok", "space.signalwire.com")
+	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestAllNamespacesInitialized(t *testing.T) {
 }
 
 func TestFabricSubResources(t *testing.T) {
-	client, err := NewSignalWireClient("proj", "tok", "space.signalwire.com")
+	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestFabricSubResources(t *testing.T) {
 }
 
 func TestVideoSubResources(t *testing.T) {
-	client, err := NewSignalWireClient("proj", "tok", "space.signalwire.com")
+	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestVideoSubResources(t *testing.T) {
 }
 
 func TestCompatSubResources(t *testing.T) {
-	client, err := NewSignalWireClient("proj", "tok", "space.signalwire.com")
+	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestCompatSubResources(t *testing.T) {
 }
 
 func TestRegistrySubResources(t *testing.T) {
-	client, err := NewSignalWireClient("proj", "tok", "space.signalwire.com")
+	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -246,7 +246,7 @@ func TestRegistrySubResources(t *testing.T) {
 }
 
 func TestLogsSubResources(t *testing.T) {
-	client, err := NewSignalWireClient("proj", "tok", "space.signalwire.com")
+	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestLogsSubResources(t *testing.T) {
 }
 
 func TestDatasphereSubResources(t *testing.T) {
-	client, err := NewSignalWireClient("proj", "tok", "space.signalwire.com")
+	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -281,7 +281,7 @@ func TestDatasphereSubResources(t *testing.T) {
 }
 
 func TestProjectSubResources(t *testing.T) {
-	client, err := NewSignalWireClient("proj", "tok", "space.signalwire.com")
+	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

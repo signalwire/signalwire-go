@@ -43,7 +43,7 @@ go vet ./...
 
 ### Module Layout
 ```
-github.com/signalwire/signalwire-agents-go/
+github.com/signalwire/signalwire-go/
 ├── pkg/
 │   ├── swml/           # SWML document model, builder, schema validation
 │   ├── agent/          # AgentBase, AI config, prompts, dynamic config
