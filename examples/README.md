@@ -8,6 +8,7 @@ This directory contains runnable examples demonstrating the SignalWire AI Agents
 |---------|-------------|
 | [simple_agent](simple_agent/) | Basic AI agent with prompt and tools. Creating an AgentBase, setting prompt text, adding hints and language, defining SWAIG tools, setting global data, and running the agent. |
 | [simple_dynamic_agent](simple_dynamic_agent/) | Per-request agent customization using a dynamic config callback. Inspects query parameters to adjust the prompt, global data, and tools based on caller tier. |
+| [simple_dynamic_enhanced](simple_dynamic_enhanced/) | Enhanced dynamic config adapting to VIP status, department, customer ID, and language parameters. |
 | [simple_static](simple_static/) | Minimal static agent. All configuration set once at startup: voice, language, AI parameters, hints, global data, and POM prompt sections. |
 | [declarative](declarative/) | Agent configured declaratively using struct-level POM sections, post-prompt summary, and tool definitions without subclassing. |
 | [custom_path](custom_path/) | Agent with a custom HTTP path (`/chat`). Dynamic per-request personalisation based on query parameters (user name, topic, mood). |
@@ -36,6 +37,7 @@ This directory contains runnable examples demonstrating the SignalWire AI Agents
 
 | Example | Description |
 |---------|-------------|
+| [dynamic_info_gatherer](dynamic_info_gatherer/) | Dynamic InfoGatherer with callback-based question selection (support, medical, onboarding). |
 | [prefab_info_gatherer](prefab_info_gatherer/) | InfoGathererAgent pre-built pattern that collects answers to a series of questions sequentially with built-in tools and prompt sections. |
 | [prefab_survey](prefab_survey/) | SurveyAgent conducts structured surveys with typed questions (rating, multiple choice, yes/no, open-ended) including response validation and summary generation. |
 | [concierge](concierge/) | ConciergeAgent prefab. Virtual concierge for a luxury resort with amenities, services, availability checks, and directions. |
@@ -47,9 +49,14 @@ This directory contains runnable examples demonstrating the SignalWire AI Agents
 | Example | Description |
 |---------|-------------|
 | [joke_agent](joke_agent/) | Joke skill demo using the built-in skills system with API Ninjas. Requires `API_NINJAS_KEY` environment variable. |
+| [joke_skill](joke_skill/) | Joke skill via the modular skills system with DataMap for serverless execution. |
 | [web_search](web_search/) | Web search skill using Google Custom Search API. Requires `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID`. |
+| [web_search_multi_instance](web_search_multi_instance/) | Multiple web search instances (general, news, quick) plus Wikipedia. |
 | [wikipedia](wikipedia/) | Wikipedia search skill for factual information retrieval from Wikipedia articles. |
 | [datasphere](datasphere/) | Datasphere skill integration for document search through SignalWire Datasphere. Requires SignalWire credentials and `DATASPHERE_DOCUMENT_ID`. |
+| [datasphere_multi_instance](datasphere_multi_instance/) | Multiple DataSphere instances with custom tool names for separate knowledge bases. |
+| [datasphere_serverless_env](datasphere_serverless_env/) | DataSphere serverless skill configured from environment variables. |
+| [datasphere_webhook_env](datasphere_webhook_env/) | Webhook-based DataSphere skill configured from environment variables. |
 | [mcp_gateway](mcp_gateway/) | MCP gateway skill integration. Bridges MCP (Model Context Protocol) server tools as SWAIG functions. Requires a running MCP gateway. |
 
 ## SWML Service Examples
