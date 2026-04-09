@@ -20,6 +20,24 @@ const (
 	MaxStepsPerContext = 100
 )
 
+// ReservedNativeToolNames is the set of tool names the runtime auto-injects
+// when contexts/steps are present. User-defined SWAIG tools must not
+// collide with these names.
+//
+//   - next_step / change_context are injected when valid_steps or
+//     valid_contexts is set so the model can navigate the flow.
+//   - gather_submit is injected while a step's gather_info is collecting
+//     answers.
+//
+// ContextBuilder.Validate() rejects any agent that registers a user tool
+// sharing one of these names — the runtime would never call the user tool
+// because the native one wins.
+var ReservedNativeToolNames = map[string]struct{}{
+	"next_step":      {},
+	"change_context": {},
+	"gather_submit":  {},
+}
+
 // ---------------------------------------------------------------------------
 // GatherQuestion
 // ---------------------------------------------------------------------------
@@ -176,8 +194,34 @@ func (s *Step) SetStepCriteria(criteria string) *Step {
 	return s
 }
 
-// SetFunctions sets which functions are available in this step.
-// Accepts the string "none" to disable all functions, or a []string of names.
+// SetFunctions sets which non-internal functions are callable while this
+// step is active.
+//
+// IMPORTANT — inheritance behavior:
+// If you do NOT call this method, the step inherits whichever function set
+// was active on the previous step (or the previous context's last step).
+// The server-side runtime only resets the active set when a step explicitly
+// declares its `functions` field. This is the most common source of bugs
+// in multi-step agents: forgetting SetFunctions on a later step lets the
+// previous step's tools leak through. Best practice is to call
+// SetFunctions explicitly on every step that should differ from the
+// previous one.
+//
+// Keep the per-step active set small: LLM tool selection accuracy
+// degrades noticeably past ~7-8 simultaneously-active tools per call.
+// Use per-step whitelisting to partition large tool collections.
+//
+// Accepts:
+//
+//   - []string{"a", "b"}  — whitelist of function names allowed in this step
+//   - []string{}          — explicit disable-all
+//   - "none"              — synonym for the empty slice
+//
+// Internal functions (e.g. gather_submit, hangup_hook) are ALWAYS protected
+// and cannot be deactivated by this whitelist. The native navigation tools
+// next_step and change_context are injected automatically when
+// SetValidSteps / SetValidContexts is used; they are not affected by this
+// list and do not need to appear in it.
 func (s *Step) SetFunctions(functions any) *Step {
 	s.functions = functions
 	return s
@@ -195,7 +239,16 @@ func (s *Step) SetValidContexts(contexts []string) *Step {
 	return s
 }
 
-// SetEnd sets whether the conversation should end after this step.
+// SetEnd marks this step as terminal for the step flow.
+//
+// IMPORTANT: end=true does NOT end the conversation or hang up the call.
+// It exits step mode entirely after this step executes — clearing the
+// steps list, current step index, valid_steps, and valid_contexts. The
+// agent keeps running, but operates only under the base system prompt and
+// the context-level prompt; no more step instructions are injected and no
+// more next_step tool is offered.
+//
+// To actually end the call, call a hangup tool or define a hangup_hook.
 func (s *Step) SetEnd(end bool) *Step {
 	s.isEnd = end
 	return s
@@ -225,7 +278,25 @@ func (s *Step) SetGatherInfo(outputKey, completionAction, prompt string) *Gather
 }
 
 // AddGatherQuestion adds a question to this step's gather_info. SetGatherInfo
-// must be called first. Returns the Step for chaining.
+// should be called first (this method silently initialises the struct if not,
+// to keep callers from having to worry about ordering). Returns the Step for
+// chaining.
+//
+// IMPORTANT — gather mode locks function access:
+// While the model is asking gather questions, the runtime forcibly
+// deactivates ALL of the step's other functions. The only callable tools
+// during a gather question are:
+//
+//   - gather_submit (the native answer-submission tool)
+//   - Whatever names you list with WithFunctions in this question's opts
+//
+// next_step and change_context are also filtered out — the model cannot
+// navigate away until the gather completes. This is by design: it forces
+// a tight ask → submit → next-question loop.
+//
+// If a question needs to call out to a tool (e.g. validate an email,
+// geocode a ZIP), pass that tool name via WithFunctions on this question.
+// Functions listed here are active ONLY for this question.
 func (s *Step) AddGatherQuestion(key, question string, opts ...GatherQuestionOption) *Step {
 	if s.gatherInfo == nil {
 		// Silently initialise so callers are not forced into ordering.
@@ -484,7 +555,26 @@ func (c *Context) SetUserPrompt(prompt string) *Context {
 	return c
 }
 
-// SetIsolated sets whether to truncate conversation history on entry.
+// SetIsolated marks this context as isolated — entering it wipes
+// conversation history.
+//
+// When isolated=true and the context is entered via change_context, the
+// runtime wipes the conversation array. The model starts fresh with only
+// the new context's system_prompt + step instructions, with no memory of
+// prior turns.
+//
+// EXCEPTION — reset overrides the wipe:
+// If the context also has a reset configuration (via SetConsolidate or
+// SetFullReset), the wipe is skipped in favor of the reset behavior. Use
+// reset with consolidate=true to summarize prior history into a single
+// message instead of dropping it entirely.
+//
+// Use cases:
+//
+//   - Switching to a sensitive billing flow that should not see prior
+//     small-talk
+//   - Handing off to a different agent persona
+//   - Resetting after a long off-topic detour
 func (c *Context) SetIsolated(isolated bool) *Context {
 	c.isolated = isolated
 	return c
@@ -629,10 +719,61 @@ func (c *Context) ToMap() map[string]any {
 // ContextBuilder
 // ---------------------------------------------------------------------------
 
-// ContextBuilder is the top-level builder for creating a set of contexts.
+// ToolLister is implemented by an agent so ContextBuilder.Validate() can
+// check registered SWAIG tool names against ReservedNativeToolNames.
+// AgentBase implements this by returning the insertion-ordered list of
+// registered tool names.
+type ToolLister interface {
+	// ListToolNames returns the names of every registered SWAIG tool.
+	ListToolNames() []string
+}
+
+// ContextBuilder is the top-level builder for multi-step, multi-context
+// AI agent workflows.
+//
+// A ContextBuilder owns one or more Contexts; each Context owns an ordered
+// list of Steps. Only one context and one step is active at a time. Per
+// chat turn, the runtime injects the current step's instructions as a
+// system message, then asks the LLM for a response.
+//
+// # Native tools auto-injected by the runtime
+//
+// When a step (or its enclosing context) declares valid_steps or
+// valid_contexts, the runtime auto-injects two native tools so the model
+// can navigate the flow:
+//
+//   - next_step(step: enum)         — present when valid_steps is set
+//   - change_context(context: enum) — present when valid_contexts is set
+//
+// Their enum schemas are rewritten on every turn to match whatever
+// valid_steps / valid_contexts apply to the current step. You do NOT
+// need to define these tools yourself; they appear automatically.
+//
+// A third native tool — gather_submit — is injected during gather_info
+// questioning (see Step.SetGatherInfo / Step.AddGatherQuestion).
+//
+// These three names — next_step, change_context, gather_submit — are
+// reserved. ContextBuilder.Validate() rejects any agent that defines a
+// SWAIG tool with one of these names. See ReservedNativeToolNames.
+//
+// # Function whitelisting (Step.SetFunctions)
+//
+// Each step may declare a functions whitelist. The whitelist is applied
+// in-memory at the start of each LLM turn. CRITICALLY: if a step does NOT
+// declare a functions field, it INHERITS the previous step's active set.
+// See Step.SetFunctions for details and examples.
 type ContextBuilder struct {
 	contexts   []*Context // ordered
 	contextMap map[string]*Context
+	agent      ToolLister // optional; set via AttachAgent
+}
+
+// AttachAgent wires an agent into the builder so Validate() can check
+// user-defined tool names against ReservedNativeToolNames. AgentBase
+// calls this internally when you invoke DefineContexts().
+func (cb *ContextBuilder) AttachAgent(a ToolLister) *ContextBuilder {
+	cb.agent = a
+	return cb
 }
 
 // NewContextBuilder creates a new empty ContextBuilder.
@@ -660,6 +801,8 @@ func (cb *ContextBuilder) GetContext(name string) *Context {
 //   - A single context must be named "default".
 //   - Every context must contain at least one step.
 //   - Every step must have a name.
+//   - gather_info completion_action (if set) targets an existing step.
+//   - No user-defined SWAIG tool collides with a reserved native name.
 func (cb *ContextBuilder) Validate() error {
 	if len(cb.contexts) == 0 {
 		return errors.New("at least one context must be defined")
@@ -677,6 +820,92 @@ func (cb *ContextBuilder) Validate() error {
 			}
 		}
 	}
+
+	// Validate completion_action references in gather_info. completion_action
+	// is either "next_step" (advance to the following step in order), the
+	// name of an existing step in the same context, or empty (stay in the
+	// current step).
+	for _, ctx := range cb.contexts {
+		for i, step := range ctx.steps {
+			if step.gatherInfo == nil || step.gatherInfo.CompletionAction == "" {
+				continue
+			}
+			action := step.gatherInfo.CompletionAction
+			if action == "next_step" {
+				if i == len(ctx.steps)-1 {
+					return fmt.Errorf(
+						"step %q in context %q has gather_info completion_action='next_step' "+
+							"but it is the last step in the context. Either "+
+							"(1) add another step after %q, "+
+							"(2) set completion_action to the name of an existing step in "+
+							"this context to jump to it, or "+
+							"(3) leave completion_action empty (default) to stay in %q "+
+							"after gathering completes",
+						step.name, ctx.name, step.name, step.name,
+					)
+				}
+			} else if _, ok := ctx.stepMap[action]; !ok {
+				available := make([]string, 0, len(ctx.stepMap))
+				for n := range ctx.stepMap {
+					available = append(available, n)
+				}
+				// Sort for deterministic error messages.
+				sortedAvailable := append([]string(nil), available...)
+				for i := 1; i < len(sortedAvailable); i++ {
+					for j := i; j > 0 && sortedAvailable[j-1] > sortedAvailable[j]; j-- {
+						sortedAvailable[j-1], sortedAvailable[j] = sortedAvailable[j], sortedAvailable[j-1]
+					}
+				}
+				return fmt.Errorf(
+					"step %q in context %q has gather_info completion_action=%q "+
+						"but %q is not a step in this context. Valid options: "+
+						"'next_step' (advance to the next sequential step), '' "+
+						"(stay in the current step), or one of %v",
+					step.name, ctx.name, action, action, sortedAvailable,
+				)
+			}
+		}
+	}
+
+	// Validate that user-defined tools do not collide with reserved native
+	// tool names. The runtime auto-injects next_step / change_context /
+	// gather_submit when contexts/steps are present, so user tools sharing
+	// those names would never be called.
+	if cb.agent != nil {
+		names := cb.agent.ListToolNames()
+		colliding := make([]string, 0)
+		for _, name := range names {
+			if _, ok := ReservedNativeToolNames[name]; ok {
+				colliding = append(colliding, name)
+			}
+		}
+		if len(colliding) > 0 {
+			// Stable-sort the colliding and reserved lists.
+			for i := 1; i < len(colliding); i++ {
+				for j := i; j > 0 && colliding[j-1] > colliding[j]; j-- {
+					colliding[j-1], colliding[j] = colliding[j], colliding[j-1]
+				}
+			}
+			reserved := make([]string, 0, len(ReservedNativeToolNames))
+			for n := range ReservedNativeToolNames {
+				reserved = append(reserved, n)
+			}
+			for i := 1; i < len(reserved); i++ {
+				for j := i; j > 0 && reserved[j-1] > reserved[j]; j-- {
+					reserved[j-1], reserved[j] = reserved[j], reserved[j-1]
+				}
+			}
+			return fmt.Errorf(
+				"tool name(s) %v collide with reserved native tools "+
+					"auto-injected by contexts/steps. The names %v are reserved "+
+					"and cannot be used for user-defined SWAIG tools when "+
+					"contexts/steps are in use. Rename your tool(s) to avoid "+
+					"the collision",
+				colliding, reserved,
+			)
+		}
+	}
+
 	return nil
 }
 

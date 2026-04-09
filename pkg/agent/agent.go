@@ -411,6 +411,58 @@ func (a *AgentBase) GetPrompt() any {
 // ---------------------------------------------------------------------------
 
 // DefineTool registers a tool (SWAIG function) with the agent.
+//
+// # How this becomes a tool the model sees
+//
+// A SWAIG function is exactly the same concept as a "tool" in native
+// OpenAI / Anthropic tool calling. On every LLM turn, the SDK renders
+// each registered SWAIG function into the OpenAI tool schema:
+//
+//	{
+//	  "type": "function",
+//	  "function": {
+//	    "name":        "your_name_here",
+//	    "description": "your description text",
+//	    "parameters":  { /* your JSON schema */ }
+//	  }
+//	}
+//
+// That schema is sent to the model as part of the same API call that
+// produces the next assistant message. The model reads:
+//
+//   - the function Description to decide WHEN to call this tool
+//   - each parameter "description" (inside Parameters) to decide HOW to
+//     fill in that argument from the user's utterance
+//
+// This means descriptions are prompt engineering, not developer
+// comments. A vague Description is the #1 cause of "the model has the
+// right tool but doesn't call it" failures.
+//
+// # Bad vs good descriptions
+//
+// BAD:
+//
+//	Description: "Lookup function"
+//	Parameters:  {"id": {"type": "string", "description": "the id"}}
+//
+// GOOD:
+//
+//	Description: "Look up a customer's account details by account number. "+
+//	    "Use this BEFORE quoting any account-specific info (balance, "+
+//	    "plan, status). Do not use for general product questions.",
+//	Parameters: map[string]any{
+//	    "account_number": map[string]any{
+//	        "type": "string",
+//	        "description": "The customer's 8-digit account number, no "+
+//	            "dashes or spaces. Ask the user if they don't provide it.",
+//	    },
+//	},
+//
+// # Tool count matters
+//
+// LLM tool selection accuracy degrades past ~7-8 simultaneously-active
+// tools per call. Use Step.SetFunctions() to partition tools across
+// steps so only the relevant subset is active at any moment.
 func (a *AgentBase) DefineTool(def ToolDefinition) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -585,18 +637,109 @@ func (a *AgentBase) SetNativeFunctions(names []string) *AgentBase {
 	return a
 }
 
+// SupportedInternalFillerNames is the complete set of internal SWAIG
+// function names that accept fillers, matching the SWAIGInternalFiller
+// schema definition. Any name outside this set is silently ignored by
+// the runtime — SetInternalFillers / AddInternalFiller warn if you pass
+// an unknown name.
+//
+// Notable absences: change_step, gather_submit, and arbitrary user-defined
+// SWAIG function names are NOT supported.
+var SupportedInternalFillerNames = map[string]struct{}{
+	"hangup":                  {}, // AI is hanging up the call
+	"check_time":              {}, // AI is checking the time
+	"wait_for_user":           {}, // AI is waiting for user input
+	"wait_seconds":            {}, // deliberate pause / wait period
+	"adjust_response_latency": {}, // AI is adjusting response timing
+	"next_step":               {}, // transitioning between steps in prompt.contexts
+	"change_context":          {}, // switching between contexts in prompt.contexts
+	"get_visual_input":        {}, // processing visual input (enable_vision)
+	"get_ideal_strategy":      {}, // thinking (enable_thinking)
+}
+
+// supportedInternalFillerNamesSorted returns a sorted slice copy of the
+// supported names for use in warning messages.
+func supportedInternalFillerNamesSorted() []string {
+	out := make([]string, 0, len(SupportedInternalFillerNames))
+	for n := range SupportedInternalFillerNames {
+		out = append(out, n)
+	}
+	for i := 1; i < len(out); i++ {
+		for j := i; j > 0 && out[j-1] > out[j]; j-- {
+			out[j-1], out[j] = out[j], out[j-1]
+		}
+	}
+	return out
+}
+
 // SetInternalFillers replaces all internal fillers.
+//
+// Internal fillers are short phrases the AI agent speaks (via TTS) while
+// an internal/native function is running, so the caller doesn't hear
+// dead air during transitions or background work.
+//
+// Supported function names (match the SWAIGInternalFiller schema):
+//
+//	hangup                  — when the agent is hanging up
+//	check_time              — when checking the time
+//	wait_for_user           — when waiting for user input
+//	wait_seconds            — during deliberate pauses
+//	adjust_response_latency — when adjusting response timing
+//	next_step               — transitioning between steps in prompt.contexts
+//	change_context          — switching between contexts in prompt.contexts
+//	get_visual_input        — processing visual input (enable_vision)
+//	get_ideal_strategy      — thinking (enable_thinking)
+//
+// Notably NOT supported: change_step, gather_submit, or arbitrary
+// user-defined SWAIG function names. The runtime only honors fillers for
+// the names listed above; everything else is silently ignored at the
+// SWML level. This method warns at registration time if you pass an
+// unknown name so you catch the typo early.
 func (a *AgentBase) SetInternalFillers(fillers map[string]map[string][]string) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	unknown := make([]string, 0)
+	for name := range fillers {
+		if _, ok := SupportedInternalFillerNames[name]; !ok {
+			unknown = append(unknown, name)
+		}
+	}
+	if len(unknown) > 0 {
+		// Stable sort the unknown list.
+		for i := 1; i < len(unknown); i++ {
+			for j := i; j > 0 && unknown[j-1] > unknown[j]; j-- {
+				unknown[j-1], unknown[j] = unknown[j], unknown[j-1]
+			}
+		}
+		a.Logger.Warn(
+			"unknown_internal_filler_names: %v. SetInternalFillers received "+
+				"names that the SWML schema does not recognize. Those entries "+
+				"will be ignored by the runtime. Supported names: %v",
+			unknown, supportedInternalFillerNamesSorted(),
+		)
+	}
 	a.internalFillers = fillers
 	return a
 }
 
 // AddInternalFiller adds fillers for a specific function and language.
+//
+// See SetInternalFillers for the complete list of supported funcName
+// values (SupportedInternalFillerNames) and what fillers do. Names
+// outside the supported set log a warning and are stored but will not
+// play at runtime.
 func (a *AgentBase) AddInternalFiller(funcName, langCode string, fillers []string) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if _, ok := SupportedInternalFillerNames[funcName]; !ok {
+		a.Logger.Warn(
+			"unknown_internal_filler_name: %q. AddInternalFiller received a "+
+				"function name the SWML schema does not recognize. The entry "+
+				"will be stored but the runtime will not play these fillers. "+
+				"Supported names: %v",
+			funcName, supportedInternalFillerNamesSorted(),
+		)
+	}
 	if a.internalFillers[funcName] == nil {
 		a.internalFillers[funcName] = make(map[string][]string)
 	}
@@ -717,14 +860,28 @@ func (a *AgentBase) ClearPostAiVerbs() *AgentBase {
 // Context methods
 // ---------------------------------------------------------------------------
 
-// DefineContexts returns the context builder, creating it if needed.
+// DefineContexts returns the context builder, creating it if needed. The
+// builder is attached to this agent so Validate() can check user-defined
+// tool names against reserved native tool names (next_step, change_context,
+// gather_submit).
 func (a *AgentBase) DefineContexts() *contexts.ContextBuilder {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.contextBuilder == nil {
 		a.contextBuilder = contexts.NewContextBuilder()
+		a.contextBuilder.AttachAgent(a)
 	}
 	return a.contextBuilder
+}
+
+// ListToolNames returns the names of every registered SWAIG tool in
+// insertion order. Implements contexts.ToolLister.
+func (a *AgentBase) ListToolNames() []string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	names := make([]string, 0, len(a.toolOrder))
+	names = append(names, a.toolOrder...)
+	return names
 }
 
 // Contexts is an alias for DefineContexts.

@@ -785,6 +785,9 @@ func TestGatherInfoInBuilder(t *testing.T) {
 	gi := step.SetGatherInfo("answers", "process", "I need to ask a few things")
 	gi.AddQuestion("age", "How old are you?", WithType("integer"))
 	gi.AddQuestion("city", "Where do you live?")
+	// A completion_action of "process" must target a real step for
+	// validation to pass.
+	ctx.AddStep("process").SetText("Process collected info")
 
 	m, err := cb.ToMap()
 	if err != nil {
