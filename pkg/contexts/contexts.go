@@ -427,6 +427,7 @@ type Context struct {
 	name           string
 	steps          []*Step // ordered
 	stepMap        map[string]*Step
+	initialStep    string
 	validContexts  []string
 	validSteps     []string
 	postPrompt     string
@@ -505,6 +506,15 @@ func (c *Context) MoveStep(name string, position int) {
 	}
 	// Insert at new position.
 	c.steps = append(c.steps[:position], append([]*Step{step}, c.steps[position:]...)...)
+}
+
+// SetInitialStep sets which step the context starts on when entered.
+//
+// By default, a context starts on its first step (index 0). Use this to
+// skip a preamble step on re-entry via change_context.
+func (c *Context) SetInitialStep(stepName string) *Context {
+	c.initialStep = stepName
+	return c
 }
 
 // SetValidContexts sets which contexts can be navigated to from this context.
@@ -674,6 +684,9 @@ func (c *Context) ToMap() map[string]any {
 	if c.validSteps != nil {
 		m["valid_steps"] = c.validSteps
 	}
+	if c.initialStep != "" {
+		m["initial_step"] = c.initialStep
+	}
 	if c.postPrompt != "" {
 		m["post_prompt"] = c.postPrompt
 	}
@@ -783,6 +796,15 @@ func NewContextBuilder() *ContextBuilder {
 	}
 }
 
+// Reset removes all contexts, returning the builder to its initial state.
+// Use this in a dynamic config callback when you need to rebuild contexts
+// from scratch for a specific request.
+func (cb *ContextBuilder) Reset() *ContextBuilder {
+	cb.contexts = nil
+	cb.contextMap = make(map[string]*Context)
+	return cb
+}
+
 // AddContext creates a new context with the given name and returns it.
 func (cb *ContextBuilder) AddContext(name string) *Context {
 	ctx := newContext(name)
@@ -817,6 +839,28 @@ func (cb *ContextBuilder) Validate() error {
 		for _, s := range ctx.steps {
 			if s.name == "" {
 				return fmt.Errorf("all steps in context %q must have a name", ctx.name)
+			}
+		}
+	}
+
+	// Validate initial_step references a real step in the context.
+	for _, ctx := range cb.contexts {
+		if ctx.initialStep != "" {
+			if _, ok := ctx.stepMap[ctx.initialStep]; !ok {
+				available := make([]string, 0, len(ctx.stepMap))
+				for n := range ctx.stepMap {
+					available = append(available, n)
+				}
+				sortedAvailable := append([]string(nil), available...)
+				for i := 1; i < len(sortedAvailable); i++ {
+					for j := i; j > 0 && sortedAvailable[j-1] > sortedAvailable[j]; j-- {
+						sortedAvailable[j-1], sortedAvailable[j] = sortedAvailable[j], sortedAvailable[j-1]
+					}
+				}
+				return fmt.Errorf(
+					"context %q has initial_step=%q but that step does not exist. Available steps: %v",
+					ctx.name, ctx.initialStep, sortedAvailable,
+				)
 			}
 		}
 	}

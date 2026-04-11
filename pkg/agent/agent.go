@@ -889,6 +889,19 @@ func (a *AgentBase) Contexts() *contexts.ContextBuilder {
 	return a.DefineContexts()
 }
 
+// ResetContexts removes all contexts, returning the agent to a
+// no-contexts state. This is a convenience wrapper around
+// DefineContexts().Reset(). Use it in a dynamic config callback when
+// you need to rebuild contexts from scratch for a specific request.
+func (a *AgentBase) ResetContexts() *AgentBase {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.contextBuilder != nil {
+		a.contextBuilder.Reset()
+	}
+	return a
+}
+
 // ---------------------------------------------------------------------------
 // Web/HTTP methods
 // ---------------------------------------------------------------------------
