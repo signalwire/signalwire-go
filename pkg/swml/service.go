@@ -409,26 +409,59 @@ func (s *Service) UserEvent(config map[string]any) error {
 // --- HTTP server ---
 
 // GetFullURL returns the full URL for this service including auth.
+//
+// Base URL resolution order:
+//  1. SWML_PROXY_URL_BASE (explicit proxy override — always wins)
+//  2. Platform-specific base derived from GetExecutionMode() when running
+//     inside a serverless runtime (currently AWS Lambda)
+//  3. Local http://host:port base (default server mode)
+//
+// In every branch the agent's Route is appended to the base. Callers that
+// need to serve SWAIG / post_prompt endpoints then append further path
+// segments onto the result. This invariant is load-bearing: a Lambda-hosted
+// agent at route "/my-agent" must emit SWAIG URLs like
+// "https://xxx.lambda-url.us-east-1.on.aws/my-agent/swaig" — NOT
+// "https://xxx.lambda-url.us-east-1.on.aws/swaig". See buildWebhookURL in
+// pkg/agent/agent.go for the defensive HasSuffix re-check that enforces the
+// same property downstream.
 func (s *Service) GetFullURL(includeAuth bool) string {
+	if s.proxyURLBase != "" {
+		base := strings.TrimRight(s.proxyURLBase, "/")
+		if includeAuth {
+			return insertAuth(base, s.basicAuthUser, s.basicAuthPassword) + s.Route
+		}
+		return base + s.Route
+	}
+
+	if base := platformBaseURL(GetExecutionMode()); base != "" {
+		if includeAuth {
+			return insertAuth(base, s.basicAuthUser, s.basicAuthPassword) + s.Route
+		}
+		return base + s.Route
+	}
+
 	scheme := "http"
 	host := s.Host
 	if host == "0.0.0.0" {
 		host = "localhost"
 	}
-
-	if s.proxyURLBase != "" {
-		base := strings.TrimRight(s.proxyURLBase, "/")
-		if includeAuth {
-			return fmt.Sprintf("%s%s", insertAuth(base, s.basicAuthUser, s.basicAuthPassword), s.Route)
-		}
-		return base + s.Route
-	}
-
 	base := fmt.Sprintf("%s://%s:%d", scheme, host, s.Port)
 	if includeAuth {
-		return fmt.Sprintf("%s%s", insertAuth(base, s.basicAuthUser, s.basicAuthPassword), s.Route)
+		return insertAuth(base, s.basicAuthUser, s.basicAuthPassword) + s.Route
 	}
 	return base + s.Route
+}
+
+// platformBaseURL returns a serverless-platform-specific base URL (scheme +
+// host, no path) for the given execution mode, or the empty string if the
+// mode has no platform override. Callers concatenate Route onto the result.
+func platformBaseURL(mode ExecutionMode) string {
+	switch mode {
+	case ModeLambda:
+		return lambdaBaseURL()
+	default:
+		return ""
+	}
 }
 
 // RegisterRoutingCallback registers a callback for a specific path.

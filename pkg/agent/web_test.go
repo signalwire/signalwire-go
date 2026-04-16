@@ -136,6 +136,90 @@ func TestManualSetProxyUrl_Basic(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Lambda + proxy route preservation (regression)
+// ---------------------------------------------------------------------------
+//
+// These tests pin down the exact bug called out in the Lambda port brief:
+// when SWML_PROXY_URL_BASE is set AND the agent is running inside Lambda,
+// the webhook URL MUST include both the agent's route and the /swaig
+// suffix. Python and TypeScript originally dropped the route in this
+// combination; the Go SDK had the correct behaviour from the start but
+// we now guard it with these explicit checks.
+
+// clearAgentAWSEnv zeroes the env vars inspected by swml.GetExecutionMode
+// and the proxy override, so that tests running inside a real cloud
+// runtime (GKE, Lambda, etc.) start from a clean slate.
+func clearAgentAWSEnv(t *testing.T) {
+	t.Helper()
+	for _, k := range []string{
+		"GATEWAY_INTERFACE",
+		"AWS_LAMBDA_FUNCTION_NAME",
+		"LAMBDA_TASK_ROOT",
+		"AWS_LAMBDA_FUNCTION_URL",
+		"AWS_REGION",
+		"FUNCTION_TARGET",
+		"K_SERVICE",
+		"GOOGLE_CLOUD_PROJECT",
+		"AZURE_FUNCTIONS_ENVIRONMENT",
+		"FUNCTIONS_WORKER_RUNTIME",
+		"AzureWebJobsStorage",
+		"SWML_PROXY_URL_BASE",
+	} {
+		t.Setenv(k, "")
+	}
+}
+
+func TestBuildWebhookURL_LambdaNonRootRouteAppendsRoute(t *testing.T) {
+	clearAgentAWSEnv(t)
+	t.Setenv("AWS_LAMBDA_FUNCTION_NAME", "demo-func")
+	t.Setenv("AWS_LAMBDA_FUNCTION_URL", "https://demo-func.lambda-url.us-east-1.on.aws")
+
+	a := NewAgentBase(
+		WithRoute("/my-agent"),
+		WithBasicAuth("u", "p"),
+	)
+	url := a.buildWebhookURL()
+	const want = "/my-agent/swaig"
+	if !strings.Contains(url, want) {
+		t.Fatalf("buildWebhookURL() = %q, want substring %q", url, want)
+	}
+	if !strings.Contains(url, "demo-func.lambda-url.us-east-1.on.aws") {
+		t.Fatalf("buildWebhookURL() = %q, want Lambda host", url)
+	}
+}
+
+// REGRESSION GUARD: non-root route + Lambda env + proxy base must all
+// produce a webhook URL that still contains the agent's route + /swaig.
+// This is the exact combo that originally hid the bug in Python and TS.
+func TestBuildWebhookURL_Regression_LambdaProxyRouteCombo(t *testing.T) {
+	clearAgentAWSEnv(t)
+	t.Setenv("AWS_LAMBDA_FUNCTION_NAME", "demo-func")
+	t.Setenv("AWS_LAMBDA_FUNCTION_URL", "https://should-be-ignored.lambda-url.us-east-1.on.aws")
+	t.Setenv("SWML_PROXY_URL_BASE", "https://xyz.lambda-url.us-east-1.on.aws")
+
+	a := NewAgentBase(
+		WithRoute("/my-agent"),
+		WithBasicAuth("u", "p"),
+	)
+	url := a.buildWebhookURL()
+	if !strings.Contains(url, "/my-agent/swaig") {
+		t.Fatalf(
+			"route-preservation regression: buildWebhookURL() = %q, "+
+				"want substring %q. The proxy base MUST have the "+
+				"agent's route and /swaig appended.",
+			url, "/my-agent/swaig",
+		)
+	}
+	if !strings.Contains(url, "xyz.lambda-url.us-east-1.on.aws") {
+		t.Fatalf("buildWebhookURL() = %q, expected proxy host", url)
+	}
+	// Make absolutely sure the buggy shape is NOT present.
+	if strings.HasSuffix(url, "xyz.lambda-url.us-east-1.on.aws/swaig") {
+		t.Fatalf("buildWebhookURL() = %q matches the forbidden shape", url)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Dynamic config callback
 // ---------------------------------------------------------------------------
 
