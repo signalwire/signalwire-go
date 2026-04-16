@@ -32,13 +32,14 @@ func (p *paramList) Set(value string) error {
 
 // config holds the parsed CLI flags.
 type config struct {
-	url       string
-	dumpSWML  bool
-	listTools bool
-	exec      string
-	params    paramList
-	raw       bool
-	verbose   bool
+	url                string
+	dumpSWML           bool
+	listTools          bool
+	exec               string
+	params             paramList
+	raw                bool
+	verbose            bool
+	simulateServerless string
 }
 
 func main() {
@@ -62,6 +63,10 @@ func parseFlags(args []string) config {
 	fs.Var(&cfg.params, "param", "Parameter as key=value (repeatable)")
 	fs.BoolVar(&cfg.raw, "raw", false, "Output compact JSON instead of pretty-printed")
 	fs.BoolVar(&cfg.verbose, "verbose", false, "Show request/response details")
+	fs.StringVar(&cfg.simulateServerless, "simulate-serverless", "",
+		"Simulate a serverless environment (currently supported: lambda). "+
+			"Sets mode-detection env vars and clears SWML_PROXY_URL_BASE so "+
+			"platform-specific URL generation is exercised.")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: swaig-test --url <agent-url> [options]\n\n")
@@ -70,6 +75,12 @@ func parseFlags(args []string) config {
 		fmt.Fprintf(os.Stderr, "  --dump-swml          Dump the SWML document (GET)\n")
 		fmt.Fprintf(os.Stderr, "  --list-tools         List available SWAIG functions\n")
 		fmt.Fprintf(os.Stderr, "  --exec <name>        Execute a SWAIG function (POST)\n\n")
+		fmt.Fprintf(os.Stderr, "Serverless simulation:\n")
+		fmt.Fprintf(os.Stderr, "  --simulate-serverless lambda\n")
+		fmt.Fprintf(os.Stderr, "                       Apply Lambda mode-detection env vars around\n")
+		fmt.Fprintf(os.Stderr, "                       the invocation; clears SWML_PROXY_URL_BASE\n")
+		fmt.Fprintf(os.Stderr, "                       for the duration. Combine with --dump-swml\n")
+		fmt.Fprintf(os.Stderr, "                       or --exec as normal.\n\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		fs.PrintDefaults()
 	}
@@ -80,17 +91,63 @@ func parseFlags(args []string) config {
 
 // run executes the CLI command based on the parsed config.
 func run(cfg config) error {
+	// Platform validation always runs first — if the user asked for
+	// a platform we don't implement, we want to fail before touching
+	// the environment or making any HTTP request.
+	if cfg.simulateServerless != "" {
+		if err := validateSimulatePlatform(cfg.simulateServerless); err != nil {
+			return err
+		}
+	}
+
 	if cfg.url == "" {
+		// --simulate-serverless without --url can't fully exercise the
+		// adapter from a Go CLI (Go agents are compiled binaries, not
+		// dynamically loadable files), so the CLI requires --url and
+		// documents the library API for in-process use.
+		if cfg.simulateServerless != "" {
+			return fmt.Errorf(
+				"--simulate-serverless %s: requires --url <agent-url>. "+
+					"Go agents are compiled binaries, so this CLI simulates by "+
+					"running the agent URL with the platform env vars applied. "+
+					"For true in-process adapter dispatch, use "+
+					"SimulateDumpSWMLViaLambda / SimulateExecToolViaLambda "+
+					"from package main directly (see cmd/swaig-test/simulate.go).",
+				cfg.simulateServerless,
+			)
+		}
 		return fmt.Errorf("--url is required")
 	}
 
 	if !cfg.dumpSWML && !cfg.listTools && cfg.exec == "" {
-		return fmt.Errorf("one of --dump-swml, --list-tools, or --exec is required")
+		// In simulate mode without a sub-action, default to dumping
+		// SWML — mirrors the Python CLI's "bare --simulate-serverless"
+		// mode. This also makes the "render SWML and exit" combination
+		// work intuitively.
+		if cfg.simulateServerless != "" {
+			cfg.dumpSWML = true
+		} else {
+			return fmt.Errorf("one of --dump-swml, --list-tools, or --exec is required")
+		}
 	}
 
 	baseURL, user, pass, err := parseAuthURL(cfg.url)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// If the user requested serverless simulation, set the mode-
+	// detection env vars for the chosen platform for the duration of
+	// this run and unconditionally restore them on exit. The
+	// simulation ALSO clears SWML_PROXY_URL_BASE (matches Python's
+	// mock_env.py behaviour) so platform-specific URL generation is
+	// actually exercised.
+	if cfg.simulateServerless != "" {
+		snap, err := activateSimulation(cfg.simulateServerless, cfg.verbose)
+		if err != nil {
+			return err
+		}
+		defer snap.restore()
 	}
 
 	switch {
@@ -103,6 +160,34 @@ func run(cfg config) error {
 	}
 
 	return nil
+}
+
+// activateSimulation sets env vars for the chosen platform and returns
+// a snapshot that restores the original values when restore() is
+// called. The caller is responsible for deferring restore(); this
+// separation lets the CLI's run() function apply the change around
+// whatever sub-action was selected.
+//
+// Only "lambda" is supported today. Unsupported platforms are rejected
+// earlier in run(); if we somehow reach this function with an unknown
+// platform we fall through to an explicit error so the bug is easy
+// to spot.
+func activateSimulation(platform string, verbose bool) (envSnapshot, error) {
+	switch platform {
+	case "lambda":
+		logger := (func(format string, args ...any))(nil)
+		if verbose {
+			logger = func(format string, args ...any) {
+				fmt.Fprintf(os.Stderr, "simulate-serverless: "+format+"\n", args...)
+			}
+		}
+		return activateLambdaEnv(SimulateLambdaOptions{Logger: logger}), nil
+	default:
+		return envSnapshot{}, fmt.Errorf(
+			"activateSimulation: internal error — platform %q passed validation but has no activator",
+			platform,
+		)
+	}
 }
 
 // parseAuthURL extracts basic auth credentials from a URL.
