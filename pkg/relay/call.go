@@ -718,13 +718,13 @@ func (c *Call) JoinConference(name string, opts ...ConferenceOption) error {
 	for _, opt := range opts {
 		opt(params)
 	}
-	_, err := c.client.execute("calling.conference", params)
+	_, err := c.client.execute("calling.join_conference", params)
 	return err
 }
 
 // LeaveConference removes the call from a conference.
 func (c *Call) LeaveConference(confID string) error {
-	_, err := c.client.execute("calling.conference.leave", map[string]any{
+	_, err := c.client.execute("calling.leave_conference", map[string]any{
 		"node_id":       c.nodeID,
 		"call_id":       c.callID,
 		"conference_id": confID,
@@ -792,7 +792,7 @@ func (c *Call) AIMessage(controlID, text, role string, reset map[string]any, glo
 	if globalData != nil {
 		params["global_data"] = globalData
 	}
-	_, err := c.client.execute("calling.ai.message", params)
+	_, err := c.client.execute("calling.ai_message", params)
 	return err
 }
 
@@ -810,7 +810,7 @@ func (c *Call) AIHold(controlID string, timeout string, prompt string) error {
 	if prompt != "" {
 		params["prompt"] = prompt
 	}
-	_, err := c.client.execute("calling.ai.hold", params)
+	_, err := c.client.execute("calling.ai_hold", params)
 	return err
 }
 
@@ -825,7 +825,7 @@ func (c *Call) AIUnhold(controlID string, prompt string) error {
 	if prompt != "" {
 		params["prompt"] = prompt
 	}
-	_, err := c.client.execute("calling.ai.unhold", params)
+	_, err := c.client.execute("calling.ai_unhold", params)
 	return err
 }
 
@@ -884,13 +884,13 @@ func (c *Call) JoinRoom(name string, statusURL string) error {
 	if statusURL != "" {
 		params["status_url"] = statusURL
 	}
-	_, err := c.client.execute("calling.room.join", params)
+	_, err := c.client.execute("calling.join_room", params)
 	return err
 }
 
 // LeaveRoom removes the call from the current room.
 func (c *Call) LeaveRoom() error {
-	_, err := c.client.execute("calling.room.leave", map[string]any{
+	_, err := c.client.execute("calling.leave_room", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
