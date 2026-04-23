@@ -2243,6 +2243,25 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 		mux.HandleFunc(mcpRoute, a.handleMcp)
 	}
 
+	// Routing-callback endpoints — matches Python web_mixin.py lines 427-447
+	// which registers an HTTP endpoint per routing callback. Without this,
+	// callbacks registered via RegisterRoutingCallback / AgentServer
+	// .RegisterGlobalRoutingCallback are stored in the swml service but never
+	// dispatched.
+	for _, cbPath := range a.swmlService.RoutingCallbackPaths() {
+		// Skip the root path — already handled by the main SWML endpoint above.
+		if cbPath == "/" || cbPath == swmlRoute {
+			continue
+		}
+		path := strings.TrimRight(cbPath, "/")
+		if path == "" {
+			continue
+		}
+		// Register both with and without trailing slash, matching Python.
+		mux.HandleFunc(path, a.withAuth(a.handleSWML))
+		mux.HandleFunc(path+"/", a.withAuth(a.handleSWML))
+	}
+
 	return mux
 }
 
@@ -2255,6 +2274,31 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
 		json.NewDecoder(r.Body).Decode(&body)
+	}
+
+	// Routing-callback dispatch. Python web_mixin._handle_request (line 620)
+	// checks whether the request URL matches a registered routing callback
+	// and, if so, delegates document generation to that callback. Match the
+	// URL path against both the exact registered key and the trim-right form
+	// (so /agents/ matches /agents).
+	urlPath := r.URL.Path
+	swmlRoute := strings.TrimRight(a.swmlService.Route, "/")
+	if swmlRoute == "" {
+		swmlRoute = "/"
+	}
+	isSwmlRoute := urlPath == swmlRoute || urlPath == swmlRoute+"/"
+	var callbackPath string
+	if !isSwmlRoute {
+		for _, p := range a.swmlService.RoutingCallbackPaths() {
+			trim := strings.TrimRight(p, "/")
+			if trim == "" {
+				continue
+			}
+			if urlPath == trim || urlPath == trim+"/" {
+				callbackPath = p
+				break
+			}
+		}
 	}
 
 	a.mu.RLock()
@@ -2270,10 +2314,15 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	// AgentBase.OnRequest delegates to OnSwmlRequest. Call OnSwmlRequest
 	// directly so the *http.Request reaches subclasses (matching Python, which
 	// passes the request).
-	modifications := a.OnSwmlRequest(body, "", r)
+	modifications := a.OnSwmlRequest(body, callbackPath, r)
 
 	var doc map[string]any
-	if hasDynamic {
+	if callbackPath != "" {
+		// The swml service's OnRequest dispatches to the registered callback
+		// and returns the callback's result; if the callback returns nil,
+		// OnRequest falls back to the default rendered document.
+		doc = a.swmlService.OnRequest(body, callbackPath)
+	} else if hasDynamic {
 		doc = a.handleDynamicConfig(body, r)
 	} else {
 		doc = a.RenderSWML(body, r)
