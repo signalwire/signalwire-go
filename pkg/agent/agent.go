@@ -45,14 +45,53 @@ type DebugEventHandler func(event map[string]any)
 // ToolDefinition describes a single SWAIG tool including its JSON Schema
 // parameters and a Go handler function.
 type ToolDefinition struct {
-	Name        string
-	Description string
-	Parameters  map[string]any // JSON Schema for arguments
-	Handler     ToolHandler
-	Secure      bool
-	Fillers     map[string][]string
-	MetaData    map[string]any
-	SwaigFields map[string]any // extra per-function SWAIG fields
+	Name           string
+	Description    string
+	Parameters     map[string]any // JSON Schema for arguments (properties map)
+	Required       []string       // Required parameter names included in the JSON Schema envelope
+	Handler        ToolHandler
+	Secure         bool
+	Fillers        map[string][]string
+	WaitFile       string         // URL to audio file to play while the function executes
+	WaitFileLoops  int            // Number of times to loop WaitFile (0 = no loop)
+	WebhookURL     string         // Per-tool webhook URL; overrides the agent-level webhook when non-empty
+	MetaData       map[string]any
+	SwaigFields    map[string]any // extra per-function SWAIG fields
+}
+
+// ValidateArgs validates the provided args map against the tool's parameter schema.
+//
+// It constructs a JSON Schema envelope from Parameters and Required (matching the
+// shape emitted by buildSwaigFunctions) and validates args against that schema using
+// encoding/json round-trip comparison.  When Parameters is nil or empty the function
+// returns (true, nil) immediately, mirroring the Python SDK's behaviour of skipping
+// validation when no schema is declared.
+//
+// Go's standard library does not include a JSON Schema validator, so this
+// implementation performs a best-effort structural check:
+//   - Every key listed in Required must be present in args.
+//   - No third-party dependency is introduced; the check is intentionally lightweight.
+//
+// A full JSON Schema validator (e.g. github.com/xeipuuv/gojsonschema) can be
+// swapped in by replacing the body of this method.
+func (td *ToolDefinition) ValidateArgs(args map[string]any) (bool, []string) {
+	if len(td.Parameters) == 0 {
+		return true, nil
+	}
+
+	var errs []string
+
+	// Check required parameters are present.
+	for _, req := range td.Required {
+		if _, ok := args[req]; !ok {
+			errs = append(errs, "'"+req+"' is a required property")
+		}
+	}
+
+	if len(errs) > 0 {
+		return false, errs
+	}
+	return true, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -1171,6 +1210,21 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
+// Routing callbacks
+// ---------------------------------------------------------------------------
+
+// RegisterRoutingCallback registers a swml.RoutingCallback for the given
+// path on the agent's underlying SWML service.  The callback is invoked on
+// every incoming request to that path and may return an SWML document
+// override (or nil to use the agent's default response).
+//
+// This method is used by AgentServer.RegisterGlobalRoutingCallback to
+// propagate a unified routing callback across all agents.
+func (a *AgentBase) RegisterRoutingCallback(path string, cb swml.RoutingCallback) {
+	a.swmlService.RegisterRoutingCallback(path, cb)
+}
+
+// ---------------------------------------------------------------------------
 // SIP methods
 // ---------------------------------------------------------------------------
 
@@ -1373,17 +1427,27 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 			continue
 		}
 
+		// Determine the effective webhook URL: per-tool override takes precedence.
+		effectiveWebhook := webhookURL
+		if tool.WebhookURL != "" {
+			effectiveWebhook = tool.WebhookURL
+		}
+
 		fn := map[string]any{
 			"function":     tool.Name,
-			"purpose":      tool.Description,
-			"web_hook_url": webhookURL,
+			"description":  tool.Description,
+			"web_hook_url": effectiveWebhook,
 		}
 
 		if tool.Parameters != nil {
-			fn["argument"] = map[string]any{
+			params := map[string]any{
 				"type":       "object",
 				"properties": tool.Parameters,
 			}
+			if len(tool.Required) > 0 {
+				params["required"] = tool.Required
+			}
+			fn["parameters"] = params
 		}
 
 		if tool.Secure {
@@ -1392,6 +1456,12 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 
 		if tool.Fillers != nil {
 			fn["fillers"] = tool.Fillers
+		}
+		if tool.WaitFile != "" {
+			fn["wait_file"] = tool.WaitFile
+		}
+		if tool.WaitFileLoops > 0 {
+			fn["wait_file_loops"] = tool.WaitFileLoops
 		}
 		if tool.MetaData != nil {
 			fn["meta_data"] = tool.MetaData

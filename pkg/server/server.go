@@ -10,6 +10,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/agent"
 	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/pkg/swml"
 )
 
 // ---------------------------------------------------------------------------
@@ -53,6 +54,17 @@ func WithServerHost(host string) ServerOption {
 // WithServerPort sets the listen port for the server.
 func WithServerPort(port int) ServerOption {
 	return func(s *AgentServer) { s.port = port }
+}
+
+// WithLogLevel sets the global log level for the server.
+// Accepted values (case-insensitive): "debug", "info", "warn", "warning",
+// "error", "off".  Mirrors Python AgentServer(log_level=...) behavior: the
+// level is applied globally via logging.SetGlobalLevel so all loggers in the
+// process are affected.  The default level is "info".
+func WithLogLevel(level string) ServerOption {
+	return func(s *AgentServer) {
+		logging.SetGlobalLevel(logging.ParseLevel(level))
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -231,11 +243,43 @@ func (s *AgentServer) ServeStaticFiles(directory, route string) {
 }
 
 // ---------------------------------------------------------------------------
+// Global routing callbacks
+// ---------------------------------------------------------------------------
+
+// RegisterGlobalRoutingCallback registers a routing callback across all
+// currently-registered agents at the given path.  The callback fires on every
+// incoming request to that path and can return an SWML document override (or
+// nil to fall through to the agent's default response).
+//
+// This is the Go equivalent of Python's
+// AgentServer.register_global_routing_callback(callback_fn, path).
+func (s *AgentServer) RegisterGlobalRoutingCallback(path string, cb swml.RoutingCallback) {
+	// Normalise the path to start with "/"
+	if len(path) == 0 || path[0] != '/' {
+		path = "/" + path
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, a := range s.agents {
+		a.RegisterRoutingCallback(path, cb)
+	}
+
+	s.logger.Info("registered global routing callback at %s on %d agent(s)", path, len(s.agents))
+}
+
+// ---------------------------------------------------------------------------
 // HTTP server
 // ---------------------------------------------------------------------------
 
 // Run starts the HTTP server.  This is a blocking call.  Optional RunOption
 // values can override host and port at start time.
+//
+// Serverless dispatch: unlike Python's AgentServer.run() which auto-detects
+// CGI and Lambda environments, Run() is HTTP-server-only.  For AWS Lambda
+// deployments use the pkg/lambda package instead.  CGI mode has no Go
+// equivalent; deploy as a standard HTTP service behind a reverse proxy.
 func (s *AgentServer) Run(opts ...RunOption) error {
 	for _, opt := range opts {
 		opt(s)

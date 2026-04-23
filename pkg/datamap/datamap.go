@@ -277,7 +277,7 @@ func (dm *DataMap) GlobalErrorKeys(keys []string) *DataMap {
 }
 
 // ToSwaigFunction converts the DataMap to a complete SWAIG function definition map.
-// The returned map contains "function", "purpose", "argument", and "data_map" keys.
+// The returned map contains "function", "description", "parameters", and "data_map" keys.
 func (dm *DataMap) ToSwaigFunction() map[string]any {
 	// Build parameter schema
 	properties := make(map[string]any)
@@ -350,10 +350,10 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 	}
 
 	return map[string]any{
-		"function": dm.functionName,
-		"purpose":  desc,
-		"argument": argument,
-		"data_map": dataMap,
+		"function":    dm.functionName,
+		"description": desc,
+		"parameters":  argument,
+		"data_map":    dataMap,
 	}
 }
 
