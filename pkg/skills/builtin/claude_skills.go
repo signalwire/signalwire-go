@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -513,39 +514,21 @@ func (s *ClaudeSkillsSkill) executeShellInjection(content, skillDir string, time
 			return match
 		}
 		command := sub[1]
-		ctx, cancel := func() (interface{ Done() <-chan struct{} }, func()) {
-			// Use time-based approach compatible with Go 1.22.
-			return nil, func() {}
-		}()
-		_ = ctx
-		cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+		defer cancel()
 
-		cmd := exec.Command("sh", "-c", command)
+		cmd := exec.CommandContext(ctx, "sh", "-c", command)
 		cmd.Dir = skillDir
-		done := make(chan []byte, 1)
-		errCh := make(chan error, 1)
-		go func() {
-			out, err := cmd.Output()
-			if err != nil {
-				errCh <- err
-				return
-			}
-			done <- out
-		}()
-
-		select {
-		case out := <-done:
-			return strings.TrimRight(string(out), "\n")
-		case err := <-errCh:
-			slog.Error("claude_skills: shell command failed", "command", command, "error", err)
-			return fmt.Sprintf("[command error: %s]", command)
-		case <-time.After(time.Duration(timeout) * time.Second):
-			if cmd.Process != nil {
-				cmd.Process.Kill()
-			}
+		out, err := cmd.Output()
+		if ctx.Err() == context.DeadlineExceeded {
 			slog.Error("claude_skills: shell command timed out", "command", command, "timeout", timeout)
 			return fmt.Sprintf("[command timed out: %s]", command)
 		}
+		if err != nil {
+			slog.Error("claude_skills: shell command failed", "command", command, "error", err)
+			return fmt.Sprintf("[command error: %s]", command)
+		}
+		return strings.TrimRight(string(out), "\n")
 	})
 }
 
@@ -789,7 +772,10 @@ func (s *ClaudeSkillsSkill) GetPromptSections() []map[string]any {
 			for _, category := range []string{"scripts", "assets", "other"} {
 				fileList := skill.files[category]
 				if len(fileList) > 0 {
-					label := strings.Title(category)
+					// ASCII title-case (strings.Title is deprecated).
+					// category is always lowercase ASCII (scripts/assets/other),
+					// so upper-first-byte is sufficient.
+					label := strings.ToUpper(category[:1]) + category[1:]
 					if category == "other" {
 						label = "Other files"
 					}
