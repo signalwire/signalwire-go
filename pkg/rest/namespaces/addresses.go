@@ -26,7 +26,7 @@ func (r *AddressesNamespace) List(params map[string]string) (map[string]any, err
 
 // Create creates a new address.
 func (r *AddressesNamespace) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // Get retrieves an address by ID.
@@ -35,6 +35,6 @@ func (r *AddressesNamespace) Get(id string) (map[string]any, error) {
 }
 
 // Delete removes an address by ID.
-func (r *AddressesNamespace) Delete(id string) error {
+func (r *AddressesNamespace) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }

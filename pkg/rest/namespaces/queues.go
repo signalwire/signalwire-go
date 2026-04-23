@@ -33,3 +33,7 @@ func (r *QueuesNamespace) GetNextMember(queueID string) (map[string]any, error) 
 func (r *QueuesNamespace) GetMember(queueID, memberID string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(queueID, "members", memberID), nil)
 }
+
+// QueuesResource is an alias for QueuesNamespace, matching the Python class name
+// for cross-SDK parity. Prefer QueuesNamespace in new Go code.
+type QueuesResource = QueuesNamespace

@@ -23,7 +23,7 @@ func (r *CompatAccounts) List(params map[string]string) (map[string]any, error) 
 
 // Create creates a new compat account.
 func (r *CompatAccounts) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // Get retrieves a compat account by SID.
@@ -33,7 +33,7 @@ func (r *CompatAccounts) Get(sid string) (map[string]any, error) {
 
 // Update updates a compat account by SID.
 func (r *CompatAccounts) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // ---------- CompatCalls ----------
@@ -45,27 +45,27 @@ type CompatCalls struct {
 
 // Update updates a call (uses POST per Twilio compat).
 func (r *CompatCalls) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // StartRecording starts recording on a call.
 func (r *CompatCalls) StartRecording(callSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callSID, "Recordings"), data)
+	return r.HTTP.Post(r.Path(callSID, "Recordings"), data, nil)
 }
 
 // UpdateRecording updates a recording on a call.
 func (r *CompatCalls) UpdateRecording(callSID, recordingSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callSID, "Recordings", recordingSID), data)
+	return r.HTTP.Post(r.Path(callSID, "Recordings", recordingSID), data, nil)
 }
 
 // StartStream starts a stream on a call.
 func (r *CompatCalls) StartStream(callSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callSID, "Streams"), data)
+	return r.HTTP.Post(r.Path(callSID, "Streams"), data, nil)
 }
 
 // StopStream stops a stream on a call.
 func (r *CompatCalls) StopStream(callSID, streamSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callSID, "Streams", streamSID), data)
+	return r.HTTP.Post(r.Path(callSID, "Streams", streamSID), data, nil)
 }
 
 // ---------- CompatMessages ----------
@@ -77,7 +77,7 @@ type CompatMessages struct {
 
 // Update updates a message (uses POST per Twilio compat).
 func (r *CompatMessages) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // ListMedia lists media for a message.
@@ -91,7 +91,7 @@ func (r *CompatMessages) GetMedia(messageSID, mediaSID string) (map[string]any, 
 }
 
 // DeleteMedia deletes a media item from a message.
-func (r *CompatMessages) DeleteMedia(messageSID, mediaSID string) error {
+func (r *CompatMessages) DeleteMedia(messageSID, mediaSID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(messageSID, "Media", mediaSID))
 }
 
@@ -104,7 +104,7 @@ type CompatFaxes struct {
 
 // Update updates a fax (uses POST per Twilio compat).
 func (r *CompatFaxes) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // ListMedia lists media for a fax.
@@ -118,7 +118,7 @@ func (r *CompatFaxes) GetMedia(faxSID, mediaSID string) (map[string]any, error) 
 }
 
 // DeleteMedia deletes a media item from a fax.
-func (r *CompatFaxes) DeleteMedia(faxSID, mediaSID string) error {
+func (r *CompatFaxes) DeleteMedia(faxSID, mediaSID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(faxSID, "Media", mediaSID))
 }
 
@@ -142,7 +142,7 @@ func (r *CompatConferences) Get(sid string) (map[string]any, error) {
 
 // Update updates a conference.
 func (r *CompatConferences) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // Participants
@@ -159,11 +159,11 @@ func (r *CompatConferences) GetParticipant(conferenceSID, callSID string) (map[s
 
 // UpdateParticipant updates a participant in a conference.
 func (r *CompatConferences) UpdateParticipant(conferenceSID, callSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceSID, "Participants", callSID), data)
+	return r.HTTP.Post(r.Path(conferenceSID, "Participants", callSID), data, nil)
 }
 
 // RemoveParticipant removes a participant from a conference.
-func (r *CompatConferences) RemoveParticipant(conferenceSID, callSID string) error {
+func (r *CompatConferences) RemoveParticipant(conferenceSID, callSID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(conferenceSID, "Participants", callSID))
 }
 
@@ -181,11 +181,11 @@ func (r *CompatConferences) GetRecording(conferenceSID, recordingSID string) (ma
 
 // UpdateRecording updates a recording in a conference.
 func (r *CompatConferences) UpdateRecording(conferenceSID, recordingSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceSID, "Recordings", recordingSID), data)
+	return r.HTTP.Post(r.Path(conferenceSID, "Recordings", recordingSID), data, nil)
 }
 
 // DeleteRecording deletes a recording from a conference.
-func (r *CompatConferences) DeleteRecording(conferenceSID, recordingSID string) error {
+func (r *CompatConferences) DeleteRecording(conferenceSID, recordingSID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(conferenceSID, "Recordings", recordingSID))
 }
 
@@ -193,12 +193,12 @@ func (r *CompatConferences) DeleteRecording(conferenceSID, recordingSID string) 
 
 // StartStream starts a stream on a conference.
 func (r *CompatConferences) StartStream(conferenceSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceSID, "Streams"), data)
+	return r.HTTP.Post(r.Path(conferenceSID, "Streams"), data, nil)
 }
 
 // StopStream stops a stream on a conference.
 func (r *CompatConferences) StopStream(conferenceSID, streamSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceSID, "Streams", streamSID), data)
+	return r.HTTP.Post(r.Path(conferenceSID, "Streams", streamSID), data, nil)
 }
 
 // ---------- CompatPhoneNumbers ----------
@@ -216,7 +216,7 @@ func (r *CompatPhoneNumbers) List(params map[string]string) (map[string]any, err
 
 // Purchase purchases a phone number.
 func (r *CompatPhoneNumbers) Purchase(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // Get retrieves an incoming phone number by SID.
@@ -226,18 +226,18 @@ func (r *CompatPhoneNumbers) Get(sid string) (map[string]any, error) {
 
 // Update updates an incoming phone number.
 func (r *CompatPhoneNumbers) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // Delete releases an incoming phone number.
-func (r *CompatPhoneNumbers) Delete(sid string) error {
+func (r *CompatPhoneNumbers) Delete(sid string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(sid))
 }
 
 // ImportNumber imports an externally-hosted phone number.
 func (r *CompatPhoneNumbers) ImportNumber(data map[string]any) (map[string]any, error) {
 	path := r.Base[:len(r.Base)-len("/IncomingPhoneNumbers")] + "/ImportedPhoneNumbers"
-	return r.HTTP.Post(path, data)
+	return r.HTTP.Post(path, data, nil)
 }
 
 // ListAvailableCountries lists countries with available numbers.
@@ -264,7 +264,7 @@ type CompatApplications struct {
 
 // Update updates an application (uses POST per Twilio compat).
 func (r *CompatApplications) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // ---------- CompatLamlBins ----------
@@ -276,7 +276,7 @@ type CompatLamlBins struct {
 
 // Update updates a LaML bin (uses POST per Twilio compat).
 func (r *CompatLamlBins) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // ---------- CompatQueues ----------
@@ -288,7 +288,7 @@ type CompatQueues struct {
 
 // Update updates a queue (uses POST per Twilio compat).
 func (r *CompatQueues) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data)
+	return r.HTTP.Post(r.Path(sid), data, nil)
 }
 
 // ListMembers lists members of a queue.
@@ -303,7 +303,7 @@ func (r *CompatQueues) GetMember(queueSID, callSID string) (map[string]any, erro
 
 // DequeueMember dequeues a member from a queue.
 func (r *CompatQueues) DequeueMember(queueSID, callSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(queueSID, "Members", callSID), data)
+	return r.HTTP.Post(r.Path(queueSID, "Members", callSID), data, nil)
 }
 
 // ---------- CompatRecordings ----------
@@ -324,7 +324,7 @@ func (r *CompatRecordings) Get(sid string) (map[string]any, error) {
 }
 
 // Delete removes a recording.
-func (r *CompatRecordings) Delete(sid string) error {
+func (r *CompatRecordings) Delete(sid string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(sid))
 }
 
@@ -346,7 +346,7 @@ func (r *CompatTranscriptions) Get(sid string) (map[string]any, error) {
 }
 
 // Delete removes a transcription.
-func (r *CompatTranscriptions) Delete(sid string) error {
+func (r *CompatTranscriptions) Delete(sid string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(sid))
 }
 
@@ -359,16 +359,16 @@ type CompatTokens struct {
 
 // Create creates a new API token.
 func (r *CompatTokens) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
-// Update updates an API token.
+// Update modifies an API token.
 func (r *CompatTokens) Update(tokenID string, data map[string]any) (map[string]any, error) {
 	return r.HTTP.Patch(r.Path(tokenID), data)
 }
 
 // Delete removes an API token.
-func (r *CompatTokens) Delete(tokenID string) error {
+func (r *CompatTokens) Delete(tokenID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(tokenID))
 }
 
