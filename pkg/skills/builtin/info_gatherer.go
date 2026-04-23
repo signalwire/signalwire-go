@@ -114,20 +114,35 @@ func (s *InfoGathererSkill) RegisterTools() []skills.ToolRegistration {
 	}
 }
 
-func (s *InfoGathererSkill) handleStartQuestions(_ map[string]any, _ map[string]any) *swaig.FunctionResult {
+func (s *InfoGathererSkill) handleStartQuestions(_ map[string]any, rawData map[string]any) *swaig.FunctionResult {
 	if len(s.questions) == 0 {
 		return swaig.NewFunctionResult("I don't have any questions to ask.")
 	}
 
-	q := s.questions[0]
+	// Read question_index from state to support resuming mid-sequence
+	globalData, _ := rawData["global_data"].(map[string]any)
+	namespace := s.getNamespace()
+	state, _ := globalData[namespace].(map[string]any)
+
+	questionIndex := 0
+	if idx, ok := state["question_index"].(float64); ok {
+		questionIndex = int(idx)
+	} else if idx, ok := state["question_index"].(int); ok {
+		questionIndex = idx
+	}
+	if questionIndex >= len(s.questions) {
+		questionIndex = 0
+	}
+
+	q := s.questions[questionIndex]
 	questionText, _ := q["question_text"].(string)
 	total := len(s.questions)
 
 	instruction := fmt.Sprintf(
 		"Ask each question one at a time, wait for the user's answer, "+
 			"then call %s with their answer. Do not reuse previous answers.\n\n"+
-			"[Question 1 of %d]: \"%s\"",
-		s.submitToolName, total, questionText,
+			"[Question %d of %d]: \"%s\"",
+		s.submitToolName, questionIndex+1, total, questionText,
 	)
 
 	if confirm, ok := q["confirm"].(bool); ok && confirm {
@@ -135,6 +150,10 @@ func (s *InfoGathererSkill) handleStartQuestions(_ map[string]any, _ map[string]
 			"\nThis question requires confirmation. Read the answer back to the user "+
 				"and ask them to confirm it is correct before calling %s.", s.submitToolName,
 		)
+	}
+
+	if promptAdd, ok := q["prompt_add"].(string); ok && promptAdd != "" {
+		instruction += "\nNote: " + promptAdd
 	}
 
 	return swaig.NewFunctionResult(instruction)
@@ -165,7 +184,7 @@ func (s *InfoGathererSkill) handleSubmitAnswer(args map[string]any, rawData map[
 		return swaig.NewFunctionResult(fmt.Sprintf(
 			"Before submitting, you must read the answer \"%s\" back to the user "+
 				"and ask them to confirm it is correct. Then call this function again with "+
-				"confirmed set to true.",
+				"confirmed set to true. If the user says it is wrong, ask the question again.",
 			answer,
 		))
 	}
@@ -187,6 +206,10 @@ func (s *InfoGathererSkill) handleSubmitAnswer(args map[string]any, rawData map[
 			instruction += fmt.Sprintf(
 				"\nThis question requires confirmation. Read the answer back to the user "+
 					"and ask them to confirm before calling %s.", s.submitToolName)
+		}
+
+		if promptAdd, ok := nextQ["prompt_add"].(string); ok && promptAdd != "" {
+			instruction += "\nNote: " + promptAdd
 		}
 
 		result := swaig.NewFunctionResult(instruction)
@@ -262,6 +285,15 @@ func (s *InfoGathererSkill) GetParameterSchema() map[string]map[string]any {
 		"type":        "array",
 		"description": "List of question objects with key_name, question_text, and optional confirm",
 		"required":    true,
+		"items": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"key_name":      map[string]any{"type": "string"},
+				"question_text": map[string]any{"type": "string"},
+				"confirm":       map[string]any{"type": "boolean"},
+				"prompt_add":    map[string]any{"type": "string"},
+			},
+		},
 	}
 	schema["prefix"] = map[string]any{
 		"type":        "string",

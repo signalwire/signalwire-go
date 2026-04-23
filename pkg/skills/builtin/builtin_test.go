@@ -65,8 +65,16 @@ func TestDateTimeInstantiationAndSetup(t *testing.T) {
 	if len(tools) == 0 {
 		t.Error("datetime RegisterTools() returned empty")
 	}
-	if tools[0].Name != "get_datetime" {
-		t.Errorf("expected tool name 'get_datetime', got %q", tools[0].Name)
+	// Skills now register get_current_time, get_current_date, and get_datetime.
+	// Verify all three are present.
+	toolNames := make(map[string]bool)
+	for _, tool := range tools {
+		toolNames[tool.Name] = true
+	}
+	for _, want := range []string{"get_current_time", "get_current_date", "get_datetime"} {
+		if !toolNames[want] {
+			t.Errorf("expected tool %q to be registered", want)
+		}
 	}
 	if tools[0].Handler == nil {
 		t.Error("datetime tool handler is nil")
