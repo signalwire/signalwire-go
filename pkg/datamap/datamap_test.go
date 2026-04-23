@@ -77,17 +77,17 @@ func TestToSwaigFunctionBasic(t *testing.T) {
 	if result["function"] != "greet" {
 		t.Errorf("expected function %q, got %v", "greet", result["function"])
 	}
-	if result["purpose"] != "Greet user" {
-		t.Errorf("expected purpose %q, got %v", "Greet user", result["purpose"])
+	if result["description"] != "Greet user" {
+		t.Errorf("expected description %q, got %v", "Greet user", result["description"])
 	}
 
-	// Check argument schema
-	argument, ok := result["argument"].(map[string]any)
+	// Check parameters schema
+	argument, ok := result["parameters"].(map[string]any)
 	if !ok {
-		t.Fatal("expected argument to be map[string]any")
+		t.Fatal("expected parameters to be map[string]any")
 	}
 	if argument["type"] != "object" {
-		t.Errorf("expected argument type %q, got %v", "object", argument["type"])
+		t.Errorf("expected parameters type %q, got %v", "object", argument["type"])
 	}
 
 	properties, ok := argument["properties"].(map[string]any)
@@ -144,8 +144,8 @@ func TestToSwaigFunctionDefaultDescription(t *testing.T) {
 	dm := New("my_tool")
 	result := dm.ToSwaigFunction()
 
-	if result["purpose"] != "Execute my_tool" {
-		t.Errorf("expected default purpose %q, got %v", "Execute my_tool", result["purpose"])
+	if result["description"] != "Execute my_tool" {
+		t.Errorf("expected default description %q, got %v", "Execute my_tool", result["description"])
 	}
 }
 
@@ -156,7 +156,7 @@ func TestParametersWithEnum(t *testing.T) {
 
 	result := dm.ToSwaigFunction()
 
-	argument := result["argument"].(map[string]any)
+	argument := result["parameters"].(map[string]any)
 	properties := argument["properties"].(map[string]any)
 	modeProp := properties["mode"].(map[string]any)
 
@@ -181,7 +181,7 @@ func TestParametersNoEnum(t *testing.T) {
 
 	result := dm.ToSwaigFunction()
 
-	argument := result["argument"].(map[string]any)
+	argument := result["parameters"].(map[string]any)
 	properties := argument["properties"].(map[string]any)
 	queryProp := properties["query"].(map[string]any)
 
@@ -361,8 +361,8 @@ func TestCreateSimpleApiTool(t *testing.T) {
 	}
 
 	// Should have default purpose since none was set
-	if result["purpose"] != "Execute get_stock" {
-		t.Errorf("expected default purpose, got %v", result["purpose"])
+	if result["description"] != "Execute get_stock" {
+		t.Errorf("expected default description, got %v", result["description"])
 	}
 
 	dataMap := result["data_map"].(map[string]any)
@@ -434,10 +434,10 @@ func TestCreateSimpleApiToolWithBody(t *testing.T) {
 func TestCreateExpressionTool(t *testing.T) {
 	dm := CreateExpressionTool(
 		"playback_control",
-		map[string][2]any{
+		map[string]ExpressionPattern{
 			"${args.command}": {
-				"play.*",
-				swaig.NewFunctionResult("Playing now"),
+				Pattern: "play.*",
+				Result:  swaig.NewFunctionResult("Playing now"),
 			},
 		},
 		map[string]map[string]any{
@@ -588,7 +588,7 @@ func TestEmptyDataMap(t *testing.T) {
 		t.Errorf("expected empty data_map, got %d entries", len(dataMap))
 	}
 
-	argument := result["argument"].(map[string]any)
+	argument := result["parameters"].(map[string]any)
 	properties := argument["properties"].(map[string]any)
 	if len(properties) != 0 {
 		t.Errorf("expected empty properties, got %d entries", len(properties))
