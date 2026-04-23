@@ -275,12 +275,37 @@ func (a *Agent) OnUserTurnCompleted(fn func(turnCtx any, newMessage any)) *Agent
 	return a
 }
 
-// UpdateTools replaces the agent's tool list.
-// Mirrors Python Agent.update_tools (line 394) which sets self._tools = list(tools).
+// UpdateTools replaces the agent's tool list. Mirrors Python
+// Agent.update_tools (livewire/__init__.py:394) which accepts List[Any]
+// and stores self._tools = list(tools). In Go, the parameter is []any
+// to keep the unexported toolDef out of the public signature (the
+// original typed []toolDef made the method uncallable from external
+// packages). Elements that aren't recognized tools are silently
+// skipped, matching Python's permissive storage semantics.
 // Returns the Agent for method chaining.
-func (a *Agent) UpdateTools(tools []toolDef) *Agent {
-	a.tools = tools
+func (a *Agent) UpdateTools(tools []any) *Agent {
+	a.tools = coerceTools(tools)
 	return a
+}
+
+// coerceTools narrows a []any to []toolDef by extracting recognized
+// internal tool representations. Anything else is silently dropped —
+// matches Python's behavior where non-@function_tool callables in the
+// list are ignored by _register_function_tool's _livewire_tool filter
+// (livewire/__init__.py:592-594).
+func coerceTools(in []any) []toolDef {
+	out := make([]toolDef, 0, len(in))
+	for _, t := range in {
+		switch td := t.(type) {
+		case toolDef:
+			out = append(out, td)
+		case *toolDef:
+			if td != nil {
+				out = append(out, *td)
+			}
+		}
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------
@@ -424,7 +449,7 @@ func WithMaxToolSteps(n int) SessionOption {
 // self._tools (line 459) and merges them in _build_sw_agent() (line 591).
 func WithSessionTools(tools ...any) SessionOption {
 	return func(s *AgentSession) {
-		s.logNoop("session_tools", "WithSessionTools(): session-level tools will be merged with agent tools in Start()")
+		s.sessionTools = append(s.sessionTools, coerceTools(tools)...)
 	}
 }
 
