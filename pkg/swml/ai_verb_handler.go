@@ -183,9 +183,9 @@ func (h *AIVerbHandler) BuildConfig(params map[string]any) (map[string]any, erro
 			extraParams[k] = v
 		}
 	}
-	if len(extraParams) > 0 {
-		config["params"] = extraParams
-	}
+	// Always emit "params" (even if empty) to match Python's AIVerbHandler.build_config,
+	// which initializes config["params"] = {} before the kwargs loop.
+	config["params"] = extraParams
 
 	return config, nil
 }
