@@ -715,19 +715,19 @@ func TestRenderSWML_WithTools(t *testing.T) {
 			if fn["function"] != "get_weather" {
 				t.Errorf("expected function=get_weather, got %v", fn["function"])
 			}
-			if fn["purpose"] != "Get weather" {
-				t.Errorf("unexpected purpose: %v", fn["purpose"])
+			if fn["description"] != "Get weather" {
+				t.Errorf("unexpected description: %v", fn["description"])
 			}
 			webhookURL, _ := fn["web_hook_url"].(string)
 			if !strings.Contains(webhookURL, "/swaig") {
 				t.Errorf("expected webhook URL to contain /swaig, got %q", webhookURL)
 			}
-			arg, ok := fn["argument"].(map[string]any)
+			params, ok := fn["parameters"].(map[string]any)
 			if !ok {
-				t.Fatal("expected argument schema")
+				t.Fatal("expected parameters schema")
 			}
-			if arg["type"] != "object" {
-				t.Errorf("expected argument type=object, got %v", arg["type"])
+			if params["type"] != "object" {
+				t.Errorf("expected parameters type=object, got %v", params["type"])
 			}
 			return
 		}
