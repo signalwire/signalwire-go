@@ -89,7 +89,12 @@ func TestServiceAllVerbMethods(t *testing.T) {
 		{"SendFax", func() error { return svc.SendFax(map[string]any{}) }},
 		{"ReceiveFax", func() error { return svc.ReceiveFax(map[string]any{}) }},
 		{"SIPRefer", func() error { return svc.SIPRefer(map[string]any{}) }},
-		{"AI", func() error { return svc.AI(nil, nil, nil, nil, nil, nil) }},
+		{"AI", func() error {
+			// After the verb-handler registry (PR #86) landed, AIVerbHandler
+			// rejects a blank prompt. Provide the minimum valid shape.
+			pt := "hello"
+			return svc.AI(&pt, nil, nil, nil, nil, nil)
+		}},
 		{"AmazonBedrock", func() error { return svc.AmazonBedrock(map[string]any{}) }},
 		{"Cond", func() error { return svc.Cond(map[string]any{}) }},
 		{"Switch", func() error { return svc.Switch(map[string]any{}) }},

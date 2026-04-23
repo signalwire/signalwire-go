@@ -20,18 +20,7 @@ import (
 // If it returns nil, the default document is used.
 type RoutingCallback func(r *http.Request, body map[string]any) map[string]any
 
-// VerbHandler is the interface for custom SWML verb handlers.
-// Implement this interface and pass instances to RegisterVerbHandler to
-// add custom validation or build logic for a verb. This mirrors
-// Python's SWMLVerbHandler interface.
-type VerbHandler interface {
-	// GetVerbName returns the SWML verb name this handler manages.
-	GetVerbName() string
-	// ValidateConfig validates a verb config map and returns (isValid, errorMessages).
-	ValidateConfig(config map[string]any) (bool, []string)
-	// BuildConfig constructs a verb config map from keyword-style options.
-	BuildConfig(opts map[string]any) map[string]any
-}
+// (VerbHandler interface is defined in verb_handler.go.)
 
 // SecurityConfig bundles configuration for all supported authentication methods:
 // HTTP Basic Auth, Bearer token, and API key. Pass it to WithSecurityConfig to
@@ -100,9 +89,6 @@ type Service struct {
 
 	// Schema for verb validation
 	schema *Schema
-
-	// Custom verb handlers (name → handler). Checked before schema validation.
-	verbHandlers map[string]VerbHandler
 
 	// Proxy detection
 	proxyURLBase string
@@ -507,15 +493,7 @@ func (s *Service) FullValidationEnabled() bool {
 	return s.schema != nil
 }
 
-// RegisterVerbHandler registers a custom VerbHandler for a specific verb.
-// When a verb has a registered handler, its ValidateConfig is called instead
-// of (or in addition to) schema validation. Mirrors Python's
-// register_verb_handler(handler: SWMLVerbHandler).
-func (s *Service) RegisterVerbHandler(handler VerbHandler) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.verbHandlers[handler.GetVerbName()] = handler
-}
+// (RegisterVerbHandler is defined in verb_handler.go.)
 
 // AddSection adds a new named section to the SWML document.
 // Returns false if the section already exists.
@@ -723,10 +701,14 @@ func (s *Service) AI(promptText *string, promptPOM []map[string]any, postPrompt,
 		return fmt.Errorf("AI: promptText and promptPOM are mutually exclusive")
 	}
 	cfg := map[string]any{}
+	// AIVerbHandler expects the wrapped form {"prompt": {"text": ...}} or
+	// {"prompt": {"pom": ...}}, matching Python SWMLBuilder.ai. Prior Go
+	// code emitted a bare string/slice under "prompt" which passed when no
+	// handler validated the ai verb, but fails the handler added in PR #86.
 	if promptText != nil {
-		cfg["prompt"] = *promptText
+		cfg["prompt"] = map[string]any{"text": *promptText}
 	} else if len(promptPOM) > 0 {
-		cfg["prompt"] = promptPOM
+		cfg["prompt"] = map[string]any{"pom": promptPOM}
 	}
 	if postPrompt != nil {
 		cfg["post_prompt"] = *postPrompt
