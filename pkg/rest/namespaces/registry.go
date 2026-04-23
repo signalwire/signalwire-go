@@ -21,7 +21,7 @@ func (r *RegistryBrands) List(params map[string]string) (map[string]any, error) 
 
 // Create creates a new brand.
 func (r *RegistryBrands) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // Get retrieves a brand by ID.
@@ -36,7 +36,7 @@ func (r *RegistryBrands) ListCampaigns(brandID string, params map[string]string)
 
 // CreateCampaign creates a campaign under a brand.
 func (r *RegistryBrands) CreateCampaign(brandID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(brandID, "campaigns"), data)
+	return r.HTTP.Post(r.Path(brandID, "campaigns"), data, nil)
 }
 
 // ---------- RegistryCampaigns ----------
@@ -68,7 +68,7 @@ func (r *RegistryCampaigns) ListOrders(campaignID string, params map[string]stri
 
 // CreateOrder creates a number assignment order for a campaign.
 func (r *RegistryCampaigns) CreateOrder(campaignID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(campaignID, "orders"), data)
+	return r.HTTP.Post(r.Path(campaignID, "orders"), data, nil)
 }
 
 // ---------- RegistryOrders ----------
@@ -91,7 +91,7 @@ type RegistryNumbers struct {
 }
 
 // Delete removes a number assignment.
-func (r *RegistryNumbers) Delete(numberID string) error {
+func (r *RegistryNumbers) Delete(numberID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(numberID))
 }
 

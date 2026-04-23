@@ -145,8 +145,8 @@ type httpAdapter struct {
 func (a *httpAdapter) Get(path string, params map[string]string) (map[string]any, error) {
 	return a.c.Get(path, params)
 }
-func (a *httpAdapter) Post(path string, body map[string]any) (map[string]any, error) {
-	return a.c.Post(path, body)
+func (a *httpAdapter) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
+	return a.c.Post(path, body, params)
 }
 func (a *httpAdapter) Put(path string, body map[string]any) (map[string]any, error) {
 	return a.c.Put(path, body)
@@ -154,6 +154,6 @@ func (a *httpAdapter) Put(path string, body map[string]any) (map[string]any, err
 func (a *httpAdapter) Patch(path string, body map[string]any) (map[string]any, error) {
 	return a.c.Patch(path, body)
 }
-func (a *httpAdapter) Delete(path string) error {
+func (a *httpAdapter) Delete(path string) (map[string]any, error) {
 	return a.c.Delete(path)
 }
