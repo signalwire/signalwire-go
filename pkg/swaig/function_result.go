@@ -28,6 +28,23 @@ func NewFunctionResult(response string) *FunctionResult {
 	}
 }
 
+// --- Getters ---
+
+// Response returns the natural language response text.
+func (fr *FunctionResult) Response() string {
+	return fr.response
+}
+
+// Actions returns the list of actions added to this result.
+func (fr *FunctionResult) Actions() []map[string]any {
+	return fr.actions
+}
+
+// PostProcess returns whether post-processing is enabled.
+func (fr *FunctionResult) PostProcess() bool {
+	return fr.postProcess
+}
+
 // --- Core methods ---
 
 // SetResponse sets the natural language response text.
@@ -162,9 +179,16 @@ func (fr *FunctionResult) UpdateGlobalData(data map[string]any) *FunctionResult 
 	return fr.AddAction("set_global_data", data)
 }
 
-// RemoveGlobalData removes global agent data variables by key.
+// RemoveGlobalData removes global agent data variables by key slice.
 func (fr *FunctionResult) RemoveGlobalData(keys []string) *FunctionResult {
 	return fr.AddAction("unset_global_data", keys)
+}
+
+// RemoveGlobalDataKey removes a single global agent data variable by key.
+// This matches the Python SDK's Union[str, List[str]] behavior for a bare string argument,
+// which emits the key as a string (not a one-element array) in the action payload.
+func (fr *FunctionResult) RemoveGlobalDataKey(key string) *FunctionResult {
+	return fr.AddAction("unset_global_data", key)
 }
 
 // SetMetadata sets metadata scoped to the current function's meta_data_token.
@@ -175,6 +199,13 @@ func (fr *FunctionResult) SetMetadata(data map[string]any) *FunctionResult {
 // RemoveMetadata removes metadata keys from the current function's scope.
 func (fr *FunctionResult) RemoveMetadata(keys []string) *FunctionResult {
 	return fr.AddAction("unset_meta_data", keys)
+}
+
+// RemoveMetadataKey removes a single metadata key from the current function's scope.
+// This matches the Python SDK's Union[str, List[str]] behavior for a bare string argument,
+// which emits the key as a string (not a one-element array) in the action payload.
+func (fr *FunctionResult) RemoveMetadataKey(key string) *FunctionResult {
+	return fr.AddAction("unset_meta_data", key)
 }
 
 // SwmlUserEvent sends a user event through SWML for real-time UI updates.
@@ -195,13 +226,17 @@ func (fr *FunctionResult) SwmlUserEvent(eventData map[string]any) *FunctionResul
 }
 
 // SwmlChangeStep transitions to a different conversation step.
+// Emits action key "change_step" with the step name as a plain string value,
+// matching the Python SDK's add_action("change_step", step_name).
 func (fr *FunctionResult) SwmlChangeStep(stepName string) *FunctionResult {
-	return fr.AddAction("context_switch", map[string]any{"step": stepName})
+	return fr.AddAction("change_step", stepName)
 }
 
 // SwmlChangeContext transitions to a different conversation context.
+// Emits action key "change_context" with the context name as a plain string value,
+// matching the Python SDK's add_action("change_context", context_name).
 func (fr *FunctionResult) SwmlChangeContext(contextName string) *FunctionResult {
-	return fr.AddAction("context_switch", map[string]any{"context": contextName})
+	return fr.AddAction("change_context", contextName)
 }
 
 // SwitchContext changes the agent context/prompt during conversation.
@@ -267,8 +302,37 @@ func (fr *FunctionResult) StopBackgroundFile() *FunctionResult {
 	return fr.AddAction("stop_playback_bg", true)
 }
 
+// RecordCallOptions holds optional parameters for RecordCall beyond the required fields.
+type RecordCallOptions struct {
+	// Terminators specifies digits that stop recording when pressed.
+	Terminators string
+	// Beep plays a beep before recording starts when true.
+	Beep bool
+	// InputSensitivity sets the input sensitivity for recording (default 44.0 in Python).
+	// Zero value is omitted from the SWML payload.
+	InputSensitivity float64
+	// InitialTimeout is the time in seconds to wait for speech to start (voicemail-style).
+	// Negative value is omitted.
+	InitialTimeout float64
+	// InitialTimeoutSet must be true for InitialTimeout of 0.0 to be included.
+	InitialTimeoutSet bool
+	// EndSilenceTimeout is seconds of silence before ending (voicemail-style).
+	// Negative value is omitted.
+	EndSilenceTimeout float64
+	// EndSilenceTimeoutSet must be true for EndSilenceTimeout of 0.0 to be included.
+	EndSilenceTimeoutSet bool
+	// MaxLength is the maximum recording length in seconds. Negative value is omitted.
+	MaxLength float64
+	// MaxLengthSet must be true for MaxLength of 0.0 to be included.
+	MaxLengthSet bool
+	// StatusURL is the URL to send recording status events to.
+	StatusURL string
+}
+
 // RecordCall starts background call recording using SWML.
-func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format string, direction string) *FunctionResult {
+// controlID, stereo, format, and direction are the primary parameters.
+// Use opts to specify additional optional parameters (pass nil to use defaults).
+func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format string, direction string, opts *RecordCallOptions) *FunctionResult {
 	recordParams := map[string]any{
 		"stereo":    stereo,
 		"format":    format,
@@ -276,6 +340,30 @@ func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format strin
 	}
 	if controlID != "" {
 		recordParams["control_id"] = controlID
+	}
+
+	if opts != nil {
+		if opts.Terminators != "" {
+			recordParams["terminators"] = opts.Terminators
+		}
+		if opts.Beep {
+			recordParams["beep"] = opts.Beep
+		}
+		if opts.InputSensitivity != 0 {
+			recordParams["input_sensitivity"] = opts.InputSensitivity
+		}
+		if opts.InitialTimeoutSet || opts.InitialTimeout > 0 {
+			recordParams["initial_timeout"] = opts.InitialTimeout
+		}
+		if opts.EndSilenceTimeoutSet || opts.EndSilenceTimeout > 0 {
+			recordParams["end_silence_timeout"] = opts.EndSilenceTimeout
+		}
+		if opts.MaxLengthSet || opts.MaxLength > 0 {
+			recordParams["max_length"] = opts.MaxLength
+		}
+		if opts.StatusURL != "" {
+			recordParams["status_url"] = opts.StatusURL
+		}
 	}
 
 	swmlDoc := map[string]any{
@@ -379,17 +467,102 @@ func (fr *FunctionResult) ExecuteSwml(swmlContent any, transfer bool) *FunctionR
 	return fr.AddAction("SWML", action)
 }
 
+// JoinConferenceOptions holds optional parameters for JoinConference beyond the required name.
+type JoinConferenceOptions struct {
+	// Muted joins the conference muted when true.
+	Muted bool
+	// Beep controls beep behavior: "true" (default), "false", "onEnter", "onExit".
+	Beep string
+	// StartOnEnter controls whether the conference starts when this participant enters (default true in Python).
+	StartOnEnter *bool
+	// EndOnExit controls whether the conference ends when this participant exits (default false).
+	EndOnExit bool
+	// WaitURL is the SWML URL for hold music (replaces the old holdAudio parameter).
+	WaitURL string
+	// MaxParticipants sets the maximum number of participants (<= 250). 0 uses server default.
+	MaxParticipants int
+	// Record sets the recording mode: "do-not-record" (default) or "record-from-start".
+	Record string
+	// Region sets the conference region.
+	Region string
+	// Trim controls silence trimming: "trim-silence" (default) or "do-not-trim".
+	Trim string
+	// Coach sets the SWML Call ID or CXML CallSid for coaching.
+	Coach string
+	// StatusCallbackEvent specifies events to report (space-separated).
+	StatusCallbackEvent string
+	// StatusCallback is the URL for status callbacks.
+	StatusCallback string
+	// StatusCallbackMethod sets the HTTP method for status callbacks ("GET" or "POST").
+	StatusCallbackMethod string
+	// RecordingStatusCallback is the URL for recording status callbacks.
+	RecordingStatusCallback string
+	// RecordingStatusCallbackMethod sets the HTTP method for recording callbacks ("GET" or "POST").
+	RecordingStatusCallbackMethod string
+	// RecordingStatusCallbackEvent sets recording events to report.
+	RecordingStatusCallbackEvent string
+	// Result sets switch-on-return-value behavior (object or array).
+	Result any
+}
+
 // JoinConference joins an ad-hoc audio conference.
-func (fr *FunctionResult) JoinConference(name string, muted bool, beep string, holdAudio string) *FunctionResult {
+// Pass nil for opts to use default behavior (muted=false, beep="true", no holdAudio).
+func (fr *FunctionResult) JoinConference(name string, opts *JoinConferenceOptions) *FunctionResult {
+	if opts == nil {
+		opts = &JoinConferenceOptions{}
+	}
+
 	joinParams := map[string]any{"name": name}
-	if muted {
+	if opts.Muted {
 		joinParams["muted"] = true
 	}
-	if beep != "" && beep != "true" {
-		joinParams["beep"] = beep
+	if opts.Beep != "" && opts.Beep != "true" {
+		joinParams["beep"] = opts.Beep
 	}
-	if holdAudio != "" {
-		joinParams["wait_url"] = holdAudio
+	if opts.StartOnEnter != nil && !*opts.StartOnEnter {
+		joinParams["start_on_enter"] = false
+	}
+	if opts.EndOnExit {
+		joinParams["end_on_exit"] = true
+	}
+	if opts.WaitURL != "" {
+		joinParams["wait_url"] = opts.WaitURL
+	}
+	if opts.MaxParticipants != 0 && opts.MaxParticipants != 250 {
+		joinParams["max_participants"] = opts.MaxParticipants
+	}
+	if opts.Record != "" && opts.Record != "do-not-record" {
+		joinParams["record"] = opts.Record
+	}
+	if opts.Region != "" {
+		joinParams["region"] = opts.Region
+	}
+	if opts.Trim != "" && opts.Trim != "trim-silence" {
+		joinParams["trim"] = opts.Trim
+	}
+	if opts.Coach != "" {
+		joinParams["coach"] = opts.Coach
+	}
+	if opts.StatusCallbackEvent != "" {
+		joinParams["status_callback_event"] = opts.StatusCallbackEvent
+	}
+	if opts.StatusCallback != "" {
+		joinParams["status_callback"] = opts.StatusCallback
+	}
+	if opts.StatusCallbackMethod != "" && opts.StatusCallbackMethod != "POST" {
+		joinParams["status_callback_method"] = opts.StatusCallbackMethod
+	}
+	if opts.RecordingStatusCallback != "" {
+		joinParams["recording_status_callback"] = opts.RecordingStatusCallback
+	}
+	if opts.RecordingStatusCallbackMethod != "" && opts.RecordingStatusCallbackMethod != "POST" {
+		joinParams["recording_status_callback_method"] = opts.RecordingStatusCallbackMethod
+	}
+	if opts.RecordingStatusCallbackEvent != "" && opts.RecordingStatusCallbackEvent != "completed" {
+		joinParams["recording_status_callback_event"] = opts.RecordingStatusCallbackEvent
+	}
+	if opts.Result != nil {
+		joinParams["result"] = opts.Result
 	}
 
 	swmlDoc := map[string]any{
@@ -430,7 +603,9 @@ func (fr *FunctionResult) SipRefer(toURI string) *FunctionResult {
 }
 
 // Tap starts background call tapping, streaming media to the given URI.
-func (fr *FunctionResult) Tap(uri string, controlID string, direction string, codec string) *FunctionResult {
+// rtpPtime sets the packetization time in milliseconds for RTP streams (0 = use default of 20ms).
+// Pass empty string for statusURL to omit it.
+func (fr *FunctionResult) Tap(uri string, controlID string, direction string, codec string, rtpPtime int, statusURL string) *FunctionResult {
 	tapParams := map[string]any{"uri": uri}
 	if controlID != "" {
 		tapParams["control_id"] = controlID
@@ -440,6 +615,12 @@ func (fr *FunctionResult) Tap(uri string, controlID string, direction string, co
 	}
 	if codec != "" && codec != "PCMU" {
 		tapParams["codec"] = codec
+	}
+	if rtpPtime != 0 && rtpPtime != 20 {
+		tapParams["rtp_ptime"] = rtpPtime
+	}
+	if statusURL != "" {
+		tapParams["status_url"] = statusURL
 	}
 
 	swmlDoc := map[string]any{
@@ -472,8 +653,9 @@ func (fr *FunctionResult) StopTap(controlID string) *FunctionResult {
 }
 
 // SendSms sends a text message to a PSTN phone number.
-// Pass empty string for body if only sending media, and nil for optional slices.
-func (fr *FunctionResult) SendSms(toNumber, fromNumber, body string, media []string, tags []string) *FunctionResult {
+// Pass empty string for body if only sending media, nil for optional slices,
+// and empty string for region to omit it.
+func (fr *FunctionResult) SendSms(toNumber, fromNumber, body string, media []string, tags []string, region string) *FunctionResult {
 	smsParams := map[string]any{
 		"to_number":   toNumber,
 		"from_number": fromNumber,
@@ -487,6 +669,9 @@ func (fr *FunctionResult) SendSms(toNumber, fromNumber, body string, media []str
 	if len(tags) > 0 {
 		smsParams["tags"] = tags
 	}
+	if region != "" {
+		smsParams["region"] = region
+	}
 
 	swmlDoc := map[string]any{
 		"version": "1.0.0",
@@ -499,22 +684,168 @@ func (fr *FunctionResult) SendSms(toNumber, fromNumber, body string, media []str
 	return fr.AddAction("SWML", swmlDoc)
 }
 
+// PayOptions holds all optional parameters for the Pay method.
+type PayOptions struct {
+	// InputMethod is the method to collect payment details ("dtmf" or "voice"). Defaults to "dtmf".
+	InputMethod string
+	// StatusURL is the URL for payment status change notifications.
+	StatusURL string
+	// PaymentMethod is the payment method type. Defaults to "credit-card".
+	PaymentMethod string
+	// Timeout is the seconds to wait for the next digit. Defaults to 5.
+	Timeout int
+	// MaxAttempts is the number of retry attempts. Defaults to 1.
+	MaxAttempts int
+	// SecurityCode controls whether to prompt for security code. Defaults to true.
+	// Use SecurityCodeSet to override; zero value (false) is treated as "not set".
+	SecurityCode bool
+	// SecurityCodeSet must be true to explicitly set SecurityCode=false.
+	SecurityCodeSet bool
+	// PostalCode controls whether to prompt for postal code, or supplies the actual code.
+	// String value is used as-is; bool true/false becomes "true"/"false".
+	PostalCode any
+	// MinPostalCodeLength sets the minimum number of postal code digits. Defaults to 0.
+	MinPostalCodeLength int
+	// TokenType is the payment token type: "one-time" or "reusable". Defaults to "reusable".
+	TokenType string
+	// ChargeAmount is the amount to charge as a decimal string (e.g. "9.99").
+	ChargeAmount string
+	// Currency is the currency code. Defaults to "usd".
+	Currency string
+	// Language is the language for prompts. Defaults to "en-US".
+	Language string
+	// Voice is the TTS voice to use. Defaults to "woman".
+	Voice string
+	// Description is a custom payment description.
+	Description string
+	// ValidCardTypes is a space-separated list of card types. Defaults to "visa mastercard amex".
+	ValidCardTypes string
+	// Parameters is an array of name/value pairs for the payment connector.
+	Parameters []map[string]string
+	// Prompts is an array of custom prompt configurations.
+	Prompts []map[string]any
+	// AIResponse is the message set via "set" verb before pay; empty string uses Python default.
+	// Set to "-" to suppress the set verb entirely (no ai_response).
+	AIResponse string
+}
+
 // Pay processes a payment using SWML pay action.
-func (fr *FunctionResult) Pay(connectorURL string, inputMethod string, actionURL string, timeout int, maxAttempts int) *FunctionResult {
+// connectorURL is the only required parameter.
+// opts may be nil to use Python SDK defaults for all optional parameters.
+func (fr *FunctionResult) Pay(connectorURL string, opts *PayOptions) *FunctionResult {
+	if opts == nil {
+		opts = &PayOptions{}
+	}
+
+	inputMethod := opts.InputMethod
+	if inputMethod == "" {
+		inputMethod = "dtmf"
+	}
+	paymentMethod := opts.PaymentMethod
+	if paymentMethod == "" {
+		paymentMethod = "credit-card"
+	}
+	timeout := opts.Timeout
+	if timeout == 0 {
+		timeout = 5
+	}
+	maxAttempts := opts.MaxAttempts
+	if maxAttempts == 0 {
+		maxAttempts = 1
+	}
+	tokenType := opts.TokenType
+	if tokenType == "" {
+		tokenType = "reusable"
+	}
+	currency := opts.Currency
+	if currency == "" {
+		currency = "usd"
+	}
+	language := opts.Language
+	if language == "" {
+		language = "en-US"
+	}
+	voice := opts.Voice
+	if voice == "" {
+		voice = "woman"
+	}
+	validCardTypes := opts.ValidCardTypes
+	if validCardTypes == "" {
+		validCardTypes = "visa mastercard amex"
+	}
+
+	// Handle security_code: default true
+	securityCode := "true"
+	if opts.SecurityCodeSet && !opts.SecurityCode {
+		securityCode = "false"
+	} else if !opts.SecurityCodeSet && opts.SecurityCode {
+		securityCode = "true"
+	}
+
+	// Handle postal_code: default true
+	var postalCodeStr string
+	if opts.PostalCode == nil {
+		postalCodeStr = "true"
+	} else {
+		switch v := opts.PostalCode.(type) {
+		case bool:
+			if v {
+				postalCodeStr = "true"
+			} else {
+				postalCodeStr = "false"
+			}
+		case string:
+			postalCodeStr = v
+		default:
+			postalCodeStr = fmt.Sprintf("%v", v)
+		}
+	}
+
 	payParams := map[string]any{
 		"payment_connector_url": connectorURL,
 		"input":                 inputMethod,
+		"payment_method":        paymentMethod,
 		"timeout":               fmt.Sprintf("%d", timeout),
 		"max_attempts":          fmt.Sprintf("%d", maxAttempts),
+		"security_code":         securityCode,
+		"postal_code":           postalCodeStr,
+		"min_postal_code_length": fmt.Sprintf("%d", opts.MinPostalCodeLength),
+		"token_type":            tokenType,
+		"currency":              currency,
+		"language":              language,
+		"voice":                 voice,
+		"valid_card_types":      validCardTypes,
+	}
+
+	if opts.StatusURL != "" {
+		payParams["status_url"] = opts.StatusURL
+	}
+	if opts.ChargeAmount != "" {
+		payParams["charge_amount"] = opts.ChargeAmount
+	}
+	if opts.Description != "" {
+		payParams["description"] = opts.Description
+	}
+	if len(opts.Parameters) > 0 {
+		payParams["parameters"] = opts.Parameters
+	}
+	if len(opts.Prompts) > 0 {
+		payParams["prompts"] = opts.Prompts
+	}
+
+	// Determine ai_response: Python default is a status message
+	aiResponse := opts.AIResponse
+	if aiResponse == "" {
+		aiResponse = "The payment status is ${pay_result}, do not mention anything else about collecting payment if successful."
 	}
 
 	mainVerbs := []any{
 		map[string]any{"pay": payParams},
 	}
 
-	if actionURL != "" {
+	if aiResponse != "-" {
 		mainVerbs = append([]any{
-			map[string]any{"set": map[string]any{"ai_response": actionURL}},
+			map[string]any{"set": map[string]any{"ai_response": aiResponse}},
 		}, mainVerbs...)
 	}
 
@@ -530,10 +861,17 @@ func (fr *FunctionResult) Pay(connectorURL string, inputMethod string, actionURL
 // --- RPC Actions ---
 
 // ExecuteRpc executes an RPC method on a call.
-func (fr *FunctionResult) ExecuteRpc(method string, params map[string]any) *FunctionResult {
+// Pass empty strings for callID and nodeID to omit them from the payload.
+func (fr *FunctionResult) ExecuteRpc(method string, params map[string]any, callID string, nodeID string) *FunctionResult {
 	rpcParams := map[string]any{
 		"method":  method,
 		"jsonrpc": "2.0",
+	}
+	if callID != "" {
+		rpcParams["call_id"] = callID
+	}
+	if nodeID != "" {
+		rpcParams["node_id"] = nodeID
 	}
 	if len(params) > 0 {
 		rpcParams["params"] = params
@@ -551,11 +889,15 @@ func (fr *FunctionResult) ExecuteRpc(method string, params map[string]any) *Func
 }
 
 // RpcDial dials out to a number with a destination SWML URL using execute_rpc.
-// Pass nil for callTimeout to omit it, and empty string for region to omit it.
-func (fr *FunctionResult) RpcDial(toNumber, fromNumber, destSwml string, callTimeout *int, region string) *FunctionResult {
+// deviceType defaults to "phone" when empty.
+// This matches the Python SDK's rpc_dial() which calls execute_rpc(method="dial", ...).
+func (fr *FunctionResult) RpcDial(toNumber, fromNumber, destSwml string, deviceType string) *FunctionResult {
+	if deviceType == "" {
+		deviceType = "phone"
+	}
 	dialParams := map[string]any{
 		"devices": map[string]any{
-			"type": "phone",
+			"type": deviceType,
 			"params": map[string]any{
 				"to_number":   toNumber,
 				"from_number": fromNumber,
@@ -563,72 +905,52 @@ func (fr *FunctionResult) RpcDial(toNumber, fromNumber, destSwml string, callTim
 		},
 		"dest_swml": destSwml,
 	}
-	if callTimeout != nil {
-		dialParams["timeout"] = *callTimeout
-	}
-	if region != "" {
-		dialParams["region"] = region
-	}
 
-	return fr.ExecuteRpc("calling.dial", dialParams)
+	return fr.ExecuteRpc("dial", dialParams, "", "")
 }
 
 // RpcAiMessage injects a message into an AI agent on another call.
-func (fr *FunctionResult) RpcAiMessage(callID, messageText string) *FunctionResult {
-	rpcParams := map[string]any{
-		"method":  "calling.ai_message",
-		"jsonrpc": "2.0",
-		"call_id": callID,
-		"params": map[string]any{
-			"role":         "system",
-			"message_text": messageText,
-		},
+// role defaults to "system" when empty, matching the Python SDK default.
+// This matches the Python SDK's rpc_ai_message() which calls execute_rpc(method="ai_message", ...).
+func (fr *FunctionResult) RpcAiMessage(callID, messageText, role string) *FunctionResult {
+	if role == "" {
+		role = "system"
 	}
-
-	swmlDoc := map[string]any{
-		"version": "1.0.0",
-		"sections": map[string]any{
-			"main": []any{
-				map[string]any{"execute_rpc": rpcParams},
-			},
-		},
-	}
-	return fr.AddAction("SWML", swmlDoc)
+	return fr.ExecuteRpc("ai_message", map[string]any{
+		"role":         role,
+		"message_text": messageText,
+	}, callID, "")
 }
 
 // RpcAiUnhold unholds another call.
+// This matches the Python SDK's rpc_ai_unhold() which calls execute_rpc(method="ai_unhold", ...).
 func (fr *FunctionResult) RpcAiUnhold(callID string) *FunctionResult {
-	rpcParams := map[string]any{
-		"method":  "calling.ai_unhold",
-		"jsonrpc": "2.0",
-		"call_id": callID,
-		"params":  map[string]any{},
-	}
-
-	swmlDoc := map[string]any{
-		"version": "1.0.0",
-		"sections": map[string]any{
-			"main": []any{
-				map[string]any{"execute_rpc": rpcParams},
-			},
-		},
-	}
-	return fr.AddAction("SWML", swmlDoc)
+	return fr.ExecuteRpc("ai_unhold", map[string]any{}, callID, "")
 }
 
 // SimulateUserInput queues simulated user input text.
+// Emits action key "user_input" matching the Python SDK's add_action("user_input", text).
 func (fr *FunctionResult) SimulateUserInput(text string) *FunctionResult {
-	return fr.AddAction("simulate_user_input", text)
+	return fr.AddAction("user_input", text)
 }
 
 // --- Payment Helpers ---
 
 // CreatePaymentPrompt creates a payment prompt configuration.
-func CreatePaymentPrompt(forSituation string, actions []map[string]string) map[string]any {
-	return map[string]any{
+// cardType and errorType are optional; pass empty strings to omit them.
+// This matches the Python SDK's create_payment_prompt() static method signature.
+func CreatePaymentPrompt(forSituation string, actions []map[string]string, cardType string, errorType string) map[string]any {
+	prompt := map[string]any{
 		"for":     forSituation,
 		"actions": actions,
 	}
+	if cardType != "" {
+		prompt["card_type"] = cardType
+	}
+	if errorType != "" {
+		prompt["error_type"] = errorType
+	}
+	return prompt
 }
 
 // CreatePaymentAction creates a single payment action entry.
