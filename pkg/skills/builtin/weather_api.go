@@ -49,13 +49,50 @@ func (s *WeatherAPISkill) Setup() bool {
 	}
 	s.toolName = s.GetParamString("tool_name", "get_weather")
 	s.tempUnit = s.GetParamString("temperature_unit", "fahrenheit")
+	// Match Python _validate_config(): reject invalid temperature_unit values rather than silently
+	// resetting (skill.py:103-104 raises ValueError; Go equivalent returns false from Setup).
 	if s.tempUnit != "fahrenheit" && s.tempUnit != "celsius" {
-		s.tempUnit = "fahrenheit"
+		return false
 	}
 	return true
 }
 
 func (s *WeatherAPISkill) RegisterTools() []skills.ToolRegistration {
+	// Determine temperature fields based on unit — mirrors Python get_tools() (skill.py:133-140).
+	tempField := "temp_f"
+	feelsLikeField := "feelslike_f"
+	unitName := "Fahrenheit"
+	if s.tempUnit == "celsius" {
+		tempField = "temp_c"
+		feelsLikeField = "feelslike_c"
+		unitName = "Celsius"
+	}
+
+	// Build TTS-friendly response template matching Python (skill.py:143-160).
+	responseInstruction := fmt.Sprintf(
+		"Tell the user the current weather conditions. "+
+			"Express all temperatures in %s using natural language numbers "+
+			"without abbreviations or symbols for clear text-to-speech pronunciation. "+
+			"For example, say 'seventy two degrees %s' instead of '72F' or '72°F'. "+
+			"Include the condition, current temperature, wind direction and speed, "+
+			"cloud coverage percentage, and what the temperature feels like.",
+		unitName, unitName,
+	)
+	weatherTemplate := fmt.Sprintf(
+		"%s Current conditions: ${current.condition.text}. "+
+			"Temperature: ${current.%s} degrees %s. "+
+			"Wind: ${current.wind_dir} at ${current.wind_mph} miles per hour. "+
+			"Cloud coverage: ${current.cloud} percent. "+
+			"Feels like: ${current.%s} degrees %s.",
+		responseInstruction, tempField, unitName, feelsLikeField, unitName,
+	)
+
+	// DataMap webhook URL uses the platform-side variable expansion (Python skill.py:179).
+	webhookURL := fmt.Sprintf(
+		"https://api.weatherapi.com/v1/current.json?key=%s&q=${lc:enc:args.location}&aqi=no",
+		s.apiKey,
+	)
+
 	return []skills.ToolRegistration{
 		{
 			Name:        s.toolName,
@@ -69,6 +106,26 @@ func (s *WeatherAPISkill) RegisterTools() []skills.ToolRegistration {
 					},
 				},
 				"required": []string{"location"},
+			},
+			// DataMap-based execution matches Python get_tools() data_map.webhooks pattern
+			// (skill.py:176-188). The Handler below provides a local fallback for environments
+			// where the platform-side DataMap is not available.
+			SwaigFields: map[string]any{
+				"data_map": map[string]any{
+					"webhooks": []map[string]any{
+						{
+							"url":    webhookURL,
+							"method": "GET",
+							"output": map[string]any{
+								"response": weatherTemplate,
+							},
+						},
+					},
+					"error_keys": []string{"error"},
+					"output": map[string]any{
+						"response": "Sorry, I cannot get weather information right now. Please try again later or check if the location name is correct.",
+					},
+				},
 			},
 			Handler: s.handleGetWeather,
 		},
