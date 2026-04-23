@@ -271,8 +271,10 @@ func TestBaseSkill_GetParameterSchema_HasCommonFields(t *testing.T) {
 	if schema["skip_prompt"] == nil {
 		t.Error("expected skip_prompt")
 	}
-	if schema["tool_name"] == nil {
-		t.Error("expected tool_name")
+	// tool_name is only included for multi-instance skills; BaseSkill defaults
+	// to SupportsMultipleInstances()=false, so tool_name must be absent here.
+	if schema["tool_name"] != nil {
+		t.Error("unexpected tool_name in schema for non-multi-instance skill")
 	}
 }
 
