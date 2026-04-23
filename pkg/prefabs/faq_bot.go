@@ -24,8 +24,13 @@ type FAQBotOptions struct {
 	Name           string
 	Route          string
 	FAQs           []FAQ
-	SuggestRelated bool
+	// SuggestRelated controls whether the agent suggests related questions.
+	// Defaults to true when nil, matching the Python SDK default.
+	SuggestRelated *bool
 	Persona        string
+	// AgentOptions holds additional functional options forwarded to NewAgentBase,
+	// matching the **kwargs pass-through in the Python SDK.
+	AgentOptions []agent.AgentOption
 }
 
 // FAQBotAgent answers frequently asked questions by matching user queries
@@ -55,15 +60,23 @@ func NewFAQBotAgent(opts FAQBotOptions) *FAQBotAgent {
 		persona = "You are a helpful FAQ bot that provides accurate answers to common questions."
 	}
 
-	base := agent.NewAgentBase(
-		agent.WithName(name),
-		agent.WithRoute(route),
+	// Resolve suggest_related: default is true (matching Python SDK).
+	suggestRelated := true
+	if opts.SuggestRelated != nil {
+		suggestRelated = *opts.SuggestRelated
+	}
+
+	// Build base options: fixed options first, then caller-supplied extras (**kwargs).
+	baseOpts := append(
+		[]agent.AgentOption{agent.WithName(name), agent.WithRoute(route)},
+		opts.AgentOptions...,
 	)
+	base := agent.NewAgentBase(baseOpts...)
 
 	fb := &FAQBotAgent{
 		AgentBase:      base,
 		faqs:           opts.FAQs,
-		suggestRelated: opts.SuggestRelated,
+		suggestRelated: suggestRelated,
 	}
 
 	// ---- Prompt ----
@@ -79,7 +92,7 @@ func NewFAQBotAgent(opts FAQBotOptions) *FAQBotAgent {
 		"If no close match exists, politely say you don't have that information.",
 		"Be concise and factual in your responses.",
 	}
-	if opts.SuggestRelated {
+	if suggestRelated {
 		instructions = append(instructions,
 			"When appropriate, suggest other related questions from the FAQ database that might be helpful.",
 		)
@@ -102,7 +115,7 @@ func NewFAQBotAgent(opts FAQBotOptions) *FAQBotAgent {
 		base.PromptAddSubsection("FAQ Database", faq.Question, body, nil)
 	}
 
-	if opts.SuggestRelated {
+	if suggestRelated {
 		base.PromptAddSection("Related Questions",
 			"When appropriate, suggest other related questions from the FAQ database that might be helpful.",
 			nil,
@@ -160,6 +173,19 @@ func NewFAQBotAgent(opts FAQBotOptions) *FAQBotAgent {
 		base.AddHints(unique)
 	}
 
+	// ---- AI parameters ----
+	// Match Python SDK _configure_agent_settings: wait_for_user=False,
+	// end_of_speech_timeout=1000, ai_volume=5.
+	base.SetParams(map[string]any{
+		"wait_for_user":         false,
+		"end_of_speech_timeout": 1000,
+		"ai_volume":             5,
+	})
+
+	// ---- Native functions ----
+	// Match Python SDK _configure_agent_settings: set_native_functions(["check_time"]).
+	base.SetNativeFunctions([]string{"check_time"})
+
 	// ---- Tools ----
 	fb.registerTools()
 
@@ -180,9 +206,20 @@ func (fb *FAQBotAgent) registerTools() {
 				"type":        "string",
 				"description": "The search query",
 			},
+			"category": map[string]any{
+				"type":        "string",
+				"description": "Optional category to filter by",
+			},
 		},
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			query := strings.ToLower(strings.TrimSpace(args["query"].(string)))
+			query := ""
+			if q, ok := args["query"].(string); ok {
+				query = strings.ToLower(strings.TrimSpace(q))
+			}
+			category := ""
+			if c, ok := args["category"].(string); ok {
+				category = strings.ToLower(strings.TrimSpace(c))
+			}
 
 			type scored struct {
 				question string
@@ -211,6 +248,16 @@ func (fb *FAQBotAgent) registerTools() {
 					for _, qw := range queryWords {
 						if len(qw) >= 3 && strings.Contains(q, qw) {
 							score += 10
+						}
+					}
+				}
+
+				// Boost score +30 for category match (matches Python SDK behavior).
+				if category != "" {
+					for _, c := range faq.Categories {
+						if strings.EqualFold(c, category) {
+							score += 30
+							break
 						}
 					}
 				}

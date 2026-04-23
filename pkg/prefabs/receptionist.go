@@ -25,6 +25,7 @@ type ReceptionistOptions struct {
 	Route       string
 	Departments []Department
 	Greeting    string
+	Voice       string // Voice ID for TTS (default: "rime.spore")
 }
 
 // ReceptionistAgent greets callers and routes them to the appropriate department.
@@ -111,6 +112,24 @@ func NewReceptionistAgent(opts ReceptionistOptions) *ReceptionistAgent {
 	base.SetGlobalData(map[string]any{
 		"departments": deptMaps,
 		"caller_info": map[string]any{},
+	})
+
+	// ---- AI behavior parameters (matches Python _configure_agent_settings) ----
+	base.SetParams(map[string]any{
+		"end_of_speech_timeout": 700,
+		"speech_event_timeout":  1000,
+		"transfer_summary":      true,
+	})
+
+	// ---- Language / voice ----
+	voice := opts.Voice
+	if voice == "" {
+		voice = "rime.spore"
+	}
+	base.AddLanguage(map[string]any{
+		"name":  "English",
+		"code":  "en-US",
+		"voice": voice,
 	})
 
 	// ---- Tools ----
