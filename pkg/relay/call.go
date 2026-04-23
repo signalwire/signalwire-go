@@ -686,21 +686,33 @@ func (c *Call) LeaveRoom() error {
 }
 
 // QueueEnter places the call in a named queue.
+//
+// A per-request control_id is generated and included in the wire params,
+// matching Python QueueEnterAction (signalwire/relay/call.py queue_enter
+// line 1268): the server uses control_id to correlate this action with its
+// subsequent events. Previously omitted, which forced the server to
+// synthesize an ID or reject the request.
 func (c *Call) QueueEnter(name string) error {
 	_, err := c.client.execute("calling.queue.enter", map[string]any{
-		"node_id": c.nodeID,
-		"call_id": c.callID,
-		"name":    name,
+		"node_id":    c.nodeID,
+		"call_id":    c.callID,
+		"control_id": newControlID(),
+		"name":       name,
 	})
 	return err
 }
 
 // QueueLeave removes the call from the named queue.
+//
+// A per-request control_id is generated and included in the wire params,
+// matching Python QueueLeaveAction (signalwire/relay/call.py queue_leave
+// line 1287).
 func (c *Call) QueueLeave(name string) error {
 	_, err := c.client.execute("calling.queue.leave", map[string]any{
-		"node_id": c.nodeID,
-		"call_id": c.callID,
-		"name":    name,
+		"node_id":    c.nodeID,
+		"call_id":    c.callID,
+		"control_id": newControlID(),
+		"name":       name,
 	})
 	return err
 }
