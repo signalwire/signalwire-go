@@ -109,7 +109,7 @@ func (s *DataSphereSkill) Setup() bool {
 
 	// Optional: no_results_message
 	s.noResultsMessage = s.GetParamString("no_results_message",
-		"I couldn't find any relevant information for '%s' in the knowledge base.")
+		"I couldn't find any relevant information for '%s' in the knowledge base. Try rephrasing your question or asking about a different topic.")
 
 	return true
 }
@@ -246,7 +246,7 @@ func (s *DataSphereSkill) GetParameterSchema() map[string]map[string]any {
 	schema["language"] = map[string]any{"type": "string", "description": "Language code for query expansion (e.g., 'en', 'es')", "required": false}
 	schema["pos_to_expand"] = map[string]any{"type": "array", "description": "Parts of speech to expand with synonyms", "required": false, "items": map[string]any{"type": "string", "enum": []string{"NOUN", "VERB", "ADJ", "ADV"}}}
 	schema["max_synonyms"] = map[string]any{"type": "integer", "description": "Maximum number of synonyms to use for query expansion", "required": false, "minimum": 1, "maximum": 10}
-	schema["no_results_message"] = map[string]any{"type": "string", "description": "Message to return when no results are found", "default": "I couldn't find any relevant information for '%s' in the knowledge base.", "required": false}
+	schema["no_results_message"] = map[string]any{"type": "string", "description": "Message to return when no results are found", "default": "I couldn't find any relevant information for '%s' in the knowledge base. Try rephrasing your question or asking about a different topic.", "required": false}
 	return schema
 }
 
