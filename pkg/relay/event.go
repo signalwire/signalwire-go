@@ -11,6 +11,12 @@ import (
 type RelayEvent struct {
 	EventType string
 	Params    map[string]any
+	// CallID is the call identifier, populated from the "call_id" wire key.
+	// Python base class always carries this field.
+	CallID string
+	// Timestamp is the event timestamp (float for subsecond precision),
+	// populated from the "timestamp" wire key.
+	Timestamp float64
 }
 
 // NewRelayEvent creates a new RelayEvent from the given type and params.
@@ -18,10 +24,13 @@ func NewRelayEvent(eventType string, params map[string]any) *RelayEvent {
 	if params == nil {
 		params = make(map[string]any)
 	}
-	return &RelayEvent{
+	e := &RelayEvent{
 		EventType: eventType,
 		Params:    params,
 	}
+	e.CallID = e.GetString("call_id")
+	e.Timestamp = e.GetFloat64("timestamp")
+	return e
 }
 
 // GetString returns the string value for a key in params, or "" if missing/wrong type.
@@ -67,6 +76,33 @@ func (e *RelayEvent) GetInt(key string) int {
 	}
 }
 
+// GetFloat64 returns the float64 value for a key in params, or 0.0 if missing/wrong type.
+// This preserves subsecond precision for duration and timestamp fields.
+func (e *RelayEvent) GetFloat64(key string) float64 {
+	if e.Params == nil {
+		return 0.0
+	}
+	v, ok := e.Params[key]
+	if !ok {
+		return 0.0
+	}
+	switch n := v.(type) {
+	case float64:
+		return n
+	case float32:
+		return float64(n)
+	case int:
+		return float64(n)
+	case int64:
+		return float64(n)
+	case string:
+		f, _ := strconv.ParseFloat(n, 64)
+		return f
+	default:
+		return 0.0
+	}
+}
+
 // GetBool returns the boolean value for a key in params, or false if missing/wrong type.
 func (e *RelayEvent) GetBool(key string) bool {
 	if e.Params == nil {
@@ -90,6 +126,32 @@ func (e *RelayEvent) GetBool(key string) bool {
 	}
 }
 
+// GetBoolPtr returns a *bool for a key in params, or nil if the key is absent.
+// This matches Python's Optional[bool] = None semantics.
+func (e *RelayEvent) GetBoolPtr(key string) *bool {
+	if e.Params == nil {
+		return nil
+	}
+	v, ok := e.Params[key]
+	if !ok {
+		return nil
+	}
+	var result bool
+	switch b := v.(type) {
+	case bool:
+		result = b
+	case string:
+		result = b == "true" || b == "1"
+	case int:
+		result = b != 0
+	case float64:
+		result = b != 0
+	default:
+		return nil
+	}
+	return &result
+}
+
 // GetMap returns the nested map for a key in params, or nil if missing/wrong type.
 func (e *RelayEvent) GetMap(key string) map[string]any {
 	if e.Params == nil {
@@ -106,6 +168,29 @@ func (e *RelayEvent) GetMap(key string) map[string]any {
 	return m
 }
 
+// GetStringSlice returns a []string for a key in params whose wire value is []any.
+// Returns nil if absent or wrong type. Matches Python list[str] field behavior.
+func (e *RelayEvent) GetStringSlice(key string) []string {
+	if e.Params == nil {
+		return nil
+	}
+	v, ok := e.Params[key]
+	if !ok {
+		return nil
+	}
+	raw, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(raw))
+	for _, item := range raw {
+		if s, ok := item.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 // ---------------------------------------------------------------------------
 // Specific event types constructed from raw params
 // ---------------------------------------------------------------------------
@@ -113,13 +198,13 @@ func (e *RelayEvent) GetMap(key string) map[string]any {
 // CallStateEvent represents a calling.call.state event.
 type CallStateEvent struct {
 	*RelayEvent
-	CallState  string
-	EndReason  string
-	Direction  string
-	Device     map[string]any
-	CallID     string
-	NodeID     string
-	Tag        string
+	CallState string
+	EndReason string
+	Direction string
+	Device    map[string]any
+	CallID    string
+	NodeID    string
+	Tag       string
 }
 
 // NewCallStateEvent constructs a CallStateEvent from raw params.
@@ -141,11 +226,14 @@ func NewCallStateEvent(params map[string]any) *CallStateEvent {
 type CallReceiveEvent struct {
 	*RelayEvent
 	CallState string
+	Direction string
 	Device    map[string]any
 	Context   string
 	Tag       string
 	CallID    string
 	NodeID    string
+	ProjectID string
+	SegmentID string
 }
 
 // NewCallReceiveEvent constructs a CallReceiveEvent from raw params.
@@ -154,11 +242,14 @@ func NewCallReceiveEvent(params map[string]any) *CallReceiveEvent {
 		RelayEvent: NewRelayEvent(EventCallingCallReceive, params),
 	}
 	e.CallState = e.GetString("call_state")
+	e.Direction = e.GetString("direction")
 	e.Device = e.GetMap("device")
 	e.Context = e.GetString("context")
 	e.Tag = e.GetString("tag")
 	e.CallID = e.GetString("call_id")
 	e.NodeID = e.GetString("node_id")
+	e.ProjectID = e.GetString("project_id")
+	e.SegmentID = e.GetString("segment_id")
 	return e
 }
 
@@ -185,20 +276,46 @@ type RecordEvent struct {
 	ControlID string
 	State     string
 	URL       string
-	Duration  int
-	Size      int
+	// Duration is float64 (matching Python's float) to preserve subsecond precision.
+	Duration float64
+	Size     int
+	// Record is the raw nested record dict from the wire payload, matching Python's record field.
+	Record map[string]any
 }
 
 // NewRecordEvent constructs a RecordEvent from raw params.
+// URL, Duration, and Size are extracted from the nested "record" dict first,
+// falling back to top-level params — matching Python's from_payload behavior.
 func NewRecordEvent(params map[string]any) *RecordEvent {
 	e := &RecordEvent{
 		RelayEvent: NewRelayEvent(EventCallingCallRecord, params),
 	}
 	e.ControlID = e.GetString("control_id")
 	e.State = e.GetString("state")
-	e.URL = e.GetString("url")
-	e.Duration = e.GetInt("duration")
-	e.Size = e.GetInt("size")
+	e.Record = e.GetMap("record")
+
+	// Mirror Python: rec.get("url", p.get("url", "")), etc.
+	if e.Record != nil {
+		if u, ok := e.Record["url"].(string); ok && u != "" {
+			e.URL = u
+		} else {
+			e.URL = e.GetString("url")
+		}
+		if d, ok := e.Record["duration"].(float64); ok {
+			e.Duration = d
+		} else {
+			e.Duration = e.GetFloat64("duration")
+		}
+		if s, ok := e.Record["size"].(float64); ok {
+			e.Size = int(s)
+		} else {
+			e.Size = e.GetInt("size")
+		}
+	} else {
+		e.URL = e.GetString("url")
+		e.Duration = e.GetFloat64("duration")
+		e.Size = e.GetInt("size")
+	}
 	return e
 }
 
@@ -206,7 +323,10 @@ func NewRecordEvent(params map[string]any) *RecordEvent {
 type CollectEvent struct {
 	*RelayEvent
 	ControlID string
+	State     string
 	Result    map[string]any
+	// Final is a *bool matching Python's Optional[bool] = None semantics.
+	Final *bool
 }
 
 // NewCollectEvent constructs a CollectEvent from raw params.
@@ -215,7 +335,9 @@ func NewCollectEvent(params map[string]any) *CollectEvent {
 		RelayEvent: NewRelayEvent(EventCallingCallCollect, params),
 	}
 	e.ControlID = e.GetString("control_id")
+	e.State = e.GetString("state")
 	e.Result = e.GetMap("result")
+	e.Final = e.GetBoolPtr("final")
 	return e
 }
 
@@ -274,7 +396,10 @@ func NewFaxEvent(params map[string]any) *FaxEvent {
 type TapEvent struct {
 	*RelayEvent
 	ControlID string
+	State     string
 	Tap       map[string]any
+	// Device is the tap device dict, matching Python's device field.
+	Device map[string]any
 }
 
 // NewTapEvent constructs a TapEvent from raw params.
@@ -283,7 +408,9 @@ func NewTapEvent(params map[string]any) *TapEvent {
 		RelayEvent: NewRelayEvent(EventCallingCallTap, params),
 	}
 	e.ControlID = e.GetString("control_id")
+	e.State = e.GetString("state")
 	e.Tap = e.GetMap("tap")
+	e.Device = e.GetMap("device")
 	return e
 }
 
@@ -292,6 +419,10 @@ type StreamEvent struct {
 	*RelayEvent
 	ControlID string
 	State     string
+	// URL is the stream URL, matching Python's url field.
+	URL string
+	// Name is the stream name, matching Python's name field.
+	Name string
 }
 
 // NewStreamEvent constructs a StreamEvent from raw params.
@@ -301,6 +432,8 @@ func NewStreamEvent(params map[string]any) *StreamEvent {
 	}
 	e.ControlID = e.GetString("control_id")
 	e.State = e.GetString("state")
+	e.URL = e.GetString("url")
+	e.Name = e.GetString("name")
 	return e
 }
 
@@ -327,7 +460,11 @@ type DialEvent struct {
 	Tag    string
 	CallID string
 	NodeID string
-	State  string
+	// DialState reads wire key "dial_state" matching Python's dial_state field.
+	// (Replaces the previous State field which incorrectly read "state".)
+	DialState string
+	// Call is the nested call dict, matching Python's call field.
+	Call map[string]any
 }
 
 // NewDialEvent constructs a DialEvent from raw params.
@@ -338,15 +475,19 @@ func NewDialEvent(params map[string]any) *DialEvent {
 	e.Tag = e.GetString("tag")
 	e.CallID = e.GetString("call_id")
 	e.NodeID = e.GetString("node_id")
-	e.State = e.GetString("state")
+	e.DialState = e.GetString("dial_state")
+	e.Call = e.GetMap("call")
 	return e
 }
 
 // ReferEvent represents a calling.call.refer event.
 type ReferEvent struct {
 	*RelayEvent
-	ControlID string
-	State     string
+	ControlID              string
+	State                  string
+	SIPReferTo             string
+	SIPReferResponseCode   string
+	SIPNotifyResponseCode  string
 }
 
 // NewReferEvent constructs a ReferEvent from raw params.
@@ -356,6 +497,9 @@ func NewReferEvent(params map[string]any) *ReferEvent {
 	}
 	e.ControlID = e.GetString("control_id")
 	e.State = e.GetString("state")
+	e.SIPReferTo = e.GetString("sip_refer_to")
+	e.SIPReferResponseCode = e.GetString("sip_refer_response_code")
+	e.SIPNotifyResponseCode = e.GetString("sip_notify_response_code")
 	return e
 }
 
@@ -364,6 +508,8 @@ type DenoiseEvent struct {
 	*RelayEvent
 	ControlID string
 	State     string
+	// Denoised matches Python's denoised bool field.
+	Denoised bool
 }
 
 // NewDenoiseEvent constructs a DenoiseEvent from raw params.
@@ -373,6 +519,7 @@ func NewDenoiseEvent(params map[string]any) *DenoiseEvent {
 	}
 	e.ControlID = e.GetString("control_id")
 	e.State = e.GetString("state")
+	e.Denoised = e.GetBool("denoised")
 	return e
 }
 
@@ -399,8 +546,16 @@ func NewPayEvent(params map[string]any) *PayEvent {
 type QueueEvent struct {
 	*RelayEvent
 	ControlID string
-	State     string
+	// Status reads wire key "status" matching Python's status field.
+	// (Replaces the previous State field which incorrectly read "state".)
+	Status string
+	// QueueName reads wire key "name" matching Python's queue_name = p.get("name", "").
+	// (Previously read "queue_name" which was wrong.)
 	QueueName string
+	// QueueID reads wire key "id" matching Python's queue_id = p.get("id", "").
+	QueueID  string
+	Position int
+	Size     int
 }
 
 // NewQueueEvent constructs a QueueEvent from raw params.
@@ -409,8 +564,11 @@ func NewQueueEvent(params map[string]any) *QueueEvent {
 		RelayEvent: NewRelayEvent(EventCallingCallQueue, params),
 	}
 	e.ControlID = e.GetString("control_id")
-	e.State = e.GetString("state")
-	e.QueueName = e.GetString("queue_name")
+	e.Status = e.GetString("status")
+	e.QueueName = e.GetString("name")
+	e.QueueID = e.GetString("id")
+	e.Position = e.GetInt("position")
+	e.Size = e.GetInt("size")
 	return e
 }
 
@@ -437,6 +595,14 @@ type TranscribeEvent struct {
 	ControlID string
 	State     string
 	Text      string
+	// URL is the transcription recording URL, matching Python's url field.
+	URL string
+	// RecordingID is the recording identifier, matching Python's recording_id field.
+	RecordingID string
+	// Duration is float64 for subsecond precision, matching Python's duration: float field.
+	Duration float64
+	// Size is the recording size in bytes, matching Python's size field.
+	Size int
 }
 
 // NewTranscribeEvent constructs a TranscribeEvent from raw params.
@@ -447,6 +613,10 @@ func NewTranscribeEvent(params map[string]any) *TranscribeEvent {
 	e.ControlID = e.GetString("control_id")
 	e.State = e.GetString("state")
 	e.Text = e.GetString("text")
+	e.URL = e.GetString("url")
+	e.RecordingID = e.GetString("recording_id")
+	e.Duration = e.GetFloat64("duration")
+	e.Size = e.GetInt("size")
 	return e
 }
 
@@ -471,8 +641,11 @@ func NewHoldEvent(params map[string]any) *HoldEvent {
 type ConferenceEvent struct {
 	*RelayEvent
 	ControlID    string
-	State        string
 	ConferenceID string
+	Name         string
+	// Status reads wire key "status" matching Python's status field.
+	// (Replaces the previous State field which incorrectly read "state".)
+	Status string
 }
 
 // NewConferenceEvent constructs a ConferenceEvent from raw params.
@@ -481,8 +654,9 @@ func NewConferenceEvent(params map[string]any) *ConferenceEvent {
 		RelayEvent: NewRelayEvent(EventCallingCallConference, params),
 	}
 	e.ControlID = e.GetString("control_id")
-	e.State = e.GetString("state")
 	e.ConferenceID = e.GetString("conference_id")
+	e.Name = e.GetString("name")
+	e.Status = e.GetString("status")
 	return e
 }
 
@@ -508,15 +682,17 @@ func NewCallingErrorEvent(params map[string]any) *CallingErrorEvent {
 // MessageReceiveEvent represents a messaging.receive event.
 type MessageReceiveEvent struct {
 	*RelayEvent
-	MessageID   string
-	Context     string
-	Direction   string
-	FromNumber  string
-	ToNumber    string
-	Body        string
-	Media       []string
-	Segments    int
-	Tags        []string
+	MessageID    string
+	Context      string
+	Direction    string
+	FromNumber   string
+	ToNumber     string
+	Body         string
+	Media        []string
+	Segments     int
+	Tags         []string
+	// MessageState matches Python's message_state field.
+	MessageState string
 }
 
 // NewMessageReceiveEvent constructs a MessageReceiveEvent from raw params.
@@ -531,6 +707,7 @@ func NewMessageReceiveEvent(params map[string]any) *MessageReceiveEvent {
 	e.ToNumber = e.GetString("to_number")
 	e.Body = e.GetString("body")
 	e.Segments = e.GetInt("segments")
+	e.MessageState = e.GetString("message_state")
 
 	if mediaRaw, ok := params["media"]; ok {
 		if mediaSlice, ok := mediaRaw.([]any); ok {
@@ -559,11 +736,23 @@ func NewMessageReceiveEvent(params map[string]any) *MessageReceiveEvent {
 type MessageStateEvent struct {
 	*RelayEvent
 	MessageID  string
-	State      string
-	Reason     string
-	Direction  string
-	FromNumber string
-	ToNumber   string
+	// MessageState reads wire key "message_state" matching Python's message_state field.
+	// (Replaces the previous State field which incorrectly read "state".)
+	MessageState string
+	Reason       string
+	Direction    string
+	FromNumber   string
+	ToNumber     string
+	// Context matches Python's context field.
+	Context string
+	// Body matches Python's body field.
+	Body string
+	// Media matches Python's media: list[str] field.
+	Media []string
+	// Segments matches Python's segments: int field.
+	Segments int
+	// Tags matches Python's tags: list[str] field.
+	Tags []string
 }
 
 // NewMessageStateEvent constructs a MessageStateEvent from raw params.
@@ -572,11 +761,35 @@ func NewMessageStateEvent(params map[string]any) *MessageStateEvent {
 		RelayEvent: NewRelayEvent(EventMessagingState, params),
 	}
 	e.MessageID = e.GetString("message_id")
-	e.State = e.GetString("state")
+	e.MessageState = e.GetString("message_state")
 	e.Reason = e.GetString("reason")
 	e.Direction = e.GetString("direction")
 	e.FromNumber = e.GetString("from_number")
 	e.ToNumber = e.GetString("to_number")
+	e.Context = e.GetString("context")
+	e.Body = e.GetString("body")
+	e.Segments = e.GetInt("segments")
+
+	if mediaRaw, ok := params["media"]; ok {
+		if mediaSlice, ok := mediaRaw.([]any); ok {
+			for _, m := range mediaSlice {
+				if s, ok := m.(string); ok {
+					e.Media = append(e.Media, s)
+				}
+			}
+		}
+	}
+
+	if tagsRaw, ok := params["tags"]; ok {
+		if tagsSlice, ok := tagsRaw.([]any); ok {
+			for _, t := range tagsSlice {
+				if s, ok := t.(string); ok {
+					e.Tags = append(e.Tags, s)
+				}
+			}
+		}
+	}
+
 	return e
 }
 
