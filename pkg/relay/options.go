@@ -1,5 +1,7 @@
 package relay
 
+import "os"
+
 // ---------------------------------------------------------------------------
 // Functional options for Call methods
 // ---------------------------------------------------------------------------
@@ -216,6 +218,14 @@ func WithDialTimeout(t int) DialOption {
 	}
 }
 
+// WithDialMaxDuration sets the maximum call duration in minutes. Mirrors
+// Python's dial(max_duration=...) parameter.
+func WithDialMaxDuration(minutes int) DialOption {
+	return func(m map[string]any) {
+		m["max_duration"] = minutes
+	}
+}
+
 // MessageOption configures a SendMessage operation.
 type MessageOption func(m map[string]any)
 
@@ -237,5 +247,68 @@ func WithMessageRegion(region string) MessageOption {
 func WithMessageTags(tags []string) MessageOption {
 	return func(m map[string]any) {
 		m["tags"] = tags
+	}
+}
+
+// WithMessageContext sets the routing context for the message. Mirrors Python's
+// send_message(context=...) parameter — defaults to the relay protocol when
+// omitted.
+func WithMessageContext(ctx string) MessageOption {
+	return func(m map[string]any) {
+		m["context"] = ctx
+	}
+}
+
+// WithMessageOnCompleted registers a callback invoked when the message reaches
+// a terminal state (delivered, undelivered, or failed). Mirrors Python's
+// send_message(on_completed=...) parameter.
+func WithMessageOnCompleted(cb func(*Message)) MessageOption {
+	return func(m map[string]any) {
+		m["_on_completed"] = cb
+	}
+}
+
+// WithEnvDefaults reads SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN,
+// SIGNALWIRE_JWT_TOKEN, SIGNALWIRE_SPACE, and RELAY_MAX_ACTIVE_CALLS from
+// environment variables and applies them as fallback values (only used when the
+// corresponding field has not already been set via another option). This mirrors
+// Python RelayClient.__init__ which reads these env vars automatically.
+//
+// Apply this option first so that explicit WithProject/WithToken/etc. options
+// take precedence:
+//
+//	c := relay.NewRelayClient(
+//	    relay.WithEnvDefaults(),
+//	    relay.WithProject("override"),  // overrides env
+//	)
+func WithEnvDefaults() ClientOption {
+	return func(c *Client) {
+		if c.projectID == "" {
+			c.projectID = os.Getenv("SIGNALWIRE_PROJECT_ID")
+		}
+		if c.token == "" {
+			c.token = os.Getenv("SIGNALWIRE_API_TOKEN")
+		}
+		if c.jwtToken == "" {
+			c.jwtToken = os.Getenv("SIGNALWIRE_JWT_TOKEN")
+		}
+		if c.space == "" {
+			c.space = os.Getenv("SIGNALWIRE_SPACE")
+		}
+		if c.maxActiveCalls == 0 {
+			if v := os.Getenv("RELAY_MAX_ACTIVE_CALLS"); v != "" {
+				n := 0
+				for _, ch := range v {
+					if ch < '0' || ch > '9' {
+						n = 0
+						break
+					}
+					n = n*10 + int(ch-'0')
+				}
+				if n > 0 {
+					c.maxActiveCalls = n
+				}
+			}
+		}
 	}
 }
