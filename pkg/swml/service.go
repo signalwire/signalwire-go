@@ -57,6 +57,10 @@ type Service struct {
 
 	// Verb method cache: maps verb name to whether it exists in schema
 	verbCache map[string]bool
+
+	// verbHandlers holds pluggable handlers registered by callers for custom
+	// or extended SWML verbs. Keyed by the verb name returned by VerbHandler.GetVerbName().
+	verbHandlers map[string]VerbHandler
 }
 
 // ServiceOption is a functional option for configuring a Service.
@@ -158,6 +162,9 @@ func NewService(opts ...ServiceOption) *Service {
 		s.schema = schema
 		s.Logger.Debug("loaded schema with %d verbs", schema.VerbCount())
 	}
+
+	// Register built-in verb handlers (mirrors Python VerbHandlerRegistry.__init__).
+	s.RegisterVerbHandler(NewAIVerbHandler())
 
 	return s
 }
