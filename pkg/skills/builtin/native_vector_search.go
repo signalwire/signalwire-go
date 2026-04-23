@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -54,9 +55,13 @@ func (s *NativeVectorSearchSkill) GetInstanceKey() string {
 	return "native_vector_search_" + toolName + "_" + indexName
 }
 
-// validateRemoteURL performs SSRF protection on the remote URL.
-// It rejects private/loopback IP ranges and unresolvable hostnames.
-// This mirrors Python's validate_url() from signalwire/utils/url_validator.py.
+// validateRemoteURL performs SSRF protection on the remote URL. Mirrors
+// Python's validate_url() from signalwire/utils/url_validator.py:
+//   - Requires http/https scheme and a hostname.
+//   - Resolves hostname to IPs; rejects on DNS failure unless
+//     SWML_ALLOW_PRIVATE_URLS is set (matches Python's allow_private/env-var
+//     escape hatch for test environments).
+//   - Rejects IPs in private/loopback/link-local/IPv6-private ranges.
 func validateRemoteURL(rawURL string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
@@ -70,26 +75,19 @@ func validateRemoteURL(rawURL string) error {
 		return fmt.Errorf("URL has no hostname")
 	}
 
-	// Resolve hostname to IPs
-	addrs, err := net.LookupHost(hostname)
-	if err != nil {
-		// If we can't resolve it at validation time (e.g., test env without DNS),
-		// we still do a syntactic check on the hostname string itself.
-		// Reject well-known loopback/link-local strings.
-		lower := strings.ToLower(hostname)
-		if lower == "localhost" || strings.HasPrefix(lower, "127.") || lower == "::1" {
-			return fmt.Errorf("URL points to loopback address: %s", hostname)
-		}
-		// Other unresolvable hosts: allow (network may be restricted in test; real
-		// runtime will fail on the HTTP call itself).
+	// Opt-in escape hatch for test environments. Matches Python's
+	// SWML_ALLOW_PRIVATE_URLS check in url_validator.validate_url.
+	if allowPrivateURLs() {
 		return nil
 	}
 
-	// Check each resolved address for private/loopback ranges
-	privateRanges := []string{
-		"127.", "10.", "192.168.", "169.254.", // IPv4 loopback, private, link-local
+	// Resolve hostname to IPs. DNS failure rejects — matches Python's
+	// socket.gaierror → return False.
+	addrs, err := net.LookupHost(hostname)
+	if err != nil {
+		return fmt.Errorf("could not resolve hostname %q: %w", hostname, err)
 	}
-	// RFC-1918 172.16.0.0/12 requires a range check
+
 	for _, addr := range addrs {
 		ip := net.ParseIP(addr)
 		if ip == nil {
@@ -98,13 +96,21 @@ func validateRemoteURL(rawURL string) error {
 		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
 			return fmt.Errorf("URL resolves to a loopback/link-local address: %s", addr)
 		}
-		_ = privateRanges
-		// Check private ranges via IsPrivate (Go 1.17+)
 		if ip.IsPrivate() {
 			return fmt.Errorf("URL resolves to a private IP address: %s", addr)
 		}
 	}
 	return nil
+}
+
+// allowPrivateURLs reports whether SWML_ALLOW_PRIVATE_URLS is set to a
+// truthy value. Matches Python's env-var check.
+func allowPrivateURLs() bool {
+	switch strings.ToLower(os.Getenv("SWML_ALLOW_PRIVATE_URLS")) {
+	case "1", "true", "yes":
+		return true
+	}
+	return false
 }
 
 func (s *NativeVectorSearchSkill) Setup() bool {

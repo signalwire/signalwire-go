@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,8 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
+	"github.com/antchfx/htmlquery"
 	"github.com/signalwire/signalwire-go/pkg/skills"
 	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"golang.org/x/net/html"
 )
 
 var whitespaceRE = regexp.MustCompile(`\s+`)
@@ -502,11 +506,12 @@ func (s *SpiderSkill) handleCrawlSite(args map[string]any, _ map[string]any) *sw
 	return swaig.NewFunctionResult(sb.String())
 }
 
-// handleExtractStructuredData extracts structured data using configured selectors.
-// Since Go lacks a native XPath/CSS selector engine equivalent to lxml, this
-// performs a best-effort extraction: it reads the page, checks that selectors are
-// configured, and returns the raw text content (matching Python's fallback behavior
-// when no matching elements are found).
+// handleExtractStructuredData extracts structured data using configured
+// selectors. Selectors beginning with "/" are evaluated as XPath
+// (github.com/antchfx/htmlquery); all others as CSS (goquery). Matches
+// Python spider.skill._structured_extract behavior in
+// signalwire/skills/spider/skill.py:385-422: a single match returns its
+// text content; multiple matches return a list of text contents.
 func (s *SpiderSkill) handleExtractStructuredData(args map[string]any, _ map[string]any) *swaig.FunctionResult {
 	urlStr, _ := args["url"].(string)
 	urlStr = strings.TrimSpace(urlStr)
@@ -518,7 +523,6 @@ func (s *SpiderSkill) handleExtractStructuredData(args map[string]any, _ map[str
 		return swaig.NewFunctionResult("Invalid URL: must start with http:// or https://")
 	}
 
-	// Check that selectors are configured (mirrors Python behavior)
 	rawSelectors, hasSelectors := s.GetParam("selectors")
 	selectorsMap, _ := rawSelectors.(map[string]any)
 	if !hasSelectors || len(selectorsMap) == 0 {
@@ -530,32 +534,114 @@ func (s *SpiderSkill) handleExtractStructuredData(args map[string]any, _ map[str
 		return swaig.NewFunctionResult(fmt.Sprintf("Failed to fetch %s: %v", urlStr, err))
 	}
 
-	// Extract title from HTML <title> tag using simple regex (no lxml in Go)
-	titleRE := regexp.MustCompile(`(?i)<title[^>]*>(.*?)</title>`)
-	title := ""
-	if m := titleRE.FindSubmatch(body); len(m) > 1 {
-		title = strings.TrimSpace(string(m[1]))
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
+	if err != nil {
+		return swaig.NewFunctionResult(fmt.Sprintf("Failed to parse %s: %v", urlStr, err))
 	}
+	xpathRoot, _ := htmlquery.Parse(bytes.NewReader(body))
+
+	title := strings.TrimSpace(doc.Find("title").Text())
+
+	// Preserve a stable field order — iterate selectorsMap keys deterministically.
+	fields := make([]string, 0, len(selectorsMap))
+	for f := range selectorsMap {
+		fields = append(fields, f)
+	}
+	// Python dicts preserve insertion order; Go maps don't. Selectors map came
+	// from a JSON config, so sorted output is the most predictable.
+	sortStrings(fields)
 
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "Extracted data from %s:\n\n", urlStr)
 	fmt.Fprintf(&sb, "Title: %s\n\n", title)
-
-	// For each selector key, attempt a simple regex match on the raw HTML.
-	// This is a Go-idiomatic approximation of the Python lxml XPath/CSS extraction.
-	anyData := false
 	sb.WriteString("Data:\n")
-	for field := range selectorsMap {
-		// Emit the field name; without a full DOM engine we cannot evaluate
-		// arbitrary XPath/CSS — emit nil to match Python's "selector error" path.
-		fmt.Fprintf(&sb, "- %s: (selector evaluation requires lxml; not available in Go)\n", field)
+
+	anyData := false
+	for _, field := range fields {
+		selector, ok := selectorsMap[field].(string)
+		if !ok || selector == "" {
+			fmt.Fprintf(&sb, "- %s: (invalid selector)\n", field)
+			continue
+		}
+
+		value, err := applySelector(doc, xpathRoot, selector)
+		if err != nil {
+			fmt.Fprintf(&sb, "- %s: (selector error: %v)\n", field, err)
+			continue
+		}
+		switch v := value.(type) {
+		case nil:
+			fmt.Fprintf(&sb, "- %s: \n", field)
+		case string:
+			fmt.Fprintf(&sb, "- %s: %s\n", field, v)
+		case []string:
+			fmt.Fprintf(&sb, "- %s: %s\n", field, strings.Join(v, ", "))
+		}
 		anyData = true
 	}
 	if !anyData {
-		sb.WriteString("No data extracted with provided selectors")
+		sb.WriteString("No data extracted with provided selectors\n")
 	}
 
 	return swaig.NewFunctionResult(sb.String())
+}
+
+// applySelector evaluates one selector against the parsed document. If the
+// selector starts with "/" it's treated as XPath; otherwise as CSS. Matches
+// Python's _structured_extract dispatch on selector.startswith('/').
+// Returns:
+//   - string if exactly one element matches (its trimmed text content)
+//   - []string if multiple match (each trimmed text content, in document order)
+//   - nil if nothing matches
+func applySelector(doc *goquery.Document, xpathRoot *html.Node, selector string) (any, error) {
+	if strings.HasPrefix(selector, "/") {
+		if xpathRoot == nil {
+			return nil, fmt.Errorf("xpath parse failed")
+		}
+		nodes, err := htmlquery.QueryAll(xpathRoot, selector)
+		if err != nil {
+			return nil, err
+		}
+		texts := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			t := strings.TrimSpace(htmlquery.InnerText(n))
+			if t != "" {
+				texts = append(texts, t)
+			}
+		}
+		switch len(texts) {
+		case 0:
+			return nil, nil
+		case 1:
+			return texts[0], nil
+		default:
+			return texts, nil
+		}
+	}
+
+	sel := doc.Find(selector)
+	if sel.Length() == 0 {
+		return nil, nil
+	}
+	if sel.Length() == 1 {
+		return strings.TrimSpace(sel.Text()), nil
+	}
+	texts := make([]string, 0, sel.Length())
+	sel.Each(func(_ int, s *goquery.Selection) {
+		texts = append(texts, strings.TrimSpace(s.Text()))
+	})
+	return texts, nil
+}
+
+// sortStrings is a tiny inline sort to avoid pulling "sort" at top-of-file
+// just for this one callsite. Uses insertion sort (fine for small N — the
+// selector dict is expected to hold only a handful of fields).
+func sortStrings(s []string) {
+	for i := 1; i < len(s); i++ {
+		for j := i; j > 0 && s[j-1] > s[j]; j-- {
+			s[j-1], s[j] = s[j], s[j-1]
+		}
+	}
 }
 
 // extractLinks pulls absolute href values from an HTML body relative to baseURL.
