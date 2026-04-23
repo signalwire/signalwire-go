@@ -41,14 +41,16 @@ func TestServiceExplicitAuth(t *testing.T) {
 func TestServiceVerbMethods(t *testing.T) {
 	svc := NewService(WithName("test"))
 
-	// Test Answer verb
-	err := svc.Answer(map[string]any{"max_duration": 300})
+	// Test Answer verb with typed params
+	maxDur := 300
+	err := svc.Answer(&maxDur, nil)
 	if err != nil {
 		t.Fatalf("Answer failed: %v", err)
 	}
 
-	// Test Play verb
-	err = svc.Play(map[string]any{"url": "https://example.com/audio.mp3"})
+	// Test Play verb with typed params
+	playURL := "https://example.com/audio.mp3"
+	err = svc.Play(&playURL, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Play failed: %v", err)
 	}
@@ -74,9 +76,9 @@ func TestServiceAllVerbMethods(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Answer", func() error { return svc.Answer(map[string]any{}) }},
-		{"Hangup", func() error { return svc.Hangup(map[string]any{}) }},
-		{"Play", func() error { return svc.Play(map[string]any{}) }},
+		{"Answer", func() error { return svc.Answer(nil, nil) }},
+		{"Hangup", func() error { return svc.Hangup(nil) }},
+		{"Play", func() error { u := "say:hello"; return svc.Play(&u, nil, nil, nil, nil, nil, nil) }},
 		{"Record", func() error { return svc.Record(map[string]any{}) }},
 		{"RecordCall", func() error { return svc.RecordCall(map[string]any{}) }},
 		{"StopRecordCall", func() error { return svc.StopRecordCall(map[string]any{}) }},
@@ -87,7 +89,7 @@ func TestServiceAllVerbMethods(t *testing.T) {
 		{"SendFax", func() error { return svc.SendFax(map[string]any{}) }},
 		{"ReceiveFax", func() error { return svc.ReceiveFax(map[string]any{}) }},
 		{"SIPRefer", func() error { return svc.SIPRefer(map[string]any{}) }},
-		{"AI", func() error { return svc.AI(map[string]any{}) }},
+		{"AI", func() error { return svc.AI(nil, nil, nil, nil, nil, nil) }},
 		{"AmazonBedrock", func() error { return svc.AmazonBedrock(map[string]any{}) }},
 		{"Cond", func() error { return svc.Cond(map[string]any{}) }},
 		{"Switch", func() error { return svc.Switch(map[string]any{}) }},
@@ -133,9 +135,11 @@ func TestServiceExecuteVerbInvalid(t *testing.T) {
 
 func TestServiceRender(t *testing.T) {
 	svc := NewService(WithName("test"))
-	svc.Answer(map[string]any{"max_duration": 300})
-	svc.Play(map[string]any{"url": "https://example.com/audio.mp3"})
-	svc.Hangup(map[string]any{})
+	maxDur2 := 300
+	svc.Answer(&maxDur2, nil)
+	playURL2 := "https://example.com/audio.mp3"
+	svc.Play(&playURL2, nil, nil, nil, nil, nil, nil)
+	svc.Hangup(nil)
 
 	rendered, err := svc.Render()
 	if err != nil {
@@ -169,7 +173,7 @@ func TestServiceGetFullURL(t *testing.T) {
 
 func TestServiceOnRequest(t *testing.T) {
 	svc := NewService(WithName("test"))
-	svc.Answer(map[string]any{})
+	svc.Answer(nil, nil)
 
 	result := svc.OnRequest(nil, "")
 	if result["version"] != "1.0.0" {
@@ -179,7 +183,7 @@ func TestServiceOnRequest(t *testing.T) {
 
 func TestServiceRoutingCallback(t *testing.T) {
 	svc := NewService(WithName("test"))
-	svc.Answer(map[string]any{})
+	svc.Answer(nil, nil)
 
 	customDoc := map[string]any{"version": "custom", "sections": map[string]any{"main": []any{}}}
 	svc.RegisterRoutingCallback("/custom", func(r *http.Request, body map[string]any) map[string]any {
