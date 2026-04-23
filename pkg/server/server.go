@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/signalwire/signalwire-go/pkg/agent"
@@ -254,6 +255,10 @@ func (s *AgentServer) ServeStaticFiles(directory, route string) {
 // This is the Go equivalent of Python's
 // AgentServer.register_global_routing_callback(callback_fn, path).
 func (s *AgentServer) RegisterGlobalRoutingCallback(path string, cb swml.RoutingCallback) {
+	// Trim trailing slashes first — matches Python's path.rstrip("/") so
+	// callers passing "agents/" register under "/agents" (not "/agents/").
+	path = strings.TrimRight(path, "/")
+
 	// Normalise the path to start with "/"
 	if len(path) == 0 || path[0] != '/' {
 		path = "/" + path
