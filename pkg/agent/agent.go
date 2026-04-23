@@ -1825,7 +1825,14 @@ func (a *AgentBase) OnDebugEvent(cb DebugEventHandler) *AgentBase {
 
 // buildWebhookURL constructs the full webhook URL for SWAIG functions,
 // including basic auth, route suffix, and query parameters.
+//
+// Python precedence (agent_base.py:840-844): compute default from the
+// route, then override with _web_hook_url_override if set. Go exposes the
+// override as defaultWebhookURL via WithDefaultWebhookURL — check it first.
 func (a *AgentBase) buildWebhookURL() string {
+	if a.defaultWebhookURL != "" {
+		return a.defaultWebhookURL
+	}
 	if a.webhookURL != "" {
 		return a.webhookURL
 	}
@@ -2216,6 +2223,17 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 	}
 	mux.HandleFunc(ppRoute, a.withAuth(a.handlePostPrompt))
 
+	// Check-for-input endpoint — matches Python web_mixin.py lines 390-396,
+	// which registers /check_for_input (and /check_for_input/) on both GET
+	// and POST, unconditionally. Python validates conversation_id and returns
+	// a default empty-input response.
+	checkRoute := route + "/check_for_input"
+	if route == "/" {
+		checkRoute = "/check_for_input"
+	}
+	mux.HandleFunc(checkRoute, a.withAuth(a.handleCheckForInput))
+	mux.HandleFunc(checkRoute+"/", a.withAuth(a.handleCheckForInput))
+
 	// MCP server endpoint (no auth — MCP clients authenticate via headers)
 	if a.mcpServerEnabled {
 		mcpRoute := route + "/mcp"
@@ -2243,6 +2261,17 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	hasDynamic := a.dynamicConfigCallback != nil
 	a.mu.RUnlock()
 
+	// Python web_mixin._handle_request (line 642) calls on_swml_request before
+	// rendering and passes modifications into _render_swml, which merges them
+	// into the AI verb config. Mirror that here: collect modifications first,
+	// then apply to the rendered doc.
+	//
+	// OnRequest is the public hook documented in SWMLService.on_request;
+	// AgentBase.OnRequest delegates to OnSwmlRequest. Call OnSwmlRequest
+	// directly so the *http.Request reaches subclasses (matching Python, which
+	// passes the request).
+	modifications := a.OnSwmlRequest(body, "", r)
+
 	var doc map[string]any
 	if hasDynamic {
 		doc = a.handleDynamicConfig(body, r)
@@ -2250,8 +2279,57 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 		doc = a.RenderSWML(body, r)
 	}
 
+	if len(modifications) > 0 {
+		applySwmlModifications(doc, modifications)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(doc)
+}
+
+// applySwmlModifications merges on_swml_request modifications into the AI
+// verb config of a rendered SWML document. Matches Python
+// AgentBase._render_swml modifications handling: "global_data" is
+// deep-merged into the existing global_data map; other keys overwrite
+// their counterparts in the AI verb config.
+func applySwmlModifications(doc, modifications map[string]any) {
+	sections, ok := doc["sections"].(map[string]any)
+	if !ok {
+		return
+	}
+	mainVerbs, ok := sections["main"].([]any)
+	if !ok {
+		return
+	}
+	for _, v := range mainVerbs {
+		verb, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		aiCfg, ok := verb["ai"].(map[string]any)
+		if !ok {
+			continue
+		}
+		for k, val := range modifications {
+			if k == "global_data" {
+				gdIn, ok := val.(map[string]any)
+				if !ok || len(gdIn) == 0 {
+					continue
+				}
+				existing, _ := aiCfg["global_data"].(map[string]any)
+				if existing == nil {
+					existing = map[string]any{}
+				}
+				for gk, gv := range gdIn {
+					existing[gk] = gv
+				}
+				aiCfg["global_data"] = existing
+				continue
+			}
+			aiCfg[k] = val
+		}
+		return
+	}
 }
 
 // handleDynamicConfig creates an ephemeral agent copy, applies the dynamic
@@ -2479,6 +2557,72 @@ func (a *AgentBase) handlePostPrompt(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+// handleCheckForInput serves the /check_for_input endpoint. Matches Python
+// web_mixin._handle_check_for_input_request:
+//   - GET: conversation_id from query string
+//   - POST: conversation_id from JSON body
+//   - validates conversation_id (<=256 chars, alphanumeric + -_.)
+//   - returns 400 on missing/invalid conversation_id
+//   - returns {"status":"success","conversation_id":...,"new_input":false,"messages":[]}
+func (a *AgentBase) handleCheckForInput(w http.ResponseWriter, r *http.Request) {
+	var conversationID string
+
+	if r.Method == http.MethodPost {
+		ct := r.Header.Get("Content-Type")
+		if ct != "" && !strings.HasPrefix(ct, "application/json") {
+			http.Error(w, `{"error":"Content-Type must be application/json"}`, http.StatusUnsupportedMediaType)
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"Invalid JSON in request body"}`, http.StatusBadRequest)
+			return
+		}
+		if cid, ok := body["conversation_id"].(string); ok {
+			conversationID = cid
+		}
+	} else {
+		conversationID = r.URL.Query().Get("conversation_id")
+	}
+
+	if conversationID == "" {
+		http.Error(w, `{"error":"Missing conversation_id parameter"}`, http.StatusBadRequest)
+		return
+	}
+	if !isValidConversationID(conversationID) {
+		http.Error(w, `{"error":"Invalid conversation_id format"}`, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":          "success",
+		"conversation_id": conversationID,
+		"new_input":       false,
+		"messages":        []any{},
+	})
+}
+
+// isValidConversationID mirrors Python's check: <=256 chars and each char
+// is alphanumeric or one of '-', '_', '.'.
+func isValidConversationID(id string) bool {
+	if len(id) > 256 {
+		return false
+	}
+	for _, c := range id {
+		switch {
+		case c >= '0' && c <= '9':
+		case c >= 'a' && c <= 'z':
+		case c >= 'A' && c <= 'Z':
+		case c == '-' || c == '_' || c == '.':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // withAuth wraps a handler with basic auth middleware.
