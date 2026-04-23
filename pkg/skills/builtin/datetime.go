@@ -35,6 +35,34 @@ func (s *DateTimeSkill) Setup() bool {
 func (s *DateTimeSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
+			Name:        "get_current_time",
+			Description: "Get the current time, optionally in a specific timezone",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"timezone": map[string]any{
+						"type":        "string",
+						"description": "Timezone name (e.g., 'America/New_York', 'Europe/London'). Defaults to UTC.",
+					},
+				},
+			},
+			Handler: s.handleGetCurrentTime,
+		},
+		{
+			Name:        "get_current_date",
+			Description: "Get the current date",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"timezone": map[string]any{
+						"type":        "string",
+						"description": "Timezone name for the date. Defaults to UTC.",
+					},
+				},
+			},
+			Handler: s.handleGetCurrentDate,
+		},
+		{
 			Name:        "get_datetime",
 			Description: "Get the current date and time, optionally in a specific timezone",
 			Parameters: map[string]any{
@@ -51,16 +79,42 @@ func (s *DateTimeSkill) RegisterTools() []skills.ToolRegistration {
 	}
 }
 
-func (s *DateTimeSkill) handleGetDateTime(args map[string]any, _ map[string]any) *swaig.FunctionResult {
+func (s *DateTimeSkill) resolveLocation(args map[string]any) (*time.Location, error) {
 	tzName := "UTC"
 	if v, ok := args["timezone"].(string); ok && v != "" {
 		tzName = v
 	} else if s.timezone != "" {
 		tzName = s.timezone
 	}
+	return time.LoadLocation(tzName)
+}
 
-	loc, err := time.LoadLocation(tzName)
+func (s *DateTimeSkill) handleGetCurrentTime(args map[string]any, _ map[string]any) *swaig.FunctionResult {
+	loc, err := s.resolveLocation(args)
 	if err != nil {
+		tzName, _ := args["timezone"].(string)
+		return swaig.NewFunctionResult(fmt.Sprintf("Error getting time: unknown time zone %s", tzName))
+	}
+	now := time.Now().In(loc)
+	timeStr := now.Format("03:04:05 PM MST")
+	return swaig.NewFunctionResult(fmt.Sprintf("The current time is %s", timeStr))
+}
+
+func (s *DateTimeSkill) handleGetCurrentDate(args map[string]any, _ map[string]any) *swaig.FunctionResult {
+	loc, err := s.resolveLocation(args)
+	if err != nil {
+		tzName, _ := args["timezone"].(string)
+		return swaig.NewFunctionResult(fmt.Sprintf("Error getting date: unknown time zone %s", tzName))
+	}
+	now := time.Now().In(loc)
+	dateStr := now.Format("Monday, January 02, 2006")
+	return swaig.NewFunctionResult(fmt.Sprintf("Today's date is %s", dateStr))
+}
+
+func (s *DateTimeSkill) handleGetDateTime(args map[string]any, _ map[string]any) *swaig.FunctionResult {
+	loc, err := s.resolveLocation(args)
+	if err != nil {
+		tzName, _ := args["timezone"].(string)
 		return swaig.NewFunctionResult(fmt.Sprintf("Error: invalid timezone '%s'", tzName))
 	}
 
