@@ -57,6 +57,17 @@ func GetExecutionMode() ExecutionMode {
 	return ModeServer
 }
 
+// IsServerlessMode reports whether the process is running in any serverless
+// environment (i.e. NOT in plain long-running server mode).
+//
+// Mirrors Python's is_serverless_mode():
+//
+//	def is_serverless_mode() -> bool:
+//	    return get_execution_mode() != 'server'
+func IsServerlessMode() bool {
+	return GetExecutionMode() != ModeServer
+}
+
 // lambdaBaseURL returns the Lambda-specific base URL (scheme+host, no route)
 // using AWS_LAMBDA_FUNCTION_URL if present, otherwise reconstructing the
 // canonical Function URL from AWS_REGION and AWS_LAMBDA_FUNCTION_NAME.
