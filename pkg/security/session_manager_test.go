@@ -13,15 +13,15 @@ import (
 
 func TestNewSessionManager_DefaultExpiry(t *testing.T) {
 	sm := NewSessionManager(0)
-	if sm.tokenExpirySecs != 3600 {
-		t.Errorf("expected default expiry 3600, got %d", sm.tokenExpirySecs)
+	if sm.tokenExpirySecs != 900 {
+		t.Errorf("expected default expiry 900, got %d", sm.tokenExpirySecs)
 	}
 }
 
 func TestNewSessionManager_NegativeExpiry(t *testing.T) {
 	sm := NewSessionManager(-10)
-	if sm.tokenExpirySecs != 3600 {
-		t.Errorf("expected default expiry 3600 for negative input, got %d", sm.tokenExpirySecs)
+	if sm.tokenExpirySecs != 900 {
+		t.Errorf("expected default expiry 900 for negative input, got %d", sm.tokenExpirySecs)
 	}
 }
 
