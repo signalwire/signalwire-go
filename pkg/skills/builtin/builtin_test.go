@@ -400,14 +400,24 @@ func TestClaudeSkillsSetup(t *testing.T) {
 	if factory == nil {
 		t.Fatal("claude_skills factory not found")
 	}
+
+	// Without skills_path: Setup() must return false.
 	s := factory(nil)
 	if s.Setup() {
-		t.Error("claude_skills Setup() should return false without api_key")
+		t.Error("claude_skills Setup() should return false without skills_path")
 	}
 
-	s2 := factory(map[string]any{"api_key": "test-key"})
-	if !s2.Setup() {
-		t.Error("claude_skills Setup() returned false with api_key")
+	// With a non-existent path: Setup() must return false.
+	s2 := factory(map[string]any{"skills_path": "/nonexistent/path/that/does/not/exist"})
+	if s2.Setup() {
+		t.Error("claude_skills Setup() should return false with non-existent skills_path")
+	}
+
+	// With a valid directory (using os.TempDir): Setup() returns true (0 skills is valid).
+	tmpDir := t.TempDir()
+	s3 := factory(map[string]any{"skills_path": tmpDir})
+	if !s3.Setup() {
+		t.Error("claude_skills Setup() returned false with valid (empty) skills_path")
 	}
 }
 
