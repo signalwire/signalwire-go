@@ -131,12 +131,70 @@ client.Fabric.Resources.Delete("resource-uuid")
 // List addresses for any resource
 addresses, _ := client.Fabric.Resources.ListAddresses("resource-uuid")
 
-// Assign a resource to a phone route
-client.Fabric.Resources.AssignPhoneRoute("resource-uuid", "route-uuid")
-
 // Assign a resource as a domain application handler
-client.Fabric.Resources.AssignDomainApplication("resource-uuid", "da-uuid")
+client.Fabric.Resources.AssignDomainApplication("resource-uuid", map[string]any{
+	"domain": "app.example.com",
+})
 ```
+
+> **Note:** `AssignPhoneRoute` is deprecated for the common binding cases.
+> It applies only to a narrow set of legacy resource types and does NOT
+> work for `swml_webhook`, `cxml_webhook`, or `ai_agent`. To bind a phone
+> number to a webhook/agent/flow, configure the phone number directly
+> (see [Phone-number binding](#phone-number-binding) below). Calling
+> `AssignPhoneRoute` still works for backcompat and emits a runtime
+> deprecation warning.
+
+## Phone-number binding
+
+Routing an inbound phone number to a call handler (SWML webhook, cXML
+webhook, AI agent, call flow, RELAY app/topic) is configured on the
+**phone number**, not on a Fabric resource. Setting `call_handler` + the
+handler-specific companion field on the phone number causes the server
+to auto-materialize the matching Fabric resource.
+
+Use the typed helpers on `client.PhoneNumbers`:
+
+```go
+// SWML webhook (your backend returns SWML per call)
+client.PhoneNumbers.SetSwmlWebhook(pnID, "https://example.com/swml")
+
+// cXML / LAML webhook (Twilio-compat); optional fallback + status URLs
+client.PhoneNumbers.SetCxmlWebhook(pnID, "https://example.com/voice.xml",
+	&namespaces.CxmlWebhookOptions{
+		FallbackURL:       "https://example.com/fallback.xml",
+		StatusCallbackURL: "https://example.com/status",
+	})
+
+// Existing cXML application by ID
+client.PhoneNumbers.SetCxmlApplication(pnID, "app-uuid")
+
+// AI Agent by ID
+client.PhoneNumbers.SetAiAgent(pnID, "agent-uuid")
+
+// Call flow (optionally pin a version)
+client.PhoneNumbers.SetCallFlow(pnID, "flow-uuid",
+	&namespaces.CallFlowOptions{Version: "current_deployed"})
+
+// Relay application (named routing)
+client.PhoneNumbers.SetRelayApplication(pnID, "my-relay-app")
+
+// Relay topic (RELAY client subscription)
+client.PhoneNumbers.SetRelayTopic(pnID, "office", nil)
+```
+
+The `namespaces.PhoneCallHandler` type exposes the full enum of wire values
+(`PhoneCallHandlerRelayScript`, `PhoneCallHandlerLamlWebhooks`, `…AiAgent`,
+etc.). For unusual combinations, call `client.PhoneNumbers.Update` directly
+with `call_handler` + the companion field in the body.
+
+**Do not** call `client.Fabric.SWMLWebhooks.Create` or
+`client.Fabric.CXMLWebhooks.Create` as a binding primitive — those produce
+orphan resources. They now emit a deprecation warning. The
+corresponding list/get/update/delete operations remain unchanged.
+
+See `rest/examples/rest_bind_phone_to_swml_webhook.go` for a complete
+working example.
 
 ## Fabric Addresses
 
