@@ -464,10 +464,10 @@ func TestFabricNamespace_PATCHResources(t *testing.T) {
 
 	// PATCH-update resources
 	patchResources := []*CrudResource{
-		f.SWMLWebhooks,
+		f.SWMLWebhooks.CrudResource,
 		f.AIAgents,
 		f.SIPGateways,
-		f.CXMLWebhooks,
+		f.CXMLWebhooks.CrudResource,
 	}
 	for _, r := range patchResources {
 		if r.UpdateMethod != "PATCH" {
