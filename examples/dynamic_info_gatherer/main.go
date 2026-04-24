@@ -2,72 +2,69 @@
 
 // Example: dynamic_info_gatherer
 //
-// InfoGathererAgent with a callback function that dynamically selects
-// questions based on request parameters (?set=support, ?set=medical, etc.).
+// Builds an InfoGathererAgent question set dynamically from the
+// INFO_GATHERER_SET env var, selecting between several predefined
+// intake flows (default, support, medical, onboarding).
+//
+// Run with:
+//
+//	INFO_GATHERER_SET=support go run ./examples/dynamic_info_gatherer/
 package main
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
 	"github.com/signalwire/signalwire-go/pkg/prefabs"
 )
 
 func main() {
-	questionSets := map[string][]prefabs.GatherField{
+	questionSets := map[string][]prefabs.Question{
 		"default": {
-			{Name: "name", Description: "Full name", Required: true},
-			{Name: "phone", Description: "Phone number", Required: true},
-			{Name: "reason", Description: "How can I help you today?"},
+			{KeyName: "name", QuestionText: "What is your full name?"},
+			{KeyName: "phone", QuestionText: "What is the best phone number to reach you?"},
+			{KeyName: "reason", QuestionText: "How can I help you today?"},
 		},
 		"support": {
-			{Name: "customer_name", Description: "Your name", Required: true},
-			{Name: "account_number", Description: "Account number", Required: true},
-			{Name: "issue", Description: "Describe the issue"},
-			{Name: "priority", Description: "Urgency: Low, Medium, or High"},
+			{KeyName: "customer_name", QuestionText: "What is your name?"},
+			{KeyName: "account_number", QuestionText: "What is your account number?", Confirm: true},
+			{KeyName: "issue", QuestionText: "Can you describe the issue you are experiencing?"},
+			{KeyName: "priority", QuestionText: "What is the urgency: Low, Medium, or High?"},
 		},
 		"medical": {
-			{Name: "patient_name", Description: "Patient full name", Required: true},
-			{Name: "symptoms", Description: "Current symptoms", Required: true},
-			{Name: "duration", Description: "Symptom duration"},
-			{Name: "medications", Description: "Current medications"},
+			{KeyName: "patient_name", QuestionText: "What is the patient's full name?", Confirm: true},
+			{KeyName: "symptoms", QuestionText: "What symptoms are you experiencing?"},
+			{KeyName: "duration", QuestionText: "How long have you had these symptoms?"},
+			{KeyName: "medications", QuestionText: "What medications are you currently taking?"},
 		},
 		"onboarding": {
-			{Name: "full_name", Description: "Your full name", Required: true},
-			{Name: "email", Description: "Email address", Required: true},
-			{Name: "company", Description: "Company name"},
-			{Name: "department", Description: "Department"},
-			{Name: "start_date", Description: "Start date"},
+			{KeyName: "full_name", QuestionText: "What is your full name?"},
+			{KeyName: "email", QuestionText: "What is your email address?", Confirm: true},
+			{KeyName: "company", QuestionText: "What company do you work for?"},
+			{KeyName: "department", QuestionText: "Which department will you be joining?"},
+			{KeyName: "start_date", QuestionText: "When will you be starting?"},
 		},
 	}
 
-	ig := prefabs.NewInfoGathererAgent(
-		agent.WithName("DynamicInfoGatherer"),
-		agent.WithRoute("/contact"),
-		agent.WithPort(3033),
-	)
+	set := os.Getenv("INFO_GATHERER_SET")
+	if set == "" {
+		set = "default"
+	}
+	questions, ok := questionSets[set]
+	if !ok {
+		fmt.Printf("Unknown INFO_GATHERER_SET=%q; falling back to default.\n", set)
+		questions = questionSets["default"]
+		set = "default"
+	}
 
-	ig.SetQuestionCallback(func(queryParams map[string]string) []prefabs.GatherField {
-		set := queryParams["set"]
-		if set == "" {
-			set = "default"
-		}
-		fmt.Printf("Dynamic question set: %s\n", set)
-		if fields, ok := questionSets[set]; ok {
-			return fields
-		}
-		return questionSets["default"]
+	ig := prefabs.NewInfoGathererAgent(prefabs.InfoGathererOptions{
+		Name:      "DynamicInfoGatherer",
+		Route:     "/contact",
+		Questions: questions,
 	})
 
-	ig.SetOnComplete(func(data map[string]any) {
-		fmt.Printf("All fields collected: %v\n", data)
-	})
-
-	fmt.Println("Starting DynamicInfoGatherer on :3033/contact ...")
-	fmt.Println("  /contact            (default: name, phone, reason)")
-	fmt.Println("  /contact?set=support (customer support intake)")
-	fmt.Println("  /contact?set=medical (medical intake)")
-	fmt.Println("  /contact?set=onboarding (employee onboarding)")
+	fmt.Printf("Starting DynamicInfoGatherer (%s set) on :3000/contact ...\n", set)
+	fmt.Println("  Select a different set with INFO_GATHERER_SET=support|medical|onboarding")
 
 	if err := ig.Run(); err != nil {
 		fmt.Printf("Agent error: %v\n", err)
