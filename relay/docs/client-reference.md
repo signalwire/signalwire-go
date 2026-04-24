@@ -12,12 +12,12 @@ client := relay.NewRelayClient(opts ...ClientOption)
 |--------|---------|-------------|
 | `WithProject(id)` | `SIGNALWIRE_PROJECT_ID` | Project ID for authentication |
 | `WithToken(token)` | `SIGNALWIRE_API_TOKEN` | API token for authentication |
-| `WithJWTToken(jwt)` | `SIGNALWIRE_JWT_TOKEN` | JWT token (alternative to project/token) |
+| `WithJWT(jwt)` | `SIGNALWIRE_JWT_TOKEN` | JWT token (alternative to project/token) |
 | `WithSpace(host)` | `SIGNALWIRE_SPACE` | Space hostname (default: `relay.signalwire.com`) |
 | `WithContexts(ctx...)` | -- | Topics to subscribe to |
 | `WithMaxActiveCalls(n)` | `RELAY_MAX_ACTIVE_CALLS` | Max concurrent calls (default: 1000) |
 
-Authentication requires either `WithProject()` + `WithToken()` (legacy) or `WithJWTToken()` (faster, no server roundtrip). All parameters fall back to their corresponding environment variables.
+Authentication requires either `WithProject()` + `WithToken()` (legacy) or `WithJWT()` (faster, no server roundtrip). All parameters fall back to their corresponding environment variables.
 
 ## Methods
 
@@ -29,17 +29,17 @@ Blocking entry point. Connects, authenticates, and runs the event loop with auto
 client.Run()
 ```
 
-### `Connect(ctx) error` / `Disconnect() error`
+### `Stop()`
 
-Manual lifecycle control for use within an existing application.
+Signal a running client to tear down its WebSocket and exit `Run()`. Safe to
+call from another goroutine.
 
 ```go
-ctx := context.Background()
-if err := client.Connect(ctx); err != nil {
-	log.Fatalf("Connect failed: %v", err)
-}
-defer client.Disconnect()
-// ... use client ...
+go func() {
+	time.Sleep(5 * time.Minute)
+	client.Stop()
+}()
+client.Run() // blocks until Stop() is called
 ```
 
 ### `OnCall(handler func(*relay.Call))`
@@ -66,9 +66,8 @@ call, err := client.Dial(
 			"to_number": "+15551234567", "from_number": "+15559876543",
 		}}},
 	},
-	relay.WithDialTag("my-tag"),
-	relay.WithDialMaxDuration(30),
-	relay.WithDialTimeout(120 * time.Second),
+	relay.WithDialFromNumber("+15559876543"),
+	relay.WithDialTimeout(30), // seconds
 )
 if err != nil {
 	fmt.Printf("Dial failed: %v\n", err)
@@ -86,15 +85,17 @@ client.OnMessage(func(message *relay.Message) {
 })
 ```
 
-### `SendMessage(opts ...MessageOption) (*Message, error)`
+### `SendMessage(to, from, body string, opts ...MessageOption) (*Message, error)`
 
 Send an outbound SMS/MMS. Returns a `*Message` that tracks delivery state.
+The three required parameters are positional; additional `MessageOption`
+values configure media, region, and tags.
 
 ```go
 message, err := client.SendMessage(
-	relay.WithMessageTo("+15552222222"),
-	relay.WithMessageFrom("+15551111111"),
-	relay.WithMessageBody("Hello!"),
+	"+15552222222",
+	"+15551111111",
+	"Hello!",
 )
 if err != nil {
 	fmt.Printf("Send failed: %v\n", err)
@@ -105,27 +106,12 @@ event := message.Wait(context.Background()) // block until delivered/failed
 
 See [Messaging](messaging.md) for full details.
 
-### `Execute(method string, params map[string]any) (map[string]any, error)`
+## Context Subscriptions
 
-Send a raw JSON-RPC request. Used internally by Call methods, but available for custom commands.
-
-### `Receive(contexts []string) error` / `Unreceive(contexts []string) error`
-
-Dynamically subscribe to or unsubscribe from contexts after connecting.
-
-```go
-client.Receive([]string{"new-context"})
-client.Unreceive([]string{"old-context"})
-```
-
-## Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `RelayProtocol()` | `string` | Server-assigned protocol string from connect response |
-| `Project()` | `string` | Project ID |
-| `Host()` | `string` | Relay host |
-| `Contexts()` | `[]string` | Initial contexts |
+The RELAY contexts the client listens on are fixed at construction time via
+`WithContexts(...)`. Dynamic subscribe/unsubscribe is not currently exposed
+in the Go port — recreate the client with the desired contexts if they need
+to change.
 
 ## Connection Behavior
 
@@ -159,7 +145,8 @@ if err != nil {
 
 ## Graceful Shutdown
 
-Use a context with cancellation or handle OS signals to shut down cleanly:
+Use a cancellable context or OS signal handler to call `client.Stop()` when
+the process should exit:
 
 ```go
 ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -172,11 +159,13 @@ client.OnCall(func(call *relay.Call) {
 	call.Hangup("")
 })
 
-if err := client.Connect(ctx); err != nil {
+go func() {
+	<-ctx.Done()
+	fmt.Println("Shutting down...")
+	client.Stop()
+}()
+
+if err := client.Run(); err != nil {
 	log.Fatal(err)
 }
-defer client.Disconnect()
-
-<-ctx.Done()
-fmt.Println("Shutting down...")
 ```

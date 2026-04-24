@@ -1509,6 +1509,82 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}) surface
 	return out
 }
 
+// buildGoSurface turns (goStructs, goFuncs) into a surface file keyed on the
+// **native** Go struct + method names.  Unlike ``build`` — which translates
+// everything onto the Python reference's dotted path — this captures the
+// exact identifiers a Go doc or example would use (``AgentBase.DefineTool``,
+// ``RestClient``, ``RunAgent``).  Used by ``audit_docs.py`` on the Go port
+// so that method-call references resolve against the actual surface.
+//
+// Shape matches ``port_surface.json`` but the module name is the short Go
+// package, the class is the exported struct, and methods are the exported
+// Go method names.
+func buildGoSurface(structs map[string]*goStructFacts, funcs map[string]struct{}) surface {
+	out := surface{
+		Version: "1",
+		Modules: map[string]moduleInventory{},
+	}
+	ensure := func(mod string) moduleInventory {
+		if inv, ok := out.Modules[mod]; ok {
+			return inv
+		}
+		inv := moduleInventory{
+			Classes:   map[string][]string{},
+			Functions: []string{},
+		}
+		out.Modules[mod] = inv
+		return inv
+	}
+	// Every exported struct becomes a class; every exported method becomes
+	// a member.  Unexported or port-only symbols are included — ``audit_docs.py``
+	// only cares that *some* reference resolves, not that the inventory
+	// matches a reference layout.
+	for key, facts := range structs {
+		_ = key
+		inv := ensure(facts.pkg)
+		methods, present := inv.Classes[facts.name]
+		if !present || methods == nil {
+			methods = []string{}
+		}
+		for m := range facts.methods {
+			methods = append(methods, m)
+		}
+		sort.Strings(methods)
+		inv.Classes[facts.name] = methods
+		out.Modules[facts.pkg] = inv
+	}
+	// Every exported free function becomes a module-level function.
+	for key := range funcs {
+		parts := strings.SplitN(key, ".", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		pkg, name := parts[0], parts[1]
+		inv := ensure(pkg)
+		// de-dup
+		present := false
+		for _, existing := range inv.Functions {
+			if existing == name {
+				present = true
+				break
+			}
+		}
+		if !present {
+			inv.Functions = append(inv.Functions, name)
+		}
+		out.Modules[pkg] = inv
+	}
+	for mod, inv := range out.Modules {
+		sort.Strings(inv.Functions)
+		for cls, methods := range inv.Classes {
+			sort.Strings(methods)
+			inv.Classes[cls] = methods
+		}
+		out.Modules[mod] = inv
+	}
+	return out
+}
+
 // --- CLI --------------------------------------------------------------------
 
 // goSHA returns the signalwire-go repo HEAD SHA (or "N/A").
@@ -1533,9 +1609,10 @@ func findRepoRoot(cwd string) (string, error) {
 
 func run() error {
 	var (
-		outputPath = flag.String("output", "port_surface.json", "Write JSON to this path")
-		stdout     = flag.Bool("stdout", false, "Print JSON to stdout instead of --output")
-		check      = flag.Bool("check", false, "Compare against existing --output file; exit 1 on drift")
+		outputPath   = flag.String("output", "port_surface.json", "Write JSON to this path")
+		goOutputPath = flag.String("go-output", "port_surface_go.json", "Write Go-native surface JSON to this path (used by audit_docs.py)")
+		stdout       = flag.Bool("stdout", false, "Print Python-shape JSON to stdout instead of --output")
+		check        = flag.Bool("check", false, "Compare against existing --output / --go-output files; exit 1 on drift")
 	)
 	flag.Parse()
 
@@ -1554,8 +1631,10 @@ func run() error {
 		return fmt.Errorf("walk: %w", err)
 	}
 
+	sha := goSHA(repoRoot)
+
 	snapshot := build(structs, funcs)
-	snapshot.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s", goSHA(repoRoot))
+	snapshot.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s", sha)
 
 	rendered, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
@@ -1563,13 +1642,29 @@ func run() error {
 	}
 	rendered = append(rendered, '\n')
 
+	goSnapshot := buildGoSurface(structs, funcs)
+	goSnapshot.GeneratedFrom = fmt.Sprintf("signalwire-go (go-native) @ %s", sha)
+	goRendered, err := json.MarshalIndent(goSnapshot, "", "  ")
+	if err != nil {
+		return err
+	}
+	goRendered = append(goRendered, '\n')
+
 	if *check {
 		existing, err := os.ReadFile(*outputPath)
 		if err != nil {
-			return fmt.Errorf("check: read existing: %w", err)
+			return fmt.Errorf("check: read existing %s: %w", *outputPath, err)
 		}
 		if stripGen(rendered) != stripGen(existing) {
 			fmt.Fprintln(os.Stderr, "DRIFT: port_surface.json is stale; regenerate with go run ./cmd/enumerate-surface")
+			return fmt.Errorf("drift detected")
+		}
+		existingGo, err := os.ReadFile(*goOutputPath)
+		if err != nil {
+			return fmt.Errorf("check: read existing %s: %w", *goOutputPath, err)
+		}
+		if stripGen(goRendered) != stripGen(existingGo) {
+			fmt.Fprintln(os.Stderr, "DRIFT: port_surface_go.json is stale; regenerate with go run ./cmd/enumerate-surface")
 			return fmt.Errorf("drift detected")
 		}
 		return nil
@@ -1579,7 +1674,10 @@ func run() error {
 		_, err := os.Stdout.Write(rendered)
 		return err
 	}
-	return os.WriteFile(*outputPath, rendered, 0o644)
+	if err := os.WriteFile(*outputPath, rendered, 0o644); err != nil {
+		return err
+	}
+	return os.WriteFile(*goOutputPath, goRendered, 0o644)
 }
 
 func stripGen(b []byte) string {
