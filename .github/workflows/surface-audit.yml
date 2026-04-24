@@ -1,0 +1,73 @@
+name: Symbol surface audit (Layer B)
+
+# Runs the Go enumerator, then diffs ``port_surface.json`` against
+# ``porting-sdk/python_surface.json`` to verify that every Python-reference
+# public symbol either exists in the Go port or is explicitly recorded in
+# ``PORT_OMISSIONS.md``.  Port-only extensions live in ``PORT_ADDITIONS.md``.
+#
+# This guards against silent API drift: if signalwire-python adds a public
+# method and the Go port hasn't caught up, CI turns red.
+
+on:
+  pull_request:
+    paths:
+      - "pkg/**"
+      - "cmd/enumerate-surface/**"
+      - "PORT_OMISSIONS.md"
+      - "PORT_ADDITIONS.md"
+      - "port_surface.json"
+      - ".github/workflows/surface-audit.yml"
+  push:
+    branches: [main]
+  schedule:
+    # Nightly re-run so the audit catches upstream Python-SDK additions
+    # within 24h of porting-sdk regenerating python_surface.json.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  surface-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out signalwire-go
+        uses: actions/checkout@v4
+
+      - name: Check out porting-sdk (reference surface)
+        uses: actions/checkout@v4
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          # Pin to main so nightly runs see the freshest reference.
+          ref: main
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Enumerate Go surface
+        run: go run ./cmd/enumerate-surface --output port_surface.json
+
+      - name: Verify committed port_surface.json is fresh
+        run: |
+          # The repo commits port_surface.json so reviewers can read diffs
+          # without rebuilding Go.  Fail if the enumerator produces a
+          # different snapshot than the committed one.
+          go run ./cmd/enumerate-surface --check --output port_surface.json
+
+      - name: Diff against Python reference
+        run: |
+          python3 porting-sdk/scripts/diff_port_surface.py \
+            --reference porting-sdk/python_surface.json \
+            --port-surface port_surface.json \
+            --omissions PORT_OMISSIONS.md \
+            --additions PORT_ADDITIONS.md
