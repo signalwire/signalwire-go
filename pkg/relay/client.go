@@ -119,6 +119,15 @@ func (c *Client) JWTToken() string {
 	return c.jwtToken
 }
 
+// Space returns the configured SignalWire space hostname. Mirrors Python's
+// public client.host attribute (Python uses the term "host"; Go uses
+// "space" because that's the more accurate noun — see WithSpace).
+func (c *Client) Space() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.space
+}
+
 // Connect establishes the WebSocket connection to SignalWire. This is the
 // public equivalent of the internal connect() method, mirroring Python's
 // async connect() which is also used in the async-with context manager.
