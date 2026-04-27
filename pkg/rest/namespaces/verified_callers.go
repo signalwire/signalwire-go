@@ -22,7 +22,7 @@ func NewVerifiedCallersNamespace(client HTTPClient) *VerifiedCallersNamespace {
 
 // RedialVerification redials the verification call for a caller ID.
 func (r *VerifiedCallersNamespace) RedialVerification(callerID string) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callerID, "verification"), nil)
+	return r.HTTP.Post(r.Path(callerID, "verification"), nil, nil)
 }
 
 // SubmitVerification submits a verification code for a caller ID.

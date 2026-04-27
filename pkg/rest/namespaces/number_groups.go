@@ -26,7 +26,7 @@ func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[strin
 
 // AddMembership adds a number to a group.
 func (r *NumberGroupsNamespace) AddMembership(groupID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(groupID, "number_group_memberships"), data)
+	return r.HTTP.Post(r.Path(groupID, "number_group_memberships"), data, nil)
 }
 
 // GetMembership retrieves a specific membership by ID.
@@ -35,6 +35,10 @@ func (r *NumberGroupsNamespace) GetMembership(membershipID string) (map[string]a
 }
 
 // DeleteMembership removes a membership by ID.
-func (r *NumberGroupsNamespace) DeleteMembership(membershipID string) error {
+func (r *NumberGroupsNamespace) DeleteMembership(membershipID string) (map[string]any, error) {
 	return r.HTTP.Delete("/api/relay/rest/number_group_memberships/" + membershipID)
 }
+
+// NumberGroupsResource is an alias for NumberGroupsNamespace, matching the
+// Python class name for cross-SDK parity.
+type NumberGroupsResource = NumberGroupsNamespace

@@ -56,14 +56,33 @@ var (
 	suppressed  bool
 )
 
-func init() {
-	// Check environment for log level and mode
+// configureFromEnv reads SIGNALWIRE_LOG_LEVEL and SIGNALWIRE_LOG_MODE from the
+// environment and applies them to globalLevel and suppressed. Must be called
+// with globalMu held for writing, or before any goroutines are started (i.e.
+// from init or ResetLoggingConfiguration).
+func configureFromEnv() {
+	globalLevel = LevelInfo
+	suppressed = false
 	if envLevel := os.Getenv("SIGNALWIRE_LOG_LEVEL"); envLevel != "" {
 		globalLevel = ParseLevel(envLevel)
 	}
 	if envMode := os.Getenv("SIGNALWIRE_LOG_MODE"); strings.ToLower(envMode) == "off" {
 		suppressed = true
 	}
+}
+
+func init() {
+	configureFromEnv()
+}
+
+// ResetLoggingConfiguration re-reads SIGNALWIRE_LOG_LEVEL and SIGNALWIRE_LOG_MODE
+// from the environment and resets globalLevel and suppressed to the env-derived
+// defaults. It is the Go equivalent of Python's reset_logging_configuration() and
+// is intended for test teardown and env-var-driven reconfiguration at runtime.
+func ResetLoggingConfiguration() {
+	globalMu.Lock()
+	defer globalMu.Unlock()
+	configureFromEnv()
 }
 
 // SetGlobalLevel sets the minimum log level for all loggers.

@@ -343,12 +343,16 @@ func TestAddHints(t *testing.T) {
 
 func TestAddPatternHint(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPatternHint("[A-Z]{3}", "Three-letter code", "en")
+	// Python-aligned signature: AddPatternHint(hint, pattern, replace, ignoreCase...)
+	a.AddPatternHint("Three-letter code", "[A-Z]{3}", "CODE")
 	if len(a.patternHints) != 1 {
 		t.Fatal("expected 1 pattern hint")
 	}
-	if a.patternHints[0]["language"] != "en" {
-		t.Error("expected language=en")
+	if a.patternHints[0]["hint"] != "Three-letter code" {
+		t.Error("expected hint='Three-letter code'")
+	}
+	if a.patternHints[0]["pattern"] != "[A-Z]{3}" {
+		t.Error("expected pattern='[A-Z]{3}'")
 	}
 }
 
@@ -369,7 +373,8 @@ func TestLanguages(t *testing.T) {
 
 func TestPronunciations(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPronunciation("SWML", "swimmel", "en")
+	// Python-aligned signature: AddPronunciation(replace, withText, ignoreCase...)
+	a.AddPronunciation("SWML", "swimmel")
 	if len(a.pronunciations) != 1 {
 		t.Fatal("expected 1 pronunciation")
 	}
@@ -715,19 +720,19 @@ func TestRenderSWML_WithTools(t *testing.T) {
 			if fn["function"] != "get_weather" {
 				t.Errorf("expected function=get_weather, got %v", fn["function"])
 			}
-			if fn["purpose"] != "Get weather" {
-				t.Errorf("unexpected purpose: %v", fn["purpose"])
+			if fn["description"] != "Get weather" {
+				t.Errorf("unexpected description: %v", fn["description"])
 			}
 			webhookURL, _ := fn["web_hook_url"].(string)
 			if !strings.Contains(webhookURL, "/swaig") {
 				t.Errorf("expected webhook URL to contain /swaig, got %q", webhookURL)
 			}
-			arg, ok := fn["argument"].(map[string]any)
+			params, ok := fn["parameters"].(map[string]any)
 			if !ok {
-				t.Fatal("expected argument schema")
+				t.Fatal("expected parameters schema")
 			}
-			if arg["type"] != "object" {
-				t.Errorf("expected argument type=object, got %v", arg["type"])
+			if params["type"] != "object" {
+				t.Errorf("expected parameters type=object, got %v", params["type"])
 			}
 			return
 		}
@@ -1325,7 +1330,7 @@ func TestRenderSWML_WithFunctionIncludes(t *testing.T) {
 func TestRenderSWML_WithPronunciations(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("u", "p"))
 	a.SetPromptText("Bot")
-	a.AddPronunciation("SWML", "swimmel", "en")
+	a.AddPronunciation("SWML", "swimmel")
 
 	doc := a.RenderSWML(nil, nil)
 	sections := doc["sections"].(map[string]any)

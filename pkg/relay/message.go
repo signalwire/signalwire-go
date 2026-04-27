@@ -8,6 +8,7 @@ import (
 // Message represents an SMS/MMS message tracked through its lifecycle.
 type Message struct {
 	messageID  string
+	context    string
 	direction  string
 	fromNumber string
 	toNumber   string
@@ -22,7 +23,9 @@ type Message struct {
 	result *RelayEvent
 	mu     sync.Mutex
 
-	completed     bool
+	completed   bool
+	onCompleted func(*Message)
+
 	eventHandlers []func(*RelayEvent)
 }
 
@@ -40,6 +43,9 @@ func newMessage(messageID, direction, from, to, body string) *Message {
 
 // MessageID returns the unique message identifier.
 func (m *Message) MessageID() string { return m.messageID }
+
+// Context returns the RELAY context on which this message was received.
+func (m *Message) Context() string { return m.context }
 
 // Direction returns "inbound" or "outbound".
 func (m *Message) Direction() string { return m.direction }
@@ -75,6 +81,18 @@ func (m *Message) Reason() string {
 
 // Tags returns the tags associated with the message.
 func (m *Message) Tags() []string { return m.tags }
+
+// Result returns the terminal RelayEvent if the message has reached a terminal
+// state, or nil if not yet done. This is the non-blocking equivalent of
+// Python's Message.result property.
+func (m *Message) Result() *RelayEvent {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.completed {
+		return m.result
+	}
+	return nil
+}
 
 // Wait blocks until the message reaches a terminal state or the context
 // is cancelled. Returns the final event or the context error.
@@ -115,9 +133,11 @@ func (m *Message) updateState(event *RelayEvent) {
 	copy(handlers, m.eventHandlers)
 
 	terminal := isTerminalMessageState(newState)
+	var onCompleted func(*Message)
 	if terminal && !m.completed {
 		m.completed = true
 		m.result = event
+		onCompleted = m.onCompleted
 	}
 	m.mu.Unlock()
 
@@ -126,6 +146,9 @@ func (m *Message) updateState(event *RelayEvent) {
 	}
 
 	if terminal {
+		if onCompleted != nil {
+			go onCompleted(m)
+		}
 		select {
 		case <-m.done:
 			// Already closed.

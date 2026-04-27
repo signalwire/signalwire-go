@@ -43,6 +43,15 @@ func (e *SignalWireRestError) Error() string {
 	return fmt.Sprintf("%s %s returned %d: %s", e.Method, e.URL, e.StatusCode, e.Body)
 }
 
+// NewSignalWireRestError constructs a SignalWireRestError, substituting
+// "GET" as the method when method is empty — matches Python's default.
+func NewSignalWireRestError(statusCode int, body, url, method string) *SignalWireRestError {
+	if method == "" {
+		method = "GET"
+	}
+	return &SignalWireRestError{StatusCode: statusCode, Body: body, URL: url, Method: method}
+}
+
 // ---------- HttpClient ----------
 
 // HttpClient is a thin wrapper around net/http that provides Basic Auth,
@@ -80,9 +89,10 @@ func (c *HttpClient) Get(path string, params map[string]string) (map[string]any,
 	return c.doRequest("GET", path, nil, params)
 }
 
-// Post performs an HTTP POST request with a JSON body.
-func (c *HttpClient) Post(path string, body map[string]any) (map[string]any, error) {
-	return c.doRequest("POST", path, body, nil)
+// Post performs an HTTP POST request with a JSON body. Optional params are
+// appended to the URL as query-string parameters.
+func (c *HttpClient) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
+	return c.doRequest("POST", path, body, params)
 }
 
 // Put performs an HTTP PUT request with a JSON body.
@@ -95,11 +105,10 @@ func (c *HttpClient) Patch(path string, body map[string]any) (map[string]any, er
 	return c.doRequest("PATCH", path, body, nil)
 }
 
-// Delete performs an HTTP DELETE request. It returns an error on non-2xx
-// responses and nil on success.
-func (c *HttpClient) Delete(path string) error {
-	_, err := c.doRequest("DELETE", path, nil, nil)
-	return err
+// Delete performs an HTTP DELETE request. It returns the parsed response body
+// (or an empty map for 204 No Content) and any error.
+func (c *HttpClient) Delete(path string) (map[string]any, error) {
+	return c.doRequest("DELETE", path, nil, nil)
 }
 
 // doRequest is the shared request execution method. It sets Basic Auth,
@@ -215,7 +224,7 @@ func (r *CrudResource) List(params map[string]string) (map[string]any, error) {
 
 // Create sends a POST request to create a new resource.
 func (r *CrudResource) Create(data map[string]any) (map[string]any, error) {
-	return r.Client.Post(r.Path, data)
+	return r.Client.Post(r.Path, data, nil)
 }
 
 // Get retrieves a single resource by ID.
@@ -233,8 +242,9 @@ func (r *CrudResource) Update(id string, data map[string]any) (map[string]any, e
 	return r.Client.Patch(path, data)
 }
 
-// Delete removes a resource by ID.
-func (r *CrudResource) Delete(id string) error {
+// Delete removes a resource by ID. It returns the parsed response body
+// (or an empty map for 204 No Content) and any error.
+func (r *CrudResource) Delete(id string) (map[string]any, error) {
 	return r.Client.Delete(r.subPath(id))
 }
 
@@ -318,4 +328,25 @@ func (p *PaginatedIterator) Next() ([]map[string]any, bool, error) {
 	// No more pages
 	p.done = true
 	return items, false, nil
+}
+
+// ForEach calls fn for every item across all pages. It fetches pages lazily
+// via Next and invokes fn once per item in the order they are returned.
+// Iteration stops early if fn returns a non-nil error (that error is returned
+// to the caller) or when Next signals there are no more pages.
+func (p *PaginatedIterator) ForEach(fn func(map[string]any) error) error {
+	for {
+		items, hasMore, err := p.Next()
+		if err != nil {
+			return err
+		}
+		for _, item := range items {
+			if err := fn(item); err != nil {
+				return err
+			}
+		}
+		if !hasMore {
+			return nil
+		}
+	}
 }

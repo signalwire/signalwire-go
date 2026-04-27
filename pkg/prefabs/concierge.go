@@ -21,12 +21,14 @@ type Amenity struct {
 
 // ConciergeOptions configures a new ConciergeAgent.
 type ConciergeOptions struct {
-	Name      string
-	Route     string
-	VenueName string
-	Services  []string
-	Amenities map[string]Amenity
-	Hours     string // general hours of operation
+	Name                string
+	Route               string
+	VenueName           string
+	Services            []string
+	Amenities           map[string]Amenity
+	Hours               string   // general hours of operation
+	SpecialInstructions []string // optional additional instructions appended to the default list
+	WelcomeMessage      string   // optional static greeting spoken at the start of the call
 }
 
 // ConciergeAgent acts as a virtual concierge for a venue, answering questions
@@ -80,12 +82,14 @@ func NewConciergeAgent(opts ConciergeOptions) *ConciergeAgent {
 		"Provide exceptional service by helping users with information, recommendations, and booking assistance.",
 		nil,
 	)
-	base.PromptAddSection("Instructions", "", []string{
+	instructions := []string{
 		"Be warm and welcoming but professional at all times.",
 		"Provide accurate information about amenities, services, and operating hours.",
 		"Offer to help with reservations and bookings when appropriate.",
 		"Answer questions concisely with specific, relevant details.",
-	})
+	}
+	instructions = append(instructions, opts.SpecialInstructions...)
+	base.PromptAddSection("Instructions", "", instructions)
 
 	// Services section
 	if len(opts.Services) > 0 {
@@ -131,6 +135,12 @@ func NewConciergeAgent(opts ConciergeOptions) *ConciergeAgent {
     "follow_up_needed": true/false
 }`)
 
+	// ---- Welcome message ----
+	if opts.WelcomeMessage != "" {
+		base.SetParam("static_greeting", opts.WelcomeMessage)
+		base.SetParam("static_greeting_no_barge", true)
+	}
+
 	// ---- Global data ----
 	amenityMaps := make(map[string]any, len(opts.Amenities))
 	for k, a := range opts.Amenities {
@@ -169,15 +179,25 @@ func (ca *ConciergeAgent) registerTools() {
 	// check_availability -----------------------------------------------
 	ca.DefineTool(agent.ToolDefinition{
 		Name:        "check_availability",
-		Description: "Check availability for a service",
+		Description: "Check availability for a service on a specific date and time",
 		Parameters: map[string]any{
 			"service": map[string]any{
 				"type":        "string",
 				"description": "The service to check (e.g., spa, restaurant)",
 			},
+			"date": map[string]any{
+				"type":        "string",
+				"description": "The date to check (YYYY-MM-DD format)",
+			},
+			"time": map[string]any{
+				"type":        "string",
+				"description": "The time to check (HH:MM format, 24-hour)",
+			},
 		},
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
 			service := strings.ToLower(strings.TrimSpace(args["service"].(string)))
+			date, _ := args["date"].(string)
+			time, _ := args["time"].(string)
 
 			// Check if the service is offered
 			found := false
@@ -190,7 +210,7 @@ func (ca *ConciergeAgent) registerTools() {
 
 			if found {
 				return swaig.NewFunctionResult(
-					fmt.Sprintf("Yes, %s is available. Would you like to make a reservation?", service),
+					fmt.Sprintf("Yes, %s is available on %s at %s. Would you like to make a reservation?", service, date, time),
 				)
 			}
 
@@ -206,13 +226,13 @@ func (ca *ConciergeAgent) registerTools() {
 		Name:        "get_directions",
 		Description: "Get directions to a specific location or amenity within the venue",
 		Parameters: map[string]any{
-			"destination": map[string]any{
+			"location": map[string]any{
 				"type":        "string",
 				"description": "The location or amenity to get directions to",
 			},
 		},
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			dest := strings.ToLower(strings.TrimSpace(args["destination"].(string)))
+			dest := strings.ToLower(strings.TrimSpace(args["location"].(string)))
 
 			if amenity, ok := ca.amenities[dest]; ok && amenity.Location != "" {
 				return swaig.NewFunctionResult(

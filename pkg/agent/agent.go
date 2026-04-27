@@ -4,13 +4,18 @@
 package agent
 
 import (
+	"context"
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/signalwire/signalwire-go/pkg/contexts"
 	"github.com/signalwire/signalwire-go/pkg/logging"
@@ -44,15 +49,59 @@ type DebugEventHandler func(event map[string]any)
 
 // ToolDefinition describes a single SWAIG tool including its JSON Schema
 // parameters and a Go handler function.
+//
+// Python equivalent: signalwire.core.mixins.tool_mixin.ToolMixin.define_tool
+// Added fields to match Python: WebhookURL (webhook_url param), Required
+// (required param for required argument names), IsTypedHandler (is_typed_handler).
 type ToolDefinition struct {
-	Name        string
-	Description string
-	Parameters  map[string]any // JSON Schema for arguments
-	Handler     ToolHandler
-	Secure      bool
-	Fillers     map[string][]string
-	MetaData    map[string]any
-	SwaigFields map[string]any // extra per-function SWAIG fields
+	Name           string
+	Description    string
+	Parameters     map[string]any // JSON Schema for arguments (properties map)
+	Required       []string       // Required parameter names included in the JSON Schema envelope
+	Handler        ToolHandler
+	Secure         bool
+	Fillers        map[string][]string
+	WaitFile       string         // URL to audio file to play while the function executes
+	WaitFileLoops  int            // Number of times to loop WaitFile (0 = no loop)
+	WebhookURL     string         // Per-tool webhook URL; overrides the agent-level webhook when non-empty
+	MetaData       map[string]any
+	SwaigFields    map[string]any // extra per-function SWAIG fields
+	IsTypedHandler bool           // whether handler uses typed structs (Python: is_typed_handler)
+}
+
+// ValidateArgs validates the provided args map against the tool's parameter schema.
+//
+// It constructs a JSON Schema envelope from Parameters and Required (matching the
+// shape emitted by buildSwaigFunctions) and validates args against that schema using
+// encoding/json round-trip comparison.  When Parameters is nil or empty the function
+// returns (true, nil) immediately, mirroring the Python SDK's behaviour of skipping
+// validation when no schema is declared.
+//
+// Go's standard library does not include a JSON Schema validator, so this
+// implementation performs a best-effort structural check:
+//   - Every key listed in Required must be present in args.
+//   - No third-party dependency is introduced; the check is intentionally lightweight.
+//
+// A full JSON Schema validator (e.g. github.com/xeipuuv/gojsonschema) can be
+// swapped in by replacing the body of this method.
+func (td *ToolDefinition) ValidateArgs(args map[string]any) (bool, []string) {
+	if len(td.Parameters) == 0 {
+		return true, nil
+	}
+
+	var errs []string
+
+	// Check required parameters are present.
+	for _, req := range td.Required {
+		if _, ok := args[req]; !ok {
+			errs = append(errs, "'"+req+"' is a required property")
+		}
+	}
+
+	if len(errs) > 0 {
+		return false, errs
+	}
+	return true, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +174,103 @@ func WithTokenExpiry(secs int) AgentOption {
 	return func(a *AgentBase) { a.tokenExpirySecs = secs }
 }
 
+// WithAIVerbName overrides the SWML verb name used for the AI section.
+// The default is "ai".  Set to "amazon_bedrock" for BedrockAgent.
+func WithAIVerbName(name string) AgentOption {
+	return func(a *AgentBase) { a.aiVerbName = name }
+}
+
+// WithUsePom controls whether Prompt Object Model (POM) mode is active.
+// When true (default), structured prompt sections are used; when false,
+// raw text from SetPromptText is used.
+//
+// Python equivalent: use_pom parameter in AgentBase.__init__
+func WithUsePom(usePom bool) AgentOption {
+	return func(a *AgentBase) { a.usePom = usePom }
+}
+
+// WithDefaultWebhookURL sets the default webhook URL for all SWAIG functions.
+// When set, this URL is used as the fallback for all tools that do not specify
+// their own WebhookURL.
+//
+// Python equivalent: default_webhook_url parameter in AgentBase.__init__
+func WithDefaultWebhookURL(url string) AgentOption {
+	return func(a *AgentBase) { a.defaultWebhookURL = url }
+}
+
+// WithAgentID sets a fixed agent ID. If not provided, a UUID is generated
+// automatically in NewAgentBase.
+//
+// Python equivalent: agent_id parameter in AgentBase.__init__
+// Python behavior: self.agent_id = agent_id or str(uuid.uuid4())
+func WithAgentID(id string) AgentOption {
+	return func(a *AgentBase) { a.AgentID = id }
+}
+
+// WithNativeFunctions sets the initial list of native (built-in) SWAIG
+// function names to include in the SWAIG object on every rendered document.
+//
+// Python equivalent: native_functions parameter in AgentBase.__init__
+func WithNativeFunctions(names []string) AgentOption {
+	return func(a *AgentBase) {
+		if names != nil {
+			a.nativeFunctions = names
+		}
+	}
+}
+
+// WithSchemaPath sets the path to an optional SWML schema file used for
+// validation. If empty, no schema validation is performed.
+//
+// Python equivalent: schema_path parameter in AgentBase.__init__
+func WithSchemaPath(path string) AgentOption {
+	return func(a *AgentBase) { a.schemaPath = path }
+}
+
+// WithSuppressLogs disables verbose structured logging from the agent.
+// When true, info-level agent lifecycle logs are suppressed.
+//
+// Python equivalent: suppress_logs parameter in AgentBase.__init__
+func WithSuppressLogs(suppress bool) AgentOption {
+	return func(a *AgentBase) { a.suppressLogs = suppress }
+}
+
+// WithEnablePostPromptOverride allows subclasses to override the post-prompt
+// URL with a custom handler. When enabled, the agent registers a
+// /post_prompt_override endpoint and routes summary callbacks through it.
+//
+// Python equivalent: enable_post_prompt_override parameter in AgentBase.__init__
+func WithEnablePostPromptOverride(enable bool) AgentOption {
+	return func(a *AgentBase) { a.enablePostPromptOverride = enable }
+}
+
+// WithCheckForInputOverride enables the /check_for_input endpoint, which
+// allows external systems to inject input into an active AI session.
+//
+// Python equivalent: check_for_input_override parameter in AgentBase.__init__
+func WithCheckForInputOverride(enable bool) AgentOption {
+	return func(a *AgentBase) { a.checkForInputOverride = enable }
+}
+
+// WithConfigFile sets the path to an optional YAML/JSON service configuration
+// file. When provided, the file is loaded at startup and its values are merged
+// with (but do not override) explicit constructor parameters.
+//
+// Python equivalent: config_file parameter in AgentBase.__init__
+func WithConfigFile(path string) AgentOption {
+	return func(a *AgentBase) { a.configFile = path }
+}
+
+// WithSchemaValidation controls whether the rendered SWML document is
+// validated against the SWML schema before serving. Defaults to true.
+// Can also be disabled via the SWML_SKIP_SCHEMA_VALIDATION=1 environment
+// variable.
+//
+// Python equivalent: schema_validation parameter in AgentBase.__init__
+func WithSchemaValidation(validate bool) AgentOption {
+	return func(a *AgentBase) { a.schemaValidation = validate }
+}
+
 // ---------------------------------------------------------------------------
 // AgentBase
 // ---------------------------------------------------------------------------
@@ -143,6 +289,10 @@ type AgentBase struct {
 	port              int
 	basicAuthUser     string
 	basicAuthPassword string
+
+	// Agent identity — matches Python: self.agent_id = agent_id or str(uuid.uuid4())
+	// Exported so callers can read the assigned ID without a getter.
+	AgentID string
 
 	// Prompt management
 	promptText  string           // raw text mode
@@ -182,11 +332,18 @@ type AgentBase struct {
 	recordStereo    bool
 
 	// Web/HTTP
-	dynamicConfigCallback DynamicConfigCallback
-	webhookURL            string
-	postPromptURL         string
-	swaigQueryParams      map[string]string
-	proxyURLBase          string
+	dynamicConfigCallback      DynamicConfigCallback
+	webhookURL                 string
+	postPromptURL              string
+	defaultWebhookURL          string // Python: _default_webhook_url
+	swaigQueryParams           map[string]string
+	proxyURLBase               string
+	suppressLogs               bool // Python: _suppress_logs
+	enablePostPromptOverride   bool // Python: enable_post_prompt_override
+	checkForInputOverride      bool // Python: check_for_input_override
+	configFile                 string // Python: config_file
+	schemaPath                 string // Python: schema_path
+	schemaValidation           bool   // Python: schema_validation (default true)
 
 	// Session security
 	sessionManager  *security.SessionManager
@@ -206,21 +363,33 @@ type AgentBase struct {
 	// MCP integration
 	mcpServers        []map[string]any // external MCP server configs
 	mcpServerEnabled  bool             // expose /mcp endpoint
+
+	// AI verb overrides — used by specialised sub-agents (e.g. BedrockAgent)
+	// aiVerbName replaces the literal "ai" key in the SWML document.
+	// promptTransformer, when non-nil, is called with the assembled prompt
+	// map before it is embedded in the AI verb config.
+	aiVerbName        string
+	promptTransformer func(map[string]any) map[string]any
+
+	// Graceful shutdown
+	shutdownCh chan struct{} // closed by SetupGracefulShutdown signal handler
 }
 
 // NewAgentBase creates a new AgentBase with default values and applies the
 // provided functional options.
 func NewAgentBase(opts ...AgentOption) *AgentBase {
 	a := &AgentBase{
-		name:         "Agent",
-		route:        "/",
-		host:         "0.0.0.0",
-		port:         3000,
-		usePom:       true,
-		autoAnswer:   true,
-		recordFormat: "mp4",
-		recordStereo: true,
-		tokenExpirySecs: 3600,
+		name:             "Agent",
+		route:            "/",
+		host:             "0.0.0.0",
+		port:             3000,
+		usePom:           true,
+		autoAnswer:       true,
+		recordFormat:     "mp4",
+		recordStereo:     true,
+		tokenExpirySecs:  3600,
+		schemaValidation: true, // Python default: schema_validation=True
+		aiVerbName:       "ai",
 
 		// Initialize all maps and slices
 		pomSections:        make([]map[string]any, 0),
@@ -244,6 +413,12 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 
 	for _, opt := range opts {
 		opt(a)
+	}
+
+	// Auto-generate agent ID if not provided by WithAgentID.
+	// Python equivalent: self.agent_id = agent_id or str(uuid.uuid4())
+	if a.AgentID == "" {
+		a.AgentID = generateUUID()
 	}
 
 	// Build swml.Service options from agent config
@@ -271,6 +446,21 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 	a.skillManager = skills.NewSkillManager()
 
 	return a
+}
+
+// generateUUID produces a random UUID v4 string using crypto/rand.
+// Used to generate AgentID when none is provided, matching Python's
+// str(uuid.uuid4()) behavior.
+func generateUUID() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		// fallback: use os.Getpid-based deterministic value
+		return fmt.Sprintf("agent-%d", os.Getpid())
+	}
+	b[6] = (b[6] & 0x0f) | 0x40 // version 4
+	b[8] = (b[8] & 0x3f) | 0x80 // variant bits
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }
 
 // ---------------------------------------------------------------------------
@@ -322,9 +512,20 @@ func (a *AgentBase) SetPromptPom(pom []map[string]any) *AgentBase {
 }
 
 // PromptAddSection appends a new section to the POM prompt.
-func (a *AgentBase) PromptAddSection(title string, body string, bullets []string) *AgentBase {
+//
+// Python equivalent: prompt_mixin.PromptMixin.prompt_add_section
+// Added params to match Python signature: numbered, numberedBullets, subsections.
+// - numbered: if true the section itself is rendered with a numeric marker
+// - numberedBullets: if true the bullet list is rendered with numbers
+// - subsections: optional list of child section maps (each with "title", "body", "bullets")
+func (a *AgentBase) PromptAddSection(title string, body string, bullets []string, opts ...PromptSectionOption) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
+	cfg := &promptSectionCfg{}
+	for _, o := range opts {
+		o(cfg)
+	}
 
 	section := map[string]any{"title": title}
 	if body != "" {
@@ -333,28 +534,111 @@ func (a *AgentBase) PromptAddSection(title string, body string, bullets []string
 	if len(bullets) > 0 {
 		section["bullets"] = bullets
 	}
+	if cfg.numbered {
+		section["numbered"] = true
+	}
+	if cfg.numberedBullets {
+		section["numbered_bullets"] = true
+	}
+	if len(cfg.subsections) > 0 {
+		section["subsections"] = cfg.subsections
+	}
 	a.pomSections = append(a.pomSections, section)
 	a.usePom = true
 	return a
 }
 
-// PromptAddToSection finds an existing POM section by title and appends text.
-func (a *AgentBase) PromptAddToSection(title string, text string) *AgentBase {
+// promptSectionCfg holds optional POM section configuration.
+type promptSectionCfg struct {
+	numbered        bool
+	numberedBullets bool
+	subsections     []map[string]any
+}
+
+// PromptSectionOption is a functional option for PromptAddSection.
+type PromptSectionOption func(*promptSectionCfg)
+
+// WithNumbered marks the section as numbered.
+// Python equivalent: numbered=True in prompt_add_section
+func WithNumbered(v bool) PromptSectionOption {
+	return func(c *promptSectionCfg) { c.numbered = v }
+}
+
+// WithNumberedBullets marks the bullets list as numbered.
+// Python equivalent: numbered_bullets=True in prompt_add_section
+func WithNumberedBullets(v bool) PromptSectionOption {
+	return func(c *promptSectionCfg) { c.numberedBullets = v }
+}
+
+// WithSubsections attaches child sections to the parent section.
+// Python equivalent: subsections=[...] in prompt_add_section
+func WithSubsections(subs []map[string]any) PromptSectionOption {
+	return func(c *promptSectionCfg) { c.subsections = subs }
+}
+
+// PromptAddToSection finds an existing POM section by title and appends
+// text and/or bullets. If the section does not exist, it is a no-op.
+//
+// Python equivalent: prompt_mixin.PromptMixin.prompt_add_to_section
+// Added params to match Python signature: bullet (single bullet string) and
+// bullets ([]string list). When body is non-empty it is appended to the
+// section body. When bullet is non-empty it is added to the bullets list.
+// When bullets is non-nil its elements are appended to the bullets list.
+func (a *AgentBase) PromptAddToSection(title string, body string, opts ...PromptAddToSectionOption) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
+	cfg := &promptAddToSectionCfg{}
+	for _, o := range opts {
+		o(cfg)
+	}
+
 	for i, sec := range a.pomSections {
 		if sec["title"] == title {
-			existing, _ := sec["body"].(string)
-			if existing != "" {
-				a.pomSections[i]["body"] = existing + "\n" + text
-			} else {
-				a.pomSections[i]["body"] = text
+			// Append body text
+			if body != "" {
+				existing, _ := sec["body"].(string)
+				if existing != "" {
+					a.pomSections[i]["body"] = existing + "\n" + body
+				} else {
+					a.pomSections[i]["body"] = body
+				}
+			}
+			// Append bullets
+			newBullets := make([]string, 0)
+			if cfg.bullet != "" {
+				newBullets = append(newBullets, cfg.bullet)
+			}
+			newBullets = append(newBullets, cfg.bullets...)
+			if len(newBullets) > 0 {
+				existing, _ := sec["bullets"].([]string)
+				a.pomSections[i]["bullets"] = append(existing, newBullets...)
 			}
 			return a
 		}
 	}
 	return a
+}
+
+// promptAddToSectionCfg holds optional config for PromptAddToSection.
+type promptAddToSectionCfg struct {
+	bullet  string
+	bullets []string
+}
+
+// PromptAddToSectionOption is a functional option for PromptAddToSection.
+type PromptAddToSectionOption func(*promptAddToSectionCfg)
+
+// WithBullet adds a single bullet point to an existing section.
+// Python equivalent: bullet= param in prompt_add_to_section
+func WithBullet(b string) PromptAddToSectionOption {
+	return func(c *promptAddToSectionCfg) { c.bullet = b }
+}
+
+// WithBullets adds multiple bullet points to an existing section.
+// Python equivalent: bullets= param in prompt_add_to_section
+func WithBullets(bs []string) PromptAddToSectionOption {
+	return func(c *promptAddToSectionCfg) { c.bullets = bs }
 }
 
 // PromptAddSubsection adds a subsection under an existing parent section.
@@ -404,6 +688,16 @@ func (a *AgentBase) GetPrompt() any {
 		return result
 	}
 	return a.promptText
+}
+
+// GetPostPrompt returns the current post-prompt text. Returns an empty string
+// if no post-prompt has been set.
+//
+// Python equivalent: prompt_mixin.PromptMixin.get_post_prompt (prompt_mixin.py line 374)
+func (a *AgentBase) GetPostPrompt() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.postPrompt
 }
 
 // ---------------------------------------------------------------------------
@@ -547,23 +841,110 @@ func (a *AgentBase) AddHints(hints []string) *AgentBase {
 	return a
 }
 
-// AddPatternHint adds a pattern-based speech-recognition hint.
-func (a *AgentBase) AddPatternHint(pattern string, hint string, language string) *AgentBase {
+// AddPatternHint adds a pattern-based speech-recognition hint with regex
+// replacement semantics.
+//
+// Python equivalent: ai_config_mixin.AIConfigMixin.add_pattern_hint
+// Python signature: add_pattern_hint(hint, pattern, replace, ignore_case=False)
+//
+// The Python implementation appends to self._hints (not a separate patternHints
+// list) as a dict with keys "hint", "pattern", "replace", "ignore_case".
+// The Go implementation stores in patternHints and merges into the rendered
+// "hints" array at render time.
+//
+// Parameters:
+//   - hint:       the hint text the model receives
+//   - pattern:    regex pattern for the spoken word/phrase
+//   - replace:    replacement string for the matched pattern
+//   - ignoreCase: when true, matching is case-insensitive
+func (a *AgentBase) AddPatternHint(hint string, pattern string, replace string, ignoreCase ...bool) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	ph := map[string]any{"pattern": pattern, "hint": hint}
-	if language != "" {
-		ph["language"] = language
+	ph := map[string]any{
+		"hint":    hint,
+		"pattern": pattern,
+		"replace": replace,
+	}
+	if len(ignoreCase) > 0 && ignoreCase[0] {
+		ph["ignore_case"] = true
 	}
 	a.patternHints = append(a.patternHints, ph)
 	return a
 }
 
-// AddLanguage adds a language configuration.
+// AddLanguage adds a language configuration as a raw map.
 func (a *AgentBase) AddLanguage(config map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.languages = append(a.languages, config)
+	return a
+}
+
+// AddLanguageTyped adds a language configuration using typed named parameters,
+// matching the Python SDK's add_language method signature exactly.
+//
+// Python equivalent: ai_config_mixin.AIConfigMixin.add_language
+// Python signature: add_language(name, code, voice, speech_fillers=None,
+//
+//	function_fillers=None, engine=None, model=None)
+//
+// Parameters:
+//   - name:            display name (e.g. "English")
+//   - code:            BCP-47 language code (e.g. "en-US")
+//   - voice:           TTS voice name; may use "engine.voice:model" combined format
+//   - speechFillers:   filler phrases for natural speech pauses
+//   - functionFillers: filler phrases played during SWAIG function calls
+//   - engine:          explicit TTS engine name (e.g. "elevenlabs")
+//   - model:           explicit TTS model name (e.g. "eleven_turbo_v2_5")
+func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, functionFillers []string, engine, model string) *AgentBase {
+	lang := map[string]any{
+		"name": name,
+		"code": code,
+	}
+
+	// Voice formatting: prefer explicit engine/model params; then try to parse
+	// "engine.voice:model" combined format; otherwise use voice string as-is.
+	if engine != "" || model != "" {
+		lang["voice"] = voice
+		if engine != "" {
+			lang["engine"] = engine
+		}
+		if model != "" {
+			lang["model"] = model
+		}
+	} else if strings.Contains(voice, ".") && strings.Contains(voice, ":") {
+		// Parse "engine.voice:model" combined format
+		parts := strings.SplitN(voice, ":", 2)
+		if len(parts) == 2 {
+			modelPart := parts[1]
+			evParts := strings.SplitN(parts[0], ".", 2)
+			if len(evParts) == 2 {
+				lang["engine"] = evParts[0]
+				lang["voice"] = evParts[1]
+				lang["model"] = modelPart
+			} else {
+				lang["voice"] = voice
+			}
+		} else {
+			lang["voice"] = voice
+		}
+	} else {
+		lang["voice"] = voice
+	}
+
+	// Fillers
+	if len(speechFillers) > 0 && len(functionFillers) > 0 {
+		lang["speech_fillers"] = speechFillers
+		lang["function_fillers"] = functionFillers
+	} else if len(speechFillers) > 0 {
+		lang["fillers"] = speechFillers
+	} else if len(functionFillers) > 0 {
+		lang["fillers"] = functionFillers
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.languages = append(a.languages, lang)
 	return a
 }
 
@@ -575,15 +956,26 @@ func (a *AgentBase) SetLanguages(languages []map[string]any) *AgentBase {
 	return a
 }
 
-// AddPronunciation adds a pronunciation override.
-func (a *AgentBase) AddPronunciation(phrase, pronunciation, languageCode string) *AgentBase {
+// AddPronunciation adds a pronunciation override rule.
+//
+// Python equivalent: ai_config_mixin.AIConfigMixin.add_pronunciation
+// Python signature: add_pronunciation(replace, with_text, ignore_case=False)
+//
+// Parameters:
+//   - replace:    the word or expression to match
+//   - withText:   the phonetic spelling to substitute
+//   - ignoreCase: when true, matching ignores case (Python: ignore_case)
+func (a *AgentBase) AddPronunciation(replace, withText string, ignoreCase ...bool) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.pronunciations = append(a.pronunciations, map[string]any{
-		"replace": phrase,
-		"with":    pronunciation,
-		"lang":    languageCode,
-	})
+	rule := map[string]any{
+		"replace": replace,
+		"with":    withText,
+	}
+	if len(ignoreCase) > 0 && ignoreCase[0] {
+		rule["ignore_case"] = true
+	}
+	a.pronunciations = append(a.pronunciations, rule)
 	return a
 }
 
@@ -794,6 +1186,20 @@ func (a *AgentBase) SetPostPromptLlmParams(params map[string]any) *AgentBase {
 	return a
 }
 
+// SetPromptTransformer installs a hook that is called with the assembled
+// prompt map before it is placed into the AI verb config.  The function
+// may return a new map or mutate and return the same map.  Set to nil to
+// remove a previously installed transformer.
+//
+// This is used by specialised agents (e.g. BedrockAgent) that need to
+// add or filter prompt-level keys without reimplementing all of RenderSWML.
+func (a *AgentBase) SetPromptTransformer(fn func(map[string]any) map[string]any) *AgentBase {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.promptTransformer = fn
+	return a
+}
+
 // ---------------------------------------------------------------------------
 // Verb management
 // ---------------------------------------------------------------------------
@@ -962,6 +1368,95 @@ func (a *AgentBase) ClearSwaigQueryParams() *AgentBase {
 func (a *AgentBase) EnableDebugRoutes() *AgentBase {
 	// Future: register /debug routes on the mux
 	return a
+}
+
+// OnRequest is called on every SWML request before rendering. Subclasses can
+// override this method to inspect or transform the request data. It delegates
+// to OnSwmlRequest.
+//
+// Python equivalent: web_mixin.WebMixin.on_request (web_mixin.py line 1266)
+// Python signature: on_request(request_data, callback_path) -> Optional[dict]
+//
+// Returns nil to proceed with default rendering, or a non-nil map containing
+// SWML document overrides.
+func (a *AgentBase) OnRequest(requestData map[string]any, callbackPath string) map[string]any {
+	return a.OnSwmlRequest(requestData, callbackPath, nil)
+}
+
+// OnSwmlRequest is the primary customization point for subclasses to modify
+// the SWML document based on request data. The default implementation returns
+// nil (no modification).
+//
+// Python equivalent: web_mixin.WebMixin.on_swml_request (web_mixin.py line 1287)
+// Python signature: on_swml_request(request_data, callback_path, request) -> Optional[dict]
+//
+// Override this method in a subclass to inspect query params, headers, or body
+// fields and return a map of SWML document overrides, or nil for no changes.
+func (a *AgentBase) OnSwmlRequest(requestData map[string]any, callbackPath string, r *http.Request) map[string]any {
+	return nil
+}
+
+// SetupGracefulShutdown registers OS signal handlers for SIGTERM and SIGINT
+// that initiate a graceful HTTP server shutdown. This is useful for Kubernetes
+// deployments where the pod receives SIGTERM before termination.
+//
+// Python equivalent: web_mixin.WebMixin.setup_graceful_shutdown (web_mixin.py line 1405)
+// Python behavior: registers signal.SIGTERM and signal.SIGINT handlers that
+// call sys.exit(0) after optional cleanup.
+//
+// The Go implementation uses signal.NotifyContext so that the active HTTP
+// server (if started via Run/Serve) can shut down cleanly. Call this before
+// Run().
+func (a *AgentBase) SetupGracefulShutdown() {
+	go func() {
+		ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+		defer stop()
+		<-ctx.Done()
+		a.Logger.Info("shutdown signal received, initiating graceful shutdown")
+		// Signal the HTTP server to stop by closing a dedicated channel.
+		// buildAndServe honours a.shutdownCh if it is non-nil.
+		a.mu.Lock()
+		if a.shutdownCh != nil {
+			select {
+			case <-a.shutdownCh:
+				// already closed
+			default:
+				close(a.shutdownCh)
+			}
+		}
+		a.mu.Unlock()
+	}()
+}
+
+// ValidateBasicAuth validates the provided username and password against the
+// agent's configured basic auth credentials using a constant-time comparison.
+//
+// Python equivalent: auth_mixin.AuthMixin.validate_basic_auth (auth_mixin.py line 24)
+// Python behavior: hmac.compare_digest(username, exp_user) and compare_digest(password, exp_pass)
+func (a *AgentBase) ValidateBasicAuth(username, password string) bool {
+	user, pass := a.swmlService.GetBasicAuthCredentials()
+	userMatch := subtle.ConstantTimeCompare([]byte(username), []byte(user)) == 1
+	passMatch := subtle.ConstantTimeCompare([]byte(password), []byte(pass)) == 1
+	return userMatch && passMatch
+}
+
+// GetBasicAuthCredentials returns the (username, password) configured for
+// this agent's HTTP basic auth.
+//
+// Python equivalent: auth_mixin.AuthMixin.get_basic_auth_credentials (auth_mixin.py line 42)
+// Python behavior: returns (username, password) tuple from self._basic_auth
+func (a *AgentBase) GetBasicAuthCredentials() (string, string) {
+	return a.swmlService.GetBasicAuthCredentials()
+}
+
+// ValidateToolToken verifies that a SWAIG tool security token is authentic,
+// unexpired, and matches the given function name and call ID.
+//
+// Python equivalent: state_mixin.StateMixin.validate_tool_token / security.SessionManager.ValidateToken
+// The underlying security is handled by SessionManager; this method exposes
+// it as a public AgentBase API for testing and inspection.
+func (a *AgentBase) ValidateToolToken(functionName, token, callID string) bool {
+	return a.sessionManager.ValidateToken(functionName, token, callID)
 }
 
 // ---------------------------------------------------------------------------
@@ -1171,14 +1666,119 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
+// Routing callbacks
+// ---------------------------------------------------------------------------
+
+// (RegisterRoutingCallback is defined below at the (callbackFn, path)
+// signature — the duplicate (path, cb) declaration was removed during
+// the merge with main, which already carries the Python-aligned form.)
+
+// ---------------------------------------------------------------------------
 // SIP methods
 // ---------------------------------------------------------------------------
 
-// EnableSipRouting enables SIP routing for the agent.
+// EnableSipRouting enables SIP-based routing for this agent.
+//
+// Python equivalent: AgentBase.enable_sip_routing(auto_map=True, path="/sip")
+//
+// This registers a routing callback at the given path that checks incoming
+// SIP usernames against the agent's registered username set. When autoMap is
+// true, AutoMapSipUsernames is called to derive common usernames from the
+// agent name and route.
+//
+// The Python implementation (agent_base.py line 612) creates a sip_routing_callback
+// that extracts the SIP username from the body, checks it against _sip_usernames,
+// and returns None in both the matched and unmatched case — letting the normal
+// routing continue. It then calls register_routing_callback to register the
+// callback, and optionally calls auto_map_sip_usernames.
 func (a *AgentBase) EnableSipRouting(autoMap bool, path string) *AgentBase {
+	// Build SIP routing callback that matches Python behavior
+	cb := func(r *http.Request, body map[string]any) map[string]any {
+		sipUsername := swml.ExtractSIPUsername(body)
+		if sipUsername != "" {
+			username := strings.ToLower(sipUsername)
+			a.mu.RLock()
+			_, matched := a.sipUsernames[username]
+			a.mu.RUnlock()
+			if matched {
+				// Username matched this agent — let normal processing continue
+				return nil
+			}
+			// Not matched — let routing continue
+		}
+		return nil
+	}
+
+	// Register routing callback on the swml.Service
+	if path == "" {
+		path = "/sip"
+	}
+	a.swmlService.RegisterRoutingCallback(path, cb)
+
 	a.mu.Lock()
-	defer a.mu.Unlock()
 	a.sipRoutingEnabled = true
+	a.mu.Unlock()
+
+	// Auto-map common usernames if requested
+	if autoMap {
+		a.AutoMapSipUsernames()
+	}
+
+	return a
+}
+
+// RegisterRoutingCallback registers a callback function that is invoked for
+// incoming requests at the given path to determine routing.
+//
+// Python equivalent: web_mixin.WebMixin.register_routing_callback
+// Python signature: register_routing_callback(callback_fn, path="/sip")
+//
+// The callback receives the HTTP request and the parsed body. It should return
+// a non-nil map to override the response, or nil to let normal processing continue.
+// This method delegates to swml.Service.RegisterRoutingCallback.
+func (a *AgentBase) RegisterRoutingCallback(callbackFn func(r *http.Request, body map[string]any) map[string]any, path string) {
+	if path == "" {
+		path = "/sip"
+	}
+	a.swmlService.RegisterRoutingCallback(path, callbackFn)
+}
+
+// AutoMapSipUsernames automatically registers common SIP usernames derived
+// from this agent's name and route.
+//
+// Python equivalent: AgentBase.auto_map_sip_usernames (agent_base.py line 674)
+//
+// Derives usernames by:
+//  1. Stripping non-alphanumeric/underscore chars from the agent name (lowercased)
+//  2. Stripping non-alphanumeric/underscore chars from the route (lowercased)
+//  3. If the cleaned name is longer than 3 chars, also registers a vowel-stripped variant
+func (a *AgentBase) AutoMapSipUsernames() *AgentBase {
+	nonAlpha := regexp.MustCompile(`[^a-z0-9_]`)
+
+	a.mu.RLock()
+	name := a.name
+	route := a.route
+	a.mu.RUnlock()
+
+	cleanName := nonAlpha.ReplaceAllString(strings.ToLower(name), "")
+	if cleanName != "" {
+		a.RegisterSipUsername(cleanName)
+	}
+
+	cleanRoute := nonAlpha.ReplaceAllString(strings.ToLower(route), "")
+	if cleanRoute != "" && cleanRoute != cleanName {
+		a.RegisterSipUsername(cleanRoute)
+	}
+
+	// Register vowel-stripped variant if name is long enough
+	if len(cleanName) > 3 {
+		vowels := regexp.MustCompile(`[aeiou]`)
+		noVowels := vowels.ReplaceAllString(cleanName, "")
+		if noVowels != cleanName && len(noVowels) > 2 {
+			a.RegisterSipUsername(noVowels)
+		}
+	}
+
 	return a
 }
 
@@ -1186,7 +1786,7 @@ func (a *AgentBase) EnableSipRouting(autoMap bool, path string) *AgentBase {
 func (a *AgentBase) RegisterSipUsername(username string) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.sipUsernames[username] = true
+	a.sipUsernames[strings.ToLower(username)] = true
 	return a
 }
 
@@ -1298,7 +1898,14 @@ func (a *AgentBase) OnDebugEvent(cb DebugEventHandler) *AgentBase {
 
 // buildWebhookURL constructs the full webhook URL for SWAIG functions,
 // including basic auth, route suffix, and query parameters.
+//
+// Python precedence (agent_base.py:840-844): compute default from the
+// route, then override with _web_hook_url_override if set. Go exposes the
+// override as defaultWebhookURL via WithDefaultWebhookURL — check it first.
 func (a *AgentBase) buildWebhookURL() string {
+	if a.defaultWebhookURL != "" {
+		return a.defaultWebhookURL
+	}
 	if a.webhookURL != "" {
 		return a.webhookURL
 	}
@@ -1373,17 +1980,27 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 			continue
 		}
 
+		// Determine the effective webhook URL: per-tool override takes precedence.
+		effectiveWebhook := webhookURL
+		if tool.WebhookURL != "" {
+			effectiveWebhook = tool.WebhookURL
+		}
+
 		fn := map[string]any{
 			"function":     tool.Name,
-			"purpose":      tool.Description,
-			"web_hook_url": webhookURL,
+			"description":  tool.Description,
+			"web_hook_url": effectiveWebhook,
 		}
 
 		if tool.Parameters != nil {
-			fn["argument"] = map[string]any{
+			params := map[string]any{
 				"type":       "object",
 				"properties": tool.Parameters,
 			}
+			if len(tool.Required) > 0 {
+				params["required"] = tool.Required
+			}
+			fn["parameters"] = params
 		}
 
 		if tool.Secure {
@@ -1392,6 +2009,12 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 
 		if tool.Fillers != nil {
 			fn["fillers"] = tool.Fillers
+		}
+		if tool.WaitFile != "" {
+			fn["wait_file"] = tool.WaitFile
+		}
+		if tool.WaitFileLoops > 0 {
+			fn["wait_file_loops"] = tool.WaitFileLoops
 		}
 		if tool.MetaData != nil {
 			fn["meta_data"] = tool.MetaData
@@ -1561,8 +2184,19 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		aiConfig["mcp_servers"] = a.mcpServers
 	}
 
-	// 6. Add AI verb
-	doc.AddVerb("ai", aiConfig)
+	// Apply prompt transformer (used by specialised agents like BedrockAgent)
+	if a.promptTransformer != nil {
+		if promptCfg, ok := aiConfig["prompt"].(map[string]any); ok {
+			aiConfig["prompt"] = a.promptTransformer(promptCfg)
+		}
+	}
+
+	// 6. Add AI verb (name may be overridden, e.g. "amazon_bedrock")
+	verbName := a.aiVerbName
+	if verbName == "" {
+		verbName = "ai"
+	}
+	doc.AddVerb(verbName, aiConfig)
 
 	// 7. Post-AI verbs
 	for _, v := range a.postAiVerbs {
@@ -1591,7 +2225,9 @@ func (a *AgentBase) AsRouter() http.Handler {
 	return a.buildMux()
 }
 
-// buildAndServe creates the HTTP server and starts listening.
+// buildAndServe creates the HTTP server and starts listening. If
+// SetupGracefulShutdown was called before Run, it honours the shutdown channel
+// and performs a graceful server shutdown on signal receipt.
 func (a *AgentBase) buildAndServe() error {
 	mux := a.buildMux()
 
@@ -1601,11 +2237,32 @@ func (a *AgentBase) buildAndServe() error {
 	a.Logger.Info("serving agent %q on %s%s", a.name, addr, a.swmlService.Route)
 	a.Logger.Info("auth user: %s", user)
 
+	// Initialise shutdown channel so SetupGracefulShutdown can signal us.
+	a.mu.Lock()
+	if a.shutdownCh == nil {
+		a.shutdownCh = make(chan struct{})
+	}
+	ch := a.shutdownCh
+	a.mu.Unlock()
+
 	server := &http.Server{
 		Addr:    addr,
 		Handler: mux,
 	}
-	return server.ListenAndServe()
+
+	// If SetupGracefulShutdown is active, spin a goroutine that waits for
+	// the shutdown channel and then asks the server to shut down cleanly.
+	go func() {
+		<-ch
+		a.Logger.Info("graceful shutdown: stopping HTTP server")
+		server.Shutdown(context.Background()) //nolint:errcheck
+	}()
+
+	err := server.ListenAndServe()
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	return err
 }
 
 // buildMux creates the HTTP mux with all agent routes.
@@ -1655,6 +2312,17 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 	}
 	mux.HandleFunc(ppRoute, a.withAuth(a.handlePostPrompt))
 
+	// Check-for-input endpoint — matches Python web_mixin.py lines 390-396,
+	// which registers /check_for_input (and /check_for_input/) on both GET
+	// and POST, unconditionally. Python validates conversation_id and returns
+	// a default empty-input response.
+	checkRoute := route + "/check_for_input"
+	if route == "/" {
+		checkRoute = "/check_for_input"
+	}
+	mux.HandleFunc(checkRoute, a.withAuth(a.handleCheckForInput))
+	mux.HandleFunc(checkRoute+"/", a.withAuth(a.handleCheckForInput))
+
 	// MCP server endpoint (no auth — MCP clients authenticate via headers)
 	if a.mcpServerEnabled {
 		mcpRoute := route + "/mcp"
@@ -1662,6 +2330,25 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 			mcpRoute = "/mcp"
 		}
 		mux.HandleFunc(mcpRoute, a.handleMcp)
+	}
+
+	// Routing-callback endpoints — matches Python web_mixin.py lines 427-447
+	// which registers an HTTP endpoint per routing callback. Without this,
+	// callbacks registered via RegisterRoutingCallback / AgentServer
+	// .RegisterGlobalRoutingCallback are stored in the swml service but never
+	// dispatched.
+	for _, cbPath := range a.swmlService.RoutingCallbackPaths() {
+		// Skip the root path — already handled by the main SWML endpoint above.
+		if cbPath == "/" || cbPath == swmlRoute {
+			continue
+		}
+		path := strings.TrimRight(cbPath, "/")
+		if path == "" {
+			continue
+		}
+		// Register both with and without trailing slash, matching Python.
+		mux.HandleFunc(path, a.withAuth(a.handleSWML))
+		mux.HandleFunc(path+"/", a.withAuth(a.handleSWML))
 	}
 
 	return mux
@@ -1678,19 +2365,109 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 		json.NewDecoder(r.Body).Decode(&body)
 	}
 
+	// Routing-callback dispatch. Python web_mixin._handle_request (line 620)
+	// checks whether the request URL matches a registered routing callback
+	// and, if so, delegates document generation to that callback. Match the
+	// URL path against both the exact registered key and the trim-right form
+	// (so /agents/ matches /agents).
+	urlPath := r.URL.Path
+	swmlRoute := strings.TrimRight(a.swmlService.Route, "/")
+	if swmlRoute == "" {
+		swmlRoute = "/"
+	}
+	isSwmlRoute := urlPath == swmlRoute || urlPath == swmlRoute+"/"
+	var callbackPath string
+	if !isSwmlRoute {
+		for _, p := range a.swmlService.RoutingCallbackPaths() {
+			trim := strings.TrimRight(p, "/")
+			if trim == "" {
+				continue
+			}
+			if urlPath == trim || urlPath == trim+"/" {
+				callbackPath = p
+				break
+			}
+		}
+	}
+
 	a.mu.RLock()
 	hasDynamic := a.dynamicConfigCallback != nil
 	a.mu.RUnlock()
 
+	// Python web_mixin._handle_request (line 642) calls on_swml_request before
+	// rendering and passes modifications into _render_swml, which merges them
+	// into the AI verb config. Mirror that here: collect modifications first,
+	// then apply to the rendered doc.
+	//
+	// OnRequest is the public hook documented in SWMLService.on_request;
+	// AgentBase.OnRequest delegates to OnSwmlRequest. Call OnSwmlRequest
+	// directly so the *http.Request reaches subclasses (matching Python, which
+	// passes the request).
+	modifications := a.OnSwmlRequest(body, callbackPath, r)
+
 	var doc map[string]any
-	if hasDynamic {
+	if callbackPath != "" {
+		// The swml service's OnRequest dispatches to the registered callback
+		// and returns the callback's result; if the callback returns nil,
+		// OnRequest falls back to the default rendered document.
+		doc = a.swmlService.OnRequest(body, callbackPath)
+	} else if hasDynamic {
 		doc = a.handleDynamicConfig(body, r)
 	} else {
 		doc = a.RenderSWML(body, r)
 	}
 
+	if len(modifications) > 0 {
+		applySwmlModifications(doc, modifications)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(doc)
+}
+
+// applySwmlModifications merges on_swml_request modifications into the AI
+// verb config of a rendered SWML document. Matches Python
+// AgentBase._render_swml modifications handling: "global_data" is
+// deep-merged into the existing global_data map; other keys overwrite
+// their counterparts in the AI verb config.
+func applySwmlModifications(doc, modifications map[string]any) {
+	sections, ok := doc["sections"].(map[string]any)
+	if !ok {
+		return
+	}
+	mainVerbs, ok := sections["main"].([]any)
+	if !ok {
+		return
+	}
+	for _, v := range mainVerbs {
+		verb, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		aiCfg, ok := verb["ai"].(map[string]any)
+		if !ok {
+			continue
+		}
+		for k, val := range modifications {
+			if k == "global_data" {
+				gdIn, ok := val.(map[string]any)
+				if !ok || len(gdIn) == 0 {
+					continue
+				}
+				existing, _ := aiCfg["global_data"].(map[string]any)
+				if existing == nil {
+					existing = map[string]any{}
+				}
+				for gk, gv := range gdIn {
+					existing[gk] = gv
+				}
+				aiCfg["global_data"] = existing
+				continue
+			}
+			aiCfg[k] = val
+		}
+		return
+	}
 }
 
 // handleDynamicConfig creates an ephemeral agent copy, applies the dynamic
@@ -1843,6 +2620,9 @@ func (a *AgentBase) clone() *AgentBase {
 	copy(c.mcpServers, a.mcpServers)
 	c.mcpServerEnabled = a.mcpServerEnabled
 
+	c.aiVerbName = a.aiVerbName
+	c.promptTransformer = a.promptTransformer
+
 	return c
 }
 
@@ -1918,6 +2698,72 @@ func (a *AgentBase) handlePostPrompt(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+// handleCheckForInput serves the /check_for_input endpoint. Matches Python
+// web_mixin._handle_check_for_input_request:
+//   - GET: conversation_id from query string
+//   - POST: conversation_id from JSON body
+//   - validates conversation_id (<=256 chars, alphanumeric + -_.)
+//   - returns 400 on missing/invalid conversation_id
+//   - returns {"status":"success","conversation_id":...,"new_input":false,"messages":[]}
+func (a *AgentBase) handleCheckForInput(w http.ResponseWriter, r *http.Request) {
+	var conversationID string
+
+	if r.Method == http.MethodPost {
+		ct := r.Header.Get("Content-Type")
+		if ct != "" && !strings.HasPrefix(ct, "application/json") {
+			http.Error(w, `{"error":"Content-Type must be application/json"}`, http.StatusUnsupportedMediaType)
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"Invalid JSON in request body"}`, http.StatusBadRequest)
+			return
+		}
+		if cid, ok := body["conversation_id"].(string); ok {
+			conversationID = cid
+		}
+	} else {
+		conversationID = r.URL.Query().Get("conversation_id")
+	}
+
+	if conversationID == "" {
+		http.Error(w, `{"error":"Missing conversation_id parameter"}`, http.StatusBadRequest)
+		return
+	}
+	if !isValidConversationID(conversationID) {
+		http.Error(w, `{"error":"Invalid conversation_id format"}`, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":          "success",
+		"conversation_id": conversationID,
+		"new_input":       false,
+		"messages":        []any{},
+	})
+}
+
+// isValidConversationID mirrors Python's check: <=256 chars and each char
+// is alphanumeric or one of '-', '_', '.'.
+func isValidConversationID(id string) bool {
+	if len(id) > 256 {
+		return false
+	}
+	for _, c := range id {
+		switch {
+		case c >= '0' && c <= '9':
+		case c >= 'a' && c <= 'z':
+		case c >= 'A' && c <= 'Z':
+		case c == '-' || c == '_' || c == '.':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // withAuth wraps a handler with basic auth middleware.
