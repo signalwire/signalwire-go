@@ -898,11 +898,14 @@ func (c *Call) LeaveRoom() error {
 }
 
 // QueueEnter places the call in a named queue. statusURL is optional (empty
-// string omits it), matching Python's queue_enter(queue_name, *, status_url).
+// string omits it), matching Python's queue_enter(queue_name, *, control_id,
+// status_url) at signalwire/relay/call.py:1268. A per-request control_id is
+// generated so the server can correlate this action with subsequent events.
 func (c *Call) QueueEnter(name string, statusURL string) error {
 	params := map[string]any{
 		"node_id":    c.nodeID,
 		"call_id":    c.callID,
+		"control_id": newControlID(),
 		"queue_name": name,
 	}
 	if statusURL != "" {
@@ -914,11 +917,13 @@ func (c *Call) QueueEnter(name string, statusURL string) error {
 
 // QueueLeave removes the call from the named queue. queueID and statusURL are
 // optional (empty string omits each), matching Python's
-// queue_leave(queue_name, *, queue_id, status_url).
+// queue_leave(queue_name, *, control_id, queue_id, status_url) at
+// signalwire/relay/call.py:1287. A per-request control_id is generated.
 func (c *Call) QueueLeave(name string, queueID string, statusURL string) error {
 	params := map[string]any{
 		"node_id":    c.nodeID,
 		"call_id":    c.callID,
+		"control_id": newControlID(),
 		"queue_name": name,
 	}
 	if queueID != "" {
