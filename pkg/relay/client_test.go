@@ -781,6 +781,9 @@ func TestConstants_EventTypes(t *testing.T) {
 	if EventCallingCallError != "calling.error" {
 		t.Errorf("EventCallingCallError = %q, want %q (matches Python EVENT_CALLING_ERROR)", EventCallingCallError, "calling.error")
 	}
+	if EventCallingCallConference != "calling.conference" {
+		t.Errorf("EventCallingCallConference = %q, want %q (matches Python EVENT_CONFERENCE)", EventCallingCallConference, "calling.conference")
+	}
 
 	messagingEvents := []string{EventMessagingReceive, EventMessagingState}
 	if len(messagingEvents) != 2 {
