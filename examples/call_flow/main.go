@@ -109,7 +109,7 @@ func main() {
 				fmt.Sprintf("Sending confirmation text to %s.", phone),
 			)
 			// Use the SendSms helper for the SWML action
-			result.SendSms(phone, "+15559990000", message, nil, nil)
+			result.SendSms(phone, "+15559990000", message, nil, nil, "")
 			return result
 		},
 	})
