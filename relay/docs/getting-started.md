@@ -98,11 +98,10 @@ Contexts are topics your client subscribes to for receiving inbound calls. When 
 client := relay.NewRelayClient(
 	relay.WithContexts("sales", "support"),
 )
-
-// Or dynamically after connecting
-client.Receive([]string{"billing"})
-client.Unreceive([]string{"sales"})
 ```
+
+Contexts are fixed at client construction time in the Go port; to change the
+subscription set, construct a new `RelayClient`.
 
 ## Making Outbound Calls
 
@@ -145,21 +144,22 @@ export SIGNALWIRE_LOG_LEVEL=debug
 
 ## Manual Lifecycle Control
 
-For use within an existing application where you need explicit connect/disconnect:
+`Run()` blocks the current goroutine; use `Stop()` from another goroutine to
+tear the client down early. `Dial()` and `SendMessage()` connect implicitly
+the first time they are called.
 
 ```go
-ctx, cancel := context.WithCancel(context.Background())
-defer cancel()
-
 client := relay.NewRelayClient(relay.WithContexts("default"))
 
-if err := client.Connect(ctx); err != nil {
-	fmt.Printf("Connect failed: %v\n", err)
+go func() {
+	time.Sleep(5 * time.Minute)
+	client.Stop()
+}()
+
+if err := client.Run(); err != nil {
+	fmt.Printf("Client error: %v\n", err)
 	os.Exit(1)
 }
-defer client.Disconnect()
-
-call, err := client.Dial([][]map[string]any{...})
 ```
 
 ## Next Steps

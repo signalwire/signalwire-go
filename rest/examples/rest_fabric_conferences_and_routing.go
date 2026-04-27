@@ -122,20 +122,11 @@ func main() {
 		}
 	}
 
-	// 8. Assign a phone route to a resource (demo)
-	fmt.Println("\nAssigning phone route (demo)...")
-	_, err = client.Fabric.Resources.AssignPhoneRoute(relayID, map[string]any{
-		"phone_number": "+15551234567",
-	})
-	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
-			fmt.Printf("  Route assignment failed (expected in demo): %d\n", restErr.StatusCode)
-		}
-	} else {
-		fmt.Println("  Phone route assigned")
-	}
+	// NOTE: To bind a phone number to a webhook/agent/flow, set call_handler
+	// on the phone number directly — see rest_bind_phone_to_swml_webhook.go.
+	// AssignPhoneRoute does NOT work for swml_webhook / cxml_webhook / ai_agent.
 
-	// 9. Assign a domain application (demo)
+	// 8. Assign a domain application (demo)
 	fmt.Println("\nAssigning domain application (demo)...")
 	_, err = client.Fabric.Resources.AssignDomainApplication(relayID, map[string]any{
 		"domain": "app.example.com",
@@ -148,7 +139,7 @@ func main() {
 		fmt.Println("  Domain application assigned")
 	}
 
-	// 10. Generate tokens
+	// 9. Generate tokens
 	fmt.Println("\nGenerating tokens...")
 	guest, err := client.Fabric.Tokens.CreateGuestToken(map[string]any{"resource_id": relayID})
 	if err != nil {
@@ -189,7 +180,7 @@ func main() {
 		fmt.Printf("  Embed token: %s...\n", token)
 	}
 
-	// 11. Clean up
+	// 10. Clean up
 	fmt.Println("\nCleaning up...")
 	client.Fabric.RelayApplications.Delete(relayID)
 	fmt.Printf("  Deleted relay application %s\n", relayID)

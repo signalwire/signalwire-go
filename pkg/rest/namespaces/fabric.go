@@ -10,7 +10,65 @@ package namespaces
 import (
 	"errors"
 	"strings"
+	"sync"
+
+	"github.com/signalwire/signalwire-go/pkg/logging"
 )
+
+// deprecationLogger carries the runtime warnings emitted by deprecated
+// methods. It is a package-level logger so tests can swap in a sink via
+// SetDeprecationLogger.
+var (
+	deprecationLoggerMu sync.RWMutex
+	deprecationLogger   = logging.New("rest_deprecation")
+
+	// warnOnce tracks which deprecation messages have already been emitted
+	// so a long-running program doesn't spam identical warnings. Keyed by
+	// a stable id per call site (not by caller identity).
+	warnOnceMu sync.Mutex
+	warnOnce   = map[string]bool{}
+)
+
+// emitDeprecationWarning logs a deprecation warning at most once per key.
+// The key scopes the "once" guarantee (e.g. "AssignPhoneRoute"), so each
+// deprecated method fires once per process lifetime regardless of how many
+// times it's called.
+func emitDeprecationWarning(key, msg string) {
+	warnOnceMu.Lock()
+	if warnOnce[key] {
+		warnOnceMu.Unlock()
+		return
+	}
+	warnOnce[key] = true
+	warnOnceMu.Unlock()
+
+	deprecationLoggerMu.RLock()
+	logger := deprecationLogger
+	deprecationLoggerMu.RUnlock()
+	logger.Warn("%s", msg)
+}
+
+// SetDeprecationLogger replaces the package-level deprecation logger. The
+// previous logger is returned so tests can restore it. Passing nil is a
+// no-op.
+func SetDeprecationLogger(l *logging.Logger) *logging.Logger {
+	if l == nil {
+		return nil
+	}
+	deprecationLoggerMu.Lock()
+	defer deprecationLoggerMu.Unlock()
+	prev := deprecationLogger
+	deprecationLogger = l
+	return prev
+}
+
+// ResetDeprecationWarnOnce clears the "once" tracking set so deprecation
+// warnings fire again. Test-only helper.
+func ResetDeprecationWarnOnce() {
+	warnOnceMu.Lock()
+	defer warnOnceMu.Unlock()
+	warnOnce = map[string]bool{}
+}
 
 // ---------- CallFlowsResource ----------
 
@@ -100,6 +158,42 @@ func (r *CxmlApplicationsResource) Create(_ map[string]any) (map[string]any, err
 	return nil, errors.New("cXML applications cannot be created via this API")
 }
 
+// ---------- AutoMaterializedWebhook resources ----------
+
+// AutoMaterializedWebhookResource is a Fabric webhook resource that is
+// normally auto-created by the phone_numbers.Set*Webhook helpers. Exposed
+// for backwards compatibility: list/get/update/delete work as usual, but
+// Create now emits a deprecation warning because creating a webhook
+// resource directly produces an orphan that isn't bound to any phone
+// number.
+type AutoMaterializedWebhookResource struct {
+	*CrudResource
+	// helperName is the recommended replacement helper, inserted into the
+	// deprecation message. E.g. "phone_numbers.SetSwmlWebhook(sid, url)".
+	helperName string
+	// deprecationKey scopes the "once" guarantee for this resource's
+	// Create deprecation warning.
+	deprecationKey string
+}
+
+// Create sends a POST to create a new webhook resource.
+//
+// Deprecated: Creating a webhook Fabric resource directly produces an orphan
+// not bound to any phone number. Use phone_numbers.SetSwmlWebhook or
+// phone_numbers.SetCxmlWebhook instead; setting call_handler on the phone
+// number causes the server to auto-materialize the webhook resource. See
+// porting-sdk's phone-binding.md.
+func (r *AutoMaterializedWebhookResource) Create(data map[string]any) (map[string]any, error) {
+	emitDeprecationWarning(
+		r.deprecationKey,
+		"Creating a webhook Fabric resource directly produces an orphan not "+
+			"bound to any phone number. Use "+r.helperName+" instead; it "+
+			"updates the phone number and the server auto-materializes the "+
+			"resource. See porting-sdk's phone-binding.md.",
+	)
+	return r.CrudResource.Create(data)
+}
+
 // ---------- GenericResources ----------
 
 // GenericResources provides operations across all fabric resource types.
@@ -128,7 +222,22 @@ func (r *GenericResources) ListAddresses(id string, params map[string]string) (m
 }
 
 // AssignPhoneRoute assigns a phone route to a resource.
+//
+// Deprecated: This endpoint (POST /api/fabric/resources/{id}/phone_routes)
+// accepts only a narrow set of legacy resource types as the attach target.
+// It does NOT work for swml_webhook / cxml_webhook / ai_agent bindings —
+// those are configured on the phone number and the Fabric resource is
+// auto-materialized. Use phone_numbers.SetSwmlWebhook, SetCxmlWebhook,
+// SetAiAgent, etc. instead. See porting-sdk's phone-binding.md.
 func (r *GenericResources) AssignPhoneRoute(id string, data map[string]any) (map[string]any, error) {
+	emitDeprecationWarning(
+		"GenericResources.AssignPhoneRoute",
+		"AssignPhoneRoute does not bind phone numbers to "+
+			"swml_webhook/cxml_webhook/ai_agent resources — those are "+
+			"configured via phone_numbers.SetSwmlWebhook / SetCxmlWebhook "+
+			"/ SetAiAgent. This method applies only to a narrow set of "+
+			"legacy resource types. See porting-sdk's phone-binding.md.",
+	)
 	return r.HTTP.Post(r.Path(id, "phone_routes"), data, nil)
 }
 
@@ -191,21 +300,25 @@ func (r *FabricTokens) CreateEmbedToken(data map[string]any) (map[string]any, er
 // FabricNamespace groups all Fabric API resource types.
 type FabricNamespace struct {
 	// PUT-update resources
-	SWMLScripts           *CrudResource
-	RelayApplications     *CrudResource
-	CallFlows             *CallFlowsResource
-	ConferenceRooms       *ConferenceRoomsResource
-	FreeSwitchConnectors  *CrudResource
-	Subscribers           *SubscribersResource
-	SIPEndpoints          *CrudResource
-	CXMLScripts           *CrudResource
-	CXMLApplications      *CxmlApplicationsResource
+	SWMLScripts          *CrudResource
+	RelayApplications    *CrudResource
+	CallFlows            *CallFlowsResource
+	ConferenceRooms      *ConferenceRoomsResource
+	FreeSwitchConnectors *CrudResource
+	Subscribers          *SubscribersResource
+	SIPEndpoints         *CrudResource
+	CXMLScripts          *CrudResource
+	CXMLApplications     *CxmlApplicationsResource
 
 	// PATCH-update resources
-	SWMLWebhooks *CrudResource
+	//
+	// SWMLWebhooks and CXMLWebhooks are auto-materialized: prefer
+	// PhoneNumbers.SetSwmlWebhook / SetCxmlWebhook for creation. Direct
+	// .Create still works for backcompat but emits a deprecation warning.
+	SWMLWebhooks *AutoMaterializedWebhookResource
 	AIAgents     *CrudResource
 	SIPGateways  *CrudResource
-	CXMLWebhooks *CrudResource
+	CXMLWebhooks *AutoMaterializedWebhookResource
 
 	// Special resources
 	Resources *GenericResources
@@ -230,10 +343,18 @@ func NewFabricNamespace(client HTTPClient) *FabricNamespace {
 		CXMLApplications:     &CxmlApplicationsResource{NewCrudResourcePUT(client, base+"/cxml_applications")},
 
 		// PATCH-update resources
-		SWMLWebhooks: NewCrudResource(client, base+"/swml_webhooks"),
-		AIAgents:     NewCrudResource(client, base+"/ai_agents"),
-		SIPGateways:  NewCrudResource(client, base+"/sip_gateways"),
-		CXMLWebhooks: NewCrudResource(client, base+"/cxml_webhooks"),
+		SWMLWebhooks: &AutoMaterializedWebhookResource{
+			CrudResource:   NewCrudResource(client, base+"/swml_webhooks"),
+			helperName:     "phone_numbers.SetSwmlWebhook(sid, url)",
+			deprecationKey: "SWMLWebhooks.Create",
+		},
+		AIAgents:    NewCrudResource(client, base+"/ai_agents"),
+		SIPGateways: NewCrudResource(client, base+"/sip_gateways"),
+		CXMLWebhooks: &AutoMaterializedWebhookResource{
+			CrudResource:   NewCrudResource(client, base+"/cxml_webhooks"),
+			helperName:     "phone_numbers.SetCxmlWebhook(sid, url, opts)",
+			deprecationKey: "CXMLWebhooks.Create",
+		},
 
 		// Special resources
 		Resources: &GenericResources{Resource{HTTP: client, Base: base}},
