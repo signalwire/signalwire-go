@@ -595,7 +595,7 @@ func (c *Call) SendFax(document string, identity string, opts ...FaxOption) *Fax
 		opt(params)
 	}
 
-	action := newFaxAction(c, controlID)
+	action := newFaxAction(c, controlID, "send_fax")
 	c.registerAction(action.Action)
 
 	go func() {
@@ -621,7 +621,7 @@ func (c *Call) ReceiveFax() *FaxAction {
 		"control_id": controlID,
 	}
 
-	action := newFaxAction(c, controlID)
+	action := newFaxAction(c, controlID, "receive_fax")
 	c.registerAction(action.Action)
 
 	go func() {

@@ -811,3 +811,74 @@ func NewAIEvent(params map[string]any) *AIEvent {
 	e.Result = e.GetMap("result")
 	return e
 }
+
+// ParseEvent parses a raw signalwire event payload dict into a typed event
+// object. It reads "event_type" from the top-level payload and "params" as
+// the inner parameter map, then dispatches to the appropriate typed
+// constructor. If the event_type is not recognised, a plain *RelayEvent is
+// returned. Callers can type-assert or type-switch on the result to access
+// the concrete event fields.
+//
+// This mirrors Python's relay.event.parse_event(payload).
+func ParseEvent(payload map[string]any) any {
+	eventType, _ := payload["event_type"].(string)
+	var params map[string]any
+	if p, ok := payload["params"].(map[string]any); ok {
+		params = p
+	} else {
+		params = make(map[string]any)
+	}
+
+	switch eventType {
+	case EventCallingCallState:
+		return NewCallStateEvent(params)
+	case EventCallingCallReceive:
+		return NewCallReceiveEvent(params)
+	case EventCallingCallPlay:
+		return NewPlayEvent(params)
+	case EventCallingCallRecord:
+		return NewRecordEvent(params)
+	case EventCallingCallCollect:
+		return NewCollectEvent(params)
+	case EventCallingCallConnect:
+		return NewConnectEvent(params)
+	case EventCallingCallDetect:
+		return NewDetectEvent(params)
+	case EventCallingCallFax:
+		return NewFaxEvent(params)
+	case EventCallingCallTap:
+		return NewTapEvent(params)
+	case EventCallingCallStream:
+		return NewStreamEvent(params)
+	case EventCallingCallSendDigits:
+		return NewSendDigitsEvent(params)
+	case EventCallingCallDial:
+		return NewDialEvent(params)
+	case EventCallingCallRefer:
+		return NewReferEvent(params)
+	case EventCallingCallDenoise:
+		return NewDenoiseEvent(params)
+	case EventCallingCallPay:
+		return NewPayEvent(params)
+	case EventCallingCallQueue:
+		return NewQueueEvent(params)
+	case EventCallingCallEcho:
+		return NewEchoEvent(params)
+	case EventCallingCallTranscribe:
+		return NewTranscribeEvent(params)
+	case EventCallingCallHold:
+		return NewHoldEvent(params)
+	case EventCallingCallConference:
+		return NewConferenceEvent(params)
+	case EventCallingCallError:
+		return NewCallingErrorEvent(params)
+	case EventCallingCallAI:
+		return NewAIEvent(params)
+	case EventMessagingReceive:
+		return NewMessageReceiveEvent(params)
+	case EventMessagingState:
+		return NewMessageStateEvent(params)
+	default:
+		return NewRelayEvent(eventType, params)
+	}
+}
