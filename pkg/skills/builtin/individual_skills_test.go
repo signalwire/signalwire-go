@@ -520,8 +520,18 @@ func TestVectorSearch_InstanceKey(t *testing.T) {
 	factory := skills.GetSkillFactory("native_vector_search")
 	s := factory(map[string]any{"tool_name": "kb"})
 	key := s.GetInstanceKey()
-	if key != "native_vector_search_kb" {
-		t.Errorf("instance key = %q", key)
+	// Key formula: "native_vector_search_{tool_name}_{index_name}" (3-part, mirrors Python)
+	if key != "native_vector_search_kb_default" {
+		t.Errorf("instance key = %q, want %q", key, "native_vector_search_kb_default")
+	}
+}
+
+func TestVectorSearch_InstanceKeyWithIndex(t *testing.T) {
+	factory := skills.GetSkillFactory("native_vector_search")
+	s := factory(map[string]any{"tool_name": "kb", "index_name": "docs"})
+	key := s.GetInstanceKey()
+	if key != "native_vector_search_kb_docs" {
+		t.Errorf("instance key = %q, want %q", key, "native_vector_search_kb_docs")
 	}
 }
 

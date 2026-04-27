@@ -197,8 +197,8 @@ func TestWikipediaSearchSetup(t *testing.T) {
 	if len(tools) == 0 {
 		t.Error("wikipedia_search RegisterTools() returned empty")
 	}
-	if tools[0].Name != "search_wikipedia" {
-		t.Errorf("expected tool name 'search_wikipedia', got %q", tools[0].Name)
+	if tools[0].Name != "search_wiki" {
+		t.Errorf("expected tool name 'search_wiki', got %q", tools[0].Name)
 	}
 }
 
