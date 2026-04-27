@@ -608,3 +608,73 @@ type AgentHandoff struct {
 
 // StopResponse signals that a tool should not trigger another LLM reply.
 type StopResponse struct{}
+
+// ---------------------------------------------------------------------------
+// ToolError
+// ---------------------------------------------------------------------------
+
+// ToolError signals a tool execution error. Return a *ToolError from a tool
+// handler to tell the framework the tool failed; the error message is forwarded
+// to the LLM as a tool-failure notification rather than triggering a normal
+// LLM reply. Parallel to StopResponse in this file.
+type ToolError struct {
+	Message string
+}
+
+// Error implements the built-in error interface.
+func (e *ToolError) Error() string { return e.Message }
+
+// NewToolError constructs a ToolError with the given message.
+func NewToolError(message string) *ToolError { return &ToolError{Message: message} }
+
+// ---------------------------------------------------------------------------
+// ChatContext
+// ---------------------------------------------------------------------------
+
+// ChatMessage holds a single role/content pair in a conversation history.
+// The JSON tags match the dict keys produced by the Python ChatContext.append()
+// implementation: {"role": ..., "content": ...}.
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// ChatContext buffers a conversation as an ordered list of role/content
+// messages.  It mirrors the Python livewire.ChatContext stub which is
+// API-compatible with the livekit-agents ChatContext shape.
+type ChatContext struct {
+	Messages []ChatMessage
+}
+
+// NewChatContext returns an empty ChatContext ready for use.
+func NewChatContext() *ChatContext { return &ChatContext{} }
+
+// Append adds a role/content message to the context and returns the receiver
+// for method chaining.  If role is empty it defaults to "user"; if content is
+// empty it defaults to "" (empty string), matching the Python defaults
+// role="user", text="".
+func (c *ChatContext) Append(role, content string) *ChatContext {
+	if role == "" {
+		role = "user"
+	}
+	c.Messages = append(c.Messages, ChatMessage{Role: role, Content: content})
+	return c
+}
+
+// ---------------------------------------------------------------------------
+// InferenceTTS
+// ---------------------------------------------------------------------------
+
+// InferenceTTS is a no-op stub providing LiveKit import compatibility.
+// SignalWire's control plane handles text-to-speech; this type exists so
+// code written for livekit/agents inference.TTS can be dropped in unchanged.
+type InferenceTTS struct {
+	Model string
+}
+
+// NewInferenceTTS creates an InferenceTTS stub with the given model hint.
+// The model value is stored for compatibility but is otherwise unused.
+func NewInferenceTTS(model string) *InferenceTTS {
+	getGlobalNoop().once("inference_tts", fmt.Sprintf("NewInferenceTTS(%q): SignalWire's control plane handles text-to-speech -- inference stubs are no-ops", model))
+	return &InferenceTTS{Model: model}
+}
