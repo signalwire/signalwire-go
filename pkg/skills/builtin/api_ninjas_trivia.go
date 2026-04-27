@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/signalwire/signalwire-go/pkg/skills"
@@ -32,8 +33,9 @@ var validTriviaCategories = map[string]string{
 // APINinjasTriviaSkill gets trivia questions from API Ninjas.
 type APINinjasTriviaSkill struct {
 	skills.BaseSkill
-	apiKey   string
-	toolName string
+	apiKey     string
+	toolName   string
+	categories []string
 }
 
 // NewAPINinjasTrivia creates a new APINinjasTriviaSkill.
@@ -70,14 +72,56 @@ func (s *APINinjasTriviaSkill) Setup() bool {
 		return false
 	}
 	s.toolName = s.GetParamString("tool_name", "get_trivia")
+
+	// Read categories param; default to all valid category keys
+	if v, ok := s.Params["categories"]; ok {
+		switch raw := v.(type) {
+		case []string:
+			s.categories = raw
+		case []any:
+			cats := make([]string, 0, len(raw))
+			for _, item := range raw {
+				str, ok := item.(string)
+				if !ok {
+					return false
+				}
+				cats = append(cats, str)
+			}
+			s.categories = cats
+		default:
+			return false
+		}
+	} else {
+		// Default: all valid categories
+		cats := make([]string, 0, len(validTriviaCategories))
+		for k := range validTriviaCategories {
+			cats = append(cats, k)
+		}
+		s.categories = cats
+	}
+
+	// Validate categories is non-empty and each entry is a valid category key
+	if len(s.categories) == 0 {
+		return false
+	}
+	for _, cat := range s.categories {
+		if _, valid := validTriviaCategories[cat]; !valid {
+			return false
+		}
+	}
+
 	return true
 }
 
 func (s *APINinjasTriviaSkill) RegisterTools() []skills.ToolRegistration {
-	categories := make([]string, 0, len(validTriviaCategories))
-	for k := range validTriviaCategories {
-		categories = append(categories, k)
+	// Build rich description matching Python: "Category for trivia question. Options: key: Name; ..."
+	descriptions := make([]string, 0, len(s.categories))
+	for _, cat := range s.categories {
+		if name, ok := validTriviaCategories[cat]; ok {
+			descriptions = append(descriptions, cat+": "+name)
+		}
 	}
+	categoryDesc := "Category for trivia question. Options: " + strings.Join(descriptions, "; ")
 
 	return []skills.ToolRegistration{
 		{
@@ -88,8 +132,8 @@ func (s *APINinjasTriviaSkill) RegisterTools() []skills.ToolRegistration {
 				"properties": map[string]any{
 					"category": map[string]any{
 						"type":        "string",
-						"description": "Trivia category",
-						"enum":        categories,
+						"description": categoryDesc,
+						"enum":        s.categories,
 					},
 				},
 				"required": []string{"category"},
@@ -164,6 +208,20 @@ func (s *APINinjasTriviaSkill) GetParameterSchema() map[string]map[string]any {
 		"required":    true,
 		"hidden":      true,
 		"env_var":     "API_NINJAS_KEY",
+	}
+
+	allKeys := make([]string, 0, len(validTriviaCategories))
+	for k := range validTriviaCategories {
+		allKeys = append(allKeys, k)
+	}
+	schema["categories"] = map[string]any{
+		"type":        "array",
+		"description": "List of trivia categories to enable.",
+		"required":    false,
+		"items": map[string]any{
+			"type": "string",
+			"enum": allKeys,
+		},
 	}
 	return schema
 }

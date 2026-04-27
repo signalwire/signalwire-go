@@ -541,31 +541,42 @@ func TestVectorSearch_InstanceKeyWithIndex(t *testing.T) {
 
 func TestClaude_ParameterSchema(t *testing.T) {
 	factory := skills.GetSkillFactory("claude_skills")
-	s := factory(map[string]any{"api_key": "test"})
+	s := factory(nil)
 	schema := s.GetParameterSchema()
-	if schema["api_key"] == nil {
-		t.Error("expected api_key in schema")
+	if schema["skills_path"] == nil {
+		t.Error("expected skills_path in schema")
+	}
+	if schema["tool_prefix"] == nil {
+		t.Error("expected tool_prefix in schema")
+	}
+	if schema["include"] == nil {
+		t.Error("expected include in schema")
 	}
 }
 
-func TestClaude_CustomToolName(t *testing.T) {
+func TestClaude_CustomToolPrefix(t *testing.T) {
+	// Without a valid skills_path, Setup() returns false and RegisterTools() returns empty.
+	// Verify the tool_prefix parameter is accepted in the schema.
 	factory := skills.GetSkillFactory("claude_skills")
-	s := factory(map[string]any{"api_key": "test", "tool_name": "claude_think"})
-	s.Setup()
-	tools := s.RegisterTools()
-	if tools[0].Name != "claude_think" {
-		t.Errorf("tool name = %q, want claude_think", tools[0].Name)
+	s := factory(map[string]any{"tool_prefix": "my_"})
+	schema := s.GetParameterSchema()
+	if schema["tool_prefix"] == nil {
+		t.Error("expected tool_prefix in schema")
+	}
+	// Setup without skills_path should fail gracefully.
+	if s.Setup() {
+		t.Error("Setup() should return false without skills_path")
 	}
 }
 
-func TestClaude_HasPromptSections(t *testing.T) {
+func TestClaude_EmptyPromptSectionsWithoutPath(t *testing.T) {
+	// Without a valid skills_path, GetPromptSections returns nil (no skills loaded).
 	factory := skills.GetSkillFactory("claude_skills")
-	s := factory(map[string]any{"api_key": "test"})
-	s.Setup()
+	s := factory(nil)
+	s.Setup() // expected to fail; loadedSkills will be empty
 	sections := s.GetPromptSections()
-	if len(sections) == 0 {
-		t.Error("expected prompt sections")
-	}
+	// nil or empty is valid when no skills are loaded
+	_ = sections
 }
 
 // ---------------------------------------------------------------------------

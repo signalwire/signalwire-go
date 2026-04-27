@@ -17,3 +17,5 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	golang.org/x/text v0.18.0 // indirect
 )
+
+require gopkg.in/yaml.v3 v3.0.1

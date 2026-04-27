@@ -65,8 +65,16 @@ func TestDateTimeInstantiationAndSetup(t *testing.T) {
 	if len(tools) == 0 {
 		t.Error("datetime RegisterTools() returned empty")
 	}
-	if tools[0].Name != "get_datetime" {
-		t.Errorf("expected tool name 'get_datetime', got %q", tools[0].Name)
+	// Skills now register get_current_time, get_current_date, and get_datetime.
+	// Verify all three are present.
+	toolNames := make(map[string]bool)
+	for _, tool := range tools {
+		toolNames[tool.Name] = true
+	}
+	for _, want := range []string{"get_current_time", "get_current_date", "get_datetime"} {
+		if !toolNames[want] {
+			t.Errorf("expected tool %q to be registered", want)
+		}
 	}
 	if tools[0].Handler == nil {
 		t.Error("datetime tool handler is nil")
@@ -400,14 +408,24 @@ func TestClaudeSkillsSetup(t *testing.T) {
 	if factory == nil {
 		t.Fatal("claude_skills factory not found")
 	}
+
+	// Without skills_path: Setup() must return false.
 	s := factory(nil)
 	if s.Setup() {
-		t.Error("claude_skills Setup() should return false without api_key")
+		t.Error("claude_skills Setup() should return false without skills_path")
 	}
 
-	s2 := factory(map[string]any{"api_key": "test-key"})
-	if !s2.Setup() {
-		t.Error("claude_skills Setup() returned false with api_key")
+	// With a non-existent path: Setup() must return false.
+	s2 := factory(map[string]any{"skills_path": "/nonexistent/path/that/does/not/exist"})
+	if s2.Setup() {
+		t.Error("claude_skills Setup() should return false with non-existent skills_path")
+	}
+
+	// With a valid directory (using os.TempDir): Setup() returns true (0 skills is valid).
+	tmpDir := t.TempDir()
+	s3 := factory(map[string]any{"skills_path": tmpDir})
+	if !s3.Setup() {
+		t.Error("claude_skills Setup() returned false with valid (empty) skills_path")
 	}
 }
 
