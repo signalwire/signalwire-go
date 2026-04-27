@@ -228,9 +228,9 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 	}
 
 	// Extract internal-only options that must not be sent over the wire.
-	var onCompleted func(*Message)
+	var onCompleted func(*Message, *RelayEvent)
 	if v, ok := params["_on_completed"]; ok {
-		onCompleted, _ = v.(func(*Message))
+		onCompleted, _ = v.(func(*Message, *RelayEvent))
 		delete(params, "_on_completed")
 	}
 
