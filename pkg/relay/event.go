@@ -244,7 +244,17 @@ func NewCallReceiveEvent(params map[string]any) *CallReceiveEvent {
 	e.CallState = e.GetString("call_state")
 	e.Direction = e.GetString("direction")
 	e.Device = e.GetMap("device")
-	e.Context = e.GetString("context")
+	// SIP-originated receive events carry routing under "protocol" instead of
+	// "context". Mirrors Python relay/event.py CallReceiveEvent.from_payload:
+	//   context=p.get("context", p.get("protocol", ""))
+	// Use a key-presence check (not an empty-string check) so an explicitly
+	// empty "context" wins over a present "protocol", matching Python's
+	// dict.get default semantics.
+	if _, ok := e.Params["context"]; ok {
+		e.Context = e.GetString("context")
+	} else {
+		e.Context = e.GetString("protocol")
+	}
 	e.Tag = e.GetString("tag")
 	e.CallID = e.GetString("call_id")
 	e.NodeID = e.GetString("node_id")
