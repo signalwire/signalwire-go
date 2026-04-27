@@ -117,6 +117,106 @@ func WithConferenceDeaf(deaf bool) ConferenceOption {
 	}
 }
 
+// FaxOption configures a SendFax call.
+type FaxOption func(m map[string]any)
+
+// WithFaxHeaderInfo sets the fax header info string (matches Python's header_info param).
+func WithFaxHeaderInfo(headerInfo string) FaxOption {
+	return func(m map[string]any) {
+		if headerInfo != "" {
+			m["header_info"] = headerInfo
+		}
+	}
+}
+
+// PayOption configures a Pay call.
+type PayOption func(m map[string]any)
+
+// WithPayInputMethod sets the payment input method.
+func WithPayInputMethod(method string) PayOption {
+	return func(m map[string]any) { m["input"] = method }
+}
+
+// WithPayStatusURL sets the payment status callback URL.
+func WithPayStatusURL(url string) PayOption {
+	return func(m map[string]any) { m["status_url"] = url }
+}
+
+// WithPayPaymentMethod sets the payment method (e.g. "credit-card").
+func WithPayPaymentMethod(method string) PayOption {
+	return func(m map[string]any) { m["payment_method"] = method }
+}
+
+// WithPayTimeout sets the timeout string for the payment session.
+func WithPayTimeout(timeout string) PayOption {
+	return func(m map[string]any) { m["timeout"] = timeout }
+}
+
+// WithPayMaxAttempts sets the maximum number of payment attempts.
+func WithPayMaxAttempts(max string) PayOption {
+	return func(m map[string]any) { m["max_attempts"] = max }
+}
+
+// WithPaySecurityCode sets whether to collect security code.
+func WithPaySecurityCode(code string) PayOption {
+	return func(m map[string]any) { m["security_code"] = code }
+}
+
+// WithPayPostalCode sets whether to collect postal code.
+func WithPayPostalCode(code string) PayOption {
+	return func(m map[string]any) { m["postal_code"] = code }
+}
+
+// WithPayMinPostalCodeLength sets the minimum postal code length.
+func WithPayMinPostalCodeLength(length string) PayOption {
+	return func(m map[string]any) { m["min_postal_code_length"] = length }
+}
+
+// WithPayTokenType sets the payment token type.
+func WithPayTokenType(tokenType string) PayOption {
+	return func(m map[string]any) { m["token_type"] = tokenType }
+}
+
+// WithPayChargeAmount sets the charge amount.
+func WithPayChargeAmount(amount string) PayOption {
+	return func(m map[string]any) { m["charge_amount"] = amount }
+}
+
+// WithPayCurrency sets the payment currency.
+func WithPayCurrency(currency string) PayOption {
+	return func(m map[string]any) { m["currency"] = currency }
+}
+
+// WithPayLanguage sets the language for payment prompts.
+func WithPayLanguage(language string) PayOption {
+	return func(m map[string]any) { m["language"] = language }
+}
+
+// WithPayVoice sets the voice for payment prompts.
+func WithPayVoice(voice string) PayOption {
+	return func(m map[string]any) { m["voice"] = voice }
+}
+
+// WithPayDescription sets a description for the payment.
+func WithPayDescription(desc string) PayOption {
+	return func(m map[string]any) { m["description"] = desc }
+}
+
+// WithPayValidCardTypes sets the valid card types string.
+func WithPayValidCardTypes(types string) PayOption {
+	return func(m map[string]any) { m["valid_card_types"] = types }
+}
+
+// WithPayParameters sets additional payment parameters.
+func WithPayParameters(parameters []map[string]any) PayOption {
+	return func(m map[string]any) { m["parameters"] = parameters }
+}
+
+// WithPayPrompts sets custom payment prompts.
+func WithPayPrompts(prompts []map[string]any) PayOption {
+	return func(m map[string]any) { m["prompts"] = prompts }
+}
+
 // AIOption configures an AI operation on a call.
 type AIOption func(m map[string]any)
 
