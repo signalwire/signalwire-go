@@ -360,9 +360,11 @@ func WithMessageContext(ctx string) MessageOption {
 }
 
 // WithMessageOnCompleted registers a callback invoked when the message reaches
-// a terminal state (delivered, undelivered, or failed). Mirrors Python's
-// send_message(on_completed=...) parameter.
-func WithMessageOnCompleted(cb func(*Message)) MessageOption {
+// a terminal state (delivered, undelivered, or failed). The callback receives
+// both the message and the terminal RelayEvent, mirroring Python's
+// _on_completed callback contract (relay/message.py:115-117) which receives
+// the event directly. Mirrors Python's send_message(on_completed=...) parameter.
+func WithMessageOnCompleted(cb func(*Message, *RelayEvent)) MessageOption {
 	return func(m map[string]any) {
 		m["_on_completed"] = cb
 	}

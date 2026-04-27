@@ -24,7 +24,7 @@ type Message struct {
 	mu     sync.Mutex
 
 	completed   bool
-	onCompleted func(*Message)
+	onCompleted func(*Message, *RelayEvent)
 
 	eventHandlers []func(*RelayEvent)
 }
@@ -133,7 +133,7 @@ func (m *Message) updateState(event *RelayEvent) {
 	copy(handlers, m.eventHandlers)
 
 	terminal := isTerminalMessageState(newState)
-	var onCompleted func(*Message)
+	var onCompleted func(*Message, *RelayEvent)
 	if terminal && !m.completed {
 		m.completed = true
 		m.result = event
@@ -147,7 +147,7 @@ func (m *Message) updateState(event *RelayEvent) {
 
 	if terminal {
 		if onCompleted != nil {
-			go onCompleted(m)
+			go onCompleted(m, event)
 		}
 		select {
 		case <-m.done:
