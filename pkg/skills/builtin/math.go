@@ -35,7 +35,7 @@ func (s *MathSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
 			Name:        "calculate",
-			Description: "Perform a mathematical calculation with basic operations (+, -, *, /, %)",
+			Description: "Perform a mathematical calculation with basic operations (+, -, *, /, %, ** not supported; use math.Pow instead)",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -147,7 +147,7 @@ func (s *MathSkill) GetPromptSections() []map[string]any {
 			"body":  "You can perform mathematical calculations for users.",
 			"bullets": []string{
 				"Use the calculate tool for any math expressions",
-				"Supports basic operations: +, -, *, /, %",
+				"Supports basic operations: +, -, *, /, %, ** (power not supported; use math.Pow instead)",
 				"Can handle parentheses for complex expressions",
 			},
 		},
