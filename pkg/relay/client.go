@@ -128,6 +128,15 @@ func (c *Client) Space() string {
 	return c.space
 }
 
+// Contexts returns a copy of the configured RELAY contexts. Mirrors
+// Python's public client.contexts attribute. The returned slice is a
+// copy — mutating it does not affect the client.
+func (c *Client) Contexts() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return append([]string(nil), c.contexts...)
+}
+
 // Connect establishes the WebSocket connection to SignalWire. This is the
 // public equivalent of the internal connect() method, mirroring Python's
 // async connect() which is also used in the async-with context manager.
