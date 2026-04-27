@@ -63,7 +63,7 @@ const (
 	EventCallingCallTranscribe = "calling.call.transcribe"
 	EventCallingCallHold       = "calling.call.hold"
 	EventCallingCallConference = "calling.call.conference"
-	EventCallingCallError      = "calling.call.error"
+	EventCallingCallError      = "calling.error"
 	EventCallingCallAI         = "calling.call.ai"
 )
 
