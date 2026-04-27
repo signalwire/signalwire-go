@@ -183,7 +183,9 @@ func (ra *RecordAction) Stop() error {
 
 // Pause pauses the active recording. An optional behavior string may be
 // provided (e.g. "silence" or "skip") to control how the gap is handled.
-func (ra *RecordAction) Pause(behavior string) error {
+// Pass no argument — or "" — to omit behavior, matching Python's
+// pause(behavior: Optional[str] = None) signature.
+func (ra *RecordAction) Pause(behavior ...string) error {
 	if ra.call == nil || ra.call.client == nil {
 		return fmt.Errorf("action not associated with a call or client")
 	}
@@ -192,8 +194,8 @@ func (ra *RecordAction) Pause(behavior string) error {
 		"call_id":    ra.call.callID,
 		"control_id": ra.controlID,
 	}
-	if behavior != "" {
-		params["behavior"] = behavior
+	if len(behavior) > 0 && behavior[0] != "" {
+		params["behavior"] = behavior[0]
 	}
 	_, err := ra.call.client.execute("calling.record.pause", params)
 	return err
