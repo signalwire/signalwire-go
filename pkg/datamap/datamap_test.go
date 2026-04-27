@@ -434,10 +434,10 @@ func TestCreateSimpleApiToolWithBody(t *testing.T) {
 func TestCreateExpressionTool(t *testing.T) {
 	dm := CreateExpressionTool(
 		"playback_control",
-		map[string][2]any{
+		map[string]ExpressionPattern{
 			"${args.command}": {
-				"play.*",
-				swaig.NewFunctionResult("Playing now"),
+				Pattern: "play.*",
+				Result:  swaig.NewFunctionResult("Playing now"),
 			},
 		},
 		map[string]map[string]any{

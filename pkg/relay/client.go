@@ -83,6 +83,57 @@ func (c *Client) OnMessage(handler func(*Message)) {
 	c.onMessage = handler
 }
 
+// RelayProtocol returns the server-assigned protocol string received during
+// authentication. Mirrors Python's relay_protocol property. The value is empty
+// until after a successful Connect/Run.
+func (c *Client) RelayProtocol() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.protocol
+}
+
+// Connect establishes the WebSocket connection to SignalWire. This is the
+// public equivalent of the internal connect() method, mirroring Python's
+// async connect() which is also used in the async-with context manager.
+// In most cases callers should use Run() which calls Connect internally and
+// then drives the read loop.
+func (c *Client) Connect() error {
+	return c.connect()
+}
+
+// Execute sends a JSON-RPC request over the WebSocket and waits for the
+// response. Mirrors Python's async execute(method, params) which is the
+// public arbitrary-RPC surface used by callers that need low-level access.
+func (c *Client) Execute(method string, params map[string]any) (json.RawMessage, error) {
+	return c.execute(method, params)
+}
+
+// Receive subscribes to additional contexts for inbound events after the
+// client is already connected. Sends signalwire.receive on the assigned
+// protocol. Mirrors Python's async receive(contexts).
+func (c *Client) Receive(contexts ...string) error {
+	if len(contexts) == 0 {
+		return nil
+	}
+	_, err := c.execute("signalwire.receive", map[string]any{
+		"contexts": contexts,
+	})
+	return err
+}
+
+// Unreceive unsubscribes from contexts for inbound events. Sends
+// signalwire.unreceive on the assigned protocol. Mirrors Python's async
+// unreceive(contexts).
+func (c *Client) Unreceive(contexts ...string) error {
+	if len(contexts) == 0 {
+		return nil
+	}
+	_, err := c.execute("signalwire.unreceive", map[string]any{
+		"contexts": contexts,
+	})
+	return err
+}
+
 // Run connects to SignalWire, authenticates, subscribes to configured
 // contexts, and starts the read loop. It blocks until Stop is called
 // or the context is cancelled.
@@ -161,6 +212,11 @@ func (c *Client) Dial(devices [][]map[string]any, opts ...DialOption) (*Call, er
 
 // SendMessage sends an SMS/MMS message and returns a Message that can be
 // used to track delivery.
+//
+// The context option (WithMessageContext) sets the routing context for the
+// message; it defaults to the relay protocol when omitted, matching Python SDK
+// behaviour. The on_completed option (WithMessageOnCompleted) registers a
+// callback fired when the message reaches a terminal state.
 func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Message, error) {
 	params := map[string]any{
 		"to_number":   to,
@@ -169,6 +225,23 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 	}
 	for _, opt := range opts {
 		opt(params)
+	}
+
+	// Extract internal-only options that must not be sent over the wire.
+	var onCompleted func(*Message)
+	if v, ok := params["_on_completed"]; ok {
+		onCompleted, _ = v.(func(*Message))
+		delete(params, "_on_completed")
+	}
+
+	// Apply default context (relay protocol) when not explicitly set.
+	if _, hasCtx := params["context"]; !hasCtx {
+		c.mu.RLock()
+		proto := c.protocol
+		c.mu.RUnlock()
+		if proto != "" {
+			params["context"] = proto
+		}
 	}
 
 	resp, err := c.execute("messaging.send", params)
@@ -184,6 +257,9 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 	}
 
 	msg := newMessage(result.MessageID, DirectionOutbound, from, to, body)
+	if onCompleted != nil {
+		msg.onCompleted = onCompleted
+	}
 
 	c.mu.Lock()
 	c.messages[result.MessageID] = msg
@@ -287,7 +363,7 @@ func (c *Client) authenticate() error {
 			c.mu.Unlock()
 
 			if msg.Error != nil {
-				return fmt.Errorf("auth error %d: %s", msg.Error.Code, msg.Error.Message)
+				return NewRelayError(msg.Error.Code, msg.Error.Message)
 			}
 
 			var authResult struct {
@@ -448,7 +524,7 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 			Message string `json:"message"`
 		}
 		if err := json.Unmarshal(resp, &errResp); err == nil && errResp.Code != 0 {
-			return nil, fmt.Errorf("relay error %d: %s", errResp.Code, errResp.Message)
+			return nil, NewRelayError(errResp.Code, errResp.Message)
 		}
 		return resp, nil
 	case <-c.ctx.Done():
@@ -565,6 +641,7 @@ func (c *Client) handleMessagingEvent(eventType string, params map[string]any) {
 		if handler != nil {
 			rcv := NewMessageReceiveEvent(params)
 			msg := newMessage(rcv.MessageID, rcv.Direction, rcv.FromNumber, rcv.ToNumber, rcv.Body)
+			msg.context = rcv.Context
 			msg.media = rcv.Media
 			msg.segments = rcv.Segments
 			msg.tags = rcv.Tags

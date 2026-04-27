@@ -29,7 +29,7 @@ func (c *CallingNamespace) execute(command string, callID string, params map[str
 	if callID != "" {
 		body["id"] = callID
 	}
-	return c.HTTP.Post(c.Base, body)
+	return c.HTTP.Post(c.Base, body, nil)
 }
 
 // --- Call lifecycle ---

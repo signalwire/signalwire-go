@@ -28,6 +28,40 @@ func TestNewFunctionResultEmptyResponse(t *testing.T) {
 	}
 }
 
+// --- Getters ---
+
+func TestResponseGetter(t *testing.T) {
+	fr := NewFunctionResult("Hello")
+	if fr.Response() != "Hello" {
+		t.Errorf("Response() = %q, want %q", fr.Response(), "Hello")
+	}
+}
+
+func TestActionsGetter(t *testing.T) {
+	fr := NewFunctionResult("test").AddAction("say", "hi")
+	acts := fr.Actions()
+	if len(acts) != 1 {
+		t.Fatalf("Actions() length = %d, want 1", len(acts))
+	}
+	if acts[0]["say"] != "hi" {
+		t.Errorf("Actions()[0][say] = %v, want %q", acts[0]["say"], "hi")
+	}
+}
+
+func TestPostProcessGetter(t *testing.T) {
+	fr := NewFunctionResult("test").SetPostProcess(true)
+	if !fr.PostProcess() {
+		t.Error("PostProcess() should return true after SetPostProcess(true)")
+	}
+}
+
+func TestPostProcessGetterDefault(t *testing.T) {
+	fr := NewFunctionResult("test")
+	if fr.PostProcess() {
+		t.Error("PostProcess() should return false by default")
+	}
+}
+
 func TestToMapBasic(t *testing.T) {
 	fr := NewFunctionResult("test response")
 	m := fr.ToMap()
@@ -337,6 +371,18 @@ func TestRemoveGlobalData(t *testing.T) {
 	}
 }
 
+func TestRemoveGlobalDataKey(t *testing.T) {
+	fr := NewFunctionResult("removed").
+		RemoveGlobalDataKey("single-key")
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	// Single key variant emits bare string, not array — matches Python Union[str, List[str]] behavior
+	key := actions[0]["unset_global_data"].(string)
+	if key != "single-key" {
+		t.Errorf("unset_global_data = %v, want %q", key, "single-key")
+	}
+}
+
 func TestSetMetadata(t *testing.T) {
 	fr := NewFunctionResult("metadata").
 		SetMetadata(map[string]any{"session": "abc123"})
@@ -356,6 +402,18 @@ func TestRemoveMetadata(t *testing.T) {
 	keys := actions[0]["unset_meta_data"].([]string)
 	if len(keys) != 1 || keys[0] != "old_key" {
 		t.Errorf("keys = %v, want [old_key]", keys)
+	}
+}
+
+func TestRemoveMetadataKey(t *testing.T) {
+	fr := NewFunctionResult("remove").
+		RemoveMetadataKey("single-meta-key")
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	// Single key variant emits bare string, not array — matches Python Union[str, List[str]] behavior
+	key := actions[0]["unset_meta_data"].(string)
+	if key != "single-meta-key" {
+		t.Errorf("unset_meta_data = %v, want %q", key, "single-meta-key")
 	}
 }
 
@@ -384,9 +442,9 @@ func TestSwmlChangeStep(t *testing.T) {
 		SwmlChangeStep("betting")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
-	cs := actions[0]["context_switch"].(map[string]any)
-	if cs["step"] != "betting" {
-		t.Errorf("step = %v, want %q", cs["step"], "betting")
+	// Python emits {"change_step": "betting"} — plain string, not a struct
+	if actions[0]["change_step"] != "betting" {
+		t.Errorf("change_step = %v, want %q", actions[0]["change_step"], "betting")
 	}
 }
 
@@ -395,9 +453,9 @@ func TestSwmlChangeContext(t *testing.T) {
 		SwmlChangeContext("support")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
-	cs := actions[0]["context_switch"].(map[string]any)
-	if cs["context"] != "support" {
-		t.Errorf("context = %v, want %q", cs["context"], "support")
+	// Python emits {"change_context": "support"} — plain string, not a struct
+	if actions[0]["change_context"] != "support" {
+		t.Errorf("change_context = %v, want %q", actions[0]["change_context"], "support")
 	}
 }
 
@@ -509,7 +567,7 @@ func TestStopBackgroundFile(t *testing.T) {
 
 func TestRecordCall(t *testing.T) {
 	fr := NewFunctionResult("recording").
-		RecordCall("rec-123", true, "wav", "both")
+		RecordCall("rec-123", true, "wav", "both", nil)
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -534,7 +592,7 @@ func TestRecordCall(t *testing.T) {
 
 func TestRecordCallNoControlID(t *testing.T) {
 	fr := NewFunctionResult("recording").
-		RecordCall("", false, "mp3", "speak")
+		RecordCall("", false, "mp3", "speak", nil)
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -545,6 +603,48 @@ func TestRecordCallNoControlID(t *testing.T) {
 
 	if _, ok := params["control_id"]; ok {
 		t.Error("control_id should not be present when empty")
+	}
+}
+
+func TestRecordCallWithOptions(t *testing.T) {
+	fr := NewFunctionResult("recording").
+		RecordCall("rec-456", false, "mp3", "speak", &RecordCallOptions{
+			Terminators:       "#",
+			Beep:              true,
+			InputSensitivity:  40.0,
+			InitialTimeout:    5.0,
+			EndSilenceTimeout: 3.0,
+			MaxLength:         120.0,
+			StatusURL:         "https://example.com/recording-status",
+		})
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	sections := swml["sections"].(map[string]any)
+	main := sections["main"].([]any)
+	verb := main[0].(map[string]any)
+	params := verb["record_call"].(map[string]any)
+
+	if params["terminators"] != "#" {
+		t.Errorf("terminators = %v, want %q", params["terminators"], "#")
+	}
+	if params["beep"] != true {
+		t.Errorf("beep = %v, want true", params["beep"])
+	}
+	if params["input_sensitivity"] != 40.0 {
+		t.Errorf("input_sensitivity = %v, want 40.0", params["input_sensitivity"])
+	}
+	if params["initial_timeout"] != 5.0 {
+		t.Errorf("initial_timeout = %v, want 5.0", params["initial_timeout"])
+	}
+	if params["end_silence_timeout"] != 3.0 {
+		t.Errorf("end_silence_timeout = %v, want 3.0", params["end_silence_timeout"])
+	}
+	if params["max_length"] != 120.0 {
+		t.Errorf("max_length = %v, want 120.0", params["max_length"])
+	}
+	if params["status_url"] != "https://example.com/recording-status" {
+		t.Errorf("status_url = %v", params["status_url"])
 	}
 }
 
@@ -713,7 +813,11 @@ func TestExecuteSwmlDoesNotMutateInput(t *testing.T) {
 
 func TestJoinConference(t *testing.T) {
 	fr := NewFunctionResult("joining").
-		JoinConference("my-conf", true, "onEnter", "https://example.com/hold.mp3")
+		JoinConference("my-conf", &JoinConferenceOptions{
+			Muted:   true,
+			Beep:    "onEnter",
+			WaitURL: "https://example.com/hold.mp3",
+		})
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -738,7 +842,7 @@ func TestJoinConference(t *testing.T) {
 
 func TestJoinConferenceDefaults(t *testing.T) {
 	fr := NewFunctionResult("joining").
-		JoinConference("simple-conf", false, "true", "")
+		JoinConference("simple-conf", nil)
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -755,6 +859,46 @@ func TestJoinConferenceDefaults(t *testing.T) {
 	}
 	if _, ok := params["wait_url"]; ok {
 		t.Error("wait_url should not be present when empty")
+	}
+}
+
+func TestJoinConferenceFullOptions(t *testing.T) {
+	fr := NewFunctionResult("joining").
+		JoinConference("full-conf", &JoinConferenceOptions{
+			Record:                        "record-from-start",
+			Region:                        "us1",
+			Trim:                          "do-not-trim",
+			Coach:                         "call-sid-123",
+			StatusCallbackEvent:           "start end join",
+			StatusCallback:                "https://example.com/status",
+			StatusCallbackMethod:          "GET",
+			RecordingStatusCallback:       "https://example.com/rec-status",
+			RecordingStatusCallbackMethod: "GET",
+			RecordingStatusCallbackEvent:  "in-progress",
+			MaxParticipants:               50,
+		})
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	sections := swml["sections"].(map[string]any)
+	main := sections["main"].([]any)
+	verb := main[0].(map[string]any)
+	params := verb["join_conference"].(map[string]any)
+
+	if params["record"] != "record-from-start" {
+		t.Errorf("record = %v", params["record"])
+	}
+	if params["region"] != "us1" {
+		t.Errorf("region = %v", params["region"])
+	}
+	if params["trim"] != "do-not-trim" {
+		t.Errorf("trim = %v", params["trim"])
+	}
+	if params["coach"] != "call-sid-123" {
+		t.Errorf("coach = %v", params["coach"])
+	}
+	if params["max_participants"] != 50 {
+		t.Errorf("max_participants = %v, want 50", params["max_participants"])
 	}
 }
 
@@ -790,7 +934,7 @@ func TestSipRefer(t *testing.T) {
 
 func TestTap(t *testing.T) {
 	fr := NewFunctionResult("tapping").
-		Tap("rtp://192.168.1.1:5000", "tap-1", "speak", "PCMA")
+		Tap("rtp://192.168.1.1:5000", "tap-1", "speak", "PCMA", 0, "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -815,7 +959,7 @@ func TestTap(t *testing.T) {
 
 func TestTapDefaults(t *testing.T) {
 	fr := NewFunctionResult("tapping").
-		Tap("ws://example.com", "", "both", "PCMU")
+		Tap("ws://example.com", "", "both", "PCMU", 0, "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -832,6 +976,25 @@ func TestTapDefaults(t *testing.T) {
 	}
 	if _, ok := params["codec"]; ok {
 		t.Error("codec should not be present when 'PCMU' (default)")
+	}
+}
+
+func TestTapWithRtpPtimeAndStatusURL(t *testing.T) {
+	fr := NewFunctionResult("tapping").
+		Tap("rtp://192.168.1.1:5000", "", "both", "PCMU", 30, "https://example.com/tap-status")
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	sections := swml["sections"].(map[string]any)
+	main := sections["main"].([]any)
+	verb := main[0].(map[string]any)
+	params := verb["tap"].(map[string]any)
+
+	if params["rtp_ptime"] != 30 {
+		t.Errorf("rtp_ptime = %v, want 30", params["rtp_ptime"])
+	}
+	if params["status_url"] != "https://example.com/tap-status" {
+		t.Errorf("status_url = %v", params["status_url"])
 	}
 }
 
@@ -867,7 +1030,7 @@ func TestStopTapNoControlID(t *testing.T) {
 
 func TestSendSms(t *testing.T) {
 	fr := NewFunctionResult("sms sent").
-		SendSms("+15551234567", "+15559876543", "Hello!", nil, nil)
+		SendSms("+15551234567", "+15559876543", "Hello!", nil, nil, "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -891,13 +1054,32 @@ func TestSendSms(t *testing.T) {
 	if _, ok := params["tags"]; ok {
 		t.Error("tags should not be present when nil")
 	}
+	if _, ok := params["region"]; ok {
+		t.Error("region should not be present when empty")
+	}
+}
+
+func TestSendSmsWithRegion(t *testing.T) {
+	fr := NewFunctionResult("sms sent").
+		SendSms("+15551234567", "+15559876543", "Hello!", nil, nil, "us-east")
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	sections := swml["sections"].(map[string]any)
+	main := sections["main"].([]any)
+	verb := main[0].(map[string]any)
+	params := verb["send_sms"].(map[string]any)
+
+	if params["region"] != "us-east" {
+		t.Errorf("region = %v, want %q", params["region"], "us-east")
+	}
 }
 
 func TestSendSmsWithMediaAndTags(t *testing.T) {
 	fr := NewFunctionResult("sms sent").
 		SendSms("+15551234567", "+15559876543", "",
 			[]string{"https://example.com/image.jpg"},
-			[]string{"support", "urgent"})
+			[]string{"support", "urgent"}, "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -920,17 +1102,42 @@ func TestSendSmsWithMediaAndTags(t *testing.T) {
 }
 
 func TestPay(t *testing.T) {
+	// With nil opts, Python defaults are applied and the default ai_response set verb is included
 	fr := NewFunctionResult("processing payment").
-		Pay("https://example.com/pay", "dtmf", "", 5, 1)
+		Pay("https://example.com/pay", nil)
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
 	sections := swml["sections"].(map[string]any)
 	main := sections["main"].([]any)
 
-	// Without actionURL, no "set" verb should be prepended
+	// Default behavior includes the "set" verb with ai_response
+	if len(main) != 2 {
+		t.Fatalf("main verbs = %d, want 2 (set + pay)", len(main))
+	}
+	verb := main[1].(map[string]any)
+	params := verb["pay"].(map[string]any)
+	if params["payment_connector_url"] != "https://example.com/pay" {
+		t.Errorf("payment_connector_url = %v", params["payment_connector_url"])
+	}
+	if params["input"] != "dtmf" {
+		t.Errorf("input = %v, want %q", params["input"], "dtmf")
+	}
+}
+
+func TestPayNoAiResponse(t *testing.T) {
+	// Use AIResponse="-" to suppress the set verb
+	fr := NewFunctionResult("processing payment").
+		Pay("https://example.com/pay", &PayOptions{AIResponse: "-"})
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	sections := swml["sections"].(map[string]any)
+	main := sections["main"].([]any)
+
+	// No "set" verb when AIResponse is "-"
 	if len(main) != 1 {
-		t.Fatalf("main verbs = %d, want 1", len(main))
+		t.Fatalf("main verbs = %d, want 1 (pay only)", len(main))
 	}
 	verb := main[0].(map[string]any)
 	params := verb["pay"].(map[string]any)
@@ -939,9 +1146,9 @@ func TestPay(t *testing.T) {
 	}
 }
 
-func TestPayWithActionURL(t *testing.T) {
+func TestPayWithCustomAiResponse(t *testing.T) {
 	fr := NewFunctionResult("processing payment").
-		Pay("https://example.com/pay", "dtmf", "Payment complete", 5, 1)
+		Pay("https://example.com/pay", &PayOptions{AIResponse: "Payment complete"})
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -959,11 +1166,58 @@ func TestPayWithActionURL(t *testing.T) {
 	}
 }
 
+func TestPayWithFullOptions(t *testing.T) {
+	fr := NewFunctionResult("processing payment").
+		Pay("https://example.com/pay", &PayOptions{
+			InputMethod:     "voice",
+			PaymentMethod:   "credit-card",
+			Timeout:         10,
+			MaxAttempts:     3,
+			SecurityCode:    true,
+			SecurityCodeSet: true,
+			PostalCode:      false,
+			TokenType:       "one-time",
+			ChargeAmount:    "9.99",
+			Currency:        "eur",
+			Language:        "fr-FR",
+			Voice:           "man",
+			ValidCardTypes:  "visa",
+			StatusURL:       "https://example.com/status",
+			AIResponse:      "-",
+		})
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	sections := swml["sections"].(map[string]any)
+	main := sections["main"].([]any)
+	verb := main[0].(map[string]any)
+	params := verb["pay"].(map[string]any)
+
+	if params["input"] != "voice" {
+		t.Errorf("input = %v, want %q", params["input"], "voice")
+	}
+	if params["token_type"] != "one-time" {
+		t.Errorf("token_type = %v, want %q", params["token_type"], "one-time")
+	}
+	if params["charge_amount"] != "9.99" {
+		t.Errorf("charge_amount = %v, want %q", params["charge_amount"], "9.99")
+	}
+	if params["currency"] != "eur" {
+		t.Errorf("currency = %v, want %q", params["currency"], "eur")
+	}
+	if params["status_url"] != "https://example.com/status" {
+		t.Errorf("status_url = %v", params["status_url"])
+	}
+	if params["postal_code"] != "false" {
+		t.Errorf("postal_code = %v, want %q", params["postal_code"], "false")
+	}
+}
+
 // --- RPC Actions ---
 
 func TestExecuteRpc(t *testing.T) {
 	fr := NewFunctionResult("rpc").
-		ExecuteRpc("custom.method", map[string]any{"key": "value"})
+		ExecuteRpc("custom.method", map[string]any{"key": "value"}, "", "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -986,7 +1240,7 @@ func TestExecuteRpc(t *testing.T) {
 
 func TestExecuteRpcNoParams(t *testing.T) {
 	fr := NewFunctionResult("rpc").
-		ExecuteRpc("simple.method", nil)
+		ExecuteRpc("simple.method", nil, "", "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1000,10 +1254,9 @@ func TestExecuteRpcNoParams(t *testing.T) {
 	}
 }
 
-func TestRpcDial(t *testing.T) {
-	timeout := 30
-	fr := NewFunctionResult("dialing").
-		RpcDial("+15551234567", "+15559876543", "https://example.com/swml", &timeout, "us-east")
+func TestExecuteRpcWithCallIDAndNodeID(t *testing.T) {
+	fr := NewFunctionResult("rpc").
+		ExecuteRpc("my.method", map[string]any{"key": "val"}, "call-123", "node-456")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1012,19 +1265,33 @@ func TestRpcDial(t *testing.T) {
 	verb := main[0].(map[string]any)
 	rpc := verb["execute_rpc"].(map[string]any)
 
-	if rpc["method"] != "calling.dial" {
-		t.Errorf("method = %v, want %q", rpc["method"], "calling.dial")
+	if rpc["call_id"] != "call-123" {
+		t.Errorf("call_id = %v, want %q", rpc["call_id"], "call-123")
+	}
+	if rpc["node_id"] != "node-456" {
+		t.Errorf("node_id = %v, want %q", rpc["node_id"], "node-456")
+	}
+}
+
+func TestRpcDial(t *testing.T) {
+	fr := NewFunctionResult("dialing").
+		RpcDial("+15551234567", "+15559876543", "https://example.com/swml", "phone")
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	sections := swml["sections"].(map[string]any)
+	main := sections["main"].([]any)
+	verb := main[0].(map[string]any)
+	rpc := verb["execute_rpc"].(map[string]any)
+
+	// Python uses bare "dial", not "calling.dial"
+	if rpc["method"] != "dial" {
+		t.Errorf("method = %v, want %q", rpc["method"], "dial")
 	}
 
 	params := rpc["params"].(map[string]any)
 	if params["dest_swml"] != "https://example.com/swml" {
 		t.Errorf("dest_swml = %v", params["dest_swml"])
-	}
-	if params["timeout"] != 30 {
-		t.Errorf("timeout = %v, want 30", params["timeout"])
-	}
-	if params["region"] != "us-east" {
-		t.Errorf("region = %v, want %q", params["region"], "us-east")
 	}
 
 	devices := params["devices"].(map[string]any)
@@ -1037,9 +1304,9 @@ func TestRpcDial(t *testing.T) {
 	}
 }
 
-func TestRpcDialNoOptional(t *testing.T) {
+func TestRpcDialDefaultDeviceType(t *testing.T) {
 	fr := NewFunctionResult("dialing").
-		RpcDial("+15551234567", "+15559876543", "https://example.com/swml", nil, "")
+		RpcDial("+15551234567", "+15559876543", "https://example.com/swml", "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1049,17 +1316,16 @@ func TestRpcDialNoOptional(t *testing.T) {
 	rpc := verb["execute_rpc"].(map[string]any)
 	params := rpc["params"].(map[string]any)
 
-	if _, ok := params["timeout"]; ok {
-		t.Error("timeout should not be present when nil")
-	}
-	if _, ok := params["region"]; ok {
-		t.Error("region should not be present when empty")
+	devices := params["devices"].(map[string]any)
+	// Empty deviceType should default to "phone"
+	if devices["type"] != "phone" {
+		t.Errorf("type = %v, want %q (default)", devices["type"], "phone")
 	}
 }
 
 func TestRpcAiMessage(t *testing.T) {
 	fr := NewFunctionResult("messaging").
-		RpcAiMessage("call-abc-123", "Please take a message")
+		RpcAiMessage("call-abc-123", "Please take a message", "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1068,8 +1334,9 @@ func TestRpcAiMessage(t *testing.T) {
 	verb := main[0].(map[string]any)
 	rpc := verb["execute_rpc"].(map[string]any)
 
-	if rpc["method"] != "calling.ai_message" {
-		t.Errorf("method = %v, want %q", rpc["method"], "calling.ai_message")
+	// Python uses bare "ai_message", not "calling.ai_message"
+	if rpc["method"] != "ai_message" {
+		t.Errorf("method = %v, want %q", rpc["method"], "ai_message")
 	}
 	if rpc["call_id"] != "call-abc-123" {
 		t.Errorf("call_id = %v, want %q", rpc["call_id"], "call-abc-123")
@@ -1084,6 +1351,23 @@ func TestRpcAiMessage(t *testing.T) {
 	}
 }
 
+func TestRpcAiMessageCustomRole(t *testing.T) {
+	fr := NewFunctionResult("messaging").
+		RpcAiMessage("call-abc-123", "Hello", "user")
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	sections := swml["sections"].(map[string]any)
+	main := sections["main"].([]any)
+	verb := main[0].(map[string]any)
+	rpc := verb["execute_rpc"].(map[string]any)
+	params := rpc["params"].(map[string]any)
+
+	if params["role"] != "user" {
+		t.Errorf("role = %v, want %q", params["role"], "user")
+	}
+}
+
 func TestRpcAiUnhold(t *testing.T) {
 	fr := NewFunctionResult("unholding").
 		RpcAiUnhold("call-abc-123")
@@ -1095,8 +1379,9 @@ func TestRpcAiUnhold(t *testing.T) {
 	verb := main[0].(map[string]any)
 	rpc := verb["execute_rpc"].(map[string]any)
 
-	if rpc["method"] != "calling.ai_unhold" {
-		t.Errorf("method = %v, want %q", rpc["method"], "calling.ai_unhold")
+	// Python uses bare "ai_unhold", not "calling.ai_unhold"
+	if rpc["method"] != "ai_unhold" {
+		t.Errorf("method = %v, want %q", rpc["method"], "ai_unhold")
 	}
 	if rpc["call_id"] != "call-abc-123" {
 		t.Errorf("call_id = %v, want %q", rpc["call_id"], "call-abc-123")
@@ -1108,8 +1393,9 @@ func TestSimulateUserInput(t *testing.T) {
 		SimulateUserInput("I need help")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
-	if actions[0]["simulate_user_input"] != "I need help" {
-		t.Errorf("simulate_user_input = %v, want %q", actions[0]["simulate_user_input"], "I need help")
+	// Python emits {"user_input": "..."} — not "simulate_user_input"
+	if actions[0]["user_input"] != "I need help" {
+		t.Errorf("user_input = %v, want %q", actions[0]["user_input"], "I need help")
 	}
 }
 
@@ -1202,7 +1488,7 @@ func TestCreatePaymentPrompt(t *testing.T) {
 		CreatePaymentAction("payment-card-number", "Please enter your card number"),
 		CreatePaymentAction("payment-expiration-date", "Enter expiration date"),
 	}
-	prompt := CreatePaymentPrompt("credit-card-payment", actions)
+	prompt := CreatePaymentPrompt("credit-card-payment", actions, "", "")
 
 	if prompt["for"] != "credit-card-payment" {
 		t.Errorf("for = %v, want %q", prompt["for"], "credit-card-payment")
@@ -1222,6 +1508,27 @@ func TestCreatePaymentPrompt(t *testing.T) {
 	}
 	if acts[1]["type"] != "payment-expiration-date" {
 		t.Errorf("action[1].type = %v, want %q", acts[1]["type"], "payment-expiration-date")
+	}
+	// No card_type or error_type when empty
+	if _, ok := prompt["card_type"]; ok {
+		t.Error("card_type should not be present when empty")
+	}
+	if _, ok := prompt["error_type"]; ok {
+		t.Error("error_type should not be present when empty")
+	}
+}
+
+func TestCreatePaymentPromptWithCardAndErrorType(t *testing.T) {
+	actions := []map[string]string{
+		CreatePaymentAction("Say", "Enter your card"),
+	}
+	prompt := CreatePaymentPrompt("card-entry", actions, "visa mastercard", "invalid-card-number")
+
+	if prompt["card_type"] != "visa mastercard" {
+		t.Errorf("card_type = %v, want %q", prompt["card_type"], "visa mastercard")
+	}
+	if prompt["error_type"] != "invalid-card-number" {
+		t.Errorf("error_type = %v, want %q", prompt["error_type"], "invalid-card-number")
 	}
 }
 
@@ -1254,7 +1561,7 @@ func TestCreatePaymentParameter(t *testing.T) {
 }
 
 func TestCreatePaymentPrompt_EmptyActions(t *testing.T) {
-	prompt := CreatePaymentPrompt("refund", []map[string]string{})
+	prompt := CreatePaymentPrompt("refund", []map[string]string{}, "", "")
 
 	if prompt["for"] != "refund" {
 		t.Errorf("for = %v, want %q", prompt["for"], "refund")

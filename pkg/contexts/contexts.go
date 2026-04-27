@@ -122,7 +122,21 @@ func (g *GatherInfo) AddQuestion(key, question string, opts ...GatherQuestionOpt
 	return g
 }
 
+// Validate returns an error if the GatherInfo is not ready for serialisation.
+// Specifically, it rejects a GatherInfo with no questions, which would produce
+// invalid SWML. This matches the Python SDK's ValueError raised by to_dict()
+// when _questions is empty.
+func (g *GatherInfo) Validate() error {
+	if len(g.Questions) == 0 {
+		return errors.New("gather_info must have at least one question")
+	}
+	return nil
+}
+
 // ToMap serialises to the SWML map format.
+// Callers that construct GatherInfo directly should call Validate() first to
+// ensure the result is valid SWML. Step.ToMap() enforces this automatically
+// by only calling ToMap() when len(Questions) > 0.
 func (g *GatherInfo) ToMap() map[string]any {
 	qs := make([]map[string]any, len(g.Questions))
 	for i := range g.Questions {
@@ -266,15 +280,20 @@ func (s *Step) SetSkipToNextStep(skip bool) *Step {
 	return s
 }
 
-// SetGatherInfo enables info gathering for this step and returns the
-// GatherInfo so that questions can be added to it directly.
-func (s *Step) SetGatherInfo(outputKey, completionAction, prompt string) *GatherInfo {
+// SetGatherInfo enables info gathering for this step and returns the Step
+// for fluent chaining. This matches the Python SDK's set_gather_info, which
+// returns self so that step-level setters (SetFunctions, SetValidSteps, etc.)
+// can be chained after configuring gather info.
+//
+// To add questions to the gather info, use AddGatherQuestion on the same
+// *Step receiver.
+func (s *Step) SetGatherInfo(outputKey, completionAction, prompt string) *Step {
 	s.gatherInfo = &GatherInfo{
 		OutputKey:        outputKey,
 		CompletionAction: completionAction,
 		Prompt:           prompt,
 	}
-	return s.gatherInfo
+	return s
 }
 
 // AddGatherQuestion adds a question to this step's gather_info. SetGatherInfo
@@ -468,10 +487,10 @@ func (c *Context) GetStep(name string) *Step {
 	return c.stepMap[name]
 }
 
-// RemoveStep removes a step by name.
-func (c *Context) RemoveStep(name string) {
+// RemoveStep removes a step by name. Returns the receiver for method chaining.
+func (c *Context) RemoveStep(name string) *Context {
 	if _, ok := c.stepMap[name]; !ok {
-		return
+		return c
 	}
 	delete(c.stepMap, name)
 	for i, s := range c.steps {
@@ -480,10 +499,12 @@ func (c *Context) RemoveStep(name string) {
 			break
 		}
 	}
+	return c
 }
 
 // MoveStep moves an existing step to the given position (0-based index).
-func (c *Context) MoveStep(name string, position int) {
+// Returns the receiver for method chaining.
+func (c *Context) MoveStep(name string, position int) *Context {
 	idx := -1
 	for i, s := range c.steps {
 		if s.name == name {
@@ -492,7 +513,7 @@ func (c *Context) MoveStep(name string, position int) {
 		}
 	}
 	if idx < 0 {
-		return
+		return c
 	}
 	step := c.steps[idx]
 	// Remove from current position.
@@ -506,6 +527,7 @@ func (c *Context) MoveStep(name string, position int) {
 	}
 	// Insert at new position.
 	c.steps = append(c.steps[:position], append([]*Step{step}, c.steps[position:]...)...)
+	return c
 }
 
 // SetInitialStep sets which step the context starts on when entered.
@@ -823,6 +845,10 @@ func (cb *ContextBuilder) GetContext(name string) *Context {
 //   - A single context must be named "default".
 //   - Every context must contain at least one step.
 //   - Every step must have a name.
+//   - valid_steps entries (except "next") must name existing steps in the same context.
+//   - valid_contexts entries (context-level) must name existing contexts.
+//   - valid_contexts entries (step-level) must name existing contexts.
+//   - gather_info questions must be non-empty and have unique keys.
 //   - gather_info completion_action (if set) targets an existing step.
 //   - No user-defined SWAIG tool collides with a reserved native name.
 func (cb *ContextBuilder) Validate() error {
@@ -865,7 +891,80 @@ func (cb *ContextBuilder) Validate() error {
 		}
 	}
 
-	// Validate completion_action references in gather_info. completion_action
+	// Validate step references in valid_steps. Each entry must be either the
+	// special keyword "next" (advance to the next sequential step) or the
+	// name of an existing step in the same context.
+	for _, ctx := range cb.contexts {
+		for _, step := range ctx.steps {
+			for _, ref := range step.validSteps {
+				if ref == "next" {
+					continue
+				}
+				if _, ok := ctx.stepMap[ref]; !ok {
+					return fmt.Errorf(
+						"step %q in context %q references unknown step %q",
+						step.name, ctx.name, ref,
+					)
+				}
+			}
+		}
+	}
+
+	// Validate context references in valid_contexts (context-level). Each
+	// entry must name an existing context.
+	for _, ctx := range cb.contexts {
+		for _, ref := range ctx.validContexts {
+			if _, ok := cb.contextMap[ref]; !ok {
+				return fmt.Errorf(
+					"context %q references unknown context %q",
+					ctx.name, ref,
+				)
+			}
+		}
+	}
+
+	// Validate context references in valid_contexts (step-level). Each
+	// entry must name an existing context.
+	for _, ctx := range cb.contexts {
+		for _, step := range ctx.steps {
+			for _, ref := range step.validContexts {
+				if _, ok := cb.contextMap[ref]; !ok {
+					return fmt.Errorf(
+						"step %q in context %q references unknown context %q",
+						step.name, ctx.name, ref,
+					)
+				}
+			}
+		}
+	}
+
+	// Validate gather_info question lists: must be non-empty and must not
+	// contain duplicate keys within the same step.
+	for _, ctx := range cb.contexts {
+		for _, step := range ctx.steps {
+			if step.gatherInfo == nil {
+				continue
+			}
+			if len(step.gatherInfo.Questions) == 0 {
+				return fmt.Errorf(
+					"step %q in context %q has gather_info with no questions",
+					step.name, ctx.name,
+				)
+			}
+			seen := make(map[string]struct{}, len(step.gatherInfo.Questions))
+			for _, q := range step.gatherInfo.Questions {
+				if _, dup := seen[q.Key]; dup {
+					return fmt.Errorf(
+						"step %q in context %q has duplicate gather_info question key %q",
+						step.name, ctx.name, q.Key,
+					)
+				}
+				seen[q.Key] = struct{}{}
+			}
+		}
+	}
+
+	// Validate gather_info completion_action references in gather_info. completion_action
 	// is either "next_step" (advance to the following step in order), the
 	// name of an existing step in the same context, or empty (stay in the
 	// current step).

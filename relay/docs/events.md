@@ -13,13 +13,14 @@ client.OnCall(func(call *relay.Call) {
 		fmt.Printf("Play: %v\n", event.Params)
 	})
 
-	// Or wait for a specific event
-	event, err := call.WaitFor("calling.call.state",
-		relay.WithWaitPredicate(func(e *relay.RelayEvent) bool {
+	// Or wait for a specific event with a predicate + deadline
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	event, err := call.WaitFor(ctx, "calling.call.state",
+		func(e *relay.RelayEvent) bool {
 			state, _ := e.Params["call_state"].(string)
 			return state == "ended"
-		}),
-		relay.WithWaitTimeout(60 * time.Second),
+		},
 	)
 	if err != nil {
 		fmt.Printf("Wait error: %v\n", err)
@@ -75,14 +76,13 @@ Raw events are always `*RelayEvent` with a `Params` map. For convenience, typed 
 ```go
 import "github.com/signalwire/signalwire-go/pkg/relay"
 
-// Automatic parsing
-event := relay.ParseEvent(rawPayload)
-
-// Or construct directly via type assertion
+// The event arrives as a *RelayEvent with an EventType and Params map.
 if event.EventType == relay.EventCallState {
-	stateEvent := relay.CallStateEventFromPayload(rawPayload)
-	fmt.Println(stateEvent.CallState)  // "answered"
-	fmt.Println(stateEvent.EndReason)  // "hangup" (only on ended)
+	// Promote the generic event to its typed struct by passing the
+	// Params map to the matching New<EventName> factory.
+	stateEvent := relay.NewCallStateEvent(event.Params)
+	fmt.Println(stateEvent.CallState) // "answered"
+	fmt.Println(stateEvent.EndReason) // "hangup" (only on ended)
 }
 ```
 
@@ -155,9 +155,9 @@ client.OnCall(func(call *relay.Call) {
 	// Listen for events in a separate goroutine
 	go func() {
 		for {
-			event, err := call.WaitFor(relay.EventCallState,
-				relay.WithWaitTimeout(120 * time.Second),
-			)
+			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+			event, err := call.WaitFor(ctx, relay.EventCallState, nil)
+			cancel()
 			if err != nil {
 				return // timeout or call ended
 			}

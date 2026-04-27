@@ -27,7 +27,8 @@ func TestAddHints_Multiple(t *testing.T) {
 
 func TestAddPatternHint_WithLanguage(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPatternHint("\\d{3}", "digits", "en-US")
+	// Python-aligned signature: AddPatternHint(hint, pattern, replace, ignoreCase...)
+	a.AddPatternHint("digits", "\\d{3}", "NUM")
 	if len(a.patternHints) != 1 {
 		t.Fatalf("expected 1 pattern hint, got %d", len(a.patternHints))
 	}
@@ -38,17 +39,27 @@ func TestAddPatternHint_WithLanguage(t *testing.T) {
 	if ph["hint"] != "digits" {
 		t.Errorf("hint = %v", ph["hint"])
 	}
-	if ph["language"] != "en-US" {
-		t.Errorf("language = %v", ph["language"])
+	if ph["replace"] != "NUM" {
+		t.Errorf("replace = %v", ph["replace"])
 	}
 }
 
 func TestAddPatternHint_WithoutLanguage(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPatternHint("[A-Z]+", "letters", "")
+	// Python-aligned: ignoreCase not set, so no ignore_case field
+	a.AddPatternHint("letters", "[A-Z]+", "WORD")
 	ph := a.patternHints[0]
-	if _, ok := ph["language"]; ok {
-		t.Error("empty language should not be stored")
+	if _, ok := ph["ignore_case"]; ok {
+		t.Error("ignore_case should not be stored when not set")
+	}
+}
+
+func TestAddPatternHint_IgnoreCase(t *testing.T) {
+	a := NewAgentBase()
+	a.AddPatternHint("digits", "\\d+", "NUM", true)
+	ph := a.patternHints[0]
+	if ph["ignore_case"] != true {
+		t.Error("expected ignore_case=true")
 	}
 }
 
@@ -88,7 +99,8 @@ func TestSetLanguages_ReplaceAll(t *testing.T) {
 
 func TestAddPronunciation_Basic(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPronunciation("API", "A P I", "en-US")
+	// Python-aligned signature: AddPronunciation(replace, withText, ignoreCase...)
+	a.AddPronunciation("API", "A P I")
 	if len(a.pronunciations) != 1 {
 		t.Fatalf("expected 1 pronunciation, got %d", len(a.pronunciations))
 	}
@@ -99,16 +111,21 @@ func TestAddPronunciation_Basic(t *testing.T) {
 	if p["with"] != "A P I" {
 		t.Errorf("with = %v", p["with"])
 	}
-	if p["lang"] != "en-US" {
-		t.Errorf("lang = %v", p["lang"])
+}
+
+func TestAddPronunciation_IgnoreCase(t *testing.T) {
+	a := NewAgentBase()
+	a.AddPronunciation("API", "A P I", true)
+	if a.pronunciations[0]["ignore_case"] != true {
+		t.Error("expected ignore_case=true")
 	}
 }
 
 func TestSetPronunciations_ReplaceAll(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPronunciation("X", "Y", "en")
+	a.AddPronunciation("X", "Y")
 	a.SetPronunciations([]map[string]any{
-		{"replace": "A", "with": "B", "lang": "en"},
+		{"replace": "A", "with": "B"},
 	})
 	if len(a.pronunciations) != 1 {
 		t.Errorf("expected 1 pronunciation after SetPronunciations, got %d", len(a.pronunciations))
@@ -387,7 +404,7 @@ func TestAIConfigMethods_ReturnSelf(t *testing.T) {
 	if a.AddHints(nil) != a {
 		t.Error("AddHints should return self")
 	}
-	if a.AddPatternHint("", "", "") != a {
+	if a.AddPatternHint("", "", "") != a { // hint, pattern, replace (all empty)
 		t.Error("AddPatternHint should return self")
 	}
 	if a.AddLanguage(nil) != a {
@@ -396,7 +413,7 @@ func TestAIConfigMethods_ReturnSelf(t *testing.T) {
 	if a.SetLanguages(nil) != a {
 		t.Error("SetLanguages should return self")
 	}
-	if a.AddPronunciation("", "", "") != a {
+	if a.AddPronunciation("", "") != a {
 		t.Error("AddPronunciation should return self")
 	}
 	if a.SetPronunciations(nil) != a {

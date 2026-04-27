@@ -35,6 +35,28 @@ func NewGoogleSTT(opts ...func(*GoogleSTT)) *GoogleSTT {
 	return g
 }
 
+// InferenceSTT is a stub for the SignalWire-hosted inference STT provider.
+// On SignalWire, speech recognition is handled by the control plane.
+// Mirrors Python InferenceSTT(model="") (livewire/__init__.py:736).
+type InferenceSTT struct {
+	Model string
+}
+
+// NewInferenceSTT creates an InferenceSTT stub with the given options.
+func NewInferenceSTT(opts ...func(*InferenceSTT)) *InferenceSTT {
+	s := &InferenceSTT{}
+	for _, opt := range opts {
+		opt(s)
+	}
+	getGlobalNoop().once("stt_node", "stt_node override: SignalWire's control plane handles the full media pipeline at scale")
+	return s
+}
+
+// WithInferenceSTTModel returns a functional option that sets the model string.
+func WithInferenceSTTModel(model string) func(*InferenceSTT) {
+	return func(s *InferenceSTT) { s.Model = model }
+}
+
 // ---------------------------------------------------------------------------
 // TTS provider stubs
 // ---------------------------------------------------------------------------
@@ -96,7 +118,30 @@ func NewOpenAILLM(opts ...func(*OpenAILLM)) *OpenAILLM {
 	for _, opt := range opts {
 		opt(o)
 	}
+	getGlobalNoop().once("llm_node", "OpenAILLM: model selection is mapped to SignalWire AI params — OpenAI plugin wrapper is a no-op")
 	return o
+}
+
+// InferenceLLM is a stub for the SignalWire-hosted inference LLM.
+// On SignalWire, the LLM pipeline is handled by the control plane;
+// the Model field is forwarded to SignalWire AI parameters.
+// Mirrors Python InferenceLLM(model="") (livewire/__init__.py:751).
+type InferenceLLM struct {
+	Model string
+}
+
+// NewInferenceLLM creates an InferenceLLM stub with the given options.
+func NewInferenceLLM(opts ...func(*InferenceLLM)) *InferenceLLM {
+	l := &InferenceLLM{}
+	for _, opt := range opts {
+		opt(l)
+	}
+	return l
+}
+
+// WithInferenceLLMModel returns a functional option that sets the model string.
+func WithInferenceLLMModel(model string) func(*InferenceLLM) {
+	return func(l *InferenceLLM) { l.Model = model }
 }
 
 // ---------------------------------------------------------------------------
@@ -107,8 +152,14 @@ func NewOpenAILLM(opts ...func(*OpenAILLM)) *OpenAILLM {
 type SileroVAD struct{}
 
 // NewSileroVAD creates a SileroVAD stub.
-func NewSileroVAD() *SileroVAD {
-	return &SileroVAD{}
+// Mirrors Python SileroVAD(**kwargs) — accepts functional options for
+// LiveKit portability, matching the in-file convention for all other stubs.
+func NewSileroVAD(opts ...func(*SileroVAD)) *SileroVAD {
+	s := &SileroVAD{}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // Load is a noop — Silero VAD model loading is not needed on SignalWire.

@@ -268,7 +268,7 @@ func (s *AgentServer) RegisterGlobalRoutingCallback(path string, cb swml.Routing
 	defer s.mu.RUnlock()
 
 	for _, a := range s.agents {
-		a.RegisterRoutingCallback(path, cb)
+		a.RegisterRoutingCallback(cb, path)
 	}
 
 	s.logger.Info("registered global routing callback at %s on %d agent(s)", path, len(s.agents))

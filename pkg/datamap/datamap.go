@@ -14,6 +14,7 @@
 package datamap
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/signalwire/signalwire-go/pkg/swaig"
@@ -74,6 +75,13 @@ func New(functionName string) *DataMap {
 	return &DataMap{
 		functionName: functionName,
 	}
+}
+
+// FunctionName returns the function name this DataMap was built for.
+// Useful for logging, deduplication checks, and introspection by callers
+// that hold a *DataMap reference but need to identify which tool it represents.
+func (dm *DataMap) FunctionName() string {
+	return dm.functionName
 }
 
 // Purpose sets the LLM-facing tool description — this is an alias for
@@ -149,6 +157,19 @@ func (dm *DataMap) Expression(testValue, pattern string, output *swaig.FunctionR
 		nomatchOutput: nomatchOutput,
 	})
 	return dm
+}
+
+// ExpressionRegexp adds a pattern-matching expression using a compiled *regexp.Regexp.
+// This mirrors Python's expression() which accepts either a plain string or a compiled
+// re.Pattern object — when a compiled pattern is passed, Python extracts pattern.pattern
+// (the raw string). Here, pattern.String() serves the same role.
+//
+// testValue is the template string to test (e.g., "${args.command}").
+// pattern is a compiled regexp whose string representation is used as the match pattern.
+// output is the FunctionResult returned when the pattern matches.
+// nomatchOutput is an optional FunctionResult returned when the pattern does not match (can be nil).
+func (dm *DataMap) ExpressionRegexp(testValue string, pattern *regexp.Regexp, output *swaig.FunctionResult, nomatchOutput *swaig.FunctionResult) *DataMap {
+	return dm.Expression(testValue, pattern.String(), output, nomatchOutput)
 }
 
 // flushCurrentWebhook saves the current webhook and its associated config
@@ -277,7 +298,8 @@ func (dm *DataMap) GlobalErrorKeys(keys []string) *DataMap {
 }
 
 // ToSwaigFunction converts the DataMap to a complete SWAIG function definition map.
-// The returned map contains "function", "description", "parameters", and "data_map" keys.
+// The returned map contains "function", "description", "parameters", and "data_map" keys,
+// matching the canonical SWML/SWAIG schema consumed by the SignalWire AI platform.
 func (dm *DataMap) ToSwaigFunction() map[string]any {
 	// Build parameter schema
 	properties := make(map[string]any)
@@ -297,12 +319,12 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 		}
 	}
 
-	argument := map[string]any{
+	parameters := map[string]any{
 		"type":       "object",
 		"properties": properties,
 	}
 	if len(requiredParams) > 0 {
-		argument["required"] = requiredParams
+		parameters["required"] = requiredParams
 	}
 
 	// Build data_map
@@ -352,7 +374,7 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 	return map[string]any{
 		"function":    dm.functionName,
 		"description": desc,
-		"parameters":  argument,
+		"parameters":  parameters,
 		"data_map":    dataMap,
 	}
 }
@@ -403,12 +425,20 @@ func CreateSimpleApiTool(name, url, responseTemplate string, parameters map[stri
 	return dm
 }
 
+// ExpressionPattern pairs a regex pattern string with a FunctionResult
+// to execute when test_value matches the pattern. Go equivalent of
+// Python's Tuple[str, FunctionResult] entry in create_expression_tool patterns.
+type ExpressionPattern struct {
+	Pattern string
+	Result  *swaig.FunctionResult
+}
+
 // CreateExpressionTool creates a DataMap configured for expression-based pattern matching.
 // name is the function name.
-// patterns maps test values to a two-element array where [0] is the pattern string
-// and [1] is a *swaig.FunctionResult.
+// patterns maps test values to an ExpressionPattern where Pattern is the regex string
+// and Result is the *swaig.FunctionResult to return on match.
 // parameters maps parameter names to their definitions (each with "type", "description", "required" keys).
-func CreateExpressionTool(name string, patterns map[string][2]any, parameters map[string]map[string]any) *DataMap {
+func CreateExpressionTool(name string, patterns map[string]ExpressionPattern, parameters map[string]map[string]any) *DataMap {
 	dm := New(name)
 
 	// Add parameters
@@ -427,12 +457,8 @@ func CreateExpressionTool(name string, patterns map[string][2]any, parameters ma
 	}
 
 	// Add expressions
-	for testValue, patternPair := range patterns {
-		patternStr, _ := patternPair[0].(string)
-		result, _ := patternPair[1].(*swaig.FunctionResult)
-		if result != nil {
-			dm.Expression(testValue, patternStr, result, nil)
-		}
+	for testValue, ep := range patterns {
+		dm.Expression(testValue, ep.Pattern, ep.Result, nil)
 	}
 
 	return dm

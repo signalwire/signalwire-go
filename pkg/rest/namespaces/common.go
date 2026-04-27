@@ -16,10 +16,10 @@ import "strings"
 // which prevents an import cycle.
 type HTTPClient interface {
 	Get(path string, params map[string]string) (map[string]any, error)
-	Post(path string, body map[string]any) (map[string]any, error)
+	Post(path string, body map[string]any, params map[string]string) (map[string]any, error)
 	Put(path string, body map[string]any) (map[string]any, error)
 	Patch(path string, body map[string]any) (map[string]any, error)
-	Delete(path string) error
+	Delete(path string) (map[string]any, error)
 }
 
 // Resource is a helper for building sub-paths from a base path.
@@ -66,7 +66,7 @@ func (r *CrudResource) List(params map[string]string) (map[string]any, error) {
 
 // Create sends a POST request to create a new resource.
 func (r *CrudResource) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // Get retrieves a single resource by ID.
@@ -83,13 +83,33 @@ func (r *CrudResource) Update(id string, data map[string]any) (map[string]any, e
 	return r.HTTP.Patch(p, data)
 }
 
-// Delete removes a resource by ID.
-func (r *CrudResource) Delete(id string) error {
+// Delete removes a resource by ID. It returns the parsed response body
+// (or an empty map for 204 No Content) and any error.
+func (r *CrudResource) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
 
-// ListAddresses lists addresses associated with a resource (for fabric
-// resources that support it).
-func (r *CrudResource) ListAddresses(id string, params map[string]string) (map[string]any, error) {
+// CrudWithAddresses extends CrudResource with the nested addresses endpoint.
+// Matches Python's CrudWithAddresses at _base.py:109-113.
+// Only resources that explicitly support the addresses sub-resource should
+// embed this type; plain CrudResource does not expose ListAddresses.
+type CrudWithAddresses struct {
+	*CrudResource
+}
+
+// NewCrudWithAddresses constructs a CrudWithAddresses backed by a PATCH-default
+// CrudResource. Use NewCrudWithAddressesPUT for resources that update via PUT.
+func NewCrudWithAddresses(client HTTPClient, path string) *CrudWithAddresses {
+	return &CrudWithAddresses{NewCrudResource(client, path)}
+}
+
+// NewCrudWithAddressesPUT constructs a CrudWithAddresses backed by a PUT-update
+// CrudResource.
+func NewCrudWithAddressesPUT(client HTTPClient, path string) *CrudWithAddresses {
+	return &CrudWithAddresses{NewCrudResourcePUT(client, path)}
+}
+
+// ListAddresses lists addresses associated with the resource identified by id.
+func (r *CrudWithAddresses) ListAddresses(id string, params map[string]string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id, "addresses"), params)
 }

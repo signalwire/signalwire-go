@@ -4,13 +4,15 @@ Send and receive SMS/MMS messages through the RELAY client.
 
 ## Sending Messages
 
-Use `client.SendMessage()` to send an outbound SMS or MMS.
+Use `client.SendMessage()` to send an outbound SMS or MMS. The three required
+parameters (to, from, body) are positional; everything else is a
+`MessageOption`.
 
 ```go
 message, err := client.SendMessage(
-	relay.WithMessageTo("+15552222222"),
-	relay.WithMessageFrom("+15551111111"),
-	relay.WithMessageBody("Hello from SignalWire!"),
+	"+15552222222",                 // to (E.164)
+	"+15551111111",                 // from (E.164)
+	"Hello from SignalWire!",       // body
 )
 if err != nil {
 	fmt.Printf("Send failed: %v\n", err)
@@ -22,9 +24,9 @@ if err != nil {
 
 ```go
 message, err := client.SendMessage(
-	relay.WithMessageTo("+15552222222"),
-	relay.WithMessageFrom("+15551111111"),
-	relay.WithMessageBody("Hello!"),
+	"+15552222222",
+	"+15551111111",
+	"Hello!",
 )
 if err != nil {
 	fmt.Printf("Send failed: %v\n", err)
@@ -41,9 +43,9 @@ if message.Reason() != "" {
 
 ```go
 message, err := client.SendMessage(
-	relay.WithMessageTo("+15552222222"),
-	relay.WithMessageFrom("+15551111111"),
-	relay.WithMessageBody("Hello!"),
+	"+15552222222",
+	"+15551111111",
+	"Hello!",
 )
 // don't call message.Wait() -- continue immediately
 ```
@@ -52,9 +54,9 @@ message, err := client.SendMessage(
 
 ```go
 message, err := client.SendMessage(
-	relay.WithMessageTo("+15552222222"),
-	relay.WithMessageFrom("+15551111111"),
-	relay.WithMessageBody("Hello!"),
+	"+15552222222",
+	"+15551111111",
+	"Hello!",
 )
 if err != nil {
 	fmt.Printf("Send failed: %v\n", err)
@@ -72,24 +74,23 @@ go func() {
 
 ```go
 message, err := client.SendMessage(
-	relay.WithMessageTo("+15552222222"),
-	relay.WithMessageFrom("+15551111111"),
-	relay.WithMessageBody("Check this out!"),
+	"+15552222222",
+	"+15551111111",
+	"Check this out!",
 	relay.WithMessageMedia([]string{"https://example.com/image.jpg"}),
 )
 ```
 
-### All parameters
+### All options
 
 ```go
 message, err := client.SendMessage(
-	relay.WithMessageTo("+15552222222"),         // required -- E.164 format
-	relay.WithMessageFrom("+15551111111"),       // required -- E.164 format
-	relay.WithMessageBody("Message text"),       // required if no media
-	relay.WithMessageMedia([]string{"https://..."}), // required if no body
-	relay.WithMessageContext("my_context"),       // context for state events
-	relay.WithMessageTags([]string{"vip", "support"}), // optional tags
-	relay.WithMessageRegion("us"),               // optional origination region
+	"+15552222222",                                       // to   (required -- E.164)
+	"+15551111111",                                       // from (required -- E.164)
+	"Message text",                                       // body (required if no media)
+	relay.WithMessageMedia([]string{"https://..."}),      // required if no body
+	relay.WithMessageTags([]string{"vip", "support"}),    // optional tags
+	relay.WithMessageRegion("us"),                        // optional origination region
 )
 ```
 
@@ -125,9 +126,9 @@ func main() {
 
 		// Reply back
 		client.SendMessage(
-			relay.WithMessageTo(message.FromNumber),
-			relay.WithMessageFrom(message.ToNumber),
-			relay.WithMessageBody(fmt.Sprintf("You said: %s", message.Body)),
+			message.FromNumber,
+			message.ToNumber,
+			fmt.Sprintf("You said: %s", message.Body),
 		)
 	})
 
