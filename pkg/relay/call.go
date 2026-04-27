@@ -771,14 +771,18 @@ func (c *Call) AmazonBedrock(opts ...AIOption) *AIAction {
 	return c.AI(merged...)
 }
 
-// AIMessage sends a text message within an active AI session. The reset and
-// globalData parameters are optional (nil omits them), matching Python's
-// ai_message(*, message_text, role, reset, global_data).
+// AIMessage sends a text message within an active AI session. All parameters
+// are optional, matching Python's ai_message(*, message_text=None, role=None,
+// reset=None, global_data=None). Pass "" for controlID/text/role and nil for
+// reset/globalData to omit them from the wire payload (Python omits the key
+// entirely when the argument is None).
 func (c *Call) AIMessage(controlID, text, role string, reset map[string]any, globalData map[string]any) error {
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
+	}
+	if controlID != "" {
+		params["control_id"] = controlID
 	}
 	if text != "" {
 		params["message_text"] = text
