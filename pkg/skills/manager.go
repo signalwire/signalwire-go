@@ -21,6 +21,12 @@ func NewSkillManager() *SkillManager {
 
 // LoadSkill validates environment variables, calls Setup, and registers the skill.
 // Returns (success bool, errorMessage string).
+//
+// When a skill with the same instance key is already loaded, the behavior
+// depends on SupportsMultipleInstances():
+//   - false (default): returns (false, error) — duplicate is an error.
+//   - true: returns (true, "") — duplicate instance is silently accepted,
+//     matching Python's SkillManager.load_skill() warning-and-continue behavior.
 func (sm *SkillManager) LoadSkill(skill SkillBase) (bool, string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -29,7 +35,12 @@ func (sm *SkillManager) LoadSkill(skill SkillBase) (bool, string) {
 
 	// Check if already loaded
 	if _, exists := sm.loadedSkills[key]; exists {
-		return false, fmt.Sprintf("skill '%s' is already loaded", key)
+		if skill.SupportsMultipleInstances() {
+			// Multi-instance skill: duplicate instance key is acceptable.
+			// Python warns and returns True, "". Mirror that here.
+			return true, ""
+		}
+		return false, fmt.Sprintf("skill '%s' is already loaded and does not support multiple instances", key)
 	}
 
 	// Validate required environment variables

@@ -279,8 +279,8 @@ func TestRecordEvent(t *testing.T) {
 	if e.URL != "https://example.com/recording.wav" {
 		t.Errorf("URL = %q, want expected URL", e.URL)
 	}
-	if e.Duration != 30 {
-		t.Errorf("Duration = %d, want 30", e.Duration)
+	if e.Duration != 30.0 {
+		t.Errorf("Duration = %v, want 30.0", e.Duration)
 	}
 	if e.Size != 48000 {
 		t.Errorf("Size = %d, want 48000", e.Size)
@@ -314,14 +314,14 @@ func TestMessageReceiveEvent(t *testing.T) {
 
 func TestMessageStateEvent(t *testing.T) {
 	e := NewMessageStateEvent(map[string]any{
-		"message_id":  "msg-2",
-		"state":       "delivered",
-		"direction":   "outbound",
-		"from_number": "+15551234567",
-		"to_number":   "+15559876543",
+		"message_id":    "msg-2",
+		"message_state": "delivered",
+		"direction":     "outbound",
+		"from_number":   "+15551234567",
+		"to_number":     "+15559876543",
 	})
-	if e.State != "delivered" {
-		t.Errorf("State = %q, want %q", e.State, "delivered")
+	if e.MessageState != "delivered" {
+		t.Errorf("MessageState = %q, want %q", e.MessageState, "delivered")
 	}
 }
 

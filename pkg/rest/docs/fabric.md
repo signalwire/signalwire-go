@@ -131,12 +131,16 @@ client.fabric.resources.delete("resource-uuid")
 # List addresses for any resource
 addresses = client.fabric.resources.list_addresses("resource-uuid")
 
-# Assign a resource to a phone route
-client.fabric.resources.assign_phone_route("resource-uuid", phone_route_id="route-uuid")
-
 # Assign a resource as a domain application handler
 client.fabric.resources.assign_domain_application("resource-uuid", domain_application_id="da-uuid")
 ```
+
+> **Note:** `assign_phone_route` is deprecated for the common binding cases.
+> It applies only to a narrow set of legacy resource types and does NOT
+> work for `swml_webhook`, `cxml_webhook`, or `ai_agent`. To bind a phone
+> number to a webhook/agent/flow, configure the phone number directly via
+> the `phone_numbers.set_*` helpers. See `rest/docs/fabric.md` (Go-style
+> docs) for the equivalent Go API.
 
 ## Fabric Addresses
 

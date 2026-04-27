@@ -1,5 +1,7 @@
 package relay
 
+import "os"
+
 // ---------------------------------------------------------------------------
 // Functional options for Call methods
 // ---------------------------------------------------------------------------
@@ -117,6 +119,106 @@ func WithConferenceDeaf(deaf bool) ConferenceOption {
 	}
 }
 
+// FaxOption configures a SendFax call.
+type FaxOption func(m map[string]any)
+
+// WithFaxHeaderInfo sets the fax header info string (matches Python's header_info param).
+func WithFaxHeaderInfo(headerInfo string) FaxOption {
+	return func(m map[string]any) {
+		if headerInfo != "" {
+			m["header_info"] = headerInfo
+		}
+	}
+}
+
+// PayOption configures a Pay call.
+type PayOption func(m map[string]any)
+
+// WithPayInputMethod sets the payment input method.
+func WithPayInputMethod(method string) PayOption {
+	return func(m map[string]any) { m["input"] = method }
+}
+
+// WithPayStatusURL sets the payment status callback URL.
+func WithPayStatusURL(url string) PayOption {
+	return func(m map[string]any) { m["status_url"] = url }
+}
+
+// WithPayPaymentMethod sets the payment method (e.g. "credit-card").
+func WithPayPaymentMethod(method string) PayOption {
+	return func(m map[string]any) { m["payment_method"] = method }
+}
+
+// WithPayTimeout sets the timeout string for the payment session.
+func WithPayTimeout(timeout string) PayOption {
+	return func(m map[string]any) { m["timeout"] = timeout }
+}
+
+// WithPayMaxAttempts sets the maximum number of payment attempts.
+func WithPayMaxAttempts(max string) PayOption {
+	return func(m map[string]any) { m["max_attempts"] = max }
+}
+
+// WithPaySecurityCode sets whether to collect security code.
+func WithPaySecurityCode(code string) PayOption {
+	return func(m map[string]any) { m["security_code"] = code }
+}
+
+// WithPayPostalCode sets whether to collect postal code.
+func WithPayPostalCode(code string) PayOption {
+	return func(m map[string]any) { m["postal_code"] = code }
+}
+
+// WithPayMinPostalCodeLength sets the minimum postal code length.
+func WithPayMinPostalCodeLength(length string) PayOption {
+	return func(m map[string]any) { m["min_postal_code_length"] = length }
+}
+
+// WithPayTokenType sets the payment token type.
+func WithPayTokenType(tokenType string) PayOption {
+	return func(m map[string]any) { m["token_type"] = tokenType }
+}
+
+// WithPayChargeAmount sets the charge amount.
+func WithPayChargeAmount(amount string) PayOption {
+	return func(m map[string]any) { m["charge_amount"] = amount }
+}
+
+// WithPayCurrency sets the payment currency.
+func WithPayCurrency(currency string) PayOption {
+	return func(m map[string]any) { m["currency"] = currency }
+}
+
+// WithPayLanguage sets the language for payment prompts.
+func WithPayLanguage(language string) PayOption {
+	return func(m map[string]any) { m["language"] = language }
+}
+
+// WithPayVoice sets the voice for payment prompts.
+func WithPayVoice(voice string) PayOption {
+	return func(m map[string]any) { m["voice"] = voice }
+}
+
+// WithPayDescription sets a description for the payment.
+func WithPayDescription(desc string) PayOption {
+	return func(m map[string]any) { m["description"] = desc }
+}
+
+// WithPayValidCardTypes sets the valid card types string.
+func WithPayValidCardTypes(types string) PayOption {
+	return func(m map[string]any) { m["valid_card_types"] = types }
+}
+
+// WithPayParameters sets additional payment parameters.
+func WithPayParameters(parameters []map[string]any) PayOption {
+	return func(m map[string]any) { m["parameters"] = parameters }
+}
+
+// WithPayPrompts sets custom payment prompts.
+func WithPayPrompts(prompts []map[string]any) PayOption {
+	return func(m map[string]any) { m["prompts"] = prompts }
+}
+
 // AIOption configures an AI operation on a call.
 type AIOption func(m map[string]any)
 
@@ -216,6 +318,14 @@ func WithDialTimeout(t int) DialOption {
 	}
 }
 
+// WithDialMaxDuration sets the maximum call duration in minutes. Mirrors
+// Python's dial(max_duration=...) parameter.
+func WithDialMaxDuration(minutes int) DialOption {
+	return func(m map[string]any) {
+		m["max_duration"] = minutes
+	}
+}
+
 // MessageOption configures a SendMessage operation.
 type MessageOption func(m map[string]any)
 
@@ -237,5 +347,68 @@ func WithMessageRegion(region string) MessageOption {
 func WithMessageTags(tags []string) MessageOption {
 	return func(m map[string]any) {
 		m["tags"] = tags
+	}
+}
+
+// WithMessageContext sets the routing context for the message. Mirrors Python's
+// send_message(context=...) parameter — defaults to the relay protocol when
+// omitted.
+func WithMessageContext(ctx string) MessageOption {
+	return func(m map[string]any) {
+		m["context"] = ctx
+	}
+}
+
+// WithMessageOnCompleted registers a callback invoked when the message reaches
+// a terminal state (delivered, undelivered, or failed). Mirrors Python's
+// send_message(on_completed=...) parameter.
+func WithMessageOnCompleted(cb func(*Message)) MessageOption {
+	return func(m map[string]any) {
+		m["_on_completed"] = cb
+	}
+}
+
+// WithEnvDefaults reads SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN,
+// SIGNALWIRE_JWT_TOKEN, SIGNALWIRE_SPACE, and RELAY_MAX_ACTIVE_CALLS from
+// environment variables and applies them as fallback values (only used when the
+// corresponding field has not already been set via another option). This mirrors
+// Python RelayClient.__init__ which reads these env vars automatically.
+//
+// Apply this option first so that explicit WithProject/WithToken/etc. options
+// take precedence:
+//
+//	c := relay.NewRelayClient(
+//	    relay.WithEnvDefaults(),
+//	    relay.WithProject("override"),  // overrides env
+//	)
+func WithEnvDefaults() ClientOption {
+	return func(c *Client) {
+		if c.projectID == "" {
+			c.projectID = os.Getenv("SIGNALWIRE_PROJECT_ID")
+		}
+		if c.token == "" {
+			c.token = os.Getenv("SIGNALWIRE_API_TOKEN")
+		}
+		if c.jwtToken == "" {
+			c.jwtToken = os.Getenv("SIGNALWIRE_JWT_TOKEN")
+		}
+		if c.space == "" {
+			c.space = os.Getenv("SIGNALWIRE_SPACE")
+		}
+		if c.maxActiveCalls == 0 {
+			if v := os.Getenv("RELAY_MAX_ACTIVE_CALLS"); v != "" {
+				n := 0
+				for _, ch := range v {
+					if ch < '0' || ch > '9' {
+						n = 0
+						break
+					}
+					n = n*10 + int(ch-'0')
+				}
+				if n > 0 {
+					c.maxActiveCalls = n
+				}
+			}
+		}
 	}
 }

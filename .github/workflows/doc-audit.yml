@@ -1,0 +1,111 @@
+name: Doc & example audit (Layer C)
+
+# Runs the porting-sdk audit_docs.py tool against the Go port so that every
+# method reference inside markdown or example source resolves to a real
+# symbol in port_surface_go.json (the Go-native sibling of port_surface.json
+# produced by cmd/enumerate-surface alongside the Python-reference surface).
+#
+# Also compile-checks every example file -- //go:build ignore files included
+# -- via ``go build -o /dev/null <file>`` to catch silent API breakage.
+#
+# This is the third layer of the porting-sdk drift contract:
+#
+#   Layer A (live in porting-sdk)   parity checklist
+#   Layer B (surface-audit.yml)     symbol-level surface parity with Python
+#   Layer C (this workflow)         docs/examples reference only real symbols
+#
+# A phantom API in a guide is just as dangerous as a missing method; both
+# lie to users about what the port supports.  This workflow catches the
+# former.
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "relay/docs/**"
+      - "rest/docs/**"
+      - "examples/**"
+      - "relay/examples/**"
+      - "rest/examples/**"
+      - "pkg/**"
+      - "cmd/enumerate-surface/**"
+      - "DOC_AUDIT_IGNORE.md"
+      - "port_surface_go.json"
+      - ".github/workflows/doc-audit.yml"
+  push:
+    branches: [main]
+  schedule:
+    # Nightly re-run to catch upstream audit_docs.py rule tightening.
+    - cron: "37 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  doc-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out signalwire-go
+        uses: actions/checkout@v4
+
+      - name: Check out porting-sdk (audit script)
+        uses: actions/checkout@v4
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          ref: main
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Enumerate Go surface (Python + Go shapes)
+        run: go run ./cmd/enumerate-surface
+
+      - name: Verify committed port_surface_go.json is fresh
+        run: go run ./cmd/enumerate-surface --check
+
+      - name: Compile-check every example
+        # Examples live in ``examples/**``, ``rest/examples`` and
+        # ``relay/examples``.  The latter two co-locate multiple
+        # ``package main`` files in the same directory under
+        # ``//go:build ignore`` — compile each file individually via
+        # ``go build -o /dev/null FILE.go`` so the ignore tag doesn't
+        # collide across the directory.
+        run: |
+          set -euo pipefail
+          total=0
+          failed=0
+          for f in $(find examples relay/examples rest/examples -name "*.go" -print 2>/dev/null); do
+            total=$((total + 1))
+            if ! go build -o /dev/null "$f" 2> /tmp/build_err; then
+              echo "::error file=$f::example failed to compile"
+              sed 's/^/    /' /tmp/build_err
+              failed=$((failed + 1))
+            fi
+          done
+          echo "compiled $((total - failed))/$total examples"
+          if [ "$failed" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Run doc/example audit
+        run: |
+          python3 porting-sdk/scripts/audit_docs.py \
+            --root . \
+            --surface port_surface_go.json \
+            --ignore DOC_AUDIT_IGNORE.md
+
+      - name: go vet ./...
+        run: go vet ./...
+
+      - name: go test ./...
+        run: go test ./...

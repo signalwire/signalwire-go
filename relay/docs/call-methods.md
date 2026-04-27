@@ -139,7 +139,9 @@ Record the call. Returns a `*RecordAction` with `Stop()`, `Pause()`, `Resume()`,
 
 ```go
 action := call.Record(
-	relay.WithRecordAudio(map[string]any{"format": "wav", "stereo": true, "direction": "both"}),
+	relay.WithRecordFormat("wav"),
+	relay.WithRecordStereo(true),
+	relay.WithRecordDirection("both"),
 )
 // ... later ...
 action.Stop()
@@ -166,16 +168,17 @@ params, _ := result["params"].(map[string]any)
 digit, _ := params["digits"].(string)
 ```
 
-### `Collect(opts ...CollectOption) *StandaloneCollectAction`
+### `Collect(collect map[string]any) *StandaloneCollectAction`
 
-Collect input without playing audio.
+Collect input without playing audio. Pass a collect-config map describing
+the digit and/or speech recognition to perform.
 
 ```go
-action := call.Collect(
-	relay.WithCollectDigits(map[string]any{"max": 4, "terminators": "#"}),
-	relay.WithCollectSpeech(map[string]any{"language": "en-US"}),
-	relay.WithCollectPartialResults(true),
-)
+action := call.Collect(map[string]any{
+	"digits":          map[string]any{"max": 4, "terminators": "#"},
+	"speech":          map[string]any{"language": "en-US"},
+	"partial_results": true,
+})
 event := action.Wait(context.Background())
 ```
 
@@ -214,14 +217,15 @@ call.SendDigits("1234#")
 
 ## Detection
 
-### `Detect(detect map[string]any, opts ...DetectOption) *DetectAction`
+### `Detect(detect map[string]any, timeout int) *DetectAction`
 
-Detect machine, fax, or digits.
+Detect machine, fax, or digits. `timeout` is in seconds; pass `0` for the
+server default.
 
 ```go
 action := call.Detect(
 	map[string]any{"type": "machine"},
-	relay.WithDetectTimeout(30.0),
+	30, // seconds
 )
 event := action.Wait(context.Background())
 ```
@@ -248,11 +252,12 @@ call.Transfer("https://example.com/swml-endpoint")
 
 ## Fax
 
-### `SendFax(document string, opts ...FaxOption) *FaxAction`
+### `SendFax(document, identity string) *FaxAction`
 
 ```go
-action := call.SendFax("https://example.com/document.pdf",
-	relay.WithFaxIdentity("+15551234567"),
+action := call.SendFax(
+	"https://example.com/document.pdf",
+	"+15551234567", // caller identity
 )
 event := action.Wait(context.Background())
 ```
@@ -266,7 +271,7 @@ event := action.Wait(context.Background())
 
 ## Tap (Media Interception)
 
-### `Tap(tap, device map[string]any, opts ...TapOption) *TapAction`
+### `Tap(tap, device map[string]any) *TapAction`
 
 Intercept call media and stream to an RTP endpoint.
 
@@ -285,9 +290,8 @@ Stream call audio to a WebSocket endpoint.
 
 ```go
 action := call.Stream("wss://example.com/audio",
-	relay.WithStreamName("my_stream"),
 	relay.WithStreamCodec("PCMU"),
-	relay.WithStreamTrack("inbound_track"),
+	relay.WithStreamDirection("inbound"),
 )
 // Stop streaming
 action.Stop()
@@ -295,15 +299,15 @@ action.Stop()
 
 ## Payment
 
-### `Pay(connectorURL string, opts ...PayOption) *PayAction`
+### `Pay(connectorURL, amount, currency string) *PayAction`
 
 Collect a payment via DTMF.
 
 ```go
-action := call.Pay("https://pay.example.com",
-	relay.WithPayChargeAmount("25.99"),
-	relay.WithPayCurrency("usd"),
-	relay.WithPayInputMethod("dtmf"),
+action := call.Pay(
+	"https://pay.example.com",
+	"25.99",
+	"usd",
 )
 event := action.Wait(context.Background())
 ```
@@ -347,12 +351,10 @@ call.DenoiseStop()
 
 ## Transcription
 
-### `Transcribe(opts ...TranscribeOption) *TranscribeAction`
+### `Transcribe(statusURL string) *TranscribeAction`
 
 ```go
-action := call.Transcribe(
-	relay.WithTranscribeStatusURL("https://example.com/transcription"),
-)
+action := call.Transcribe("https://example.com/transcription")
 // ... later ...
 action.Stop()
 ```
@@ -373,12 +375,13 @@ call.LiveTranslate(map[string]any{"start": map[string]any{"source": "en-US", "ta
 
 ## Echo
 
-### `Echo(opts ...EchoOption) (map[string]any, error)`
+### `Echo(timeout int) (map[string]any, error)`
 
-Echo audio back to the caller (useful for testing).
+Echo audio back to the caller (useful for testing). `timeout` is in seconds
+(pass `0` for the server default).
 
 ```go
-call.Echo(relay.WithEchoTimeout(30.0))
+call.Echo(30)
 ```
 
 ## AI Agent
@@ -390,7 +393,6 @@ Start an AI agent session on the call.
 ```go
 action := call.AI(
 	relay.WithAIPrompt(map[string]any{"text": "You are a helpful support agent."}),
-	relay.WithAISWAIG(map[string]any{"functions": []any{...}}),
 	relay.WithAIParams(map[string]any{"end_of_speech_timeout": 3000}),
 )
 event := action.Wait(context.Background())
@@ -430,27 +432,25 @@ call.LeaveRoom()
 call.QueueEnter("support")
 ```
 
-### `QueueLeave(queueName string, opts ...QueueOption) (map[string]any, error)`
+### `QueueLeave(queueName string) (map[string]any, error)`
 
 ```go
-call.QueueLeave("support", relay.WithQueueID("q-123"))
+call.QueueLeave("support")
 ```
 
 ## Digit Bindings
 
-### `BindDigit(digits, bindMethod string, opts ...BindDigitOption) (map[string]any, error)`
+### `BindDigit(digits, method string, params map[string]any) (map[string]any, error)`
 
 Bind a DTMF sequence to trigger a RELAY method.
 
 ```go
-call.BindDigit("*1", "calling.play",
-	relay.WithBindParams(map[string]any{
-		"play": []map[string]any{{"type": "tts", "params": map[string]any{"text": "You pressed star-1"}}},
-	}),
-)
+call.BindDigit("*1", "calling.play", map[string]any{
+	"play": []map[string]any{{"type": "tts", "params": map[string]any{"text": "You pressed star-1"}}},
+})
 ```
 
-### `ClearDigitBindings(opts ...BindDigitOption) (map[string]any, error)`
+### `ClearDigitBindings() (map[string]any, error)`
 
 ```go
 call.ClearDigitBindings()
@@ -458,15 +458,15 @@ call.ClearDigitBindings()
 
 ## User Events
 
-### `UserEvent(opts ...UserEventOption) (map[string]any, error)`
+### `UserEvent(event map[string]any) (map[string]any, error)`
 
 Send a custom event.
 
 ```go
-call.UserEvent(
-	relay.WithUserEventName("order_placed"),
-	relay.WithUserEventData(map[string]any{"order_id": "12345"}),
-)
+call.UserEvent(map[string]any{
+	"name": "order_placed",
+	"data": map[string]any{"order_id": "12345"},
+})
 ```
 
 ## Event Handling
@@ -481,21 +481,29 @@ call.On("calling.call.play", func(event *relay.RelayEvent) {
 })
 ```
 
-### `WaitFor(eventType string, opts ...WaitOption) (*relay.RelayEvent, error)`
+### `WaitFor(ctx context.Context, eventType string, predicate func(*relay.RelayEvent) bool) (*relay.RelayEvent, error)`
 
-Wait for a specific event.
+Wait for a specific event. Pass a `nil` predicate to match any event of
+`eventType`, or a custom function for additional filtering. Timeout is
+handled via the context.
 
 ```go
-event, err := call.WaitFor("calling.call.play",
-	relay.WithWaitTimeout(30 * time.Second),
-)
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+event, err := call.WaitFor(ctx, "calling.call.play", nil)
 ```
 
-### `WaitForEnded(opts ...WaitOption) (*relay.RelayEvent, error)`
+### End-of-call event
 
-Wait for the call to end.
+`Call` only exposes an explicit `WaitFor` helper; to wait for the call to
+end, filter on the state-change event:
 
 ```go
-event, err := call.WaitForEnded()
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+defer cancel()
+event, err := call.WaitFor(ctx, "calling.call.state", func(e *relay.RelayEvent) bool {
+	state, _ := e.Params["call_state"].(string)
+	return state == "ended"
+})
 fmt.Printf("End reason: %v\n", event.Params["end_reason"])
 ```

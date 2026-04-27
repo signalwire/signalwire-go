@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/signalwire/signalwire-go/pkg/logging"
@@ -155,4 +156,24 @@ func (s *Schema) VerbCount() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.verbs)
+}
+
+// LoadSchemaFromFile loads a SWML schema from the given file path instead of
+// the embedded schema.json. Mirrors Python's schema_path constructor param.
+func LoadSchemaFromFile(path string) (*Schema, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read schema file %q: %w", path, err)
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, fmt.Errorf("failed to parse schema file %q: %w", path, err)
+	}
+	s := &Schema{
+		raw:   raw,
+		verbs: make(map[string]*VerbInfo),
+	}
+	s.extractVerbDefinitions()
+	log.Debug("schema loaded from file %q with %d verbs", path, len(s.verbs))
+	return s, nil
 }

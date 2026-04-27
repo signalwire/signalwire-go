@@ -21,7 +21,7 @@ func (r *VideoRooms) ListStreams(roomID string, params map[string]string) (map[s
 
 // CreateStream creates a stream for a video room.
 func (r *VideoRooms) CreateStream(roomID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(roomID, "streams"), data)
+	return r.HTTP.Post(r.Path(roomID, "streams"), data, nil)
 }
 
 // ---------- VideoRoomTokens ----------
@@ -33,7 +33,7 @@ type VideoRoomTokens struct {
 
 // Create creates a video room token.
 func (r *VideoRoomTokens) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // ---------- VideoRoomSessions ----------
@@ -85,8 +85,9 @@ func (r *VideoRoomRecordings) Get(recordingID string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(recordingID), nil)
 }
 
-// Delete removes a room recording.
-func (r *VideoRoomRecordings) Delete(recordingID string) error {
+// Delete removes a room recording. It returns the parsed response body
+// (or an empty map for 204 No Content) and any error.
+func (r *VideoRoomRecordings) Delete(recordingID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(recordingID))
 }
 
@@ -114,7 +115,7 @@ func (r *VideoConferences) ListStreams(conferenceID string, params map[string]st
 
 // CreateStream creates a stream for a conference.
 func (r *VideoConferences) CreateStream(conferenceID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceID, "streams"), data)
+	return r.HTTP.Post(r.Path(conferenceID, "streams"), data, nil)
 }
 
 // ---------- VideoConferenceTokens ----------
@@ -131,7 +132,7 @@ func (r *VideoConferenceTokens) Get(tokenID string) (map[string]any, error) {
 
 // Reset resets a conference token.
 func (r *VideoConferenceTokens) Reset(tokenID string) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(tokenID, "reset"), nil)
+	return r.HTTP.Post(r.Path(tokenID, "reset"), nil, nil)
 }
 
 // ---------- VideoStreams ----------
@@ -151,8 +152,9 @@ func (r *VideoStreams) Update(streamID string, data map[string]any) (map[string]
 	return r.HTTP.Put(r.Path(streamID), data)
 }
 
-// Delete removes a video stream.
-func (r *VideoStreams) Delete(streamID string) error {
+// Delete removes a video stream. It returns the parsed response body
+// (or an empty map for 204 No Content) and any error.
+func (r *VideoStreams) Delete(streamID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(streamID))
 }
 
