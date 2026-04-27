@@ -368,47 +368,47 @@ func WithMessageOnCompleted(cb func(*Message)) MessageOption {
 	}
 }
 
-// WithEnvDefaults reads SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN,
-// SIGNALWIRE_JWT_TOKEN, SIGNALWIRE_SPACE, and RELAY_MAX_ACTIVE_CALLS from
-// environment variables and applies them as fallback values (only used when the
-// corresponding field has not already been set via another option). This mirrors
-// Python RelayClient.__init__ which reads these env vars automatically.
-//
-// Apply this option first so that explicit WithProject/WithToken/etc. options
-// take precedence:
-//
-//	c := relay.NewRelayClient(
-//	    relay.WithEnvDefaults(),
-//	    relay.WithProject("override"),  // overrides env
-//	)
-func WithEnvDefaults() ClientOption {
-	return func(c *Client) {
-		if c.projectID == "" {
-			c.projectID = os.Getenv("SIGNALWIRE_PROJECT_ID")
-		}
-		if c.token == "" {
-			c.token = os.Getenv("SIGNALWIRE_API_TOKEN")
-		}
-		if c.jwtToken == "" {
-			c.jwtToken = os.Getenv("SIGNALWIRE_JWT_TOKEN")
-		}
-		if c.space == "" {
-			c.space = os.Getenv("SIGNALWIRE_SPACE")
-		}
-		if c.maxActiveCalls == 0 {
-			if v := os.Getenv("RELAY_MAX_ACTIVE_CALLS"); v != "" {
-				n := 0
-				for _, ch := range v {
-					if ch < '0' || ch > '9' {
-						n = 0
-						break
-					}
-					n = n*10 + int(ch-'0')
+// applyEnvDefaults fills any unset auth/space fields from SIGNALWIRE_*
+// environment variables. Called automatically at the end of
+// NewRelayClient (mirroring Python RelayClient.__init__'s env-var
+// fallback at relay/client.py:115-119). Idempotent — calling again
+// after fields are populated is a no-op.
+func (c *Client) applyEnvDefaults() {
+	if c.projectID == "" {
+		c.projectID = os.Getenv("SIGNALWIRE_PROJECT_ID")
+	}
+	if c.token == "" {
+		c.token = os.Getenv("SIGNALWIRE_API_TOKEN")
+	}
+	if c.jwtToken == "" {
+		c.jwtToken = os.Getenv("SIGNALWIRE_JWT_TOKEN")
+	}
+	if c.space == "" {
+		c.space = os.Getenv("SIGNALWIRE_SPACE")
+	}
+	if c.maxActiveCalls == 0 {
+		if v := os.Getenv("RELAY_MAX_ACTIVE_CALLS"); v != "" {
+			n := 0
+			for _, ch := range v {
+				if ch < '0' || ch > '9' {
+					n = 0
+					break
 				}
-				if n > 0 {
-					c.maxActiveCalls = n
-				}
+				n = n*10 + int(ch-'0')
+			}
+			if n > 0 {
+				c.maxActiveCalls = n
 			}
 		}
+	}
+}
+
+// WithEnvDefaults is now a no-op pass-through retained for backwards
+// compatibility — env defaults are loaded automatically at the end of
+// NewRelayClient (mirroring Python RelayClient.__init__). New code can
+// rely on the auto-load behavior and omit this option entirely.
+func WithEnvDefaults() ClientOption {
+	return func(c *Client) {
+		c.applyEnvDefaults()
 	}
 }

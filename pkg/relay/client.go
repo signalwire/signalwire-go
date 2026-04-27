@@ -50,6 +50,13 @@ type Client struct {
 }
 
 // NewRelayClient creates a new RELAY Client with the given options.
+//
+// After explicit options are applied, any remaining unset auth/space
+// fields fall back to SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN,
+// SIGNALWIRE_JWT_TOKEN, SIGNALWIRE_SPACE, and RELAY_MAX_ACTIVE_CALLS
+// environment variables — matching Python RelayClient.__init__'s
+// automatic env-var fallback (relay/client.py:115-119). Explicit
+// options always win.
 func NewRelayClient(opts ...ClientOption) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Client{
@@ -66,6 +73,7 @@ func NewRelayClient(opts ...ClientOption) *Client {
 	for _, opt := range opts {
 		opt(c)
 	}
+	c.applyEnvDefaults()
 	return c
 }
 
