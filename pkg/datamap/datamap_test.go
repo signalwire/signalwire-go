@@ -360,7 +360,7 @@ func TestCreateSimpleApiTool(t *testing.T) {
 		t.Errorf("expected function %q, got %v", "get_stock", result["function"])
 	}
 
-	// Should have default purpose since none was set
+	// Should have default description since none was set
 	if result["description"] != "Execute get_stock" {
 		t.Errorf("expected default description, got %v", result["description"])
 	}
