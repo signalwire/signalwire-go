@@ -478,6 +478,28 @@ func (s *Service) RegisterRoutingCallback(path string, cb RoutingCallback) {
 	s.routingCallbacks[path] = cb
 }
 
+// RoutingCallbackPaths returns the paths that have routing callbacks
+// registered. Callers use this to register corresponding HTTP endpoints
+// (mirrors Python web_mixin.py line 428 which iterates
+// self._routing_callbacks to register callback endpoints on the router).
+// Paths are returned in sorted order for deterministic HTTP registration.
+func (s *Service) RoutingCallbackPaths() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	paths := make([]string, 0, len(s.routingCallbacks))
+	for p := range s.routingCallbacks {
+		paths = append(paths, p)
+	}
+	// Insertion-sort — stable, deterministic, cheap for the small N we
+	// expect here (handful of routing callbacks per agent).
+	for i := 1; i < len(paths); i++ {
+		for j := i; j > 0 && paths[j-1] > paths[j]; j-- {
+			paths[j-1], paths[j] = paths[j], paths[j-1]
+		}
+	}
+	return paths
+}
+
 // OnRequest generates the SWML response for an incoming request.
 // It checks routing callbacks first, then returns the default document.
 func (s *Service) OnRequest(requestData map[string]any, callbackPath string) map[string]any {
