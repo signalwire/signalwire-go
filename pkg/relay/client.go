@@ -101,6 +101,15 @@ func (c *Client) ProjectID() string {
 	return c.projectID
 }
 
+// Token returns the configured API token. Mirrors Python's public
+// client.token attribute, allowing callers to read back the value
+// supplied via WithToken(...) or the SIGNALWIRE_API_TOKEN env var.
+func (c *Client) Token() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.token
+}
+
 // Connect establishes the WebSocket connection to SignalWire. This is the
 // public equivalent of the internal connect() method, mirroring Python's
 // async connect() which is also used in the async-with context manager.
