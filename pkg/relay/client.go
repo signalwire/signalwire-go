@@ -110,6 +110,15 @@ func (c *Client) Token() string {
 	return c.token
 }
 
+// JWTToken returns the configured JWT. Mirrors Python's public
+// client.jwt_token attribute, allowing callers to read back the value
+// supplied via WithJWT(...).
+func (c *Client) JWTToken() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.jwtToken
+}
+
 // Connect establishes the WebSocket connection to SignalWire. This is the
 // public equivalent of the internal connect() method, mirroring Python's
 // async connect() which is also used in the async-with context manager.
