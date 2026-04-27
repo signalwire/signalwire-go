@@ -752,3 +752,207 @@ func findAIConfig(t *testing.T, doc map[string]any) map[string]any {
 	t.Fatal("AI verb not found in SWML document")
 	return nil
 }
+
+// findVerbConfig extracts a named verb's configuration from a rendered SWML
+// document.  Returns nil if the verb is not present.
+func findVerbConfig(doc map[string]any, verbName string) map[string]any {
+	sections, ok := doc["sections"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	main, ok := sections["main"].([]any)
+	if !ok {
+		return nil
+	}
+	for _, v := range main {
+		vm, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		if cfg, ok := vm[verbName].(map[string]any); ok {
+			return cfg
+		}
+	}
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// BedrockAgent tests
+// ---------------------------------------------------------------------------
+
+func TestNewBedrockAgent_Defaults(t *testing.T) {
+	ba := NewBedrockAgent(BedrockOptions{})
+	if ba == nil {
+		t.Fatal("expected non-nil BedrockAgent")
+	}
+	if ba.AgentBase == nil {
+		t.Fatal("expected non-nil AgentBase")
+	}
+	if ba.GetName() != "bedrock_agent" {
+		t.Errorf("expected default name bedrock_agent, got %q", ba.GetName())
+	}
+	if ba.GetRoute() != "/bedrock" {
+		t.Errorf("expected default route /bedrock, got %q", ba.GetRoute())
+	}
+}
+
+func TestNewBedrockAgent_CustomOptions(t *testing.T) {
+	ba := NewBedrockAgent(BedrockOptions{
+		Name:        "my_bedrock",
+		Route:       "/aws",
+		SystemPrompt: "Hello from Bedrock",
+		VoiceID:     "joanna",
+		Temperature: 0.5,
+		TopP:        0.8,
+		MaxTokens:   512,
+	})
+	if ba.GetName() != "my_bedrock" {
+		t.Errorf("expected name my_bedrock, got %q", ba.GetName())
+	}
+	if ba.GetRoute() != "/aws" {
+		t.Errorf("expected route /aws, got %q", ba.GetRoute())
+	}
+}
+
+func TestBedrockAgent_RendersSWMLWithAmazonBedrockVerb(t *testing.T) {
+	ba := NewBedrockAgent(BedrockOptions{
+		SystemPrompt: "You are a helpful assistant.",
+	})
+
+	doc := ba.RenderSWML(nil, nil)
+
+	// The SWML document must NOT contain an "ai" verb in the main section.
+	aiCfg := findVerbConfig(doc, "ai")
+	if aiCfg != nil {
+		t.Error("SWML should not contain an 'ai' verb for BedrockAgent")
+	}
+
+	// It MUST contain an "amazon_bedrock" verb.
+	bedrockCfg := findVerbConfig(doc, "amazon_bedrock")
+	if bedrockCfg == nil {
+		t.Fatal("SWML must contain an 'amazon_bedrock' verb for BedrockAgent")
+	}
+}
+
+func TestBedrockAgent_PromptContainsVoiceAndInferenceParams(t *testing.T) {
+	ba := NewBedrockAgent(BedrockOptions{
+		SystemPrompt: "Test prompt.",
+		VoiceID:      "joanna",
+		Temperature:  0.5,
+		TopP:         0.8,
+	})
+
+	doc := ba.RenderSWML(nil, nil)
+	bedrockCfg := findVerbConfig(doc, "amazon_bedrock")
+	if bedrockCfg == nil {
+		t.Fatal("expected amazon_bedrock verb")
+	}
+
+	prompt, ok := bedrockCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatal("expected prompt in amazon_bedrock config")
+	}
+
+	if prompt["voice_id"] != "joanna" {
+		t.Errorf("expected voice_id=joanna, got %v", prompt["voice_id"])
+	}
+	if prompt["temperature"] != 0.5 {
+		t.Errorf("expected temperature=0.5, got %v", prompt["temperature"])
+	}
+	if prompt["top_p"] != 0.8 {
+		t.Errorf("expected top_p=0.8, got %v", prompt["top_p"])
+	}
+}
+
+func TestBedrockAgent_TextModelKeysAreFiltered(t *testing.T) {
+	ba := NewBedrockAgent(BedrockOptions{
+		SystemPrompt: "Test.",
+	})
+	// Inject text-model-specific LLM params to verify they are stripped.
+	ba.SetPromptLlmParams(map[string]any{
+		"barge_confidence":  0.5,
+		"presence_penalty":  0.1,
+		"frequency_penalty": 0.2,
+		"some_other_param":  "keep_me",
+	})
+
+	doc := ba.RenderSWML(nil, nil)
+	bedrockCfg := findVerbConfig(doc, "amazon_bedrock")
+	if bedrockCfg == nil {
+		t.Fatal("expected amazon_bedrock verb")
+	}
+
+	prompt, ok := bedrockCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatal("expected prompt map")
+	}
+
+	banned := []string{"barge_confidence", "presence_penalty", "frequency_penalty"}
+	for _, k := range banned {
+		if _, found := prompt[k]; found {
+			t.Errorf("key %q must be filtered from Bedrock prompt config", k)
+		}
+	}
+
+	// non-banned key must survive
+	if prompt["some_other_param"] != "keep_me" {
+		t.Errorf("expected some_other_param to be preserved, got %v", prompt["some_other_param"])
+	}
+}
+
+func TestBedrockAgent_SetVoice(t *testing.T) {
+	ba := NewBedrockAgent(BedrockOptions{SystemPrompt: "hi"})
+	ba.SetVoice("salli")
+
+	doc := ba.RenderSWML(nil, nil)
+	bedrockCfg := findVerbConfig(doc, "amazon_bedrock")
+	if bedrockCfg == nil {
+		t.Fatal("expected amazon_bedrock verb")
+	}
+	prompt, ok := bedrockCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatal("expected prompt map")
+	}
+	if prompt["voice_id"] != "salli" {
+		t.Errorf("expected voice_id=salli after SetVoice, got %v", prompt["voice_id"])
+	}
+}
+
+func TestBedrockAgent_SetInferenceParams(t *testing.T) {
+	ba := NewBedrockAgent(BedrockOptions{SystemPrompt: "hi"})
+	ba.SetInferenceParams(0.3, 0.6, 2048)
+
+	doc := ba.RenderSWML(nil, nil)
+	bedrockCfg := findVerbConfig(doc, "amazon_bedrock")
+	if bedrockCfg == nil {
+		t.Fatal("expected amazon_bedrock verb")
+	}
+	prompt, ok := bedrockCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatal("expected prompt map")
+	}
+	if prompt["temperature"] != 0.3 {
+		t.Errorf("expected temperature=0.3, got %v", prompt["temperature"])
+	}
+	if prompt["top_p"] != 0.6 {
+		t.Errorf("expected top_p=0.6, got %v", prompt["top_p"])
+	}
+}
+
+func TestBedrockAgent_SetLLMTemperature(t *testing.T) {
+	ba := NewBedrockAgent(BedrockOptions{SystemPrompt: "hi"})
+	ba.SetLLMTemperature(0.2)
+
+	doc := ba.RenderSWML(nil, nil)
+	bedrockCfg := findVerbConfig(doc, "amazon_bedrock")
+	if bedrockCfg == nil {
+		t.Fatal("expected amazon_bedrock verb")
+	}
+	prompt, ok := bedrockCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatal("expected prompt map")
+	}
+	if prompt["temperature"] != 0.2 {
+		t.Errorf("expected temperature=0.2 after SetLLMTemperature, got %v", prompt["temperature"])
+	}
+}

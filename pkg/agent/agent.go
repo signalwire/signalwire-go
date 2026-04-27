@@ -137,6 +137,12 @@ func WithTokenExpiry(secs int) AgentOption {
 	return func(a *AgentBase) { a.tokenExpirySecs = secs }
 }
 
+// WithAIVerbName overrides the SWML verb name used for the AI section.
+// The default is "ai".  Set to "amazon_bedrock" for BedrockAgent.
+func WithAIVerbName(name string) AgentOption {
+	return func(a *AgentBase) { a.aiVerbName = name }
+}
+
 // WithUsePom controls whether Prompt Object Model (POM) mode is active.
 // When true (default), structured prompt sections are used; when false,
 // raw text from SetPromptText is used.
@@ -321,6 +327,13 @@ type AgentBase struct {
 	mcpServers        []map[string]any // external MCP server configs
 	mcpServerEnabled  bool             // expose /mcp endpoint
 
+	// AI verb overrides — used by specialised sub-agents (e.g. BedrockAgent)
+	// aiVerbName replaces the literal "ai" key in the SWML document.
+	// promptTransformer, when non-nil, is called with the assembled prompt
+	// map before it is embedded in the AI verb config.
+	aiVerbName        string
+	promptTransformer func(map[string]any) map[string]any
+
 	// Graceful shutdown
 	shutdownCh chan struct{} // closed by SetupGracefulShutdown signal handler
 }
@@ -339,6 +352,7 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 		recordStereo:     true,
 		tokenExpirySecs:  3600,
 		schemaValidation: true, // Python default: schema_validation=True
+		aiVerbName:       "ai",
 
 		// Initialize all maps and slices
 		pomSections:        make([]map[string]any, 0),
@@ -1132,6 +1146,20 @@ func (a *AgentBase) SetPostPromptLlmParams(params map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.postPromptLlmParams = params
+	return a
+}
+
+// SetPromptTransformer installs a hook that is called with the assembled
+// prompt map before it is placed into the AI verb config.  The function
+// may return a new map or mutate and return the same map.  Set to nil to
+// remove a previously installed transformer.
+//
+// This is used by specialised agents (e.g. BedrockAgent) that need to
+// add or filter prompt-level keys without reimplementing all of RenderSWML.
+func (a *AgentBase) SetPromptTransformer(fn func(map[string]any) map[string]any) *AgentBase {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.promptTransformer = fn
 	return a
 }
 
@@ -2106,8 +2134,19 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		aiConfig["mcp_servers"] = a.mcpServers
 	}
 
-	// 6. Add AI verb
-	doc.AddVerb("ai", aiConfig)
+	// Apply prompt transformer (used by specialised agents like BedrockAgent)
+	if a.promptTransformer != nil {
+		if promptCfg, ok := aiConfig["prompt"].(map[string]any); ok {
+			aiConfig["prompt"] = a.promptTransformer(promptCfg)
+		}
+	}
+
+	// 6. Add AI verb (name may be overridden, e.g. "amazon_bedrock")
+	verbName := a.aiVerbName
+	if verbName == "" {
+		verbName = "ai"
+	}
+	doc.AddVerb(verbName, aiConfig)
 
 	// 7. Post-AI verbs
 	for _, v := range a.postAiVerbs {
@@ -2530,6 +2569,9 @@ func (a *AgentBase) clone() *AgentBase {
 	c.mcpServers = make([]map[string]any, len(a.mcpServers))
 	copy(c.mcpServers, a.mcpServers)
 	c.mcpServerEnabled = a.mcpServerEnabled
+
+	c.aiVerbName = a.aiVerbName
+	c.promptTransformer = a.promptTransformer
 
 	return c
 }
