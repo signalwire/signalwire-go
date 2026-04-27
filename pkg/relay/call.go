@@ -978,13 +978,26 @@ func (c *Call) ClearDigitBindings(realm string) error {
 	return err
 }
 
-// UserEvent sends a user-defined event on the call.
-func (c *Call) UserEvent(event map[string]any) error {
-	_, err := c.client.execute("calling.user_event", map[string]any{
+// UserEvent sends a user-defined event on the call. eventName is the
+// custom event identifier; pass "" to omit it. Optional `extra` maps are
+// merged into the top-level wire params (mirroring Python's **kwargs in
+// user_event(*, event: Optional[str] = None, **kwargs)).
+//
+// Wire shape (matches Python): {"event": <eventName>, ...extra}.
+func (c *Call) UserEvent(eventName string, extra ...map[string]any) error {
+	params := map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
-		"event":   event,
-	})
+	}
+	if eventName != "" {
+		params["event"] = eventName
+	}
+	for _, m := range extra {
+		for k, v := range m {
+			params[k] = v
+		}
+	}
+	_, err := c.client.execute("calling.user_event", params)
 	return err
 }
 

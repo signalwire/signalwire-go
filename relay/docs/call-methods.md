@@ -458,14 +458,16 @@ call.ClearDigitBindings()
 
 ## User Events
 
-### `UserEvent(event map[string]any) (map[string]any, error)`
+### `UserEvent(eventName string, extra ...map[string]any) error`
 
-Send a custom event.
+Send a custom event. The eventName is the event identifier (sent as the
+`event` key on the wire). Any extra map(s) are merged into the top-level
+wire params, matching Python's `user_event(*, event: Optional[str] = None,
+**kwargs)`.
 
 ```go
-call.UserEvent(map[string]any{
-	"name": "order_placed",
-	"data": map[string]any{"order_id": "12345"},
+call.UserEvent("order_placed", map[string]any{
+    "order_id": "12345",
 })
 ```
 
