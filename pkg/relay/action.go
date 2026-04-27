@@ -45,19 +45,6 @@ func (a *Action) Wait(ctx context.Context) (*RelayEvent, error) {
 	}
 }
 
-// Stop sends a stop command to the SignalWire server for this action.
-func (a *Action) Stop() error {
-	if a.call == nil || a.call.client == nil {
-		return fmt.Errorf("action not associated with a call or client")
-	}
-	_, err := a.call.client.execute("calling.stop", map[string]any{
-		"node_id":    a.call.nodeID,
-		"call_id":    a.call.callID,
-		"control_id": a.controlID,
-	})
-	return err
-}
-
 // IsDone returns true if the action has completed.
 func (a *Action) IsDone() bool {
 	a.mu.Lock()
