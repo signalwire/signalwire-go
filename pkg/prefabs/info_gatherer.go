@@ -23,16 +23,19 @@ type Question struct {
 }
 
 // InfoGathererOptions configures a new InfoGathererAgent.
+// Set Questions to nil to enable dynamic callback mode via SetQuestionCallback.
 type InfoGathererOptions struct {
 	Name      string
 	Route     string
-	Questions []Question
+	Questions *[]Question // nil enables dynamic callback mode; non-nil is static mode
 }
 
 // InfoGathererAgent collects answers to a series of questions sequentially.
+// Supports both static (questions provided at construction) and dynamic
+// (questions determined per-request via SetQuestionCallback) modes.
 type InfoGathererAgent struct {
 	*agent.AgentBase
-	questions []Question
+	staticQuestions *[]Question
 }
 
 // ---------------------------------------------------------------------------
@@ -40,7 +43,9 @@ type InfoGathererAgent struct {
 // ---------------------------------------------------------------------------
 
 // NewInfoGathererAgent creates an agent that asks a series of questions and
-// stores the answers in global data.
+// stores the answers in global data. Pass nil Questions to enable dynamic
+// mode; call SetQuestionCallback on the returned agent to supply per-request
+// questions.
 func NewInfoGathererAgent(opts InfoGathererOptions) *InfoGathererAgent {
 	name := opts.Name
 	if name == "" {
@@ -57,8 +62,8 @@ func NewInfoGathererAgent(opts InfoGathererOptions) *InfoGathererAgent {
 	)
 
 	ig := &InfoGathererAgent{
-		AgentBase: base,
-		questions: opts.Questions,
+		AgentBase:       base,
+		staticQuestions: opts.Questions,
 	}
 
 	// ---- Prompt ----
@@ -80,25 +85,95 @@ func NewInfoGathererAgent(opts InfoGathererOptions) *InfoGathererAgent {
 		},
 	)
 
-	// ---- Global data ----
-	questionMaps := make([]map[string]any, len(opts.Questions))
-	for i, q := range opts.Questions {
-		questionMaps[i] = map[string]any{
-			"key_name":      q.KeyName,
-			"question_text": q.QuestionText,
-			"confirm":       q.Confirm,
+	// ---- Global data (static mode only) ----
+	if opts.Questions != nil {
+		questions := *opts.Questions
+		questionMaps := make([]map[string]any, len(questions))
+		for i, q := range questions {
+			questionMaps[i] = map[string]any{
+				"key_name":      q.KeyName,
+				"question_text": q.QuestionText,
+				"confirm":       q.Confirm,
+			}
 		}
+		base.SetGlobalData(map[string]any{
+			"questions":      questionMaps,
+			"question_index": 0,
+			"answers":        []any{},
+		})
 	}
-	base.SetGlobalData(map[string]any{
-		"questions":      questionMaps,
-		"question_index": 0,
-		"answers":        []any{},
-	})
+	// Dynamic mode: global_data will be set per-request by the dynamic config
+	// callback registered via SetQuestionCallback.
 
 	// ---- Tools ----
 	ig.registerTools()
 
 	return ig
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic question callback
+// ---------------------------------------------------------------------------
+
+// SetQuestionCallback registers a per-request callback that returns the list
+// of questions to ask. Calling this method enables dynamic mode: on each
+// SWML request the callback is invoked with the request's query parameters,
+// body parameters, and headers; the returned []Question becomes the session's
+// question list. This mirrors Python's InfoGathererAgent.set_question_callback.
+//
+// If Questions was set to nil in InfoGathererOptions (dynamic mode), a
+// fallback question set is used when no callback is registered.
+//
+// Example:
+//
+//	ig.SetQuestionCallback(func(query, body map[string]any, headers map[string]string) []Question {
+//	    if body["department"] == "support" {
+//	        return []Question{{KeyName: "issue", QuestionText: "What is the issue?"}}
+//	    }
+//	    return []Question{{KeyName: "name", QuestionText: "What is your name?"}}
+//	})
+func (ig *InfoGathererAgent) SetQuestionCallback(
+	cb func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string) []Question,
+) {
+	ig.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, a *agent.AgentBase) {
+		var questions []Question
+
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Callback panicked — fall back to safe defaults
+					questions = fallbackQuestions()
+				}
+			}()
+			questions = cb(queryParams, bodyParams, headers)
+			if len(questions) == 0 {
+				questions = fallbackQuestions()
+			}
+		}()
+
+		questionMaps := make([]map[string]any, len(questions))
+		for i, q := range questions {
+			questionMaps[i] = map[string]any{
+				"key_name":      q.KeyName,
+				"question_text": q.QuestionText,
+				"confirm":       q.Confirm,
+			}
+		}
+		a.SetGlobalData(map[string]any{
+			"questions":      questionMaps,
+			"question_index": 0,
+			"answers":        []any{},
+		})
+	})
+}
+
+// fallbackQuestions returns a minimal question set used when dynamic mode has
+// no callback or the callback fails — mirrors Python's on_swml_request fallback.
+func fallbackQuestions() []Question {
+	return []Question{
+		{KeyName: "name", QuestionText: "What is your name?"},
+		{KeyName: "message", QuestionText: "How can I help you today?"},
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -129,14 +204,13 @@ func (ig *InfoGathererAgent) registerTools() {
 	})
 
 	// submit_answer ----------------------------------------------------
+	// key_name is NOT a model-supplied parameter; it is derived server-side
+	// from global_data["questions"][question_index]["key_name"], matching
+	// Python's submit_answer behavior.
 	ig.DefineTool(agent.ToolDefinition{
 		Name:        "submit_answer",
 		Description: "Submit an answer to the current question and move to the next one",
 		Parameters: map[string]any{
-			"key_name": map[string]any{
-				"type":        "string",
-				"description": "The key name of the question being answered",
-			},
 			"answer": map[string]any{
 				"type":        "string",
 				"description": "The user's answer to the current question",
@@ -144,7 +218,6 @@ func (ig *InfoGathererAgent) registerTools() {
 		},
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
 			answer, _ := args["answer"].(string)
-			keyName, _ := args["key_name"].(string)
 
 			globalData, _ := rawData["global_data"].(map[string]any)
 			questions, _ := globalData["questions"].([]any)
@@ -155,6 +228,10 @@ func (ig *InfoGathererAgent) registerTools() {
 			if idx >= len(questions) {
 				return swaig.NewFunctionResult("All questions have already been answered.")
 			}
+
+			// Derive key_name from global_data, not from model-supplied args.
+			current, _ := questions[idx].(map[string]any)
+			keyName, _ := current["key_name"].(string)
 
 			// Record the answer
 			newAnswer := map[string]any{"key_name": keyName, "answer": answer}

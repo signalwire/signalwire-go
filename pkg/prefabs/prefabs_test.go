@@ -10,10 +10,9 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestNewInfoGathererAgent_MinimalOptions(t *testing.T) {
+	qs := []Question{{KeyName: "name", QuestionText: "What is your name?"}}
 	ig := NewInfoGathererAgent(InfoGathererOptions{
-		Questions: []Question{
-			{KeyName: "name", QuestionText: "What is your name?"},
-		},
+		Questions: &qs,
 	})
 	if ig == nil {
 		t.Fatal("expected non-nil agent")
@@ -24,10 +23,9 @@ func TestNewInfoGathererAgent_MinimalOptions(t *testing.T) {
 }
 
 func TestInfoGatherer_HasTools(t *testing.T) {
+	qs := []Question{{KeyName: "name", QuestionText: "What is your name?"}}
 	ig := NewInfoGathererAgent(InfoGathererOptions{
-		Questions: []Question{
-			{KeyName: "name", QuestionText: "What is your name?"},
-		},
+		Questions: &qs,
 	})
 
 	tools := ig.DefineTools()
@@ -48,13 +46,14 @@ func TestInfoGatherer_HasTools(t *testing.T) {
 }
 
 func TestInfoGatherer_QuestionsInGlobalData(t *testing.T) {
+	qs := []Question{
+		{KeyName: "name", QuestionText: "What is your name?", Confirm: true},
+		{KeyName: "email", QuestionText: "What is your email?"},
+	}
 	ig := NewInfoGathererAgent(InfoGathererOptions{
-		Name:  "test_gatherer",
-		Route: "/gather",
-		Questions: []Question{
-			{KeyName: "name", QuestionText: "What is your name?", Confirm: true},
-			{KeyName: "email", QuestionText: "What is your email?"},
-		},
+		Name:      "test_gatherer",
+		Route:     "/gather",
+		Questions: &qs,
 	})
 
 	// Render SWML and check global data
@@ -91,10 +90,9 @@ func TestInfoGatherer_QuestionsInGlobalData(t *testing.T) {
 }
 
 func TestInfoGatherer_StartQuestionsHandler(t *testing.T) {
+	qs := []Question{{KeyName: "name", QuestionText: "What is your name?", Confirm: true}}
 	ig := NewInfoGathererAgent(InfoGathererOptions{
-		Questions: []Question{
-			{KeyName: "name", QuestionText: "What is your name?", Confirm: true},
-		},
+		Questions: &qs,
 	})
 
 	rawData := map[string]any{
@@ -132,11 +130,12 @@ func TestInfoGatherer_StartQuestionsHandler(t *testing.T) {
 }
 
 func TestInfoGatherer_SubmitAnswerHandler(t *testing.T) {
+	qs := []Question{
+		{KeyName: "name", QuestionText: "What is your name?"},
+		{KeyName: "email", QuestionText: "What is your email?"},
+	}
 	ig := NewInfoGathererAgent(InfoGathererOptions{
-		Questions: []Question{
-			{KeyName: "name", QuestionText: "What is your name?"},
-			{KeyName: "email", QuestionText: "What is your email?"},
-		},
+		Questions: &qs,
 	})
 
 	rawData := map[string]any{
@@ -150,9 +149,9 @@ func TestInfoGatherer_SubmitAnswerHandler(t *testing.T) {
 		},
 	}
 
+	// key_name is now derived server-side from global_data; only answer is passed by the model
 	result, err := ig.OnFunctionCall("submit_answer", map[string]any{
-		"key_name": "name",
-		"answer":   "Alice",
+		"answer": "Alice",
 	}, rawData)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -561,11 +560,12 @@ func TestFAQBot_PromptHasFAQSection(t *testing.T) {
 }
 
 func TestFAQBot_SuggestRelated(t *testing.T) {
+	boolTrue := true
 	fb := NewFAQBotAgent(FAQBotOptions{
 		FAQs: []FAQ{
 			{Question: "What is Go?", Answer: "A programming language."},
 		},
-		SuggestRelated: true,
+		SuggestRelated: &boolTrue,
 	})
 
 	if !fb.PromptHasSection("Related Questions") {
@@ -688,7 +688,7 @@ func TestConcierge_GetDirections_Found(t *testing.T) {
 	})
 
 	result, err := ca.OnFunctionCall("get_directions", map[string]any{
-		"destination": "pool",
+		"location": "pool",
 	}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -710,7 +710,7 @@ func TestConcierge_GetDirections_NotFound(t *testing.T) {
 	})
 
 	result, err := ca.OnFunctionCall("get_directions", map[string]any{
-		"destination": "helipad",
+		"location": "helipad",
 	}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

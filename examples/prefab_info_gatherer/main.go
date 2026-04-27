@@ -12,27 +12,28 @@ import (
 )
 
 func main() {
-	// Create an InfoGathererAgent with 3 questions
-	ig := prefabs.NewInfoGathererAgent(prefabs.InfoGathererOptions{
-		Name:  "PatientIntake",
-		Route: "/intake",
-		Questions: []prefabs.Question{
-			{
-				KeyName:      "full_name",
-				QuestionText: "What is your full legal name?",
-				Confirm:      true, // Requires user confirmation
-			},
-			{
-				KeyName:      "date_of_birth",
-				QuestionText: "What is your date of birth?",
-				Confirm:      true,
-			},
-			{
-				KeyName:      "reason_for_visit",
-				QuestionText: "What is the reason for your visit today?",
-				Confirm:      false, // No confirmation needed
-			},
+	// Create an InfoGathererAgent with 3 questions (static mode)
+	qs := []prefabs.Question{
+		{
+			KeyName:      "full_name",
+			QuestionText: "What is your full legal name?",
+			Confirm:      true, // Requires user confirmation
 		},
+		{
+			KeyName:      "date_of_birth",
+			QuestionText: "What is your date of birth?",
+			Confirm:      true,
+		},
+		{
+			KeyName:      "reason_for_visit",
+			QuestionText: "What is the reason for your visit today?",
+			Confirm:      false, // No confirmation needed
+		},
+	}
+	ig := prefabs.NewInfoGathererAgent(prefabs.InfoGathererOptions{
+		Name:      "PatientIntake",
+		Route:     "/intake",
+		Questions: &qs,
 	})
 
 	fmt.Println("Starting InfoGathererAgent (PatientIntake) on :3000/intake ...")
