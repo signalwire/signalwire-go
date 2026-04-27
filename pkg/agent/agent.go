@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -360,6 +361,13 @@ type AgentBase struct {
 	sipRoutingEnabled bool
 	sipUsernames      map[string]bool
 
+	// SIP redirect callbacks. Distinct from swml.Service.routingCallbacks:
+	// these callbacks return a route string and trigger an HTTP 307 redirect,
+	// matching Python web_mixin.register_routing_callback semantics
+	// (web_mixin.py:621-635). The swml.Service callbacks return a document
+	// override (richer Go-only semantics).
+	sipRoutingCallbacks map[string]func(r *http.Request, body map[string]any) string
+
 	// MCP integration
 	mcpServers        []map[string]any // external MCP server configs
 	mcpServerEnabled  bool             // expose /mcp endpoint
@@ -408,6 +416,7 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 		answerConfig:       make(map[string]any),
 		swaigQueryParams:   make(map[string]string),
 		sipUsernames:       make(map[string]bool),
+		sipRoutingCallbacks: make(map[string]func(r *http.Request, body map[string]any) string),
 		mcpServers:         make([]map[string]any, 0),
 	}
 
@@ -479,6 +488,19 @@ func (a *AgentBase) GetName() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.name
+}
+
+// GetFullURL returns the full URL for this agent's endpoint, optionally
+// embedding basic-auth credentials.
+//
+// Python equivalent: AgentBase.get_full_url(include_auth=False) (agent_base.py:325)
+//
+// The Python implementation handles serverless URL construction (CGI / Lambda /
+// Cloud Functions / Azure) inline. In the Go SDK, serverless URL construction
+// lives in pkg/lambda; this method delegates server-mode URL building to the
+// embedded swml.Service and matches Python's server-mode behavior.
+func (a *AgentBase) GetFullURL(includeAuth bool) string {
+	return a.swmlService.GetFullURL(includeAuth)
 }
 
 // ---------------------------------------------------------------------------
@@ -1736,11 +1758,61 @@ func (a *AgentBase) EnableSipRouting(autoMap bool, path string) *AgentBase {
 // The callback receives the HTTP request and the parsed body. It should return
 // a non-nil map to override the response, or nil to let normal processing continue.
 // This method delegates to swml.Service.RegisterRoutingCallback.
+//
+// For Python-aligned redirect semantics (callback returns a route string and
+// the framework issues an HTTP 307 redirect), use RegisterSipRoutingCallback.
 func (a *AgentBase) RegisterRoutingCallback(callbackFn func(r *http.Request, body map[string]any) map[string]any, path string) {
 	if path == "" {
 		path = "/sip"
 	}
 	a.swmlService.RegisterRoutingCallback(path, callbackFn)
+}
+
+// RegisterSipRoutingCallback registers a callback whose string return value
+// triggers an HTTP 307 Temporary Redirect to that route. An empty return
+// value (or a GET / non-POST request) lets normal SWML processing continue.
+//
+// Python equivalent: web_mixin.WebMixin.register_routing_callback
+// Python signature: register_routing_callback(callback_fn, path="/sip")
+//
+// The Python callback returns Optional[str]; on a non-None return the
+// framework responds with HTTP 307 + Location: route (web_mixin.py:628-635).
+// This method preserves that behavior, in contrast to RegisterRoutingCallback
+// which returns a response document override (a richer Go-only mechanism).
+//
+// Use this form when porting Python code that relies on redirect-based SIP
+// or route-dispatch patterns.
+func (a *AgentBase) RegisterSipRoutingCallback(
+	callbackFn func(r *http.Request, body map[string]any) string,
+	path string,
+) {
+	if path == "" {
+		path = "/sip"
+	}
+	path = strings.TrimRight(path, "/")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	a.mu.Lock()
+	if a.sipRoutingCallbacks == nil {
+		a.sipRoutingCallbacks = make(map[string]func(r *http.Request, body map[string]any) string)
+	}
+	a.sipRoutingCallbacks[path] = callbackFn
+	a.mu.Unlock()
+}
+
+// sipRoutingCallbackPaths returns the paths registered for SIP-redirect
+// callbacks, sorted for deterministic HTTP endpoint registration.
+func (a *AgentBase) sipRoutingCallbackPaths() []string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	paths := make([]string, 0, len(a.sipRoutingCallbacks))
+	for p := range a.sipRoutingCallbacks {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	return paths
 }
 
 // AutoMapSipUsernames automatically registers common SIP usernames derived
@@ -2351,6 +2423,23 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 		mux.HandleFunc(path+"/", a.withAuth(a.handleSWML))
 	}
 
+	// SIP redirect-routing endpoints. Python registers these alongside swml
+	// routing callbacks (single _routing_callbacks map). Go separates them
+	// because the return semantics differ (string→307 redirect vs document
+	// override). handleSWML inspects sipRoutingCallbacks first and emits the
+	// redirect when the callback returns a non-empty string.
+	for _, cbPath := range a.sipRoutingCallbackPaths() {
+		if cbPath == "/" || cbPath == swmlRoute {
+			continue
+		}
+		path := strings.TrimRight(cbPath, "/")
+		if path == "" {
+			continue
+		}
+		mux.HandleFunc(path, a.withAuth(a.handleSWML))
+		mux.HandleFunc(path+"/", a.withAuth(a.handleSWML))
+	}
+
 	return mux
 }
 
@@ -2363,6 +2452,26 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
 		json.NewDecoder(r.Body).Decode(&body)
+	}
+
+	// SIP redirect-routing dispatch. Python web_mixin._handle_request
+	// (web_mixin.py:621-635) checks _routing_callbacks; on a non-None string
+	// return, responds with HTTP 307 Temporary Redirect. Mirror that here
+	// using sipRoutingCallbacks (the parallel string-return registration).
+	// On an empty string return, fall through to the normal SWML pipeline so
+	// the same endpoint can serve as both a redirector and a document source.
+	sipMatchPath := strings.TrimRight(r.URL.Path, "/")
+	if sipMatchPath == "" {
+		sipMatchPath = "/"
+	}
+	a.mu.RLock()
+	sipCb, sipMatched := a.sipRoutingCallbacks[sipMatchPath]
+	a.mu.RUnlock()
+	if sipMatched && r.Method == http.MethodPost && body != nil {
+		if route := sipCb(r, body); route != "" {
+			http.Redirect(w, r, route, http.StatusTemporaryRedirect)
+			return
+		}
 	}
 
 	// Routing-callback dispatch. Python web_mixin._handle_request (line 620)

@@ -520,3 +520,106 @@ func TestExtractSipUsername_Empty(t *testing.T) {
 		t.Errorf("expected empty string, got %q", got)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// RegisterGlobalSipRoutingCallback (Python register_global_routing_callback
+// with redirect-string semantics)
+// ---------------------------------------------------------------------------
+
+func TestRegisterGlobalSipRoutingCallback_FansOutToAllAgents(t *testing.T) {
+	s := NewAgentServer()
+
+	a1 := agent.NewAgentBase(agent.WithName("a1"), agent.WithBasicAuth("u", "p"))
+	a2 := agent.NewAgentBase(agent.WithName("a2"), agent.WithBasicAuth("u", "p"))
+	s.Register(a1, "/a1")
+	s.Register(a2, "/a2")
+
+	const target = "https://elsewhere.example/global"
+	s.RegisterGlobalSipRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
+		return target
+	})
+
+	// Hit each agent's /sip endpoint and confirm both produce the redirect.
+	for _, route := range []string{"/a1/sip", "/a2/sip"} {
+		req := httptest.NewRequest(http.MethodPost, route, strings.NewReader("{}"))
+		req.SetBasicAuth("u", "p")
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		s.buildMux().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusTemporaryRedirect {
+			t.Errorf("%s: status = %d, want 307; body=%s", route, rec.Code, rec.Body.String())
+			continue
+		}
+		if loc := rec.Header().Get("Location"); loc != target {
+			t.Errorf("%s: Location = %q, want %q", route, loc, target)
+		}
+	}
+}
+
+func TestRegisterGlobalSipRoutingCallback_NormalizesPath(t *testing.T) {
+	s := NewAgentServer()
+	a := agent.NewAgentBase(agent.WithName("a"), agent.WithBasicAuth("u", "p"))
+	s.Register(a, "/a")
+
+	// Trailing slash should be stripped; leading slash should be added.
+	s.RegisterGlobalSipRoutingCallback("sip/", func(r *http.Request, body map[string]any) string {
+		return "https://x.example"
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/a/sip", strings.NewReader("{}"))
+	req.SetBasicAuth("u", "p")
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	s.buildMux().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("normalized path did not register correctly; status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// Ensure response-document override (RegisterGlobalRoutingCallback) and
+// redirect-string (RegisterGlobalSipRoutingCallback) variants do not collide
+// when registered on different paths.
+func TestRegisterGlobalSipRoutingCallback_CoexistsWithDocumentVariant(t *testing.T) {
+	s := NewAgentServer()
+	a := agent.NewAgentBase(agent.WithName("a"), agent.WithBasicAuth("u", "p"))
+	s.Register(a, "/a")
+
+	const docMarker = "__doc_override__"
+	s.RegisterGlobalRoutingCallback("/override", func(r *http.Request, body map[string]any) map[string]any {
+		return map[string]any{
+			"version":  docMarker,
+			"sections": map[string]any{"main": []any{}},
+		}
+	})
+	s.RegisterGlobalSipRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
+		return "https://elsewhere.example"
+	})
+
+	// Document-override path returns SWML doc.
+	req := httptest.NewRequest(http.MethodPost, "/a/override", strings.NewReader("{}"))
+	req.SetBasicAuth("u", "p")
+	rec := httptest.NewRecorder()
+	s.buildMux().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("override path: status=%d, want 200", rec.Code)
+	} else {
+		var doc map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+			t.Errorf("override path: body not JSON: %v", err)
+		} else if doc["version"] != docMarker {
+			t.Errorf("override path: version=%v, want %q", doc["version"], docMarker)
+		}
+	}
+
+	// SIP path returns 307.
+	req = httptest.NewRequest(http.MethodPost, "/a/sip", strings.NewReader("{}"))
+	req.SetBasicAuth("u", "p")
+	rec = httptest.NewRecorder()
+	s.buildMux().ServeHTTP(rec, req)
+	if rec.Code != http.StatusTemporaryRedirect {
+		t.Errorf("sip path: status=%d, want 307", rec.Code)
+	}
+}

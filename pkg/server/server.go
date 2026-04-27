@@ -274,6 +274,34 @@ func (s *AgentServer) RegisterGlobalRoutingCallback(path string, cb swml.Routing
 	s.logger.Info("registered global routing callback at %s on %d agent(s)", path, len(s.agents))
 }
 
+// RegisterGlobalSipRoutingCallback registers a SIP redirect-routing callback
+// across all currently-registered agents at the given path. The callback
+// returns a route string; on a non-empty return the framework responds with
+// HTTP 307 Temporary Redirect (matching Python register_routing_callback
+// semantics — see AgentBase.RegisterSipRoutingCallback for details).
+//
+// Use this form when porting Python AgentServer code that registers a
+// redirect-style global routing callback. For a global response-document
+// override (the richer Go-only mechanism), use RegisterGlobalRoutingCallback.
+func (s *AgentServer) RegisterGlobalSipRoutingCallback(
+	path string,
+	cb func(r *http.Request, body map[string]any) string,
+) {
+	path = strings.TrimRight(path, "/")
+	if len(path) == 0 || path[0] != '/' {
+		path = "/" + path
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, a := range s.agents {
+		a.RegisterSipRoutingCallback(cb, path)
+	}
+
+	s.logger.Info("registered global SIP routing callback at %s on %d agent(s)", path, len(s.agents))
+}
+
 // ---------------------------------------------------------------------------
 // HTTP server
 // ---------------------------------------------------------------------------
