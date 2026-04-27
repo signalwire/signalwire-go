@@ -255,6 +255,59 @@ func TestCallReceiveEvent(t *testing.T) {
 	}
 }
 
+// TestCallReceiveEvent_ProtocolFallback covers the wire-key fallback that
+// Python's CallReceiveEvent.from_payload performs:
+//
+//	context=p.get("context", p.get("protocol", ""))
+//
+// SIP-originated inbound receive events carry the routing identifier under
+// "protocol" instead of "context"; Go must read either key.
+func TestCallReceiveEvent_ProtocolFallback(t *testing.T) {
+	t.Run("protocol only (SIP-originated)", func(t *testing.T) {
+		e := NewCallReceiveEvent(map[string]any{
+			"call_id":  "call-3",
+			"protocol": "sip-inbound",
+		})
+		if e.Context != "sip-inbound" {
+			t.Errorf("Context = %q, want %q (fell back to protocol key)", e.Context, "sip-inbound")
+		}
+	})
+
+	t.Run("context wins over protocol when both present", func(t *testing.T) {
+		e := NewCallReceiveEvent(map[string]any{
+			"call_id":  "call-4",
+			"context":  "office",
+			"protocol": "sip-inbound",
+		})
+		if e.Context != "office" {
+			t.Errorf("Context = %q, want %q (context must win when present)", e.Context, "office")
+		}
+	})
+
+	t.Run("neither key present yields empty string", func(t *testing.T) {
+		e := NewCallReceiveEvent(map[string]any{
+			"call_id": "call-5",
+		})
+		if e.Context != "" {
+			t.Errorf("Context = %q, want empty string", e.Context)
+		}
+	})
+
+	t.Run("explicit empty context wins over present protocol", func(t *testing.T) {
+		// Python's p.get("context", p.get("protocol", "")) returns the value
+		// at "context" when the key is present — even if that value is "".
+		// Go must use a key-presence check, not an empty-string check.
+		e := NewCallReceiveEvent(map[string]any{
+			"call_id":  "call-6",
+			"context":  "",
+			"protocol": "sip-inbound",
+		})
+		if e.Context != "" {
+			t.Errorf("Context = %q, want empty string (explicit empty context must not fall back to protocol)", e.Context)
+		}
+	})
+}
+
 func TestPlayEvent(t *testing.T) {
 	e := NewPlayEvent(map[string]any{
 		"control_id": "ctrl-1",
