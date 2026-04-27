@@ -92,6 +92,15 @@ func (c *Client) RelayProtocol() string {
 	return c.protocol
 }
 
+// ProjectID returns the configured project ID. Mirrors Python's public
+// client.project attribute, allowing callers to read back the value
+// supplied via WithProject(...) or the SIGNALWIRE_PROJECT_ID env var.
+func (c *Client) ProjectID() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.projectID
+}
+
 // Connect establishes the WebSocket connection to SignalWire. This is the
 // public equivalent of the internal connect() method, mirroring Python's
 // async connect() which is also used in the async-with context manager.
