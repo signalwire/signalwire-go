@@ -814,13 +814,17 @@ func (c *Call) AIHold(controlID string, timeout string, prompt string) error {
 	return err
 }
 
-// AIUnhold removes the call from AI hold. prompt is optional (empty string
-// omits it), matching Python's ai_unhold(*, prompt: str|None).
+// AIUnhold removes the call from AI hold. controlID and prompt are both
+// optional — pass "" to omit either, matching Python's
+// ai_unhold(*, prompt: Optional[str] = None) which has no control_id
+// parameter and only writes keys conditionally.
 func (c *Call) AIUnhold(controlID string, prompt string) error {
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
+	}
+	if controlID != "" {
+		params["control_id"] = controlID
 	}
 	if prompt != "" {
 		params["prompt"] = prompt
