@@ -156,6 +156,10 @@ func (c *Client) Run() error {
 }
 
 // Stop gracefully shuts down the client connection.
+//
+// Equivalent to Python's RelayClient.disconnect() (relay/client.py:286).
+// Python users porting code can search for "disconnect" and find this
+// method by its rename.
 func (c *Client) Stop() {
 	c.running.Store(false)
 	c.cancel()
