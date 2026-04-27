@@ -796,13 +796,17 @@ func (c *Call) AIMessage(controlID, text, role string, reset map[string]any, glo
 	return err
 }
 
-// AIHold places the AI-controlled call on hold. timeout and prompt are
-// optional (empty string omits them), matching Python's ai_hold(*, timeout: str|None, prompt: str|None).
+// AIHold places the AI-controlled call on hold. controlID, timeout and prompt
+// are all optional — pass "" to omit any of them, matching Python's
+// ai_hold(*, timeout: Optional[str] = None, prompt: Optional[str] = None)
+// which has no control_id parameter and only writes keys conditionally.
 func (c *Call) AIHold(controlID string, timeout string, prompt string) error {
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
+	}
+	if controlID != "" {
+		params["control_id"] = controlID
 	}
 	if timeout != "" {
 		params["timeout"] = timeout
