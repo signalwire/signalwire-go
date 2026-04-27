@@ -768,9 +768,18 @@ func TestConstants_EventTypes(t *testing.T) {
 		if e == "" {
 			t.Error("found empty calling event constant")
 		}
-		if !contains(e, "calling.call.") {
-			t.Errorf("calling event %q should start with 'calling.call.'", e)
+		if !contains(e, "calling.") {
+			t.Errorf("calling event %q should start with 'calling.'", e)
 		}
+	}
+
+	// Wire-format alignment with signalwire-python: most calling events use
+	// the "calling.call.<verb>" prefix, but EVENT_CALLING_ERROR and
+	// EVENT_CONFERENCE in Python use bare "calling.error" / "calling.conference"
+	// (relay/constants.py:69-70). The constants below must match what the
+	// SignalWire server emits — ParseEvent routes on the literal value.
+	if EventCallingCallError != "calling.error" {
+		t.Errorf("EventCallingCallError = %q, want %q (matches Python EVENT_CALLING_ERROR)", EventCallingCallError, "calling.error")
 	}
 
 	messagingEvents := []string{EventMessagingReceive, EventMessagingState}
