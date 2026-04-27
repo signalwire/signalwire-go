@@ -287,7 +287,7 @@ func (c *Client) authenticate() error {
 			c.mu.Unlock()
 
 			if msg.Error != nil {
-				return fmt.Errorf("auth error %d: %s", msg.Error.Code, msg.Error.Message)
+				return NewRelayError(msg.Error.Code, msg.Error.Message)
 			}
 
 			var authResult struct {
@@ -448,7 +448,7 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 			Message string `json:"message"`
 		}
 		if err := json.Unmarshal(resp, &errResp); err == nil && errResp.Code != 0 {
-			return nil, fmt.Errorf("relay error %d: %s", errResp.Code, errResp.Message)
+			return nil, NewRelayError(errResp.Code, errResp.Message)
 		}
 		return resp, nil
 	case <-c.ctx.Done():
