@@ -8,6 +8,7 @@
 package namespaces
 
 import (
+	"errors"
 	"strings"
 	"sync"
 
@@ -92,7 +93,7 @@ func (r *CallFlowsResource) ListVersions(id string, params map[string]string) (m
 // DeployVersion deploys a new version of a call flow.
 func (r *CallFlowsResource) DeployVersion(id string, data map[string]any) (map[string]any, error) {
 	path := strings.Replace(r.Base, "/call_flows", "/call_flow", 1)
-	return r.HTTP.Post(path+"/"+id+"/versions", data)
+	return r.HTTP.Post(path+"/"+id+"/versions", data, nil)
 }
 
 // ---------- ConferenceRoomsResource ----------
@@ -122,7 +123,7 @@ func (r *SubscribersResource) ListSIPEndpoints(subscriberID string, params map[s
 
 // CreateSIPEndpoint creates a SIP endpoint for a subscriber.
 func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), data)
+	return r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), data, nil)
 }
 
 // GetSIPEndpoint retrieves a SIP endpoint for a subscriber.
@@ -136,8 +137,25 @@ func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID, endpointID string,
 }
 
 // DeleteSIPEndpoint deletes a SIP endpoint from a subscriber.
-func (r *SubscribersResource) DeleteSIPEndpoint(subscriberID, endpointID string) error {
+func (r *SubscribersResource) DeleteSIPEndpoint(subscriberID, endpointID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(subscriberID, "sip_endpoints", endpointID))
+}
+
+// ---------- CxmlApplicationsResource ----------
+
+// CxmlApplicationsResource exposes the fabric cXML applications sub-resource.
+// Create is explicitly disallowed — cXML applications cannot be created via
+// this API. This mirrors Python's CxmlApplicationsResource.create raising
+// NotImplementedError (fabric.py:90).
+type CxmlApplicationsResource struct {
+	*CrudResource
+}
+
+// Create always returns an error — cXML applications cannot be created
+// via this API. Use a different API surface or the dashboard to create
+// new cXML applications.
+func (r *CxmlApplicationsResource) Create(_ map[string]any) (map[string]any, error) {
+	return nil, errors.New("cXML applications cannot be created via this API")
 }
 
 // ---------- AutoMaterializedWebhook resources ----------
@@ -194,7 +212,7 @@ func (r *GenericResources) Get(id string) (map[string]any, error) {
 }
 
 // Delete removes a generic resource by ID.
-func (r *GenericResources) Delete(id string) error {
+func (r *GenericResources) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
 
@@ -220,12 +238,12 @@ func (r *GenericResources) AssignPhoneRoute(id string, data map[string]any) (map
 			"/ SetAiAgent. This method applies only to a narrow set of "+
 			"legacy resource types. See porting-sdk's phone-binding.md.",
 	)
-	return r.HTTP.Post(r.Path(id, "phone_routes"), data)
+	return r.HTTP.Post(r.Path(id, "phone_routes"), data, nil)
 }
 
 // AssignDomainApplication assigns a domain application to a resource.
 func (r *GenericResources) AssignDomainApplication(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "domain_applications"), data)
+	return r.HTTP.Post(r.Path(id, "domain_applications"), data, nil)
 }
 
 // ---------- FabricAddresses ----------
@@ -254,27 +272,27 @@ type FabricTokens struct {
 
 // CreateSubscriberToken creates a subscriber token.
 func (r *FabricTokens) CreateSubscriberToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("subscribers", "tokens"), data)
+	return r.HTTP.Post(r.Path("subscribers", "tokens"), data, nil)
 }
 
 // RefreshSubscriberToken refreshes a subscriber token.
 func (r *FabricTokens) RefreshSubscriberToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("subscribers", "tokens", "refresh"), data)
+	return r.HTTP.Post(r.Path("subscribers", "tokens", "refresh"), data, nil)
 }
 
 // CreateInviteToken creates an invite token.
 func (r *FabricTokens) CreateInviteToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("subscriber", "invites"), data)
+	return r.HTTP.Post(r.Path("subscriber", "invites"), data, nil)
 }
 
 // CreateGuestToken creates a guest token.
 func (r *FabricTokens) CreateGuestToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("guests", "tokens"), data)
+	return r.HTTP.Post(r.Path("guests", "tokens"), data, nil)
 }
 
 // CreateEmbedToken creates an embed token.
 func (r *FabricTokens) CreateEmbedToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("embeds", "tokens"), data)
+	return r.HTTP.Post(r.Path("embeds", "tokens"), data, nil)
 }
 
 // ---------- FabricNamespace ----------
@@ -290,7 +308,7 @@ type FabricNamespace struct {
 	Subscribers          *SubscribersResource
 	SIPEndpoints         *CrudResource
 	CXMLScripts          *CrudResource
-	CXMLApplications     *CrudResource
+	CXMLApplications     *CxmlApplicationsResource
 
 	// PATCH-update resources
 	//
@@ -322,7 +340,7 @@ func NewFabricNamespace(client HTTPClient) *FabricNamespace {
 		Subscribers:          &SubscribersResource{NewCrudResourcePUT(client, base+"/subscribers")},
 		SIPEndpoints:         NewCrudResourcePUT(client, base+"/sip_endpoints"),
 		CXMLScripts:          NewCrudResourcePUT(client, base+"/cxml_scripts"),
-		CXMLApplications:     NewCrudResourcePUT(client, base+"/cxml_applications"),
+		CXMLApplications:     &CxmlApplicationsResource{NewCrudResourcePUT(client, base+"/cxml_applications")},
 
 		// PATCH-update resources
 		SWMLWebhooks: &AutoMaterializedWebhookResource{
