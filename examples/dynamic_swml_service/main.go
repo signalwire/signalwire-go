@@ -23,16 +23,15 @@ func main() {
 	)
 
 	// Build a default SWML document
-	svc.Answer(map[string]any{})
-	svc.Play(map[string]any{
-		"url": "say:Hello, thank you for calling our service.",
-	})
+	svc.Answer(nil, nil)
+	greeting := "say:Hello, thank you for calling our service."
+	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
 	svc.Prompt(map[string]any{
 		"play":       "say:Press 1 for sales, 2 for support, or 3 to leave a message.",
 		"max_digits":  1,
 		"terminators": "#",
 	})
-	svc.Hangup(map[string]any{})
+	svc.Hangup(nil)
 
 	// Register a routing callback that customises the response
 	svc.RegisterRoutingCallback("/greeting", func(r *http.Request, body map[string]any) map[string]any {

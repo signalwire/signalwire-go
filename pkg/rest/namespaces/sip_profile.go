@@ -28,3 +28,7 @@ func (r *SipProfileNamespace) Get() (map[string]any, error) {
 func (r *SipProfileNamespace) Update(data map[string]any) (map[string]any, error) {
 	return r.HTTP.Put(r.Base, data)
 }
+
+// SipProfileResource is an alias for SipProfileNamespace, matching the Python
+// class name for cross-SDK parity. Prefer SipProfileNamespace in new Go code.
+type SipProfileResource = SipProfileNamespace

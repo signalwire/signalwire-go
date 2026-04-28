@@ -25,3 +25,7 @@ func NewLookupNamespace(client HTTPClient) *LookupNamespace {
 func (r *LookupNamespace) PhoneNumber(e164 string, params map[string]string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path("phone_number", e164), params)
 }
+
+// LookupResource is an alias for LookupNamespace, matching the Python class
+// name for cross-SDK parity. Prefer LookupNamespace in new Go code.
+type LookupResource = LookupNamespace

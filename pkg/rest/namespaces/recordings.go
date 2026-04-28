@@ -48,3 +48,7 @@ func (r *RecordingsNamespace) Get(id string) (map[string]any, error) {
 func (r *RecordingsNamespace) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
+
+// RecordingsResource is an alias for RecordingsNamespace, matching the Python
+// class name for cross-SDK parity. Prefer RecordingsNamespace in new Go code.
+type RecordingsResource = RecordingsNamespace

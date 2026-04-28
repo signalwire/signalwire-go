@@ -191,7 +191,7 @@ func main() {
 		fmt.Printf("  Deleted address %s\n", addrID)
 	}
 	if callerID != "" {
-		if err := client.VerifiedCallers.Delete(callerID); err != nil {
+		if _, err := client.VerifiedCallers.Delete(callerID); err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Verified caller delete failed: %d\n", restErr.StatusCode)
 			}
@@ -204,7 +204,7 @@ func main() {
 		fmt.Printf("  Deleted number group %s\n", groupID)
 	}
 	if numID != "" {
-		if err := client.PhoneNumbers.Delete(numID); err != nil {
+		if _, err := client.PhoneNumbers.Delete(numID); err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Release number failed (recently purchased): %d\n", restErr.StatusCode)
 			}

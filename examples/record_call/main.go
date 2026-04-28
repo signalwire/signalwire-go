@@ -21,21 +21,21 @@ func main() {
 	// ---- Basic recording ----
 	fmt.Println("=== Basic Recording ===")
 	basic := swaig.NewFunctionResult("Starting basic call recording").
-		RecordCall("", false, "mp3", "both").
+		RecordCall("", false, "mp3", "both", nil).
 		Say("This call is now being recorded")
 	printResult(basic)
 
 	// ---- Advanced stereo recording ----
 	fmt.Println("=== Advanced Stereo Recording ===")
 	advanced := swaig.NewFunctionResult("Starting advanced call recording").
-		RecordCall("support_call_001", true, "mp3", "both").
+		RecordCall("support_call_001", true, "mp3", "both", nil).
 		Say("This call is being recorded for quality and training purposes")
 	printResult(advanced)
 
 	// ---- Voicemail recording ----
 	fmt.Println("=== Voicemail Recording ===")
 	voicemail := swaig.NewFunctionResult("Please leave your message after the beep").
-		RecordCall("voicemail_123", false, "wav", "speak").
+		RecordCall("voicemail_123", false, "wav", "speak", nil).
 		SetEndOfSpeechTimeout(2000)
 	printResult(voicemail)
 
@@ -49,7 +49,7 @@ func main() {
 	// ---- Complete customer service workflow ----
 	fmt.Println("=== Customer Service Workflow ===")
 	startWorkflow := swaig.NewFunctionResult("Transferring you to a customer service agent").
-		RecordCall("cs_transfer_001", true, "mp3", "both").
+		RecordCall("cs_transfer_001", true, "mp3", "both", nil).
 		UpdateGlobalData(map[string]any{"recording_id": "cs_transfer_001"}).
 		Say("Please hold while I connect you to an agent")
 	printResult(startWorkflow)
