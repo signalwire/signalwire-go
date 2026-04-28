@@ -22,9 +22,10 @@ func main() {
 	)
 
 	// Build the default (main) SWML document
-	svc.Answer(map[string]any{})
-	svc.Play(map[string]any{"url": "say:Hello from the main service!"})
-	svc.Hangup(map[string]any{})
+	svc.Answer(nil, nil)
+	greeting := "say:Hello from the main service!"
+	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
+	svc.Hangup(nil)
 
 	// Register a customer routing callback
 	svc.RegisterRoutingCallback("/customer", func(r *http.Request, body map[string]any) map[string]any {

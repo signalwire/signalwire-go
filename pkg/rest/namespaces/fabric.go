@@ -158,6 +158,11 @@ func (r *CxmlApplicationsResource) Create(_ map[string]any) (map[string]any, err
 	return nil, errors.New("cXML applications cannot be created via this API")
 }
 
+// ListAddresses lists addresses for a cXML application.
+func (r *CxmlApplicationsResource) ListAddresses(id string, params map[string]string) (map[string]any, error) {
+	return r.HTTP.Get(r.Path(id, "addresses"), params)
+}
+
 // ---------- AutoMaterializedWebhook resources ----------
 
 // AutoMaterializedWebhookResource is a Fabric webhook resource that is
@@ -316,8 +321,8 @@ type FabricNamespace struct {
 	// PhoneNumbers.SetSwmlWebhook / SetCxmlWebhook for creation. Direct
 	// .Create still works for backcompat but emits a deprecation warning.
 	SWMLWebhooks *AutoMaterializedWebhookResource
-	AIAgents     *CrudResource
-	SIPGateways  *CrudResource
+	AIAgents     *CrudWithAddresses
+	SIPGateways  *CrudWithAddresses
 	CXMLWebhooks *AutoMaterializedWebhookResource
 
 	// Special resources
@@ -348,8 +353,8 @@ func NewFabricNamespace(client HTTPClient) *FabricNamespace {
 			helperName:     "phone_numbers.SetSwmlWebhook(sid, url)",
 			deprecationKey: "SWMLWebhooks.Create",
 		},
-		AIAgents:    NewCrudResource(client, base+"/ai_agents"),
-		SIPGateways: NewCrudResource(client, base+"/sip_gateways"),
+		AIAgents:    NewCrudWithAddresses(client, base+"/ai_agents"),
+		SIPGateways: NewCrudWithAddresses(client, base+"/sip_gateways"),
 		CXMLWebhooks: &AutoMaterializedWebhookResource{
 			CrudResource:   NewCrudResource(client, base+"/cxml_webhooks"),
 			helperName:     "phone_numbers.SetCxmlWebhook(sid, url, opts)",

@@ -60,7 +60,7 @@ func main() {
 	ig := prefabs.NewInfoGathererAgent(prefabs.InfoGathererOptions{
 		Name:      "DynamicInfoGatherer",
 		Route:     "/contact",
-		Questions: questions,
+		Questions: &questions,
 	})
 
 	fmt.Printf("Starting DynamicInfoGatherer (%s set) on :3000/contact ...\n", set)

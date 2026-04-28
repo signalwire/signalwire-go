@@ -244,7 +244,7 @@ func main() {
 	// 11. Clean up
 	fmt.Println("\nCleaning up...")
 	if streamID != "" {
-		if err := client.Video.Streams.Delete(streamID); err == nil {
+		if _, err := client.Video.Streams.Delete(streamID); err == nil {
 			fmt.Printf("  Deleted stream %s\n", streamID)
 		} else if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Stream delete failed: %d\n", restErr.StatusCode)
