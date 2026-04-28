@@ -14,10 +14,11 @@ import (
 )
 
 func main() {
+	suggestRelated := true
 	faqBot := prefabs.NewFAQBotAgent(prefabs.FAQBotOptions{
 		Name:           "SignalWireFAQ",
 		Route:          "/faq",
-		SuggestRelated: true,
+		SuggestRelated: &suggestRelated,
 		Persona:        "You are a knowledgeable FAQ assistant for SignalWire.",
 		FAQs: []prefabs.FAQ{
 			{

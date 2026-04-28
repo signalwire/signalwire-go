@@ -46,7 +46,7 @@ func main() {
 	// ---- SendSms ----
 	fmt.Println("=== SendSms ===")
 	smsResult := swaig.NewFunctionResult("Sending confirmation text").
-		SendSms("+15551234567", "+15559990000", "Your appointment is confirmed for 3pm.", nil, nil)
+		SendSms("+15551234567", "+15559990000", "Your appointment is confirmed for 3pm.", nil, nil, "")
 	printResult(smsResult)
 
 	// ---- UpdateGlobalData ----
@@ -105,7 +105,7 @@ func main() {
 	combined := swaig.NewFunctionResult("Order confirmed and scheduled").
 		Say("Your order has been confirmed").
 		UpdateGlobalData(map[string]any{"order_status": "confirmed"}).
-		SendSms("+15551234567", "+15559990000", "Order confirmed! Delivery scheduled.", nil, nil).
+		SendSms("+15551234567", "+15559990000", "Order confirmed! Delivery scheduled.", nil, nil, "").
 		SetMetadata(map[string]any{"confirmation_sent": true})
 	printResult(combined)
 

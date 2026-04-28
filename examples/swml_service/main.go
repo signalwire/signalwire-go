@@ -22,11 +22,11 @@ func main() {
 	)
 
 	// Build the SWML document: answer, greet, prompt, and route
-	svc.Answer(map[string]any{"max_duration": 7200})
+	maxDuration := 7200
+	svc.Answer(&maxDuration, nil)
 
-	svc.Play(map[string]any{
-		"url": "say:Welcome to our service. Press 1 for sales, 2 for support, or 3 to leave a message.",
-	})
+	welcome := "say:Welcome to our service. Press 1 for sales, 2 for support, or 3 to leave a message."
+	svc.Play(&welcome, nil, nil, nil, nil, nil, nil)
 
 	svc.Prompt(map[string]any{
 		"play":       "say:Please make your selection now.",
@@ -57,7 +57,7 @@ func main() {
 		},
 	})
 
-	svc.Hangup(map[string]any{})
+	svc.Hangup(nil)
 
 	// Print the rendered SWML document
 	pretty, err := svc.RenderPretty()

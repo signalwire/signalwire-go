@@ -67,7 +67,7 @@ func main() {
 	// ---- Join conference ----
 	fmt.Println("=== Join Conference ===")
 	joinConf := swaig.NewFunctionResult("Joining team conference").
-		JoinConference("daily_standup", false, "", "").
+		JoinConference("daily_standup", nil).
 		Say("Welcome to the daily standup conference")
 	printResult(joinConf)
 

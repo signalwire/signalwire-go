@@ -88,7 +88,7 @@ func main() {
 
 	// 5. Clean up: delete the agent
 	fmt.Printf("\nDeleting agent %s...\n", agentID)
-	if err := client.Fabric.AIAgents.Delete(agentID); err != nil {
+	if _, err := client.Fabric.AIAgents.Delete(agentID); err != nil {
 		fmt.Printf("  Delete failed: %v\n", err)
 	} else {
 		fmt.Println("  Deleted.")

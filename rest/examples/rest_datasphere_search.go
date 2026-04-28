@@ -111,7 +111,7 @@ func main() {
 
 	// 5. Clean up
 	fmt.Printf("\nDeleting document %s...\n", docID)
-	if err := client.Datasphere.Documents.Delete(docID); err != nil {
+	if _, err := client.Datasphere.Documents.Delete(docID); err != nil {
 		fmt.Printf("  Delete failed: %v\n", err)
 	} else {
 		fmt.Println("  Deleted.")
