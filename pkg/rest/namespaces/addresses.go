@@ -38,3 +38,7 @@ func (r *AddressesNamespace) Get(id string) (map[string]any, error) {
 func (r *AddressesNamespace) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
+
+// AddressesResource is an alias for AddressesNamespace, matching the Python
+// class name for cross-SDK parity. Prefer AddressesNamespace in new Go code.
+type AddressesResource = AddressesNamespace

@@ -39,3 +39,7 @@ func (r *ShortCodesNamespace) Get(id string) (map[string]any, error) {
 func (r *ShortCodesNamespace) Update(id string, data map[string]any) (map[string]any, error) {
 	return r.HTTP.Put(r.Path(id), data)
 }
+
+// ShortCodesResource is an alias for ShortCodesNamespace, matching the Python
+// class name for cross-SDK parity. Prefer ShortCodesNamespace in new Go code.
+type ShortCodesResource = ShortCodesNamespace
