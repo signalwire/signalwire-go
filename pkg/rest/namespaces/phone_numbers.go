@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "fmt"
+
 // PhoneNumbersNamespace provides phone number management with search and
 // typed helpers for binding an inbound call to a handler (SWML webhook, cXML
 // webhook, AI agent, call flow, RELAY application/topic).
@@ -29,8 +31,19 @@ func NewPhoneNumbersNamespace(client HTTPClient) *PhoneNumbersNamespace {
 
 // Search searches for available phone numbers with optional filter parameters
 // such as area_code, contains, starts_with, etc.
-func (r *PhoneNumbersNamespace) Search(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path("search"), params)
+//
+// params may contain values of any type (string, int, bool, etc.); they are
+// converted to strings internally before the HTTP request is made, matching
+// Python's **params behaviour which accepts numeric and boolean query values.
+func (r *PhoneNumbersNamespace) Search(params map[string]any) (map[string]any, error) {
+	var sp map[string]string
+	if len(params) > 0 {
+		sp = make(map[string]string, len(params))
+		for k, v := range params {
+			sp[k] = fmt.Sprint(v)
+		}
+	}
+	return r.HTTP.Get(r.Path("search"), sp)
 }
 
 // ---------- Typed binding helpers ----------
@@ -182,3 +195,7 @@ func mergeExtra(body map[string]any, extra []map[string]any) {
 		}
 	}
 }
+
+// PhoneNumbersResource is an alias for PhoneNumbersNamespace, matching the
+// Python class name for cross-SDK parity. Prefer PhoneNumbersNamespace in new Go code.
+type PhoneNumbersResource = PhoneNumbersNamespace
