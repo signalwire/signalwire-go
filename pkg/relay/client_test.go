@@ -12,6 +12,16 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestNewRelayClient_Defaults(t *testing.T) {
+	// NewRelayClient auto-loads SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN,
+	// SIGNALWIRE_JWT_TOKEN, SIGNALWIRE_SPACE, and RELAY_MAX_ACTIVE_CALLS env
+	// vars (PR #155). This test asserts the *no-input* defaults, so isolate
+	// it from any env the developer/CI may have set.
+	t.Setenv("SIGNALWIRE_PROJECT_ID", "")
+	t.Setenv("SIGNALWIRE_API_TOKEN", "")
+	t.Setenv("SIGNALWIRE_JWT_TOKEN", "")
+	t.Setenv("SIGNALWIRE_SPACE", "")
+	t.Setenv("RELAY_MAX_ACTIVE_CALLS", "")
+
 	c := NewRelayClient()
 	if c == nil {
 		t.Fatal("expected non-nil client")
