@@ -66,9 +66,27 @@ func TestResetLoggingConfigurationHonorsLogModeOff(t *testing.T) {
 	}
 }
 
-// Restore to clean state so other tests in the package start fresh.
+// TestResetLoggingConfigurationCleanup restores logging config to the
+// no-env-vars baseline AND verifies that ResetLoggingConfiguration is
+// observable on globalLevel and suppressed: with no env vars set, the
+// level must reset to LevelInfo and suppression must be off. This is
+// also the cleanup hook for other tests in the package.
 func TestResetLoggingConfigurationCleanup(t *testing.T) {
 	t.Setenv("SIGNALWIRE_LOG_LEVEL", "")
 	t.Setenv("SIGNALWIRE_LOG_MODE", "")
+
+	// Pre-state: deliberately set both off-defaults so the reset is
+	// observable. If reset does nothing, the post-state will still be
+	// the "off" pre-state.
+	SetGlobalLevel(LevelDebug)
+	Suppress()
+
 	ResetLoggingConfiguration()
+
+	if got := GetGlobalLevel(); got != LevelInfo {
+		t.Errorf("expected global level LevelInfo after reset with no env, got %v", got)
+	}
+	if IsSuppressed() {
+		t.Errorf("expected suppression OFF after reset with no env vars")
+	}
 }

@@ -278,9 +278,42 @@ func TestBaseSkill_GetParameterSchema_HasCommonFields(t *testing.T) {
 	}
 }
 
-func TestBaseSkill_Cleanup_NoPanic(t *testing.T) {
-	b := &BaseSkill{SkillName: "test"}
+func TestBaseSkill_Cleanup_DefaultIsNoOp(t *testing.T) {
+	// Cleanup is documented as a no-op base implementation. The contract
+	// is: it returns successfully and does NOT mutate any observable
+	// BaseSkill state — subclasses overriding Cleanup() may free resources
+	// they allocated themselves, but the base implementation is a hook
+	// that does nothing. Verify by snapshotting fields, calling Cleanup,
+	// and asserting they're unchanged.
+	b := &BaseSkill{
+		SkillName: "test_skill",
+		SkillDesc: "test description",
+		SkillVer:  "1.2.3",
+		Params:    map[string]any{"key": "value"},
+	}
+
+	beforeName := b.SkillName
+	beforeDesc := b.SkillDesc
+	beforeVer := b.SkillVer
+	beforeParamLen := len(b.Params)
+
 	b.Cleanup()
+
+	if b.SkillName != beforeName {
+		t.Errorf("Cleanup mutated SkillName: %q -> %q", beforeName, b.SkillName)
+	}
+	if b.SkillDesc != beforeDesc {
+		t.Errorf("Cleanup mutated SkillDesc: %q -> %q", beforeDesc, b.SkillDesc)
+	}
+	if b.SkillVer != beforeVer {
+		t.Errorf("Cleanup mutated SkillVer: %q -> %q", beforeVer, b.SkillVer)
+	}
+	if len(b.Params) != beforeParamLen {
+		t.Errorf("Cleanup mutated Params length: %d -> %d", beforeParamLen, len(b.Params))
+	}
+	if v, ok := b.Params["key"]; !ok || v != "value" {
+		t.Errorf("Cleanup mutated Params content: got %v", b.Params)
+	}
 }
 
 // ---------------------------------------------------------------------------

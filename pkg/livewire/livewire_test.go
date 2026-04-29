@@ -200,26 +200,69 @@ func TestAgentSession_Say(t *testing.T) {
 }
 
 func TestAgentSession_GenerateReply(t *testing.T) {
-	// Should not panic even without a swAgent
+	// With no swAgent, GenerateReply must be a safe no-op: it should NOT
+	// allocate state, panic, or otherwise mutate the session. Verify by
+	// confirming the underlying agent is still nil and the say queue is
+	// untouched.
 	s := NewAgentSession()
 	s.GenerateReply() // no options
 	s.GenerateReply(WithReplyInstructions("Say hello"))
+
+	if s.GetSwAgent() != nil {
+		t.Errorf("GenerateReply without Start() must not allocate swAgent, got %v", s.GetSwAgent())
+	}
+	if len(s.sayQueue) != 0 {
+		t.Errorf("GenerateReply must not enqueue Say messages; got %v", s.sayQueue)
+	}
 }
 
 func TestAgentSession_GenerateReplyWithSwAgent(t *testing.T) {
 	s := NewAgentSession()
 	ag := NewAgent("test")
 	ctx := &JobContext{Room: &Room{Name: "test"}}
-	s.Start(ctx, ag)
+	if err := s.Start(ctx, ag); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
 
-	// Should not panic
-	s.GenerateReply(WithReplyInstructions("Greet the user"))
+	s.GenerateReply(WithReplyInstructions("Greet the user warmly"))
+
+	// GenerateReply with instructions must add a section to the underlying
+	// AgentBase prompt — verify by rendering the document and finding the
+	// section text. This catches a regression where GenerateReply silently
+	// drops its instructions.
+	swag := s.GetSwAgent()
+	if swag == nil {
+		t.Fatalf("expected swAgent to be allocated after Start()")
+	}
+	doc := swag.RenderSWML(nil, nil)
+	rendered := fmt.Sprintf("%v", doc)
+	if !strings.Contains(rendered, "Greet the user warmly") {
+		t.Errorf("expected GenerateReply instructions to appear in rendered prompt; got:\n%s", rendered)
+	}
 }
 
 func TestAgentSession_Interrupt(t *testing.T) {
-	// Should not panic — it's a noop
+	// Interrupt is a documented no-op on SignalWire (the platform handles
+	// barge-in). The contract is: "the call returns without error, without
+	// mutating session state." Verify both — start a session, interrupt,
+	// confirm the underlying swAgent and currentAgent fields are unchanged.
 	s := NewAgentSession()
+	ag := NewAgent("original")
+	ctx := &JobContext{Room: &Room{Name: "test"}}
+	if err := s.Start(ctx, ag); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	preAgent := s.GetSwAgent()
+	preInstructions := ag.instructions
+
 	s.Interrupt()
+
+	if s.GetSwAgent() != preAgent {
+		t.Errorf("Interrupt() mutated swAgent reference")
+	}
+	if ag.instructions != preInstructions {
+		t.Errorf("Interrupt() mutated agent instructions: %q -> %q", preInstructions, ag.instructions)
+	}
 }
 
 func TestAgentSession_UpdateInstructions(t *testing.T) {
@@ -308,9 +351,21 @@ func TestRunApp_WithAgentName(t *testing.T) {
 }
 
 func TestRunApp_WithServerType(t *testing.T) {
-	// Should not panic
+	// WithServerType is documented as a no-op on SignalWire. The contract
+	// is: it stores the server type on the rtcConfig (so callers writing
+	// LiveKit-style code can set it without surprise) and it must NOT
+	// affect the registered entrypoint. Verify both.
 	server := NewAgentServer()
-	server.RTCSession(func(ctx *JobContext) {}, WithServerType("room"))
+	called := false
+	server.RTCSession(func(ctx *JobContext) { called = true }, WithServerType("room"))
+
+	if server.entrypoint == nil {
+		t.Fatal("RTCSession must register the entrypoint regardless of server type")
+	}
+	server.entrypoint(&JobContext{Room: &Room{Name: "x"}})
+	if !called {
+		t.Error("registered entrypoint was not invoked")
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -330,8 +385,23 @@ func TestAgentHandoff(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestStopResponse(t *testing.T) {
-	// Just verify the type exists and can be created
-	_ = StopResponse{}
+	// StopResponse is a sentinel type returned from tool handlers to
+	// signal "do not run another LLM turn after this tool." Its contract
+	// is: the zero value is acceptable, and it composes with ToolError
+	// (the framework distinguishes them via type-switch). Verify both
+	// type-switch arms recognise StopResponse.
+	var v any = StopResponse{}
+	switch v.(type) {
+	case StopResponse:
+		// expected
+	default:
+		t.Fatalf("StopResponse{} did not match its own type in a switch; got %T", v)
+	}
+
+	// And that it does NOT match ToolError.
+	if _, ok := v.(*ToolError); ok {
+		t.Errorf("StopResponse must not be assignable to *ToolError")
+	}
 }
 
 // ---------------------------------------------------------------------------

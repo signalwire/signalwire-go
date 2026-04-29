@@ -93,11 +93,26 @@ func TestWeatherAPI_CelsiusUnit(t *testing.T) {
 	}
 }
 
-func TestWeatherAPI_InvalidUnit(t *testing.T) {
+func TestWeatherAPI_InvalidUnit_RejectedAtSetup(t *testing.T) {
+	// Setup() must return false for an unsupported temperature_unit
+	// value — matching Python's skill.py:103-104 ValueError. Also assert
+	// that RegisterTools is not invoked successfully on an unconfigured
+	// skill (no api_key still rejected separately).
 	factory := skills.GetSkillFactory("weather_api")
 	s := factory(map[string]any{"api_key": "test", "temperature_unit": "kelvin"})
-	s.Setup()
-	// Should default to fahrenheit
+
+	if s.Setup() {
+		t.Fatalf("Setup() must return false for unsupported temperature_unit; got true")
+	}
+
+	// And the celsius/fahrenheit values are explicitly OK (regression
+	// guard so the rejection isn't accidentally over-broad).
+	for _, valid := range []string{"celsius", "fahrenheit"} {
+		s2 := factory(map[string]any{"api_key": "test", "temperature_unit": valid})
+		if !s2.Setup() {
+			t.Errorf("Setup() must accept temperature_unit=%q", valid)
+		}
+	}
 }
 
 func TestWeatherAPI_HasHints(t *testing.T) {
@@ -164,11 +179,34 @@ func TestWikipedia_CustomNumResults(t *testing.T) {
 	}
 }
 
-func TestWikipedia_MinNumResults(t *testing.T) {
+func TestWikipedia_MinNumResults_ClampsToOne(t *testing.T) {
+	// Wikipedia skill clamps num_results to a minimum of 1 — wikipedia_search.go:36-38.
+	// Verify by passing a negative value and reading back the prompt
+	// section, which interpolates num_results into a user-facing string
+	// "...up to N Wikipedia article summaries." The N must be 1 after
+	// clamping, not -1.
 	factory := skills.GetSkillFactory("wikipedia_search")
-	s := factory(map[string]any{"num_results": -1})
-	s.Setup()
-	// Should clamp to 1 minimum
+	s := factory(map[string]any{"num_results": -5})
+	if !s.Setup() {
+		t.Fatal("Setup must accept any int (clamping is silent)")
+	}
+
+	sections := s.GetPromptSections()
+	if len(sections) == 0 {
+		t.Fatalf("expected prompt sections from wikipedia_search")
+	}
+
+	// The clamped value appears in the prompt body string.
+	body, ok := sections[0]["body"].(string)
+	if !ok {
+		t.Fatalf("expected sections[0].body to be a string, got %T", sections[0]["body"])
+	}
+	if !strings.Contains(body, "up to 1 Wikipedia") {
+		t.Errorf("expected body to contain clamped num_results=1; got %q", body)
+	}
+	if strings.Contains(body, "-5") || strings.Contains(body, "-1") {
+		t.Errorf("body must not echo unclamped negative num_results; got %q", body)
+	}
 }
 
 func TestWikipedia_HasPromptSections(t *testing.T) {

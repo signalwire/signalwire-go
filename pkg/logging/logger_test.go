@@ -1,6 +1,9 @@
 package logging
 
 import (
+	"bytes"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -118,14 +121,37 @@ func TestLoggerSuppressed(t *testing.T) {
 	}
 }
 
-func TestLoggerMethodsDoNotPanic(t *testing.T) {
-	// Ensure logging methods don't panic even when suppressed
+func TestLoggerMethods_SuppressedSilencesAllLevels(t *testing.T) {
+	// When the global Suppress() flag is on, every log method must drop
+	// its message — no stderr output, no panic, no goroutine activity.
+	// Capture stderr while invoking each method and assert it's empty.
 	Suppress()
 	defer Unsuppress()
 
+	oldStderr := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	os.Stderr = w
+
 	l := New("test")
-	l.Debug("test %s", "debug")
-	l.Info("test %s", "info")
-	l.Warn("test %s", "warn")
-	l.Error("test %s", "error")
+	l.Debug("debug message %s", "d")
+	l.Info("info message %s", "i")
+	l.Warn("warn message %s", "w")
+	l.Error("error message %s", "e")
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("ReadFrom: %v", err)
+	}
+	got := buf.String()
+	for _, msg := range []string{"debug message", "info message", "warn message", "error message"} {
+		if strings.Contains(got, msg) {
+			t.Errorf("suppressed logger leaked %q to stderr; stderr=%q", msg, got)
+		}
+	}
 }
