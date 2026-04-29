@@ -236,13 +236,36 @@ func WithSchemaPath(path string) ServiceOption {
 	return func(s *Service) { s.schemaPath = path }
 }
 
-// WithConfigFile sets an optional configuration file path. In the Python
-// SDK this loads a YAML/TOML file via SecurityConfig(config_file=...) which
-// can supply ssl_enabled, ssl_cert_path, ssl_key_path, domain, and basic_auth.
-// In Go the equivalent settings are passed via individual WithXxx options;
-// WithConfigFile is retained for API parity and is a no-op in this release.
-func WithConfigFile(_ string) ServiceOption {
-	return func(_ *Service) {}
+// WithConfigFile loads a YAML configuration file and applies its `security`
+// section to the Service. Mirrors Python's
+// SecurityConfig(config_file=...) loader (signalwire/core/security_config.py
+// _load_config_file). The expected schema is:
+//
+//	security:
+//	  ssl_cert_path: /path/to/cert.pem
+//	  ssl_key_path: /path/to/key.pem
+//	  domain: example.com
+//	  auth:
+//	    basic:
+//	      user: alice
+//	      password: secret
+//	    bearer_token: <token>
+//	    api_key: <key>
+//	    api_key_header: X-API-Key
+//
+// Settings from the file are applied AFTER the explicit WithBasicAuth /
+// WithBearerToken / WithAPIKey / WithTLS / WithDomain options, so config-file
+// values take precedence (matching Python's documented load order). If the
+// file cannot be read or parsed, NewService logs a warning and keeps running
+// with the previously-set values; this matches Python's "best-effort" load
+// behaviour and avoids crashing services whose config is missing.
+func WithConfigFile(path string) ServiceOption {
+	return func(s *Service) {
+		if path == "" {
+			return
+		}
+		applyConfigFile(s, path)
+	}
 }
 
 // WithSchemaValidation enables or disables SWML schema validation.
