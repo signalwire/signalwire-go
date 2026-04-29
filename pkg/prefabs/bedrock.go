@@ -1,6 +1,8 @@
 package prefabs
 
 import (
+	"sort"
+
 	"github.com/signalwire/signalwire-go/pkg/agent"
 	"github.com/signalwire/signalwire-go/pkg/logging"
 )
@@ -208,18 +210,38 @@ func (ba *BedrockAgent) SetLLMTemperature(temperature float64) {
 	ba.SetInferenceParams(temperature, 0, 0)
 }
 
-// SetPostPromptLLMParams logs a warning and does nothing.  Bedrock's
-// post-prompt summarisation uses OpenAI configured at the platform level.
+// SetPostPromptLLMParams logs a warning and ignores the parameters.
+// Bedrock's post-prompt summarisation uses OpenAI configured at the
+// platform level (in the C code), so SDK-level overrides have no effect.
+// The keys of params are listed in the warning so the caller can see
+// what was ignored.
 //
 // Python equivalent: BedrockAgent.set_post_prompt_llm_params
-func (ba *BedrockAgent) SetPostPromptLLMParams(_ map[string]any) {
-	ba.logger.Warn("SetPostPromptLLMParams() called but Bedrock post-prompt uses OpenAI configured in C code")
+func (ba *BedrockAgent) SetPostPromptLLMParams(params map[string]any) {
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	ba.logger.Warn(
+		"SetPostPromptLLMParams(%v) called but Bedrock post-prompt uses OpenAI configured in C code; ignoring keys",
+		keys,
+	)
 }
 
 // SetPromptLLMParams logs a warning directing the caller to
-// SetInferenceParams instead.
+// SetInferenceParams instead. The keys of params are listed in the
+// warning so the caller can see what was ignored.
 //
 // Python equivalent: BedrockAgent.set_prompt_llm_params
-func (ba *BedrockAgent) SetPromptLLMParams(_ map[string]any) {
-	ba.logger.Warn("SetPromptLLMParams() called — use SetInferenceParams() for Bedrock")
+func (ba *BedrockAgent) SetPromptLLMParams(params map[string]any) {
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	ba.logger.Warn(
+		"SetPromptLLMParams(%v) called — use SetInferenceParams() for Bedrock; ignoring keys",
+		keys,
+	)
 }

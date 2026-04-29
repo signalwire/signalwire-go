@@ -8,7 +8,7 @@
 package namespaces
 
 import (
-	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -152,10 +152,18 @@ type CxmlApplicationsResource struct {
 }
 
 // Create always returns an error — cXML applications cannot be created
-// via this API. Use a different API surface or the dashboard to create
-// new cXML applications.
-func (r *CxmlApplicationsResource) Create(_ map[string]any) (map[string]any, error) {
-	return nil, errors.New("cXML applications cannot be created via this API")
+// via this API. The params argument is accepted for API parity with other
+// CRUD resources but is reported in the error so the caller can see what
+// payload was rejected. To create a new cXML application use a different
+// API surface or the SignalWire dashboard.
+//
+// Mirrors Python's CxmlApplicationsResource.create raising
+// NotImplementedError (signalwire/rest/namespaces/fabric.py:90).
+func (r *CxmlApplicationsResource) Create(params map[string]any) (map[string]any, error) {
+	return nil, fmt.Errorf(
+		"cXML applications cannot be created via this API (received %d field(s); use the SignalWire dashboard)",
+		len(params),
+	)
 }
 
 // ListAddresses lists addresses for a cXML application.
