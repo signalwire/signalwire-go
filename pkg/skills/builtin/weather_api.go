@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/signalwire/signalwire-go/pkg/skills"
@@ -88,9 +89,17 @@ func (s *WeatherAPISkill) RegisterTools() []skills.ToolRegistration {
 	)
 
 	// DataMap webhook URL uses the platform-side variable expansion (Python skill.py:179).
+	// Base URL is normally api.weatherapi.com; the porting-sdk's
+	// audit_skills_dispatch.py overrides via WEATHER_API_BASE_URL so a
+	// loopback fixture can stand in for the real WeatherAPI.com.
+	base := os.Getenv("WEATHER_API_BASE_URL")
+	if base == "" {
+		base = "https://api.weatherapi.com"
+	}
+	base = strings.TrimRight(base, "/")
 	webhookURL := fmt.Sprintf(
-		"https://api.weatherapi.com/v1/current.json?key=%s&q=${lc:enc:args.location}&aqi=no",
-		s.apiKey,
+		"%s/v1/current.json?key=%s&q=${lc:enc:args.location}&aqi=no",
+		base, s.apiKey,
 	)
 
 	return []skills.ToolRegistration{
@@ -138,10 +147,14 @@ func (s *WeatherAPISkill) handleGetWeather(args map[string]any, _ map[string]any
 		return swaig.NewFunctionResult("Please provide a location to get weather for.")
 	}
 
+	base := os.Getenv("WEATHER_API_BASE_URL")
+	if base == "" {
+		base = "https://api.weatherapi.com"
+	}
+	base = strings.TrimRight(base, "/")
 	apiURL := fmt.Sprintf(
-		"https://api.weatherapi.com/v1/current.json?key=%s&q=%s&aqi=no",
-		s.apiKey,
-		url.QueryEscape(location),
+		"%s/v1/current.json?key=%s&q=%s&aqi=no",
+		base, s.apiKey, url.QueryEscape(location),
 	)
 
 	client := &http.Client{Timeout: 15 * time.Second}

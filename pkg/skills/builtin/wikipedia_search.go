@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -89,9 +90,19 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
+	// Base URL is normally en.wikipedia.org; the porting-sdk's
+	// audit_skills_dispatch.py overrides via WIKIPEDIA_BASE_URL so a
+	// loopback fixture can stand in for the real Wikipedia API.
+	base := os.Getenv("WIKIPEDIA_BASE_URL")
+	if base == "" {
+		base = "https://en.wikipedia.org"
+	}
+	base = strings.TrimRight(base, "/")
+
 	// Step 1: Search for articles
 	searchURL := fmt.Sprintf(
-		"https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srsearch=%s&srlimit=%d",
+		"%s/w/api.php?action=query&list=search&format=json&srsearch=%s&srlimit=%d",
+		base,
 		url.QueryEscape(query),
 		s.numResults,
 	)
@@ -129,7 +140,8 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 		}
 
 		extractURL := fmt.Sprintf(
-			"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=%s",
+			"%s/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=%s",
+			base,
 			url.QueryEscape(title),
 		)
 

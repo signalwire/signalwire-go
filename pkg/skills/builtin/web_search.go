@@ -121,12 +121,22 @@ type processedResult struct {
 }
 
 // searchGoogle calls the Google Custom Search API and returns raw results.
+//
+// Base URL is normally googleapis.com; the porting-sdk's
+// audit_skills_dispatch.py overrides via WEB_SEARCH_BASE_URL so a
+// loopback fixture can stand in for Google CSE.
 func (s *WebSearchSkill) searchGoogle(query string, numResults int) ([]searchResult, error) {
 	if numResults > 10 {
 		numResults = 10
 	}
+	base := os.Getenv("WEB_SEARCH_BASE_URL")
+	if base == "" {
+		base = "https://www.googleapis.com"
+	}
+	base = strings.TrimRight(base, "/")
 	apiURL := fmt.Sprintf(
-		"https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&num=%d",
+		"%s/customsearch/v1?key=%s&cx=%s&q=%s&num=%d",
+		base,
 		s.apiKey,
 		s.searchEngineID,
 		url.QueryEscape(query),

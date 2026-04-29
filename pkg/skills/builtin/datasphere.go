@@ -75,7 +75,14 @@ func (s *DataSphereSkill) Setup() bool {
 	s.count = s.GetParamInt("count", 1)
 	s.distance = s.GetParamFloat("distance", 3.0)
 	s.toolName = s.GetParamString("tool_name", "search_knowledge")
-	s.apiURL = fmt.Sprintf("https://%s.signalwire.com/api/datasphere/documents/search", s.spaceName)
+	// Base URL is normally <space>.signalwire.com; the porting-sdk's
+	// audit_skills_dispatch.py overrides via DATASPHERE_BASE_URL so a
+	// loopback fixture can stand in for the real DataSphere endpoint.
+	if base := os.Getenv("DATASPHERE_BASE_URL"); base != "" {
+		s.apiURL = strings.TrimRight(base, "/") + "/api/datasphere/documents/search"
+	} else {
+		s.apiURL = fmt.Sprintf("https://%s.signalwire.com/api/datasphere/documents/search", s.spaceName)
+	}
 
 	// Optional: tags
 	if v, ok := s.GetParam("tags"); ok {

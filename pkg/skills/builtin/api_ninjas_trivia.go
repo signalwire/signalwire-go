@@ -123,6 +123,17 @@ func (s *APINinjasTriviaSkill) RegisterTools() []skills.ToolRegistration {
 	}
 	categoryDesc := "Category for trivia question. Options: " + strings.Join(descriptions, "; ")
 
+	// DataMap webhook URL — base host normally api.api-ninjas.com.
+	// audit_skills_dispatch.py overrides via API_NINJAS_BASE_URL so a
+	// loopback fixture can stand in. Mirrors Python's
+	// api_ninjas_trivia/skill.py:184 url field.
+	base := os.Getenv("API_NINJAS_BASE_URL")
+	if base == "" {
+		base = "https://api.api-ninjas.com"
+	}
+	base = strings.TrimRight(base, "/")
+	webhookURL := base + "/v1/trivia?category=%{args.category}"
+
 	return []skills.ToolRegistration{
 		{
 			Name:        s.toolName,
@@ -138,6 +149,29 @@ func (s *APINinjasTriviaSkill) RegisterTools() []skills.ToolRegistration {
 				},
 				"required": []string{"category"},
 			},
+			// DataMap-based execution mirrors Python skill.py:181-198.
+			// The Handler below provides a local fallback for environments
+			// where the platform-side DataMap is not available.
+			SwaigFields: map[string]any{
+				"data_map": map[string]any{
+					"webhooks": []map[string]any{
+						{
+							"url":    webhookURL,
+							"method": "GET",
+							"headers": map[string]any{
+								"X-Api-Key": s.apiKey,
+							},
+							"output": map[string]any{
+								"response": "Category %{array[0].category} question: %{array[0].question} Answer: %{array[0].answer}, be sure to give the user time to answer before saying the answer.",
+							},
+						},
+					},
+					"error_keys": []string{"error"},
+					"output": map[string]any{
+						"response": "Sorry, I cannot get trivia questions right now. Please try again later.",
+					},
+				},
+			},
 			Handler: s.handleGetTrivia,
 		},
 	}
@@ -149,7 +183,12 @@ func (s *APINinjasTriviaSkill) handleGetTrivia(args map[string]any, _ map[string
 		category = "general"
 	}
 
-	apiURL := fmt.Sprintf("https://api.api-ninjas.com/v1/trivia?category=%s", category)
+	base := os.Getenv("API_NINJAS_BASE_URL")
+	if base == "" {
+		base = "https://api.api-ninjas.com"
+	}
+	base = strings.TrimRight(base, "/")
+	apiURL := fmt.Sprintf("%s/v1/trivia?category=%s", base, category)
 
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {

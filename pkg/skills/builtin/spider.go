@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -17,6 +18,28 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/swaig"
 	"golang.org/x/net/html"
 )
+
+// applySpiderBaseURLOverride rewrites the scheme+host of a URL to match
+// the SPIDER_BASE_URL env var when set. The path and query are
+// preserved. When SPIDER_BASE_URL is empty (the production default) the
+// input URL is returned unchanged.
+func applySpiderBaseURLOverride(urlStr string) string {
+	base := os.Getenv("SPIDER_BASE_URL")
+	if base == "" {
+		return urlStr
+	}
+	in, err := url.Parse(urlStr)
+	if err != nil {
+		return urlStr
+	}
+	override, err := url.Parse(base)
+	if err != nil {
+		return urlStr
+	}
+	in.Scheme = override.Scheme
+	in.Host = override.Host
+	return in.String()
+}
 
 var whitespaceRE = regexp.MustCompile(`\s+`)
 
@@ -360,6 +383,11 @@ func (s *SpiderSkill) handleScrapeURL(args map[string]any, _ map[string]any) *sw
 	if !strings.HasPrefix(urlStr, "http://") && !strings.HasPrefix(urlStr, "https://") {
 		return swaig.NewFunctionResult("Invalid URL: must start with http:// or https://")
 	}
+
+	// SPIDER_BASE_URL overrides scheme+host so a loopback fixture (used
+	// by porting-sdk's audit_skills_dispatch.py) can stand in for the
+	// real upstream. The path/query of the requested URL is preserved.
+	urlStr = applySpiderBaseURLOverride(urlStr)
 
 	body, err := s.fetchURL(urlStr)
 	if err != nil {
