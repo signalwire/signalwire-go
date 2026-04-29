@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ ac772128ab1ab5f31f08aa870237c34f5f0148a8",
+  "generated_from": "signalwire-go (go-native) @ 397239f583278606479533524a0fdc71fc15c213",
   "modules": {
     "agent": {
       "classes": {
@@ -11,6 +11,7 @@
           "AddHints",
           "AddInternalFiller",
           "AddLanguage",
+          "AddLanguageTyped",
           "AddMcpServer",
           "AddPatternHint",
           "AddPostAiVerb",
@@ -20,6 +21,7 @@
           "AddSkill",
           "AddSwaigQueryParams",
           "AsRouter",
+          "AutoMapSipUsernames",
           "ClearPostAiVerbs",
           "ClearPostAnswerVerbs",
           "ClearPreAnswerVerbs",
@@ -32,7 +34,10 @@
           "EnableDebugRoutes",
           "EnableMcpServer",
           "EnableSipRouting",
+          "GetBasicAuthCredentials",
+          "GetFullURL",
           "GetName",
+          "GetPostPrompt",
           "GetPrompt",
           "GetRoute",
           "HasSkill",
@@ -41,11 +46,15 @@
           "ManualSetProxyUrl",
           "OnDebugEvent",
           "OnFunctionCall",
+          "OnRequest",
           "OnSummary",
+          "OnSwmlRequest",
           "PromptAddSection",
           "PromptAddSubsection",
           "PromptAddToSection",
           "PromptHasSection",
+          "RegisterRoutingCallback",
+          "RegisterSipRoutingCallback",
           "RegisterSipUsername",
           "RegisterSwaigFunction",
           "RemoveSkill",
@@ -67,25 +76,47 @@
           "SetPromptLlmParams",
           "SetPromptPom",
           "SetPromptText",
+          "SetPromptTransformer",
           "SetPronunciations",
           "SetWebHookUrl",
-          "UpdateGlobalData"
+          "SetupGracefulShutdown",
+          "UpdateGlobalData",
+          "ValidateBasicAuth",
+          "ValidateToolToken"
         ],
         "MCPServerConfig": [],
-        "ToolDefinition": []
+        "ToolDefinition": [
+          "ValidateArgs"
+        ]
       },
       "functions": [
         "NewAgentBase",
+        "WithAIVerbName",
+        "WithAgentID",
         "WithAutoAnswer",
         "WithBasicAuth",
+        "WithBullet",
+        "WithBullets",
+        "WithCheckForInputOverride",
+        "WithConfigFile",
+        "WithDefaultWebhookURL",
+        "WithEnablePostPromptOverride",
         "WithHost",
         "WithName",
+        "WithNativeFunctions",
+        "WithNumbered",
+        "WithNumberedBullets",
         "WithPort",
         "WithRecordCall",
         "WithRecordFormat",
         "WithRecordStereo",
         "WithRoute",
-        "WithTokenExpiry"
+        "WithSchemaPath",
+        "WithSchemaValidation",
+        "WithSubsections",
+        "WithSuppressLogs",
+        "WithTokenExpiry",
+        "WithUsePom"
       ]
     },
     "builtin": {
@@ -101,11 +132,14 @@
           "SupportsMultipleInstances"
         ],
         "ClaudeSkillsSkill": [
+          "GetHints",
+          "GetInstanceKey",
           "GetParameterSchema",
           "GetPromptSections",
           "RegisterTools",
           "RequiredEnvVars",
-          "Setup"
+          "Setup",
+          "SupportsMultipleInstances"
         ],
         "CustomSkillsSkill": [
           "GetInstanceKey",
@@ -116,6 +150,7 @@
           "SupportsMultipleInstances"
         ],
         "DataSphereServerlessSkill": [
+          "GetGlobalData",
           "GetInstanceKey",
           "GetParameterSchema",
           "GetPromptSections",
@@ -125,6 +160,7 @@
           "SupportsMultipleInstances"
         ],
         "DataSphereSkill": [
+          "GetGlobalData",
           "GetInstanceKey",
           "GetParameterSchema",
           "GetPromptSections",
@@ -157,12 +193,14 @@
           "SupportsMultipleInstances"
         ],
         "JokeSkill": [
+          "GetGlobalData",
           "GetHints",
           "GetPromptSections",
           "RegisterTools",
           "Setup"
         ],
         "MCPGatewaySkill": [
+          "GetGlobalData",
           "GetHints",
           "GetParameterSchema",
           "GetPromptSections",
@@ -175,6 +213,7 @@
           "Setup"
         ],
         "NativeVectorSearchSkill": [
+          "GetGlobalData",
           "GetHints",
           "GetInstanceKey",
           "GetParameterSchema",
@@ -200,8 +239,10 @@
           "SupportsMultipleInstances"
         ],
         "SpiderSkill": [
+          "Cleanup",
           "GetHints",
           "GetInstanceKey",
+          "GetParameterSchema",
           "RegisterTools",
           "Setup",
           "SupportsMultipleInstances"
@@ -215,6 +256,7 @@
           "Setup"
         ],
         "WebSearchSkill": [
+          "GetGlobalData",
           "GetInstanceKey",
           "GetParameterSchema",
           "GetPromptSections",
@@ -224,6 +266,7 @@
           "SupportsMultipleInstances"
         ],
         "WikipediaSearchSkill": [
+          "GetParameterSchema",
           "GetPromptSections",
           "RegisterTools",
           "Setup"
@@ -288,7 +331,8 @@
         ],
         "GatherInfo": [
           "AddQuestion",
-          "ToMap"
+          "ToMap",
+          "Validate"
         ],
         "GatherQuestion": [
           "ToMap"
@@ -331,8 +375,10 @@
           "Description",
           "ErrorKeys",
           "Expression",
+          "ExpressionRegexp",
           "FallbackOutput",
           "Foreach",
+          "FunctionName",
           "GlobalErrorKeys",
           "Output",
           "Parameter",
@@ -341,7 +387,8 @@
           "ToSwaigFunction",
           "Webhook",
           "WebhookExpressions"
-        ]
+        ],
+        "ExpressionPattern": []
       },
       "functions": [
         "CreateExpressionTool",
@@ -363,23 +410,41 @@
     "livewire": {
       "classes": {
         "Agent": [
-          "FunctionTool"
+          "FunctionTool",
+          "Instructions",
+          "OnEnter",
+          "OnExit",
+          "OnUserTurnCompleted",
+          "Session",
+          "UpdateTools"
         ],
         "AgentHandoff": [],
         "AgentSession": [
           "GenerateReply",
           "GetSwAgent",
+          "History",
           "Interrupt",
           "Say",
+          "SetUserdata",
           "Start",
-          "UpdateInstructions"
+          "UpdateAgent",
+          "UpdateInstructions",
+          "Userdata"
         ],
         "CartesiaTTS": [],
+        "ChatContext": [
+          "Append"
+        ],
+        "ChatMessage": [],
         "DeepgramSTT": [],
         "ElevenLabsTTS": [],
         "GoogleSTT": [],
+        "InferenceLLM": [],
+        "InferenceSTT": [],
+        "InferenceTTS": [],
         "JobContext": [
-          "Connect"
+          "Connect",
+          "WaitForParticipant"
         ],
         "JobProcess": [],
         "LiveServer": [
@@ -393,31 +458,51 @@
         "SileroVAD": [
           "Load"
         ],
-        "StopResponse": []
+        "StopResponse": [],
+        "ToolError": [
+          "Error"
+        ]
       },
       "functions": [
         "NewAgent",
         "NewAgentServer",
         "NewAgentSession",
         "NewCartesiaTTS",
+        "NewChatContext",
         "NewDeepgramSTT",
         "NewElevenLabsTTS",
         "NewGoogleSTT",
+        "NewInferenceLLM",
+        "NewInferenceSTT",
+        "NewInferenceTTS",
         "NewOpenAILLM",
         "NewOpenAITTS",
         "NewSileroVAD",
+        "NewToolError",
         "RunApp",
         "WithAgentName",
         "WithAllowInterruptions",
         "WithDescription",
+        "WithInferenceLLMModel",
+        "WithInferenceSTTModel",
         "WithLLM",
+        "WithMCPServers",
         "WithMaxEndpointingDelay",
         "WithMaxToolSteps",
         "WithMinEndpointingDelay",
+        "WithMinInterruptionDuration",
+        "WithOnRequest",
+        "WithOnSessionEnd",
         "WithParameters",
+        "WithPreemptiveGeneration",
+        "WithRecord",
         "WithReplyInstructions",
+        "WithRoom",
         "WithSTT",
         "WithServerType",
+        "WithSessionMCPServers",
+        "WithSessionTools",
+        "WithSessionUserdata",
         "WithTTS",
         "WithTools",
         "WithTurnDetection",
@@ -439,6 +524,7 @@
         "IsSuppressed",
         "New",
         "ParseLevel",
+        "ResetLoggingConfiguration",
         "SetGlobalLevel",
         "Suppress",
         "Unsuppress"
@@ -593,8 +679,14 @@
           "Delete",
           "Get",
           "List",
-          "ListAddresses",
           "Update"
+        ],
+        "CrudWithAddresses": [
+          "ListAddresses"
+        ],
+        "CxmlApplicationsResource": [
+          "Create",
+          "ListAddresses"
         ],
         "CxmlWebhookOptions": [],
         "DatasphereDocuments": [
@@ -773,6 +865,8 @@
         "NewCompatNamespace",
         "NewCrudResource",
         "NewCrudResourcePUT",
+        "NewCrudWithAddresses",
+        "NewCrudWithAddressesPUT",
         "NewDatasphereNamespace",
         "NewFabricNamespace",
         "NewImportedNumbersNamespace",
@@ -797,13 +891,24 @@
     "prefabs": {
       "classes": {
         "Amenity": [],
+        "BedrockAgent": [
+          "SetInferenceParams",
+          "SetLLMModel",
+          "SetLLMTemperature",
+          "SetPostPromptLLMParams",
+          "SetPromptLLMParams",
+          "SetVoice"
+        ],
+        "BedrockOptions": [],
         "ConciergeAgent": [],
         "ConciergeOptions": [],
         "Department": [],
         "FAQ": [],
         "FAQBotAgent": [],
         "FAQBotOptions": [],
-        "InfoGathererAgent": [],
+        "InfoGathererAgent": [
+          "SetQuestionCallback"
+        ],
         "InfoGathererOptions": [],
         "Question": [],
         "ReceptionistAgent": [],
@@ -813,16 +918,25 @@
         "SurveyQuestion": []
       },
       "functions": [
+        "NewBedrockAgent",
         "NewConciergeAgent",
         "NewFAQBotAgent",
         "NewInfoGathererAgent",
         "NewReceptionistAgent",
-        "NewSurveyAgent"
+        "NewSurveyAgent",
+        "NewSurveyQuestion",
+        "WithOptional",
+        "WithQuestionChoices",
+        "WithQuestionID",
+        "WithQuestionScale",
+        "WithQuestionType"
       ]
     },
     "relay": {
       "classes": {
-        "AIAction": [],
+        "AIAction": [
+          "Stop"
+        ],
         "AIEvent": [],
         "Action": [
           "Completed",
@@ -830,7 +944,6 @@
           "IsDone",
           "OnCompleted",
           "Result",
-          "Stop",
           "Wait"
         ],
         "Call": [
@@ -845,9 +958,12 @@
           "ClearDigitBindings",
           "Collect",
           "Connect",
+          "Context",
           "Denoise",
           "DenoiseStop",
           "Detect",
+          "Device",
+          "Direction",
           "Disconnect",
           "Echo",
           "Hangup",
@@ -856,16 +972,21 @@
           "JoinRoom",
           "LeaveConference",
           "LeaveRoom",
+          "LiveTranscribe",
+          "LiveTranslate",
           "NodeID",
           "On",
           "Pass",
           "Pay",
           "Play",
           "PlayAndCollect",
+          "ProjectID",
           "QueueEnter",
           "QueueLeave",
           "ReceiveFax",
           "Record",
+          "Refer",
+          "SegmentID",
           "SendDigits",
           "SendFax",
           "State",
@@ -877,33 +998,56 @@
           "Transfer",
           "Unhold",
           "UserEvent",
-          "WaitFor"
+          "WaitFor",
+          "WaitForEnded"
         ],
         "CallReceiveEvent": [],
         "CallStateEvent": [],
         "CallingErrorEvent": [],
         "Client": [
+          "Connect",
+          "Contexts",
           "Dial",
+          "Execute",
+          "JWTToken",
+          "Notify",
           "OnCall",
+          "OnEvent",
           "OnMessage",
+          "ProjectID",
+          "Receive",
+          "RelayProtocol",
           "Run",
           "SendMessage",
-          "Stop"
+          "Space",
+          "Stop",
+          "Token",
+          "Unreceive"
         ],
-        "CollectAction": [],
+        "CollectAction": [
+          "StartInputTimers",
+          "Stop",
+          "Volume"
+        ],
         "CollectEvent": [],
+        "CollectParams": [],
         "ConferenceEvent": [],
         "ConnectEvent": [],
         "DenoiseEvent": [],
-        "DetectAction": [],
+        "DetectAction": [
+          "Stop"
+        ],
         "DetectEvent": [],
         "DialEvent": [],
         "EchoEvent": [],
-        "FaxAction": [],
+        "FaxAction": [
+          "Stop"
+        ],
         "FaxEvent": [],
         "HoldEvent": [],
         "Message": [
           "Body",
+          "Context",
           "Direction",
           "FromNumber",
           "IsDone",
@@ -911,6 +1055,7 @@
           "MessageID",
           "On",
           "Reason",
+          "Result",
           "Segments",
           "State",
           "Tags",
@@ -919,31 +1064,53 @@
         ],
         "MessageReceiveEvent": [],
         "MessageStateEvent": [],
-        "PayAction": [],
+        "PayAction": [
+          "Stop"
+        ],
         "PayEvent": [],
         "PlayAction": [
           "Pause",
           "Resume",
+          "Stop",
           "Volume"
         ],
         "PlayEvent": [],
         "QueueEvent": [],
-        "RecordAction": [],
+        "RecordAction": [
+          "Pause",
+          "Resume",
+          "Stop"
+        ],
         "RecordEvent": [],
         "ReferEvent": [],
+        "RelayError": [
+          "Error"
+        ],
         "RelayEvent": [
           "GetBool",
+          "GetBoolPtr",
+          "GetFloat64",
           "GetInt",
           "GetMap",
-          "GetString"
+          "GetString",
+          "GetStringSlice"
         ],
         "SendDigitsEvent": [],
-        "StandaloneCollectAction": [],
-        "StreamAction": [],
+        "StandaloneCollectAction": [
+          "StartInputTimers",
+          "Stop"
+        ],
+        "StreamAction": [
+          "Stop"
+        ],
         "StreamEvent": [],
-        "TapAction": [],
+        "TapAction": [
+          "Stop"
+        ],
         "TapEvent": [],
-        "TranscribeAction": [],
+        "TranscribeAction": [
+          "Stop"
+        ],
         "TranscribeEvent": []
       },
       "functions": [
@@ -968,11 +1135,13 @@
         "NewRecordEvent",
         "NewReferEvent",
         "NewRelayClient",
+        "NewRelayError",
         "NewRelayEvent",
         "NewSendDigitsEvent",
         "NewStreamEvent",
         "NewTapEvent",
         "NewTranscribeEvent",
+        "ParseEvent",
         "WithAIEngine",
         "WithAIParams",
         "WithAIPostPrompt",
@@ -983,12 +1152,34 @@
         "WithConnectRingback",
         "WithContexts",
         "WithDialFromNumber",
+        "WithDialMaxDuration",
         "WithDialTimeout",
+        "WithEnvDefaults",
+        "WithFaxHeaderInfo",
         "WithJWT",
         "WithMaxActiveCalls",
+        "WithMessageContext",
         "WithMessageMedia",
+        "WithMessageOnCompleted",
         "WithMessageRegion",
         "WithMessageTags",
+        "WithPayChargeAmount",
+        "WithPayCurrency",
+        "WithPayDescription",
+        "WithPayInputMethod",
+        "WithPayLanguage",
+        "WithPayMaxAttempts",
+        "WithPayMinPostalCodeLength",
+        "WithPayParameters",
+        "WithPayPaymentMethod",
+        "WithPayPostalCode",
+        "WithPayPrompts",
+        "WithPaySecurityCode",
+        "WithPayStatusURL",
+        "WithPayTimeout",
+        "WithPayTokenType",
+        "WithPayValidCardTypes",
+        "WithPayVoice",
         "WithPlayVolume",
         "WithProject",
         "WithRecordBeep",
@@ -1019,12 +1210,16 @@
           "Get",
           "Patch",
           "Post",
-          "Put"
+          "Put",
+          "SetBaseURL"
         ],
         "PaginatedIterator": [
+          "ForEach",
           "Next"
         ],
-        "RestClient": [],
+        "RestClient": [
+          "SetBaseURL"
+        ],
         "SignalWireRestError": [
           "Error"
         ]
@@ -1034,18 +1229,23 @@
         "NewCrudResourcePUT",
         "NewHttpClient",
         "NewPaginatedIterator",
-        "NewRestClient"
+        "NewRestClient",
+        "NewSignalWireRestError"
       ]
     },
     "security": {
       "classes": {
         "SessionManager": [
+          "CreateSession",
           "CreateToken",
+          "DebugToken",
           "ValidateToken"
         ]
       },
       "functions": [
-        "NewSessionManager"
+        "NewSessionManager",
+        "WithDebugMode",
+        "WithSecret"
       ]
     },
     "server": {
@@ -1055,6 +1255,8 @@
           "GetAgent",
           "GetAgents",
           "Register",
+          "RegisterGlobalRoutingCallback",
+          "RegisterGlobalSipRoutingCallback",
           "RegisterSipUsername",
           "Run",
           "ServeStaticFiles",
@@ -1064,6 +1266,7 @@
       },
       "functions": [
         "NewAgentServer",
+        "WithLogLevel",
         "WithRunHost",
         "WithRunPort",
         "WithServerHost",
@@ -1085,9 +1288,13 @@
           "GetParamString",
           "GetParameterSchema",
           "GetPromptSections",
+          "GetSkillData",
+          "GetSkillNamespace",
           "Name",
           "RequiredEnvVars",
+          "ShouldSkipPrompt",
           "SupportsMultipleInstances",
+          "UpdateSkillData",
           "Version"
         ],
         "SkillManager": [
@@ -1100,8 +1307,10 @@
         "ToolRegistration": []
       },
       "functions": [
+        "AddSkillDirectory",
         "GetSkillFactory",
         "ListSkills",
+        "ListSkillsWithParams",
         "NewSkillManager",
         "RegisterSkill"
       ]
@@ -1109,6 +1318,7 @@
     "swaig": {
       "classes": {
         "FunctionResult": [
+          "Actions",
           "AddAction",
           "AddActions",
           "AddDynamicHints",
@@ -1124,10 +1334,14 @@
           "JoinRoom",
           "Pay",
           "PlayBackgroundFile",
+          "PostProcess",
           "RecordCall",
           "RemoveGlobalData",
+          "RemoveGlobalDataKey",
           "RemoveMetadata",
+          "RemoveMetadataKey",
           "ReplaceInHistory",
+          "Response",
           "RpcAiMessage",
           "RpcAiUnhold",
           "RpcDial",
@@ -1156,7 +1370,10 @@
           "UpdateGlobalData",
           "UpdateSettings",
           "WaitForUser"
-        ]
+        ],
+        "JoinConferenceOptions": [],
+        "PayOptions": [],
+        "RecordCallOptions": []
       },
       "functions": [
         "CreatePaymentAction",
@@ -1167,6 +1384,11 @@
     },
     "swml": {
       "classes": {
+        "AIVerbHandler": [
+          "BuildConfig",
+          "GetVerbName",
+          "ValidateConfig"
+        ],
         "Document": [
           "AddSection",
           "AddVerb",
@@ -1185,28 +1407,42 @@
           "IsValidVerb",
           "VerbCount"
         ],
+        "SecurityConfig": [],
         "Service": [
           "AI",
+          "AddSection",
           "AmazonBedrock",
           "Answer",
+          "AsRouter",
+          "BuildSwaigListToolsPayload",
           "Cond",
           "Connect",
+          "DefineTool",
           "Denoise",
           "DetectMachine",
           "EnterQueue",
           "Execute",
           "ExecuteVerb",
           "ExecuteVerbToSection",
+          "FullValidationEnabled",
+          "GetAuthInfo",
           "GetBasicAuthCredentials",
+          "GetBasicAuthCredentialsWithSource",
           "GetDocument",
           "GetFullURL",
+          "GetVerbHandler",
           "Goto",
           "Hangup",
+          "HasTool",
+          "HasVerbHandler",
           "JoinConference",
           "JoinRoom",
           "Label",
+          "ListToolNames",
           "LiveTranscribe",
           "LiveTranslate",
+          "ManualSetProxyUrl",
+          "OnFunctionCall",
           "OnRequest",
           "Pay",
           "Play",
@@ -1214,13 +1450,19 @@
           "ReceiveFax",
           "Record",
           "RecordCall",
+          "RegisterAdditionalRoutes",
           "RegisterRoutingCallback",
+          "RegisterSwaigFunction",
+          "RegisterVerbHandler",
           "Render",
+          "RenderMainSwml",
           "RenderPretty",
           "Request",
           "ResetDocument",
           "Return",
+          "RoutingCallbackPaths",
           "SIPRefer",
+          "Say",
           "SendDigits",
           "SendFax",
           "SendSMS",
@@ -1231,25 +1473,43 @@
           "StopDenoise",
           "StopRecordCall",
           "StopTap",
+          "SwaigPreDispatch",
           "Switch",
+          "TLSEnabled",
           "Tap",
           "Transfer",
           "Unset",
-          "UserEvent"
+          "UserEvent",
+          "VerifyAPIKey",
+          "VerifyBasicAuth",
+          "VerifyBearerToken"
         ],
+        "ToolDefinition": [],
         "VerbInfo": []
       },
       "functions": [
         "ExtractSIPUsername",
         "GetExecutionMode",
         "GetSchema",
+        "IsServerlessMode",
+        "LoadSchemaFromFile",
+        "NewAIVerbHandler",
         "NewDocument",
         "NewService",
+        "ValidateURL",
+        "WithAPIKey",
         "WithBasicAuth",
+        "WithBearerToken",
+        "WithConfigFile",
+        "WithDomain",
         "WithHost",
         "WithName",
         "WithPort",
-        "WithRoute"
+        "WithRoute",
+        "WithSchemaPath",
+        "WithSchemaValidation",
+        "WithSecurityConfig",
+        "WithTLS"
       ]
     }
   }

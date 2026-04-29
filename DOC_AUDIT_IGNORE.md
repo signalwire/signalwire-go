@@ -297,3 +297,152 @@ wait_for_user: Python FunctionResult.wait_for_user — Go FunctionResult.WaitFor
 warning: Python logger.warning level method in docs/agent_guide.md python block
 webhook: Python SWAIG.webhook field name in docs/api_reference.md
 webhook_expressions: Python DataMap keyword shown in docs/api_reference.md
+
+## Go stdlib referenced by harness/example code
+
+The audit harnesses (relay_audit_harness, skills_audit_harness,
+rest_audit_harness) and other examples make heavy use of Go stdlib
+methods that aren't part of the SignalWire surface. Each line below
+documents the stdlib origin so a reviewer can spot a real symbol typo.
+
+After: time.After channel-based timeout
+Close: io.Closer.Close (used on http.Response.Body, ws.Conn, etc.)
+Do: http.Client.Do
+Encode: encoding/json.Encoder.Encode
+GetString: encoding/json or stdlib accessor in skills_audit_harness
+Grow: strings.Builder.Grow capacity hint
+HasPrefix: strings.HasPrefix
+Handler: http.Handler interface or net/http.Handler type
+Index: strings.Index
+IndexByte: strings.IndexByte
+New: errors.New / time.New / generic stdlib constructor
+NewEncoder: encoding/json.NewEncoder
+NewHandler: lambda.NewHandler / generic stdlib New constructors
+NewRequest: net/http.NewRequest
+ReadAll: io.ReadAll
+Set: http.Header.Set / url.Values.Set
+SetEscapeHTML: encoding/json.Encoder.SetEscapeHTML
+Sleep: time.Sleep
+Sprint: fmt.Sprint
+Store: sync/atomic.Bool.Store / atomic.Value.Store
+Switch: dynamic dispatch keyword (not a method) — false-positive in audit
+ToMap: anonymous toString-like helper sometimes appearing in logging code
+TrimPrefix: strings.TrimPrefix
+TrimRight: strings.TrimRight
+TrimSpace: strings.TrimSpace
+Unmarshal: encoding/json.Unmarshal
+WriteByte: strings.Builder.WriteByte / bytes.Buffer.WriteByte
+WriteString: strings.Builder.WriteString / bytes.Buffer.WriteString
+
+## Go SDK constructors / methods (Python-name-mapped surface gap)
+
+The Go port's `port_surface.json` is Python-shaped (Go struct methods are
+mapped onto Python class methods so diff_port_surface can compare).
+Go-idiomatic constructors (`NewXxx`) map to Python's `__init__`, which
+the audit's CamelCase translation doesn't cover. The names below are
+real Go SDK exports, listed to acknowledge the audit's translation
+limitation (NOT to hide undefined symbols).
+
+NewAgent: livewire.NewAgent constructor (LiveKit-compat shim)
+NewAgentBase: agent.NewAgentBase — Python AgentBase.__init__ equivalent
+NewAgentServer: server.NewAgentServer — Python AgentServer.__init__
+NewAgentSession: livewire.NewAgentSession — LiveKit-compat shim constructor
+NewConciergeAgent: prefabs.NewConciergeAgent — Python ConciergeAgent.__init__
+NewDocument: swml.NewDocument — Python Document.__init__
+NewFAQBotAgent: prefabs.NewFAQBotAgent — Python FAQBotAgent.__init__
+NewFunctionResult: swaig.NewFunctionResult — Python FunctionResult.__init__
+NewInfoGathererAgent: prefabs.NewInfoGathererAgent — Python InfoGathererAgent.__init__
+NewReceptionistAgent: prefabs.NewReceptionistAgent — Python ReceptionistAgent.__init__
+NewRelayClient: relay.NewRelayClient — Python RelayClient.__init__
+NewRestClient: rest.NewRestClient — Python RestClient.__init__
+NewService: swml.NewService — Python SWMLService.__init__
+NewSkillManager: skills.NewSkillManager — Python SkillManager.__init__
+NewSurveyAgent: prefabs.NewSurveyAgent — Python SurveyAgent.__init__
+NewCallStateEvent: relay.NewCallStateEvent — factory for Python CallStateEvent.from_payload
+
+## Go With* options (Python uses keyword args; audit can't map kwargs)
+
+The Python SDK uses `__init__(name=..., route=...)` keyword args. Go
+uses `New(WithName(...), WithRoute(...))` functional options. The
+audit can't bridge that idiom — every functional option below is a
+real Go SDK export (one per Python kwarg) but doesn't appear under a
+Python class name.
+
+WithAIParams: relay/rest WithAI option (e.g. AI.Hold + ai_params)
+WithAIPrompt: rest CallingNamespace.WithAIPrompt option
+WithAutoAnswer: rest WithAutoAnswer option
+WithBasicAuth: swml.WithBasicAuth option
+WithConferenceBeep: rest WithConferenceBeep option
+WithConferenceMuted: rest WithConferenceMuted option
+WithConfirm: rest WithConfirm option
+WithConnectRingback: rest WithConnectRingback option
+WithContexts: relay.WithContexts option
+WithDescription: rest WithDescription option
+WithDialFromNumber: relay.WithDialFromNumber option
+WithDialTimeout: relay.WithDialTimeout option
+WithFunctions: rest WithFunctions option
+WithHost: swml.WithHost option
+WithLLM: rest WithLLM option
+WithMaxActiveCalls: relay.WithMaxActiveCalls option
+WithMessageMedia: relay.WithMessageMedia option
+WithMessageRegion: relay.WithMessageRegion option
+WithMessageTags: relay.WithMessageTags option
+WithName: swml.WithName option
+WithPort: swml.WithPort option
+WithProject: relay.WithProject / rest.WithProject option
+WithRecordCall: rest WithRecordCall option
+WithRecordDirection: rest WithRecordDirection option
+WithRecordFormat: rest WithRecordFormat option
+WithRecordStereo: rest WithRecordStereo option
+WithReplyInstructions: livewire.WithReplyInstructions option
+WithRoute: swml.WithRoute option
+WithServerPort: server.WithServerPort option
+WithSpace: relay.WithSpace / rest.WithSpace option
+WithStreamCodec: rest WithStreamCodec option
+WithStreamDirection: rest WithStreamDirection option
+WithSTT: livewire.WithSTT option
+WithToken: relay.WithToken / rest.WithToken option
+WithTTS: livewire.WithTTS option
+WithType: rest WithType option
+
+## Audit harness / example helper methods
+
+These are Go-SDK methods added during this port's audit work. They
+exist in code but the surface enumerator chose not to map them to
+Python names (no Python equivalent) — the audit treats them as
+unresolved. Each is a legitimate Go SDK export documented in code.
+
+Notify: relay.Client.Notify — fire-and-forget JSON-RPC notify
+OnEvent: relay.Client.OnEvent — generic event hook
+RTCSession: livewire.LiveServer.RTCSession — LiveKit-compat shim
+RegisterTools: skills.SkillBase.RegisterTools — listed in port_surface.json under SkillBase
+RenderPretty: swml.Document.RenderPretty — pretty-print method
+RenderSWML: agent.AgentBase.RenderSWML — SWML rendering entry point
+Response: swaig.FunctionResult.Response — accessor method
+Setup: skills.SkillBase.Setup — listed in port_surface.json under SkillBase
+SetBaseURL: rest.HttpClient.SetBaseURL / RestClient.SetBaseURL — base URL override
+
+## Other Go-idiomatic surface
+
+AI: top-level constants/keyword (e.g. AI.Hold) — appears in relay docs
+AIHold: rest CallingNamespace.AIHold method
+AIMessage: rest CallingNamespace.AIMessage method
+AIStop: rest CallingNamespace.AIStop method
+AIUnhold: rest CallingNamespace.AIUnhold method
+CallID: relay.Call.CallID accessor — returned by Call construction
+CreateSIPEndpoint: namespaces.SubscribersResource.CreateSIPEndpoint
+DeleteSIPEndpoint: namespaces.SubscribersResource.DeleteSIPEndpoint
+FunctionTool: livewire.FunctionTool helper — LiveKit-compat shim
+GetExecutionMode: lambda.GetExecutionMode — serverless detection
+GetSIPEndpoint: namespaces.SubscribersResource.GetSIPEndpoint
+GetSkillFactory: skills.GetSkillFactory — registry lookup
+ListSIPEndpoints: namespaces.SubscribersResource.ListSIPEndpoints
+Name: swaig.Tool.Name accessor / generic getter — false-positive
+Prompt: agent.AgentBase.Prompt or contexts.Prompt accessor
+Reason: relay event field accessor
+Setup: skills.SkillBase.Setup — already listed; second hit-form ignored
+SMS: messaging-related comment in examples
+State: relay.Call.State accessor / FSM state
+String: relay.Call.String / generic Stringer interface
+UpdateSIPEndpoint: namespaces.SubscribersResource.UpdateSIPEndpoint
+Version: skills.SkillBase.Version / agent.Version constant

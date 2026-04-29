@@ -1,12 +1,14 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ ac772128ab1ab5f31f08aa870237c34f5f0148a8",
+  "generated_from": "signalwire-go @ 397239f583278606479533524a0fdc71fc15c213",
   "modules": {
     "signalwire": {
       "classes": {},
       "functions": [
         "RestClient",
+        "add_skill_directory",
         "list_skills",
+        "list_skills_with_params",
         "register_skill"
       ]
     },
@@ -338,7 +340,12 @@
     "signalwire.livewire": {
       "classes": {
         "Agent": [
-          "__init__"
+          "__init__",
+          "on_enter",
+          "on_exit",
+          "on_user_turn_completed",
+          "session",
+          "update_tools"
         ],
         "AgentHandoff": [
           "__init__"
@@ -350,13 +357,17 @@
         "AgentSession": [
           "__init__",
           "generate_reply",
+          "history",
           "interrupt",
           "say",
-          "start"
+          "start",
+          "update_agent",
+          "userdata"
         ],
         "JobContext": [
           "__init__",
-          "connect"
+          "connect",
+          "wait_for_participant"
         ],
         "JobProcess": [
           "__init__"
@@ -411,7 +422,8 @@
     "signalwire.prefabs.info_gatherer": {
       "classes": {
         "InfoGathererAgent": [
-          "__init__"
+          "__init__",
+          "set_question_callback"
         ]
       },
       "functions": []
@@ -435,7 +447,8 @@
     "signalwire.relay.call": {
       "classes": {
         "AIAction": [
-          "__init__"
+          "__init__",
+          "stop"
         ],
         "Action": [
           "__init__",
@@ -466,6 +479,8 @@
           "join_room",
           "leave_conference",
           "leave_room",
+          "live_transcribe",
+          "live_translate",
           "on",
           "pass_",
           "pay",
@@ -475,6 +490,7 @@
           "queue_leave",
           "receive_fax",
           "record",
+          "refer",
           "send_digits",
           "send_fax",
           "stream",
@@ -483,40 +499,56 @@
           "transfer",
           "unhold",
           "user_event",
-          "wait_for"
+          "wait_for",
+          "wait_for_ended"
         ],
         "CollectAction": [
-          "__init__"
+          "__init__",
+          "start_input_timers",
+          "stop",
+          "volume"
         ],
         "DetectAction": [
-          "__init__"
+          "__init__",
+          "stop"
         ],
         "FaxAction": [
-          "__init__"
+          "__init__",
+          "stop"
         ],
         "PayAction": [
-          "__init__"
+          "__init__",
+          "stop"
         ],
         "PlayAction": [
           "__init__",
           "pause",
           "resume",
+          "stop",
           "volume"
         ],
         "RecordAction": [
-          "__init__"
+          "__init__",
+          "pause",
+          "resume",
+          "stop"
         ],
         "StandaloneCollectAction": [
-          "__init__"
+          "__init__",
+          "start_input_timers",
+          "stop"
         ],
         "StreamAction": [
-          "__init__"
+          "__init__",
+          "stop"
         ],
         "TapAction": [
-          "__init__"
+          "__init__",
+          "stop"
         ],
         "TranscribeAction": [
-          "__init__"
+          "__init__",
+          "stop"
         ]
       },
       "functions": []
@@ -610,7 +642,9 @@
           "from_payload"
         ]
       },
-      "functions": []
+      "functions": [
+        "parse_event"
+      ]
     },
     "signalwire.relay.message": {
       "classes": {
@@ -618,6 +652,7 @@
           "__init__",
           "is_done",
           "on",
+          "result",
           "wait"
         ]
       },
