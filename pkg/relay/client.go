@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -36,6 +37,7 @@ type Client struct {
 
 	onCall    func(*Call)
 	onMessage func(*Message)
+	onEvent   func(eventType string, params map[string]any)
 
 	logger  *log.Logger
 	running atomic.Bool
@@ -89,6 +91,18 @@ func (c *Client) OnMessage(handler func(*Message)) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.onMessage = handler
+}
+
+// OnEvent registers a handler invoked for every inbound `signalwire.event`
+// frame, AFTER type-specific routing (call, messaging) has run. The
+// handler receives the raw event_type string and params map. This is
+// the lowest-level event hook — most callers should use OnCall or
+// OnMessage instead. Mirrors Python RelayClient's public event-tap
+// surface used by integration tests.
+func (c *Client) OnEvent(handler func(eventType string, params map[string]any)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.onEvent = handler
 }
 
 // RelayProtocol returns the server-assigned protocol string received during
@@ -161,6 +175,20 @@ func (c *Client) Execute(method string, params map[string]any) (json.RawMessage,
 	return c.execute(method, params)
 }
 
+// Notify sends a JSON-RPC notification (no `id`, no response expected)
+// with the given method and params. Used for fire-and-forget frames
+// such as the client-side `signalwire.event` ACK pattern that some
+// integration fixtures expect. Returns any write error from the
+// underlying socket.
+func (c *Client) Notify(method string, params map[string]any) error {
+	frame := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  method,
+		"params":  params,
+	}
+	return c.writeJSON(frame)
+}
+
 // Receive subscribes to additional contexts for inbound events after the
 // client is already connected. Sends signalwire.receive on the assigned
 // protocol. Mirrors Python's async receive(contexts).
@@ -190,6 +218,14 @@ func (c *Client) Unreceive(contexts ...string) error {
 // Run connects to SignalWire, authenticates, subscribes to configured
 // contexts, and starts the read loop. It blocks until Stop is called
 // or the context is cancelled.
+//
+// Important: the read loop must be running before subscribeContexts()
+// is called. subscribeContexts() executes a JSON-RPC request whose
+// response is delivered through the read loop's pending-id channel
+// machinery. If the read loop isn't running, the JSON-RPC reply has no
+// reader and the request times out (30s). Hence we start readLoop in a
+// goroutine BEFORE the subscribe call, then block on a done channel
+// here.
 func (c *Client) Run() error {
 	if err := c.connect(); err != nil {
 		return fmt.Errorf("relay connect: %w", err)
@@ -199,12 +235,21 @@ func (c *Client) Run() error {
 		return fmt.Errorf("relay authenticate: %w", err)
 	}
 
+	c.running.Store(true)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		c.readLoop()
+	}()
+
 	if err := c.subscribeContexts(); err != nil {
+		c.running.Store(false)
+		c.cancel()
+		<-done
 		return fmt.Errorf("relay subscribe contexts: %w", err)
 	}
 
-	c.running.Store(true)
-	c.readLoop()
+	<-done
 	return nil
 }
 
@@ -330,12 +375,33 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 // ---------------------------------------------------------------------------
 
 // connect establishes the WebSocket connection to SignalWire.
+//
+// The URL is built as `<scheme>://<host>/api/relay/ws`. By default the
+// scheme is wss and the host is derived from the configured space
+// (with a `.signalwire.com` suffix appended when the space is a bare
+// subdomain). For testing — including the audit_relay_handshake.py
+// fixture — both can be overridden via env vars:
+//
+//   - SIGNALWIRE_RELAY_HOST   (e.g. "127.0.0.1:5050")
+//   - SIGNALWIRE_RELAY_SCHEME (e.g. "ws" for plain WebSocket)
+//
+// When the host env var is set it takes precedence over the configured
+// space; when scheme is set it overrides "wss". This mirrors the
+// per-port harness contract documented in the porting-sdk
+// SUBAGENT_PLAYBOOK.
 func (c *Client) connect() error {
-	host := c.space
-	if !strings.Contains(host, ".") {
-		host = host + ".signalwire.com"
+	host := os.Getenv("SIGNALWIRE_RELAY_HOST")
+	if host == "" {
+		host = c.space
+		if !strings.Contains(host, ".") {
+			host = host + ".signalwire.com"
+		}
 	}
-	url := fmt.Sprintf("wss://%s/api/relay/ws", host)
+	scheme := os.Getenv("SIGNALWIRE_RELAY_SCHEME")
+	if scheme == "" {
+		scheme = "wss"
+	}
+	url := fmt.Sprintf("%s://%s/api/relay/ws", scheme, host)
 
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
@@ -595,6 +661,9 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 }
 
 // handleEvent routes events to the appropriate call, message, or action.
+// After type-specific routing it also invokes the generic OnEvent hook
+// (if registered) so callers can observe every event regardless of
+// whether it matched a known correlation.
 func (c *Client) handleEvent(eventType string, params map[string]any) {
 	switch {
 	case strings.HasPrefix(eventType, "calling."):
@@ -603,6 +672,17 @@ func (c *Client) handleEvent(eventType string, params map[string]any) {
 		c.handleMessagingEvent(eventType, params)
 	default:
 		c.logger.Printf("relay unhandled event: %s", eventType)
+	}
+
+	// Fire the generic event hook last so it sees the same dispatch
+	// the call/message hooks did. The lock is taken in a tight scope
+	// so the user's callback can call back into Client (e.g. Execute)
+	// without deadlocking.
+	c.mu.RLock()
+	hook := c.onEvent
+	c.mu.RUnlock()
+	if hook != nil {
+		hook(eventType, params)
 	}
 }
 
