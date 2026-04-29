@@ -18,6 +18,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -65,10 +66,17 @@ type HttpClient struct {
 }
 
 // NewHttpClient creates a new HttpClient configured for the given SignalWire
-// space. The baseURL is constructed as "https://<space>".
+// space. The baseURL is normally constructed as "https://<space>", but the
+// SIGNALWIRE_REST_BASE_URL environment variable overrides it when set —
+// pointing the client at a loopback fixture for the porting-sdk
+// audit_rest_transport.py harness, or at any non-default endpoint.
 func NewHttpClient(projectID, token, space string) *HttpClient {
+	baseURL := os.Getenv("SIGNALWIRE_REST_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://" + space
+	}
 	return &HttpClient{
-		baseURL:   "https://" + space,
+		baseURL:   baseURL,
 		projectID: projectID,
 		token:     token,
 		httpClient: &http.Client{
@@ -81,6 +89,14 @@ func NewHttpClient(projectID, token, space string) *HttpClient {
 // BaseURL returns the base URL used by this client.
 func (c *HttpClient) BaseURL() string {
 	return c.baseURL
+}
+
+// SetBaseURL overrides the base URL used by this client. Useful for
+// pointing the client at a non-default endpoint (audit fixtures, mock
+// servers, etc.) without re-running the constructor with a synthetic
+// space name.
+func (c *HttpClient) SetBaseURL(url string) {
+	c.baseURL = url
 }
 
 // Get performs an HTTP GET request. params are added as query-string

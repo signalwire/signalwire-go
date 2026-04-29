@@ -71,6 +71,14 @@ type RestClient struct {
 	Chat   *namespaces.ChatNamespace
 }
 
+// SetBaseURL overrides the base URL used by the underlying HttpClient.
+// Useful for pointing the client at a non-default endpoint such as the
+// audit_rest_transport.py harness fixture, a recorded-cassette mock
+// server, or a regional endpoint without re-running the constructor.
+func (c *RestClient) SetBaseURL(url string) {
+	c.http.SetBaseURL(url)
+}
+
 // NewRestClient creates a new RestClient. If project, token, or
 // space are empty strings the corresponding environment variables are used:
 //
