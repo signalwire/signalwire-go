@@ -571,8 +571,80 @@ func insertAuth(baseURL, user, password string) string {
 	return baseURL
 }
 
+// Sentinel markers used by --example introspection mode in cmd/swaig-test.
+// When SWAIG_LIST_TOOLS is set, Serve() prints the registry between these
+// sentinels and exits before binding any port. The CLI runs the example
+// binary with that env var set, captures stdout, and parses the JSON
+// payload between the markers. This avoids any HTTP round-trip and lets
+// the CLI introspect SWMLService-only binaries that don't render an `<ai>`
+// verb. See cmd/swaig-test/main.go (--example flag).
+const (
+	swaigListToolsBeginSentinel = "__SWAIG_TOOLS_BEGIN__"
+	swaigListToolsEndSentinel   = "__SWAIG_TOOLS_END__"
+)
+
+// BuildSwaigListToolsPayload returns the JSON payload that --example mode
+// expects between the sentinel markers: {"tools": [<definitions>]}. Each
+// element echoes whatever the in-memory ToolDefinition stores (name,
+// description, parameters); we deliberately do not normalize so the
+// CLI can be permissive about field names.
+//
+// Exposed for tests so the env-var-driven exit branch in Serve() can be
+// asserted without forking a process.
+func (s *Service) BuildSwaigListToolsPayload() ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	tools := make([]map[string]any, 0, len(s.toolOrder))
+	for _, name := range s.toolOrder {
+		td, ok := s.tools[name]
+		if !ok || td == nil {
+			continue
+		}
+		entry := map[string]any{
+			"function":    td.Name,
+			"description": td.Description,
+		}
+		if td.Parameters != nil {
+			entry["parameters"] = td.Parameters
+		}
+		tools = append(tools, entry)
+	}
+	return json.Marshal(map[string]any{"tools": tools})
+}
+
+// maybeEmitListToolsSentinels emits the sentinel-bracketed JSON to stdout
+// when SWAIG_LIST_TOOLS is set in the environment. Returns true if it
+// emitted (the caller should then exit before binding the network);
+// returns false if the env var was unset (normal Serve path proceeds).
+//
+// Split out from Serve() so unit tests can verify the payload shape
+// without invoking os.Exit.
+func (s *Service) maybeEmitListToolsSentinels() bool {
+	if os.Getenv("SWAIG_LIST_TOOLS") == "" {
+		return false
+	}
+	payload, err := s.BuildSwaigListToolsPayload()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "swml: failed to build SWAIG_LIST_TOOLS payload: %v\n", err)
+		payload = []byte(`{"tools":[]}`)
+	}
+	fmt.Printf("%s\n%s\n%s\n", swaigListToolsBeginSentinel, string(payload), swaigListToolsEndSentinel)
+	return true
+}
+
 // Serve starts the HTTP server. This is a blocking call.
+//
+// If SWAIG_LIST_TOOLS is set in the environment, Serve() does NOT bind a
+// port; instead it prints the registered tool registry sandwiched by
+// __SWAIG_TOOLS_BEGIN__ / __SWAIG_TOOLS_END__ sentinels to stdout and
+// exits 0. This is how `swaig-test --example NAME` introspects a
+// SWMLService-only binary without HTTP-walking rendered SWML.
 func (s *Service) Serve() error {
+	if s.maybeEmitListToolsSentinels() {
+		os.Exit(0)
+	}
+
 	mux := s.buildMux()
 
 	s.mu.Lock()

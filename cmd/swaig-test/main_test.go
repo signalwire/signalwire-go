@@ -643,6 +643,140 @@ func TestHTTPErrors(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// --example mode: sentinel extractor
+// ---------------------------------------------------------------------------
+
+func TestExtractSentinelPayload(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr string // substring expected in err.Error(); "" means no error
+	}{
+		{
+			name: "happy path with surrounding chatter",
+			input: "starting service…\n" +
+				"__SWAIG_TOOLS_BEGIN__\n" +
+				`{"tools":[{"function":"foo","description":"bar"}]}` + "\n" +
+				"__SWAIG_TOOLS_END__\n" +
+				"some trailing log line that we ignore\n",
+			want: `{"tools":[{"function":"foo","description":"bar"}]}`,
+		},
+		{
+			name:  "minimal payload",
+			input: "__SWAIG_TOOLS_BEGIN__\n{}\n__SWAIG_TOOLS_END__\n",
+			want:  "{}",
+		},
+		{
+			name:    "missing begin sentinel",
+			input:   "{}\n__SWAIG_TOOLS_END__\n",
+			wantErr: "missing __SWAIG_TOOLS_BEGIN__",
+		},
+		{
+			name:    "missing end sentinel",
+			input:   "__SWAIG_TOOLS_BEGIN__\n{}\n",
+			wantErr: "missing __SWAIG_TOOLS_END__",
+		},
+		{
+			name:    "partial begin marker",
+			input:   "__SWAIG_TOOLS_BEG\n{}\n__SWAIG_TOOLS_END__\n",
+			wantErr: "missing __SWAIG_TOOLS_BEGIN__",
+		},
+		{
+			name:    "partial end marker",
+			input:   "__SWAIG_TOOLS_BEGIN__\n{}\n__SWAIG_TOOLS_EN\n",
+			wantErr: "missing __SWAIG_TOOLS_END__",
+		},
+		{
+			name:    "end before begin",
+			input:   "__SWAIG_TOOLS_END__\n{}\n__SWAIG_TOOLS_BEGIN__\n",
+			wantErr: "missing __SWAIG_TOOLS_END__",
+		},
+		{
+			name:  "whitespace around payload is trimmed",
+			input: "__SWAIG_TOOLS_BEGIN__\n   {\"k\":1}   \n__SWAIG_TOOLS_END__\n",
+			want:  `{"k":1}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractSentinelPayload(tt.input)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("expected error containing %q, got nil; payload=%q", tt.wantErr, got)
+				}
+				if !contains(err.Error(), tt.wantErr) {
+					t.Errorf("err = %q, want substring %q", err.Error(), tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("payload = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// --example mode: target resolution
+// ---------------------------------------------------------------------------
+
+func TestResolveExampleTarget(t *testing.T) {
+	t.Run("rejects empty name", func(t *testing.T) {
+		_, err := resolveExampleTarget("")
+		if err == nil {
+			t.Error("expected error for empty name")
+		}
+	})
+	t.Run("rejects path traversal", func(t *testing.T) {
+		for _, n := range []string{"..", ".", "foo/bar", `foo\bar`} {
+			if _, err := resolveExampleTarget(n); err == nil {
+				t.Errorf("expected error for %q", n)
+			}
+		}
+	})
+	t.Run("rejects nonexistent example", func(t *testing.T) {
+		_, err := resolveExampleTarget("definitely_does_not_exist_xyz")
+		if err == nil {
+			t.Error("expected error for missing example")
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// --example mode: run() argument validation
+// ---------------------------------------------------------------------------
+
+func TestRunValidationExampleMode(t *testing.T) {
+	t.Run("example and url are mutually exclusive", func(t *testing.T) {
+		cfg := config{example: "foo", url: "http://localhost:3000/", listTools: true}
+		err := run(cfg)
+		if err == nil || !contains(err.Error(), "mutually exclusive") {
+			t.Errorf("expected mutual-exclusion error, got: %v", err)
+		}
+	})
+	t.Run("example with --dump-swml is rejected", func(t *testing.T) {
+		cfg := config{example: "foo", dumpSWML: true}
+		err := run(cfg)
+		if err == nil || !contains(err.Error(), "only supports --list-tools") {
+			t.Errorf("expected only-list-tools error, got: %v", err)
+		}
+	})
+}
+
+// contains is a minimal substring check that doesn't depend on
+// strings.Contains so we keep the test file's import surface narrow.
+func contains(s, sub string) bool {
+	if sub == "" {
+		return true
+	}
+	return len(s) >= len(sub) && containsAll(s, sub)
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

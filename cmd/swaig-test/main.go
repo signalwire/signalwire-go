@@ -7,6 +7,18 @@
 //	swaig-test --url http://user:pass@localhost:3000/ --dump-swml
 //	swaig-test --url http://user:pass@localhost:3000/ --list-tools
 //	swaig-test --url http://user:pass@localhost:3000/ --exec get_weather --param location=London
+//
+// Binary-introspection mode (no HTTP):
+//
+//	swaig-test --example swmlservice_swaig_standalone --list-tools
+//
+// In `--example` mode the CLI runs `go run ./examples/<NAME>` with
+// SWAIG_LIST_TOOLS=1 set in the subprocess environment. The SDK's
+// Service.Serve() honors that env var by printing the registered tool
+// registry between __SWAIG_TOOLS_BEGIN__ / __SWAIG_TOOLS_END__ sentinels
+// and exiting 0 BEFORE binding any port. The CLI captures stdout, slices
+// between the sentinels, parses the JSON, and pretty-prints — no HTTP,
+// no /swaig endpoint, no rendered-SWML walk required.
 package main
 
 import (
@@ -18,6 +30,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -33,6 +47,7 @@ func (p *paramList) Set(value string) error {
 // config holds the parsed CLI flags.
 type config struct {
 	url                string
+	example            string
 	dumpSWML           bool
 	listTools          bool
 	exec               string
@@ -57,6 +72,9 @@ func parseFlags(args []string) config {
 	fs := flag.NewFlagSet("swaig-test", flag.ExitOnError)
 
 	fs.StringVar(&cfg.url, "url", "", "Agent URL (e.g. http://user:pass@localhost:3000/)")
+	fs.StringVar(&cfg.example, "example", "",
+		"Introspect a binary in ./examples/<NAME>/ via SWAIG_LIST_TOOLS env "+
+			"var. Mutually exclusive with --url.")
 	fs.BoolVar(&cfg.dumpSWML, "dump-swml", false, "Dump the SWML document from the agent")
 	fs.BoolVar(&cfg.listTools, "list-tools", false, "List available SWAIG tools")
 	fs.StringVar(&cfg.exec, "exec", "", "Execute a SWAIG tool by name")
@@ -98,6 +116,18 @@ func run(cfg config) error {
 		if err := validateSimulatePlatform(cfg.simulateServerless); err != nil {
 			return err
 		}
+	}
+
+	// --example mode: introspect a binary by env-var-driven sentinel
+	// emission. No HTTP, no port binding. Mutually exclusive with --url.
+	if cfg.example != "" {
+		if cfg.url != "" {
+			return fmt.Errorf("--example and --url are mutually exclusive")
+		}
+		if cfg.dumpSWML || cfg.exec != "" {
+			return fmt.Errorf("--example currently only supports --list-tools")
+		}
+		return doExampleListTools(cfg)
 	}
 
 	if cfg.url == "" {
@@ -476,5 +506,193 @@ func doExec(baseURL, user, pass string, cfg config) error {
 	}
 
 	fmt.Println(output)
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// --example mode: binary introspection via SWAIG_LIST_TOOLS env var.
+//
+// We run `go run ./examples/<NAME>` (or `./examples/<NAME>/main.go` if the
+// directory layout demands it) with SWAIG_LIST_TOOLS=1 set. The example
+// binary's swml.Service.Serve() honors that env var by printing the
+// registered tool registry between __SWAIG_TOOLS_BEGIN__ /
+// __SWAIG_TOOLS_END__ sentinels and exiting 0. We capture stdout, slice
+// between the markers, parse, pretty-print.
+// ---------------------------------------------------------------------------
+
+const (
+	swaigBeginSentinel = "__SWAIG_TOOLS_BEGIN__"
+	swaigEndSentinel   = "__SWAIG_TOOLS_END__"
+)
+
+// resolveExampleTarget returns the `go run` argument for an example
+// directory. Most SignalWire Go examples are package-style ("./examples/foo")
+// so we prefer that. We fall back to a single-file invocation
+// ("./examples/foo/main.go") only if we can prove the package form is wrong;
+// the Go toolchain is happy with either when the package compiles.
+func resolveExampleTarget(name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("example name is empty")
+	}
+	// Reject any path-traversal attempts; example names are bare directory
+	// segments.
+	if strings.ContainsAny(name, `/\`) || name == "." || name == ".." {
+		return "", fmt.Errorf("invalid example name %q: must be a bare directory segment", name)
+	}
+	dir := filepath.Join("examples", name)
+	info, err := os.Stat(dir)
+	if err != nil {
+		return "", fmt.Errorf("example directory %q not found: %w", dir, err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("example path %q is not a directory", dir)
+	}
+	return "./" + filepath.ToSlash(dir), nil
+}
+
+// extractSentinelPayload finds the JSON payload between the begin/end
+// sentinels in `output`. Returns an error if either sentinel is missing
+// or appears in the wrong order. Permissive about surrounding whitespace
+// and other stdout/stderr chatter the example may emit before bind-time.
+func extractSentinelPayload(output string) (string, error) {
+	beginIdx := strings.Index(output, swaigBeginSentinel)
+	if beginIdx < 0 {
+		return "", fmt.Errorf("missing %s sentinel", swaigBeginSentinel)
+	}
+	afterBegin := beginIdx + len(swaigBeginSentinel)
+	endIdx := strings.Index(output[afterBegin:], swaigEndSentinel)
+	if endIdx < 0 {
+		return "", fmt.Errorf("missing %s sentinel", swaigEndSentinel)
+	}
+	return strings.TrimSpace(output[afterBegin : afterBegin+endIdx]), nil
+}
+
+// doExampleListTools runs the example binary with SWAIG_LIST_TOOLS=1
+// and prints the captured tool registry. Permissive about field names
+// so the same parser handles both raw Service.tools shape ("function",
+// "description", "parameters") and SWAIG-rendered shape ("name",
+// "purpose", "argument").
+func doExampleListTools(cfg config) error {
+	target, err := resolveExampleTarget(cfg.example)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("go", "run", target)
+	cmd.Env = append(os.Environ(), "SWAIG_LIST_TOOLS=1")
+	if cfg.verbose {
+		fmt.Fprintf(os.Stderr, ">> exec: go run %s (SWAIG_LIST_TOOLS=1)\n", target)
+		cmd.Stderr = os.Stderr
+	} else {
+		// Stderr discarded by default; the SDK's auto-generated-password
+		// warning fires before the env-var check returns and would otherwise
+		// pollute the CLI output.
+		cmd.Stderr = io.Discard
+	}
+
+	stdout, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("running example %q: %w", cfg.example, err)
+	}
+
+	payload, err := extractSentinelPayload(string(stdout))
+	if err != nil {
+		return fmt.Errorf("parsing example output: %w (raw output: %q)", err, string(stdout))
+	}
+
+	var decoded struct {
+		Tools []map[string]any `json:"tools"`
+	}
+	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
+		return fmt.Errorf("parsing tool payload as JSON: %w", err)
+	}
+
+	if cfg.raw {
+		fmt.Println(payload)
+		return nil
+	}
+
+	if len(decoded.Tools) == 0 {
+		fmt.Println("No SWAIG functions found.")
+		return nil
+	}
+
+	fmt.Printf("Available SWAIG functions (%d):\n\n", len(decoded.Tools))
+	for _, fn := range decoded.Tools {
+		// Permissive field names: accept function|name and
+		// purpose|description and argument|parameters.
+		name := firstNonEmptyString(fn, "function", "name")
+		desc := firstNonEmptyString(fn, "purpose", "description")
+		params := firstMap(fn, "argument", "parameters")
+		if name == "" {
+			continue
+		}
+
+		fmt.Printf("  %s\n", name)
+		if desc != "" {
+			fmt.Printf("    %s\n", desc)
+		}
+		if params != nil {
+			// Both shapes nest property descriptors under "properties".
+			if props, ok := params["properties"].(map[string]any); ok && len(props) > 0 {
+				fmt.Printf("    Parameters:\n")
+				for pName, pDef := range props {
+					pMap, _ := pDef.(map[string]any)
+					pType, _ := pMap["type"].(string)
+					pDesc, _ := pMap["description"].(string)
+					if pType != "" {
+						fmt.Printf("      --%s (%s)", pName, pType)
+					} else {
+						fmt.Printf("      --%s", pName)
+					}
+					if pDesc != "" {
+						fmt.Printf(": %s", pDesc)
+					}
+					fmt.Println()
+				}
+			} else if len(params) > 0 {
+				// Bare-parameter map (Service.Parameters shape: keyed by
+				// argument name with type/description). Print directly.
+				fmt.Printf("    Parameters:\n")
+				for pName, pDef := range params {
+					pMap, _ := pDef.(map[string]any)
+					pType, _ := pMap["type"].(string)
+					pDesc, _ := pMap["description"].(string)
+					if pType != "" {
+						fmt.Printf("      --%s (%s)", pName, pType)
+					} else {
+						fmt.Printf("      --%s", pName)
+					}
+					if pDesc != "" {
+						fmt.Printf(": %s", pDesc)
+					}
+					fmt.Println()
+				}
+			}
+		}
+		fmt.Println()
+	}
+	return nil
+}
+
+// firstNonEmptyString returns the first key in `keys` whose value in `m`
+// is a non-empty string.
+func firstNonEmptyString(m map[string]any, keys ...string) string {
+	for _, k := range keys {
+		if v, ok := m[k].(string); ok && v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// firstMap returns the first key in `keys` whose value in `m` is a non-nil
+// map.
+func firstMap(m map[string]any, keys ...string) map[string]any {
+	for _, k := range keys {
+		if v, ok := m[k].(map[string]any); ok && v != nil {
+			return v
+		}
+	}
 	return nil
 }
