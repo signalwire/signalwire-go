@@ -40,7 +40,7 @@ func TestNewAgentBase_Defaults(t *testing.T) {
 	if a.Logger == nil {
 		t.Error("expected non-nil logger")
 	}
-	if a.swmlService == nil {
+	if a.Service == nil {
 		t.Error("expected non-nil swmlService")
 	}
 	if a.sessionManager == nil {
@@ -61,8 +61,8 @@ func TestNewAgentBase_WithOptions(t *testing.T) {
 		WithTokenExpiry(7200),
 	)
 
-	if a.name != "TestBot" {
-		t.Errorf("expected name=TestBot, got %q", a.name)
+	if a.Name != "TestBot" {
+		t.Errorf("expected name=TestBot, got %q", a.Name)
 	}
 	if a.autoAnswer {
 		t.Error("expected autoAnswer=false")
@@ -85,7 +85,7 @@ func TestNewAgentBase_WithBasicAuth(t *testing.T) {
 	a := NewAgentBase(
 		WithBasicAuth("myuser", "mypass"),
 	)
-	user, pass := a.swmlService.GetBasicAuthCredentials()
+	user, pass := a.Service.GetBasicAuthCredentials()
 	if user != "myuser" {
 		t.Errorf("expected user=myuser, got %q", user)
 	}

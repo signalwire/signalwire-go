@@ -8,11 +8,27 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/signalwire/signalwire-go/pkg/logging"
 )
+
+var swaigFnNameRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// ToolHandler is the function signature for a registered SWAIG tool.
+// Returns a result that will be JSON-encoded as the SWAIG response.
+type ToolHandler func(args map[string]any, rawData map[string]any) any
+
+// ToolDefinition is a SWAIG tool registered on the Service.
+type ToolDefinition struct {
+	Name        string
+	Description string
+	Parameters  map[string]any
+	Handler     ToolHandler
+	Secure      bool
+}
 
 // RoutingCallback is a function called on incoming requests to customize responses.
 // It receives the request and request body, and returns an optional SWML JSON override.
@@ -50,6 +66,11 @@ type Service struct {
 
 	// Routing callbacks
 	routingCallbacks map[string]RoutingCallback
+
+	// SWAIG tool registry — lifted from AgentBase so any Service (sidecar,
+	// non-agent verb host) can register and dispatch SWAIG functions.
+	tools     map[string]*ToolDefinition
+	toolOrder []string
 
 	// Server state
 	server  *http.Server
@@ -100,6 +121,7 @@ func NewService(opts ...ServiceOption) *Service {
 		Logger:           logging.New("swml-service"),
 		document:         NewDocument(),
 		routingCallbacks: make(map[string]RoutingCallback),
+		tools:            make(map[string]*ToolDefinition),
 		verbCache:        make(map[string]bool),
 	}
 
@@ -592,14 +614,187 @@ func (s *Service) buildMux() *http.ServeMux {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
 	})
 
-	// Main SWML endpoint (with auth)
 	route := s.Route
 	if route == "" {
 		route = "/"
 	}
+	swaigPath := strings.TrimRight(route, "/") + "/swaig"
+
+	// SWAIG endpoint (with auth) — GET returns SWML, POST dispatches a tool.
+	mux.HandleFunc(swaigPath, s.withSecurity(s.handleSWAIG))
+
+	// Subclass / additional routes hook (AgentBase wires /post_prompt etc).
+	s.RegisterAdditionalRoutes(mux)
+
+	// Main SWML endpoint (with auth)
 	mux.HandleFunc(route, s.withSecurity(s.handleSWML))
 
 	return mux
+}
+
+// RegisterAdditionalRoutes is an extension hook for subclasses (e.g.
+// AgentBase) to mount additional routes (/post_prompt, /mcp). Default no-op.
+// Composing types call this from their own buildMux equivalent.
+func (s *Service) RegisterAdditionalRoutes(mux *http.ServeMux) {}
+
+// ---------------------------------------------------------------------------
+// SWAIG tool registry (lifted from AgentBase)
+// ---------------------------------------------------------------------------
+
+// DefineTool registers a SWAIG function the AI can call.
+// Tool descriptions and parameter descriptions are LLM-facing prompt
+// engineering — see PORTING_GUIDE for guidance.
+func (s *Service) DefineTool(td *ToolDefinition) *Service {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if td == nil || td.Name == "" {
+		return s
+	}
+	s.tools[td.Name] = td
+	if !contains(s.toolOrder, td.Name) {
+		s.toolOrder = append(s.toolOrder, td.Name)
+	}
+	return s
+}
+
+// RegisterSwaigFunction registers a raw SWAIG function definition (e.g.
+// DataMap tools that have no local handler). The map must contain a
+// "function" key giving the tool name.
+func (s *Service) RegisterSwaigFunction(funcDef map[string]any) *Service {
+	name, ok := funcDef["function"].(string)
+	if !ok || name == "" {
+		return s
+	}
+	td := &ToolDefinition{Name: name}
+	if desc, ok := funcDef["description"].(string); ok {
+		td.Description = desc
+	}
+	if params, ok := funcDef["parameters"].(map[string]any); ok {
+		td.Parameters = params
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.tools[name] = td
+	if !contains(s.toolOrder, name) {
+		s.toolOrder = append(s.toolOrder, name)
+	}
+	return s
+}
+
+// OnFunctionCall dispatches a function call to the registered handler.
+// Default implementation: looks up the tool in the registry and invokes
+// its handler. Subclasses (AgentBase) may override at the type level by
+// providing their own method (Go method dispatch is static — to override
+// in a way that is callable through Service, use the SwaigPreDispatch
+// extension hook to substitute a target).
+func (s *Service) OnFunctionCall(name string, args, rawData map[string]any) any {
+	s.mu.RLock()
+	td, ok := s.tools[name]
+	s.mu.RUnlock()
+	if !ok || td == nil || td.Handler == nil {
+		return map[string]any{"response": fmt.Sprintf("Function '%s' not found", name)}
+	}
+	return td.Handler(args, rawData)
+}
+
+// HasTool reports whether a tool with the given name has been registered.
+func (s *Service) HasTool(name string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.tools[name]
+	return ok
+}
+
+// ListToolNames returns the registered tool names in insertion order.
+func (s *Service) ListToolNames() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]string, len(s.toolOrder))
+	copy(out, s.toolOrder)
+	return out
+}
+
+// SwaigPreDispatch is an extension hook invoked between argument parsing
+// and function dispatch on POST /swaig. It returns a target Service to
+// dispatch on (defaults to s) and an optional short-circuit response.
+// Subclasses (AgentBase) override to add session-token validation or
+// ephemeral dynamic-config copies.
+func (s *Service) SwaigPreDispatch(requestData map[string]any, funcName string) (target *Service, shortCircuit map[string]any) {
+	return s, nil
+}
+
+// RenderMainSwml is an extension hook invoked for the main route and for
+// GET /swaig. Default returns the currently-built document. AgentBase
+// overrides to render with prompts + dynamic config.
+func (s *Service) RenderMainSwml(r *http.Request) map[string]any {
+	return s.document.ToMap()
+}
+
+func contains(haystack []string, needle string) bool {
+	for _, s := range haystack {
+		if s == needle {
+			return true
+		}
+	}
+	return false
+}
+
+// handleSWAIG handles GET (returns SWML doc) and POST (dispatches a tool).
+func (s *Service) handleSWAIG(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(s.RenderMainSwml(r))
+		return
+	}
+
+	// POST: parse body, validate, dispatch.
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+	var payload map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{"error": "Invalid JSON"})
+		return
+	}
+	funcName, _ := payload["function"].(string)
+	if funcName == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{"error": "Missing function name"})
+		return
+	}
+	if !swaigFnNameRe.MatchString(funcName) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{"error": fmt.Sprintf("Invalid function name format: %q", funcName)})
+		return
+	}
+
+	// Argument extraction: nested {argument:{parsed}} OR flat {arguments}
+	args := map[string]any{}
+	if argObj, ok := payload["argument"].(map[string]any); ok {
+		if parsed, ok := argObj["parsed"].([]any); ok && len(parsed) > 0 {
+			if first, ok := parsed[0].(map[string]any); ok {
+				args = first
+			}
+		}
+	} else if argMap, ok := payload["arguments"].(map[string]any); ok {
+		args = argMap
+	}
+
+	target, shortCircuit := s.SwaigPreDispatch(payload, funcName)
+	if shortCircuit != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(shortCircuit)
+		return
+	}
+	if target == nil {
+		target = s
+	}
+
+	result := target.OnFunctionCall(funcName, args, payload)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
 // maxRequestBody is the maximum allowed request body size (1MB).
@@ -613,7 +808,23 @@ func (s *Service) handleSWML(w http.ResponseWriter, r *http.Request) {
 		json.NewDecoder(r.Body).Decode(&body)
 	}
 
+	// Skip if this is actually a /swaig request — the swaig handler will
+	// claim it. (Go's mux matches longer prefixes first, but if route is
+	// "/" and swaig path is "/swaig", the swaig handler wins for /swaig.
+	// Defensive guard for nested-route cases.)
+	swaigPath := strings.TrimRight(s.Route, "/") + "/swaig"
+	if r.URL.Path == swaigPath {
+		s.handleSWAIG(w, r)
+		return
+	}
+
+	// Routing-callback hook keeps its existing semantics; if no callback
+	// matched, fall through to the renderable document via the extension
+	// point (AgentBase overrides RenderMainSwml).
 	doc := s.OnRequest(body, r.URL.Path)
+	if doc == nil || (len(doc) == 0) {
+		doc = s.RenderMainSwml(r)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(doc)

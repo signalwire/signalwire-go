@@ -74,29 +74,29 @@ type AgentOption func(*AgentBase)
 
 // WithName sets the agent (and service) name.
 func WithName(name string) AgentOption {
-	return func(a *AgentBase) { a.name = name }
+	return func(a *AgentBase) { a.pendingName = name }
 }
 
 // WithRoute sets the HTTP route path the agent listens on.
 func WithRoute(route string) AgentOption {
-	return func(a *AgentBase) { a.route = route }
+	return func(a *AgentBase) { a.pendingRoute = route }
 }
 
 // WithHost sets the HTTP listen address.
 func WithHost(host string) AgentOption {
-	return func(a *AgentBase) { a.host = host }
+	return func(a *AgentBase) { a.pendingHost = host }
 }
 
 // WithPort sets the HTTP listen port.
 func WithPort(port int) AgentOption {
-	return func(a *AgentBase) { a.port = port }
+	return func(a *AgentBase) { a.pendingPort = port }
 }
 
 // WithBasicAuth sets explicit basic-auth credentials.
 func WithBasicAuth(user, password string) AgentOption {
 	return func(a *AgentBase) {
-		a.basicAuthUser = user
-		a.basicAuthPassword = password
+		a.pendingBasicAuthUser = user
+		a.pendingBasicAuthPassword = password
 	}
 }
 
@@ -129,20 +129,24 @@ func WithTokenExpiry(secs int) AgentOption {
 // AgentBase
 // ---------------------------------------------------------------------------
 
-// AgentBase is the central agent struct that composes SWML service, tools,
-// prompts, AI configuration, context management, and HTTP handling.
+// AgentBase is the central agent struct. It embeds *swml.Service so that
+// Service's fields and methods (Name, Route, Host, Port, basic auth, the
+// HTTP server, the tool registry, etc.) are promoted onto AgentBase. The
+// agent-specific state below is layered on top.
 type AgentBase struct {
-	mu          sync.RWMutex
-	swmlService *swml.Service
-	Logger      *logging.Logger
+	mu sync.RWMutex
+	*swml.Service
+	Logger *logging.Logger
 
-	// Construction parameters (forwarded to swml.Service)
-	name              string
-	route             string
-	host              string
-	port              int
-	basicAuthUser     string
-	basicAuthPassword string
+	// Pending construction-time options. Filled by With* options before
+	// Service is built; consumed when NewAgentBase calls swml.NewService.
+	// Once Service is non-nil these are unused.
+	pendingName              string
+	pendingRoute             string
+	pendingHost              string
+	pendingPort              int
+	pendingBasicAuthUser     string
+	pendingBasicAuthPassword string
 
 	// Prompt management
 	promptText  string           // raw text mode
@@ -212,14 +216,14 @@ type AgentBase struct {
 // provided functional options.
 func NewAgentBase(opts ...AgentOption) *AgentBase {
 	a := &AgentBase{
-		name:         "Agent",
-		route:        "/",
-		host:         "0.0.0.0",
-		port:         3000,
-		usePom:       true,
-		autoAnswer:   true,
-		recordFormat: "mp4",
-		recordStereo: true,
+		pendingName:     "Agent",
+		pendingRoute:    "/",
+		pendingHost:     "0.0.0.0",
+		pendingPort:     3000,
+		usePom:          true,
+		autoAnswer:      true,
+		recordFormat:    "mp4",
+		recordStereo:    true,
 		tokenExpirySecs: 3600,
 
 		// Initialize all maps and slices
@@ -246,18 +250,18 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 		opt(a)
 	}
 
-	// Build swml.Service options from agent config
+	// Build the embedded Service from the collected pending options.
 	svcOpts := []swml.ServiceOption{
-		swml.WithName(a.name),
-		swml.WithRoute(a.route),
-		swml.WithHost(a.host),
-		swml.WithPort(a.port),
+		swml.WithName(a.pendingName),
+		swml.WithRoute(a.pendingRoute),
+		swml.WithHost(a.pendingHost),
+		swml.WithPort(a.pendingPort),
 	}
-	if a.basicAuthUser != "" && a.basicAuthPassword != "" {
-		svcOpts = append(svcOpts, swml.WithBasicAuth(a.basicAuthUser, a.basicAuthPassword))
+	if a.pendingBasicAuthUser != "" && a.pendingBasicAuthPassword != "" {
+		svcOpts = append(svcOpts, swml.WithBasicAuth(a.pendingBasicAuthUser, a.pendingBasicAuthPassword))
 	}
-	a.swmlService = swml.NewService(svcOpts...)
-	a.Logger = logging.New(a.name)
+	a.Service = swml.NewService(svcOpts...)
+	a.Logger = logging.New(a.Name)
 
 	// Proxy URL from env or service
 	if a.proxyURLBase == "" {
@@ -281,14 +285,14 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 func (a *AgentBase) GetRoute() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	return a.route
+	return a.Route
 }
 
 // GetName returns the agent's name.
 func (a *AgentBase) GetName() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	return a.name
+	return a.Name
 }
 
 // ---------------------------------------------------------------------------
@@ -1059,7 +1063,7 @@ func (a *AgentBase) handleMcpRequest(body map[string]any) map[string]any {
 				"protocolVersion": "2025-06-18",
 				"capabilities":   map[string]any{"tools": map[string]any{}},
 				"serverInfo": map[string]any{
-					"name":    a.name,
+					"name":    a.Name,
 					"version": "1.0.0",
 				},
 			},
@@ -1303,8 +1307,8 @@ func (a *AgentBase) buildWebhookURL() string {
 		return a.webhookURL
 	}
 
-	user, pass := a.swmlService.GetBasicAuthCredentials()
-	baseURL := a.swmlService.GetFullURL(false)
+	user, pass := a.Service.GetBasicAuthCredentials()
+	baseURL := a.Service.GetFullURL(false)
 
 	// Insert credentials
 	scheme := "http://"
@@ -1314,7 +1318,7 @@ func (a *AgentBase) buildWebhookURL() string {
 	rest := strings.TrimPrefix(strings.TrimPrefix(baseURL, "http://"), "https://")
 	authedBase := fmt.Sprintf("%s%s:%s@%s", scheme, user, pass, rest)
 
-	route := strings.TrimRight(a.swmlService.Route, "/")
+	route := strings.TrimRight(a.Service.Route, "/")
 	url := authedBase
 	if !strings.HasSuffix(url, route) {
 		url = strings.TrimRight(url, "/") + route
@@ -1339,8 +1343,8 @@ func (a *AgentBase) buildPostPromptURL() string {
 		return a.postPromptURL
 	}
 
-	user, pass := a.swmlService.GetBasicAuthCredentials()
-	baseURL := a.swmlService.GetFullURL(false)
+	user, pass := a.Service.GetBasicAuthCredentials()
+	baseURL := a.Service.GetFullURL(false)
 
 	scheme := "http://"
 	if strings.HasPrefix(baseURL, "https://") {
@@ -1349,7 +1353,7 @@ func (a *AgentBase) buildPostPromptURL() string {
 	rest := strings.TrimPrefix(strings.TrimPrefix(baseURL, "http://"), "https://")
 	authedBase := fmt.Sprintf("%s%s:%s@%s", scheme, user, pass, rest)
 
-	route := strings.TrimRight(a.swmlService.Route, "/")
+	route := strings.TrimRight(a.Service.Route, "/")
 	url := authedBase
 	if !strings.HasSuffix(url, route) {
 		url = strings.TrimRight(url, "/") + route
@@ -1595,10 +1599,10 @@ func (a *AgentBase) AsRouter() http.Handler {
 func (a *AgentBase) buildAndServe() error {
 	mux := a.buildMux()
 
-	user, _ := a.swmlService.GetBasicAuthCredentials()
-	addr := fmt.Sprintf("%s:%d", a.swmlService.Host, a.swmlService.Port)
+	user, _ := a.Service.GetBasicAuthCredentials()
+	addr := fmt.Sprintf("%s:%d", a.Service.Host, a.Service.Port)
 
-	a.Logger.Info("serving agent %q on %s%s", a.name, addr, a.swmlService.Route)
+	a.Logger.Info("serving agent %q on %s%s", a.Name, addr, a.Service.Route)
 	a.Logger.Info("auth user: %s", user)
 
 	server := &http.Server{
@@ -1612,7 +1616,7 @@ func (a *AgentBase) buildAndServe() error {
 func (a *AgentBase) buildMux() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	route := a.swmlService.Route
+	route := a.Service.Route
 	if route == "" {
 		route = "/"
 	}
@@ -1732,12 +1736,8 @@ func (a *AgentBase) clone() *AgentBase {
 	defer a.mu.RUnlock()
 
 	c := &AgentBase{
-		swmlService: a.swmlService,
-		Logger:      a.Logger,
-		name:        a.name,
-		route:       a.route,
-		host:        a.host,
-		port:        a.port,
+		Service: a.Service,
+		Logger:  a.Logger,
 
 		promptText: a.promptText,
 		postPrompt: a.postPrompt,
@@ -1927,7 +1927,7 @@ func (a *AgentBase) withAuth(next http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Cache-Control", "no-store")
 
-		user, pass := a.swmlService.GetBasicAuthCredentials()
+		user, pass := a.Service.GetBasicAuthCredentials()
 		reqUser, reqPass, ok := r.BasicAuth()
 		userMatch := subtle.ConstantTimeCompare([]byte(reqUser), []byte(user)) == 1
 		passMatch := subtle.ConstantTimeCompare([]byte(reqPass), []byte(pass)) == 1
