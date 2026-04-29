@@ -253,9 +253,9 @@ func TestContextRemoveStep(t *testing.T) {
 func TestGatherInfo(t *testing.T) {
 	step := &Step{name: "gather"}
 	step.SetText("Collecting info")
-	gi := step.SetGatherInfo("user_data", "next_step", "Let me ask you some questions")
-	gi.AddQuestion("name", "What is your name?").
-		AddQuestion("email", "What is your email?", WithType("string"), WithConfirm(true))
+	step.SetGatherInfo("user_data", "next_step", "Let me ask you some questions").
+		AddGatherQuestion("name", "What is your name?").
+		AddGatherQuestion("email", "What is your email?", WithType("string"), WithConfirm(true))
 
 	m := step.ToMap()
 	giMap, ok := m["gather_info"].(map[string]any)
@@ -336,6 +336,20 @@ func TestAddGatherQuestionWithoutSetGatherInfo(t *testing.T) {
 	}
 	if len(step.gatherInfo.Questions) != 1 {
 		t.Fatal("expected 1 question")
+	}
+}
+
+func TestGatherInfoValidate(t *testing.T) {
+	// Empty GatherInfo must fail validation — mirrors Python's ValueError.
+	gi := &GatherInfo{OutputKey: "data", Prompt: "Tell me"}
+	if err := gi.Validate(); err == nil {
+		t.Fatal("expected error from Validate() on GatherInfo with no questions")
+	}
+
+	// After adding a question, Validate must pass.
+	gi.AddQuestion("name", "What is your name?")
+	if err := gi.Validate(); err != nil {
+		t.Fatalf("unexpected error from Validate() after adding a question: %v", err)
 	}
 }
 
@@ -782,9 +796,9 @@ func TestGatherInfoInBuilder(t *testing.T) {
 	ctx := cb.AddContext("default")
 	step := ctx.AddStep("collect")
 	step.SetText("Collecting info")
-	gi := step.SetGatherInfo("answers", "process", "I need to ask a few things")
-	gi.AddQuestion("age", "How old are you?", WithType("integer"))
-	gi.AddQuestion("city", "Where do you live?")
+	step.SetGatherInfo("answers", "process", "I need to ask a few things").
+		AddGatherQuestion("age", "How old are you?", WithType("integer")).
+		AddGatherQuestion("city", "Where do you live?")
 	// A completion_action of "process" must target a real step for
 	// validation to pass.
 	ctx.AddStep("process").SetText("Process collected info")

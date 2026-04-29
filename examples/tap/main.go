@@ -21,14 +21,14 @@ func main() {
 	// ---- Basic WebSocket tap ----
 	fmt.Println("=== Basic WebSocket Tap ===")
 	wsTap := swaig.NewFunctionResult("Starting call monitoring").
-		Tap("wss://monitoring.company.com/audio-stream", "", "", "").
+		Tap("wss://monitoring.company.com/audio-stream", "", "", "", 0, "").
 		Say("Call monitoring is now active")
 	printResult(wsTap)
 
 	// ---- Basic RTP tap ----
 	fmt.Println("=== Basic RTP Tap ===")
 	rtpTap := swaig.NewFunctionResult("Starting RTP monitoring").
-		Tap("rtp://192.168.1.100:5004", "", "", "").
+		Tap("rtp://192.168.1.100:5004", "", "", "", 0, "").
 		UpdateGlobalData(map[string]any{"rtp_monitoring": true})
 	printResult(rtpTap)
 
@@ -36,7 +36,7 @@ func main() {
 	fmt.Println("=== Advanced Compliance Monitoring ===")
 	compliance := swaig.NewFunctionResult("Setting up compliance monitoring").
 		Tap("wss://compliance.company.com/secure-stream",
-			"compliance_tap_001", "both", "PCMA").
+			"compliance_tap_001", "both", "PCMA", 0, "").
 		SetMetadata(map[string]any{
 			"compliance_session": true,
 			"agent_id":           "agent_123",
@@ -49,7 +49,7 @@ func main() {
 	fmt.Println("=== Customer Service Monitoring ===")
 	csMonitor := swaig.NewFunctionResult("Initialising quality monitoring").
 		Tap("wss://quality.company.com/cs-monitoring",
-			"cs_quality_monitor", "speak", "").
+			"cs_quality_monitor", "speak", "", 0, "").
 		UpdateGlobalData(map[string]any{
 			"quality_monitoring": true,
 		}).

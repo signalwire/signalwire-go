@@ -15,7 +15,8 @@ import (
 // WikipediaSearchSkill searches Wikipedia for information.
 type WikipediaSearchSkill struct {
 	skills.BaseSkill
-	numResults int
+	numResults      int
+	noResultsMessage string
 }
 
 // NewWikipediaSearch creates a new WikipediaSearchSkill.
@@ -35,13 +36,35 @@ func (s *WikipediaSearchSkill) Setup() bool {
 	if s.numResults < 1 {
 		s.numResults = 1
 	}
+	// noResultsMessage is configurable; matches Python setup() skill.py:71-74.
+	s.noResultsMessage = s.GetParamString("no_results_message",
+		"I couldn't find any Wikipedia articles for '%s'. Try rephrasing your search or using different keywords.")
 	return true
+}
+
+func (s *WikipediaSearchSkill) GetParameterSchema() map[string]map[string]any {
+	schema := s.BaseSkill.GetParameterSchema()
+	schema["num_results"] = map[string]any{
+		"type":        "integer",
+		"description": "Maximum number of Wikipedia articles to return",
+		"default":     1,
+		"required":    false,
+		"minimum":     1,
+		"maximum":     5,
+	}
+	schema["no_results_message"] = map[string]any{
+		"type":        "string",
+		"description": "Custom message when no Wikipedia articles are found",
+		"default":     "I couldn't find any Wikipedia articles for '%s'. Try rephrasing your search or using different keywords.",
+		"required":    false,
+	}
+	return schema
 }
 
 func (s *WikipediaSearchSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
-			Name:        "search_wikipedia",
+			Name:        "search_wiki",
 			Description: "Search Wikipedia for information about a topic and get article summaries",
 			Parameters: map[string]any{
 				"type": "object",
@@ -87,7 +110,7 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 	queryData, _ := searchData["query"].(map[string]any)
 	searchResults, _ := queryData["search"].([]any)
 	if len(searchResults) == 0 {
-		return swaig.NewFunctionResult(fmt.Sprintf("I couldn't find any Wikipedia articles for '%s'. Try rephrasing your search.", query))
+		return swaig.NewFunctionResult(fmt.Sprintf(s.noResultsMessage, query))
 	}
 
 	// Step 2: Get extracts for each result
@@ -138,7 +161,7 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 	}
 
 	if len(articles) == 0 {
-		return swaig.NewFunctionResult(fmt.Sprintf("I couldn't find any Wikipedia articles for '%s'.", query))
+		return swaig.NewFunctionResult(fmt.Sprintf(s.noResultsMessage, query))
 	}
 
 	return swaig.NewFunctionResult(strings.Join(articles, "\n\n"+strings.Repeat("=", 50)+"\n\n"))
@@ -148,9 +171,10 @@ func (s *WikipediaSearchSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{
 			"title": "Wikipedia Search",
-			"body":  "You can search Wikipedia for factual information using search_wikipedia.",
+			// Body matches Python get_prompt_sections() (skill.py:190): tool name + num_results interpolated.
+			"body": fmt.Sprintf("You can search Wikipedia for factual information using search_wiki. This will return up to %d Wikipedia article summaries.", s.numResults),
 			"bullets": []string{
-				"Use search_wikipedia for factual, encyclopedic information",
+				"Use search_wiki for factual, encyclopedic information",
 				"Great for answering questions about people, places, concepts, and history",
 				"Returns reliable, well-sourced information from Wikipedia articles",
 			},

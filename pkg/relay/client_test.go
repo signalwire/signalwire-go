@@ -255,6 +255,59 @@ func TestCallReceiveEvent(t *testing.T) {
 	}
 }
 
+// TestCallReceiveEvent_ProtocolFallback covers the wire-key fallback that
+// Python's CallReceiveEvent.from_payload performs:
+//
+//	context=p.get("context", p.get("protocol", ""))
+//
+// SIP-originated inbound receive events carry the routing identifier under
+// "protocol" instead of "context"; Go must read either key.
+func TestCallReceiveEvent_ProtocolFallback(t *testing.T) {
+	t.Run("protocol only (SIP-originated)", func(t *testing.T) {
+		e := NewCallReceiveEvent(map[string]any{
+			"call_id":  "call-3",
+			"protocol": "sip-inbound",
+		})
+		if e.Context != "sip-inbound" {
+			t.Errorf("Context = %q, want %q (fell back to protocol key)", e.Context, "sip-inbound")
+		}
+	})
+
+	t.Run("context wins over protocol when both present", func(t *testing.T) {
+		e := NewCallReceiveEvent(map[string]any{
+			"call_id":  "call-4",
+			"context":  "office",
+			"protocol": "sip-inbound",
+		})
+		if e.Context != "office" {
+			t.Errorf("Context = %q, want %q (context must win when present)", e.Context, "office")
+		}
+	})
+
+	t.Run("neither key present yields empty string", func(t *testing.T) {
+		e := NewCallReceiveEvent(map[string]any{
+			"call_id": "call-5",
+		})
+		if e.Context != "" {
+			t.Errorf("Context = %q, want empty string", e.Context)
+		}
+	})
+
+	t.Run("explicit empty context wins over present protocol", func(t *testing.T) {
+		// Python's p.get("context", p.get("protocol", "")) returns the value
+		// at "context" when the key is present — even if that value is "".
+		// Go must use a key-presence check, not an empty-string check.
+		e := NewCallReceiveEvent(map[string]any{
+			"call_id":  "call-6",
+			"context":  "",
+			"protocol": "sip-inbound",
+		})
+		if e.Context != "" {
+			t.Errorf("Context = %q, want empty string (explicit empty context must not fall back to protocol)", e.Context)
+		}
+	})
+}
+
 func TestPlayEvent(t *testing.T) {
 	e := NewPlayEvent(map[string]any{
 		"control_id": "ctrl-1",
@@ -279,8 +332,8 @@ func TestRecordEvent(t *testing.T) {
 	if e.URL != "https://example.com/recording.wav" {
 		t.Errorf("URL = %q, want expected URL", e.URL)
 	}
-	if e.Duration != 30 {
-		t.Errorf("Duration = %d, want 30", e.Duration)
+	if e.Duration != 30.0 {
+		t.Errorf("Duration = %v, want 30.0", e.Duration)
 	}
 	if e.Size != 48000 {
 		t.Errorf("Size = %d, want 48000", e.Size)
@@ -314,14 +367,14 @@ func TestMessageReceiveEvent(t *testing.T) {
 
 func TestMessageStateEvent(t *testing.T) {
 	e := NewMessageStateEvent(map[string]any{
-		"message_id":  "msg-2",
-		"state":       "delivered",
-		"direction":   "outbound",
-		"from_number": "+15551234567",
-		"to_number":   "+15559876543",
+		"message_id":    "msg-2",
+		"message_state": "delivered",
+		"direction":     "outbound",
+		"from_number":   "+15551234567",
+		"to_number":     "+15559876543",
 	})
-	if e.State != "delivered" {
-		t.Errorf("State = %q, want %q", e.State, "delivered")
+	if e.MessageState != "delivered" {
+		t.Errorf("MessageState = %q, want %q", e.MessageState, "delivered")
 	}
 }
 
@@ -768,9 +821,21 @@ func TestConstants_EventTypes(t *testing.T) {
 		if e == "" {
 			t.Error("found empty calling event constant")
 		}
-		if !contains(e, "calling.call.") {
-			t.Errorf("calling event %q should start with 'calling.call.'", e)
+		if !contains(e, "calling.") {
+			t.Errorf("calling event %q should start with 'calling.'", e)
 		}
+	}
+
+	// Wire-format alignment with signalwire-python: most calling events use
+	// the "calling.call.<verb>" prefix, but EVENT_CALLING_ERROR and
+	// EVENT_CONFERENCE in Python use bare "calling.error" / "calling.conference"
+	// (relay/constants.py:69-70). The constants below must match what the
+	// SignalWire server emits — ParseEvent routes on the literal value.
+	if EventCallingCallError != "calling.error" {
+		t.Errorf("EventCallingCallError = %q, want %q (matches Python EVENT_CALLING_ERROR)", EventCallingCallError, "calling.error")
+	}
+	if EventCallingCallConference != "calling.conference" {
+		t.Errorf("EventCallingCallConference = %q, want %q (matches Python EVENT_CONFERENCE)", EventCallingCallConference, "calling.conference")
 	}
 
 	messagingEvents := []string{EventMessagingReceive, EventMessagingState}

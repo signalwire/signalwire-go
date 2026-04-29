@@ -4,6 +4,7 @@
 package skills
 
 import (
+	"github.com/signalwire/signalwire-go/pkg/logging"
 	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
@@ -56,6 +57,10 @@ type BaseSkill struct {
 	SkillDesc string
 	SkillVer  string
 	Params    map[string]any
+	// Logger is a named logger for this skill instance. It is initialized
+	// automatically when Name() is first called via NewBaseSkill, or can be
+	// set explicitly. Mirrors Python SkillBase.logger.
+	Logger *logging.Logger
 }
 
 // Name returns the skill name.
@@ -84,18 +89,45 @@ func (b *BaseSkill) GetHints() []string { return nil }
 // GetGlobalData returns nil (no global data by default).
 func (b *BaseSkill) GetGlobalData() map[string]any { return nil }
 
+// ShouldSkipPrompt returns true if the "skip_prompt" parameter is set to true.
+// Concrete skill overrides of GetPromptSections should call this helper before
+// returning prompt content, mirroring Python's get_prompt_sections() guard.
+func (b *BaseSkill) ShouldSkipPrompt() bool {
+	return b.GetParamBool("skip_prompt", false)
+}
+
 // GetPromptSections returns nil (no prompt sections by default).
-func (b *BaseSkill) GetPromptSections() []map[string]any { return nil }
+// When skip_prompt is set to true in Params, returns nil even for concrete
+// overrides — concrete overrides that inject prompt sections MUST call
+// ShouldSkipPrompt() and return nil (or an empty slice) when it is true.
+func (b *BaseSkill) GetPromptSections() []map[string]any {
+	if b.ShouldSkipPrompt() {
+		return nil
+	}
+	return nil
+}
 
 // Cleanup is a no-op by default.
 func (b *BaseSkill) Cleanup() {}
 
-// GetInstanceKey returns the skill name as the default instance key.
-func (b *BaseSkill) GetInstanceKey() string { return b.SkillName }
+// GetInstanceKey returns a unique key for tracking this skill instance.
+// When SupportsMultipleInstances() returns true, the key is composed of
+// the skill name and the "tool_name" parameter (defaulting to the skill name),
+// matching Python's get_instance_key() behavior for multi-instance skills.
+// When SupportsMultipleInstances() returns false, returns the skill name.
+func (b *BaseSkill) GetInstanceKey() string {
+	if b.SupportsMultipleInstances() {
+		toolName := b.GetParamString("tool_name", b.SkillName)
+		return b.SkillName + "_" + toolName
+	}
+	return b.SkillName
+}
 
 // GetParameterSchema returns the common parameters available to all skills.
+// The "tool_name" parameter is only included when SupportsMultipleInstances()
+// returns true, matching Python's conditional inclusion in get_parameter_schema().
 func (b *BaseSkill) GetParameterSchema() map[string]map[string]any {
-	return map[string]map[string]any{
+	schema := map[string]map[string]any{
 		"swaig_fields": {
 			"type":        "object",
 			"description": "Additional SWAIG function metadata to merge into tool definitions",
@@ -108,13 +140,54 @@ func (b *BaseSkill) GetParameterSchema() map[string]map[string]any {
 			"default":     false,
 			"required":    false,
 		},
-		"tool_name": {
+	}
+	if b.SupportsMultipleInstances() {
+		schema["tool_name"] = map[string]any{
 			"type":        "string",
-			"description": "Custom name for this skill instance",
+			"description": "Custom name for this skill instance (for multiple instances)",
 			"default":     b.SkillName,
 			"required":    false,
-		},
+		}
 	}
+	return schema
+}
+
+// GetSkillNamespace returns the namespaced key used to store this skill
+// instance's state in agent global_data. Uses the "prefix" parameter if set,
+// otherwise falls back to the instance key. Mirrors Python's _get_skill_namespace().
+//
+// Example: a skill named "datasphere" with no prefix returns "skill:datasphere".
+// With prefix "kb" it returns "skill:kb".
+func (b *BaseSkill) GetSkillNamespace() string {
+	if prefix := b.GetParamString("prefix", ""); prefix != "" {
+		return "skill:" + prefix
+	}
+	return "skill:" + b.GetInstanceKey()
+}
+
+// GetSkillData reads this skill instance's namespaced state from rawData.
+// rawData is the raw_data map passed to SWAIG function handlers, expected
+// to contain a "global_data" key. Returns an empty map when not found.
+// Mirrors Python's get_skill_data(raw_data).
+func (b *BaseSkill) GetSkillData(rawData map[string]any) map[string]any {
+	namespace := b.GetSkillNamespace()
+	globalData, _ := rawData["global_data"].(map[string]any)
+	if globalData == nil {
+		return map[string]any{}
+	}
+	if data, ok := globalData[namespace].(map[string]any); ok {
+		return data
+	}
+	return map[string]any{}
+}
+
+// UpdateSkillData writes this skill instance's namespaced state into result's
+// global_data via result.UpdateGlobalData(). Returns result for method chaining.
+// Mirrors Python's update_skill_data(result, data).
+func (b *BaseSkill) UpdateSkillData(result *swaig.FunctionResult, data map[string]any) *swaig.FunctionResult {
+	namespace := b.GetSkillNamespace()
+	result.UpdateGlobalData(map[string]any{namespace: data})
+	return result
 }
 
 // GetParam retrieves a parameter value from the skill's Params map.

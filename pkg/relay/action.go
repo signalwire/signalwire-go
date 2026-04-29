@@ -45,19 +45,6 @@ func (a *Action) Wait(ctx context.Context) (*RelayEvent, error) {
 	}
 }
 
-// Stop sends a stop command to the SignalWire server for this action.
-func (a *Action) Stop() error {
-	if a.call == nil || a.call.client == nil {
-		return fmt.Errorf("action not associated with a call or client")
-	}
-	_, err := a.call.client.execute("calling.stop", map[string]any{
-		"node_id":    a.call.nodeID,
-		"call_id":    a.call.callID,
-		"control_id": a.controlID,
-	})
-	return err
-}
-
 // IsDone returns true if the action has completed.
 func (a *Action) IsDone() bool {
 	a.mu.Lock()
@@ -118,6 +105,19 @@ func newPlayAction(call *Call, controlID string) *PlayAction {
 	return &PlayAction{Action: newAction(call, controlID)}
 }
 
+// Stop sends calling.play.stop to halt the active play operation.
+func (pa *PlayAction) Stop() error {
+	if pa.call == nil || pa.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := pa.call.client.execute("calling.play.stop", map[string]any{
+		"node_id":    pa.call.nodeID,
+		"call_id":    pa.call.callID,
+		"control_id": pa.controlID,
+	})
+	return err
+}
+
 // Pause pauses the currently playing media.
 func (pa *PlayAction) Pause() error {
 	if pa.call == nil || pa.call.client == nil {
@@ -168,6 +168,52 @@ func newRecordAction(call *Call, controlID string) *RecordAction {
 	return &RecordAction{Action: newAction(call, controlID)}
 }
 
+// Stop sends calling.record.stop to halt the active recording.
+func (ra *RecordAction) Stop() error {
+	if ra.call == nil || ra.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := ra.call.client.execute("calling.record.stop", map[string]any{
+		"node_id":    ra.call.nodeID,
+		"call_id":    ra.call.callID,
+		"control_id": ra.controlID,
+	})
+	return err
+}
+
+// Pause pauses the active recording. An optional behavior string may be
+// provided (e.g. "silence" or "skip") to control how the gap is handled.
+// Pass no argument — or "" — to omit behavior, matching Python's
+// pause(behavior: Optional[str] = None) signature.
+func (ra *RecordAction) Pause(behavior ...string) error {
+	if ra.call == nil || ra.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	params := map[string]any{
+		"node_id":    ra.call.nodeID,
+		"call_id":    ra.call.callID,
+		"control_id": ra.controlID,
+	}
+	if len(behavior) > 0 && behavior[0] != "" {
+		params["behavior"] = behavior[0]
+	}
+	_, err := ra.call.client.execute("calling.record.pause", params)
+	return err
+}
+
+// Resume resumes a paused recording.
+func (ra *RecordAction) Resume() error {
+	if ra.call == nil || ra.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := ra.call.client.execute("calling.record.resume", map[string]any{
+		"node_id":    ra.call.nodeID,
+		"call_id":    ra.call.callID,
+		"control_id": ra.controlID,
+	})
+	return err
+}
+
 // DetectAction represents a long-running detect operation (e.g. machine detection).
 type DetectAction struct {
 	*Action
@@ -176,6 +222,19 @@ type DetectAction struct {
 // newDetectAction creates a new DetectAction.
 func newDetectAction(call *Call, controlID string) *DetectAction {
 	return &DetectAction{Action: newAction(call, controlID)}
+}
+
+// Stop sends calling.detect.stop to halt the active detect operation.
+func (da *DetectAction) Stop() error {
+	if da.call == nil || da.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := da.call.client.execute("calling.detect.stop", map[string]any{
+		"node_id":    da.call.nodeID,
+		"call_id":    da.call.callID,
+		"control_id": da.controlID,
+	})
+	return err
 }
 
 // CollectAction represents a play-and-collect operation.
@@ -188,6 +247,48 @@ func newCollectAction(call *Call, controlID string) *CollectAction {
 	return &CollectAction{Action: newAction(call, controlID)}
 }
 
+// Stop sends calling.play_and_collect.stop to halt the play-and-collect operation.
+func (ca *CollectAction) Stop() error {
+	if ca.call == nil || ca.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := ca.call.client.execute("calling.play_and_collect.stop", map[string]any{
+		"node_id":    ca.call.nodeID,
+		"call_id":    ca.call.callID,
+		"control_id": ca.controlID,
+	})
+	return err
+}
+
+// Volume adjusts the playback volume by the given dB offset during a
+// play-and-collect operation.
+func (ca *CollectAction) Volume(db float64) error {
+	if ca.call == nil || ca.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := ca.call.client.execute("calling.play_and_collect.volume", map[string]any{
+		"node_id":    ca.call.nodeID,
+		"call_id":    ca.call.callID,
+		"control_id": ca.controlID,
+		"volume":     db,
+	})
+	return err
+}
+
+// StartInputTimers starts the initial_timeout timer on an active collect,
+// equivalent to Python's CollectAction.start_input_timers().
+func (ca *CollectAction) StartInputTimers() error {
+	if ca.call == nil || ca.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := ca.call.client.execute("calling.collect.start_input_timers", map[string]any{
+		"node_id":    ca.call.nodeID,
+		"call_id":    ca.call.callID,
+		"control_id": ca.controlID,
+	})
+	return err
+}
+
 // StandaloneCollectAction represents a standalone collect (without play).
 type StandaloneCollectAction struct {
 	*Action
@@ -198,14 +299,62 @@ func newStandaloneCollectAction(call *Call, controlID string) *StandaloneCollect
 	return &StandaloneCollectAction{Action: newAction(call, controlID)}
 }
 
-// FaxAction represents a long-running fax send/receive operation.
-type FaxAction struct {
-	*Action
+// Stop sends calling.collect.stop to halt the standalone collect operation.
+func (sca *StandaloneCollectAction) Stop() error {
+	if sca.call == nil || sca.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := sca.call.client.execute("calling.collect.stop", map[string]any{
+		"node_id":    sca.call.nodeID,
+		"call_id":    sca.call.callID,
+		"control_id": sca.controlID,
+	})
+	return err
 }
 
-// newFaxAction creates a new FaxAction.
-func newFaxAction(call *Call, controlID string) *FaxAction {
-	return &FaxAction{Action: newAction(call, controlID)}
+// StartInputTimers starts the initial_timeout timer on an active standalone
+// collect, equivalent to Python's StandaloneCollectAction.start_input_timers().
+func (sca *StandaloneCollectAction) StartInputTimers() error {
+	if sca.call == nil || sca.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := sca.call.client.execute("calling.collect.start_input_timers", map[string]any{
+		"node_id":    sca.call.nodeID,
+		"call_id":    sca.call.callID,
+		"control_id": sca.controlID,
+	})
+	return err
+}
+
+// FaxAction represents a long-running fax send/receive operation.
+// methodPrefix distinguishes "send_fax" from "receive_fax" and is used to
+// build the operation-specific stop command (e.g. "calling.send_fax.stop").
+type FaxAction struct {
+	*Action
+	methodPrefix string
+}
+
+// newFaxAction creates a new FaxAction for the given method prefix ("send_fax"
+// or "receive_fax"), matching Python's FaxAction(call, control_id, method_prefix).
+func newFaxAction(call *Call, controlID string, methodPrefix string) *FaxAction {
+	return &FaxAction{
+		Action:       newAction(call, controlID),
+		methodPrefix: methodPrefix,
+	}
+}
+
+// Stop sends "calling.{methodPrefix}.stop" (e.g. "calling.send_fax.stop" or
+// "calling.receive_fax.stop") to halt the active fax operation.
+func (fa *FaxAction) Stop() error {
+	if fa.call == nil || fa.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := fa.call.client.execute("calling."+fa.methodPrefix+".stop", map[string]any{
+		"node_id":    fa.call.nodeID,
+		"call_id":    fa.call.callID,
+		"control_id": fa.controlID,
+	})
+	return err
 }
 
 // TapAction represents a long-running tap operation.
@@ -218,6 +367,19 @@ func newTapAction(call *Call, controlID string) *TapAction {
 	return &TapAction{Action: newAction(call, controlID)}
 }
 
+// Stop sends calling.tap.stop to halt the active tap operation.
+func (ta *TapAction) Stop() error {
+	if ta.call == nil || ta.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := ta.call.client.execute("calling.tap.stop", map[string]any{
+		"node_id":    ta.call.nodeID,
+		"call_id":    ta.call.callID,
+		"control_id": ta.controlID,
+	})
+	return err
+}
+
 // StreamAction represents a long-running media stream operation.
 type StreamAction struct {
 	*Action
@@ -226,6 +388,19 @@ type StreamAction struct {
 // newStreamAction creates a new StreamAction.
 func newStreamAction(call *Call, controlID string) *StreamAction {
 	return &StreamAction{Action: newAction(call, controlID)}
+}
+
+// Stop sends calling.stream.stop to halt the active stream operation.
+func (sa *StreamAction) Stop() error {
+	if sa.call == nil || sa.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := sa.call.client.execute("calling.stream.stop", map[string]any{
+		"node_id":    sa.call.nodeID,
+		"call_id":    sa.call.callID,
+		"control_id": sa.controlID,
+	})
+	return err
 }
 
 // PayAction represents a long-running pay operation.
@@ -238,6 +413,19 @@ func newPayAction(call *Call, controlID string) *PayAction {
 	return &PayAction{Action: newAction(call, controlID)}
 }
 
+// Stop sends calling.pay.stop to halt the active pay operation.
+func (pa *PayAction) Stop() error {
+	if pa.call == nil || pa.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := pa.call.client.execute("calling.pay.stop", map[string]any{
+		"node_id":    pa.call.nodeID,
+		"call_id":    pa.call.callID,
+		"control_id": pa.controlID,
+	})
+	return err
+}
+
 // TranscribeAction represents a long-running transcription operation.
 type TranscribeAction struct {
 	*Action
@@ -248,6 +436,19 @@ func newTranscribeAction(call *Call, controlID string) *TranscribeAction {
 	return &TranscribeAction{Action: newAction(call, controlID)}
 }
 
+// Stop sends calling.transcribe.stop to halt the active transcription.
+func (ta *TranscribeAction) Stop() error {
+	if ta.call == nil || ta.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := ta.call.client.execute("calling.transcribe.stop", map[string]any{
+		"node_id":    ta.call.nodeID,
+		"call_id":    ta.call.callID,
+		"control_id": ta.controlID,
+	})
+	return err
+}
+
 // AIAction represents a long-running AI operation on a call.
 type AIAction struct {
 	*Action
@@ -256,4 +457,17 @@ type AIAction struct {
 // newAIAction creates a new AIAction.
 func newAIAction(call *Call, controlID string) *AIAction {
 	return &AIAction{Action: newAction(call, controlID)}
+}
+
+// Stop sends calling.ai.stop to halt the active AI session.
+func (aa *AIAction) Stop() error {
+	if aa.call == nil || aa.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := aa.call.client.execute("calling.ai.stop", map[string]any{
+		"node_id":    aa.call.nodeID,
+		"call_id":    aa.call.callID,
+		"control_id": aa.controlID,
+	})
+	return err
 }

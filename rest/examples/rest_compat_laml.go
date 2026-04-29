@@ -186,7 +186,7 @@ func main() {
 				"name": "CI Token (updated)",
 			})
 		})
-		if err := client.Project.Tokens.Delete(projTokenID); err == nil {
+		if _, err := client.Project.Tokens.Delete(projTokenID); err == nil {
 			fmt.Println("  Delete project token: OK")
 		}
 	}
@@ -247,22 +247,22 @@ func main() {
 
 	fmt.Println("\nCleaning up...")
 	if qSID != "" {
-		if err := client.Compat.Queues.Delete(qSID); err == nil {
+		if _, err := client.Compat.Queues.Delete(qSID); err == nil {
 			fmt.Printf("  Deleted queue %s\n", qSID)
 		}
 	}
 	if appSID != "" {
-		if err := client.Compat.Applications.Delete(appSID); err == nil {
+		if _, err := client.Compat.Applications.Delete(appSID); err == nil {
 			fmt.Printf("  Deleted application %s\n", appSID)
 		}
 	}
 	if lamlSID != "" {
-		if err := client.Compat.LamlBins.Delete(lamlSID); err == nil {
+		if _, err := client.Compat.LamlBins.Delete(lamlSID); err == nil {
 			fmt.Printf("  Deleted LaML bin %s\n", lamlSID)
 		}
 	}
 	if numSID != "" {
-		if err := client.Compat.PhoneNumbers.Delete(numSID); err == nil {
+		if _, err := client.Compat.PhoneNumbers.Delete(numSID); err == nil {
 			fmt.Printf("  Deleted number %s\n", numSID)
 		}
 	}

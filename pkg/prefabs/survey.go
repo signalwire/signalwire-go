@@ -1,6 +1,7 @@
 package prefabs
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -14,12 +15,62 @@ import (
 // ---------------------------------------------------------------------------
 
 // SurveyQuestion describes a single question in a survey.
+//
+// Prefer NewSurveyQuestion for construction — it defaults Required:true to
+// match Python SurveyAgent behavior (signalwire/prefabs/survey.py _validate_questions
+// sets required=True when unspecified). Struct literals are still supported,
+// but the Go zero value for Required is false, which diverges from Python.
 type SurveyQuestion struct {
-	ID      string   // unique question identifier
-	Text    string   // the question to ask
-	Type    string   // "rating", "multiple_choice", "yes_no", "open_ended"
-	Scale   int      // 1..Scale for rating questions (default 5)
-	Choices []string // options for multiple_choice questions
+	ID       string   // unique question identifier
+	Text     string   // the question to ask
+	Type     string   // "rating", "multiple_choice", "yes_no", "open_ended"
+	Scale    int      // 1..Scale for rating questions (default 5)
+	Choices  []string // options for multiple_choice questions
+	Required bool     // whether a non-empty answer is required — Python default true
+}
+
+// SurveyQuestionOption configures a question during construction.
+type SurveyQuestionOption func(*SurveyQuestion)
+
+// WithQuestionID sets the question ID.
+func WithQuestionID(id string) SurveyQuestionOption {
+	return func(q *SurveyQuestion) { q.ID = id }
+}
+
+// WithQuestionType sets the question type ("rating", "multiple_choice",
+// "yes_no", "open_ended").
+func WithQuestionType(t string) SurveyQuestionOption {
+	return func(q *SurveyQuestion) { q.Type = t }
+}
+
+// WithQuestionScale sets the scale for rating questions (answers run 1..n).
+func WithQuestionScale(n int) SurveyQuestionOption {
+	return func(q *SurveyQuestion) { q.Scale = n }
+}
+
+// WithQuestionChoices sets the choice list for multiple_choice questions.
+func WithQuestionChoices(choices ...string) SurveyQuestionOption {
+	return func(q *SurveyQuestion) { q.Choices = choices }
+}
+
+// WithOptional marks a question as not required. Matches Python's
+// required=False escape hatch on SurveyAgent questions.
+func WithOptional() SurveyQuestionOption {
+	return func(q *SurveyQuestion) { q.Required = false }
+}
+
+// NewSurveyQuestion constructs a SurveyQuestion with Required:true, matching
+// Python SurveyAgent._validate_questions which defaults required=True when
+// unspecified. Callers opt out with WithOptional().
+func NewSurveyQuestion(text string, opts ...SurveyQuestionOption) SurveyQuestion {
+	q := SurveyQuestion{
+		Text:     text,
+		Required: true,
+	}
+	for _, opt := range opts {
+		opt(&q)
+	}
+	return q
 }
 
 // SurveyOptions configures a new SurveyAgent.
@@ -37,10 +88,12 @@ type SurveyOptions struct {
 // SurveyAgent conducts structured surveys with typed questions.
 type SurveyAgent struct {
 	*agent.AgentBase
-	questions  []SurveyQuestion
-	surveyName string
-	brandName  string
-	maxRetries int
+	questions    []SurveyQuestion
+	surveyName   string
+	brandName    string
+	maxRetries   int
+	introduction string
+	conclusion   string
 }
 
 // ---------------------------------------------------------------------------
@@ -74,7 +127,10 @@ func NewSurveyAgent(opts SurveyOptions) *SurveyAgent {
 		conclusion = "Thank you for completing our survey. Your feedback is valuable to us."
 	}
 
-	// Normalise scales
+	// Normalise rating scales. Required default is applied at construction
+	// time by NewSurveyQuestion (matches Python SurveyAgent._validate_questions
+	// defaulting required=True); callers using struct literals pick up Go's
+	// zero-value false instead.
 	for i := range opts.Questions {
 		if opts.Questions[i].Type == "rating" && opts.Questions[i].Scale <= 0 {
 			opts.Questions[i].Scale = 5
@@ -87,11 +143,13 @@ func NewSurveyAgent(opts SurveyOptions) *SurveyAgent {
 	)
 
 	sa := &SurveyAgent{
-		AgentBase:  base,
-		questions:  opts.Questions,
-		surveyName: opts.SurveyName,
-		brandName:  brandName,
-		maxRetries: maxRetries,
+		AgentBase:    base,
+		questions:    opts.Questions,
+		surveyName:   opts.SurveyName,
+		brandName:    brandName,
+		maxRetries:   maxRetries,
+		introduction: intro,
+		conclusion:   conclusion,
 	}
 
 	// ---- Prompt ----
@@ -116,6 +174,20 @@ func NewSurveyAgent(opts SurveyOptions) *SurveyAgent {
 		fmt.Sprintf("Begin with this introduction: %s", intro),
 		nil,
 	)
+
+	// ---- Survey Questions prompt section ----
+	base.PromptAddSection("Survey Questions", "Ask these questions in order:", nil)
+	for _, q := range opts.Questions {
+		body := fmt.Sprintf("ID: %s\nType: %s\nRequired: %v", q.ID, q.Type, q.Required)
+		if q.Type == "rating" {
+			body += fmt.Sprintf("\nScale: 1-%d", q.Scale)
+		}
+		if q.Type == "multiple_choice" && len(q.Choices) > 0 {
+			body += fmt.Sprintf("\nOptions: %s", strings.Join(q.Choices, ", "))
+		}
+		base.PromptAddSubsection("Survey Questions", q.Text, body, nil)
+	}
+
 	base.PromptAddSection("Conclusion",
 		fmt.Sprintf("End with this conclusion: %s", conclusion),
 		nil,
@@ -132,6 +204,31 @@ func NewSurveyAgent(opts SurveyOptions) *SurveyAgent {
     "completion_status": "complete/incomplete",
     "timestamp": "CURRENT_TIMESTAMP"
 }`)
+
+	// ---- Hints ----
+	hints := []string{opts.SurveyName, brandName}
+	for _, q := range opts.Questions {
+		switch q.Type {
+		case "rating":
+			for i := 1; i <= q.Scale; i++ {
+				hints = append(hints, strconv.Itoa(i))
+			}
+		case "multiple_choice":
+			hints = append(hints, q.Choices...)
+		case "yes_no":
+			hints = append(hints, "yes", "no")
+		}
+	}
+	base.AddHints(hints)
+
+	// ---- AI behavior parameters ----
+	base.SetParams(map[string]any{
+		"wait_for_user":              false,
+		"end_of_speech_timeout":      1500,
+		"ai_volume":                  5,
+		"static_greeting":            intro,
+		"static_greeting_no_barge":   true,
+	})
 
 	// ---- Global data ----
 	questionMaps := make([]map[string]any, len(opts.Questions))
@@ -156,8 +253,22 @@ func NewSurveyAgent(opts SurveyOptions) *SurveyAgent {
 		"max_retries": maxRetries,
 	})
 
+	// ---- Native functions ----
+	base.SetNativeFunctions([]string{"check_time"})
+
 	// ---- Tools ----
 	sa.registerTools()
+
+	// ---- Summary callback ----
+	base.OnSummary(func(summary map[string]any, rawData map[string]any) {
+		if summary != nil {
+			if data, err := json.Marshal(summary); err == nil {
+				base.Logger.Info("Survey completed: %s", string(data))
+			} else {
+				base.Logger.Info("Survey summary (unstructured): %v", summary)
+			}
+		}
+	})
 
 	return sa
 }
@@ -224,7 +335,7 @@ func (sa *SurveyAgent) registerTools() {
 					return swaig.NewFunctionResult("Please answer with 'yes' or 'no'.")
 				}
 			case "open_ended":
-				if strings.TrimSpace(response) == "" {
+				if strings.TrimSpace(response) == "" && question.Required {
 					return swaig.NewFunctionResult("A response is required for this question.")
 				}
 			}

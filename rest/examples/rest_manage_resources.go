@@ -55,9 +55,9 @@ func main() {
 
 	// 3. Search for a phone number
 	fmt.Println("\nSearching for available phone numbers...")
-	available, err := client.PhoneNumbers.Search(map[string]string{
+	available, err := client.PhoneNumbers.Search(map[string]any{
 		"area_code":   "512",
-		"max_results": "3",
+		"max_results": 3,
 	})
 	if err != nil {
 		fmt.Printf("  Search failed: %v\n", err)
@@ -88,7 +88,7 @@ func main() {
 
 	// 5. Clean up: delete the agent
 	fmt.Printf("\nDeleting agent %s...\n", agentID)
-	if err := client.Fabric.AIAgents.Delete(agentID); err != nil {
+	if _, err := client.Fabric.AIAgents.Delete(agentID); err != nil {
 		fmt.Printf("  Delete failed: %v\n", err)
 	} else {
 		fmt.Println("  Deleted.")

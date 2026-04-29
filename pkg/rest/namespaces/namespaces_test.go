@@ -25,10 +25,11 @@ func (m *mockHTTP) Get(path string, params map[string]string) (map[string]any, e
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Post(path string, body map[string]any) (map[string]any, error) {
+func (m *mockHTTP) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
 	m.lastMethod = "POST"
 	m.lastPath = path
 	m.lastBody = body
+	m.lastParams = params
 	return m.response, m.err
 }
 
@@ -46,10 +47,10 @@ func (m *mockHTTP) Patch(path string, body map[string]any) (map[string]any, erro
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Delete(path string) error {
+func (m *mockHTTP) Delete(path string) (map[string]any, error) {
 	m.lastMethod = "DELETE"
 	m.lastPath = path
-	return m.err
+	return m.response, m.err
 }
 
 // ---------------------------------------------------------------------------
@@ -141,7 +142,7 @@ func TestCrudResource_Update_PUT(t *testing.T) {
 func TestCrudResource_Delete(t *testing.T) {
 	mock := &mockHTTP{}
 	r := NewCrudResource(mock, "/api/test")
-	_ = r.Delete("abc")
+	_, _ = r.Delete("abc")
 	if mock.lastMethod != "DELETE" {
 		t.Errorf("method = %q, want DELETE", mock.lastMethod)
 	}
@@ -150,9 +151,9 @@ func TestCrudResource_Delete(t *testing.T) {
 	}
 }
 
-func TestCrudResource_ListAddresses(t *testing.T) {
+func TestCrudWithAddresses_ListAddresses(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
-	r := NewCrudResource(mock, "/api/test")
+	r := NewCrudWithAddresses(mock, "/api/test")
 	_, _ = r.ListAddresses("abc", nil)
 	if mock.lastPath != "/api/test/abc/addresses" {
 		t.Errorf("path = %q, want /api/test/abc/addresses", mock.lastPath)
@@ -366,7 +367,7 @@ func TestSubscribersResource_CRUD_SIPEndpoint(t *testing.T) {
 		t.Errorf("update method = %q, want PATCH", mock.lastMethod)
 	}
 
-	_ = f.Subscribers.DeleteSIPEndpoint("sub-1", "ep-1")
+	_, _ = f.Subscribers.DeleteSIPEndpoint("sub-1", "ep-1")
 	if mock.lastMethod != "DELETE" {
 		t.Errorf("delete method = %q, want DELETE", mock.lastMethod)
 	}
@@ -404,7 +405,7 @@ func TestGenericResources_Operations(t *testing.T) {
 		t.Errorf("get method = %q", mock.lastMethod)
 	}
 
-	_ = f.Resources.Delete("res-1")
+	_, _ = f.Resources.Delete("res-1")
 	if mock.lastMethod != "DELETE" {
 		t.Errorf("delete method = %q", mock.lastMethod)
 	}
@@ -465,8 +466,8 @@ func TestFabricNamespace_PATCHResources(t *testing.T) {
 	// PATCH-update resources
 	patchResources := []*CrudResource{
 		f.SWMLWebhooks.CrudResource,
-		f.AIAgents,
-		f.SIPGateways,
+		f.AIAgents.CrudResource,
+		f.SIPGateways.CrudResource,
 		f.CXMLWebhooks.CrudResource,
 	}
 	for _, r := range patchResources {

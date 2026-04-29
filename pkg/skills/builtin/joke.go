@@ -28,6 +28,7 @@ var builtinJokes = []string{
 // JokeSkill tells random jokes from a built-in list.
 type JokeSkill struct {
 	skills.BaseSkill
+	apiKey   string
 	toolName string
 }
 
@@ -44,7 +45,8 @@ func NewJoke(params map[string]any) skills.SkillBase {
 }
 
 func (s *JokeSkill) Setup() bool {
-	s.toolName = s.GetParamString("tool_name", "tell_joke")
+	s.apiKey = s.GetParamString("api_key", "")
+	s.toolName = s.GetParamString("tool_name", "get_joke")
 	return true
 }
 
@@ -54,8 +56,15 @@ func (s *JokeSkill) RegisterTools() []skills.ToolRegistration {
 			Name:        s.toolName,
 			Description: "Tell a random joke",
 			Parameters: map[string]any{
-				"type":       "object",
-				"properties": map[string]any{},
+				"type": "object",
+				"properties": map[string]any{
+					"type": map[string]any{
+						"type":        "string",
+						"description": "Type of joke to get",
+						"enum":        []string{"jokes", "dadjokes"},
+					},
+				},
+				"required": []string{"type"},
 			},
 			Handler: s.handleTellJoke,
 		},
@@ -65,6 +74,12 @@ func (s *JokeSkill) RegisterTools() []skills.ToolRegistration {
 func (s *JokeSkill) handleTellJoke(_ map[string]any, _ map[string]any) *swaig.FunctionResult {
 	joke := builtinJokes[rand.Intn(len(builtinJokes))]
 	return swaig.NewFunctionResult("Here's a joke: " + joke)
+}
+
+func (s *JokeSkill) GetGlobalData() map[string]any {
+	return map[string]any{
+		"joke_skill_enabled": true,
+	}
 }
 
 func (s *JokeSkill) GetHints() []string {
@@ -78,6 +93,7 @@ func (s *JokeSkill) GetPromptSections() []map[string]any {
 			"body":  "You can tell jokes to entertain users.",
 			"bullets": []string{
 				"Use " + s.toolName + " to tell jokes when users ask for humor",
+				"You can tell regular jokes or dad jokes",
 				"Be enthusiastic and fun when sharing jokes",
 			},
 		},

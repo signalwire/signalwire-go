@@ -57,8 +57,8 @@ func (m *callRecorder) Get(path string, params map[string]string) (map[string]an
 	m.record(recordedCall{Method: "GET", Path: path, Params: params})
 	return m.resp, nil
 }
-func (m *callRecorder) Post(path string, body map[string]any) (map[string]any, error) {
-	m.record(recordedCall{Method: "POST", Path: path, Body: body})
+func (m *callRecorder) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
+	m.record(recordedCall{Method: "POST", Path: path, Body: body, Params: params})
 	return m.resp, nil
 }
 func (m *callRecorder) Put(path string, body map[string]any) (map[string]any, error) {
@@ -69,9 +69,9 @@ func (m *callRecorder) Patch(path string, body map[string]any) (map[string]any, 
 	m.record(recordedCall{Method: "PATCH", Path: path, Body: body})
 	return m.resp, nil
 }
-func (m *callRecorder) Delete(path string) error {
+func (m *callRecorder) Delete(path string) (map[string]any, error) {
 	m.record(recordedCall{Method: "DELETE", Path: path})
-	return nil
+	return m.resp, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -511,7 +511,7 @@ func TestDeprecation_WebhooksNonCreateOpsUnchanged(t *testing.T) {
 		_, _ = f.SWMLWebhooks.List(nil)
 		_, _ = f.SWMLWebhooks.Get("wh-1")
 		_, _ = f.SWMLWebhooks.Update("wh-1", map[string]any{"name": "renamed"})
-		_ = f.SWMLWebhooks.Delete("wh-1")
+		_, _ = f.SWMLWebhooks.Delete("wh-1")
 		_, _ = f.CXMLWebhooks.List(nil)
 		_, _ = f.CXMLWebhooks.Get("wh-2")
 	})

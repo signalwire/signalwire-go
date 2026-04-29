@@ -21,5 +21,9 @@ func NewPubSubNamespace(client HTTPClient) *PubSubNamespace {
 
 // CreateToken creates a PubSub token.
 func (r *PubSubNamespace) CreateToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
+
+// PubSubResource is an alias for PubSubNamespace, matching the Python class
+// name for cross-SDK parity. Prefer PubSubNamespace in new Go code.
+type PubSubResource = PubSubNamespace

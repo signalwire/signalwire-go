@@ -14,7 +14,7 @@ type ProjectTokens struct {
 
 // Create creates a new project API token.
 func (r *ProjectTokens) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data)
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // Update modifies a project API token.
@@ -23,7 +23,7 @@ func (r *ProjectTokens) Update(tokenID string, data map[string]any) (map[string]
 }
 
 // Delete removes a project API token.
-func (r *ProjectTokens) Delete(tokenID string) error {
+func (r *ProjectTokens) Delete(tokenID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(tokenID))
 }
 

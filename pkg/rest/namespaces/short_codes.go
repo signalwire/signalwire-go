@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "fmt"
+
 // ShortCodesNamespace provides short code management (read + update only).
 type ShortCodesNamespace struct {
 	Resource
@@ -20,8 +22,12 @@ func NewShortCodesNamespace(client HTTPClient) *ShortCodesNamespace {
 }
 
 // List lists all short codes.
-func (r *ShortCodesNamespace) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *ShortCodesNamespace) List(params map[string]any) (map[string]any, error) {
+	str := make(map[string]string, len(params))
+	for k, v := range params {
+		str[k] = fmt.Sprint(v)
+	}
+	return r.HTTP.Get(r.Base, str)
 }
 
 // Get retrieves a short code by ID.
@@ -33,3 +39,7 @@ func (r *ShortCodesNamespace) Get(id string) (map[string]any, error) {
 func (r *ShortCodesNamespace) Update(id string, data map[string]any) (map[string]any, error) {
 	return r.HTTP.Put(r.Path(id), data)
 }
+
+// ShortCodesResource is an alias for ShortCodesNamespace, matching the Python
+// class name for cross-SDK parity. Prefer ShortCodesNamespace in new Go code.
+type ShortCodesResource = ShortCodesNamespace

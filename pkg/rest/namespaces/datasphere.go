@@ -15,7 +15,7 @@ type DatasphereDocuments struct {
 
 // Search performs a semantic search across documents.
 func (r *DatasphereDocuments) Search(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("search"), data)
+	return r.HTTP.Post(r.Path("search"), data, nil)
 }
 
 // ListChunks lists chunks for a specific document.
@@ -29,7 +29,7 @@ func (r *DatasphereDocuments) GetChunk(documentID, chunkID string) (map[string]a
 }
 
 // DeleteChunk deletes a specific chunk from a document.
-func (r *DatasphereDocuments) DeleteChunk(documentID, chunkID string) error {
+func (r *DatasphereDocuments) DeleteChunk(documentID, chunkID string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(documentID, "chunks", chunkID))
 }
 

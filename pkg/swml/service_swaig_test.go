@@ -184,7 +184,7 @@ func TestServiceSidecarPatternEmitsVerbAndRegistersTool(t *testing.T) {
 
 	// 1. Build the SWML — answer + ai_sidecar verb config. ai_sidecar isn't
 	// in the schema yet, so add it directly to the document.
-	svc.Answer(nil)
+	svc.Answer(nil, nil)
 	svc.GetDocument().AddVerbToSection("main", "ai_sidecar", map[string]any{
 		"prompt":    "real-time copilot",
 		"lang":      "en-US",

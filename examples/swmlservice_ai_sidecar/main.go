@@ -46,7 +46,7 @@ func main() {
 	// 1. Emit any SWML — including ai_sidecar. swml.Service's
 	//    AddVerbToSection accepts arbitrary verb dicts, so new platform
 	//    verbs work without an SDK release.
-	if err := svc.Answer(map[string]any{}); err != nil {
+	if err := svc.Answer(nil, nil); err != nil {
 		fmt.Printf("answer error: %v\n", err)
 		return
 	}
@@ -69,7 +69,7 @@ func main() {
 		return
 	}
 
-	if err := svc.Hangup(map[string]any{}); err != nil {
+	if err := svc.Hangup(nil); err != nil {
 		fmt.Printf("hangup error: %v\n", err)
 		return
 	}

@@ -185,7 +185,7 @@ func main() {
 				for _, n := range data {
 					if m, ok := n.(map[string]any); ok {
 						nID, _ := m["id"].(string)
-						if delErr := client.Registry.Numbers.Delete(nID); delErr == nil {
+						if _, delErr := client.Registry.Numbers.Delete(nID); delErr == nil {
 							fmt.Printf("  Unassigned number %s\n", nID)
 						} else if restErr, ok := delErr.(*rest.SignalWireRestError); ok {
 							fmt.Printf("  Unassign failed: %d\n", restErr.StatusCode)
