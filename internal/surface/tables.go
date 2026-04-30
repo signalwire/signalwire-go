@@ -1123,6 +1123,20 @@ var StructTable = map[string][]ClassTarget{
 		},
 		SyntheticMethods: []string{"__init__"},
 	}},
+	"skills.SkillRegistry": {{
+		// Python's `signalwire.skills.registry.SkillRegistry` is an
+		// instance class with `add_skill_directory` + `_external_paths`.
+		// Go mirrors only the parity-relevant surface; the package-level
+		// `RegisterSkill` / `GetSkillFactory` / `ListSkills` functions
+		// remain the canonical Go API for compile-time skill registration
+		// and are projected separately as `signalwire.*` free functions
+		// (see FreeFnTable below).
+		Module: "signalwire.skills.registry", Class: "SkillRegistry",
+		Methods: map[string]string{
+			"NewSkillRegistry":  "__init__",
+			"AddSkillDirectory": "add_skill_directory",
+		},
+	}},
 
 	// --- prefabs package --------------------------------------------------
 	"prefabs.ConciergeAgent": {{

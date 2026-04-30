@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ f96823a8c566b2a36b4b525e2b6dddfb3cb3691b (go/ast walker)",
+  "generated_from": "signalwire-go @ 6a500b334514449d74f0ecfc7ae5c09620761ead (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -10372,6 +10372,32 @@
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.skills.registry": {
+      "classes": {
+        "SkillRegistry": {
+          "methods": {
+            "__init__": {
+              "params": [],
+              "returns": "void"
+            },
+            "add_skill_directory": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "path",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
             }
           }
         }

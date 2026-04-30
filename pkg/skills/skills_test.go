@@ -1,6 +1,9 @@
 package skills
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/swaig"
@@ -84,6 +87,78 @@ func TestListSkills_NotEmpty(t *testing.T) {
 	}
 	if !found {
 		t.Error("test_list_skill not in ListSkills()")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// SkillRegistry struct + AddSkillDirectory parity with Python's
+// signalwire.skills.registry.SkillRegistry.add_skill_directory.
+// ---------------------------------------------------------------------------
+
+func TestSkillRegistry_AddSkillDirectory_Valid(t *testing.T) {
+	tmpDir := t.TempDir()
+	r := NewSkillRegistry()
+	if err := r.AddSkillDirectory(tmpDir); err != nil {
+		t.Fatalf("AddSkillDirectory(%s) returned error: %v", tmpDir, err)
+	}
+	paths := r.ExternalPaths()
+	found := false
+	for _, p := range paths {
+		if p == tmpDir {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("tmpDir %q not present in ExternalPaths(): %v", tmpDir, paths)
+	}
+}
+
+func TestSkillRegistry_AddSkillDirectory_NotExists(t *testing.T) {
+	r := NewSkillRegistry()
+	err := r.AddSkillDirectory("/no/such/swgo_path_does_not_exist_xyz")
+	if err == nil {
+		t.Fatal("expected an error for non-existent path, got nil")
+	}
+	if !strings.Contains(err.Error(), "does not exist") {
+		t.Errorf("expected 'does not exist' in error, got: %v", err)
+	}
+}
+
+func TestSkillRegistry_AddSkillDirectory_NotADirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "regular_file.txt")
+	if err := os.WriteFile(filePath, []byte("hello"), 0644); err != nil {
+		t.Fatalf("setup: failed to create file: %v", err)
+	}
+	r := NewSkillRegistry()
+	err := r.AddSkillDirectory(filePath)
+	if err == nil {
+		t.Fatal("expected an error for non-directory, got nil")
+	}
+	if !strings.Contains(err.Error(), "not a directory") {
+		t.Errorf("expected 'not a directory' in error, got: %v", err)
+	}
+}
+
+func TestSkillRegistry_AddSkillDirectory_Dedup(t *testing.T) {
+	tmpDir := t.TempDir()
+	r := NewSkillRegistry()
+	if err := r.AddSkillDirectory(tmpDir); err != nil {
+		t.Fatalf("first AddSkillDirectory: %v", err)
+	}
+	if err := r.AddSkillDirectory(tmpDir); err != nil {
+		t.Fatalf("second AddSkillDirectory: %v", err)
+	}
+	paths := r.ExternalPaths()
+	count := 0
+	for _, p := range paths {
+		if p == tmpDir {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("tmpDir present %d times after dedup; expected exactly 1: %v", count, paths)
 	}
 }
 
