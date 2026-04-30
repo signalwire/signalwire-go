@@ -79,6 +79,17 @@ var StructTable = map[string][]ClassTarget{
 			},
 		},
 		ClassTarget{
+			Module: "signalwire.core.agent.tools.registry", Class: "ToolRegistry",
+			Methods: map[string]string{
+				"DefineTool":            "define_tool",
+				"RegisterSwaigFunction": "register_swaig_function",
+				"HasFunction":           "has_function",
+				"GetFunction":           "get_function",
+				"GetAllFunctions":       "get_all_functions",
+				"RemoveFunction":        "remove_function",
+			},
+		},
+		ClassTarget{
 			Module: "signalwire.core.mixins.ai_config_mixin", Class: "AIConfigMixin",
 			Methods: map[string]string{
 				"AddHint":                "add_hint",

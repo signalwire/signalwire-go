@@ -815,6 +815,59 @@ func (a *AgentBase) RegisterSwaigFunction(funcDef map[string]any) *AgentBase {
 	return a
 }
 
+// HasFunction reports whether a SWAIG function with the given name is
+// registered. (Python parity: ``ToolRegistry.has_function``.)
+func (a *AgentBase) HasFunction(name string) bool {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	_, ok := a.tools[name]
+	return ok
+}
+
+// GetFunction returns the registered tool definition for the given
+// name, or nil when no such function is registered. (Python parity:
+// ``ToolRegistry.get_function``.)
+func (a *AgentBase) GetFunction(name string) *ToolDefinition {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if t, ok := a.tools[name]; ok {
+		return t
+	}
+	return nil
+}
+
+// GetAllFunctions returns a snapshot of all registered SWAIG functions
+// keyed by name. The returned map is a copy — subsequent registrations
+// do not mutate it. (Python parity: ``ToolRegistry.get_all_functions``.)
+func (a *AgentBase) GetAllFunctions() map[string]*ToolDefinition {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	out := make(map[string]*ToolDefinition, len(a.tools))
+	for k, v := range a.tools {
+		out[k] = v
+	}
+	return out
+}
+
+// RemoveFunction removes a registered SWAIG function. Returns true when
+// the function was found and removed; false when it wasn't registered.
+// (Python parity: ``ToolRegistry.remove_function``.)
+func (a *AgentBase) RemoveFunction(name string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if _, ok := a.tools[name]; !ok {
+		return false
+	}
+	delete(a.tools, name)
+	for i, n := range a.toolOrder {
+		if n == name {
+			a.toolOrder = append(a.toolOrder[:i], a.toolOrder[i+1:]...)
+			break
+		}
+	}
+	return true
+}
+
 // DefineTools returns all registered tool definitions in insertion order.
 func (a *AgentBase) DefineTools() []*ToolDefinition {
 	a.mu.RLock()
