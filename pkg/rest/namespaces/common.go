@@ -65,8 +65,8 @@ func (r *CrudResource) List(params map[string]string) (map[string]any, error) {
 }
 
 // Create sends a POST request to create a new resource.
-func (r *CrudResource) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *CrudResource) Create(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, kwargs, nil)
 }
 
 // Get retrieves a single resource by ID.
@@ -75,12 +75,12 @@ func (r *CrudResource) Get(id string) (map[string]any, error) {
 }
 
 // Update modifies an existing resource by ID.
-func (r *CrudResource) Update(id string, data map[string]any) (map[string]any, error) {
+func (r *CrudResource) Update(id string, kwargs map[string]any) (map[string]any, error) {
 	p := r.Path(id)
 	if r.UpdateMethod == "PUT" {
-		return r.HTTP.Put(p, data)
+		return r.HTTP.Put(p, kwargs)
 	}
-	return r.HTTP.Patch(p, data)
+	return r.HTTP.Patch(p, kwargs)
 }
 
 // Delete removes a resource by ID. It returns the parsed response body

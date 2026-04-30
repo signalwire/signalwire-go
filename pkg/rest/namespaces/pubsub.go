@@ -20,8 +20,8 @@ func NewPubSubNamespace(client HTTPClient) *PubSubNamespace {
 }
 
 // CreateToken creates a PubSub token.
-func (r *PubSubNamespace) CreateToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *PubSubNamespace) CreateToken(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, kwargs, nil)
 }
 
 // PubSubResource is an alias for PubSubNamespace, matching the Python class

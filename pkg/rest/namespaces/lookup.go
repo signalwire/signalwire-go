@@ -21,7 +21,7 @@ func NewLookupNamespace(client HTTPClient) *LookupNamespace {
 
 // PhoneNumber looks up information about a phone number.
 // The e164 parameter should be the number in E.164 format.
-// Optional params can include "include" for additional data (e.g., "carrier").
+// Optional params can include "include" for additional kwargs (e.g., "carrier").
 func (r *LookupNamespace) PhoneNumber(e164 string, params map[string]string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path("phone_number", e164), params)
 }

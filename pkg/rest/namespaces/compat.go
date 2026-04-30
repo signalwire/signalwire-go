@@ -22,8 +22,8 @@ func (r *CompatAccounts) List(params map[string]string) (map[string]any, error) 
 }
 
 // Create creates a new compat account.
-func (r *CompatAccounts) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *CompatAccounts) Create(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, kwargs, nil)
 }
 
 // Get retrieves a compat account by SID.
@@ -32,8 +32,8 @@ func (r *CompatAccounts) Get(sid string) (map[string]any, error) {
 }
 
 // Update updates a compat account by SID.
-func (r *CompatAccounts) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatAccounts) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // ---------- CompatCalls ----------
@@ -44,28 +44,28 @@ type CompatCalls struct {
 }
 
 // Update updates a call (uses POST per Twilio compat).
-func (r *CompatCalls) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatCalls) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // StartRecording starts recording on a call.
-func (r *CompatCalls) StartRecording(callSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callSID, "Recordings"), data, nil)
+func (r *CompatCalls) StartRecording(callSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(callSID, "Recordings"), kwargs, nil)
 }
 
 // UpdateRecording updates a recording on a call.
-func (r *CompatCalls) UpdateRecording(callSID, recordingSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callSID, "Recordings", recordingSID), data, nil)
+func (r *CompatCalls) UpdateRecording(callSID, recordingSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(callSID, "Recordings", recordingSID), kwargs, nil)
 }
 
 // StartStream starts a stream on a call.
-func (r *CompatCalls) StartStream(callSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callSID, "Streams"), data, nil)
+func (r *CompatCalls) StartStream(callSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(callSID, "Streams"), kwargs, nil)
 }
 
 // StopStream stops a stream on a call.
-func (r *CompatCalls) StopStream(callSID, streamSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(callSID, "Streams", streamSID), data, nil)
+func (r *CompatCalls) StopStream(callSID, streamSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(callSID, "Streams", streamSID), kwargs, nil)
 }
 
 // ---------- CompatMessages ----------
@@ -76,8 +76,8 @@ type CompatMessages struct {
 }
 
 // Update updates a message (uses POST per Twilio compat).
-func (r *CompatMessages) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatMessages) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // ListMedia lists media for a message.
@@ -103,8 +103,8 @@ type CompatFaxes struct {
 }
 
 // Update updates a fax (uses POST per Twilio compat).
-func (r *CompatFaxes) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatFaxes) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // ListMedia lists media for a fax.
@@ -141,8 +141,8 @@ func (r *CompatConferences) Get(sid string) (map[string]any, error) {
 }
 
 // Update updates a conference.
-func (r *CompatConferences) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatConferences) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // Participants
@@ -158,8 +158,8 @@ func (r *CompatConferences) GetParticipant(conferenceSID, callSID string) (map[s
 }
 
 // UpdateParticipant updates a participant in a conference.
-func (r *CompatConferences) UpdateParticipant(conferenceSID, callSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceSID, "Participants", callSID), data, nil)
+func (r *CompatConferences) UpdateParticipant(conferenceSID, callSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(conferenceSID, "Participants", callSID), kwargs, nil)
 }
 
 // RemoveParticipant removes a participant from a conference.
@@ -180,8 +180,8 @@ func (r *CompatConferences) GetRecording(conferenceSID, recordingSID string) (ma
 }
 
 // UpdateRecording updates a recording in a conference.
-func (r *CompatConferences) UpdateRecording(conferenceSID, recordingSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceSID, "Recordings", recordingSID), data, nil)
+func (r *CompatConferences) UpdateRecording(conferenceSID, recordingSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(conferenceSID, "Recordings", recordingSID), kwargs, nil)
 }
 
 // DeleteRecording deletes a recording from a conference.
@@ -192,13 +192,13 @@ func (r *CompatConferences) DeleteRecording(conferenceSID, recordingSID string) 
 // Conference streams
 
 // StartStream starts a stream on a conference.
-func (r *CompatConferences) StartStream(conferenceSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceSID, "Streams"), data, nil)
+func (r *CompatConferences) StartStream(conferenceSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(conferenceSID, "Streams"), kwargs, nil)
 }
 
 // StopStream stops a stream on a conference.
-func (r *CompatConferences) StopStream(conferenceSID, streamSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceSID, "Streams", streamSID), data, nil)
+func (r *CompatConferences) StopStream(conferenceSID, streamSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(conferenceSID, "Streams", streamSID), kwargs, nil)
 }
 
 // ---------- CompatPhoneNumbers ----------
@@ -215,8 +215,8 @@ func (r *CompatPhoneNumbers) List(params map[string]string) (map[string]any, err
 }
 
 // Purchase purchases a phone number.
-func (r *CompatPhoneNumbers) Purchase(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *CompatPhoneNumbers) Purchase(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, kwargs, nil)
 }
 
 // Get retrieves an incoming phone number by SID.
@@ -225,8 +225,8 @@ func (r *CompatPhoneNumbers) Get(sid string) (map[string]any, error) {
 }
 
 // Update updates an incoming phone number.
-func (r *CompatPhoneNumbers) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatPhoneNumbers) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // Delete releases an incoming phone number.
@@ -235,9 +235,9 @@ func (r *CompatPhoneNumbers) Delete(sid string) (map[string]any, error) {
 }
 
 // ImportNumber imports an externally-hosted phone number.
-func (r *CompatPhoneNumbers) ImportNumber(data map[string]any) (map[string]any, error) {
+func (r *CompatPhoneNumbers) ImportNumber(kwargs map[string]any) (map[string]any, error) {
 	path := r.Base[:len(r.Base)-len("/IncomingPhoneNumbers")] + "/ImportedPhoneNumbers"
-	return r.HTTP.Post(path, data, nil)
+	return r.HTTP.Post(path, kwargs, nil)
 }
 
 // ListAvailableCountries lists countries with available numbers.
@@ -263,8 +263,8 @@ type CompatApplications struct {
 }
 
 // Update updates an application (uses POST per Twilio compat).
-func (r *CompatApplications) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatApplications) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // ---------- CompatLamlBins ----------
@@ -275,8 +275,8 @@ type CompatLamlBins struct {
 }
 
 // Update updates a LaML bin (uses POST per Twilio compat).
-func (r *CompatLamlBins) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatLamlBins) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // ---------- CompatQueues ----------
@@ -287,8 +287,8 @@ type CompatQueues struct {
 }
 
 // Update updates a queue (uses POST per Twilio compat).
-func (r *CompatQueues) Update(sid string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(sid), data, nil)
+func (r *CompatQueues) Update(sid string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(sid), kwargs, nil)
 }
 
 // ListMembers lists members of a queue.
@@ -302,8 +302,8 @@ func (r *CompatQueues) GetMember(queueSID, callSID string) (map[string]any, erro
 }
 
 // DequeueMember dequeues a member from a queue.
-func (r *CompatQueues) DequeueMember(queueSID, callSID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(queueSID, "Members", callSID), data, nil)
+func (r *CompatQueues) DequeueMember(queueSID, callSID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(queueSID, "Members", callSID), kwargs, nil)
 }
 
 // ---------- CompatRecordings ----------
@@ -358,13 +358,13 @@ type CompatTokens struct {
 }
 
 // Create creates a new API token.
-func (r *CompatTokens) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *CompatTokens) Create(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, kwargs, nil)
 }
 
 // Update modifies an API token.
-func (r *CompatTokens) Update(tokenID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Patch(r.Path(tokenID), data)
+func (r *CompatTokens) Update(tokenID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Patch(r.Path(tokenID), kwargs)
 }
 
 // Delete removes an API token.

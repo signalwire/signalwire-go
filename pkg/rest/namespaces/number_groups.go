@@ -25,8 +25,8 @@ func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[strin
 }
 
 // AddMembership adds a number to a group.
-func (r *NumberGroupsNamespace) AddMembership(groupID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(groupID, "number_group_memberships"), data, nil)
+func (r *NumberGroupsNamespace) AddMembership(groupID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(groupID, "number_group_memberships"), kwargs, nil)
 }
 
 // GetMembership retrieves a specific membership by ID.

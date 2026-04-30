@@ -20,6 +20,6 @@ func NewChatNamespace(client HTTPClient) *ChatNamespace {
 }
 
 // CreateToken creates a Chat token.
-func (r *ChatNamespace) CreateToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *ChatNamespace) CreateToken(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, kwargs, nil)
 }

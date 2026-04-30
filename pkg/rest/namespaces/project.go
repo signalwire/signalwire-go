@@ -13,13 +13,13 @@ type ProjectTokens struct {
 }
 
 // Create creates a new project API token.
-func (r *ProjectTokens) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *ProjectTokens) Create(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, kwargs, nil)
 }
 
 // Update modifies a project API token.
-func (r *ProjectTokens) Update(tokenID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Patch(r.Path(tokenID), data)
+func (r *ProjectTokens) Update(tokenID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Patch(r.Path(tokenID), kwargs)
 }
 
 // Delete removes a project API token.

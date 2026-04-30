@@ -25,8 +25,8 @@ func (r *SipProfileNamespace) Get() (map[string]any, error) {
 }
 
 // Update modifies the project SIP profile.
-func (r *SipProfileNamespace) Update(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Base, data)
+func (r *SipProfileNamespace) Update(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Put(r.Base, kwargs)
 }
 
 // SipProfileResource is an alias for SipProfileNamespace, matching the Python

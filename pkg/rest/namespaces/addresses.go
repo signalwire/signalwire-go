@@ -25,8 +25,8 @@ func (r *AddressesNamespace) List(params map[string]string) (map[string]any, err
 }
 
 // Create creates a new address.
-func (r *AddressesNamespace) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *AddressesNamespace) Create(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, kwargs, nil)
 }
 
 // Get retrieves an address by ID.

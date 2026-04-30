@@ -20,16 +20,16 @@ func NewMFANamespace(client HTTPClient) *MFANamespace {
 }
 
 // SMS initiates MFA verification via SMS.
-func (r *MFANamespace) SMS(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("sms"), data, nil)
+func (r *MFANamespace) SMS(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path("sms"), kwargs, nil)
 }
 
 // Call initiates MFA verification via phone call.
-func (r *MFANamespace) Call(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("call"), data, nil)
+func (r *MFANamespace) Call(kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path("call"), kwargs, nil)
 }
 
 // Verify verifies an MFA token for a given request ID.
-func (r *MFANamespace) Verify(requestID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(requestID, "verify"), data, nil)
+func (r *MFANamespace) Verify(requestID string, kwargs map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(requestID, "verify"), kwargs, nil)
 }
