@@ -44,6 +44,15 @@ type SummaryCallback func(summary map[string]any, rawData map[string]any)
 // DebugEventHandler is called for debug events if enabled.
 type DebugEventHandler func(event map[string]any)
 
+// OnSwmlRequestHook is the function-field hook that user code can set to
+// override the default SWML-request customization behavior. Returning a
+// non-nil map applies modifications to the rendered SWML; returning nil
+// uses the default rendering unchanged.
+//
+// Python parity: web_mixin.WebMixin.on_swml_request — Go has no method
+// inheritance, so we expose the override as a settable function field.
+type OnSwmlRequestHook func(requestData map[string]any, callbackPath string, r *http.Request) map[string]any
+
 // ---------------------------------------------------------------------------
 // ToolDefinition
 // ---------------------------------------------------------------------------
@@ -338,6 +347,7 @@ type AgentBase struct {
 
 	// Web/HTTP
 	dynamicConfigCallback      DynamicConfigCallback
+	onSwmlRequestHook          OnSwmlRequestHook
 	webhookURL                 string
 	postPromptURL              string
 	defaultWebhookURL          string // Python: _default_webhook_url
@@ -716,6 +726,30 @@ func (a *AgentBase) GetPrompt() any {
 	return a.promptText
 }
 
+// Pom returns a defensive copy of the agent's POM section list. Returns nil
+// when use_pom is false (Python parity: when ``use_pom=False``, ``self.pom``
+// is ``None``). Mutations to the returned slice do not affect the agent's
+// internal state.
+//
+// Python equivalent: ``agent.pom`` instance attribute (agent_base.py line 209).
+func (a *AgentBase) Pom() []map[string]any {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if !a.usePom {
+		return nil
+	}
+	result := make([]map[string]any, len(a.pomSections))
+	for i, sec := range a.pomSections {
+		// Shallow copy each section map so callers can't corrupt internal state.
+		copyMap := make(map[string]any, len(sec))
+		for k, v := range sec {
+			copyMap[k] = v
+		}
+		result[i] = copyMap
+	}
+	return result
+}
+
 // GetPostPrompt returns the current post-prompt text. Returns an empty string
 // if no post-prompt has been set.
 //
@@ -724,6 +758,37 @@ func (a *AgentBase) GetPostPrompt() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.postPrompt
+}
+
+// GetRawPrompt returns the raw prompt text whatever ``SetPromptText`` stored,
+// regardless of POM mode. Returns an empty string when no raw prompt has
+// been set.
+//
+// Python equivalent: prompt_manager.PromptManager.get_raw_prompt
+func (a *AgentBase) GetRawPrompt() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.promptText
+}
+
+// GetContexts returns the contexts as a serialised map (the same shape SWML
+// expects), or nil when no contexts have been defined yet. This mirrors
+// Python's ``PromptManager.get_contexts`` which returns the contexts dict
+// or ``None``.
+//
+// Python equivalent: prompt_manager.PromptManager.get_contexts
+func (a *AgentBase) GetContexts() map[string]any {
+	a.mu.RLock()
+	cb := a.contextBuilder
+	a.mu.RUnlock()
+	if cb == nil {
+		return nil
+	}
+	m, err := cb.ToMap()
+	if err != nil {
+		return nil
+	}
+	return m
 }
 
 // ---------------------------------------------------------------------------
@@ -1462,17 +1527,44 @@ func (a *AgentBase) OnRequest(requestData map[string]any, callbackPath string) m
 	return a.OnSwmlRequest(requestData, callbackPath, nil)
 }
 
-// OnSwmlRequest is the primary customization point for subclasses to modify
-// the SWML document based on request data. The default implementation returns
-// nil (no modification).
+// OnSwmlRequest is the primary customization point for the user to modify
+// the SWML document based on request data. If a hook has been registered
+// via SetOnSwmlRequestHook the hook is invoked; otherwise this returns nil
+// (no modification).
 //
 // Python equivalent: web_mixin.WebMixin.on_swml_request (web_mixin.py line 1287)
 // Python signature: on_swml_request(request_data, callback_path, request) -> Optional[dict]
 //
-// Override this method in a subclass to inspect query params, headers, or body
-// fields and return a map of SWML document overrides, or nil for no changes.
+// Go has no method overriding via embedded structs alone — the hook field
+// is the idiomatic Go equivalent of Python's overridable on_swml_request.
+// The third *http.Request argument is preserved on the Go-native signature
+// (the cross-language audit projects only the first two args). Returning a
+// non-nil map applies modifications to the rendered SWML; returning nil
+// uses the default rendering unchanged.
 func (a *AgentBase) OnSwmlRequest(requestData map[string]any, callbackPath string, r *http.Request) map[string]any {
+	a.mu.RLock()
+	hook := a.onSwmlRequestHook
+	a.mu.RUnlock()
+	if hook != nil {
+		return hook(requestData, callbackPath, r)
+	}
 	return nil
+}
+
+// SetOnSwmlRequestHook registers a function that customizes the SWML
+// response on a per-request basis. The hook receives the parsed body,
+// the callback path (for routing-callback dispatch), and the raw
+// *http.Request for header / query inspection. Returning a non-nil map
+// applies modifications to the rendered SWML; returning nil falls
+// through to the default rendering.
+//
+// Python parity: this is the Go-idiomatic way of "overriding"
+// on_swml_request — Go has no method inheritance.
+func (a *AgentBase) SetOnSwmlRequestHook(hook OnSwmlRequestHook) *AgentBase {
+	a.mu.Lock()
+	a.onSwmlRequestHook = hook
+	a.mu.Unlock()
+	return a
 }
 
 // SetupGracefulShutdown registers OS signal handlers for SIGTERM and SIGINT

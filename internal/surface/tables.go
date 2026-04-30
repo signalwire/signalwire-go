@@ -69,6 +69,28 @@ var StructTable = map[string][]ClassTarget{
 				"ResetContexts":       "reset_contexts",
 			},
 		},
+		// Python additionally extracted a ``PromptManager`` class that
+		// PromptMixin delegates to.  The user-facing surface is
+		// identical (``agent.prompt_manager.X`` ≡ ``agent.X``).  Project
+		// the same set of methods to PromptManager so the cross-language
+		// audit treats both paths as covered.
+		ClassTarget{
+			Module: "signalwire.core.agent.prompt.manager", Class: "PromptManager",
+			Methods: map[string]string{
+				"SetPromptText":       "set_prompt_text",
+				"SetPostPrompt":       "set_post_prompt",
+				"SetPromptPom":        "set_prompt_pom",
+				"PromptAddSection":    "prompt_add_section",
+				"PromptAddToSection":  "prompt_add_to_section",
+				"PromptAddSubsection": "prompt_add_subsection",
+				"PromptHasSection":    "prompt_has_section",
+				"GetPrompt":           "get_prompt",
+				"GetPostPrompt":       "get_post_prompt",
+				"GetRawPrompt":        "get_raw_prompt",
+				"GetContexts":         "get_contexts",
+				"DefineContexts":      "define_contexts",
+			},
+		},
 		ClassTarget{
 			Module: "signalwire.core.mixins.tool_mixin", Class: "ToolMixin",
 			Methods: map[string]string{
@@ -140,6 +162,8 @@ var StructTable = map[string][]ClassTarget{
 				"SetDynamicConfigCallback": "set_dynamic_config_callback",
 				"ManualSetProxyUrl":        "manual_set_proxy_url",
 				"EnableDebugRoutes":        "enable_debug_routes",
+				"OnRequest":                "on_request",
+				"OnSwmlRequest":            "on_swml_request",
 			},
 		},
 		ClassTarget{
