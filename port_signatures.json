@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 955a95c4c5bd11caddef0474ba2504f29cfbd440 (go/ast walker)",
+  "generated_from": "signalwire-go @ d81ac86feee512ce8e2ea97796928d990820d6e7 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3601,6 +3601,19 @@
             }
           }
         },
+        "AgentHandoff": {
+          "methods": {
+            "agent": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.livewire.Agent"
+            }
+          }
+        },
         "AgentServer": {
           "methods": {
             "rtc_session": {
@@ -3742,6 +3755,24 @@
               ],
               "returns": "any"
             },
+            "proc": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.livewire.JobProcess"
+            },
+            "room": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.livewire.Room"
+            },
             "wait_for_participant": {
               "params": [
                 {
@@ -3760,6 +3791,24 @@
         },
         "RunContext": {
           "methods": {
+            "agent": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.livewire.Agent"
+            },
+            "session": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.livewire.AgentSession"
+            },
             "userdata": {
               "params": [
                 {
@@ -5084,8 +5133,30 @@
     },
     "signalwire.rest._base": {
       "classes": {
+        "BaseResource": {
+          "methods": {
+            "http": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:HTTPClient"
+            }
+          }
+        },
         "CrudResource": {
           "methods": {
+            "client": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest._base.HttpClient"
+            },
             "create": {
               "params": [
                 {
@@ -7014,6 +7085,114 @@
                 }
               ],
               "returns": "void"
+            },
+            "accounts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatAccounts"
+            },
+            "applications": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatApplications"
+            },
+            "calls": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatCalls"
+            },
+            "conferences": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatConferences"
+            },
+            "faxes": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatFaxes"
+            },
+            "laml_bins": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatLamlBins"
+            },
+            "messages": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatMessages"
+            },
+            "phone_numbers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatPhoneNumbers"
+            },
+            "queues": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatQueues"
+            },
+            "recordings": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatRecordings"
+            },
+            "tokens": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatTokens"
+            },
+            "transcriptions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatTranscriptions"
             }
           }
         },
@@ -7447,6 +7626,15 @@
                 }
               ],
               "returns": "void"
+            },
+            "documents": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.datasphere.DatasphereDocuments"
             }
           }
         }
@@ -7599,6 +7787,150 @@
                 }
               ],
               "returns": "void"
+            },
+            "addresses": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricAddresses"
+            },
+            "ai_agents": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:CrudWithAddresses"
+            },
+            "call_flows": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.CallFlowsResource"
+            },
+            "conference_rooms": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.ConferenceRoomsResource"
+            },
+            "cxml_applications": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:CxmlApplicationsResource"
+            },
+            "cxml_scripts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest._base.CrudResource"
+            },
+            "cxml_webhooks": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.AutoMaterializedWebhook"
+            },
+            "freeswitch_connectors": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest._base.CrudResource"
+            },
+            "relay_applications": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest._base.CrudResource"
+            },
+            "resources": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.GenericResources"
+            },
+            "sip_endpoints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest._base.CrudResource"
+            },
+            "sip_gateways": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:CrudWithAddresses"
+            },
+            "subscribers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.SubscribersResource"
+            },
+            "swml_scripts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest._base.CrudResource"
+            },
+            "swml_webhooks": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.AutoMaterializedWebhook"
+            },
+            "tokens": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricTokens"
             }
           }
         },
@@ -7980,6 +8312,42 @@
                 }
               ],
               "returns": "void"
+            },
+            "conferences": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.logs.ConferenceLogs"
+            },
+            "fax": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.logs.FaxLogs"
+            },
+            "messages": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.logs.MessageLogs"
+            },
+            "voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.logs.VoiceLogs"
             }
           }
         },
@@ -8467,6 +8835,15 @@
                 }
               ],
               "returns": "void"
+            },
+            "tokens": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.project.ProjectTokens"
             }
           }
         },
@@ -8876,6 +9253,42 @@
                 }
               ],
               "returns": "void"
+            },
+            "brands": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.registry.RegistryBrands"
+            },
+            "campaigns": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.registry.RegistryCampaigns"
+            },
+            "numbers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.registry.RegistryNumbers"
+            },
+            "orders": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.registry.RegistryOrders"
             }
           }
         },
@@ -9180,6 +9593,69 @@
                 }
               ],
               "returns": "void"
+            },
+            "conference_tokens": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.video.VideoConferenceTokens"
+            },
+            "conferences": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.video.VideoConferences"
+            },
+            "room_recordings": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.video.VideoRoomRecordings"
+            },
+            "room_sessions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.video.VideoRoomSessions"
+            },
+            "room_tokens": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.video.VideoRoomTokens"
+            },
+            "rooms": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.video.VideoRooms"
+            },
+            "streams": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.video.VideoStreams"
             }
           }
         },

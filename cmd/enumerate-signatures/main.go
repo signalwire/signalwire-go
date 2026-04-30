@@ -620,12 +620,42 @@ func toLower(r rune) rune {
 // Python-canonical snake_case form, with corrections for SDK-specific
 // abbreviations that don't snake-case naturally (e.g. ``MFA`` -> ``mfa``,
 // ``PubSub`` -> ``pubsub``).
+// isPrimitive returns true for Go primitive types (string, int, bool,
+// etc.) — these should not be projected as SDK class accessor methods.
+func isPrimitive(t string) bool {
+	switch t {
+	case "string", "bool", "byte", "rune", "error",
+		"int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64",
+		"uintptr", "float32", "float64",
+		"complex64", "complex128", "any", "interface{}":
+		return true
+	}
+	return false
+}
+
 func goFieldToPython(s string) string {
 	switch s {
 	case "MFA":
 		return "mfa"
 	case "PubSub":
 		return "pubsub"
+	case "FreeSwitchConnectors":
+		return "freeswitch_connectors"
+	case "SIPEndpoints":
+		return "sip_endpoints"
+	case "SIPGateways":
+		return "sip_gateways"
+	case "SWMLScripts":
+		return "swml_scripts"
+	case "SWMLWebhooks":
+		return "swml_webhooks"
+	case "CXMLScripts":
+		return "cxml_scripts"
+	case "CXMLApplications":
+		return "cxml_applications"
+	case "CXMLWebhooks":
+		return "cxml_webhooks"
 	}
 	return goNameToSnake(s)
 }
@@ -737,8 +767,17 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases 
 				// Only project fields whose return type is an SDK class
 				// reference — primitive-typed state fields are filtered
 				// (matches the Python adapter's _is_sdk_class_type rule).
+				// Accept either ``namespaces.FabricNamespace`` (qualified)
+				// or ``SubscribersResource`` (intra-package, identified by
+				// leading uppercase).
 				ret := strings.TrimPrefix(fSig.returns, "*")
-				if !strings.Contains(ret, ".") {
+				if ret == "" {
+					continue
+				}
+				if !strings.Contains(ret, ".") && !(ret[0] >= 'A' && ret[0] <= 'Z') {
+					continue
+				}
+				if isPrimitive(ret) {
 					continue
 				}
 				pyName := goFieldToPython(goField)
