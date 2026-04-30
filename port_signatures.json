@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 116d2f932d98680e8a37178cd7e449ee7b289e4d (go/ast walker)",
+  "generated_from": "signalwire-go @ 955a95c4c5bd11caddef0474ba2504f29cfbd440 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -366,6 +366,15 @@
                 }
               ],
               "returns": "string"
+            },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
             },
             "on_debug_event": {
               "params": [
@@ -2544,6 +2553,15 @@
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
             },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
+            },
             "set_function_includes": {
               "params": [
                 {
@@ -2737,6 +2755,15 @@
                 }
               ],
               "returns": "any"
+            },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
             },
             "prompt_add_section": {
               "params": [
@@ -2935,6 +2962,15 @@
               ],
               "returns": "list\u003cstring\u003e"
             },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
+            },
             "remove_skill": {
               "params": [
                 {
@@ -2979,6 +3015,15 @@
                 }
               ],
               "returns": "list\u003cclass:ToolDefinition\u003e"
+            },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
             },
             "on_function_call": {
               "params": [
@@ -3043,6 +3088,15 @@
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
+            },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
             },
             "manual_set_proxy_url": {
               "params": [
@@ -3217,6 +3271,15 @@
                 }
               ],
               "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
+            },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
             }
           }
         }
@@ -3373,6 +3436,15 @@
                 }
               ],
               "returns": "class:Document"
+            },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
             },
             "on_request": {
               "params": [
@@ -3680,6 +3752,19 @@
                   "name": "identity",
                   "type": "string",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
+        "RunContext": {
+          "methods": {
+            "userdata": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -5264,6 +5349,195 @@
                 }
               ],
               "returns": "void"
+            },
+            "addresses": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.addresses.AddressesResource"
+            },
+            "calling": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.calling.CallingNamespace"
+            },
+            "chat": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.chat.ChatResource"
+            },
+            "compat": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.compat.CompatNamespace"
+            },
+            "datasphere": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.datasphere.DatasphereNamespace"
+            },
+            "fabric": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricNamespace"
+            },
+            "imported_numbers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.imported_numbers.ImportedNumbersResource"
+            },
+            "logs": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.logs.LogsNamespace"
+            },
+            "lookup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.lookup.LookupResource"
+            },
+            "mfa": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.mfa.MfaResource"
+            },
+            "number_groups": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.number_groups.NumberGroupsResource"
+            },
+            "phone_numbers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource"
+            },
+            "project": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.project.ProjectNamespace"
+            },
+            "pubsub": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.pubsub.PubSubResource"
+            },
+            "queues": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.queues.QueuesResource"
+            },
+            "recordings": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.recordings.RecordingsResource"
+            },
+            "registry": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.registry.RegistryNamespace"
+            },
+            "short_codes": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.short_codes.ShortCodesResource"
+            },
+            "sip_profile": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.sip_profile.SipProfileResource"
+            },
+            "verified_callers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.verified_callers.VerifiedCallersResource"
+            },
+            "video": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.video.VideoNamespace"
             }
           }
         }

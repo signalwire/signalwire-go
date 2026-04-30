@@ -69,6 +69,7 @@ type goSignature struct {
 	name    string
 	params  []goParam
 	returns string // source-level type expression of the canonical return; "" → void
+	isField bool   // true when this signature was synthesized from a struct field, not a method
 }
 
 type goFunc = goSignature // free function
@@ -120,7 +121,8 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				if !ok || !ast.IsExported(ts.Name.Name) {
 					continue
 				}
-				if _, isStruct := ts.Type.(*ast.StructType); !isStruct {
+				st, isStruct := ts.Type.(*ast.StructType)
+				if !isStruct {
 					continue
 				}
 				key := pkgName + "." + ts.Name.Name
@@ -129,6 +131,34 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						pkg:     pkgName,
 						name:    ts.Name.Name,
 						methods: map[string]*goSignature{},
+					}
+				}
+				// Project exported struct fields (e.g. RestClient.Calling
+				// *namespaces.CallingNamespace) as zero-arg accessor
+				// methods so the cross-language audit sees them. Matches
+				// the Python reference adapter, which emits typed
+				// instance attributes the same way.
+				if st.Fields != nil {
+					for _, f := range st.Fields.List {
+						if len(f.Names) == 0 {
+							continue
+						}
+						typeStr := exprString(f.Type)
+						for _, n := range f.Names {
+							if !ast.IsExported(n.Name) {
+								continue
+							}
+							if _, exists := structs[key].methods[n.Name]; exists {
+								continue
+							}
+							structs[key].methods[n.Name] = &goSignature{
+								pkg:     pkgName,
+								name:    n.Name,
+								params:  []goParam{},
+								returns: typeStr,
+								isField: true,
+							}
+						}
 					}
 				}
 			}
@@ -586,6 +616,20 @@ func toLower(r rune) rune {
 	return r
 }
 
+// goFieldToPython converts a Go exported struct field name to its
+// Python-canonical snake_case form, with corrections for SDK-specific
+// abbreviations that don't snake-case naturally (e.g. ``MFA`` -> ``mfa``,
+// ``PubSub`` -> ``pubsub``).
+func goFieldToPython(s string) string {
+	switch s {
+	case "MFA":
+		return "mfa"
+	case "PubSub":
+		return "pubsub"
+	}
+	return goNameToSnake(s)
+}
+
 func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod bool, isCtor bool, ctx string) (canonicalSignature, []translationFailure) {
 	var failures []translationFailure
 	params := []canonicalParam{}
@@ -677,6 +721,30 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases 
 					failures = append(failures, fails...)
 					addClassMethod(target.Module, target.Class, pyMethod, sig)
 				}
+			}
+			// Auto-emit exported fields whose type is an SDK class
+			// (``*namespaces.FabricNamespace``, ``*FooClient``, etc.)
+			// as zero-arg accessor methods. Mirrors the Python reference
+			// adapter's instance-attribute projection for the same
+			// composition pattern (RestClient.fabric, RestClient.calling).
+			for goField, fSig := range facts.methods {
+				if !fSig.isField {
+					continue
+				}
+				if _, alreadyMapped := target.Methods[goField]; alreadyMapped {
+					continue
+				}
+				// Only project fields whose return type is an SDK class
+				// reference — primitive-typed state fields are filtered
+				// (matches the Python adapter's _is_sdk_class_type rule).
+				ret := strings.TrimPrefix(fSig.returns, "*")
+				if !strings.Contains(ret, ".") {
+					continue
+				}
+				pyName := goFieldToPython(goField)
+				sig, fails := toCanonicalSignature(fSig, aliases, true, false, fmt.Sprintf("%s.%s.%s", target.Module, target.Class, pyName))
+				failures = append(failures, fails...)
+				addClassMethod(target.Module, target.Class, pyName, sig)
 			}
 		}
 	}
