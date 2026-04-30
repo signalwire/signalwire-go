@@ -106,6 +106,11 @@ type Service struct {
 	// Schema for verb validation
 	schema *Schema
 
+	// schemaUtils provides the cross-language SchemaUtils surface
+	// (Python: signalwire.utils.schema_utils.SchemaUtils).  Built once
+	// during NewService when validation is enabled.
+	schemaUtils *SchemaUtils
+
 	// Proxy detection
 	proxyURLBase string
 
@@ -376,6 +381,12 @@ func NewService(opts ...ServiceOption) *Service {
 		}
 	}
 
+	// Build SchemaUtils — the cross-language surface for verb metadata
+	// extraction and validation (Python parity at
+	// signalwire.utils.schema_utils.SchemaUtils).  Honours the same
+	// schema_path / schema_validation knobs as Python.
+	s.schemaUtils = NewSchemaUtils(s.schemaPath, s.schemaValidation)
+
 	// Register built-in verb handlers (mirrors Python VerbHandlerRegistry.__init__).
 	s.RegisterVerbHandler(NewAIVerbHandler())
 
@@ -404,6 +415,13 @@ func (s *Service) ResetDocument() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.document = NewDocument()
+}
+
+// SchemaUtils returns the SchemaUtils helper bound to this Service.
+// Mirrors Python's ``self.schema_utils`` instance attribute exposed
+// publicly on signalwire.core.swml_service.SWMLService.
+func (s *Service) SchemaUtils() *SchemaUtils {
+	return s.schemaUtils
 }
 
 // GetBasicAuthCredentials returns the (username, password) for basic auth.

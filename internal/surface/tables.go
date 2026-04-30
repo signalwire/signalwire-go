@@ -210,6 +210,32 @@ var StructTable = map[string][]ClassTarget{
 			"OnRequest":               "on_request",
 			"Render":                  "render_document",
 			"Serve":                   "serve",
+			// schema_utils accessor — exposes the SchemaUtils helper as a
+			// public attribute, matching Python's ``self.schema_utils``.
+			"SchemaUtils": "schema_utils",
+		},
+	}},
+
+	// --- SchemaUtils (signalwire.utils.schema_utils.SchemaUtils) -------
+	"swml.SchemaUtils": {{
+		Module: "signalwire.utils.schema_utils", Class: "SchemaUtils",
+		Methods: map[string]string{
+			"NewSchemaUtils":              "__init__",
+			"LoadSchema":                  "load_schema",
+			"GetAllVerbNames":             "get_all_verb_names",
+			"GetVerbProperties":           "get_verb_properties",
+			"GetVerbRequiredProperties":   "get_verb_required_properties",
+			"GetVerbParameters":           "get_verb_parameters",
+			"ValidateVerb":                "validate_verb",
+			"ValidateDocument":            "validate_document",
+		},
+	}},
+
+	// --- SchemaValidationError (Python's exception class) --------------
+	"swml.SchemaValidationError": {{
+		Module: "signalwire.utils.schema_utils", Class: "SchemaValidationError",
+		Methods: map[string]string{
+			"NewSchemaValidationError": "__init__",
 		},
 	}},
 

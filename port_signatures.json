@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 6a500b334514449d74f0ecfc7ae5c09620761ead (go/ast walker)",
+  "generated_from": "signalwire-go @ 9fcb17eb7783491bd4a79b9ff42a82d8814393fb (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -65,6 +65,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "opts",
                   "type": "list\u003cclass:ServerOption\u003e",
@@ -506,6 +510,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "opts",
                   "type": "list\u003cclass:AgentOption\u003e",
@@ -1116,7 +1124,12 @@
         "ContextBuilder": {
           "methods": {
             "__init__": {
-              "params": [],
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
               "returns": "void"
             },
             "add_context": {
@@ -1523,6 +1536,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "function_name",
                   "type": "string",
                   "required": true
@@ -1858,6 +1875,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "response",
                   "type": "string",
@@ -3606,6 +3627,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "token_expiry_secs",
                   "type": "int",
                   "required": true
@@ -3741,7 +3766,12 @@
         "SkillManager": {
           "methods": {
             "__init__": {
-              "params": [],
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
               "returns": "void"
             },
             "get_skill": {
@@ -3819,6 +3849,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "opts",
                   "type": "list\u003cclass:ServiceOption\u003e",
@@ -3953,6 +3987,15 @@
               ],
               "returns": "void"
             },
+            "schema_utils": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.utils.schema_utils.SchemaUtils"
+            },
             "serve": {
               "params": [
                 {
@@ -3972,6 +4015,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "instructions",
                   "type": "string",
@@ -4092,6 +4139,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "opts",
                   "type": "list\u003cclass:SessionOption\u003e",
@@ -4309,6 +4360,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "opts",
                   "type": "class:ConciergeOptions",
                   "required": true
@@ -4327,6 +4382,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "opts",
                   "type": "class:FAQBotOptions",
                   "required": true
@@ -4344,6 +4403,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "opts",
                   "type": "class:InfoGathererOptions",
@@ -4377,6 +4440,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "opts",
                   "type": "class:ReceptionistOptions",
                   "required": true
@@ -4394,6 +4461,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "opts",
                   "type": "class:SurveyOptions",
@@ -5409,6 +5480,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "opts",
                   "type": "list\u003cclass:ClientOption\u003e",
                   "required": true
@@ -5690,6 +5765,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "project_id",
                   "type": "string",
                   "required": true
@@ -5813,6 +5892,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
@@ -5854,6 +5937,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "project",
                   "type": "string",
@@ -6072,6 +6159,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -6145,6 +6236,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -6857,6 +6952,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -7525,6 +7624,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -8071,6 +8174,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -8231,6 +8338,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -8675,6 +8786,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -8756,6 +8871,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -8894,6 +9013,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -8930,6 +9053,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -8995,6 +9122,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -9079,6 +9210,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -9280,6 +9415,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -9358,6 +9497,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -9389,6 +9532,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -9459,6 +9606,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -9698,6 +9849,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -9788,6 +9943,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -9853,6 +10012,10 @@
             "__init__": {
               "params": [
                 {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
                   "name": "client",
                   "type": "class:HTTPClient",
                   "required": true
@@ -9893,6 +10056,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -10037,6 +10204,10 @@
           "methods": {
             "__init__": {
               "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
                 {
                   "name": "client",
                   "type": "class:HTTPClient",
@@ -10382,7 +10553,12 @@
         "SkillRegistry": {
           "methods": {
             "__init__": {
-              "params": [],
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
               "returns": "void"
             },
             "add_skill_directory": {
@@ -10408,6 +10584,149 @@
         "is_serverless_mode": {
           "params": [],
           "returns": "bool"
+        }
+      }
+    },
+    "signalwire.utils.schema_utils": {
+      "classes": {
+        "SchemaUtils": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "schema_path",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "schema_validation",
+                  "type": "bool",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "get_all_verb_names": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list\u003cstring\u003e"
+            },
+            "get_verb_parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "verb_name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "get_verb_properties": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "verb_name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "get_verb_required_properties": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "verb_name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "list\u003cstring\u003e"
+            },
+            "load_schema": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "validate_document": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "document",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "tuple\u003cbool,list\u003cstring\u003e\u003e"
+            },
+            "validate_verb": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "verb_name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "verb_config",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "tuple\u003cbool,list\u003cstring\u003e\u003e"
+            }
+          }
+        },
+        "SchemaValidationError": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "verb_name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "errors",
+                  "type": "list\u003cstring\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            }
+          }
         }
       }
     },

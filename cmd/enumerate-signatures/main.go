@@ -663,7 +663,11 @@ func goFieldToPython(s string) string {
 func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod bool, isCtor bool, ctx string) (canonicalSignature, []translationFailure) {
 	var failures []translationFailure
 	params := []canonicalParam{}
-	if isMethod {
+	// Both regular methods and constructors take an implicit self in
+	// the canonical Python shape.  Go factory functions (NewX) lift
+	// into __init__ slots without a receiver, so we add self here so
+	// param-count matches Python's reference signature.
+	if isMethod || isCtor {
 		params = append(params, canonicalParam{Name: "self", Kind: "self"})
 	}
 	for _, p := range sig.params {
