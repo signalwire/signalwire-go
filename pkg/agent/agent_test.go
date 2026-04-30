@@ -94,6 +94,50 @@ func TestNewAgentBase_WithBasicAuth(t *testing.T) {
 	}
 }
 
+// AuthMixin parity tests — Python parity:
+// tests/unit/core/mixins/test_auth_mixin.py::TestValidateBasicAuth
+func TestValidateBasicAuth_AcceptsMatch(t *testing.T) {
+	a := NewAgentBase(WithBasicAuth("admin", "secret"))
+	if !a.ValidateBasicAuth("admin", "secret") {
+		t.Errorf("expected valid credentials to be accepted")
+	}
+}
+
+func TestValidateBasicAuth_RejectsBadUser(t *testing.T) {
+	a := NewAgentBase(WithBasicAuth("admin", "secret"))
+	if a.ValidateBasicAuth("wrong", "secret") {
+		t.Errorf("expected wrong username to be rejected")
+	}
+}
+
+func TestValidateBasicAuth_RejectsBadPass(t *testing.T) {
+	a := NewAgentBase(WithBasicAuth("admin", "secret"))
+	if a.ValidateBasicAuth("admin", "wrong") {
+		t.Errorf("expected wrong password to be rejected")
+	}
+}
+
+// Python parity:
+// tests/unit/core/mixins/test_auth_mixin.py::TestGetBasicAuthCredentials
+func TestGetBasicAuthCredentialsWithSource_Provided(t *testing.T) {
+	a := NewAgentBase(WithBasicAuth("alice", "shortpw"))
+	user, pass, source := a.GetBasicAuthCredentialsWithSource()
+	if user != "alice" || pass != "shortpw" {
+		t.Errorf("expected alice/shortpw, got %q/%q", user, pass)
+	}
+	if source != "provided" {
+		t.Errorf("expected source=provided, got %q", source)
+	}
+}
+
+func TestGetBasicAuthCredentialsWithSource_Generated(t *testing.T) {
+	a := NewAgentBase(WithBasicAuth("user_abc", "supersecretlongpassword12345"))
+	_, _, source := a.GetBasicAuthCredentialsWithSource()
+	if source != "generated" {
+		t.Errorf("expected source=generated for user_-prefixed + long pw, got %q", source)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Prompt tests
 // ---------------------------------------------------------------------------

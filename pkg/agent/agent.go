@@ -1528,6 +1528,26 @@ func (a *AgentBase) GetBasicAuthCredentials() (string, string) {
 	return a.Service.GetBasicAuthCredentials()
 }
 
+// GetBasicAuthCredentialsWithSource returns the basic-auth credentials
+// plus a string indicating their SOURCE — one of "provided",
+// "environment", or "generated". Mirrors Python's
+// ``auth_mixin.AuthMixin.get_basic_auth_credentials(include_source=True)``
+// (auth_mixin.py line 42-73).
+func (a *AgentBase) GetBasicAuthCredentialsWithSource() (user, pass, source string) {
+	user, pass = a.Service.GetBasicAuthCredentials()
+	envUser := os.Getenv("SWML_BASIC_AUTH_USER")
+	envPass := os.Getenv("SWML_BASIC_AUTH_PASSWORD")
+	switch {
+	case envUser != "" && envPass != "" && user == envUser && pass == envPass:
+		source = "environment"
+	case strings.HasPrefix(user, "user_") && len(pass) > 20:
+		source = "generated"
+	default:
+		source = "provided"
+	}
+	return
+}
+
 // ValidateToolToken verifies that a SWAIG tool security token is authentic,
 // unexpired, and matches the given function name and call ID.
 //

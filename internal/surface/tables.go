@@ -90,6 +90,13 @@ var StructTable = map[string][]ClassTarget{
 			},
 		},
 		ClassTarget{
+			Module: "signalwire.core.mixins.auth_mixin", Class: "AuthMixin",
+			Methods: map[string]string{
+				"ValidateBasicAuth":       "validate_basic_auth",
+				"GetBasicAuthCredentials": "get_basic_auth_credentials",
+			},
+		},
+		ClassTarget{
 			Module: "signalwire.core.mixins.ai_config_mixin", Class: "AIConfigMixin",
 			Methods: map[string]string{
 				"AddHint":                "add_hint",
