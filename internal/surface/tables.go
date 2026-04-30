@@ -1284,6 +1284,13 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	// signalwire.utils.url_validator.validate_url.
 	"util.ValidateURL": {Module: "signalwire.utils.url_validator", Name: "validate_url"},
 
+	// Execution-mode helpers (cross-port serverless detection contract):
+	// Python ships get_execution_mode in signalwire.core.logging_config and
+	// is_serverless_mode in signalwire.utils. Go places both under pkg/util
+	// for cohesion; the projections below restore the Python paths.
+	"util.GetExecutionMode": {Module: "signalwire.core.logging_config", Name: "get_execution_mode"},
+	"util.IsServerlessMode": {Module: "signalwire.utils", Name: "is_serverless_mode"},
+
 	// Livewire
 	"livewire.FunctionTool": {Module: "signalwire.livewire", Name: "function_tool"},
 	"livewire.RunApp":       {Module: "signalwire.livewire", Name: "run_app"},
