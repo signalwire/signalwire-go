@@ -1280,6 +1280,10 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"datamap.CreateExpressionTool":  {Module: "signalwire.core.data_map", Name: "create_expression_tool"},
 	"relay.ParseEvent":              {Module: "signalwire.relay.event", Name: "parse_event"},
 
+	// Utilities — SSRF guard, projects onto Python's free function
+	// signalwire.utils.url_validator.validate_url.
+	"util.ValidateURL": {Module: "signalwire.utils.url_validator", Name: "validate_url"},
+
 	// Livewire
 	"livewire.FunctionTool": {Module: "signalwire.livewire", Name: "function_tool"},
 	"livewire.RunApp":       {Module: "signalwire.livewire", Name: "run_app"},
