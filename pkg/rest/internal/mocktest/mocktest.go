@@ -22,7 +22,6 @@ package mocktest
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,11 +30,20 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
 	rest "github.com/signalwire/signalwire-go/pkg/rest"
 )
+
+// setProcessGroup configures the spawned mock-server process to run in its
+// own process group on Unix (Setpgid: true). This prevents signals to the
+// test binary from cascading to the child and keeps the child detached so
+// the testing framework's pipe-drain logic doesn't block on it.
+func setProcessGroup(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+}
 
 // JournalEntry mirrors mock_signalwire.journal.JournalEntry over the wire.
 //
@@ -199,22 +207,30 @@ func ensureServer(t *testing.T) *Harness {
 			return
 		}
 
-		// Spawn a subprocess.
-		ctx, cancel := context.WithCancel(context.Background())
-		cmd := exec.CommandContext(ctx, "python", "-m", "mock_signalwire",
+		// Spawn a subprocess. We deliberately detach stdout/stderr (point
+		// them at /dev/null) because Go's testing runner waits on the
+		// child's pipes before exiting, which would hang the test process
+		// for the full WaitDelay (60s by default) when the subprocess
+		// stays alive across the test binary lifetime.
+		cmd := exec.Command("python", "-m", "mock_signalwire",
 			"--host", "127.0.0.1",
 			"--port", strconv.Itoa(port),
 			"--log-level", "error",
 		)
-		cmd.Stdout = os.Stderr
-		cmd.Stderr = os.Stderr
+		devnull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+		if err == nil {
+			cmd.Stdout = devnull
+			cmd.Stderr = devnull
+			cmd.Stdin = devnull
+		}
+		// Put the child in its own process group so a Ctrl-C to the test
+		// binary doesn't propagate, and so we can clean up via Kill on
+		// exit without the parent waiting on the pipe goroutines.
+		setProcessGroup(cmd)
 		if err := cmd.Start(); err != nil {
-			cancel()
 			state.startErr = fmt.Errorf("mocktest: failed to spawn `python -m mock_signalwire`: %w (set MOCK_SIGNALWIRE_PORT to use a pre-running instance)", err)
 			return
 		}
-		// Tear down on process exit so abandoned tests don't leak.
-		_ = cancel // Kept alive via cmd.Cancel; explicit cancel happens on exit.
 
 		// Wait for /__mock__/health.
 		deadline := time.Now().Add(startupTimeout)
@@ -222,6 +238,9 @@ func ensureServer(t *testing.T) *Harness {
 			if probeHealth(client, url) {
 				state.harness = &Harness{URL: url, Port: port, httpClient: client}
 				state.cmd = cmd
+				// Detach and let the OS clean up on exit; the goroutine
+				// reaps the process so we don't leave a zombie.
+				go func() { _ = cmd.Wait() }()
 				return
 			}
 			time.Sleep(150 * time.Millisecond)
