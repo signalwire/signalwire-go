@@ -91,9 +91,9 @@ func (r *CallFlowsResource) ListVersions(id string, params map[string]string) (m
 }
 
 // DeployVersion deploys a new version of a call flow.
-func (r *CallFlowsResource) DeployVersion(id string, kwargs map[string]any) (map[string]any, error) {
+func (r *CallFlowsResource) DeployVersion(id string, data map[string]any) (map[string]any, error) {
 	path := strings.Replace(r.Base, "/call_flows", "/call_flow", 1)
-	return r.HTTP.Post(path+"/"+id+"/versions", kwargs, nil)
+	return r.HTTP.Post(path+"/"+id+"/versions", data, nil)
 }
 
 // ---------- ConferenceRoomsResource ----------
@@ -122,8 +122,8 @@ func (r *SubscribersResource) ListSIPEndpoints(subscriberID string, params map[s
 }
 
 // CreateSIPEndpoint creates a SIP endpoint for a subscriber.
-func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), kwargs, nil)
+func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), data, nil)
 }
 
 // GetSIPEndpoint retrieves a SIP endpoint for a subscriber.
@@ -132,8 +132,8 @@ func (r *SubscribersResource) GetSIPEndpoint(subscriberID, endpointID string) (m
 }
 
 // UpdateSIPEndpoint updates a SIP endpoint for a subscriber.
-func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID, endpointID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Patch(r.Path(subscriberID, "sip_endpoints", endpointID), kwargs)
+func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID, endpointID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Patch(r.Path(subscriberID, "sip_endpoints", endpointID), data)
 }
 
 // DeleteSIPEndpoint deletes a SIP endpoint from a subscriber.
@@ -196,7 +196,7 @@ type AutoMaterializedWebhookResource struct {
 // phone_numbers.SetCxmlWebhook instead; setting call_handler on the phone
 // number causes the server to auto-materialize the webhook resource. See
 // porting-sdk's phone-binding.md.
-func (r *AutoMaterializedWebhookResource) Create(kwargs map[string]any) (map[string]any, error) {
+func (r *AutoMaterializedWebhookResource) Create(data map[string]any) (map[string]any, error) {
 	emitDeprecationWarning(
 		r.deprecationKey,
 		"Creating a webhook Fabric resource directly produces an orphan not "+
@@ -204,7 +204,7 @@ func (r *AutoMaterializedWebhookResource) Create(kwargs map[string]any) (map[str
 			"updates the phone number and the server auto-materializes the "+
 			"resource. See porting-sdk's phone-binding.md.",
 	)
-	return r.CrudResource.Create(kwargs)
+	return r.CrudResource.Create(data)
 }
 
 // ---------- GenericResources ----------
@@ -242,7 +242,7 @@ func (r *GenericResources) ListAddresses(id string, params map[string]string) (m
 // those are configured on the phone number and the Fabric resource is
 // auto-materialized. Use phone_numbers.SetSwmlWebhook, SetCxmlWebhook,
 // SetAiAgent, etc. instead. See porting-sdk's phone-binding.md.
-func (r *GenericResources) AssignPhoneRoute(id string, kwargs map[string]any) (map[string]any, error) {
+func (r *GenericResources) AssignPhoneRoute(id string, data map[string]any) (map[string]any, error) {
 	emitDeprecationWarning(
 		"GenericResources.AssignPhoneRoute",
 		"AssignPhoneRoute does not bind phone numbers to "+
@@ -251,12 +251,12 @@ func (r *GenericResources) AssignPhoneRoute(id string, kwargs map[string]any) (m
 			"/ SetAiAgent. This method applies only to a narrow set of "+
 			"legacy resource types. See porting-sdk's phone-binding.md.",
 	)
-	return r.HTTP.Post(r.Path(id, "phone_routes"), kwargs, nil)
+	return r.HTTP.Post(r.Path(id, "phone_routes"), data, nil)
 }
 
 // AssignDomainApplication assigns a domain application to a resource.
-func (r *GenericResources) AssignDomainApplication(id string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "domain_applications"), kwargs, nil)
+func (r *GenericResources) AssignDomainApplication(id string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(id, "domain_applications"), data, nil)
 }
 
 // ---------- FabricAddresses ----------
@@ -284,28 +284,28 @@ type FabricTokens struct {
 }
 
 // CreateSubscriberToken creates a subscriber token.
-func (r *FabricTokens) CreateSubscriberToken(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("subscribers", "tokens"), kwargs, nil)
+func (r *FabricTokens) CreateSubscriberToken(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path("subscribers", "tokens"), data, nil)
 }
 
 // RefreshSubscriberToken refreshes a subscriber token.
-func (r *FabricTokens) RefreshSubscriberToken(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("subscribers", "tokens", "refresh"), kwargs, nil)
+func (r *FabricTokens) RefreshSubscriberToken(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path("subscribers", "tokens", "refresh"), data, nil)
 }
 
 // CreateInviteToken creates an invite token.
-func (r *FabricTokens) CreateInviteToken(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("subscriber", "invites"), kwargs, nil)
+func (r *FabricTokens) CreateInviteToken(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path("subscriber", "invites"), data, nil)
 }
 
 // CreateGuestToken creates a guest token.
-func (r *FabricTokens) CreateGuestToken(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("guests", "tokens"), kwargs, nil)
+func (r *FabricTokens) CreateGuestToken(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path("guests", "tokens"), data, nil)
 }
 
 // CreateEmbedToken creates an embed token.
-func (r *FabricTokens) CreateEmbedToken(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("embeds", "tokens"), kwargs, nil)
+func (r *FabricTokens) CreateEmbedToken(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path("embeds", "tokens"), data, nil)
 }
 
 // ---------- FabricNamespace ----------

@@ -22,7 +22,7 @@ func NewRecordingsNamespace(client HTTPClient) *RecordingsNamespace {
 }
 
 // List lists all recordings. params may contain values of any type (matching
-// Python's **kwargs); non-string values are stringified via fmt.Sprintf before
+// Python's **data); non-string values are stringified via fmt.Sprintf before
 // being sent as query parameters.
 func (r *RecordingsNamespace) List(params map[string]any) (map[string]any, error) {
 	var strParams map[string]string

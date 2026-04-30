@@ -14,8 +14,8 @@ type DatasphereDocuments struct {
 }
 
 // Search performs a semantic search across documents.
-func (r *DatasphereDocuments) Search(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("search"), kwargs, nil)
+func (r *DatasphereDocuments) Search(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path("search"), data, nil)
 }
 
 // ListChunks lists chunks for a specific document.

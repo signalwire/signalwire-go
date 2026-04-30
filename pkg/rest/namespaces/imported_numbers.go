@@ -20,6 +20,6 @@ func NewImportedNumbersNamespace(client HTTPClient) *ImportedNumbersNamespace {
 }
 
 // Create imports an externally-hosted phone number.
-func (r *ImportedNumbersNamespace) Create(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, kwargs, nil)
+func (r *ImportedNumbersNamespace) Create(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, data, nil)
 }

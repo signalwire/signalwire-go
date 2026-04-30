@@ -26,6 +26,6 @@ func (r *VerifiedCallersNamespace) RedialVerification(callerID string) (map[stri
 }
 
 // SubmitVerification submits a verification code for a caller ID.
-func (r *VerifiedCallersNamespace) SubmitVerification(callerID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(callerID, "verification"), kwargs)
+func (r *VerifiedCallersNamespace) SubmitVerification(callerID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Put(r.Path(callerID, "verification"), data)
 }

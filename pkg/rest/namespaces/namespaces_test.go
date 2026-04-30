@@ -86,7 +86,7 @@ func TestResource_Path_MultipleArgs(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCrudResource_List(t *testing.T) {
-	mock := &mockHTTP{response: map[string]any{"kwargs": []any{}}}
+	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
 	r := NewCrudResource(mock, "/api/test")
 	_, _ = r.List(map[string]string{"page": "1"})
 	if mock.lastMethod != "GET" {
@@ -152,7 +152,7 @@ func TestCrudResource_Delete(t *testing.T) {
 }
 
 func TestCrudWithAddresses_ListAddresses(t *testing.T) {
-	mock := &mockHTTP{response: map[string]any{"kwargs": []any{}}}
+	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
 	r := NewCrudWithAddresses(mock, "/api/test")
 	_, _ = r.ListAddresses("abc", nil)
 	if mock.lastPath != "/api/test/abc/addresses" {
@@ -319,7 +319,7 @@ func TestFabricNamespace_Init(t *testing.T) {
 }
 
 func TestCallFlowsResource_ListVersions(t *testing.T) {
-	mock := &mockHTTP{response: map[string]any{"kwargs": []any{}}}
+	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
 	f := NewFabricNamespace(mock)
 	_, _ = f.CallFlows.ListVersions("flow-1", nil)
 	if mock.lastMethod != "GET" {
@@ -340,7 +340,7 @@ func TestCallFlowsResource_DeployVersion(t *testing.T) {
 }
 
 func TestSubscribersResource_ListSIPEndpoints(t *testing.T) {
-	mock := &mockHTTP{response: map[string]any{"kwargs": []any{}}}
+	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
 	f := NewFabricNamespace(mock)
 	_, _ = f.Subscribers.ListSIPEndpoints("sub-1", nil)
 	if mock.lastMethod != "GET" {

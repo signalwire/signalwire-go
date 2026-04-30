@@ -20,8 +20,8 @@ func (r *VideoRooms) ListStreams(roomID string, params map[string]string) (map[s
 }
 
 // CreateStream creates a stream for a video room.
-func (r *VideoRooms) CreateStream(roomID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(roomID, "streams"), kwargs, nil)
+func (r *VideoRooms) CreateStream(roomID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(roomID, "streams"), data, nil)
 }
 
 // ---------- VideoRoomTokens ----------
@@ -32,8 +32,8 @@ type VideoRoomTokens struct {
 }
 
 // Create creates a video room token.
-func (r *VideoRoomTokens) Create(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, kwargs, nil)
+func (r *VideoRoomTokens) Create(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // ---------- VideoRoomSessions ----------
@@ -114,8 +114,8 @@ func (r *VideoConferences) ListStreams(conferenceID string, params map[string]st
 }
 
 // CreateStream creates a stream for a conference.
-func (r *VideoConferences) CreateStream(conferenceID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(conferenceID, "streams"), kwargs, nil)
+func (r *VideoConferences) CreateStream(conferenceID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(conferenceID, "streams"), data, nil)
 }
 
 // ---------- VideoConferenceTokens ----------
@@ -148,8 +148,8 @@ func (r *VideoStreams) Get(streamID string) (map[string]any, error) {
 }
 
 // Update modifies a video stream.
-func (r *VideoStreams) Update(streamID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(streamID), kwargs)
+func (r *VideoStreams) Update(streamID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Put(r.Path(streamID), data)
 }
 
 // Delete removes a video stream. It returns the parsed response body

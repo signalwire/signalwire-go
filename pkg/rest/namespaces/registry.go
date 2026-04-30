@@ -20,8 +20,8 @@ func (r *RegistryBrands) List(params map[string]string) (map[string]any, error) 
 }
 
 // Create creates a new brand.
-func (r *RegistryBrands) Create(kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, kwargs, nil)
+func (r *RegistryBrands) Create(data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Base, data, nil)
 }
 
 // Get retrieves a brand by ID.
@@ -35,8 +35,8 @@ func (r *RegistryBrands) ListCampaigns(brandID string, params map[string]string)
 }
 
 // CreateCampaign creates a campaign under a brand.
-func (r *RegistryBrands) CreateCampaign(brandID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(brandID, "campaigns"), kwargs, nil)
+func (r *RegistryBrands) CreateCampaign(brandID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(brandID, "campaigns"), data, nil)
 }
 
 // ---------- RegistryCampaigns ----------
@@ -52,8 +52,8 @@ func (r *RegistryCampaigns) Get(campaignID string) (map[string]any, error) {
 }
 
 // Update modifies a campaign by ID.
-func (r *RegistryCampaigns) Update(campaignID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(campaignID), kwargs)
+func (r *RegistryCampaigns) Update(campaignID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Put(r.Path(campaignID), data)
 }
 
 // ListNumbers lists numbers assigned to a campaign.
@@ -67,8 +67,8 @@ func (r *RegistryCampaigns) ListOrders(campaignID string, params map[string]stri
 }
 
 // CreateOrder creates a number assignment order for a campaign.
-func (r *RegistryCampaigns) CreateOrder(campaignID string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(campaignID, "orders"), kwargs, nil)
+func (r *RegistryCampaigns) CreateOrder(campaignID string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(r.Path(campaignID, "orders"), data, nil)
 }
 
 // ---------- RegistryOrders ----------

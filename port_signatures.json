@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ ade8af550a722299aa23a1088e22004b721ce679 (go/ast walker)",
+  "generated_from": "signalwire-go @ 116d2f932d98680e8a37178cd7e449ee7b289e4d (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -5008,7 +5008,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -5069,7 +5069,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -5290,7 +5290,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6075,7 +6075,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6097,7 +6097,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6144,7 +6144,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6167,7 +6167,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6190,7 +6190,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6209,7 +6209,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6233,7 +6233,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6252,7 +6252,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6276,7 +6276,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6441,7 +6441,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6465,7 +6465,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6484,7 +6484,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6508,7 +6508,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6532,7 +6532,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6612,7 +6612,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6635,7 +6635,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6715,7 +6715,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6780,7 +6780,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6822,7 +6822,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6879,7 +6879,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6907,7 +6907,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -6964,7 +6964,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7028,7 +7028,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7153,7 +7153,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7189,7 +7189,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7212,7 +7212,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7337,7 +7337,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7351,7 +7351,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7365,7 +7365,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7379,7 +7379,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7393,7 +7393,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7416,7 +7416,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7435,7 +7435,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7519,7 +7519,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7600,7 +7600,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7632,7 +7632,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7852,7 +7852,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7866,7 +7866,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7885,7 +7885,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -7922,7 +7922,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8205,7 +8205,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8238,7 +8238,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8270,7 +8270,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8422,7 +8422,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8441,7 +8441,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8511,7 +8511,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8582,7 +8582,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8697,7 +8697,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8738,7 +8738,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8789,7 +8789,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -8848,7 +8848,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -9072,7 +9072,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -9095,7 +9095,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
@@ -9165,7 +9165,7 @@
                   "required": true
                 },
                 {
-                  "name": "kwargs",
+                  "name": "data",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }

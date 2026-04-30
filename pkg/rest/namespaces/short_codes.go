@@ -36,8 +36,8 @@ func (r *ShortCodesNamespace) Get(id string) (map[string]any, error) {
 }
 
 // Update modifies a short code by ID.
-func (r *ShortCodesNamespace) Update(id string, kwargs map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(id), kwargs)
+func (r *ShortCodesNamespace) Update(id string, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Put(r.Path(id), data)
 }
 
 // ShortCodesResource is an alias for ShortCodesNamespace, matching the Python
