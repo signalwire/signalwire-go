@@ -63,6 +63,7 @@ var StructTable = map[string][]ClassTarget{
 				"PromptAddSubsection": "prompt_add_subsection",
 				"PromptHasSection":    "prompt_has_section",
 				"GetPrompt":           "get_prompt",
+				"GetPostPrompt":       "get_post_prompt",
 				"DefineContexts":      "define_contexts",
 				"Contexts":            "contexts",
 				"ResetContexts":       "reset_contexts",

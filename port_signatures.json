@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ d81ac86feee512ce8e2ea97796928d990820d6e7 (go/ast walker)",
+  "generated_from": "signalwire-go @ cfac95ee0d89321acf27c0fdb1d2b05877db829d (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2746,6 +2746,15 @@
                 }
               ],
               "returns": "class:signalwire.core.contexts.ContextBuilder"
+            },
+            "get_post_prompt": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             },
             "get_prompt": {
               "params": [
