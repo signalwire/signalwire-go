@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 7c976963a26bbba4ff59c35268f9bb18b02a105b (go/ast walker)",
+  "generated_from": "signalwire-go @ 54bb152425df6f1ab81e7e58bdcf99116e3583d5 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3134,6 +3134,47 @@
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.mixins.state_mixin": {
+      "classes": {
+        "StateMixin": {
+          "methods": {
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:logging.Logger"
+            },
+            "validate_tool_token": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "function_name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "token",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "call_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
             }
           }
         }

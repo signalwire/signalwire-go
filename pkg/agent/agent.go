@@ -1549,13 +1549,35 @@ func (a *AgentBase) GetBasicAuthCredentialsWithSource() (user, pass, source stri
 }
 
 // ValidateToolToken verifies that a SWAIG tool security token is authentic,
-// unexpired, and matches the given function name and call ID.
+// unexpired, and matches the given function name and call ID. Returns false
+// when the function is not registered, the SessionManager rejects the token,
+// or the validation panics for any reason.
 //
-// Python equivalent: state_mixin.StateMixin.validate_tool_token / security.SessionManager.ValidateToken
-// The underlying security is handled by SessionManager; this method exposes
-// it as a public AgentBase API for testing and inspection.
-func (a *AgentBase) ValidateToolToken(functionName, token, callID string) bool {
+// Python parity: state_mixin.StateMixin.validate_tool_token. Python rejects
+// unknown function names up-front and swallows exceptions, returning false.
+func (a *AgentBase) ValidateToolToken(functionName, token, callID string) (ok bool) {
+	if !a.HasFunction(functionName) {
+		return false
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			ok = false
+		}
+	}()
 	return a.sessionManager.ValidateToken(functionName, token, callID)
+}
+
+// CreateToolToken mints a per-call SWAIG-function token via the agent's
+// SessionManager. Returns an empty string when minting fails (Python parity:
+// state_mixin.StateMixin._create_tool_token, which catches all exceptions and
+// returns "" on error).
+func (a *AgentBase) CreateToolToken(toolName, callID string) (token string) {
+	defer func() {
+		if r := recover(); r != nil {
+			token = ""
+		}
+	}()
+	return a.sessionManager.CreateToken(toolName, callID)
 }
 
 // ---------------------------------------------------------------------------

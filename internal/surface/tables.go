@@ -142,6 +142,17 @@ var StructTable = map[string][]ClassTarget{
 				"EnableDebugRoutes":        "enable_debug_routes",
 			},
 		},
+		ClassTarget{
+			// StateMixin in Python exposes ``validate_tool_token`` publicly
+			// (and ``_create_tool_token`` as a private helper). Project the
+			// public method only — ``CreateToolToken`` remains a Go-side
+			// AgentBase facade (matches .NET), but it is not enumerated as
+			// a private mixin method on the Python side.
+			Module: "signalwire.core.mixins.state_mixin", Class: "StateMixin",
+			Methods: map[string]string{
+				"ValidateToolToken": "validate_tool_token",
+			},
+		},
 	},
 
 	// --- server package ---------------------------------------------------
