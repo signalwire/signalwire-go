@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 6247fe0ed871d40827af31e4d0e21d9e315dd078 (go/ast walker)",
+  "generated_from": "signalwire-go @ 4707a6ff53551bbefc18b84ae73ecef97e01a0e8 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -699,6 +699,15 @@
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
+            },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
             },
             "register_sip_username": {
               "params": [

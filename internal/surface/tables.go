@@ -33,6 +33,7 @@ var StructTable = map[string][]ClassTarget{
 			Methods: map[string]string{
 				"NewAgentBase":          "__init__",
 				"GetName":               "get_name",
+				"Pom":                   "pom",
 				"AddAnswerVerb":         "add_answer_verb",
 				"AddPostAiVerb":         "add_post_ai_verb",
 				"AddPostAnswerVerb":     "add_post_answer_verb",
