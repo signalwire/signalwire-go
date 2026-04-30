@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 9fcb17eb7783491bd4a79b9ff42a82d8814393fb (go/ast walker)",
+  "generated_from": "signalwire-go @ 63396e57576bb23a4939d49467ff62aebd449e4a (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -8041,6 +8041,39 @@
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
+            },
+            "delete": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "token_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "token_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -8302,6 +8335,24 @@
             }
           }
         },
+        "CxmlApplicationsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            }
+          }
+        },
         "FabricAddresses": {
           "methods": {
             "get": {
@@ -8393,7 +8444,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:CxmlApplicationsResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.CxmlApplicationsResource"
             },
             "cxml_scripts": {
               "params": [

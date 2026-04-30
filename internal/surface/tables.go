@@ -769,6 +769,12 @@ var StructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.fabric", Class: "AutoMaterializedWebhook",
 		Methods: map[string]string{"Create": "create"},
 	}},
+	"namespaces.CxmlApplicationsResource": {{
+		Module: "signalwire.rest.namespaces.fabric", Class: "CxmlApplicationsResource",
+		Methods: map[string]string{
+			"Create": "create",
+		},
+	}},
 
 	// Compat namespace
 	"namespaces.CompatNamespace": {{
@@ -784,6 +790,8 @@ var StructTable = map[string][]ClassTarget{
 			"Update": "update",
 		},
 		SyntheticMethods: []string{"__init__"},
+		// __init__ is synthesized because Go uses NewCompatNamespace as the
+		// composite constructor; CompatAccounts has no exported New<X>.
 	}},
 	"namespaces.CompatCalls": {{
 		Module: "signalwire.rest.namespaces.compat", Class: "CompatCalls",
@@ -881,7 +889,11 @@ var StructTable = map[string][]ClassTarget{
 	}},
 	"namespaces.CompatTokens": {{
 		Module: "signalwire.rest.namespaces.compat", Class: "CompatTokens",
-		Methods: map[string]string{"Create": "create"},
+		Methods: map[string]string{
+			"Create": "create",
+			"Update": "update",
+			"Delete": "delete",
+		},
 	}},
 
 	// Video namespace

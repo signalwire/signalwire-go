@@ -1,0 +1,293 @@
+// Copyright (c) 2025 SignalWire
+//
+// This file is part of the SignalWire AI Agents SDK.
+//
+// Licensed under the MIT License.
+// See LICENSE file in the project root for full license information.
+
+// Package mocktest is the Go test helper for the porting-sdk mock_signalwire
+// HTTP server. It mirrors the Python conftest fixtures (signalwire_client +
+// mock) so unit tests can exercise the real SDK code path against a real
+// HTTP server backed by SignalWire's 13 OpenAPI specs.
+//
+// The mock server's lifetime is per-process: the first New call probes
+// http://127.0.0.1:<port>/__mock__/health and either confirms a running
+// server or starts one as a subprocess. Each test gets a freshly reset
+// journal/scenario state via t.Cleanup. Tests do not share journal entries.
+//
+// The default port is 8765 (matching the Python harness default). Override
+// with MOCK_SIGNALWIRE_PORT in the test environment if a different mock
+// instance is already running.
+package mocktest
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"strconv"
+	"sync"
+	"testing"
+	"time"
+
+	rest "github.com/signalwire/signalwire-go/pkg/rest"
+)
+
+// JournalEntry mirrors mock_signalwire.journal.JournalEntry over the wire.
+//
+// Body is decoded as a generic interface{}: the mock returns a JSON object
+// for application/json bodies and a string for everything else, so callers
+// will typically need a type assertion via journal.BodyMap() or similar.
+type JournalEntry struct {
+	Timestamp      float64                  `json:"timestamp"`
+	Method         string                   `json:"method"`
+	Path           string                   `json:"path"`
+	QueryParams    map[string][]string      `json:"query_params"`
+	Headers        map[string]string        `json:"headers"`
+	Body           any                      `json:"body"`
+	MatchedRoute   *string                  `json:"matched_route"`
+	ResponseStatus *int                     `json:"response_status"`
+}
+
+// BodyMap returns the request body coerced to map[string]any. It returns
+// (nil, false) if the body is not a JSON object — typical for empty bodies
+// or non-JSON content.
+func (e JournalEntry) BodyMap() (map[string]any, bool) {
+	m, ok := e.Body.(map[string]any)
+	return m, ok
+}
+
+// Harness wraps the running mock server. It exposes journal accessors,
+// a helper to push scenario overrides, and a reset hook tests register via
+// t.Cleanup.
+type Harness struct {
+	URL  string
+	Port int
+
+	httpClient *http.Client
+}
+
+// Last returns the most recent journal entry. It fails the test if the
+// journal is empty — every test that calls a mock-backed SDK method should
+// produce at least one entry.
+func (h *Harness) Last(t *testing.T) JournalEntry {
+	t.Helper()
+	entries := h.Journal(t)
+	if len(entries) == 0 {
+		t.Fatal("mocktest: journal is empty - SDK call did not reach the mock server")
+	}
+	return entries[len(entries)-1]
+}
+
+// Journal returns every entry recorded since the last reset, in arrival order.
+func (h *Harness) Journal(t *testing.T) []JournalEntry {
+	t.Helper()
+	resp, err := h.httpClient.Get(h.URL + "/__mock__/journal")
+	if err != nil {
+		t.Fatalf("mocktest: GET /__mock__/journal: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("mocktest: read journal body: %v", err)
+	}
+	var entries []JournalEntry
+	if err := json.Unmarshal(body, &entries); err != nil {
+		t.Fatalf("mocktest: decode journal: %v (body=%q)", err, body)
+	}
+	return entries
+}
+
+// Reset clears journal + scenarios on the mock server. Tests do not call
+// this directly — New registers it as a t.Cleanup hook.
+func (h *Harness) Reset(t *testing.T) {
+	t.Helper()
+	post := func(path string) {
+		req, err := http.NewRequest("POST", h.URL+path, nil)
+		if err != nil {
+			t.Fatalf("mocktest: build %s: %v", path, err)
+		}
+		resp, err := h.httpClient.Do(req)
+		if err != nil {
+			t.Fatalf("mocktest: %s: %v", path, err)
+		}
+		_ = resp.Body.Close()
+	}
+	post("/__mock__/journal/reset")
+	post("/__mock__/scenarios/reset")
+}
+
+// PushScenario stages a one-shot response override for the route identified
+// by endpointID. The status + body returned here will be served the next
+// time the route is hit; subsequent hits fall back to spec synthesis.
+//
+// endpointID is the Spectral-style "OperationId" from the OpenAPI spec —
+// see /__mock__/scenarios for the active list.
+func (h *Harness) PushScenario(t *testing.T, endpointID string, status int, body any) {
+	t.Helper()
+	payload, err := json.Marshal(map[string]any{"status": status, "response": body})
+	if err != nil {
+		t.Fatalf("mocktest: marshal scenario: %v", err)
+	}
+	resp, err := h.httpClient.Post(
+		h.URL+"/__mock__/scenarios/"+endpointID,
+		"application/json",
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		t.Fatalf("mocktest: push scenario: %v", err)
+	}
+	_ = resp.Body.Close()
+}
+
+// ---------------------------------------------------------------------------
+// Server lifecycle
+// ---------------------------------------------------------------------------
+
+// serverState holds the singleton harness so subsequent New calls reuse the
+// same backing server.
+type serverState struct {
+	once    sync.Once
+	harness *Harness
+	cmd     *exec.Cmd
+	startErr error
+}
+
+var state serverState
+
+// defaultPort matches mock_signalwire.server.DEFAULT_PORT.
+const defaultPort = 8765
+
+// startupTimeout caps the time we wait for an externally-launched server to
+// answer /__mock__/health. The Python in-process harness boots in ~1s, but
+// `python -m mock_signalwire` includes module import + spec loading which
+// can stretch to ~5s on a cold cache.
+const startupTimeout = 30 * time.Second
+
+// resolvePort returns the configured mock port — either MOCK_SIGNALWIRE_PORT
+// or the default 8765.
+func resolvePort() int {
+	if raw := os.Getenv("MOCK_SIGNALWIRE_PORT"); raw != "" {
+		if p, err := strconv.Atoi(raw); err == nil && p > 0 {
+			return p
+		}
+	}
+	return defaultPort
+}
+
+// ensureServer probes the mock server's health endpoint and starts a
+// subprocess if nothing's listening. The subprocess runs `python -m
+// mock_signalwire --port <port> --log-level error` and is left running
+// until process exit (test runs are short and the OS cleans up).
+//
+// Subsequent calls reuse the singleton; only the first New call pays the
+// startup cost.
+func ensureServer(t *testing.T) *Harness {
+	t.Helper()
+	state.once.Do(func() {
+		port := resolvePort()
+		client := &http.Client{Timeout: 2 * time.Second}
+		url := fmt.Sprintf("http://127.0.0.1:%d", port)
+
+		// Probe — if a server is already running we reuse it.
+		if probeHealth(client, url) {
+			state.harness = &Harness{URL: url, Port: port, httpClient: client}
+			return
+		}
+
+		// Spawn a subprocess.
+		ctx, cancel := context.WithCancel(context.Background())
+		cmd := exec.CommandContext(ctx, "python", "-m", "mock_signalwire",
+			"--host", "127.0.0.1",
+			"--port", strconv.Itoa(port),
+			"--log-level", "error",
+		)
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
+		if err := cmd.Start(); err != nil {
+			cancel()
+			state.startErr = fmt.Errorf("mocktest: failed to spawn `python -m mock_signalwire`: %w (set MOCK_SIGNALWIRE_PORT to use a pre-running instance)", err)
+			return
+		}
+		// Tear down on process exit so abandoned tests don't leak.
+		_ = cancel // Kept alive via cmd.Cancel; explicit cancel happens on exit.
+
+		// Wait for /__mock__/health.
+		deadline := time.Now().Add(startupTimeout)
+		for time.Now().Before(deadline) {
+			if probeHealth(client, url) {
+				state.harness = &Harness{URL: url, Port: port, httpClient: client}
+				state.cmd = cmd
+				return
+			}
+			time.Sleep(150 * time.Millisecond)
+		}
+		_ = cmd.Process.Kill()
+		state.startErr = fmt.Errorf("mocktest: `python -m mock_signalwire` did not become ready within %s on port %d", startupTimeout, port)
+	})
+	if state.startErr != nil {
+		t.Skipf("mocktest: mock_signalwire unavailable: %v", state.startErr)
+		return nil
+	}
+	return state.harness
+}
+
+// probeHealth returns true when the mock server's /__mock__/health responds
+// with 200 OK and a payload containing "specs_loaded".
+func probeHealth(client *http.Client, base string) bool {
+	resp, err := client.Get(base + "/__mock__/health")
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return false
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return false
+	}
+	_, ok := payload["specs_loaded"]
+	return ok
+}
+
+// ---------------------------------------------------------------------------
+// Test entry point
+// ---------------------------------------------------------------------------
+
+// New returns (client, harness) for a single test. The client is a real
+// rest.RestClient pointed at the local mock server with project=test_proj
+// and token=test_tok — matching the Python signalwire_client fixture.
+//
+// The mock's journal + scenarios are reset before the test runs, and the
+// reset is repeated via t.Cleanup so accidental leftover state from a panic
+// doesn't leak into the next test.
+func New(t *testing.T) (*rest.RestClient, *Harness) {
+	t.Helper()
+	h := ensureServer(t)
+	if h == nil {
+		// ensureServer already called t.Skipf.
+		return nil, nil
+	}
+	h.Reset(t)
+	t.Cleanup(func() { h.Reset(t) })
+
+	// Build a real client with throwaway credentials. The mock accepts
+	// any non-empty Basic Auth header.
+	client, err := rest.NewRestClient("test_proj", "test_tok", fmt.Sprintf("127.0.0.1:%d", h.Port))
+	if err != nil {
+		t.Fatalf("mocktest: NewRestClient: %v", err)
+	}
+	// Repoint the underlying HttpClient at http:// (the constructor builds
+	// https:// + space). SetBaseURL exists for exactly this purpose.
+	client.SetBaseURL(h.URL)
+	return client, h
+}
