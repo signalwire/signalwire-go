@@ -347,3 +347,68 @@ func TestPromptMethods_ReturnSelf(t *testing.T) {
 		t.Error("SetPromptPom should return self")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Pom() accessor (Python parity: agent.pom)
+//
+// Mirrors:
+//
+//	signalwire-python/tests/unit/core/test_agent_base.py::
+//	  TestAgentBasePromptMethods::test_set_prompt_pom_succeeds_when_use_pom_true
+//
+// ---------------------------------------------------------------------------
+
+func TestPom_ReturnsAssignedSections(t *testing.T) {
+	a := NewAgentBase()
+	sections := []map[string]any{
+		{"title": "Greeting", "body": "Hello"},
+	}
+	a.SetPromptPom(sections)
+
+	got := a.Pom()
+	if len(got) != 1 {
+		t.Fatalf("Pom() len = %d, want 1", len(got))
+	}
+	if got[0]["title"] != "Greeting" {
+		t.Errorf("Pom()[0][title] = %v, want %q", got[0]["title"], "Greeting")
+	}
+	if got[0]["body"] != "Hello" {
+		t.Errorf("Pom()[0][body] = %v, want %q", got[0]["body"], "Hello")
+	}
+}
+
+func TestPom_NilWhenUsePomFalse(t *testing.T) {
+	a := NewAgentBase()
+	a.SetPromptText("plain text")
+	if a.usePom {
+		t.Fatal("expected usePom=false after SetPromptText")
+	}
+	if got := a.Pom(); got != nil {
+		t.Errorf("Pom() = %v, want nil when use_pom is false", got)
+	}
+}
+
+func TestPom_ReturnsCopyNotInternalSlice(t *testing.T) {
+	a := NewAgentBase()
+	a.PromptAddSection("Original", "Body", nil)
+
+	got := a.Pom()
+	if len(got) != 1 {
+		t.Fatalf("Pom() len = %d, want 1", len(got))
+	}
+
+	// Mutate the returned slice; internal state must be unaffected.
+	got[0]["title"] = "Hijacked"
+	got = append(got, map[string]any{"title": "Injected"})
+	_ = got
+
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if len(a.pomSections) != 1 {
+		t.Errorf("internal pomSections len = %d, want 1 (caller mutation leaked)", len(a.pomSections))
+	}
+	if a.pomSections[0]["title"] != "Original" {
+		t.Errorf("internal pomSections[0][title] = %v, want %q (caller mutation leaked)",
+			a.pomSections[0]["title"], "Original")
+	}
+}
