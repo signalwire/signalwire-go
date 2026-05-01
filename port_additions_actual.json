@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ f2497983ac0e8d405d8b439e74f5fcf5e4490d31",
+  "generated_from": "signalwire-go @ f3ad57f6ce8926a95be43c37fd3ed350d417fe7e",
   "structs": [
     "agent.MCPServerConfig",
     "agent.ToolDefinition",

@@ -370,6 +370,7 @@ var StructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"Wait":   "wait",
 			"IsDone": "is_done",
+			"Result": "result",
 		},
 		SyntheticMethods: []string{"__init__"},
 	}},
@@ -507,8 +508,9 @@ var StructTable = map[string][]ClassTarget{
 	}},
 	"rest.SignalWireRestError": {{
 		Module: "signalwire.rest._base", Class: "SignalWireRestError",
-		Methods:          map[string]string{},
-		SyntheticMethods: []string{"__init__"},
+		Methods: map[string]string{
+			"NewSignalWireRestError": "__init__",
+		},
 	}},
 	"rest.CrudResource": {{
 		Module: "signalwire.rest._base", Class: "CrudResource",

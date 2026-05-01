@@ -714,3 +714,12 @@ signalwire.list_skills_with_params: not_yet_implemented: top-level helper not ye
 signalwire.run_agent: not_yet_implemented: top-level helper not yet exposed as a free function in Go port
 signalwire.start_agent: not_yet_implemented: top-level helper not yet exposed as a free function in Go port
 
+# --- Idiom: Python class accessors that Go folds into private fields or package-level helpers ---
+signalwire.agent_server.AgentServer.app: Python exposes the underlying FastAPI ``app`` object; Go uses net/http with no equivalent app handle
+signalwire.agent_server.AgentServer.logger: Python instance ``logger`` property; Go's AgentServer uses the package-level ``logging`` helper rather than a per-instance accessor
+signalwire.core.agent_base.AgentBase.skill_manager: Python exposes ``self.skill_manager`` for direct access; Go folds the SkillManager into a private ``skillManager`` field and surfaces user-facing methods (AddSkill, RemoveSkill, ListSkills, HasSkill) directly on AgentBase
+signalwire.core.skill_manager.SkillManager.logger: Python instance ``logger`` property; Go's SkillManager uses the package-level ``logging`` helper and has no per-instance logger accessor
+signalwire.core.swml_service.SWMLService.security: Python exposes a ``security`` property returning a SecurityConfig; Go folds auth state into private fields on Service (basicAuthUser, bearerToken, apiKey, ...) configured via WithSecurityConfig/WithBasicAuth/WithBearerToken/WithAPIKey options
+signalwire.core.swml_service.SWMLService.verb_registry: Python uses a separate VerbRegistry helper class; Go uses a private ``verbHandlers`` map on Service and exposes RegisterVerbHandler directly
+signalwire.rest._base.BaseResource.__init__: Go's namespaces.Resource is a tiny base struct initialized inline by namespace constructors (struct-literal); no public NewResource factory mirrors Python's BaseResource(http, base_path)
+

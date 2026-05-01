@@ -140,6 +140,33 @@ signalwire.core.swml_service.SWMLService.get_document: Go fluent API returns *Se
 signalwire.livewire.Agent.update_tools: Go fluent API returns *Self for chaining
 signalwire.relay.event.parse_event: Go fluent API returns *Self for chaining
 
+## Idiom: PromptManager projects from AgentBase (fluent *AgentBase return)
+
+signalwire.core.agent.prompt.manager.PromptManager.set_prompt_text: Go's PromptManager methods project from agent.AgentBase fluent setters; Go returns *AgentBase for chaining where Python returns void
+signalwire.core.agent.prompt.manager.PromptManager.set_post_prompt: Go's PromptManager methods project from agent.AgentBase fluent setters; Go returns *AgentBase for chaining where Python returns void
+signalwire.core.agent.prompt.manager.PromptManager.set_prompt_pom: Go's PromptManager methods project from agent.AgentBase fluent setters; Go returns *AgentBase for chaining where Python returns void
+signalwire.core.agent.prompt.manager.PromptManager.prompt_add_section: Go's PromptManager methods project from agent.AgentBase; Go returns *AgentBase for chaining and uses an options struct in place of Python's title/body/bullets/numbered/numbered_bullets/subsections kwargs
+signalwire.core.agent.prompt.manager.PromptManager.prompt_add_subsection: Go's PromptManager methods project from agent.AgentBase fluent setters; Go returns *AgentBase for chaining where Python returns void
+signalwire.core.agent.prompt.manager.PromptManager.prompt_add_to_section: Go's PromptManager methods project from agent.AgentBase; Go returns *AgentBase for chaining and uses an options struct in place of Python's title/body/bullet/bullets kwargs
+signalwire.core.agent.prompt.manager.PromptManager.define_contexts: Go's PromptManager.DefineContexts returns *ContextBuilder for fluent chaining and takes no Python-style ``contexts`` dict (Go callers build via Builder pattern)
+
+## Idiom: ToolRegistry projects from AgentBase (fluent *AgentBase return + ToolDefinition struct)
+
+signalwire.core.agent.tools.registry.ToolRegistry.define_tool: Go's ToolRegistry methods project from agent.AgentBase; DefineTool accepts a single *ToolDefinition struct in place of Python's 13 kwargs and returns *AgentBase for chaining
+signalwire.core.agent.tools.registry.ToolRegistry.register_swaig_function: Go's ToolRegistry methods project from agent.AgentBase fluent setters; RegisterSwaigFunction returns *AgentBase for chaining where Python returns void
+signalwire.core.agent.tools.registry.ToolRegistry.get_function: Go's ToolRegistry returns the port's ``*ToolDefinition`` value type instead of Python's union of SWAIGFunction/dict (Python's untyped registry vs Go's typed one)
+signalwire.core.agent.tools.registry.ToolRegistry.get_all_functions: Go's ToolRegistry returns ``map[string]*ToolDefinition`` instead of Python's union of SWAIGFunction/dict (Python's untyped registry vs Go's typed one)
+
+## Idiom: Go typed-result returns vs Python serialized/dynamic returns
+
+signalwire.core.agent_base.AgentBase.pom: Go's Pom() returns the concrete *PromptObjectModel value type; Python's pom property returns the already-serialized list-of-section dicts via PromptObjectModel.render_dict()
+signalwire.core.skill_base.SkillBase.logger: type-class divergence; Go's Logger field is typed as *logging.Logger; Python returns the result of get_logger() helper (same role, different declared type)
+
+## Idiom: Go typed options vs Python kwargs / typed signature divergences
+
+signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: Go's GetBasicAuthCredentials returns the resolved auth string only (no include_source kwarg); Python supports an include_source flag that causes it to return a (user, pass, source) tuple
+signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: Go takes a typed *http.Request param; Python takes Optional[fastapi.Request] (FastAPI vs net/http binding difference)
+
 ## Backlog: real signature divergences (418 symbols)
 
 Real Go port maintenance — parameter renames, missing optionals,

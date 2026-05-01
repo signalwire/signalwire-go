@@ -274,3 +274,29 @@ swml.WithSchemaValidation: Go functional-options helper; encodes a Python kwarg 
 swml.WithSecurityConfig: Go functional-options helper; encodes a Python kwarg for the matching constructor
 swml.WithTLS: Go functional-options helper; encodes a Python kwarg for the matching constructor
 
+# --- Go-only public Logger field auto-projected onto each struct that embeds it ---
+signalwire.core.agent_base.AgentBase.logger: Go's AgentBase exposes a public ``Logger *logging.Logger`` field; auto-projected as ``logger`` accessor on the Python-canonical class
+signalwire.core.mixins.ai_config_mixin.AIConfigMixin.logger: AIConfigMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
+signalwire.core.mixins.prompt_mixin.PromptMixin.logger: PromptMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
+signalwire.core.mixins.skill_mixin.SkillMixin.logger: SkillMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
+signalwire.core.mixins.tool_mixin.ToolMixin.logger: ToolMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
+signalwire.core.mixins.web_mixin.WebMixin.logger: WebMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
+signalwire.core.swml_service.SWMLService.logger: Go's swml.Service exposes a public ``Logger *logging.Logger`` field; auto-projected as ``logger`` accessor on the Python-canonical class
+
+# --- Go-only fields on livewire context structs (LiveKit-style typed handles) ---
+signalwire.livewire.AgentHandoff.agent: Go's AgentHandoff embeds a typed ``Agent *Agent`` reference; Python's AgentHandoff is an empty stub class
+signalwire.livewire.JobContext.proc: Go's JobContext embeds a typed ``Proc *JobProcess`` reference; Python's JobContext is an empty stub class
+signalwire.livewire.JobContext.room: Go's JobContext embeds a typed ``Room *Room`` reference; Python's JobContext is an empty stub class
+signalwire.livewire.RunContext.agent: Go's RunContext embeds a typed ``Agent *Agent`` reference; Python's RunContext is an empty stub class
+signalwire.livewire.RunContext.session: Go's RunContext embeds a typed ``Session *AgentSession`` reference; Python's RunContext is an empty stub class
+
+# --- Go-only fields on REST base resources (Python uses dynamic attribute lookup) ---
+signalwire.rest._base.BaseResource.http: Go's namespaces.Resource exposes a public ``http`` HTTPClient field; Python uses dynamic attribute lookup via __init__
+signalwire.rest._base.CrudResource.client: Go's namespaces.CrudResource exposes a public ``client`` HTTPClient field; Python uses dynamic attribute lookup via __init__
+
+# --- Go projections of Python attributes the Python adapter drops from surface but keeps in signatures ---
+# Python's enumerate-surface omits these as instance properties; signatures keeps them.
+# Go projects them via the StructTable rename map so the signature audit aligns; surface side excused here.
+signalwire.core.agent_base.AgentBase.pom: Go's Pom() method projects to Python's pom property; Python's signatures index includes it but the surface index drops it as an instance attribute
+signalwire.core.swml_service.SWMLService.schema_utils: Go's SchemaUtils field projects to Python's schema_utils property; Python's signatures index includes it but the surface index drops it as an instance attribute
+signalwire.relay.call.Action.result: Go's Result() method projects to Python's result property; Python's signatures index includes it but the surface index drops it as an instance attribute
