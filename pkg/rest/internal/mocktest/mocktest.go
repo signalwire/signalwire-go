@@ -28,6 +28,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"syscall"
@@ -176,6 +178,38 @@ const defaultPort = 8765
 // can stretch to ~5s on a cold cache.
 const startupTimeout = 30 * time.Second
 
+// discoverPortingSDKPackage walks up from this source file looking for an
+// adjacent ``porting-sdk/test_harness/<name>/<name>/__init__.py``. The
+// adjacency contract is "porting-sdk lives next to signalwire-go in ~/src/",
+// so a fresh clone of either repo can find the mock harness with no prior
+// pip install. Returns the absolute path to the directory containing the
+// Python package (i.e. the path that should be added to PYTHONPATH so that
+// ``python -m <name>`` resolves), or "" when no adjacent porting-sdk is
+// reachable.
+func discoverPortingSDKPackage(name string) string {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
+	}
+	here, err := filepath.Abs(file)
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Dir(here)
+	for {
+		candidate := filepath.Join(filepath.Dir(dir), "porting-sdk", "test_harness", name)
+		init := filepath.Join(candidate, name, "__init__.py")
+		if info, err := os.Stat(init); err == nil && !info.IsDir() {
+			return candidate
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
+}
+
 // resolvePort returns the configured mock port — either MOCK_SIGNALWIRE_PORT
 // or the default 8765.
 func resolvePort() int {
@@ -217,6 +251,35 @@ func ensureServer(t *testing.T) *Harness {
 			"--port", strconv.Itoa(port),
 			"--log-level", "error",
 		)
+		// Try to inject porting-sdk/test_harness/mock_signalwire/ into
+		// PYTHONPATH so `python -m mock_signalwire` resolves without a
+		// prior `pip install -e ...`. Adjacency contract: porting-sdk
+		// next to signalwire-go in ~/src/. When the walk fails (e.g.
+		// because porting-sdk is not adjacent), we still spawn — the
+		// child will fall back to whatever is on the system Python's
+		// sys.path, and surface a clear "module not found" error from
+		// the spawn-readiness probe if neither mode is available.
+		if pkgDir := discoverPortingSDKPackage("mock_signalwire"); pkgDir != "" {
+			env := os.Environ()
+			existingPP := os.Getenv("PYTHONPATH")
+			newPP := pkgDir
+			if existingPP != "" {
+				newPP = pkgDir + string(os.PathListSeparator) + existingPP
+			}
+			// Replace any existing PYTHONPATH entry, otherwise append.
+			replaced := false
+			for i, kv := range env {
+				if len(kv) >= 11 && kv[:11] == "PYTHONPATH=" {
+					env[i] = "PYTHONPATH=" + newPP
+					replaced = true
+					break
+				}
+			}
+			if !replaced {
+				env = append(env, "PYTHONPATH="+newPP)
+			}
+			cmd.Env = env
+		}
 		devnull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
 		if err == nil {
 			cmd.Stdout = devnull
@@ -246,7 +309,7 @@ func ensureServer(t *testing.T) *Harness {
 			time.Sleep(150 * time.Millisecond)
 		}
 		_ = cmd.Process.Kill()
-		state.startErr = fmt.Errorf("mocktest: `python -m mock_signalwire` did not become ready within %s on port %d", startupTimeout, port)
+		state.startErr = fmt.Errorf("mocktest: `python -m mock_signalwire` did not become ready within %s on port %d (clone porting-sdk next to signalwire-go so tests can find porting-sdk/test_harness/mock_signalwire/, or pip install the mock_signalwire package)", startupTimeout, port)
 	})
 	if state.startErr != nil {
 		t.Skipf("mocktest: mock_signalwire unavailable: %v", state.startErr)
