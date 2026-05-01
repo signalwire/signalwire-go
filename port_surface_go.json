@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 3048096e4d35832203a4cf2e1543e6367525da1f",
+  "generated_from": "signalwire-go (go-native) @ f2497983ac0e8d405d8b439e74f5fcf5e4490d31",
   "modules": {
     "agent": {
       "classes": {
@@ -27,6 +27,7 @@
           "ClearPreAnswerVerbs",
           "ClearSwaigQueryParams",
           "Contexts",
+          "CreateToolToken",
           "DefineContexts",
           "DefineTool",
           "DefineTools",
@@ -34,12 +35,18 @@
           "EnableDebugRoutes",
           "EnableMcpServer",
           "EnableSipRouting",
+          "GetAllFunctions",
           "GetBasicAuthCredentials",
+          "GetBasicAuthCredentialsWithSource",
+          "GetContexts",
           "GetFullURL",
+          "GetFunction",
           "GetName",
           "GetPostPrompt",
           "GetPrompt",
+          "GetRawPrompt",
           "GetRoute",
+          "HasFunction",
           "HasSkill",
           "ListSkills",
           "ListToolNames",
@@ -49,6 +56,7 @@
           "OnRequest",
           "OnSummary",
           "OnSwmlRequest",
+          "Pom",
           "PromptAddSection",
           "PromptAddSubsection",
           "PromptAddToSection",
@@ -57,6 +65,7 @@
           "RegisterSipRoutingCallback",
           "RegisterSipUsername",
           "RegisterSwaigFunction",
+          "RemoveFunction",
           "RemoveSkill",
           "RenderSWML",
           "ResetContexts",
@@ -68,6 +77,7 @@
           "SetInternalFillers",
           "SetLanguages",
           "SetNativeFunctions",
+          "SetOnSwmlRequestHook",
           "SetParam",
           "SetParams",
           "SetPostPrompt",
@@ -528,6 +538,40 @@
         "SetGlobalLevel",
         "Suppress",
         "Unsuppress"
+      ]
+    },
+    "mocktest": {
+      "classes": {
+        "DialLoserOpts": [],
+        "DialOpts": [],
+        "Harness": [
+          "ArmDial",
+          "ArmMethod",
+          "InboundCall",
+          "Journal",
+          "JournalLast",
+          "JournalRecv",
+          "JournalReset",
+          "JournalSend",
+          "Last",
+          "Push",
+          "PushScenario",
+          "RelayHost",
+          "Reset",
+          "ScenarioPlay",
+          "Sessions"
+        ],
+        "InboundCallOpts": [],
+        "JournalEntry": [
+          "BodyMap",
+          "EventParams",
+          "EventType",
+          "FrameParams"
+        ]
+      },
+      "functions": [
+        "New",
+        "NewClientOnly"
       ]
     },
     "namespaces": {
@@ -1005,6 +1049,8 @@
         "CallStateEvent": [],
         "CallingErrorEvent": [],
         "Client": [
+          "Authenticate",
+          "AuthorizationState",
           "Connect",
           "Contexts",
           "Dial",
@@ -1020,7 +1066,9 @@
           "Run",
           "SendMessage",
           "Space",
+          "StartReadLoop",
           "Stop",
+          "SubscribeContexts",
           "Token",
           "Unreceive"
         ],
@@ -1142,6 +1190,7 @@
         "NewTapEvent",
         "NewTranscribeEvent",
         "ParseEvent",
+        "WithAIControlID",
         "WithAIEngine",
         "WithAIParams",
         "WithAIPostPrompt",
@@ -1151,10 +1200,13 @@
         "WithConferenceMuted",
         "WithConnectRingback",
         "WithContexts",
+        "WithDialClientTimeout",
         "WithDialFromNumber",
         "WithDialMaxDuration",
+        "WithDialTag",
         "WithDialTimeout",
         "WithEnvDefaults",
+        "WithFaxControlID",
         "WithFaxHeaderInfo",
         "WithJWT",
         "WithMaxActiveCalls",
@@ -1164,6 +1216,7 @@
         "WithMessageRegion",
         "WithMessageTags",
         "WithPayChargeAmount",
+        "WithPayControlID",
         "WithPayCurrency",
         "WithPayDescription",
         "WithPayInputMethod",
@@ -1180,17 +1233,25 @@
         "WithPayTokenType",
         "WithPayValidCardTypes",
         "WithPayVoice",
+        "WithPlayControlID",
+        "WithPlayDirection",
+        "WithPlayLoop",
+        "WithPlayOnCompleted",
         "WithPlayVolume",
         "WithProject",
+        "WithRecordAudio",
         "WithRecordBeep",
+        "WithRecordControlID",
         "WithRecordDirection",
         "WithRecordEndSilenceTimeout",
         "WithRecordFormat",
         "WithRecordInitialTimeout",
+        "WithRecordOnCompleted",
         "WithRecordStereo",
         "WithRecordTerminators",
         "WithSpace",
         "WithStreamCodec",
+        "WithStreamControlID",
         "WithStreamDirection",
         "WithToken"
       ]
@@ -1218,6 +1279,7 @@
           "Next"
         ],
         "RestClient": [
+          "HttpClient",
           "SetBaseURL"
         ],
         "SignalWireRestError": [
@@ -1304,6 +1366,10 @@
           "LoadSkill",
           "UnloadSkill"
         ],
+        "SkillRegistry": [
+          "AddSkillDirectory",
+          "ExternalPaths"
+        ],
         "ToolRegistration": []
       },
       "functions": [
@@ -1312,6 +1378,7 @@
         "ListSkills",
         "ListSkillsWithParams",
         "NewSkillManager",
+        "NewSkillRegistry",
         "RegisterSkill"
       ]
     },
@@ -1407,6 +1474,21 @@
           "IsValidVerb",
           "VerbCount"
         ],
+        "SchemaUtils": [
+          "FullValidationAvailable",
+          "GenerateMethodBody",
+          "GenerateMethodSignature",
+          "GetAllVerbNames",
+          "GetVerbParameters",
+          "GetVerbProperties",
+          "GetVerbRequiredProperties",
+          "LoadSchema",
+          "ValidateDocument",
+          "ValidateVerb"
+        ],
+        "SchemaValidationError": [
+          "Error"
+        ],
         "SecurityConfig": [],
         "Service": [
           "AI",
@@ -1463,6 +1545,7 @@
           "RoutingCallbackPaths",
           "SIPRefer",
           "Say",
+          "SchemaUtils",
           "SendDigits",
           "SendFax",
           "SendSMS",
@@ -1485,6 +1568,7 @@
           "VerifyBearerToken"
         ],
         "ToolDefinition": [],
+        "ValidationResult": [],
         "VerbInfo": []
       },
       "functions": [
@@ -1495,6 +1579,8 @@
         "LoadSchemaFromFile",
         "NewAIVerbHandler",
         "NewDocument",
+        "NewSchemaUtils",
+        "NewSchemaValidationError",
         "NewService",
         "ValidateURL",
         "WithAPIKey",
@@ -1510,6 +1596,14 @@
         "WithSchemaValidation",
         "WithSecurityConfig",
         "WithTLS"
+      ]
+    },
+    "util": {
+      "classes": {},
+      "functions": [
+        "GetExecutionMode",
+        "IsServerlessMode",
+        "ValidateURL"
       ]
     }
   }

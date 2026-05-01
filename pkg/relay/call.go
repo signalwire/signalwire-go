@@ -204,12 +204,28 @@ func (c *Call) dispatchEvent(event *RelayEvent) {
 	}
 }
 
-// resolveAction resolves a pending action by control ID.
+// resolveAction routes an event to an action registered under
+// controlID. The action self-checks via matchesTerminal: only events
+// matching its terminalEvent / terminalStates resolve it. Mismatched
+// events (e.g. a play(finished) for a CollectAction) are dropped here,
+// mirroring Python's per-action terminal_event filtering.
 func (c *Call) resolveAction(controlID string, event *RelayEvent) {
 	c.mu.Lock()
 	a, ok := c.actions[controlID]
 	c.mu.Unlock()
-	if ok {
+	if !ok {
+		return
+	}
+	// DetectAction: resolves on first event with a non-empty `detect`
+	// payload, NOT on a state(finished). Mirrors the gotcha at
+	// RELAY_IMPLEMENTATION_GUIDE.md.
+	if a.terminalEvent == EventCallingCallDetect {
+		if d, _ := event.Params["detect"].(map[string]any); len(d) > 0 {
+			a.resolve(event)
+		}
+		return
+	}
+	if a.matchesTerminal(event) {
 		a.resolve(event)
 	}
 }
@@ -330,19 +346,43 @@ func (c *Call) LiveTranslate(action map[string]any, statusURL string) error {
 // ---------------------------------------------------------------------------
 
 // Play starts playing media on the call and returns a PlayAction.
+//
+// Use WithPlayControlID to supply an explicit control_id (mirrors
+// Python's play(control_id=...)). When omitted the SDK auto-generates
+// a UUID — same as Python's `cid = control_id or str(uuid.uuid4())`
+// at relay/call.py:506.
 func (c *Call) Play(media []map[string]any, opts ...PlayOption) *PlayAction {
-	controlID := newControlID()
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
-		"play":       media,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
+		"play":    media,
 	}
 	for _, opt := range opts {
 		opt(params)
 	}
 
+	// Resolve control_id: explicit override (via WithPlayControlID) wins,
+	// otherwise auto-generate.
+	var controlID string
+	if v, ok := params["_control_id"].(string); ok && v != "" {
+		controlID = v
+	} else {
+		controlID = newControlID()
+	}
+	params["control_id"] = controlID
+	delete(params, "_control_id")
+
+	// Pull off internal-only completion callback before transmit.
+	var onCompleted func(*RelayEvent)
+	if v, ok := params["_on_completed"]; ok {
+		onCompleted, _ = v.(func(*RelayEvent))
+		delete(params, "_on_completed")
+	}
+
 	action := newPlayAction(c, controlID)
+	if onCompleted != nil {
+		action.OnCompleted(onCompleted)
+	}
 	c.registerAction(action.Action)
 
 	go func() {
@@ -360,20 +400,41 @@ func (c *Call) Play(media []map[string]any, opts ...PlayOption) *PlayAction {
 }
 
 // PlayAndCollect plays media while collecting input (DTMF or speech).
+//
+// Honors WithPlayControlID for an explicit control_id (mirrors Python's
+// play_and_collect(control_id=...)). Note the gotcha at
+// RELAY_IMPLEMENTATION_GUIDE.md: this action listens on the
+// calling.call.collect terminal event, NOT calling.call.play(finished).
 func (c *Call) PlayAndCollect(media []map[string]any, collect map[string]any, opts ...PlayOption) *CollectAction {
-	controlID := newControlID()
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
-		"play":       media,
-		"collect":    collect,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
+		"play":    media,
+		"collect": collect,
 	}
 	for _, opt := range opts {
 		opt(params)
 	}
 
+	var controlID string
+	if v, ok := params["_control_id"].(string); ok && v != "" {
+		controlID = v
+	} else {
+		controlID = newControlID()
+	}
+	params["control_id"] = controlID
+	delete(params, "_control_id")
+
+	var onCompleted func(*RelayEvent)
+	if v, ok := params["_on_completed"]; ok {
+		onCompleted, _ = v.(func(*RelayEvent))
+		delete(params, "_on_completed")
+	}
+
 	action := newCollectAction(c, controlID)
+	if onCompleted != nil {
+		action.OnCompleted(onCompleted)
+	}
 	c.registerAction(action.Action)
 
 	go func() {
@@ -391,7 +452,10 @@ func (c *Call) PlayAndCollect(media []map[string]any, collect map[string]any, op
 }
 
 // CollectParams holds named parameters for the Collect method, matching
-// Python's collect() named arguments.
+// Python's collect() named arguments. The fields are placed at the top
+// level of the on-wire calling.collect frame (NOT nested under a
+// "collect" object) — mirroring Python's params["digits"] = digits at
+// relay/call.py:583.
 type CollectParams struct {
 	// Digits configures DTMF digit collection.
 	Digits map[string]any
@@ -407,45 +471,61 @@ type CollectParams struct {
 	SendStartOfInput *bool
 	// StartInputTimers controls whether input timers start immediately.
 	StartInputTimers *bool
+	// ControlID overrides the auto-generated control identifier.
+	ControlID string
+	// OnCompleted is fired when the collect action reaches a terminal state.
+	OnCompleted func(*RelayEvent)
 }
 
-// Collect starts collecting user input without playing media. The params
-// argument exposes named fields that mirror Python's collect() parameters.
-// Pass a nil CollectParams to send an empty collect body.
+// Collect starts collecting user input without playing media. The
+// params argument exposes named fields that mirror Python's collect()
+// parameters at relay/call.py:565. Pass a nil CollectParams to send an
+// empty collect body.
+//
+// Wire shape (matches Python):
+//
+//	{"node_id":..., "call_id":..., "control_id":..., "digits":..., "speech":..., ...}
 func (c *Call) Collect(params *CollectParams) *StandaloneCollectAction {
-	controlID := newControlID()
-	collect := map[string]any{}
+	rpcParams := map[string]any{
+		"node_id": c.nodeID,
+		"call_id": c.callID,
+	}
+	var controlID string
+	var onCompleted func(*RelayEvent)
 	if params != nil {
 		if params.Digits != nil {
-			collect["digits"] = params.Digits
+			rpcParams["digits"] = params.Digits
 		}
 		if params.Speech != nil {
-			collect["speech"] = params.Speech
+			rpcParams["speech"] = params.Speech
 		}
 		if params.InitialTimeout != nil {
-			collect["initial_timeout"] = *params.InitialTimeout
+			rpcParams["initial_timeout"] = *params.InitialTimeout
 		}
 		if params.PartialResults != nil {
-			collect["partial_results"] = *params.PartialResults
+			rpcParams["partial_results"] = *params.PartialResults
 		}
 		if params.Continuous != nil {
-			collect["continuous"] = *params.Continuous
+			rpcParams["continuous"] = *params.Continuous
 		}
 		if params.SendStartOfInput != nil {
-			collect["send_start_of_input"] = *params.SendStartOfInput
+			rpcParams["send_start_of_input"] = *params.SendStartOfInput
 		}
 		if params.StartInputTimers != nil {
-			collect["start_input_timers"] = *params.StartInputTimers
+			rpcParams["start_input_timers"] = *params.StartInputTimers
 		}
+		controlID = params.ControlID
+		onCompleted = params.OnCompleted
 	}
-	rpcParams := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
-		"collect":    collect,
+	if controlID == "" {
+		controlID = newControlID()
 	}
+	rpcParams["control_id"] = controlID
 
 	action := newStandaloneCollectAction(c, controlID)
+	if onCompleted != nil {
+		action.OnCompleted(onCompleted)
+	}
 	c.registerAction(action.Action)
 
 	go func() {
@@ -467,18 +547,61 @@ func (c *Call) Collect(params *CollectParams) *StandaloneCollectAction {
 // ---------------------------------------------------------------------------
 
 // Record starts recording the call and returns a RecordAction.
+//
+// Use WithRecordAudio to supply the audio config map (Python's
+// record(audio=...)) and WithRecordControlID to fix the control_id.
+// Other RecordOption helpers set top-level fields directly (e.g.
+// WithRecordBeep, WithRecordFormat); these are folded into the
+// "record": {"audio": {...}} object on transmit so the wire shape
+// matches Python: {"record": {"audio": {...}}}.
 func (c *Call) Record(opts ...RecordOption) *RecordAction {
-	controlID := newControlID()
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
 	}
 	for _, opt := range opts {
 		opt(params)
 	}
 
+	var controlID string
+	if v, ok := params["_control_id"].(string); ok && v != "" {
+		controlID = v
+	} else {
+		controlID = newControlID()
+	}
+	params["control_id"] = controlID
+	delete(params, "_control_id")
+
+	var onCompleted func(*RelayEvent)
+	if v, ok := params["_on_completed"]; ok {
+		onCompleted, _ = v.(func(*RelayEvent))
+		delete(params, "_on_completed")
+	}
+
+	// Build the {"record": {"audio": {...}}} envelope. WithRecordAudio
+	// supplies an explicit map; legacy field setters (Beep/Format/Stereo/
+	// Direction/Terminators/InitialTimeout/EndSilenceTimeout) write to
+	// top-level params and are migrated into "audio" here.
+	var audio map[string]any
+	if v, ok := params["_audio"].(map[string]any); ok {
+		audio = v
+		delete(params, "_audio")
+	} else {
+		audio = map[string]any{}
+	}
+	for _, k := range []string{"beep", "format", "stereo", "direction",
+		"terminators", "initial_timeout", "end_silence_timeout"} {
+		if v, has := params[k]; has {
+			audio[k] = v
+			delete(params, k)
+		}
+	}
+	params["record"] = map[string]any{"audio": audio}
+
 	action := newRecordAction(c, controlID)
+	if onCompleted != nil {
+		action.OnCompleted(onCompleted)
+	}
 	c.registerAction(action.Action)
 
 	go func() {
@@ -543,28 +666,36 @@ func (c *Call) SendDigits(digits string) error {
 // ---------------------------------------------------------------------------
 
 // Detect starts a detection operation (e.g., answering machine detection).
-// timeout is optional; pass nil to omit it from the request (matches Python's
-// optional float timeout parameter).
-func (c *Call) Detect(detect map[string]any, timeout *float64) *DetectAction {
-	controlID := newControlID()
+// timeout is optional; pass nil to omit it from the request (matches
+// Python's optional float timeout parameter).
+//
+// controlID is optional — pass "" to auto-generate. Matches Python's
+// detect(*, control_id=None) at relay/call.py:654.
+func (c *Call) Detect(detect map[string]any, timeout *float64, controlID ...string) *DetectAction {
+	var cid string
+	if len(controlID) > 0 && controlID[0] != "" {
+		cid = controlID[0]
+	} else {
+		cid = newControlID()
+	}
 	params := map[string]any{
 		"node_id":    c.nodeID,
 		"call_id":    c.callID,
-		"control_id": controlID,
+		"control_id": cid,
 		"detect":     detect,
 	}
 	if timeout != nil {
 		params["timeout"] = *timeout
 	}
 
-	action := newDetectAction(c, controlID)
+	action := newDetectAction(c, cid)
 	c.registerAction(action.Action)
 
 	go func() {
 		_, err := c.client.execute("calling.detect", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallDetect, map[string]any{
-				"control_id": controlID,
+				"control_id": cid,
 				"state":      "error",
 				"error":      err.Error(),
 			}))
@@ -578,15 +709,13 @@ func (c *Call) Detect(detect map[string]any, timeout *float64) *DetectAction {
 // Fax
 // ---------------------------------------------------------------------------
 
-// SendFax sends a fax document on the call. Use WithFaxHeaderInfo to include
-// a fax header string (matches Python's send_fax header_info parameter).
+// SendFax sends a fax document on the call. Use WithFaxHeaderInfo for
+// the fax header string and WithFaxControlID for an explicit control_id.
 func (c *Call) SendFax(document string, identity string, opts ...FaxOption) *FaxAction {
-	controlID := newControlID()
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
-		"document":   document,
+		"node_id":  c.nodeID,
+		"call_id":  c.callID,
+		"document": document,
 	}
 	if identity != "" {
 		params["identity"] = identity
@@ -594,6 +723,12 @@ func (c *Call) SendFax(document string, identity string, opts ...FaxOption) *Fax
 	for _, opt := range opts {
 		opt(params)
 	}
+	controlID, _ := params["_control_id"].(string)
+	if controlID == "" {
+		controlID = newControlID()
+	}
+	delete(params, "_control_id")
+	params["control_id"] = controlID
 
 	action := newFaxAction(c, controlID, "send_fax")
 	c.registerAction(action.Action)
@@ -612,14 +747,22 @@ func (c *Call) SendFax(document string, identity string, opts ...FaxOption) *Fax
 	return action
 }
 
-// ReceiveFax starts receiving a fax on the call.
-func (c *Call) ReceiveFax() *FaxAction {
-	controlID := newControlID()
+// ReceiveFax starts receiving a fax on the call. Use WithFaxControlID
+// to supply an explicit control_id.
+func (c *Call) ReceiveFax(opts ...FaxOption) *FaxAction {
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
 	}
+	for _, opt := range opts {
+		opt(params)
+	}
+	controlID, _ := params["_control_id"].(string)
+	if controlID == "" {
+		controlID = newControlID()
+	}
+	delete(params, "_control_id")
+	params["control_id"] = controlID
 
 	action := newFaxAction(c, controlID, "receive_fax")
 	c.registerAction(action.Action)
@@ -642,25 +785,33 @@ func (c *Call) ReceiveFax() *FaxAction {
 // Tap
 // ---------------------------------------------------------------------------
 
-// Tap starts tapping the call audio to an external destination.
-func (c *Call) Tap(tap, device map[string]any) *TapAction {
-	controlID := newControlID()
+// Tap starts tapping the call audio to an external destination. The
+// optional controlID argument supplies an explicit control_id (matches
+// Python's tap(control_id=...)). Pass "" or omit to auto-generate.
+func (c *Call) Tap(tap, device map[string]any, controlID ...string) *TapAction {
+	cid := ""
+	if len(controlID) > 0 {
+		cid = controlID[0]
+	}
+	if cid == "" {
+		cid = newControlID()
+	}
 	params := map[string]any{
 		"node_id":    c.nodeID,
 		"call_id":    c.callID,
-		"control_id": controlID,
+		"control_id": cid,
 		"tap":        tap,
 		"device":     device,
 	}
 
-	action := newTapAction(c, controlID)
+	action := newTapAction(c, cid)
 	c.registerAction(action.Action)
 
 	go func() {
 		_, err := c.client.execute("calling.tap", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallTap, map[string]any{
-				"control_id": controlID,
+				"control_id": cid,
 				"state":      "error",
 				"error":      err.Error(),
 			}))
@@ -674,27 +825,33 @@ func (c *Call) Tap(tap, device map[string]any) *TapAction {
 // Streaming
 // ---------------------------------------------------------------------------
 
-// Stream starts streaming call audio to a WebSocket URL.
+// Stream starts streaming call audio to a WebSocket URL. Use
+// WithStreamControlID for an explicit control_id (matches Python's
+// stream(control_id=...)).
 func (c *Call) Stream(url string, opts ...StreamOption) *StreamAction {
-	controlID := newControlID()
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
-		"url":        url,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
+		"url":     url,
 	}
 	for _, opt := range opts {
 		opt(params)
 	}
+	cid, _ := params["_control_id"].(string)
+	if cid == "" {
+		cid = newControlID()
+	}
+	delete(params, "_control_id")
+	params["control_id"] = cid
 
-	action := newStreamAction(c, controlID)
+	action := newStreamAction(c, cid)
 	c.registerAction(action.Action)
 
 	go func() {
 		_, err := c.client.execute("calling.stream", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallStream, map[string]any{
-				"control_id": controlID,
+				"control_id": cid,
 				"state":      "error",
 				"error":      err.Error(),
 			}))
@@ -736,26 +893,31 @@ func (c *Call) LeaveConference(confID string) error {
 // AI
 // ---------------------------------------------------------------------------
 
-// AI starts an AI session on the call.
+// AI starts an AI session on the call. Use WithAIControlID for an
+// explicit control_id (matches Python's ai(control_id=...)).
 func (c *Call) AI(opts ...AIOption) *AIAction {
-	controlID := newControlID()
 	params := map[string]any{
-		"node_id":    c.nodeID,
-		"call_id":    c.callID,
-		"control_id": controlID,
+		"node_id": c.nodeID,
+		"call_id": c.callID,
 	}
 	for _, opt := range opts {
 		opt(params)
 	}
+	cid, _ := params["_control_id"].(string)
+	if cid == "" {
+		cid = newControlID()
+	}
+	delete(params, "_control_id")
+	params["control_id"] = cid
 
-	action := newAIAction(c, controlID)
+	action := newAIAction(c, cid)
 	c.registerAction(action.Action)
 
 	go func() {
 		_, err := c.client.execute("calling.ai", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallAI, map[string]any{
-				"control_id": controlID,
+				"control_id": cid,
 				"state":      "error",
 				"error":      err.Error(),
 			}))
@@ -1037,30 +1199,37 @@ func (c *Call) Echo(timeout *float64, statusURL string) error {
 
 // Pay starts a payment collection session on the call. Use PayOption
 // functional options to supply any of the 20+ optional parameters that
-// Python's pay() exposes (input_method, status_url, payment_method, timeout,
-// max_attempts, security_code, postal_code, min_postal_code_length,
-// token_type, charge_amount, currency, language, voice, description,
-// valid_card_types, parameters, prompts).
+// Python's pay() exposes (input_method, status_url, payment_method,
+// timeout, max_attempts, security_code, postal_code,
+// min_postal_code_length, token_type, charge_amount, currency, language,
+// voice, description, valid_card_types, parameters, prompts).
+//
+// Use WithPayControlID for an explicit control_id (matches Python's
+// pay(control_id=...)).
 func (c *Call) Pay(connectorURL string, opts ...PayOption) *PayAction {
-	controlID := newControlID()
 	params := map[string]any{
-		"node_id":                c.nodeID,
-		"call_id":                c.callID,
-		"control_id":             controlID,
-		"payment_connector_url":  connectorURL,
+		"node_id":               c.nodeID,
+		"call_id":               c.callID,
+		"payment_connector_url": connectorURL,
 	}
 	for _, opt := range opts {
 		opt(params)
 	}
+	cid, _ := params["_control_id"].(string)
+	if cid == "" {
+		cid = newControlID()
+	}
+	delete(params, "_control_id")
+	params["control_id"] = cid
 
-	action := newPayAction(c, controlID)
+	action := newPayAction(c, cid)
 	c.registerAction(action.Action)
 
 	go func() {
 		_, err := c.client.execute("calling.pay", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallPay, map[string]any{
-				"control_id": controlID,
+				"control_id": cid,
 				"state":      "error",
 				"error":      err.Error(),
 			}))
@@ -1074,26 +1243,34 @@ func (c *Call) Pay(connectorURL string, opts ...PayOption) *PayAction {
 // Transcribe
 // ---------------------------------------------------------------------------
 
-// Transcribe starts real-time transcription on the call.
-func (c *Call) Transcribe(statusURL string) *TranscribeAction {
-	controlID := newControlID()
+// Transcribe starts real-time transcription on the call. The optional
+// controlID argument supplies an explicit control_id (matches Python's
+// transcribe(control_id=...)).
+func (c *Call) Transcribe(statusURL string, controlID ...string) *TranscribeAction {
+	cid := ""
+	if len(controlID) > 0 {
+		cid = controlID[0]
+	}
+	if cid == "" {
+		cid = newControlID()
+	}
 	params := map[string]any{
 		"node_id":    c.nodeID,
 		"call_id":    c.callID,
-		"control_id": controlID,
+		"control_id": cid,
 	}
 	if statusURL != "" {
 		params["status_url"] = statusURL
 	}
 
-	action := newTranscribeAction(c, controlID)
+	action := newTranscribeAction(c, cid)
 	c.registerAction(action.Action)
 
 	go func() {
 		_, err := c.client.execute("calling.transcribe", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallTranscribe, map[string]any{
-				"control_id": controlID,
+				"control_id": cid,
 				"state":      "error",
 				"error":      err.Error(),
 			}))

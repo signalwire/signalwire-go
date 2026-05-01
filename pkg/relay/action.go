@@ -10,22 +10,52 @@ import (
 // audio, recording, or collecting input. Callers can Wait for completion,
 // check status, or register a completion callback.
 type Action struct {
-	controlID   string
-	call        *Call
-	done        chan struct{}
-	result      *RelayEvent
-	completed   bool
-	mu          sync.Mutex
-	onCompleted func(*RelayEvent)
+	controlID string
+	call      *Call
+	done      chan struct{}
+	result    *RelayEvent
+	completed bool
+	mu        sync.Mutex
+	// terminalEvent is the calling.* event_type that resolves this
+	// action. Empty string means "any event for this control_id resolves
+	// it" — the legacy behavior. Specific actions set this so e.g. a
+	// PlayAndCollect action listens on calling.call.collect, not
+	// calling.call.play. Mirrors Python's terminal_event constructor
+	// arg at relay/call.py:Action.__init__.
+	terminalEvent string
+	// terminalStates is the optional set of state values that resolve
+	// the action. Empty means "any state on the terminal_event resolves".
+	// PlayAction uses {"finished","error"} per Python — non-finished
+	// states like "playing"/"paused" don't resolve.
+	terminalStates map[string]bool
+	onCompleted    func(*RelayEvent)
 }
 
 // newAction creates a new Action tied to a specific call and control ID.
+// Matches Python's Action(call, control_id, terminal_event="", terminal_states=()).
 func newAction(call *Call, controlID string) *Action {
 	return &Action{
 		controlID: controlID,
 		call:      call,
 		done:      make(chan struct{}),
 	}
+}
+
+// matchesTerminal returns true when an event for this action's
+// control_id should resolve it. Mirrors Python Action._matches_terminal:
+// the event_type must equal terminalEvent (when set), and the state
+// must be in terminalStates (when set).
+func (a *Action) matchesTerminal(event *RelayEvent) bool {
+	if a.terminalEvent != "" && event.EventType != a.terminalEvent {
+		return false
+	}
+	if len(a.terminalStates) > 0 {
+		state := event.GetString("state")
+		if !a.terminalStates[state] {
+			return false
+		}
+	}
+	return true
 }
 
 // ControlID returns the control identifier for this action.
@@ -100,9 +130,15 @@ type PlayAction struct {
 	*Action
 }
 
-// newPlayAction creates a new PlayAction.
+// newPlayAction creates a new PlayAction. PlayAction listens on
+// calling.call.play and resolves on the {finished,error} terminal
+// states — mirrors Python PlayAction(call, control_id) at
+// relay/call.py:94-96.
 func newPlayAction(call *Call, controlID string) *PlayAction {
-	return &PlayAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallPlay
+	a.terminalStates = map[string]bool{"finished": true, "error": true}
+	return &PlayAction{Action: a}
 }
 
 // Stop sends calling.play.stop to halt the active play operation.
@@ -163,9 +199,13 @@ type RecordAction struct {
 	*Action
 }
 
-// newRecordAction creates a new RecordAction.
+// newRecordAction creates a new RecordAction. RecordAction listens on
+// calling.call.record and resolves on {finished,error}.
 func newRecordAction(call *Call, controlID string) *RecordAction {
-	return &RecordAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallRecord
+	a.terminalStates = map[string]bool{"finished": true, "error": true}
+	return &RecordAction{Action: a}
 }
 
 // Stop sends calling.record.stop to halt the active recording.
@@ -219,9 +259,16 @@ type DetectAction struct {
 	*Action
 }
 
-// newDetectAction creates a new DetectAction.
+// newDetectAction creates a new DetectAction. DetectAction listens on
+// calling.call.detect and — per the Python gotcha at
+// RELAY_IMPLEMENTATION_GUIDE — resolves on the FIRST event carrying a
+// non-empty `detect` payload, not on a state(finished). The "detect
+// payload present" check happens in resolveAction's matchesTerminal
+// branch. Empty terminalStates means any matching event_type resolves.
 func newDetectAction(call *Call, controlID string) *DetectAction {
-	return &DetectAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallDetect
+	return &DetectAction{Action: a}
 }
 
 // Stop sends calling.detect.stop to halt the active detect operation.
@@ -242,9 +289,14 @@ type CollectAction struct {
 	*Action
 }
 
-// newCollectAction creates a new CollectAction.
+// newCollectAction creates a new CollectAction (used by play_and_collect).
+// CollectAction listens on calling.call.collect — NOT calling.call.play —
+// per RELAY_IMPLEMENTATION_GUIDE.md and Python relay/call.py:154-156:
+// a play(finished) earlier in the timeline must NOT resolve this action.
 func newCollectAction(call *Call, controlID string) *CollectAction {
-	return &CollectAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallCollect
+	return &CollectAction{Action: a}
 }
 
 // Stop sends calling.play_and_collect.stop to halt the play-and-collect operation.
@@ -295,8 +347,12 @@ type StandaloneCollectAction struct {
 }
 
 // newStandaloneCollectAction creates a new StandaloneCollectAction.
+// Listens on calling.call.collect; resolves on any matching event for
+// this control_id (no state filter — per Python).
 func newStandaloneCollectAction(call *Call, controlID string) *StandaloneCollectAction {
-	return &StandaloneCollectAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallCollect
+	return &StandaloneCollectAction{Action: a}
 }
 
 // Stop sends calling.collect.stop to halt the standalone collect operation.
@@ -334,11 +390,14 @@ type FaxAction struct {
 	methodPrefix string
 }
 
-// newFaxAction creates a new FaxAction for the given method prefix ("send_fax"
-// or "receive_fax"), matching Python's FaxAction(call, control_id, method_prefix).
+// newFaxAction creates a new FaxAction for the given method prefix
+// ("send_fax" or "receive_fax"), matching Python's FaxAction(call,
+// control_id, method_prefix). FaxAction listens on calling.call.fax.
 func newFaxAction(call *Call, controlID string, methodPrefix string) *FaxAction {
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallFax
 	return &FaxAction{
-		Action:       newAction(call, controlID),
+		Action:       a,
 		methodPrefix: methodPrefix,
 	}
 }
@@ -362,9 +421,11 @@ type TapAction struct {
 	*Action
 }
 
-// newTapAction creates a new TapAction.
+// newTapAction creates a new TapAction. Listens on calling.call.tap.
 func newTapAction(call *Call, controlID string) *TapAction {
-	return &TapAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallTap
+	return &TapAction{Action: a}
 }
 
 // Stop sends calling.tap.stop to halt the active tap operation.
@@ -385,9 +446,11 @@ type StreamAction struct {
 	*Action
 }
 
-// newStreamAction creates a new StreamAction.
+// newStreamAction creates a new StreamAction. Listens on calling.call.stream.
 func newStreamAction(call *Call, controlID string) *StreamAction {
-	return &StreamAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallStream
+	return &StreamAction{Action: a}
 }
 
 // Stop sends calling.stream.stop to halt the active stream operation.
@@ -408,9 +471,11 @@ type PayAction struct {
 	*Action
 }
 
-// newPayAction creates a new PayAction.
+// newPayAction creates a new PayAction. Listens on calling.call.pay.
 func newPayAction(call *Call, controlID string) *PayAction {
-	return &PayAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallPay
+	return &PayAction{Action: a}
 }
 
 // Stop sends calling.pay.stop to halt the active pay operation.
@@ -432,8 +497,11 @@ type TranscribeAction struct {
 }
 
 // newTranscribeAction creates a new TranscribeAction.
+// Listens on calling.call.transcribe.
 func newTranscribeAction(call *Call, controlID string) *TranscribeAction {
-	return &TranscribeAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallTranscribe
+	return &TranscribeAction{Action: a}
 }
 
 // Stop sends calling.transcribe.stop to halt the active transcription.
@@ -454,9 +522,11 @@ type AIAction struct {
 	*Action
 }
 
-// newAIAction creates a new AIAction.
+// newAIAction creates a new AIAction. Listens on calling.call.ai.
 func newAIAction(call *Call, controlID string) *AIAction {
-	return &AIAction{Action: newAction(call, controlID)}
+	a := newAction(call, controlID)
+	a.terminalEvent = EventCallingCallAI
+	return &AIAction{Action: a}
 }
 
 // Stop sends calling.ai.stop to halt the active AI session.

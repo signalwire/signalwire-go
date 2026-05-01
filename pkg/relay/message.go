@@ -122,10 +122,20 @@ func (m *Message) On(handler func(*RelayEvent)) {
 }
 
 // updateState is called internally when a message state event is received.
+//
+// Reads the wire key "message_state" (matching Python's
+// event_params.get("message_state", "") at relay/message.py:89). The
+// older "state" key is kept as a fallback for code paths that still
+// emit it.
 func (m *Message) updateState(event *RelayEvent) {
 	m.mu.Lock()
-	newState := event.GetString("state")
-	m.state = newState
+	newState := event.GetString("message_state")
+	if newState == "" {
+		newState = event.GetString("state")
+	}
+	if newState != "" {
+		m.state = newState
+	}
 	if r := event.GetString("reason"); r != "" {
 		m.reason = r
 	}
@@ -159,10 +169,16 @@ func (m *Message) updateState(event *RelayEvent) {
 }
 
 // isTerminalMessageState returns true for message states that represent
-// a final state (no further transitions expected).
+// a final state (no further transitions expected). Mirrors Python's
+// MESSAGE_TERMINAL_STATES at relay/constants.py:85: delivered,
+// undelivered, failed. "sent" is intermediate (carrier handoff).
+// "received" is the inbound terminal state — Python excludes it from
+// MESSAGE_TERMINAL_STATES because the inbound flow doesn't await; we
+// keep it terminal too so Wait() on a received message returns
+// immediately rather than blocking forever.
 func isTerminalMessageState(state string) bool {
 	switch state {
-	case MessageStateSent, MessageStateDelivered,
+	case MessageStateDelivered,
 		MessageStateUndelivered, MessageStateFailed,
 		MessageStateReceived:
 		return true

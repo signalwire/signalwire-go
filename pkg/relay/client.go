@@ -30,10 +30,11 @@ type Client struct {
 	calls          map[string]*Call                // call_id -> Call
 	messages       map[string]*Message             // message_id -> Message
 	pendingDials   map[string]chan *Call            // tag -> dial result
-	protocol       string
-	authState      string
-	contexts       []string
-	maxActiveCalls int
+	protocol           string
+	authState          string
+	authorizationState string // signalwire.authorization.state event payload
+	contexts           []string
+	maxActiveCalls     int
 
 	onCall    func(*Call)
 	onMessage func(*Message)
@@ -159,6 +160,17 @@ func (c *Client) Contexts() []string {
 	return append([]string(nil), c.contexts...)
 }
 
+// AuthorizationState returns the most recent encrypted authorization
+// state blob received via signalwire.authorization.state events.
+// Mirrors Python's RelayClient._authorization_state used during
+// reconnection (relay/client.py:174). Empty until the server pushes
+// such an event.
+func (c *Client) AuthorizationState() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.authorizationState
+}
+
 // Connect establishes the WebSocket connection to SignalWire. This is the
 // public equivalent of the internal connect() method, mirroring Python's
 // async connect() which is also used in the async-with context manager.
@@ -253,6 +265,31 @@ func (c *Client) Run() error {
 	return nil
 }
 
+// Authenticate runs the signalwire.connect handshake and stores the
+// server-issued protocol string. Mirrors Python's RelayClient.connect()
+// auth phase. Use Connect first to establish the WebSocket; this call
+// reads the auth response synchronously (the read loop has not yet
+// started so no other reader is contending for the socket).
+func (c *Client) Authenticate() error {
+	return c.authenticate()
+}
+
+// StartReadLoop spawns the read goroutine and marks the client running.
+// Mirrors the goroutine-spawn portion of Run() — call it after
+// Authenticate() and before any Execute() call so JSON-RPC responses
+// have a reader. Pair with Stop() to terminate.
+func (c *Client) StartReadLoop() {
+	c.running.Store(true)
+	go c.readLoop()
+}
+
+// SubscribeContexts subscribes to whatever contexts were configured via
+// WithContexts. No-op when the contexts slice is empty. Used by the
+// mock-relay test helper which drives connect/auth/read-loop manually.
+func (c *Client) SubscribeContexts() error {
+	return c.subscribeContexts()
+}
+
 // Stop gracefully shuts down the client connection.
 //
 // Equivalent to Python's RelayClient.disconnect() (relay/client.py:286).
@@ -275,15 +312,31 @@ func (c *Client) Stop() {
 
 // Dial initiates an outbound call to the given device list. The devices
 // parameter is a list of serial/parallel device groups (same structure as
-// the Blade calling.begin devices field).
+// the Blade calling.dial devices field).
+//
+// Mirrors Python's RelayClient.dial(devices, *, tag=None, max_duration=None,
+// dial_timeout=None). The calling.dial RPC response only contains
+// {"code": "200", "message": "Dialing"} — no call_id. The real call_id and
+// node_id arrive via subsequent calling.call.dial events keyed by tag.
+// This method waits for that event so the returned Call always has valid
+// identifiers.
+//
+// To pass a caller-supplied tag, use WithDialTag. Without it the SDK
+// generates a UUID, matching Python's tag = tag or str(uuid.uuid4()).
 func (c *Client) Dial(devices [][]map[string]any, opts ...DialOption) (*Call, error) {
-	tag := uuid.New().String()
 	params := map[string]any{
-		"tag":     tag,
 		"devices": devices,
 	}
 	for _, opt := range opts {
 		opt(params)
+	}
+
+	// If no caller-supplied tag, mint one. Mirrors Python's
+	//   dial_tag = tag or str(uuid.uuid4())
+	tag, _ := params["tag"].(string)
+	if tag == "" {
+		tag = uuid.New().String()
+		params["tag"] = tag
 	}
 
 	ch := make(chan *Call, 1)
@@ -297,18 +350,29 @@ func (c *Client) Dial(devices [][]map[string]any, opts ...DialOption) (*Call, er
 		c.mu.Unlock()
 	}()
 
-	_, err := c.execute("calling.begin", params)
+	dialTimeout := 120 * time.Second
+	if v, ok := params["_dial_timeout"]; ok {
+		if d, ok := v.(time.Duration); ok && d > 0 {
+			dialTimeout = d
+		}
+		delete(params, "_dial_timeout")
+	}
+
+	_, err := c.execute("calling.dial", params)
 	if err != nil {
 		return nil, fmt.Errorf("dial: %w", err)
 	}
 
 	select {
 	case call := <-ch:
+		if call == nil {
+			return nil, NewRelayError(-1, fmt.Sprintf("Dial failed (tag=%s)", tag))
+		}
 		return call, nil
 	case <-c.ctx.Done():
 		return nil, c.ctx.Err()
-	case <-time.After(60 * time.Second):
-		return nil, fmt.Errorf("dial: timeout waiting for call creation")
+	case <-time.After(dialTimeout):
+		return nil, NewRelayError(-1, fmt.Sprintf("Dial timed out waiting for answer (tag=%s)", tag))
 	}
 }
 
@@ -359,6 +423,9 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 	}
 
 	msg := newMessage(result.MessageID, DirectionOutbound, from, to, body)
+	// Mirrors Python: outbound messages start in "queued" state
+	// (relay/client.py:468, Message(... state="queued")).
+	msg.state = MessageStateQueued
 	if onCompleted != nil {
 		msg.onCompleted = onCompleted
 	}
@@ -431,7 +498,32 @@ func (c *Client) authenticate() error {
 			"minor":    ProtocolVersionMinor,
 			"revision": ProtocolVersionRevision,
 		},
+		// Mirrors Python connect_params at relay/client.py:265-267:
+		// {"version": ..., "agent": AGENT_STRING, "event_acks": True}.
+		// event_acks=true tells the server to expect JSON-RPC ACKs for
+		// each pushed signalwire.event. If we omit this, the server may
+		// fall back to fire-and-forget event delivery.
+		"agent":      AgentString,
+		"event_acks": true,
 	}
+
+	c.mu.RLock()
+	if c.contexts != nil && len(c.contexts) > 0 {
+		// Python sends contexts on the connect frame itself (the same
+		// `subscriptions` set the connect result echoes back). Mirrors
+		// relay/client.py where the contexts list flows into connect.
+		connectParams["contexts"] = append([]string(nil), c.contexts...)
+	}
+	if c.protocol != "" {
+		// Reconnect-with-protocol path: the protocol string the server
+		// previously issued goes on the wire so the server can resume
+		// the session. Mirrors Python's _relay_protocol-on-reconnect.
+		connectParams["protocol"] = c.protocol
+	}
+	if c.authorizationState != "" {
+		connectParams["authorization_state"] = c.authorizationState
+	}
+	c.mu.RUnlock()
 
 	if c.jwtToken != "" {
 		connectParams["authentication"] = map[string]any{
@@ -666,6 +758,14 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 // whether it matched a known correlation.
 func (c *Client) handleEvent(eventType string, params map[string]any) {
 	switch {
+	case eventType == EventAuthorizationState:
+		// Mirrors Python relay/client.py:796. Encrypted blob the
+		// server hands back so a reconnect can resume seamlessly.
+		if as, _ := params["authorization_state"].(string); as != "" {
+			c.mu.Lock()
+			c.authorizationState = as
+			c.mu.Unlock()
+		}
 	case strings.HasPrefix(eventType, "calling."):
 		c.handleCallingEvent(eventType, params)
 	case strings.HasPrefix(eventType, "messaging."):
@@ -702,6 +802,17 @@ func (c *Client) handleCallingEvent(eventType string, params map[string]any) {
 			tag = uuid.New().String()
 		}
 		call := newCall(c, callID, nodeID, tag)
+		// Populate direction from event so .Direction() reads correctly
+		// even before any subsequent state event.
+		if dir, _ := params["direction"].(string); dir != "" {
+			call.direction = dir
+		}
+		if dev, _ := params["device"].(map[string]any); dev != nil {
+			call.device = dev
+		}
+		if ctxStr, _ := params["context"].(string); ctxStr != "" {
+			call.context = ctxStr
+		}
 		c.mu.Lock()
 		c.calls[callID] = call
 		handler := c.onCall
@@ -710,30 +821,106 @@ func (c *Client) handleCallingEvent(eventType string, params map[string]any) {
 		call.dispatchEvent(event)
 
 		if handler != nil {
-			go handler(call)
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						c.logger.Printf("relay: on_call handler panicked: %v", r)
+					}
+				}()
+				handler(call)
+			}()
 		}
 		return
 	}
 
-	// Handle dial state events - resolve pending dials.
-	if eventType == EventCallingCallDial || (eventType == EventCallingCallState && tag != "") {
+	// Handle calling.call.dial events — these carry the winner via
+	// nested params.call.{call_id,node_id}, NOT a top-level call_id.
+	// Mirrors Python's _handle_dial_event at relay/client.py:945.
+	if eventType == EventCallingCallDial {
+		dialState, _ := params["dial_state"].(string)
+		callInfo, _ := params["call"].(map[string]any)
+		var winnerCallID, winnerNodeID string
+		var winnerDevice map[string]any
+		if callInfo != nil {
+			winnerCallID, _ = callInfo["call_id"].(string)
+			winnerNodeID, _ = callInfo["node_id"].(string)
+			winnerDevice, _ = callInfo["device"].(map[string]any)
+		}
+
 		c.mu.RLock()
 		ch, hasPending := c.pendingDials[tag]
-		_, hasCall := c.calls[callID]
 		c.mu.RUnlock()
 
-		if hasPending && !hasCall && callID != "" {
-			nodeID, _ := params["node_id"].(string)
-			call := newCall(c, callID, nodeID, tag)
+		if !hasPending {
+			// Stale event — still dispatch to any matching call.
+			if winnerCallID != "" {
+				c.mu.RLock()
+				call, ok := c.calls[winnerCallID]
+				c.mu.RUnlock()
+				if ok {
+					call.dispatchEvent(event)
+				}
+			}
+			return
+		}
+
+		switch dialState {
+		case "answered":
 			c.mu.Lock()
-			c.calls[callID] = call
+			call, exists := c.calls[winnerCallID]
+			if !exists {
+				call = newCall(c, winnerCallID, winnerNodeID, tag)
+				call.direction = DirectionOutbound
+				call.state = CallStateAnswered
+				if winnerDevice != nil {
+					call.device = winnerDevice
+				}
+				c.calls[winnerCallID] = call
+			} else if winnerNodeID != "" && call.nodeID == "" {
+				call.nodeID = winnerNodeID
+			}
 			c.mu.Unlock()
 
 			select {
 			case ch <- call:
 			default:
 			}
+			call.dispatchEvent(event)
 
+		case "failed":
+			// Signal failure by closing the channel without a value
+			// after dispatching the event. Dial() detects this via the
+			// channel-recv idiom: a closed channel returns the zero
+			// value of *Call, which is nil. We instead resolve the
+			// future via a sentinel — easier to send a nil-bearing
+			// Call wrapper. Since `chan *Call` can carry nil, push
+			// nil to indicate failure.
+			select {
+			case ch <- nil:
+			default:
+			}
+		}
+		return
+	}
+
+	// Handle calling.call.state events with a matching pending dial tag.
+	// Some servers emit state events for the winner before the dial
+	// event itself; in that case the call_id is meaningful and we
+	// pre-create the Call so it's already in c.calls when the dial
+	// event lands.
+	if eventType == EventCallingCallState && tag != "" {
+		c.mu.RLock()
+		_, hasPending := c.pendingDials[tag]
+		_, hasCall := c.calls[callID]
+		c.mu.RUnlock()
+
+		if hasPending && !hasCall && callID != "" {
+			nodeID, _ := params["node_id"].(string)
+			call := newCall(c, callID, nodeID, tag)
+			call.direction = DirectionOutbound
+			c.mu.Lock()
+			c.calls[callID] = call
+			c.mu.Unlock()
 			call.dispatchEvent(event)
 			return
 		}

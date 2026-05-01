@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 391d90f7ad617196659cd65490e350caa06f7514 (go/ast walker)",
+  "generated_from": "signalwire-go @ f2497983ac0e8d405d8b439e74f5fcf5e4490d31 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -4758,6 +4758,11 @@
                   "name": "timeout",
                   "type": "optional\u003cfloat\u003e",
                   "required": true
+                },
+                {
+                  "name": "control_id",
+                  "type": "list\u003cstring\u003e",
+                  "required": true
                 }
               ],
               "returns": "class:signalwire.relay.call.DetectAction"
@@ -5045,6 +5050,11 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:FaxOption\u003e",
+                  "required": true
                 }
               ],
               "returns": "class:signalwire.relay.call.FaxAction"
@@ -5154,6 +5164,11 @@
                   "name": "device",
                   "type": "dict\u003cstring,any\u003e",
                   "required": true
+                },
+                {
+                  "name": "control_id",
+                  "type": "list\u003cstring\u003e",
+                  "required": true
                 }
               ],
               "returns": "class:signalwire.relay.call.TapAction"
@@ -5167,6 +5182,11 @@
                 {
                   "name": "status_url",
                   "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "control_id",
+                  "type": "list\u003cstring\u003e",
                   "required": true
                 }
               ],

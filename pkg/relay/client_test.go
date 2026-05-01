@@ -680,9 +680,10 @@ func TestMessage_Creation(t *testing.T) {
 func TestMessage_StateUpdate(t *testing.T) {
 	msg := newMessage("msg-1", DirectionOutbound, "+1", "+2", "test")
 
-	// Update to queued (non-terminal).
+	// Update to queued (non-terminal). Wire key is "message_state"
+	// (relay/message.py:89).
 	msg.updateState(NewRelayEvent(EventMessagingState, map[string]any{
-		"state": MessageStateQueued,
+		"message_state": MessageStateQueued,
 	}))
 	if msg.State() != MessageStateQueued {
 		t.Errorf("State = %q, want %q", msg.State(), MessageStateQueued)
@@ -693,7 +694,7 @@ func TestMessage_StateUpdate(t *testing.T) {
 
 	// Update to delivered (terminal).
 	msg.updateState(NewRelayEvent(EventMessagingState, map[string]any{
-		"state": MessageStateDelivered,
+		"message_state": MessageStateDelivered,
 	}))
 	if msg.State() != MessageStateDelivered {
 		t.Errorf("State = %q, want %q", msg.State(), MessageStateDelivered)
@@ -708,8 +709,11 @@ func TestMessage_Wait(t *testing.T) {
 
 	go func() {
 		time.Sleep(10 * time.Millisecond)
+		// Use the "message_state" wire key per Python (relay/message.py:89).
+		// Terminal states are delivered/undelivered/failed/received — "sent"
+		// is intermediate per MESSAGE_TERMINAL_STATES at constants.py:85.
 		msg.updateState(NewRelayEvent(EventMessagingState, map[string]any{
-			"state": MessageStateSent,
+			"message_state": MessageStateDelivered,
 		}))
 	}()
 
@@ -734,7 +738,7 @@ func TestMessage_OnHandler(t *testing.T) {
 	})
 
 	event := NewRelayEvent(EventMessagingState, map[string]any{
-		"state": MessageStateInitiated,
+		"message_state": MessageStateInitiated,
 	})
 	msg.updateState(event)
 
@@ -747,8 +751,8 @@ func TestMessage_FailedState(t *testing.T) {
 	msg := newMessage("msg-1", DirectionOutbound, "+1", "+2", "test")
 
 	msg.updateState(NewRelayEvent(EventMessagingState, map[string]any{
-		"state":  MessageStateFailed,
-		"reason": "invalid_number",
+		"message_state": MessageStateFailed,
+		"reason":        "invalid_number",
 	}))
 
 	if msg.State() != MessageStateFailed {
@@ -1005,8 +1009,8 @@ func TestClient_HandleMessagingEvent_State(t *testing.T) {
 	c.mu.Unlock()
 
 	c.handleMessagingEvent(EventMessagingState, map[string]any{
-		"message_id": "msg-state-1",
-		"state":      MessageStateDelivered,
+		"message_id":    "msg-state-1",
+		"message_state": MessageStateDelivered,
 	})
 
 	if msg.State() != MessageStateDelivered {

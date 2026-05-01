@@ -1,6 +1,9 @@
 package relay
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 // ---------------------------------------------------------------------------
 // Functional options for Call methods
@@ -13,6 +16,37 @@ type PlayOption func(m map[string]any)
 func WithPlayVolume(db float64) PlayOption {
 	return func(m map[string]any) {
 		m["volume"] = db
+	}
+}
+
+// WithPlayControlID sets an explicit control_id for the play action.
+// Mirrors Python's play(control_id=...). When omitted the SDK
+// auto-generates a UUID. The same key is honored by play_and_collect.
+func WithPlayControlID(id string) PlayOption {
+	return func(m map[string]any) {
+		m["_control_id"] = id
+	}
+}
+
+// WithPlayDirection sets the play direction (e.g. "self" / "peer" / "both").
+func WithPlayDirection(dir string) PlayOption {
+	return func(m map[string]any) {
+		m["direction"] = dir
+	}
+}
+
+// WithPlayLoop sets the number of loop iterations for playback.
+func WithPlayLoop(n int) PlayOption {
+	return func(m map[string]any) {
+		m["loop"] = n
+	}
+}
+
+// WithPlayOnCompleted registers a callback fired when the play action
+// reaches a terminal state. Mirrors Python's play(on_completed=...).
+func WithPlayOnCompleted(cb func(*RelayEvent)) PlayOption {
+	return func(m map[string]any) {
+		m["_on_completed"] = cb
 	}
 }
 
@@ -68,6 +102,31 @@ func WithRecordEndSilenceTimeout(t float64) RecordOption {
 	}
 }
 
+// WithRecordControlID sets an explicit control_id for the record action.
+// Mirrors Python's record(control_id=...).
+func WithRecordControlID(id string) RecordOption {
+	return func(m map[string]any) {
+		m["_control_id"] = id
+	}
+}
+
+// WithRecordAudio sets the audio config map for the record action's
+// "record": {"audio": ...} payload. Mirrors Python's record(audio=...).
+func WithRecordAudio(audio map[string]any) RecordOption {
+	return func(m map[string]any) {
+		m["_audio"] = audio
+	}
+}
+
+// WithRecordOnCompleted registers a callback fired when the record
+// action reaches a terminal state. Mirrors Python's
+// record(on_completed=...).
+func WithRecordOnCompleted(cb func(*RelayEvent)) RecordOption {
+	return func(m map[string]any) {
+		m["_on_completed"] = cb
+	}
+}
+
 // ConnectOption configures a Connect call.
 type ConnectOption func(m map[string]any)
 
@@ -80,6 +139,12 @@ func WithConnectRingback(media []map[string]any) ConnectOption {
 
 // StreamOption configures a Stream call.
 type StreamOption func(m map[string]any)
+
+// WithStreamControlID supplies an explicit control_id for the stream
+// action, matching Python's stream(control_id=...).
+func WithStreamControlID(id string) StreamOption {
+	return func(m map[string]any) { m["_control_id"] = id }
+}
 
 // WithStreamDirection sets the stream direction.
 func WithStreamDirection(dir string) StreamOption {
@@ -131,8 +196,20 @@ func WithFaxHeaderInfo(headerInfo string) FaxOption {
 	}
 }
 
+// WithFaxControlID supplies an explicit control_id for the fax action,
+// matching Python's send_fax(control_id=...) / receive_fax(control_id=...).
+func WithFaxControlID(id string) FaxOption {
+	return func(m map[string]any) { m["_control_id"] = id }
+}
+
 // PayOption configures a Pay call.
 type PayOption func(m map[string]any)
+
+// WithPayControlID supplies an explicit control_id for the pay action,
+// matching Python's pay(control_id=...).
+func WithPayControlID(id string) PayOption {
+	return func(m map[string]any) { m["_control_id"] = id }
+}
 
 // WithPayInputMethod sets the payment input method.
 func WithPayInputMethod(method string) PayOption {
@@ -221,6 +298,12 @@ func WithPayPrompts(prompts []map[string]any) PayOption {
 
 // AIOption configures an AI operation on a call.
 type AIOption func(m map[string]any)
+
+// WithAIControlID supplies an explicit control_id for the AI action,
+// matching Python's ai(control_id=...).
+func WithAIControlID(id string) AIOption {
+	return func(m map[string]any) { m["_control_id"] = id }
+}
 
 // WithAIEngine sets the AI engine to use.
 func WithAIEngine(engine string) AIOption {
@@ -311,10 +394,34 @@ func WithDialFromNumber(from string) DialOption {
 	}
 }
 
-// WithDialTimeout sets the dial timeout in seconds.
+// WithDialTimeout sets the legacy per-leg dial timeout in seconds.
+// (Was the only Go option; retained for back-compat. To bound the
+// overall Dial() call use WithDialClientTimeout.)
 func WithDialTimeout(t int) DialOption {
 	return func(m map[string]any) {
 		m["timeout"] = t
+	}
+}
+
+// WithDialTag sets an explicit caller-supplied dial tag. When omitted
+// the SDK generates a UUID, mirroring Python's
+// `tag = tag or str(uuid.uuid4())` at relay/client.py:368.
+func WithDialTag(tag string) DialOption {
+	return func(m map[string]any) {
+		m["tag"] = tag
+	}
+}
+
+// WithDialClientTimeout bounds how long Dial() will wait for the
+// calling.call.dial event before raising a timeout error. Mirrors
+// Python's dial(dial_timeout=<seconds>). Default is 120s when omitted.
+//
+// The duration is consumed by the Go Dial() loop; it never goes on the
+// wire — that's why it's stored under an underscore-prefixed key
+// removed before transmit.
+func WithDialClientTimeout(d time.Duration) DialOption {
+	return func(m map[string]any) {
+		m["_dial_timeout"] = d
 	}
 }
 
