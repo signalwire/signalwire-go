@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 63396e57576bb23a4939d49467ff62aebd449e4a (go/ast walker)",
+  "generated_from": "signalwire-go @ 391d90f7ad617196659cd65490e350caa06f7514 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -8417,7 +8417,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:CrudWithAddresses"
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricResource"
             },
             "call_flows": {
               "params": [
@@ -8453,7 +8453,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest._base.CrudResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
             },
             "cxml_webhooks": {
               "params": [
@@ -8462,7 +8462,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.AutoMaterializedWebhook"
+              "returns": "class:signalwire.rest.namespaces.fabric.CxmlWebhooksResource"
             },
             "freeswitch_connectors": {
               "params": [
@@ -8471,7 +8471,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest._base.CrudResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
             },
             "relay_applications": {
               "params": [
@@ -8480,7 +8480,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest._base.CrudResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
             },
             "resources": {
               "params": [
@@ -8498,7 +8498,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest._base.CrudResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
             },
             "sip_gateways": {
               "params": [
@@ -8507,7 +8507,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:CrudWithAddresses"
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricResource"
             },
             "subscribers": {
               "params": [
@@ -8525,7 +8525,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest._base.CrudResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
             },
             "swml_webhooks": {
               "params": [
@@ -8534,7 +8534,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.AutoMaterializedWebhook"
+              "returns": "class:signalwire.rest.namespaces.fabric.SwmlWebhooksResource"
             },
             "tokens": {
               "params": [

@@ -308,19 +308,38 @@ func (r *FabricTokens) CreateEmbedToken(data map[string]any) (map[string]any, er
 	return r.HTTP.Post(r.Path("embeds", "tokens"), data, nil)
 }
 
+// FabricResourcePUT is the Python class name for a CrudResource that uses
+// PUT for updates. Go aliases CrudResource here so the cross-language
+// audit sees the same type name on both sides without requiring a
+// distinct struct.
+type FabricResourcePUT = CrudResource
+
+// FabricResource is the Python class name for a CrudResource that exposes
+// the addresses sub-resource. Go aliases CrudWithAddresses here for the
+// same reason as FabricResourcePUT.
+type FabricResource = CrudWithAddresses
+
+// SwmlWebhooksResource is the Python class name for the auto-materialized
+// SWML webhook resource. Go aliases AutoMaterializedWebhookResource here.
+type SwmlWebhooksResource = AutoMaterializedWebhookResource
+
+// CxmlWebhooksResource is the Python class name for the auto-materialized
+// CXML webhook resource. Go aliases AutoMaterializedWebhookResource here.
+type CxmlWebhooksResource = AutoMaterializedWebhookResource
+
 // ---------- FabricNamespace ----------
 
 // FabricNamespace groups all Fabric API resource types.
 type FabricNamespace struct {
 	// PUT-update resources
-	SWMLScripts          *CrudResource
-	RelayApplications    *CrudResource
+	SWMLScripts          *FabricResourcePUT
+	RelayApplications    *FabricResourcePUT
 	CallFlows            *CallFlowsResource
 	ConferenceRooms      *ConferenceRoomsResource
-	FreeSwitchConnectors *CrudResource
+	FreeSwitchConnectors *FabricResourcePUT
 	Subscribers          *SubscribersResource
-	SIPEndpoints         *CrudResource
-	CXMLScripts          *CrudResource
+	SIPEndpoints         *FabricResourcePUT
+	CXMLScripts          *FabricResourcePUT
 	CXMLApplications     *CxmlApplicationsResource
 
 	// PATCH-update resources
@@ -328,10 +347,10 @@ type FabricNamespace struct {
 	// SWMLWebhooks and CXMLWebhooks are auto-materialized: prefer
 	// PhoneNumbers.SetSwmlWebhook / SetCxmlWebhook for creation. Direct
 	// .Create still works for backcompat but emits a deprecation warning.
-	SWMLWebhooks *AutoMaterializedWebhookResource
-	AIAgents     *CrudWithAddresses
-	SIPGateways  *CrudWithAddresses
-	CXMLWebhooks *AutoMaterializedWebhookResource
+	SWMLWebhooks *SwmlWebhooksResource
+	AIAgents     *FabricResource
+	SIPGateways  *FabricResource
+	CXMLWebhooks *CxmlWebhooksResource
 
 	// Special resources
 	Resources *GenericResources
