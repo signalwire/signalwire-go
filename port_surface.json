@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ f3ad57f6ce8926a95be43c37fd3ed350d417fe7e",
+  "generated_from": "signalwire-go @ 65c10aa2d330cdde99103f2c90407f4b5624138d",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -459,6 +459,33 @@
         "SileroVAD": [
           "__init__",
           "load"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.pom.pom": {
+      "classes": {
+        "PromptObjectModel": [
+          "__init__",
+          "add_pom_as_subsection",
+          "add_section",
+          "find_section",
+          "from_json",
+          "from_yaml",
+          "render_markdown",
+          "render_xml",
+          "to_dict",
+          "to_json",
+          "to_yaml"
+        ],
+        "Section": [
+          "__init__",
+          "add_body",
+          "add_bullets",
+          "add_subsection",
+          "render_markdown",
+          "render_xml",
+          "to_dict"
         ]
       },
       "functions": []

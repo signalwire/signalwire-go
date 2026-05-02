@@ -196,6 +196,40 @@ var StructTable = map[string][]ClassTarget{
 		},
 	}},
 
+	// --- pom package ------------------------------------------------------
+	// Typed Prompt Object Model: matches signalwire.pom.pom byte-for-byte
+	// for the canonical render scenarios (see pkg/pom/pom_test.go and
+	// signalwire-python/tests/unit/pom/test_pom_render_parity.py).
+	"pom.PromptObjectModel": {{
+		Module: "signalwire.pom.pom", Class: "PromptObjectModel",
+		Methods: map[string]string{
+			"NewPromptObjectModel": "__init__",
+			"AddSection":           "add_section",
+			"FindSection":          "find_section",
+			"ToList":               "to_dict",
+			"ToJSON":               "to_json",
+			"ToYAML":               "to_yaml",
+			"RenderMarkdown":       "render_markdown",
+			"RenderXML":            "render_xml",
+			"AddPomAsSubsection":   "add_pom_as_subsection",
+		},
+		// from_json / from_yaml are package-level constructors in Go
+		// (pom.FromJSON / pom.FromYAML); see freeFnTable below.
+		SyntheticMethods: []string{"from_json", "from_yaml"},
+	}},
+	"pom.Section": {{
+		Module: "signalwire.pom.pom", Class: "Section",
+		Methods: map[string]string{
+			"NewSection":     "__init__",
+			"AddBody":        "add_body",
+			"AddBullets":     "add_bullets",
+			"AddSubsection":  "add_subsection",
+			"ToMap":          "to_dict",
+			"RenderMarkdown": "render_markdown",
+			"RenderXML":      "render_xml",
+		},
+	}},
+
 	// --- swml package -----------------------------------------------------
 	"swml.Service": {{
 		Module: "signalwire.core.swml_service", Class: "SWMLService",

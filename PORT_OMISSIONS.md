@@ -239,30 +239,18 @@ signalwire.core.pom_builder.PomBuilder.render_markdown: POM (Prompt Object Model
 signalwire.core.pom_builder.PomBuilder.render_xml: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
 signalwire.core.pom_builder.PomBuilder.to_dict: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
 signalwire.core.pom_builder.PomBuilder.to_json: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.__init__: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.add_pom_as_subsection: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.add_section: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.find_section: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.from_json: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.from_yaml: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.render_markdown: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.render_xml: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.to_dict: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.to_json: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.PromptObjectModel.to_yaml: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.Section: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.Section.__init__: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.Section.add_body: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.Section.add_bullets: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.Section.add_subsection: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.Section.render_markdown: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.Section.render_xml: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom.Section.to_dict: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom_tool.detect_file_format: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom_tool.load_pom: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom_tool.main: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
-signalwire.pom.pom_tool.render_pom: POM (Prompt Object Model) builder class is Python-only; Go AgentBase accepts POM sections as maps via SetPromptPom / PromptAddSection
+# signalwire.pom.pom.PromptObjectModel and signalwire.pom.pom.Section are
+# now implemented natively in Go as pom.PromptObjectModel and pom.Section
+# (pkg/pom/pom.go).  Tests in pkg/pom/pom_test.go assert exact-string
+# parity with the Python renderer; signalwire-python parity tests live in
+# tests/unit/pom/test_pom_render_parity.py.
+#
+# pom_tool is a Python-only CLI that wraps the POM module — kept omitted
+# because Go ships a library, not a CLI.
+signalwire.pom.pom_tool.detect_file_format: pom_tool is a Python-only CLI wrapper around pom.pom; Go ships the library only
+signalwire.pom.pom_tool.load_pom: pom_tool is a Python-only CLI wrapper around pom.pom; Go ships the library only
+signalwire.pom.pom_tool.main: pom_tool is a Python-only CLI wrapper around pom.pom; Go ships the library only
+signalwire.pom.pom_tool.render_pom: pom_tool is a Python-only CLI wrapper around pom.pom; Go ships the library only
 
 # --- Utils / web / auth helpers ---
 signalwire.core.auth_handler.AuthHandler: Python security/auth helpers are embedded into Go AgentBase withAuth middleware + security.SessionManager; standalone classes not exposed

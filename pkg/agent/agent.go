@@ -20,6 +20,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/contexts"
 	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/pkg/pom"
 	"github.com/signalwire/signalwire-go/pkg/security"
 	"github.com/signalwire/signalwire-go/pkg/skills"
 	"github.com/signalwire/signalwire-go/pkg/swaig"
@@ -726,28 +727,83 @@ func (a *AgentBase) GetPrompt() any {
 	return a.promptText
 }
 
-// Pom returns a defensive copy of the agent's POM section list. Returns nil
-// when use_pom is false (Python parity: when ``use_pom=False``, ``self.pom``
-// is ``None``). Mutations to the returned slice do not affect the agent's
+// Pom returns a typed PromptObjectModel built from the agent's current
+// POM sections. Returns nil when use_pom is false (Python parity:
+// ``self.pom`` is ``None`` when ``use_pom=False``). The returned value
+// is a deep copy / fresh build — mutations don't affect the agent's
 // internal state.
 //
-// Python equivalent: ``agent.pom`` instance attribute (agent_base.py line 209).
-func (a *AgentBase) Pom() []map[string]any {
+// Python equivalent: ``agent.pom`` instance attribute (agent_base.py
+// line 209), which is a ``PromptObjectModel`` instance.
+func (a *AgentBase) Pom() *pom.PromptObjectModel {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	if !a.usePom {
 		return nil
 	}
-	result := make([]map[string]any, len(a.pomSections))
-	for i, sec := range a.pomSections {
-		// Shallow copy each section map so callers can't corrupt internal state.
-		copyMap := make(map[string]any, len(sec))
-		for k, v := range sec {
-			copyMap[k] = v
+	// Build the typed POM from the agent's section maps. We rebuild on
+	// every call so callers can safely mutate the returned object.
+	result := pom.NewPromptObjectModel()
+	for _, sec := range a.pomSections {
+		s := agentSectionToPom(sec)
+		if s != nil {
+			result.Sections = append(result.Sections, s)
 		}
-		result[i] = copyMap
 	}
 	return result
+}
+
+// agentSectionToPom converts one map-shaped section (the legacy storage
+// inside AgentBase) into a typed *pom.Section. Used by Pom() to bridge
+// between the historical map storage and the typed POM API.
+func agentSectionToPom(m map[string]any) *pom.Section {
+	if m == nil {
+		return nil
+	}
+	s := &pom.Section{}
+	if t, ok := m["title"].(string); ok {
+		t2 := t
+		s.Title = &t2
+	}
+	if b, ok := m["body"].(string); ok {
+		s.Body = b
+	}
+	if bs, ok := m["bullets"].([]string); ok {
+		s.Bullets = append([]string(nil), bs...)
+	} else if bs, ok := m["bullets"].([]any); ok {
+		for _, x := range bs {
+			if str, ok := x.(string); ok {
+				s.Bullets = append(s.Bullets, str)
+			}
+		}
+	}
+	if n, ok := m["numbered"].(bool); ok {
+		s.Numbered = &n
+	}
+	// Accept both legacy snake_case ("numbered_bullets") and the JSON
+	// schema's camelCase ("numberedBullets") spelling.
+	if nb, ok := m["numbered_bullets"].(bool); ok {
+		s.NumberedBullets = nb
+	}
+	if nb, ok := m["numberedBullets"].(bool); ok {
+		s.NumberedBullets = nb
+	}
+	if subs, ok := m["subsections"].([]map[string]any); ok {
+		for _, sub := range subs {
+			if child := agentSectionToPom(sub); child != nil {
+				s.Subsections = append(s.Subsections, child)
+			}
+		}
+	} else if subs, ok := m["subsections"].([]any); ok {
+		for _, raw := range subs {
+			if sub, ok := raw.(map[string]any); ok {
+				if child := agentSectionToPom(sub); child != nil {
+					s.Subsections = append(s.Subsections, child)
+				}
+			}
+		}
+	}
+	return s
 }
 
 // GetPostPrompt returns the current post-prompt text. Returns an empty string

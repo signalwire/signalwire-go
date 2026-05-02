@@ -366,14 +366,18 @@ func TestPom_ReturnsAssignedSections(t *testing.T) {
 	a.SetPromptPom(sections)
 
 	got := a.Pom()
-	if len(got) != 1 {
-		t.Fatalf("Pom() len = %d, want 1", len(got))
+	if got == nil {
+		t.Fatal("Pom() returned nil; expected typed POM")
 	}
-	if got[0]["title"] != "Greeting" {
-		t.Errorf("Pom()[0][title] = %v, want %q", got[0]["title"], "Greeting")
+	if len(got.Sections) != 1 {
+		t.Fatalf("Pom().Sections len = %d, want 1", len(got.Sections))
 	}
-	if got[0]["body"] != "Hello" {
-		t.Errorf("Pom()[0][body] = %v, want %q", got[0]["body"], "Hello")
+	s := got.Sections[0]
+	if s.Title == nil || *s.Title != "Greeting" {
+		t.Errorf("Pom().Sections[0].Title = %v, want %q", s.Title, "Greeting")
+	}
+	if s.Body != "Hello" {
+		t.Errorf("Pom().Sections[0].Body = %q, want %q", s.Body, "Hello")
 	}
 }
 
@@ -393,14 +397,19 @@ func TestPom_ReturnsCopyNotInternalSlice(t *testing.T) {
 	a.PromptAddSection("Original", "Body", nil)
 
 	got := a.Pom()
-	if len(got) != 1 {
-		t.Fatalf("Pom() len = %d, want 1", len(got))
+	if got == nil {
+		t.Fatal("Pom() returned nil")
+	}
+	if len(got.Sections) != 1 {
+		t.Fatalf("Pom().Sections len = %d, want 1", len(got.Sections))
 	}
 
-	// Mutate the returned slice; internal state must be unaffected.
-	got[0]["title"] = "Hijacked"
-	got = append(got, map[string]any{"title": "Injected"})
-	_ = got
+	// Mutate the returned typed POM; internal state must be unaffected.
+	if got.Sections[0].Title != nil {
+		hijacked := "Hijacked"
+		got.Sections[0].Title = &hijacked
+	}
+	got.Sections[0].Body = "Mutated"
 
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -410,5 +419,9 @@ func TestPom_ReturnsCopyNotInternalSlice(t *testing.T) {
 	if a.pomSections[0]["title"] != "Original" {
 		t.Errorf("internal pomSections[0][title] = %v, want %q (caller mutation leaked)",
 			a.pomSections[0]["title"], "Original")
+	}
+	if a.pomSections[0]["body"] != "Body" {
+		t.Errorf("internal pomSections[0][body] = %v, want %q (caller mutation leaked)",
+			a.pomSections[0]["body"], "Body")
 	}
 }

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ f3ad57f6ce8926a95be43c37fd3ed350d417fe7e",
+  "generated_from": "signalwire-go (go-native) @ 65c10aa2d330cdde99103f2c90407f4b5624138d",
   "modules": {
     "agent": {
       "classes": {
@@ -930,6 +930,40 @@
         "NewVideoNamespace",
         "ResetDeprecationWarnOnce",
         "SetDeprecationLogger"
+      ]
+    },
+    "pom": {
+      "classes": {
+        "PromptObjectModel": [
+          "AddPomAsSubsection",
+          "AddSection",
+          "Clone",
+          "FindSection",
+          "RenderMarkdown",
+          "RenderXML",
+          "ToJSON",
+          "ToList",
+          "ToYAML"
+        ],
+        "Section": [
+          "AddBody",
+          "AddBullets",
+          "AddSubsection",
+          "RenderMarkdown",
+          "RenderXML",
+          "ToMap"
+        ]
+      },
+      "functions": [
+        "FromJSON",
+        "FromList",
+        "FromYAML",
+        "NewPromptObjectModel",
+        "NewSection",
+        "WithBody",
+        "WithBullets",
+        "WithNumbered",
+        "WithNumberedBullets"
       ]
     },
     "prefabs": {
