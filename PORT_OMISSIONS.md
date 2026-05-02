@@ -710,4 +710,6 @@ signalwire.core.skill_manager.SkillManager.logger: Python instance ``logger`` pr
 signalwire.core.swml_service.SWMLService.security: Python exposes a ``security`` property returning a SecurityConfig; Go folds auth state into private fields on Service (basicAuthUser, bearerToken, apiKey, ...) configured via WithSecurityConfig/WithBasicAuth/WithBearerToken/WithAPIKey options
 signalwire.core.swml_service.SWMLService.verb_registry: Python uses a separate VerbRegistry helper class; Go uses a private ``verbHandlers`` map on Service and exposes RegisterVerbHandler directly
 signalwire.rest._base.BaseResource.__init__: Go's namespaces.Resource is a tiny base struct initialized inline by namespace constructors (struct-literal); no public NewResource factory mirrors Python's BaseResource(http, base_path)
+signalwire.pom.pom.PromptObjectModel.sections: go-bean-accessor — Python exposes a ``sections`` list property; Go promotes it to an exported struct field ``Sections []*Section`` on PromptObjectModel (no method, direct field access is idiomatic)
+signalwire.pom.pom.Section.subsections: go-bean-accessor — Python exposes a ``subsections`` list property; Go promotes it to an exported struct field ``Subsections []*Section`` on Section (no method, direct field access is idiomatic)
 

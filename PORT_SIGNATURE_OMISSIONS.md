@@ -167,6 +167,15 @@ signalwire.core.skill_base.SkillBase.logger: type-class divergence; Go's Logger 
 signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: Go's GetBasicAuthCredentials returns the resolved auth string only (no include_source kwarg); Python supports an include_source flag that causes it to return a (user, pass, source) tuple
 signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: Go takes a typed *http.Request param; Python takes Optional[fastapi.Request] (FastAPI vs net/http binding difference)
 
+## POM (signalwire.pom.pom) — Go idiom
+
+signalwire.pom.pom.PromptObjectModel.__init__: go-factory-ctor — Go uses NewPromptObjectModel() with no params; Python __init__ accepts an optional debug kwarg (Go logging is package-level, no per-instance debug flag)
+signalwire.pom.pom.PromptObjectModel.add_section: go-variadic-options — Go takes (title string, opts ...SectionOption) using functional options (WithBody/WithBullets/WithNumbered/WithNumberedBullets); Python uses 5 named kwargs
+signalwire.pom.pom.PromptObjectModel.from_json: go-package-fn — Go exposes pom.FromJSON(string) as a package-level constructor function (Go convention) where Python uses a classmethod accepting Union[str, dict]
+signalwire.pom.pom.PromptObjectModel.from_yaml: go-package-fn — Go exposes pom.FromYAML(string) as a package-level constructor function (Go convention) where Python uses a classmethod accepting Union[str, dict]
+signalwire.pom.pom.Section.__init__: go-factory-ctor — Go uses NewSection(title) plus functional-option mutators (WithBody/WithBullets/...); Python __init__ accepts title + 4 named kwargs
+signalwire.pom.pom.Section.add_subsection: go-variadic-options — Go takes (title string, opts ...SectionOption); Python uses 5 named kwargs
+
 ## Backlog: real signature divergences (418 symbols)
 
 Real Go port maintenance — parameter renames, missing optionals,
