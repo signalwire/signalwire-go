@@ -53,6 +53,79 @@ func commandAssert(t *testing.T, j mocktest.JournalEntry, command, expectedID st
 
 // ----------------- Lifecycle -----------------
 
+// TestCallingNamespace_Dial_WithCodecsArray confirms that the optional codecs
+// param (added in porting-sdk PR #1 to the calling/calls OpenAPI spec) flows
+// through Dial's free-form params map and reaches the wire as an array.
+// Dial(map[string]any{...}) already forwards arbitrary keys, so no source
+// change is needed — this is a behavioral assertion only.
+func TestCallingNamespace_Dial_WithCodecsArray(t *testing.T) {
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	body, err := client.Calling.Dial(map[string]any{
+		"url":    "https://example.com/swml",
+		"to":     "+15551234567",
+		"codecs": []any{"OPUS", "G729", "VP8", "PCMA"},
+	})
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	if _, ok := body["id"]; !ok {
+		t.Errorf("response missing 'id', got keys %v", keys(body))
+	}
+	params := commandAssert(t, mock.Last(t), "dial", "")
+	codecs, ok := params["codecs"].([]any)
+	if !ok {
+		t.Fatalf("params[codecs] type = %T, want []any", params["codecs"])
+	}
+	want := []string{"OPUS", "G729", "VP8", "PCMA"}
+	if len(codecs) != len(want) {
+		t.Fatalf("codecs len = %d, want %d (got %v)", len(codecs), len(want), codecs)
+	}
+	for i, w := range want {
+		if codecs[i] != w {
+			t.Errorf("codecs[%d] = %v, want %q", i, codecs[i], w)
+		}
+	}
+	if params["to"] != "+15551234567" {
+		t.Errorf("params[to] = %v, want +15551234567", params["to"])
+	}
+	if params["url"] != "https://example.com/swml" {
+		t.Errorf("params[url] = %v, want https://example.com/swml", params["url"])
+	}
+}
+
+// TestCallingNamespace_Dial_WithCodecsString confirms the comma-separated
+// string form of codecs (also valid per the OpenAPI spec) reaches the wire
+// verbatim.
+func TestCallingNamespace_Dial_WithCodecsString(t *testing.T) {
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Calling.Dial(map[string]any{
+		"url":    "https://example.com/swml",
+		"to":     "+15551234567",
+		"codecs": "OPUS,G729,VP8,PCMA",
+	})
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	params := commandAssert(t, mock.Last(t), "dial", "")
+	if params["codecs"] != "OPUS,G729,VP8,PCMA" {
+		t.Errorf("params[codecs] = %v, want OPUS,G729,VP8,PCMA", params["codecs"])
+	}
+	if params["to"] != "+15551234567" {
+		t.Errorf("params[to] = %v, want +15551234567", params["to"])
+	}
+	if params["url"] != "https://example.com/swml" {
+		t.Errorf("params[url] = %v, want https://example.com/swml", params["url"])
+	}
+}
+
 func TestCalling_Update(t *testing.T) {
 	client, mock := mocktest.New(t)
 	if client == nil {
