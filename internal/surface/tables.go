@@ -1382,6 +1382,12 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	// Livewire
 	"livewire.FunctionTool": {Module: "signalwire.livewire", Name: "function_tool"},
 	"livewire.RunApp":       {Module: "signalwire.livewire", Name: "run_app"},
+
+	// Webhook signature validation — Python ships these as module-level free
+	// functions in signalwire.core.security.webhook_validator. Go exposes
+	// them as ValidateWebhookSignature / ValidateRequest in pkg/security.
+	"security.ValidateWebhookSignature": {Module: "signalwire.core.security.webhook_validator", Name: "validate_webhook_signature"},
+	"security.ValidateRequest":          {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
 }
 
 // factoryInit maps a Go factory function (not a ``New<Struct>`` that matches

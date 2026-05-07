@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 53cdeedaa6d82019b1561f846c088106eddb1894 (go/ast walker)",
+  "generated_from": "signalwire-go @ ebcc23ccbd7652e77ed434287681d8850257773b (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3687,6 +3687,60 @@
               "returns": "bool"
             }
           }
+        }
+      }
+    },
+    "signalwire.core.security.webhook_validator": {
+      "functions": {
+        "validate_request": {
+          "params": [
+            {
+              "name": "signing_key",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "signature",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "url_str",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "params_or_raw_body",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "validate_webhook_signature": {
+          "params": [
+            {
+              "name": "signing_key",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "signature",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "raw_body",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
         }
       }
     },

@@ -713,3 +713,4 @@ signalwire.rest._base.BaseResource.__init__: Go's namespaces.Resource is a tiny 
 signalwire.pom.pom.PromptObjectModel.sections: go-bean-accessor — Python exposes a ``sections`` list property; Go promotes it to an exported struct field ``Sections []*Section`` on PromptObjectModel (no method, direct field access is idiomatic)
 signalwire.pom.pom.Section.subsections: go-bean-accessor — Python exposes a ``subsections`` list property; Go promotes it to an exported struct field ``Subsections []*Section`` on Section (no method, direct field access is idiomatic)
 
+signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: framework_specific: FastAPI dependency factory; Go exposes the equivalent via security.WebhookMiddleware (http.Handler middleware) — see PORT_ADDITIONS.md
