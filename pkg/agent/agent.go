@@ -282,6 +282,35 @@ func WithSchemaValidation(validate bool) AgentOption {
 	return func(a *AgentBase) { a.schemaValidation = validate }
 }
 
+// WithSigningKey sets the SignalWire Signing Key used to validate inbound
+// webhook signatures. When non-empty, signed routes (POST /, /swaig,
+// /post_prompt, and any registered routing callbacks) are wrapped with
+// security.WebhookMiddleware — unsigned or mis-signed requests are
+// rejected with HTTP 403 before reaching the handler.
+//
+// When this option is unset, AgentBase falls back to the
+// SIGNALWIRE_SIGNING_KEY environment variable. When neither is set, the
+// agent accepts unsigned requests and emits a one-time WARN log on
+// startup, per porting-sdk/webhooks.md §"AgentBase integration".
+//
+// Python equivalent: AgentBase(signing_key="...") parameter.
+func WithSigningKey(key string) AgentOption {
+	return func(a *AgentBase) { a.signingKey = key }
+}
+
+// WithSigningKeyTrustProxy enables X-Forwarded-Proto / X-Forwarded-Host
+// honoring during URL reconstruction. Set true when AgentBase runs behind
+// a reverse proxy / ngrok / load balancer that terminates TLS upstream;
+// without it the validator sees the internal scheme/host and the signature
+// will mismatch.
+//
+// No Python parity flag — Python's web_mixin reads X-Forwarded-* headers
+// unconditionally; in Go we make it explicit because forging these headers
+// is a real attack on naive deployments.
+func WithSigningKeyTrustProxy(trust bool) AgentOption {
+	return func(a *AgentBase) { a.signingKeyTrustProxy = trust }
+}
+
 // ---------------------------------------------------------------------------
 // AgentBase
 // ---------------------------------------------------------------------------
@@ -364,6 +393,19 @@ type AgentBase struct {
 	// Session security
 	sessionManager  *security.SessionManager
 	tokenExpirySecs int
+
+	// Webhook signature validation. When signingKey is non-empty, signed
+	// routes (POST /, /swaig, /post_prompt, plus any registered routing
+	// callbacks) are wrapped with security.WebhookMiddleware which rejects
+	// unsigned / mis-signed POSTs with HTTP 403. When unset, AgentBase
+	// emits a startup warning and accepts unsigned requests — matching the
+	// Python AgentBase behavior in porting-sdk/webhooks.md §"AgentBase
+	// integration".
+	//
+	// Python parity: AgentBase.__init__(signing_key=...) and the
+	// SIGNALWIRE_SIGNING_KEY env-var fallback applied in NewAgentBase.
+	signingKey            string
+	signingKeyTrustProxy  bool
 
 	// Lifecycle callbacks
 	summaryCallback  SummaryCallback
@@ -461,6 +503,17 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 	// Proxy URL from env or service
 	if a.proxyURLBase == "" {
 		a.proxyURLBase = os.Getenv("SWML_PROXY_URL_BASE")
+	}
+
+	// Webhook signing key — fall back to env var when no explicit key was
+	// supplied via WithSigningKey. Empty after fallback ⇒ validation is
+	// disabled and we emit a one-time startup warning so production
+	// deployments don't silently accept unsigned webhooks.
+	if a.signingKey == "" {
+		a.signingKey = os.Getenv("SIGNALWIRE_SIGNING_KEY")
+	}
+	if a.signingKey == "" {
+		a.Logger.Warn("[signalwire] webhook signature validation is disabled — set SigningKey or SIGNALWIRE_SIGNING_KEY to enable")
 	}
 
 	// Session manager for secure tools
@@ -2607,29 +2660,29 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
 	})
 
-	// Main SWML endpoint (with auth)
+	// Main SWML endpoint (with auth + signature on POST)
 	swmlRoute := route
 	if swmlRoute == "/" {
-		mux.HandleFunc("/", a.withAuth(a.handleSWML))
+		mux.HandleFunc("/", a.withAuth(a.withSignedPost(a.handleSWML)))
 	} else {
-		mux.HandleFunc(swmlRoute, a.withAuth(a.handleSWML))
+		mux.HandleFunc(swmlRoute, a.withAuth(a.withSignedPost(a.handleSWML)))
 		// Also handle without trailing slash
-		mux.HandleFunc(swmlRoute+"/", a.withAuth(a.handleSWML))
+		mux.HandleFunc(swmlRoute+"/", a.withAuth(a.withSignedPost(a.handleSWML)))
 	}
 
-	// SWAIG function dispatch endpoint
+	// SWAIG function dispatch endpoint (signed on POST)
 	swaigRoute := route + "/swaig"
 	if route == "/" {
 		swaigRoute = "/swaig"
 	}
-	mux.HandleFunc(swaigRoute, a.withAuth(a.handleSwaig))
+	mux.HandleFunc(swaigRoute, a.withAuth(a.withSignedPost(a.handleSwaig)))
 
-	// Post-prompt summary endpoint
+	// Post-prompt summary endpoint (signed on POST)
 	ppRoute := route + "/post_prompt"
 	if route == "/" {
 		ppRoute = "/post_prompt"
 	}
-	mux.HandleFunc(ppRoute, a.withAuth(a.handlePostPrompt))
+	mux.HandleFunc(ppRoute, a.withAuth(a.withSignedPost(a.handlePostPrompt)))
 
 	// Check-for-input endpoint — matches Python web_mixin.py lines 390-396,
 	// which registers /check_for_input (and /check_for_input/) on both GET
@@ -2666,8 +2719,8 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 			continue
 		}
 		// Register both with and without trailing slash, matching Python.
-		mux.HandleFunc(path, a.withAuth(a.handleSWML))
-		mux.HandleFunc(path+"/", a.withAuth(a.handleSWML))
+		mux.HandleFunc(path, a.withAuth(a.withSignedPost(a.handleSWML)))
+		mux.HandleFunc(path+"/", a.withAuth(a.withSignedPost(a.handleSWML)))
 	}
 
 	// SIP redirect-routing endpoints. Python registers these alongside swml
@@ -2683,8 +2736,8 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 		if path == "" {
 			continue
 		}
-		mux.HandleFunc(path, a.withAuth(a.handleSWML))
-		mux.HandleFunc(path+"/", a.withAuth(a.handleSWML))
+		mux.HandleFunc(path, a.withAuth(a.withSignedPost(a.handleSWML)))
+		mux.HandleFunc(path+"/", a.withAuth(a.withSignedPost(a.handleSWML)))
 	}
 
 	return mux
@@ -3136,5 +3189,31 @@ func (a *AgentBase) withAuth(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		next(w, r)
+	}
+}
+
+// withSignedPost wraps a handler so that POST requests are gated by
+// security.WebhookMiddleware (when a signing key is configured) and
+// non-POST requests pass through untouched. This is the right shape for
+// the SWML and /swaig endpoints, which legitimately serve GET (health-style
+// document fetches and SWAIG schema introspection respectively).
+//
+// When no signing key is configured this is a passthrough — startup logs
+// the disabled-validation warning so operators are aware.
+func (a *AgentBase) withSignedPost(next http.HandlerFunc) http.HandlerFunc {
+	if a.signingKey == "" {
+		return next
+	}
+	mw := security.WebhookMiddleware(a.signingKey, &security.WebhookOpts{
+		TrustProxy:   a.signingKeyTrustProxy,
+		ProxyURLBase: a.proxyURLBase,
+	})
+	wrapped := mw(http.HandlerFunc(next))
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			next(w, r)
+			return
+		}
+		wrapped.ServeHTTP(w, r)
 	}
 }
