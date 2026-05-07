@@ -298,14 +298,20 @@ func (c *Client) SubscribeContexts() error {
 func (c *Client) Stop() {
 	c.running.Store(false)
 	c.cancel()
-	c.mu.RLock()
+	// Hold c.mu (the write lock used by writeJSON) for the close-frame
+	// write — gorilla/websocket connections are not safe for concurrent
+	// writes, and a goroutine inside writeJSON() racing with this Stop()
+	// call has been seen to panic on shared CI runners.
+	c.mu.Lock()
 	conn := c.conn
-	c.mu.RUnlock()
 	if conn != nil {
 		_ = conn.WriteMessage(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 		)
+	}
+	c.mu.Unlock()
+	if conn != nil {
 		_ = conn.Close()
 	}
 }
