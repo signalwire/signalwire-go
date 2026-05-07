@@ -305,6 +305,7 @@ func (c *Client) Stop() {
 	c.mu.Lock()
 	conn := c.conn
 	if conn != nil {
+		_ = conn.SetWriteDeadline(time.Now().Add(writeDeadline))
 		_ = conn.WriteMessage(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
@@ -1064,6 +1065,14 @@ func (c *Client) reconnect() {
 	}
 }
 
+// writeDeadline bounds how long any single websocket write may block.
+// Without a deadline a wedged peer can hang the writer indefinitely;
+// with goroutines waiting on c.mu, that becomes a whole-test deadlock.
+// 5s is generous for a JSON-RPC frame on localhost mocks but short
+// enough that a real hang surfaces as a test failure rather than a
+// 10-minute go-test timeout.
+const writeDeadline = 5 * time.Second
+
 // writeJSON safely writes a JSON message to the WebSocket connection.
 func (c *Client) writeJSON(v any) error {
 	c.mu.RLock()
@@ -1076,5 +1085,6 @@ func (c *Client) writeJSON(v any) error {
 	// gorilla/websocket connections are not safe for concurrent writes.
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	_ = c.conn.SetWriteDeadline(time.Now().Add(writeDeadline))
 	return c.conn.WriteJSON(v)
 }
