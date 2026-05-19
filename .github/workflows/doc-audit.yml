@@ -18,6 +18,10 @@ name: Doc & example audit (Layer C)
 # lie to users about what the port supports.  This workflow catches the
 # former.
 
+env:
+  # Opt into Node.js 24 ahead of GitHub's 2026-06-02 default switch.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   pull_request:
     paths:
