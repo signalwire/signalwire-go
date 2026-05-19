@@ -37,3 +37,7 @@ Thumbs.db
 # Debug
 debug
 *.prof
+
+# Python audit-script bytecode (scripts/enumerate_*.py invocations)
+__pycache__/
+*.pyc
