@@ -30,6 +30,13 @@ type WebSearchSkill struct {
 	oversampleFactor float64
 	minQualityScore  float64
 	noResultsMessage string
+	// Optional prefix/postfix wrapped around every non-empty search result.
+	// Use these to give the calling agent a mechanical cue (e.g. "tell the
+	// user this came from a public web search") without needing prompt-side
+	// rules. Mirrors the response_format_callback pattern used by the
+	// native_vector_search skill. Empty strings = no wrapping.
+	responsePrefix  string
+	responsePostfix string
 }
 
 // NewWebSearch creates a new WebSearchSkill.
@@ -79,6 +86,8 @@ func (s *WebSearchSkill) Setup() bool {
 		"I couldn't find quality results for '{query}'. "+
 			"The search returned only low-quality or inaccessible pages. "+
 			"Try rephrasing your search or asking about a different topic.")
+	s.responsePrefix = s.GetParamString("response_prefix", "")
+	s.responsePostfix = s.GetParamString("response_postfix", "")
 	return true
 }
 
@@ -702,7 +711,14 @@ func (s *WebSearchSkill) handleWebSearch(args map[string]any, _ map[string]any) 
 		sb.WriteString("\n" + strings.Repeat("=", 50) + "\n\n")
 	}
 
-	return swaig.NewFunctionResult(fmt.Sprintf("Quality web search results for '%s':\n\n%s", query, sb.String()))
+	response := fmt.Sprintf("Quality web search results for '%s':\n\n%s", query, sb.String())
+	if s.responsePrefix != "" {
+		response = s.responsePrefix + "\n\n" + response
+	}
+	if s.responsePostfix != "" {
+		response = response + "\n\n" + s.responsePostfix
+	}
+	return swaig.NewFunctionResult(response)
 }
 
 // formatNoResults returns the configured no-results message with query substituted.

@@ -94,6 +94,121 @@ func TestSetLanguages_ReplaceAll(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-language params: AddLanguageTyped(...params), SetLanguageParams,
+// GetLanguageParams. Mirrors Python TestPerLanguageParams (11 cases) — see
+// signalwire-python tests/unit/core/mixins/test_ai_config_mixin.py.
+// ---------------------------------------------------------------------------
+
+func TestAddLanguageTyped_WithParams_AttachesParams(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("English", "en-US", "josh", nil, nil, "elevenlabs", "",
+		map[string]any{"stability": 0.5, "similarity_boost": 0.75})
+	got, _ := a.languages[0]["params"].(map[string]any)
+	if got == nil {
+		t.Fatalf("expected params map on language; got %#v", a.languages[0])
+	}
+	if got["stability"] != 0.5 || got["similarity_boost"] != 0.75 {
+		t.Errorf("params = %v; want stability=0.5, similarity_boost=0.75", got)
+	}
+}
+
+func TestAddLanguageTyped_WithoutParams_OmitsKey(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("French", "fr-FR", "fr-FR-Neural2-A", nil, nil, "", "")
+	if _, ok := a.languages[0]["params"]; ok {
+		t.Errorf("expected no params key when none passed; got %#v", a.languages[0])
+	}
+}
+
+func TestAddLanguageTyped_WithEmptyParams_OmitsKey(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("French", "fr-FR", "v", nil, nil, "", "", map[string]any{})
+	if _, ok := a.languages[0]["params"]; ok {
+		t.Errorf("expected no params key for empty map; got %#v", a.languages[0])
+	}
+}
+
+func TestGetLanguageParams_ReturnsSetDict(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "", map[string]any{"a": 1})
+	got := a.GetLanguageParams("en-US")
+	if got == nil {
+		t.Fatalf("expected params map; got nil")
+	}
+	if got["a"] != 1 {
+		t.Errorf("params[a] = %v; want 1", got["a"])
+	}
+}
+
+func TestGetLanguageParams_ReturnsNilWhenUnset(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "")
+	if got := a.GetLanguageParams("en-US"); got != nil {
+		t.Errorf("expected nil for unset params; got %v", got)
+	}
+}
+
+func TestGetLanguageParams_ReturnsNilForUnknownCode(t *testing.T) {
+	a := NewAgentBase()
+	if got := a.GetLanguageParams("zh-CN"); got != nil {
+		t.Errorf("expected nil for unknown code; got %v", got)
+	}
+}
+
+func TestSetLanguageParams_ReplacesExisting(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "", map[string]any{"a": 1})
+	a.SetLanguageParams("en-US", map[string]any{"b": 2})
+	got := a.GetLanguageParams("en-US")
+	if got == nil || got["b"] != 2 {
+		t.Errorf("expected params = {b:2}; got %v", got)
+	}
+	if _, hasA := got["a"]; hasA {
+		t.Errorf("replacement should drop old keys; got %v", got)
+	}
+}
+
+func TestSetLanguageParams_AddsWhenUnset(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "")
+	a.SetLanguageParams("en-US", map[string]any{"c": 3})
+	got := a.GetLanguageParams("en-US")
+	if got == nil || got["c"] != 3 {
+		t.Errorf("expected params = {c:3}; got %v", got)
+	}
+}
+
+func TestSetLanguageParams_EmptyDictRemovesKey(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "", map[string]any{"a": 1})
+	a.SetLanguageParams("en-US", map[string]any{})
+	if got := a.GetLanguageParams("en-US"); got != nil {
+		t.Errorf("expected nil after empty-dict set; got %v", got)
+	}
+	if _, ok := a.languages[0]["params"]; ok {
+		t.Errorf("params key should be removed from language map; got %v", a.languages[0])
+	}
+}
+
+func TestSetLanguageParams_UnknownCodeIsNoop(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "")
+	a.SetLanguageParams("zh-CN", map[string]any{"a": 1})
+	// The known language remains untouched.
+	if _, ok := a.languages[0]["params"]; ok {
+		t.Errorf("untouched language should still have no params; got %v", a.languages[0])
+	}
+}
+
+func TestSetLanguageParams_ReturnsSelfForChaining(t *testing.T) {
+	a := NewAgentBase()
+	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "")
+	if got := a.SetLanguageParams("en-US", map[string]any{"a": 1}); got != a {
+		t.Errorf("SetLanguageParams should return self for chaining")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Pronunciations
 // ---------------------------------------------------------------------------
 

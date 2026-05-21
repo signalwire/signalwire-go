@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ ebcc23ccbd7652e77ed434287681d8850257773b (go/ast walker)",
+  "generated_from": "signalwire-go @ 8e1fe13ba323131732759b840f5297321456e40e (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2887,6 +2887,20 @@
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
             },
+            "get_language_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
             "logger": {
               "params": [
                 {
@@ -2933,6 +2947,25 @@
                 {
                   "name": "fillers",
                   "type": "dict\u003cstring,dict\u003cstring,list\u003cstring\u003e\u003e\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.agent_base.AgentBase"
+            },
+            "set_language_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "params",
+                  "type": "dict\u003cstring,any\u003e",
                   "required": true
                 }
               ],

@@ -1139,7 +1139,7 @@ func (a *AgentBase) AddLanguage(config map[string]any) *AgentBase {
 // Python equivalent: ai_config_mixin.AIConfigMixin.add_language
 // Python signature: add_language(name, code, voice, speech_fillers=None,
 //
-//	function_fillers=None, engine=None, model=None)
+//	function_fillers=None, engine=None, model=None, params=None)
 //
 // Parameters:
 //   - name:            display name (e.g. "English")
@@ -1149,7 +1149,11 @@ func (a *AgentBase) AddLanguage(config map[string]any) *AgentBase {
 //   - functionFillers: filler phrases played during SWAIG function calls
 //   - engine:          explicit TTS engine name (e.g. "elevenlabs")
 //   - model:           explicit TTS model name (e.g. "eleven_turbo_v2_5")
-func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, functionFillers []string, engine, model string) *AgentBase {
+//   - params:          optional per-language params dict (engine-specific tuning,
+//     voice settings, etc.). Variadic — passing a single non-empty
+//     map[string]any emits the SWML language object's "params" key.
+//     Empty or omitted → key not emitted.
+func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, functionFillers []string, engine, model string, params ...map[string]any) *AgentBase {
 	lang := map[string]any{
 		"name": name,
 		"code": code,
@@ -1195,10 +1199,70 @@ func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, fu
 		lang["fillers"] = functionFillers
 	}
 
+	// Per-language params (engine-specific tuning, voice settings, etc.).
+	// Only emit the "params" key when a non-empty map was passed, matching the
+	// Python behavior of not polluting SWML with empty objects.
+	if len(params) > 0 && len(params[0]) > 0 {
+		lang["params"] = params[0]
+	}
+
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.languages = append(a.languages, lang)
 	return a
+}
+
+// SetLanguageParams sets (or replaces) the per-language params dict on an
+// already-added language. Useful when language entries are built up via
+// AddLanguage/AddLanguageTyped first and engine-specific tuning is added
+// later (e.g., from a config loader).
+//
+// Python equivalent: ai_config_mixin.AIConfigMixin.set_language_params
+// Python signature: set_language_params(code, params)
+//
+// Parameters:
+//   - code:   language code as previously passed to AddLanguage (e.g. "en-US")
+//   - params: engine-specific params dict to attach. Empty/nil removes the key.
+//
+// Returns the AgentBase for chaining. No-op if the code isn't found.
+func (a *AgentBase) SetLanguageParams(code string, params map[string]any) *AgentBase {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, lang := range a.languages {
+		if c, _ := lang["code"].(string); c == code {
+			if len(params) > 0 {
+				lang["params"] = params
+			} else {
+				delete(lang, "params")
+			}
+			break
+		}
+	}
+	return a
+}
+
+// GetLanguageParams reads the per-language params dict for a previously-added
+// language.
+//
+// Python equivalent: ai_config_mixin.AIConfigMixin.get_language_params
+// Python signature: get_language_params(code) -> Optional[Dict[str, Any]]
+//
+// Returns the params map if set, or nil otherwise (including when the code is
+// unknown). Callers can distinguish "no params set" from "empty params set" by
+// the fact that empty maps are never stored (SetLanguageParams with an empty
+// dict removes the key).
+func (a *AgentBase) GetLanguageParams(code string) map[string]any {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	for _, lang := range a.languages {
+		if c, _ := lang["code"].(string); c == code {
+			if p, ok := lang["params"].(map[string]any); ok {
+				return p
+			}
+			return nil
+		}
+	}
+	return nil
 }
 
 // SetLanguages replaces all language configurations.
