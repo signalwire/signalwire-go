@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -37,6 +39,21 @@ type WebSearchSkill struct {
 	// native_vector_search skill. Empty strings = no wrapping.
 	responsePrefix  string
 	responsePostfix string
+	// Latency-control parameters. The SignalWire kernel times out webhook
+	// responses around 55s, so the handler MUST finish under that. Mirrors
+	// Python's web_search/skill.py (51101da + 295745b).
+	//   perPageTimeout: max seconds to wait on a single page scrape.
+	//   overallDeadline: wall-clock budget for the whole tool call. Once
+	//     exceeded, any in-flight scrapes are abandoned and we format
+	//     whatever results we already have (or fall back to snippets).
+	//   parallelScrape: fetch all candidate pages concurrently via goroutines
+	//     instead of one-after-the-other (best-effort, not contracted).
+	//   snippetsOnly: skip scraping entirely and return Google CSE snippets
+	//     only. Fastest mode (sub-second).
+	perPageTimeout  float64
+	overallDeadline float64
+	parallelScrape  bool
+	snippetsOnly    bool
 }
 
 // NewWebSearch creates a new WebSearchSkill.
@@ -88,6 +105,13 @@ func (s *WebSearchSkill) Setup() bool {
 			"Try rephrasing your search or asking about a different topic.")
 	s.responsePrefix = s.GetParamString("response_prefix", "")
 	s.responsePostfix = s.GetParamString("response_postfix", "")
+	// Latency-control parameters (Python parity: 51101da). Defaults are the
+	// same: per_page_timeout=2.0s, overall_deadline=10.0s, parallel_scrape=true,
+	// snippets_only=false.
+	s.perPageTimeout = s.GetParamFloat("per_page_timeout", 2.0)
+	s.overallDeadline = s.GetParamFloat("overall_deadline", 10.0)
+	s.parallelScrape = s.GetParamBool("parallel_scrape", true)
+	s.snippetsOnly = s.GetParamBool("snippets_only", false)
 	return true
 }
 
@@ -198,63 +222,78 @@ func isRedditURL(rawURL string) bool {
 	return strings.Contains(host, "reddit.com") || strings.Contains(host, "redd.it")
 }
 
-// extractTextFromURL routes to the appropriate extractor.
-func (s *WebSearchSkill) extractTextFromURL(rawURL string) (string, map[string]any) {
+// extractTextFromURL routes to the appropriate extractor. ctx carries the
+// overall_deadline (so an abandoned scrape is torn down promptly); timeout caps
+// the per-page HTTP fetch (per_page_timeout). Whichever fires first wins.
+func (s *WebSearchSkill) extractTextFromURL(ctx context.Context, rawURL string, timeout time.Duration) (string, map[string]any) {
 	if isRedditURL(rawURL) {
-		return s.extractRedditContent(rawURL)
+		return s.extractRedditContent(ctx, rawURL, timeout)
 	}
-	return s.extractHTMLContent(rawURL)
+	return s.extractHTMLContent(ctx, rawURL, timeout)
+}
+
+// pageTimeout converts the configured per_page_timeout (seconds) into a
+// time.Duration, falling back to a sane fixed bound when unset/non-positive so
+// a misconfiguration can never produce an unbounded fetch.
+func (s *WebSearchSkill) pageTimeout(fallback time.Duration) time.Duration {
+	if s.perPageTimeout > 0 {
+		return time.Duration(s.perPageTimeout * float64(time.Second))
+	}
+	return fallback
 }
 
 // extractRedditContent fetches the Reddit JSON API for a post URL, extracts post
-// title, body, and top-scored comments, then calculates quality metrics.
-func (s *WebSearchSkill) extractRedditContent(rawURL string) (string, map[string]any) {
+// title, body, and top-scored comments, then calculates quality metrics. ctx
+// carries the overall_deadline; timeout caps the HTTP fetch (per_page_timeout).
+func (s *WebSearchSkill) extractRedditContent(ctx context.Context, rawURL string, timeout time.Duration) (string, map[string]any) {
 	jsonURL := strings.TrimRight(rawURL, "/") + ".json"
 	if strings.HasSuffix(rawURL, ".json") {
 		jsonURL = rawURL
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	req, err := http.NewRequest("GET", jsonURL, nil)
+	reqCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	client := &http.Client{}
+	req, err := http.NewRequestWithContext(reqCtx, "GET", jsonURL, nil)
 	if err != nil {
-		return s.extractHTMLContent(rawURL)
+		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
 	req.Header.Set("User-Agent", "SignalWire-WebSearch/2.0")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return s.extractHTMLContent(rawURL)
+		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return s.extractHTMLContent(rawURL)
+		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return s.extractHTMLContent(rawURL)
+		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
 
 	var data []any
 	if err := json.Unmarshal(body, &data); err != nil || len(data) < 1 {
-		return s.extractHTMLContent(rawURL)
+		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
 
 	// data[0] contains the post listing
 	listing, ok := data[0].(map[string]any)
 	if !ok {
-		return s.extractHTMLContent(rawURL)
+		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
 	listingData, _ := listing["data"].(map[string]any)
 	children, _ := listingData["children"].([]any)
 	if len(children) == 0 {
-		return s.extractHTMLContent(rawURL)
+		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
 	child0, _ := children[0].(map[string]any)
 	postData, _ := child0["data"].(map[string]any)
 	if postData == nil {
-		return s.extractHTMLContent(rawURL)
+		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
 
 	title := stringVal(postData["title"])
@@ -365,10 +404,13 @@ func (s *WebSearchSkill) extractRedditContent(rawURL string) (string, map[string
 }
 
 // extractHTMLContent fetches a web page and extracts meaningful text content,
-// removing navigation, ads, scripts, and other boilerplate.
-func (s *WebSearchSkill) extractHTMLContent(rawURL string) (string, map[string]any) {
-	client := &http.Client{Timeout: 10 * time.Second}
-	req, err := http.NewRequest("GET", rawURL, nil)
+// removing navigation, ads, scripts, and other boilerplate. ctx carries the
+// overall_deadline; timeout caps the HTTP fetch (per_page_timeout).
+func (s *WebSearchSkill) extractHTMLContent(ctx context.Context, rawURL string, timeout time.Duration) (string, map[string]any) {
+	reqCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	client := &http.Client{}
+	req, err := http.NewRequestWithContext(reqCtx, "GET", rawURL, nil)
 	if err != nil {
 		return "", map[string]any{"error": err.Error(), "quality_score": 0}
 	}
@@ -581,6 +623,104 @@ func calculateContentQuality(text, rawURL, query string) map[string]any {
 	return metrics
 }
 
+// scrapeOne fetches and scores a single candidate under the per_page_timeout
+// bound (and the overall_deadline carried by ctx). Returns nil when the page is
+// empty or below the quality threshold. Mirrors Python's _scrape_one closure.
+func (s *WebSearchSkill) scrapeOne(ctx context.Context, query string, r searchResult) *processedResult {
+	text, metrics := s.extractTextFromURL(ctx, r.link, s.pageTimeout(10*time.Second))
+	if text == "" {
+		return nil
+	}
+	// Recalculate with query for relevance scoring.
+	metrics = calculateContentQuality(text, r.link, query)
+	qs, _ := metrics["quality_score"].(float64)
+	if qs < s.minQualityScore {
+		return nil
+	}
+	dom, _ := metrics["domain"].(string)
+	if dom == "" {
+		u, _ := url.Parse(r.link)
+		dom = strings.ToLower(u.Hostname())
+	}
+	return &processedResult{
+		title:        r.title,
+		link:         r.link,
+		snippet:      r.snippet,
+		content:      text,
+		domain:       dom,
+		qualityScore: qs,
+		metrics:      metrics,
+	}
+}
+
+// scrapeCandidates scrapes and scores the candidate results under the
+// overall_deadline budget (deadlineAt). A deadline-bound context is derived so
+// in-flight HTTP fetches are actually cancelled — not merely unharvested — once
+// time is up. When parallel_scrape is true it dispatches each candidate in its
+// own goroutine and harvests results as they finish, abandoning anything still
+// in flight at the deadline. When false it scrapes sequentially, breaking once
+// the deadline passes (and honoring the inter-request delay). The
+// overall_deadline is enforced in BOTH modes.
+func (s *WebSearchSkill) scrapeCandidates(query string, searchResults []searchResult, deadlineAt time.Time) []processedResult {
+	ctx, cancel := context.WithDeadline(context.Background(), deadlineAt)
+	defer cancel() // tear down any still-running fetches when we return
+
+	if !s.parallelScrape {
+		// Sequential mode (legacy). Still honors overall_deadline.
+		var processed []processedResult
+		for _, r := range searchResults {
+			if !time.Now().Before(deadlineAt) {
+				break
+			}
+			if item := s.scrapeOne(ctx, query, r); item != nil {
+				processed = append(processed, *item)
+			}
+			if s.defaultDelay > 0 {
+				time.Sleep(time.Duration(s.defaultDelay * float64(time.Second)))
+			}
+		}
+		return processed
+	}
+
+	// Parallel mode: dispatch all scrapes at once, harvest whatever finishes
+	// before the deadline, and abandon the rest. The results channel is
+	// buffered to len(searchResults) so an abandoned goroutine can always send
+	// without blocking (no leak even though we stop reading at the deadline).
+	results := make(chan *processedResult, len(searchResults))
+	var wg sync.WaitGroup
+	for _, r := range searchResults {
+		wg.Add(1)
+		go func(r searchResult) {
+			defer wg.Done()
+			results <- s.scrapeOne(ctx, query, r)
+		}(r)
+	}
+	// Close the channel once every goroutine has reported, so a clean
+	// (deadline-not-hit) run can drain to completion via range.
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	var processed []processedResult
+	for {
+		select {
+		case item, ok := <-results:
+			if !ok {
+				// All goroutines reported before the deadline.
+				return processed
+			}
+			if item != nil {
+				processed = append(processed, *item)
+			}
+		case <-ctx.Done():
+			// Out of time. The context deadline also cancels every in-flight
+			// fetch; return what we have. THIS IS THE overall_deadline CONTRACT.
+			return processed
+		}
+	}
+}
+
 func (s *WebSearchSkill) handleWebSearch(args map[string]any, _ map[string]any) *swaig.FunctionResult {
 	query, _ := args["query"].(string)
 	query = strings.TrimFunc(query, unicode.IsSpace)
@@ -594,6 +734,12 @@ func (s *WebSearchSkill) handleWebSearch(args map[string]any, _ map[string]any) 
 		fetchCount = 1
 	}
 
+	// overall_deadline is the wall-clock budget for the whole tool call. The
+	// SignalWire kernel times out webhook responses around 55s; once this
+	// fires, in-flight scrapes are abandoned and we return whatever we have
+	// (or fall back to CSE snippets). THIS IS THE CONTRACT.
+	deadlineAt := time.Now().Add(time.Duration(s.overallDeadline * float64(time.Second)))
+
 	searchResults, err := s.searchGoogle(query, fetchCount)
 	if err != nil {
 		return swaig.NewFunctionResult("Sorry, I encountered an error while searching. Please try again later.")
@@ -602,40 +748,25 @@ func (s *WebSearchSkill) handleWebSearch(args map[string]any, _ map[string]any) 
 		return swaig.NewFunctionResult(s.formatNoResults(query))
 	}
 
-	// Scrape and score each result
-	var processed []processedResult
-	for _, r := range searchResults {
-		text, metrics := s.extractTextFromURL(r.link)
-		if text != "" {
-			// Recalculate with query for relevance
-			metrics = calculateContentQuality(text, r.link, query)
-		}
-
-		qs, _ := metrics["quality_score"].(float64)
-		if qs >= s.minQualityScore && text != "" {
-			dom, _ := metrics["domain"].(string)
-			if dom == "" {
-				u, _ := url.Parse(r.link)
-				dom = strings.ToLower(u.Hostname())
-			}
-			processed = append(processed, processedResult{
-				title:        r.title,
-				link:         r.link,
-				snippet:      r.snippet,
-				content:      text,
-				domain:       dom,
-				qualityScore: qs,
-				metrics:      metrics,
-			})
-		}
-
-		if s.defaultDelay > 0 {
-			time.Sleep(time.Duration(s.defaultDelay * float64(time.Second)))
-		}
+	// snippets_only fast path: skip page scraping entirely and format the CSE
+	// snippets directly. Sub-second response.
+	if s.snippetsOnly {
+		return swaig.NewFunctionResult(s.formatSnippetResults(query, searchResults, s.numResults))
 	}
 
+	// Scrape and score the candidates under the overall_deadline budget. In
+	// parallel mode each candidate is fetched in its own goroutine and results
+	// are harvested as they finish; whatever has not returned by the deadline
+	// is abandoned. In sequential mode we scrape one-at-a-time, breaking out
+	// once the deadline passes (still honoring the inter-request delay).
+	processed := s.scrapeCandidates(query, searchResults, deadlineAt)
+
 	if len(processed) == 0 {
-		return swaig.NewFunctionResult(s.formatNoResults(query))
+		// Time ran out or every page was below the quality threshold. Fall
+		// back to snippet-only results so we return SOMETHING useful before
+		// the kernel webhook timeout fires, rather than an empty no-results
+		// message. (Python parity: 51101da.)
+		return swaig.NewFunctionResult(s.formatSnippetResults(query, searchResults, s.numResults))
 	}
 
 	// Sort by quality score descending
@@ -712,18 +843,54 @@ func (s *WebSearchSkill) handleWebSearch(args map[string]any, _ map[string]any) 
 	}
 
 	response := fmt.Sprintf("Quality web search results for '%s':\n\n%s", query, sb.String())
+	return swaig.NewFunctionResult(s.wrapResponse(response))
+}
+
+// formatNoResults returns the configured no-results message with query substituted.
+func (s *WebSearchSkill) formatNoResults(query string) string {
+	return strings.ReplaceAll(s.noResultsMessage, "{query}", query)
+}
+
+// formatSnippetResults formats Google CSE snippets without fetching the
+// underlying pages. Used when snippets_only is true, or as a graceful fallback
+// when page scraping is abandoned by the overall_deadline. The result is
+// shorter than a fully-scraped response but always non-empty when CSE returned
+// anything at all, so the kernel never sees a webhook timeout. Mirrors Python's
+// GoogleSearchScraper._format_snippet_results.
+func (s *WebSearchSkill) formatSnippetResults(query string, results []searchResult, numResults int) string {
+	if len(results) == 0 {
+		return s.formatNoResults(query)
+	}
+	top := numResults
+	if top < 1 {
+		top = 1
+	}
+	if top > len(results) {
+		top = len(results)
+	}
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Snippet-only results for '%s' (page content not scraped):\n\n", query))
+	for i, r := range results[:top] {
+		sb.WriteString(fmt.Sprintf("=== RESULT %d ===\n", i+1))
+		sb.WriteString(fmt.Sprintf("Title: %s\n", r.title))
+		sb.WriteString(fmt.Sprintf("URL: %s\n", r.link))
+		sb.WriteString(fmt.Sprintf("Snippet: %s\n", strings.TrimSpace(r.snippet)))
+		sb.WriteString("\n")
+	}
+	return s.wrapResponse(strings.TrimRight(sb.String(), "\n"))
+}
+
+// wrapResponse applies the optional response_prefix / response_postfix around a
+// non-empty result body. Shared by the scraped-result and snippet-fallback
+// paths; the error and no-results branches deliberately stay unwrapped.
+func (s *WebSearchSkill) wrapResponse(response string) string {
 	if s.responsePrefix != "" {
 		response = s.responsePrefix + "\n\n" + response
 	}
 	if s.responsePostfix != "" {
 		response = response + "\n\n" + s.responsePostfix
 	}
-	return swaig.NewFunctionResult(response)
-}
-
-// formatNoResults returns the configured no-results message with query substituted.
-func (s *WebSearchSkill) formatNoResults(query string) string {
-	return strings.ReplaceAll(s.noResultsMessage, "{query}", query)
+	return response
 }
 
 // GetGlobalData returns global context data signalling that quality-filtered web
@@ -809,6 +976,44 @@ func (s *WebSearchSkill) GetParameterSchema() map[string]map[string]any {
 		"type":        "string",
 		"description": "Message to show when no quality results are found. Use {query} as placeholder.",
 		"default":     "I couldn't find quality results for '{query}'. The search returned only low-quality or inaccessible pages. Try rephrasing your search or asking about a different topic.",
+		"required":    false,
+	}
+	schema["response_prefix"] = map[string]any{
+		"type":        "string",
+		"description": "Optional text prepended to every non-empty search result.",
+		"default":     "",
+		"required":    false,
+	}
+	schema["response_postfix"] = map[string]any{
+		"type":        "string",
+		"description": "Optional text appended to every non-empty search result.",
+		"default":     "",
+		"required":    false,
+	}
+	schema["per_page_timeout"] = map[string]any{
+		"type":        "number",
+		"description": "Maximum seconds to wait on a single page scrape.",
+		"default":     2.0,
+		"required":    false,
+		"min":         0.1,
+	}
+	schema["overall_deadline"] = map[string]any{
+		"type":        "number",
+		"description": "Wall-clock budget in seconds for the whole tool call. In-flight scrapes are abandoned past this so the response beats the kernel webhook timeout.",
+		"default":     10.0,
+		"required":    false,
+		"min":         1.0,
+	}
+	schema["parallel_scrape"] = map[string]any{
+		"type":        "boolean",
+		"description": "Scrape all candidate pages concurrently (goroutines) instead of sequentially.",
+		"default":     true,
+		"required":    false,
+	}
+	schema["snippets_only"] = map[string]any{
+		"type":        "boolean",
+		"description": "Skip page scraping entirely and return Google CSE snippets only. Fastest mode (sub-second).",
+		"default":     false,
 		"required":    false,
 	}
 	return schema
