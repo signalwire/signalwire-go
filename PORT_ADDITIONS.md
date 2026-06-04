@@ -45,6 +45,7 @@ livewire.InferenceTTS: Go livewire plugin stub; resolves WithSTT/WithTTS provide
 livewire.OpenAITTS: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
 livewire.ToolError: Go-only struct; no direct Python counterpart
 logging.Logger: Go-only struct; no direct Python counterpart
+logging.LogLevel: Go-only defined-string type (closed set of log-level names: debug/info/warn/warning/error/off) + LevelName* typed constants; server.WithLogLevel takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "debug" string compiling — parity with the reference's plain str log_level. ParseLevel(string(LogLevel)) resolves it to the internal Level, so it adds zero signature drift (it appears on no oracle method param). Distinct from the internal Level severity int.
 namespaces.CallFlowOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 namespaces.CrudResource: Go REST resource type; Python uses dynamic resource accessors via __getattr__
 namespaces.CrudWithAddresses: Go-only struct; no direct Python counterpart
@@ -66,12 +67,14 @@ prefabs.SurveyQuestion: Go-only struct; no direct Python counterpart
 relay.AIEvent: Go-only struct; no direct Python counterpart
 relay.CollectParams: Go-only struct; no direct Python counterpart
 relay.RelayError: Go-only struct; no direct Python counterpart
+relay.TTSGender: Go-only defined-string type (closed set of TTS voice genders: male/female) + GenderMale/GenderFemale typed constants; WithTTSGender (the play_tts/prompt_tts gender option) takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "female" string compiling — parity with the reference's plain str gender. Stored on the wire as a plain string, so it adds zero signature drift (it appears on no oracle method param).
 server.AgentEntry: Go-only struct; no direct Python counterpart
 skills.ToolRegistration: Go-only struct; no direct Python counterpart
 skills.SkillName: Go-only defined-string type (closed set of the 18 built-in skill names) + Skill* typed constants; AddSkill/RemoveSkill/HasSkill take it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps bare "datetime" / SkillName("custom") strings compiling — parity with the reference's str. Wire-identical to string, so signature drift stays 0 (the union<class:...,string> the enumerator emits absorbs against the reference's str). Mirrors the PHP SkillName backed-enum proof.
 swaig.JoinConferenceOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 swaig.PayOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 swaig.RecordCallOptions: Go-only options struct; encodes Python kwargs for the matching constructor
+swaig.RecordFormat: Go-only defined-string type (closed set of recording formats: mp3/wav/mp4) + Format* typed constants; FunctionResult.RecordCall (and the relay/agent WithRecordFormat options) take it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "wav" string compiling — parity with the reference's str format. Wire-identical to string, so signature drift stays 0 (the union<class:swaig.RecordFormat,string> the enumerator emits for record_call's format param absorbs against the reference's str).
 swml.AIVerbHandler: Go-only struct; no direct Python counterpart
 swml.Document: Go-only struct; no direct Python counterpart
 swml.Schema: Go-only struct; no direct Python counterpart

@@ -170,9 +170,13 @@ func WithRecordCall(record bool) AgentOption {
 	return func(a *AgentBase) { a.recordCall = record }
 }
 
-// WithRecordFormat sets the recording format (e.g. "mp4", "wav").
-func WithRecordFormat(format string) AgentOption {
-	return func(a *AgentBase) { a.recordFormat = format }
+// WithRecordFormat sets the recording format (e.g. "mp4", "wav"). The
+// parameter is the defined string type swaig.RecordFormat: the Format*
+// constants give autocomplete + a compile-time typo check, while Go's
+// untyped-constant auto-conversion keeps a bare "wav" literal compiling. It is
+// stored as a plain string so the emitted SWML is unchanged.
+func WithRecordFormat(format swaig.RecordFormat) AgentOption {
+	return func(a *AgentBase) { a.recordFormat = string(format) }
 }
 
 // WithRecordStereo enables or disables stereo recording.

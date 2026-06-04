@@ -36,6 +36,41 @@ func TestParseLevel(t *testing.T) {
 	}
 }
 
+// TestLogLevelEnumOrString proves each typed LogLevel constant resolves through
+// ParseLevel to the IDENTICAL Level as its bare-string equivalent — so the
+// typed const and the plain string (which the Python reference uses) are
+// behaviorally interchangeable. Real behavior — the live ParseLevel switch.
+func TestLogLevelEnumOrString(t *testing.T) {
+	cases := []struct {
+		name LogLevel
+		str  string
+		want Level
+	}{
+		{LevelNameDebug, "debug", LevelDebug},
+		{LevelNameInfo, "info", LevelInfo},
+		{LevelNameWarn, "warn", LevelWarn},
+		{LevelNameWarning, "warning", LevelWarn},
+		{LevelNameError, "error", LevelError},
+		{LevelNameOff, "off", LevelOff},
+	}
+	for _, c := range cases {
+		// The defined-string constant's value is the canonical level name.
+		if string(c.name) != c.str {
+			t.Errorf("LogLevel const = %q, want %q", string(c.name), c.str)
+		}
+		// Typed const and bare string resolve to the same Level.
+		gotConst := ParseLevel(string(c.name))
+		gotStr := ParseLevel(c.str)
+		if gotConst != c.want {
+			t.Errorf("ParseLevel(%q const) = %v, want %v", c.name, gotConst, c.want)
+		}
+		if gotConst != gotStr {
+			t.Errorf("typed const %q (%v) and string %q (%v) resolved to different Levels",
+				c.name, gotConst, c.str, gotStr)
+		}
+	}
+}
+
 func TestSetGetGlobalLevel(t *testing.T) {
 	original := GetGlobalLevel()
 	defer SetGlobalLevel(original)

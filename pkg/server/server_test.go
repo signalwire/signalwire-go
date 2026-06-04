@@ -10,7 +10,33 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/logging"
 )
+
+// TestWithLogLevel_EnumOrString proves the user-facing WithLogLevel option sets
+// the IDENTICAL global level whether given the typed logging.LevelNameDebug
+// constant or the bare "debug" string (the Python reference uses a plain str).
+// Real behavior — the option mutates the live global logging level.
+func TestWithLogLevel_EnumOrString(t *testing.T) {
+	original := logging.GetGlobalLevel()
+	defer logging.SetGlobalLevel(original)
+
+	// Typed constant path.
+	_ = NewAgentServer(WithLogLevel(logging.LevelNameDebug))
+	viaConst := logging.GetGlobalLevel()
+
+	// Reset, then the bare-string path.
+	logging.SetGlobalLevel(original)
+	_ = NewAgentServer(WithLogLevel("debug"))
+	viaStr := logging.GetGlobalLevel()
+
+	if viaConst != logging.LevelDebug {
+		t.Errorf("WithLogLevel(LevelNameDebug) set %v, want LevelDebug", viaConst)
+	}
+	if viaConst != viaStr {
+		t.Errorf("typed const (%v) and string (%v) set different global levels", viaConst, viaStr)
+	}
+}
 
 // ---------------------------------------------------------------------------
 // Constructor tests

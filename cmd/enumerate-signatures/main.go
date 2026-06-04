@@ -326,6 +326,22 @@ func loadAliases(path string) (map[string]string, error) {
 	return doc.Aliases.Go, nil
 }
 
+// closedSetUnions maps the Go defined-string closed-set types (and their
+// bare/qualified spellings) to the canonical union<class:...,string> the
+// audit vocabulary expects. The string member absorbs against the reference's
+// plain `str`, so typing these params adds zero signature drift while giving
+// Go callers typed constants. See the Tier-1 block in translateType.
+var closedSetUnions = map[string]string{
+	"skills.SkillName":   "union<class:signalwire.skills.SkillName,string>",
+	"SkillName":          "union<class:signalwire.skills.SkillName,string>",
+	"swaig.RecordFormat": "union<class:signalwire.swaig.RecordFormat,string>",
+	"RecordFormat":       "union<class:signalwire.swaig.RecordFormat,string>",
+	"relay.TTSGender":    "union<class:signalwire.relay.TTSGender,string>",
+	"TTSGender":          "union<class:signalwire.relay.TTSGender,string>",
+	"logging.LogLevel":   "union<class:signalwire.logging.LogLevel,string>",
+	"LogLevel":           "union<class:signalwire.logging.LogLevel,string>",
+}
+
 // translateType maps a source-level Go type expression to the canonical
 // vocabulary. Returns ("", failure) when the type can't be translated;
 // the caller decides whether to fail loudly or skip.
@@ -334,15 +350,19 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	if t == "" {
 		return "void", nil
 	}
-	// skills.SkillName is a defined string type (a closed-set enum of the
-	// built-in skill names). AddSkill/RemoveSkill/HasSkill take it for
-	// autocomplete + call-site typo checking, but Go auto-converts untyped
-	// string-constant literals, so a bare "datetime" still compiles —
-	// preserving parity with the reference's `string` parameter. Emit it as a
-	// union (the typed-name OR a string), mirroring the PHP `SkillName|string`
-	// proof; the `string` member keeps drift 0 against the reference's str.
-	if t == "skills.SkillName" || t == "SkillName" {
-		return "union<class:signalwire.skills.SkillName,string>", nil
+	// Tier-1 closed-set defined string types. Each is a Go `type X string`
+	// with typed constants used at a user-facing closed-set boundary
+	// (skill name, record format, TTS gender, log-level name). The typed
+	// param gives autocomplete + call-site typo checking, but Go auto-converts
+	// untyped string-constant literals, so a bare "datetime" / "wav" / "female"
+	// / "debug" still compiles — preserving parity with the reference's plain
+	// `str`. Each is emitted as a union (the typed-name OR a string), mirroring
+	// the PHP backed-enum proofs; the `string` member keeps drift 0 against the
+	// reference's str. Both the qualified (pkg.Type) and bare (Type) spellings
+	// are matched because the enumerator sees source-level expressions from
+	// either the defining package or an importer.
+	if canon, ok := closedSetUnions[t]; ok {
+		return canon, nil
 	}
 	// Pointer: canonical interpretation is optional<T> for value types,
 	// class:<T> for struct types. Without go/types we can't tell; default

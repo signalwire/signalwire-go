@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 65c10aa2d330cdde99103f2c90407f4b5624138d",
+  "generated_from": "signalwire-go @ 1a21e67bef83bc1da43ee29216574a616b12dd87",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -254,9 +254,11 @@
           "add_pronunciation",
           "enable_debug_events",
           "enable_mcp_server",
+          "get_language_params",
           "set_function_includes",
           "set_global_data",
           "set_internal_fillers",
+          "set_language_params",
           "set_languages",
           "set_native_functions",
           "set_param",
@@ -351,6 +353,13 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.security.webhook_validator": {
+      "classes": {},
+      "functions": [
+        "validate_request",
+        "validate_webhook_signature"
+      ]
     },
     "signalwire.core.skill_base": {
       "classes": {
@@ -559,6 +568,9 @@
           "denoise",
           "denoise_stop",
           "detect",
+          "detect_answering_machine",
+          "detect_digit",
+          "detect_fax",
           "disconnect",
           "echo",
           "hangup",
@@ -574,6 +586,12 @@
           "pay",
           "play",
           "play_and_collect",
+          "play_audio",
+          "play_ringtone",
+          "play_silence",
+          "play_tts",
+          "prompt_audio",
+          "prompt_tts",
           "queue_enter",
           "queue_leave",
           "receive_fax",
@@ -588,7 +606,10 @@
           "unhold",
           "user_event",
           "wait_for",
-          "wait_for_ended"
+          "wait_for_answered",
+          "wait_for_ended",
+          "wait_for_ending",
+          "wait_for_ringing"
         ],
         "CollectAction": [
           "__init__",

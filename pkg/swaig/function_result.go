@@ -332,10 +332,15 @@ type RecordCallOptions struct {
 // RecordCall starts background call recording using SWML.
 // controlID, stereo, format, and direction are the primary parameters.
 // Use opts to specify additional optional parameters (pass nil to use defaults).
-func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format string, direction string, opts *RecordCallOptions) *FunctionResult {
+//
+// format is the defined string type RecordFormat: the Format* constants give
+// autocomplete + a compile-time typo check, while Go's untyped-constant
+// auto-conversion keeps a bare "wav" literal compiling — parity with the Python
+// reference's str format. It is written to the wire as a plain string.
+func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format RecordFormat, direction string, opts *RecordCallOptions) *FunctionResult {
 	recordParams := map[string]any{
 		"stereo":    stereo,
-		"format":    format,
+		"format":    string(format),
 		"direction": direction,
 	}
 	if controlID != "" {

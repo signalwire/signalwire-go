@@ -590,6 +590,37 @@ func TestRecordCall(t *testing.T) {
 	}
 }
 
+// TestRecordCall_FormatEnumOrString proves the typed RecordFormat constant and
+// the bare string literal produce the IDENTICAL format token in the emitted
+// SWML record_call params. Real behavior — the verb is built and inspected, no
+// mock.
+func TestRecordCall_FormatEnumOrString(t *testing.T) {
+	// The defined-string constant's value is the canonical wire token.
+	if string(FormatWAV) != "wav" || string(FormatMP3) != "mp3" || string(FormatMP4) != "mp4" {
+		t.Fatalf("RecordFormat consts = %q/%q/%q, want wav/mp3/mp4",
+			string(FormatWAV), string(FormatMP3), string(FormatMP4))
+	}
+
+	extractFormat := func(fr *FunctionResult) any {
+		actions := fr.ToMap()["action"].([]map[string]any)
+		swml := actions[0]["SWML"].(map[string]any)
+		main := swml["sections"].(map[string]any)["main"].([]any)
+		return main[0].(map[string]any)["record_call"].(map[string]any)["format"]
+	}
+
+	// Typed constant path.
+	fConst := extractFormat(NewFunctionResult("rec").RecordCall("id", true, FormatWAV, "both", nil))
+	// Bare-string path (Python uses str).
+	fStr := extractFormat(NewFunctionResult("rec").RecordCall("id", true, "wav", "both", nil))
+
+	if fConst != "wav" {
+		t.Errorf("format via FormatWAV = %v, want wav", fConst)
+	}
+	if fConst != fStr {
+		t.Errorf("typed const (%v) and string (%v) produced different formats", fConst, fStr)
+	}
+}
+
 func TestRecordCallNoControlID(t *testing.T) {
 	fr := NewFunctionResult("recording").
 		RecordCall("", false, "mp3", "speak", nil)

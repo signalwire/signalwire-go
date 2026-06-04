@@ -59,12 +59,18 @@ func WithServerPort(port int) ServerOption {
 
 // WithLogLevel sets the global log level for the server.
 // Accepted values (case-insensitive): "debug", "info", "warn", "warning",
-// "error", "off".  Mirrors Python AgentServer(log_level=...) behavior: the
-// level is applied globally via logging.SetGlobalLevel so all loggers in the
-// process are affected.  The default level is "info".
-func WithLogLevel(level string) ServerOption {
+// "error", "off" — see the logging.LevelName* typed constants.  Mirrors Python
+// AgentServer(log_level=...) behavior: the level is applied globally via
+// logging.SetGlobalLevel so all loggers in the process are affected.  The
+// default level is "info".
+//
+// The parameter is the defined string type logging.LogLevel: the typed
+// constants give autocomplete + a compile-time typo check, while Go's
+// untyped-constant auto-conversion keeps a bare "debug" literal compiling —
+// parity with the Python reference's plain str log_level.
+func WithLogLevel(level logging.LogLevel) ServerOption {
 	return func(s *AgentServer) {
-		logging.SetGlobalLevel(logging.ParseLevel(level))
+		logging.SetGlobalLevel(logging.ParseLevel(string(level)))
 	}
 }
 

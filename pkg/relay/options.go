@@ -3,6 +3,8 @@ package relay
 import (
 	"os"
 	"time"
+
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // ---------------------------------------------------------------------------
@@ -76,8 +78,13 @@ func WithTTSLanguage(language string) TTSOption {
 }
 
 // WithTTSGender sets the TTS voice gender (Python play_tts/prompt_tts gender).
-func WithTTSGender(gender string) TTSOption {
-	return func(m map[string]any) { m["_tts_gender"] = gender }
+// The parameter is the defined string type TTSGender: the GenderMale /
+// GenderFemale constants give autocomplete + a compile-time typo check, while
+// Go's untyped-constant auto-conversion keeps a bare "female" literal
+// compiling. The value is stored as a plain string so the wire shape is
+// identical to the reference's str gender.
+func WithTTSGender(gender TTSGender) TTSOption {
+	return func(m map[string]any) { m["_tts_gender"] = string(gender) }
 }
 
 // WithTTSVoice sets the TTS voice (Python play_tts/prompt_tts voice).
@@ -193,10 +200,14 @@ func WithRecordBeep(beep bool) RecordOption {
 	}
 }
 
-// WithRecordFormat sets the recording format (e.g. "wav", "mp3").
-func WithRecordFormat(format string) RecordOption {
+// WithRecordFormat sets the recording format (e.g. "wav", "mp3"). The
+// parameter is the defined string type swaig.RecordFormat: the Format*
+// constants give autocomplete + a compile-time typo check, while Go's
+// untyped-constant auto-conversion keeps a bare "wav" literal compiling. The
+// value is stored as a plain string so the wire shape is unchanged.
+func WithRecordFormat(format swaig.RecordFormat) RecordOption {
 	return func(m map[string]any) {
-		m["format"] = format
+		m["format"] = string(format)
 	}
 }
 

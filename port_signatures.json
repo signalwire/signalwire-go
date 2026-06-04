@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ b6b2b6d9c3d225c8f65bfd2c6a0da3fd71bf19b8 (go/ast walker)",
+  "generated_from": "signalwire-go @ 1a21e67bef83bc1da43ee29216574a616b12dd87 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2155,7 +2155,7 @@
                 },
                 {
                   "name": "format",
-                  "type": "string",
+                  "type": "union\u003cclass:signalwire.swaig.RecordFormat,string\u003e",
                   "required": true
                 },
                 {

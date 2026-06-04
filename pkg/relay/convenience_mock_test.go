@@ -134,6 +134,42 @@ func TestRelay_PlayTTSEmitsTTSMedia(t *testing.T) {
 	}
 }
 
+// TestRelay_TTSGenderEnumOrString proves the typed relay.TTSGender constant and
+// the bare string literal produce the IDENTICAL gender on the wire. Real
+// behavior — the frame is journaled by the live mock_relay, no transport mock.
+func TestRelay_TTSGenderEnumOrString(t *testing.T) {
+	// The defined-string constant's value is the canonical wire token.
+	if string(relay.GenderFemale) != "female" || string(relay.GenderMale) != "male" {
+		t.Fatalf("TTSGender consts = %q/%q, want male/female",
+			string(relay.GenderMale), string(relay.GenderFemale))
+	}
+
+	// Typed constant path: GenderFemale lands as the bare "female" string.
+	c1, h1 := mocktest.New(t)
+	if c1 == nil {
+		return
+	}
+	call1 := dialAnsweredCall(t, h1, c1, "t-genc", "WIN-GENC")
+	_ = call1.PlayTTS("hi", relay.WithTTSGender(relay.GenderFemale))
+	gConst := mediaParams(t, firstMediaEntry(t, lastFrameParams(t, h1, "calling.play")))["gender"]
+
+	// Bare-string path: "female" produces the identical wire value (Python str).
+	c2, h2 := mocktest.New(t)
+	if c2 == nil {
+		return
+	}
+	call2 := dialAnsweredCall(t, h2, c2, "t-gens", "WIN-GENS")
+	_ = call2.PlayTTS("hi", relay.WithTTSGender("female"))
+	gStr := mediaParams(t, firstMediaEntry(t, lastFrameParams(t, h2, "calling.play")))["gender"]
+
+	if gConst != "female" {
+		t.Errorf("gender via GenderFemale = %v, want female", gConst)
+	}
+	if gConst != gStr {
+		t.Errorf("typed const (%v) and string (%v) produced different wire genders", gConst, gStr)
+	}
+}
+
 // TestRelay_PlayTTSOmitsUnsetOptionalParams — without options, only text is
 // present in the tts params (language/gender/voice omitted entirely).
 func TestRelay_PlayTTSOmitsUnsetOptionalParams(t *testing.T) {
