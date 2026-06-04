@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/signalwire/signalwire-go/pkg/skills"
 	"github.com/signalwire/signalwire-go/pkg/swaig"
 
 	// Import builtin skills so their init() functions register them
@@ -1600,5 +1601,67 @@ func TestAddSkill_Chaining(t *testing.T) {
 	}
 	if !a.HasSkill("math") {
 		t.Error("expected math skill")
+	}
+}
+
+// TestAddSkill_SkillNameEnumOrString proves the typed skills.SkillName constant
+// and the bare string literal load the IDENTICAL skill (the constant's value is
+// the canonical wire key), and that HasSkill/RemoveSkill accept the typed const.
+// Real behavior — no mocks: the skill is loaded into the live SkillManager.
+func TestAddSkill_SkillNameEnumOrString(t *testing.T) {
+	// The defined-string constant's value is the canonical wire string.
+	if string(skills.SkillDatetime) != "datetime" {
+		t.Fatalf("SkillDatetime = %q, want \"datetime\"", string(skills.SkillDatetime))
+	}
+
+	// Load via the typed constant; look it up both ways — same skill.
+	a := NewAgentBase()
+	a.AddSkill(skills.SkillDatetime, map[string]any{"skip_prompt": true})
+	if !a.HasSkill("datetime") { // bare-string lookup
+		t.Error("expected datetime loaded via SkillDatetime to be found by string key")
+	}
+	if !a.HasSkill(skills.SkillDatetime) { // typed-const lookup — same skill
+		t.Error("expected datetime loaded via SkillDatetime to be found by the typed const")
+	}
+
+	// RemoveSkill via the typed const unloads it.
+	a.RemoveSkill(skills.SkillDatetime)
+	if a.HasSkill("datetime") {
+		t.Error("expected datetime unloaded after RemoveSkill(SkillDatetime)")
+	}
+
+	// Parity: the bare string literal loads the identical skill (Python uses str),
+	// and the typed const finds what the string loaded.
+	b := NewAgentBase()
+	b.AddSkill("datetime", map[string]any{"skip_prompt": true})
+	if !b.HasSkill(skills.SkillDatetime) {
+		t.Error("expected datetime loaded via string to be found by the typed const")
+	}
+
+	// The typed constants must stay in lockstep with the skills the registry
+	// actually ships: each constant resolves to a registered skill, and the
+	// registry holds exactly the 18 built-ins the closed set enumerates.
+	registered := map[string]bool{}
+	for _, n := range skills.ListSkills() {
+		registered[n] = true
+	}
+	consts := []skills.SkillName{
+		skills.SkillAPINinjasTrivia, skills.SkillClaudeSkills, skills.SkillCustomSkills,
+		skills.SkillDatasphere, skills.SkillDatasphereServerless, skills.SkillDatetime,
+		skills.SkillGoogleMaps, skills.SkillInfoGatherer, skills.SkillJoke,
+		skills.SkillMath, skills.SkillMCPGateway, skills.SkillNativeVectorSearch,
+		skills.SkillPlayBackgroundFile, skills.SkillSpider, skills.SkillSWMLTransfer,
+		skills.SkillWeatherAPI, skills.SkillWebSearch, skills.SkillWikipediaSearch,
+	}
+	if len(consts) != 18 {
+		t.Errorf("SkillName closed set has %d constants, want 18", len(consts))
+	}
+	for _, c := range consts {
+		if !registered[string(c)] {
+			t.Errorf("SkillName const %q is not a registered built-in skill", string(c))
+		}
+	}
+	if len(skills.ListSkills()) != 18 {
+		t.Errorf("registry has %d built-in skills, want 18", len(skills.ListSkills()))
 	}
 }

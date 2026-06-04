@@ -68,6 +68,7 @@ relay.CollectParams: Go-only struct; no direct Python counterpart
 relay.RelayError: Go-only struct; no direct Python counterpart
 server.AgentEntry: Go-only struct; no direct Python counterpart
 skills.ToolRegistration: Go-only struct; no direct Python counterpart
+skills.SkillName: Go-only defined-string type (closed set of the 18 built-in skill names) + Skill* typed constants; AddSkill/RemoveSkill/HasSkill take it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps bare "datetime" / SkillName("custom") strings compiling — parity with the reference's str. Wire-identical to string, so signature drift stays 0 (the union<class:...,string> the enumerator emits absorbs against the reference's str). Mirrors the PHP SkillName backed-enum proof.
 swaig.JoinConferenceOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 swaig.PayOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 swaig.RecordCallOptions: Go-only options struct; encodes Python kwargs for the matching constructor

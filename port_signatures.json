@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ f1ecf3111e94ac346cde4da05062d75e2d8042d0 (go/ast walker)",
+  "generated_from": "signalwire-go @ b6b2b6d9c3d225c8f65bfd2c6a0da3fd71bf19b8 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3349,7 +3349,7 @@
                 },
                 {
                   "name": "skill_name",
-                  "type": "string",
+                  "type": "union\u003cclass:signalwire.skills.SkillName,string\u003e",
                   "required": true
                 },
                 {
@@ -3368,7 +3368,7 @@
                 },
                 {
                   "name": "skill_name",
-                  "type": "string",
+                  "type": "union\u003cclass:signalwire.skills.SkillName,string\u003e",
                   "required": true
                 }
               ],
@@ -3400,7 +3400,7 @@
                 },
                 {
                   "name": "skill_name",
-                  "type": "string",
+                  "type": "union\u003cclass:signalwire.skills.SkillName,string\u003e",
                   "required": true
                 }
               ],

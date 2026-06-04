@@ -2231,19 +2231,26 @@ func (a *AgentBase) RegisterSipUsername(username string) *AgentBase {
 // ---------------------------------------------------------------------------
 
 // AddSkill loads a skill by name with optional params and registers its tools.
-func (a *AgentBase) AddSkill(skillName string, params map[string]any) *AgentBase {
+//
+// skillName is a skills.SkillName (a defined string type). The built-in
+// skills.Skill* constants give autocomplete + call-site typo checking; because
+// Go auto-converts untyped string-constant literals, a bare "datetime" literal
+// or skills.SkillName("custom") for a third-party skill compiles identically —
+// parity with the Python reference's str parameter.
+func (a *AgentBase) AddSkill(skillName skills.SkillName, params map[string]any) *AgentBase {
 	if params == nil {
 		params = map[string]any{}
 	}
-	factory := skills.GetSkillFactory(skillName)
+	name := string(skillName)
+	factory := skills.GetSkillFactory(name)
 	if factory == nil {
-		a.Logger.Error("unknown skill: %s", skillName)
+		a.Logger.Error("unknown skill: %s", name)
 		return a
 	}
 	skill := factory(params)
 	ok, errMsg := a.skillManager.LoadSkill(skill)
 	if !ok {
-		a.Logger.Error("failed to load skill %s: %s", skillName, errMsg)
+		a.Logger.Error("failed to load skill %s: %s", name, errMsg)
 		return a
 	}
 	// Register the skill's tools with the agent
@@ -2292,9 +2299,10 @@ func (a *AgentBase) AddSkill(skillName string, params map[string]any) *AgentBase
 	return a
 }
 
-// RemoveSkill unloads a skill by name.
-func (a *AgentBase) RemoveSkill(skillName string) *AgentBase {
-	a.skillManager.UnloadSkill(skillName)
+// RemoveSkill unloads a skill by name. Accepts a skills.SkillName constant or
+// any string literal (Go auto-converts), mirroring AddSkill.
+func (a *AgentBase) RemoveSkill(skillName skills.SkillName) *AgentBase {
+	a.skillManager.UnloadSkill(string(skillName))
 	return a
 }
 
@@ -2303,9 +2311,10 @@ func (a *AgentBase) ListSkills() []string {
 	return a.skillManager.ListLoadedSkills()
 }
 
-// HasSkill returns whether a skill is loaded.
-func (a *AgentBase) HasSkill(skillName string) bool {
-	return a.skillManager.HasSkill(skillName)
+// HasSkill returns whether a skill is loaded. Accepts a skills.SkillName
+// constant or any string literal (Go auto-converts), mirroring AddSkill.
+func (a *AgentBase) HasSkill(skillName skills.SkillName) bool {
+	return a.skillManager.HasSkill(string(skillName))
 }
 
 // ---------------------------------------------------------------------------

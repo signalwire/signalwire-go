@@ -334,6 +334,16 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	if t == "" {
 		return "void", nil
 	}
+	// skills.SkillName is a defined string type (a closed-set enum of the
+	// built-in skill names). AddSkill/RemoveSkill/HasSkill take it for
+	// autocomplete + call-site typo checking, but Go auto-converts untyped
+	// string-constant literals, so a bare "datetime" still compiles —
+	// preserving parity with the reference's `string` parameter. Emit it as a
+	// union (the typed-name OR a string), mirroring the PHP `SkillName|string`
+	// proof; the `string` member keeps drift 0 against the reference's str.
+	if t == "skills.SkillName" || t == "SkillName" {
+		return "union<class:signalwire.skills.SkillName,string>", nil
+	}
 	// Pointer: canonical interpretation is optional<T> for value types,
 	// class:<T> for struct types. Without go/types we can't tell; default
 	// to optional<...> and rely on alias table to resolve known names.
