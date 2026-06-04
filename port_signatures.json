@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 8e1fe13ba323131732759b840f5297321456e40e (go/ast walker)",
+  "generated_from": "signalwire-go @ f1ecf3111e94ac346cde4da05062d75e2d8042d0 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -5089,6 +5089,48 @@
               ],
               "returns": "class:signalwire.relay.call.DetectAction"
             },
+            "detect_answering_machine": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:AMDOption\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.DetectAction"
+            },
+            "detect_digit": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:DetectDigitOption\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.DetectAction"
+            },
+            "detect_fax": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:DetectFaxOption\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.DetectAction"
+            },
             "disconnect": {
               "params": [
                 {
@@ -5319,6 +5361,125 @@
                 {
                   "name": "opts",
                   "type": "list\u003cclass:PlayOption\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.CollectAction"
+            },
+            "play_audio": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:AudioOption\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.PlayAction"
+            },
+            "play_ringtone": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:RingtoneOption\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.PlayAction"
+            },
+            "play_silence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "duration",
+                  "type": "float",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.PlayAction"
+            },
+            "play_tts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:TTSOption\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.PlayAction"
+            },
+            "prompt_audio": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "collect",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:AudioOption\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.call.CollectAction"
+            },
+            "prompt_tts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "collect",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:TTSOption\u003e",
                   "required": true
                 }
               ],
@@ -5580,7 +5741,49 @@
               ],
               "returns": "class:signalwire.relay.event.RelayEvent"
             },
+            "wait_for_answered": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.RelayEvent"
+            },
             "wait_for_ended": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.RelayEvent"
+            },
+            "wait_for_ending": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.RelayEvent"
+            },
+            "wait_for_ringing": {
               "params": [
                 {
                   "name": "self",

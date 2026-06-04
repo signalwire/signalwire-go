@@ -50,6 +50,139 @@ func WithPlayOnCompleted(cb func(*RelayEvent)) PlayOption {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Functional options for the typed play/detect/prompt convenience methods
+// ---------------------------------------------------------------------------
+//
+// These mirror Python's keyword-only arguments on call.play_tts /
+// call.play_audio / call.play_ringtone / call.detect_digit /
+// call.detect_answering_machine / call.detect_fax / call.prompt_tts /
+// call.prompt_audio. Each builds the exact RELAY media/params shape the
+// underlying generic (Play / PlayAndCollect / Detect) emits on the wire.
+//
+// The options write into a per-call scratch map keyed with underscore-
+// prefixed sentinels so the convenience method can pull them off and fold
+// them into the right media dict before delegating. Sentinels never go on
+// the wire — the method deletes them.
+
+// TTSOption configures a PlayTTS or PromptTTS call. It sets the language /
+// gender / voice fields nested inside the ``{"type":"tts","params":{...}}``
+// media entry and the top-level volume on the play frame.
+type TTSOption func(m map[string]any)
+
+// WithTTSLanguage sets the TTS language (Python play_tts/prompt_tts language).
+func WithTTSLanguage(language string) TTSOption {
+	return func(m map[string]any) { m["_tts_language"] = language }
+}
+
+// WithTTSGender sets the TTS voice gender (Python play_tts/prompt_tts gender).
+func WithTTSGender(gender string) TTSOption {
+	return func(m map[string]any) { m["_tts_gender"] = gender }
+}
+
+// WithTTSVoice sets the TTS voice (Python play_tts/prompt_tts voice).
+func WithTTSVoice(voice string) TTSOption {
+	return func(m map[string]any) { m["_tts_voice"] = voice }
+}
+
+// WithTTSVolume sets the playback volume in dB (Python play_tts/prompt_tts volume).
+func WithTTSVolume(db float64) TTSOption {
+	return func(m map[string]any) { m["volume"] = db }
+}
+
+// AudioOption configures a PlayAudio or PromptAudio call.
+type AudioOption func(m map[string]any)
+
+// WithAudioVolume sets the playback volume in dB (Python play_audio/prompt_audio volume).
+func WithAudioVolume(db float64) AudioOption {
+	return func(m map[string]any) { m["volume"] = db }
+}
+
+// RingtoneOption configures a PlayRingtone call.
+type RingtoneOption func(m map[string]any)
+
+// WithRingtoneDuration sets how long the ringtone plays, in seconds
+// (Python play_ringtone duration). It is nested inside the ringtone media
+// params, matching Python's ``{"type":"ringtone","params":{"duration":...}}``.
+func WithRingtoneDuration(seconds float64) RingtoneOption {
+	return func(m map[string]any) { m["_ringtone_duration"] = seconds }
+}
+
+// WithRingtoneVolume sets the playback volume in dB (Python play_ringtone volume).
+func WithRingtoneVolume(db float64) RingtoneOption {
+	return func(m map[string]any) { m["volume"] = db }
+}
+
+// DetectDigitOption configures a DetectDigit call.
+type DetectDigitOption func(m map[string]any)
+
+// WithDigitDigits restricts detection to the given DTMF digit set, nested
+// inside the detect params (Python detect_digit digits).
+func WithDigitDigits(digits string) DetectDigitOption {
+	return func(m map[string]any) { m["_digits"] = digits }
+}
+
+// WithDigitTimeout sets the detect timeout in seconds (Python detect_digit timeout).
+func WithDigitTimeout(seconds float64) DetectDigitOption {
+	return func(m map[string]any) { m["_timeout"] = seconds }
+}
+
+// AMDOption configures a DetectAnsweringMachine call. Each option maps to
+// one Python detect_answering_machine keyword argument and is nested inside
+// the ``{"type":"machine","params":{...}}`` detect media entry — only the
+// options the caller supplies are emitted (matching Python's
+// only-provided-keys behavior).
+type AMDOption func(m map[string]any)
+
+// WithAMDInitialTimeout sets initial_timeout (Python detect_answering_machine).
+func WithAMDInitialTimeout(seconds float64) AMDOption {
+	return func(m map[string]any) { m["initial_timeout"] = seconds }
+}
+
+// WithAMDEndSilenceTimeout sets end_silence_timeout (Python detect_answering_machine).
+func WithAMDEndSilenceTimeout(seconds float64) AMDOption {
+	return func(m map[string]any) { m["end_silence_timeout"] = seconds }
+}
+
+// WithAMDMachineVoiceThreshold sets machine_voice_threshold (Python detect_answering_machine).
+func WithAMDMachineVoiceThreshold(threshold float64) AMDOption {
+	return func(m map[string]any) { m["machine_voice_threshold"] = threshold }
+}
+
+// WithAMDMachineWordsThreshold sets machine_words_threshold (Python detect_answering_machine).
+func WithAMDMachineWordsThreshold(threshold int) AMDOption {
+	return func(m map[string]any) { m["machine_words_threshold"] = threshold }
+}
+
+// WithAMDDetectInterruptions sets detect_interruptions (Python detect_answering_machine).
+func WithAMDDetectInterruptions(enabled bool) AMDOption {
+	return func(m map[string]any) { m["detect_interruptions"] = enabled }
+}
+
+// WithAMDDetectMessageEnd sets detect_message_end (Python detect_answering_machine).
+func WithAMDDetectMessageEnd(enabled bool) AMDOption {
+	return func(m map[string]any) { m["detect_message_end"] = enabled }
+}
+
+// WithAMDTimeout sets the overall detect timeout in seconds (Python detect_answering_machine timeout).
+func WithAMDTimeout(seconds float64) AMDOption {
+	return func(m map[string]any) { m["_timeout"] = seconds }
+}
+
+// DetectFaxOption configures a DetectFax call.
+type DetectFaxOption func(m map[string]any)
+
+// WithFaxTone restricts fax detection to a specific tone (CED/CNG), nested
+// inside the detect params (Python detect_fax tone).
+func WithFaxTone(tone string) DetectFaxOption {
+	return func(m map[string]any) { m["_tone"] = tone }
+}
+
+// WithFaxDetectTimeout sets the detect timeout in seconds (Python detect_fax timeout).
+func WithFaxDetectTimeout(seconds float64) DetectFaxOption {
+	return func(m map[string]any) { m["_timeout"] = seconds }
+}
+
 // RecordOption configures a Record call.
 type RecordOption func(m map[string]any)
 

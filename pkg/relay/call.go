@@ -142,6 +142,64 @@ func (c *Call) WaitForEnded(ctx context.Context) (*RelayEvent, error) {
 	})
 }
 
+// callStateOrder ranks the call lifecycle states so a state-wait can
+// short-circuit when the call is already at or past the target. Mirrors
+// Python's _wait_for_state ordering at relay/call.py:
+// created < ringing < answered < ending < ended.
+var callStateOrder = []string{
+	CallStateCreated,
+	CallStateRinging,
+	CallStateAnswered,
+	CallStateEnding,
+	CallStateEnded,
+}
+
+func callStateRank(s string) int {
+	for i, v := range callStateOrder {
+		if v == s {
+			return i
+		}
+	}
+	return -1
+}
+
+// waitForState blocks until the call reaches target, or the context
+// expires. If the call is ALREADY at or past target it returns immediately
+// with a synthesized state event (matching the legacy SDK / Python's
+// _wait_for_state, which returns right away when rank(self.state) >=
+// rank(target)).
+func (c *Call) waitForState(ctx context.Context, target string) (*RelayEvent, error) {
+	if callStateRank(c.State()) >= callStateRank(target) {
+		return NewRelayEvent(EventCallingCallState, map[string]any{
+			"call_state": c.State(),
+		}), nil
+	}
+	return c.WaitFor(ctx, EventCallingCallState, func(e *RelayEvent) bool {
+		return e.GetString("call_state") == target
+	})
+}
+
+// WaitForAnswered blocks until the call is answered (returns immediately if
+// already answered or past it). Typed wait over WaitFor, mirroring Python's
+// call.wait_for_answered(timeout).
+func (c *Call) WaitForAnswered(ctx context.Context) (*RelayEvent, error) {
+	return c.waitForState(ctx, CallStateAnswered)
+}
+
+// WaitForRinging blocks until the call is ringing (returns immediately if
+// already ringing or past it). Typed wait over WaitFor, mirroring Python's
+// call.wait_for_ringing(timeout).
+func (c *Call) WaitForRinging(ctx context.Context) (*RelayEvent, error) {
+	return c.waitForState(ctx, CallStateRinging)
+}
+
+// WaitForEnding blocks until the call is ending (returns immediately if
+// already ending or past it). Typed wait over WaitFor, mirroring Python's
+// call.wait_for_ending(timeout).
+func (c *Call) WaitForEnding(ctx context.Context) (*RelayEvent, error) {
+	return c.waitForState(ctx, CallStateEnding)
+}
+
 // dispatchEvent is called internally to route an event through handlers
 // and waiters.
 func (c *Call) dispatchEvent(event *RelayEvent) {
@@ -540,6 +598,216 @@ func (c *Call) Collect(params *CollectParams) *StandaloneCollectAction {
 	}()
 
 	return action
+}
+
+// ---------------------------------------------------------------------------
+// Typed audio/detect/prompt convenience (thin wrappers over the generics)
+//
+// Each mirrors a Python call.<name> convenience method, building the exact
+// RELAY media/params shape and delegating to the matching generic (Play /
+// PlayAndCollect / Detect) so the wire frame is identical to hand-building
+// the media dict.
+// ---------------------------------------------------------------------------
+
+// PlayTTS plays text-to-speech. Typed convenience over Play, mirroring
+// Python's call.play_tts(text, *, language, gender, voice, volume).
+//
+// Wire shape: play [{"type":"tts","params":{"text":..., language?, gender?,
+// voice?}}] with an optional top-level volume.
+func (c *Call) PlayTTS(text string, opts ...TTSOption) *PlayAction {
+	scratch := map[string]any{}
+	for _, opt := range opts {
+		opt(scratch)
+	}
+	tts := map[string]any{"text": text}
+	if v, ok := scratch["_tts_language"].(string); ok {
+		tts["language"] = v
+	}
+	if v, ok := scratch["_tts_gender"].(string); ok {
+		tts["gender"] = v
+	}
+	if v, ok := scratch["_tts_voice"].(string); ok {
+		tts["voice"] = v
+	}
+	media := []map[string]any{{"type": "tts", "params": tts}}
+	var playOpts []PlayOption
+	if vol, ok := scratch["volume"].(float64); ok {
+		playOpts = append(playOpts, WithPlayVolume(vol))
+	}
+	return c.Play(media, playOpts...)
+}
+
+// PlayAudio plays an audio file from a URL. Typed convenience over Play,
+// mirroring Python's call.play_audio(url, *, volume).
+//
+// Wire shape: play [{"type":"audio","params":{"url":...}}] with an optional
+// top-level volume.
+func (c *Call) PlayAudio(url string, opts ...AudioOption) *PlayAction {
+	scratch := map[string]any{}
+	for _, opt := range opts {
+		opt(scratch)
+	}
+	media := []map[string]any{{"type": "audio", "params": map[string]any{"url": url}}}
+	var playOpts []PlayOption
+	if vol, ok := scratch["volume"].(float64); ok {
+		playOpts = append(playOpts, WithPlayVolume(vol))
+	}
+	return c.Play(media, playOpts...)
+}
+
+// PlaySilence plays silence for duration seconds. Typed convenience over
+// Play, mirroring Python's call.play_silence(duration).
+//
+// Wire shape: play [{"type":"silence","params":{"duration":...}}].
+func (c *Call) PlaySilence(duration float64) *PlayAction {
+	media := []map[string]any{{"type": "silence", "params": map[string]any{"duration": duration}}}
+	return c.Play(media)
+}
+
+// PlayRingtone plays a named ringtone by country code. Typed convenience
+// over Play, mirroring Python's call.play_ringtone(name, *, duration, volume).
+//
+// Wire shape: play [{"type":"ringtone","params":{"name":..., duration?}}]
+// with an optional top-level volume.
+func (c *Call) PlayRingtone(name string, opts ...RingtoneOption) *PlayAction {
+	scratch := map[string]any{}
+	for _, opt := range opts {
+		opt(scratch)
+	}
+	rt := map[string]any{"name": name}
+	if d, ok := scratch["_ringtone_duration"].(float64); ok {
+		rt["duration"] = d
+	}
+	media := []map[string]any{{"type": "ringtone", "params": rt}}
+	var playOpts []PlayOption
+	if vol, ok := scratch["volume"].(float64); ok {
+		playOpts = append(playOpts, WithPlayVolume(vol))
+	}
+	return c.Play(media, playOpts...)
+}
+
+// DetectDigit detects DTMF digits. Typed convenience over Detect, mirroring
+// Python's call.detect_digit(*, digits, timeout).
+//
+// Wire shape: detect {"type":"digit","params":{digits?}} with an optional
+// top-level timeout.
+func (c *Call) DetectDigit(opts ...DetectDigitOption) *DetectAction {
+	scratch := map[string]any{}
+	for _, opt := range opts {
+		opt(scratch)
+	}
+	params := map[string]any{}
+	if d, ok := scratch["_digits"].(string); ok {
+		params["digits"] = d
+	}
+	detect := map[string]any{"type": "digit", "params": params}
+	var timeout *float64
+	if t, ok := scratch["_timeout"].(float64); ok {
+		timeout = &t
+	}
+	return c.Detect(detect, timeout)
+}
+
+// DetectAnsweringMachine detects human vs answering machine (AMD). Typed
+// convenience over Detect, mirroring Python's
+// call.detect_answering_machine(*, initial_timeout, end_silence_timeout,
+// machine_voice_threshold, machine_words_threshold, detect_interruptions,
+// detect_message_end, timeout). Only the options the caller supplies are
+// emitted under params, matching Python's only-provided-keys behavior.
+//
+// Wire shape: detect {"type":"machine","params":{...only-provided...}} with
+// an optional top-level timeout.
+func (c *Call) DetectAnsweringMachine(opts ...AMDOption) *DetectAction {
+	scratch := map[string]any{}
+	for _, opt := range opts {
+		opt(scratch)
+	}
+	params := map[string]any{}
+	for _, k := range []string{
+		"initial_timeout", "end_silence_timeout", "machine_voice_threshold",
+		"machine_words_threshold", "detect_interruptions", "detect_message_end",
+	} {
+		if v, ok := scratch[k]; ok {
+			params[k] = v
+		}
+	}
+	detect := map[string]any{"type": "machine", "params": params}
+	var timeout *float64
+	if t, ok := scratch["_timeout"].(float64); ok {
+		timeout = &t
+	}
+	return c.Detect(detect, timeout)
+}
+
+// DetectFax detects a fax tone (CED/CNG). Typed convenience over Detect,
+// mirroring Python's call.detect_fax(*, tone, timeout).
+//
+// Wire shape: detect {"type":"fax","params":{tone?}} with an optional
+// top-level timeout.
+func (c *Call) DetectFax(opts ...DetectFaxOption) *DetectAction {
+	scratch := map[string]any{}
+	for _, opt := range opts {
+		opt(scratch)
+	}
+	params := map[string]any{}
+	if tone, ok := scratch["_tone"].(string); ok {
+		params["tone"] = tone
+	}
+	detect := map[string]any{"type": "fax", "params": params}
+	var timeout *float64
+	if t, ok := scratch["_timeout"].(float64); ok {
+		timeout = &t
+	}
+	return c.Detect(detect, timeout)
+}
+
+// PromptTTS plays TTS then collects input. Typed media over PlayAndCollect,
+// mirroring Python's call.prompt_tts(text, collect, *, language, gender,
+// voice, volume).
+//
+// Wire shape: play_and_collect [{"type":"tts","params":{"text":...,
+// language?, gender?, voice?}}] with the given collect object and an
+// optional top-level volume.
+func (c *Call) PromptTTS(text string, collect map[string]any, opts ...TTSOption) *CollectAction {
+	scratch := map[string]any{}
+	for _, opt := range opts {
+		opt(scratch)
+	}
+	tts := map[string]any{"text": text}
+	if v, ok := scratch["_tts_language"].(string); ok {
+		tts["language"] = v
+	}
+	if v, ok := scratch["_tts_gender"].(string); ok {
+		tts["gender"] = v
+	}
+	if v, ok := scratch["_tts_voice"].(string); ok {
+		tts["voice"] = v
+	}
+	media := []map[string]any{{"type": "tts", "params": tts}}
+	var playOpts []PlayOption
+	if vol, ok := scratch["volume"].(float64); ok {
+		playOpts = append(playOpts, WithPlayVolume(vol))
+	}
+	return c.PlayAndCollect(media, collect, playOpts...)
+}
+
+// PromptAudio plays an audio file then collects input. Typed media over
+// PlayAndCollect, mirroring Python's call.prompt_audio(url, collect, *,
+// volume).
+//
+// Wire shape: play_and_collect [{"type":"audio","params":{"url":...}}] with
+// the given collect object and an optional top-level volume.
+func (c *Call) PromptAudio(url string, collect map[string]any, opts ...AudioOption) *CollectAction {
+	scratch := map[string]any{}
+	for _, opt := range opts {
+		opt(scratch)
+	}
+	media := []map[string]any{{"type": "audio", "params": map[string]any{"url": url}}}
+	var playOpts []PlayOption
+	if vol, ok := scratch["volume"].(float64); ok {
+		playOpts = append(playOpts, WithPlayVolume(vol))
+	}
+	return c.PlayAndCollect(media, collect, playOpts...)
 }
 
 // ---------------------------------------------------------------------------
