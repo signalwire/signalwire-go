@@ -699,8 +699,6 @@ signalwire.livewire.function_tool: not_yet_implemented: function_tool module-lev
 # --- Misc not-yet-implemented items ---
 signalwire.add_skill_directory: not_yet_implemented: top-level helper not yet exposed as a free function in Go port
 signalwire.list_skills_with_params: not_yet_implemented: top-level helper not yet exposed as a free function in Go port
-signalwire.run_agent: not_yet_implemented: top-level helper not yet exposed as a free function in Go port
-signalwire.start_agent: not_yet_implemented: top-level helper not yet exposed as a free function in Go port
 
 # --- Idiom: Python class accessors that Go folds into private fields or package-level helpers ---
 signalwire.agent_server.AgentServer.app: Python exposes the underlying FastAPI ``app`` object; Go uses net/http with no equivalent app handle
