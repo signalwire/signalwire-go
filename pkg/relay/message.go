@@ -72,6 +72,18 @@ func (m *Message) State() string {
 	return m.state
 }
 
+// MessageState returns the current message state as a typed MessageState
+// ALONGSIDE the bare-string State() accessor (kept for parity with the Python
+// reference). The typed kind gives callers IsTerminal()/IsKnown() predicates
+// and compile-time distinctness from CallState/DialState; its underlying string
+// equals State() exactly. Additive port idiom — see states.go and
+// PORT_ADDITIONS.md.
+func (m *Message) MessageState() MessageState {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return MessageState(m.state)
+}
+
 // Reason returns the failure reason if the message failed.
 func (m *Message) Reason() string {
 	m.mu.Lock()

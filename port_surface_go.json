@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ d1a9c02ff3f378161a8756dcff4ba3237b590eb1",
+  "generated_from": "signalwire-go (go-native) @ 28164ae07bbe4a3b6d954ed55ddada5c2c75ba65",
   "modules": {
     "agent": {
       "classes": {
@@ -1038,6 +1038,7 @@
           "Answer",
           "BindDigit",
           "CallID",
+          "CallState",
           "ClearDigitBindings",
           "Collect",
           "Connect",
@@ -1097,6 +1098,11 @@
           "WaitForRinging"
         ],
         "CallReceiveEvent": [],
+        "CallState": [
+          "IsKnown",
+          "IsTerminal",
+          "String"
+        ],
         "CallStateEvent": [],
         "CallingErrorEvent": [],
         "Client": [
@@ -1139,7 +1145,18 @@
           "Stop"
         ],
         "DetectEvent": [],
-        "DialEvent": [],
+        "Device": [
+          "MarshalJSON",
+          "ToMap"
+        ],
+        "DialEvent": [
+          "DialStateTyped"
+        ],
+        "DialState": [
+          "IsKnown",
+          "IsTerminal",
+          "String"
+        ],
         "EchoEvent": [],
         "FaxAction": [
           "Stop"
@@ -1154,6 +1171,7 @@
           "IsDone",
           "Media",
           "MessageID",
+          "MessageState",
           "On",
           "Reason",
           "Result",
@@ -1164,6 +1182,11 @@
           "Wait"
         ],
         "MessageReceiveEvent": [],
+        "MessageState": [
+          "IsKnown",
+          "IsTerminal",
+          "String"
+        ],
         "MessageStateEvent": [],
         "PayAction": [
           "Stop"
@@ -1216,6 +1239,8 @@
         "TranscribeEvent": []
       },
       "functions": [
+        "DeviceGroups",
+        "DeviceList",
         "NewAIEvent",
         "NewCallReceiveEvent",
         "NewCallStateEvent",
@@ -1225,6 +1250,7 @@
         "NewConnectEvent",
         "NewDenoiseEvent",
         "NewDetectEvent",
+        "NewDevice",
         "NewDialEvent",
         "NewEchoEvent",
         "NewFaxEvent",

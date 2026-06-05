@@ -41,6 +41,18 @@ relay.ErrDialFailed: Go sentinel — server reported a terminal "failed" dial_st
 relay.ErrExecuteTimeout: Go sentinel — a JSON-RPC request got no response within its deadline. errors.Is-able
 server.ErrServerNotRunning: Go sentinel — Shutdown called with no server currently serving (before Run, or after stop). errors.Is-able
 
+# --- Tier-3 idiom additions: typed RELAY state accessors (IDIOM_PASS_JOURNAL §4 "Tier 3") ---
+# Typed-kind accessors ALONGSIDE the existing bare-string accessors (which are
+# PRESERVED for parity with the Python reference's bare str). The typed kinds
+# (relay.CallState / DialState / MessageState — documented in the structs block)
+# give callers IsTerminal()/IsKnown() + compile-time distinctness of the three
+# vocabularies; their underlying string equals the string accessor byte-for-byte
+# → zero wire change. Methods-on-mapped-structs: invisible to both diff gates
+# (same as the *Context methods above) — documented here for the audit trail.
+relay.Call.CallState: Go typed-kind accessor returning relay.CallState alongside the bare-string Call.State() (kept). String == State() exactly
+relay.Message.MessageState: Go typed-kind accessor returning relay.MessageState alongside the bare-string Message.State() (kept). String == State() exactly
+relay.DialEvent.DialStateTyped: Go typed-kind accessor returning relay.DialState alongside the bare-string DialEvent.DialState field (kept). String == DialState exactly
+
 # --- Go-only structs (port-only public types) ---
 agent.MCPServerConfig: Go-only config struct; not part of Python public API
 agent.ToolDefinition: Go-only struct; no direct Python counterpart
@@ -93,7 +105,11 @@ prefabs.ReceptionistOptions: Go-only options struct; encodes Python kwargs for t
 prefabs.SurveyOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 prefabs.SurveyQuestion: Go-only struct; no direct Python counterpart
 relay.AIEvent: Go-only struct; no direct Python counterpart
+relay.CallState: Go-only defined-string kind (call lifecycle: created/ringing/answered/ending/ended) + Call*/typed-const set; Call.CallState() returns it ALONGSIDE the bare-string Call.State() (parity — string accessor kept). IsTerminal() (ended) + IsKnown() predicates; server-emitted+growable so unknown values flow through (no exhaustive-switch break). Underlying string == State() byte-for-byte → zero wire change + invisible to both signature & surface enumerators (no oracle symbol). Grounded in Python relay/constants.py CALL_STATES. DISTINCT type from DialState/MessageState — never conflated.
 relay.CollectParams: Go-only struct; no direct Python counterpart
+relay.Device: Go-only struct typing the {type, params} object passed across connect/refer/dial/tap (Type string — discriminant is NOT schema-enumerated; Params any). Purely additive — the raw map[string]any / [][]map[string]any path is unchanged; ToMap()/MarshalJSON + DeviceList/DeviceGroups yield the IDENTICAL wire shape (nil Params → "params":{}). Grounded in porting-sdk/relay-protocol/calling.{connect,dial,refer,tap}.params.json. Invisible to both enumerators (no oracle symbol).
+relay.DialState: Go-only defined-string kind (dial outcome: dialing/answered/failed) read from wire dial_state; DialEvent.DialStateTyped() returns it ALONGSIDE the bare-string DialEvent.DialState field (parity kept). IsTerminal() (answered|failed; dialing is progress) + IsKnown(). Grounded in Python relay/client.py:950 dial_state docstring + :1006 ("dialing" is progress). A SEPARATE vocabulary from CallState/MessageState — distinct Go type, never conflated. Invisible to both enumerators.
+relay.MessageState: Go-only defined-string kind (delivery lifecycle: queued/initiated/sent/delivered/undelivered/failed/received) + Msg*/typed-const set; Message.MessageState() returns it ALONGSIDE the bare-string Message.State() (parity kept). IsTerminal() mirrors Python MESSAGE_TERMINAL_STATES (delivered/undelivered/failed — inbound "received" excluded, matching Python exactly; the internal isTerminalMessageState keeps "received" terminal for Wait() short-circuit, a separate behavior-only concern) + IsKnown(). Underlying string == State() byte-for-byte. Grounded in Python relay/constants.py MESSAGE_STATE_*/MESSAGE_TERMINAL_STATES. DISTINCT type from CallState/DialState. Invisible to both enumerators.
 relay.RelayError: Go-only struct; no direct Python counterpart
 relay.TTSGender: Go-only defined-string type (closed set of TTS voice genders: male/female) + GenderMale/GenderFemale typed constants; WithTTSGender (the play_tts/prompt_tts gender option) takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "female" string compiling — parity with the reference's plain str gender. Stored on the wire as a plain string, so it adds zero signature drift (it appears on no oracle method param).
 server.AgentEntry: Go-only struct; no direct Python counterpart
@@ -252,7 +268,10 @@ prefabs.WithQuestionChoices: Go functional-options helper; encodes a Python kwar
 prefabs.WithQuestionID: Go functional-options helper; encodes a Python kwarg for the matching constructor
 prefabs.WithQuestionScale: Go functional-options helper; encodes a Python kwarg for the matching constructor
 prefabs.WithQuestionType: Go functional-options helper; encodes a Python kwarg for the matching constructor
+relay.DeviceGroups: Go-only helper — converts serial groups of parallel typed relay.Devices into the [][]map[string]any shape Connect/Dial take, byte-identical to hand-built nesting; no Python counterpart
+relay.DeviceList: Go-only helper — converts a flat list of typed relay.Devices into one parallel [][]map[string]any leg for Connect/Dial; no Python counterpart
 relay.NewAIEvent: Go factory constructor for a port-only struct; Python equivalent does not exist
+relay.NewDevice: Go factory constructor for the port-only relay.Device struct; Python uses a raw {type, params} dict
 relay.NewRelayClient: Go factory constructor for a port-only struct; Python equivalent does not exist
 relay.NewRelayError: Go factory constructor for a port-only struct; Python equivalent does not exist
 relay.WithAIEngine: Go functional-options helper; encodes a Python kwarg for the matching constructor

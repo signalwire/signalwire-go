@@ -67,6 +67,18 @@ func (c *Call) State() string {
 	return c.state
 }
 
+// CallState returns the current call state as a typed CallState ALONGSIDE the
+// bare-string State() accessor (kept for parity with the Python reference).
+// The typed kind gives callers IsTerminal()/IsKnown() predicates and
+// compile-time distinctness from DialState/MessageState; its underlying string
+// equals State() exactly. Additive port idiom — see states.go and
+// PORT_ADDITIONS.md.
+func (c *Call) CallState() CallState {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return CallState(c.state)
+}
+
 // ProjectID returns the project ID associated with this call.
 func (c *Call) ProjectID() string {
 	c.mu.Lock()

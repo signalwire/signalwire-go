@@ -490,6 +490,16 @@ func NewDialEvent(params map[string]any) *DialEvent {
 	return e
 }
 
+// DialStateTyped returns the dial outcome as a typed DialState ALONGSIDE the
+// bare-string DialState field (kept for parity with the Python reference). The
+// typed kind gives callers IsTerminal()/IsKnown() predicates and compile-time
+// distinctness from CallState/MessageState; its underlying string equals the
+// DialState field exactly. Additive port idiom — see states.go and
+// PORT_ADDITIONS.md.
+func (e *DialEvent) DialStateTyped() DialState {
+	return DialState(e.DialState)
+}
+
 // ReferEvent represents a calling.call.refer event.
 type ReferEvent struct {
 	*RelayEvent
