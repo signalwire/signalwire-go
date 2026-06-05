@@ -21,10 +21,12 @@ func TestNewFunctionResult(t *testing.T) {
 }
 
 func TestNewFunctionResultEmptyResponse(t *testing.T) {
+	// An empty-response result with no actions defaults to "Action completed."
+	// (Python to_dict parity).
 	fr := NewFunctionResult("")
 	m := fr.ToMap()
-	if m["response"] != "" {
-		t.Errorf("response = %v, want empty string", m["response"])
+	if m["response"] != "Action completed." {
+		t.Errorf("response = %v, want %q", m["response"], "Action completed.")
 	}
 }
 
@@ -96,15 +98,48 @@ func TestToMapWithActions(t *testing.T) {
 
 func TestToMapWithPostProcess(t *testing.T) {
 	fr := NewFunctionResult("response").
+		AddAction("say", "hello").
 		SetPostProcess(true)
 
 	m := fr.ToMap()
 	pp, ok := m["post_process"]
 	if !ok {
-		t.Fatal("post_process should be present when true")
+		t.Fatal("post_process should be present when true and an action exists")
 	}
 	if pp != true {
 		t.Errorf("post_process = %v, want true", pp)
+	}
+}
+
+func TestToMapPostProcessOmittedWithoutAction(t *testing.T) {
+	// post_process is dropped when there are no actions, even if set true
+	// (Python to_dict: `if self.post_process and self.action`).
+	fr := NewFunctionResult("response").SetPostProcess(true)
+	if _, ok := fr.ToMap()["post_process"]; ok {
+		t.Error("post_process should be omitted when there are no actions")
+	}
+}
+
+func TestToMapEmptyResponseOmittedWithAction(t *testing.T) {
+	// response is omitted when empty but an action is present (Python parity).
+	fr := NewFunctionResult("").AddAction("say", "hello")
+	m := fr.ToMap()
+	if _, ok := m["response"]; ok {
+		t.Error("empty response should be omitted when an action is present")
+	}
+	if _, ok := m["action"]; !ok {
+		t.Error("action should be present")
+	}
+}
+
+func TestToMapEmptyDefaultsToActionCompleted(t *testing.T) {
+	// An otherwise-empty result defaults to {"response": "Action completed."}.
+	m := NewFunctionResult("").ToMap()
+	if m["response"] != "Action completed." {
+		t.Errorf("empty result response = %v, want %q", m["response"], "Action completed.")
+	}
+	if _, ok := m["action"]; ok {
+		t.Error("action should not be present")
 	}
 }
 

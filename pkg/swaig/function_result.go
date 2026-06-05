@@ -76,14 +76,21 @@ func (fr *FunctionResult) AddActions(actions []map[string]any) *FunctionResult {
 // The "action" key is only included if there are actions.
 // The "post_process" key is only included if true.
 func (fr *FunctionResult) ToMap() map[string]any {
-	result := map[string]any{
-		"response": fr.response,
+	result := map[string]any{}
+	// response is omitted when empty (Python parity).
+	if fr.response != "" {
+		result["response"] = fr.response
 	}
 	if len(fr.actions) > 0 {
 		result["action"] = fr.actions
 	}
-	if fr.postProcess {
+	// post_process only matters when there are actions to execute.
+	if fr.postProcess && len(fr.actions) > 0 {
 		result["post_process"] = true
+	}
+	// Ensure at least one of response or action is present.
+	if len(result) == 0 {
+		result["response"] = "Action completed."
 	}
 	return result
 }
