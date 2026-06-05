@@ -1055,6 +1055,11 @@ func TestJoinConference(t *testing.T) {
 }
 
 func TestJoinConferenceDefaults(t *testing.T) {
+	// All-default case: Python emits the SIMPLE form — the join_conference value
+	// is the bare conference-name STRING, not an object (function_result.py:1124).
+	// Matching that exactly is what keeps the wire byte-identical to the
+	// reference (and to the other ports). Earlier this asserted an object form,
+	// which was a drift-0 emission bug the cross-port emission differ caught.
 	fr := NewFunctionResult("joining").
 		JoinConference("simple-conf", nil)
 
@@ -1063,16 +1068,34 @@ func TestJoinConferenceDefaults(t *testing.T) {
 	sections := swml["sections"].(map[string]any)
 	main := sections["main"].([]any)
 	verb := main[0].(map[string]any)
-	params := verb["join_conference"].(map[string]any)
 
-	if _, ok := params["muted"]; ok {
-		t.Error("muted should not be present when false")
+	name, ok := verb["join_conference"].(string)
+	if !ok {
+		t.Fatalf("join_conference should be a bare string in the simple form, got %T (%v)",
+			verb["join_conference"], verb["join_conference"])
 	}
-	if _, ok := params["beep"]; ok {
-		t.Error("beep should not be present when 'true' (default)")
+	if name != "simple-conf" {
+		t.Errorf("join_conference = %q, want %q", name, "simple-conf")
 	}
-	if _, ok := params["wait_url"]; ok {
-		t.Error("wait_url should not be present when empty")
+}
+
+func TestJoinConferenceSimpleVsFull(t *testing.T) {
+	// A single non-default option flips the emission from the bare-string simple
+	// form to the full object form (parity with Python's branch at
+	// function_result.py:1124 vs :1134).
+	full := NewFunctionResult("joining").
+		JoinConference("conf", &JoinConferenceOptions{Muted: true})
+	actions := full.ToMap()["action"].([]map[string]any)
+	verb := actions[0]["SWML"].(map[string]any)["sections"].(map[string]any)["main"].([]any)[0].(map[string]any)
+	params, ok := verb["join_conference"].(map[string]any)
+	if !ok {
+		t.Fatalf("a non-default option must produce the object form, got %T", verb["join_conference"])
+	}
+	if params["name"] != "conf" {
+		t.Errorf("name = %v, want %q", params["name"], "conf")
+	}
+	if params["muted"] != true {
+		t.Errorf("muted = %v, want true", params["muted"])
 	}
 }
 

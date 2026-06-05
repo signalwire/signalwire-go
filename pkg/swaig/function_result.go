@@ -549,6 +549,42 @@ func (fr *FunctionResult) JoinConference(name string, opts *JoinConferenceOption
 		opts = &JoinConferenceOptions{}
 	}
 
+	// Python emits the SIMPLE form — a bare conference-name STRING, not an
+	// object — when every parameter is at its default (function_result.py:1124).
+	// Only when at least one param diverges does it switch to the full object
+	// form. A StartOnEnter of nil counts as "default true"; an explicit *false
+	// is a divergence (matches Python's start_on_enter default True).
+	allDefault := !opts.Muted &&
+		(opts.Beep == "" || opts.Beep == "true") &&
+		(opts.StartOnEnter == nil || *opts.StartOnEnter) &&
+		!opts.EndOnExit &&
+		opts.WaitURL == "" &&
+		(opts.MaxParticipants == 0 || opts.MaxParticipants == 250) &&
+		(opts.Record == "" || opts.Record == "do-not-record") &&
+		opts.Region == "" &&
+		(opts.Trim == "" || opts.Trim == "trim-silence") &&
+		opts.Coach == "" &&
+		opts.StatusCallbackEvent == "" &&
+		opts.StatusCallback == "" &&
+		(opts.StatusCallbackMethod == "" || opts.StatusCallbackMethod == "POST") &&
+		opts.RecordingStatusCallback == "" &&
+		(opts.RecordingStatusCallbackMethod == "" || opts.RecordingStatusCallbackMethod == "POST") &&
+		(opts.RecordingStatusCallbackEvent == "" || opts.RecordingStatusCallbackEvent == "completed") &&
+		opts.Result == nil
+
+	if allDefault {
+		// Simple form: the join_conference value is just the conference name.
+		swmlDoc := map[string]any{
+			"version": "1.0.0",
+			"sections": map[string]any{
+				"main": []any{
+					map[string]any{"join_conference": name},
+				},
+			},
+		}
+		return fr.AddAction("SWML", swmlDoc)
+	}
+
 	joinParams := map[string]any{"name": name}
 	if opts.Muted {
 		joinParams["muted"] = true
