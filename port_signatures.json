@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 1a21e67bef83bc1da43ee29216574a616b12dd87 (go/ast walker)",
+  "generated_from": "signalwire-go @ f3fc66824fd201d45d8a748c5f937961cddad778 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2160,7 +2160,7 @@
                 },
                 {
                   "name": "direction",
-                  "type": "string",
+                  "type": "union\u003cclass:signalwire.swaig.RecordDirection,string\u003e",
                   "required": true
                 },
                 {
@@ -2595,12 +2595,12 @@
                 },
                 {
                   "name": "direction",
-                  "type": "string",
+                  "type": "union\u003cclass:signalwire.swaig.TapDirection,string\u003e",
                   "required": true
                 },
                 {
                   "name": "codec",
-                  "type": "string",
+                  "type": "union\u003cclass:signalwire.swaig.Codec,string\u003e",
                   "required": true
                 },
                 {

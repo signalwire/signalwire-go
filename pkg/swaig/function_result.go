@@ -347,7 +347,13 @@ type RecordCallOptions struct {
 // autocomplete + a compile-time typo check, while Go's untyped-constant
 // auto-conversion keeps a bare "wav" literal compiling — parity with the Python
 // reference's str format. It is written to the wire as a plain string.
-func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format RecordFormat, direction string, opts *RecordCallOptions) *FunctionResult {
+//
+// direction is the defined string type RecordDirection ({speak, listen, both} —
+// the RecordDirection* constants); like format it autocompletes + typo-checks at
+// compile time while a bare "both" literal still compiles, and is written to the
+// wire as a plain string. Note this set differs from TapDirection ({speak, hear,
+// both}) — record_call uses "listen", tap uses "hear".
+func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format RecordFormat, direction RecordDirection, opts *RecordCallOptions) *FunctionResult {
 	// Python builds record_params with stereo, format, direction, beep, and
 	// input_sensitivity UNCONDITIONALLY (function_result.py:921-928 — beep:false,
 	// input_sensitivity:44.0 default on every call). Emit all five always.
@@ -362,7 +368,7 @@ func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format Recor
 	recordParams := map[string]any{
 		"stereo":            stereo,
 		"format":            string(format),
-		"direction":         direction,
+		"direction":         string(direction),
 		"beep":              beep,
 		"input_sensitivity": inputSensitivity,
 	}
@@ -636,16 +642,24 @@ func (fr *FunctionResult) SipRefer(toURI string) *FunctionResult {
 // Tap starts background call tapping, streaming media to the given URI.
 // rtpPtime sets the packetization time in milliseconds for RTP streams (0 = use default of 20ms).
 // Pass empty string for statusURL to omit it.
-func (fr *FunctionResult) Tap(uri string, controlID string, direction string, codec string, rtpPtime int, statusURL string) *FunctionResult {
+//
+// direction is the defined string type TapDirection ({speak, hear, both} — the
+// TapDirection* constants) and codec is the defined string type Codec ({PCMU,
+// PCMA} — the Codec* constants); both autocomplete + typo-check at compile time
+// while bare "both"/"PCMU" literals still compile, and are written to the wire as
+// plain strings. Note TapDirection ({speak, hear, both}) differs from
+// RecordDirection ({speak, listen, both}), and this 2-value tap Codec is distinct
+// from the larger RELAY connect/stream codec superset (left a bare string).
+func (fr *FunctionResult) Tap(uri string, controlID string, direction TapDirection, codec Codec, rtpPtime int, statusURL string) *FunctionResult {
 	tapParams := map[string]any{"uri": uri}
 	if controlID != "" {
 		tapParams["control_id"] = controlID
 	}
 	if direction != "" && direction != "both" {
-		tapParams["direction"] = direction
+		tapParams["direction"] = string(direction)
 	}
 	if codec != "" && codec != "PCMU" {
-		tapParams["codec"] = codec
+		tapParams["codec"] = string(codec)
 	}
 	if rtpPtime != 0 && rtpPtime != 20 {
 		tapParams["rtp_ptime"] = rtpPtime
@@ -834,19 +848,19 @@ func (fr *FunctionResult) Pay(connectorURL string, opts *PayOptions) *FunctionRe
 	}
 
 	payParams := map[string]any{
-		"payment_connector_url": connectorURL,
-		"input":                 inputMethod,
-		"payment_method":        paymentMethod,
-		"timeout":               fmt.Sprintf("%d", timeout),
-		"max_attempts":          fmt.Sprintf("%d", maxAttempts),
-		"security_code":         securityCode,
-		"postal_code":           postalCodeStr,
+		"payment_connector_url":  connectorURL,
+		"input":                  inputMethod,
+		"payment_method":         paymentMethod,
+		"timeout":                fmt.Sprintf("%d", timeout),
+		"max_attempts":           fmt.Sprintf("%d", maxAttempts),
+		"security_code":          securityCode,
+		"postal_code":            postalCodeStr,
 		"min_postal_code_length": fmt.Sprintf("%d", opts.MinPostalCodeLength),
-		"token_type":            tokenType,
-		"currency":              currency,
-		"language":              language,
-		"voice":                 voice,
-		"valid_card_types":      validCardTypes,
+		"token_type":             tokenType,
+		"currency":               currency,
+		"language":               language,
+		"voice":                  voice,
+		"valid_card_types":       validCardTypes,
 	}
 
 	if opts.StatusURL != "" {

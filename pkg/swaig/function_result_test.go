@@ -736,6 +736,93 @@ func TestRecordCallWithOptions(t *testing.T) {
 	}
 }
 
+// recordCallParams drives the real RecordCall verb and returns the serialized
+// record_call params map for inspection (no mock — the SWML document is built
+// and read back through ToMap).
+func recordCallParams(fr *FunctionResult) map[string]any {
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	main := swml["sections"].(map[string]any)["main"].([]any)
+	return main[0].(map[string]any)["record_call"].(map[string]any)
+}
+
+// TestRecordCall_DirectionConstantsAreWireStrings proves (a) each RecordDirection
+// constant equals its exact wire token. These tokens are emitted verbatim into
+// the SWML record_call direction param (Python's
+// valid_directions = ["speak", "listen", "both"]).
+func TestRecordCall_DirectionConstantsAreWireStrings(t *testing.T) {
+	cases := map[RecordDirection]string{
+		RecordDirectionSpeak:  "speak",
+		RecordDirectionListen: "listen",
+		RecordDirectionBoth:   "both",
+	}
+	for c, want := range cases {
+		if string(c) != want {
+			t.Errorf("RecordDirection const %q != wire token %q", string(c), want)
+		}
+	}
+	// Guard the 3-vocabulary trap: record_call uses "listen", NOT tap's "hear".
+	if string(RecordDirectionListen) == string(TapDirectionHear) {
+		t.Error("RecordDirection must use 'listen', distinct from TapDirection's 'hear'")
+	}
+}
+
+// TestRecordCall_DirectionEnumOrStringByteIdentical proves (b) the typed
+// RecordDirection constant and the equivalent bare string produce the
+// BYTE-IDENTICAL record_call action. Real behavior: both drive the actual
+// method, are serialized to JSON, and compared byte-for-byte.
+func TestRecordCall_DirectionEnumOrStringByteIdentical(t *testing.T) {
+	for _, d := range []struct {
+		typed RecordDirection
+		str   string
+	}{
+		{RecordDirectionSpeak, "speak"},
+		{RecordDirectionListen, "listen"},
+		{RecordDirectionBoth, "both"},
+	} {
+		typedJSON, err := json.Marshal(NewFunctionResult("rec").
+			RecordCall("id", true, FormatWAV, d.typed, nil).ToMap())
+		if err != nil {
+			t.Fatalf("marshal typed: %v", err)
+		}
+		strJSON, err := json.Marshal(NewFunctionResult("rec").
+			RecordCall("id", true, FormatWAV, RecordDirection(d.str), nil).ToMap())
+		if err != nil {
+			t.Fatalf("marshal string: %v", err)
+		}
+		if string(typedJSON) != string(strJSON) {
+			t.Errorf("direction %q: typed and bare-string actions differ:\n typed=%s\n  str=%s",
+				d.str, typedJSON, strJSON)
+		}
+		// And the emitted token must be exactly the wire string.
+		if got := recordCallParams(NewFunctionResult("rec").
+			RecordCall("id", true, FormatWAV, d.typed, nil))["direction"]; got != d.str {
+			t.Errorf("emitted direction = %v, want %q", got, d.str)
+		}
+	}
+}
+
+// TestRecordCall_DirectionAllRoundTrip proves (c) every advertised
+// RecordDirection round-trips onto the wire — each constant, when passed to the
+// real method, appears unchanged in the serialized direction param.
+func TestRecordCall_DirectionAllRoundTrip(t *testing.T) {
+	for _, d := range []RecordDirection{RecordDirectionSpeak, RecordDirectionListen, RecordDirectionBoth} {
+		got := recordCallParams(NewFunctionResult("rec").
+			RecordCall("id", false, FormatMP3, d, nil))["direction"]
+		if got != string(d) {
+			t.Errorf("RecordDirection %q did not round-trip onto the wire (got %v)", string(d), got)
+		}
+	}
+	// (d) Out-of-set rejection: the Python reference raises ValueError on a bad
+	// direction, but the Go builder returns *FunctionResult for fluent chaining
+	// and therefore performs NO client-side validation (a documented Go-idiom
+	// divergence — the server validates; see PORT_OMISSIONS / journal §6). There
+	// is consequently no method-side set to assert the type against here; the
+	// type's set is instead pinned to the reference's valid_directions by the
+	// constants above. (Matches the existing RecordFormat enum test, which is
+	// likewise rejection-free for the same reason.)
+}
+
 func TestStopRecordCall(t *testing.T) {
 	fr := NewFunctionResult("stop recording").
 		StopRecordCall("rec-123")
@@ -1123,6 +1210,118 @@ func TestTapWithRtpPtimeAndStatusURL(t *testing.T) {
 	if params["status_url"] != "https://example.com/tap-status" {
 		t.Errorf("status_url = %v", params["status_url"])
 	}
+}
+
+// tapParamsOf drives the real Tap verb and returns the serialized tap params map
+// for inspection (no mock — the SWML document is built and read back via ToMap).
+func tapParamsOf(fr *FunctionResult) map[string]any {
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	main := swml["sections"].(map[string]any)["main"].([]any)
+	return main[0].(map[string]any)["tap"].(map[string]any)
+}
+
+// TestTap_DirectionConstantsAreWireStrings proves (a) each TapDirection constant
+// equals its exact wire token (Python's valid_directions = ["speak","hear","both"]).
+func TestTap_DirectionConstantsAreWireStrings(t *testing.T) {
+	cases := map[TapDirection]string{
+		TapDirectionSpeak: "speak",
+		TapDirectionHear:  "hear",
+		TapDirectionBoth:  "both",
+	}
+	for c, want := range cases {
+		if string(c) != want {
+			t.Errorf("TapDirection const %q != wire token %q", string(c), want)
+		}
+	}
+	// Guard the 3-vocabulary trap: tap uses "hear", NOT record_call's "listen".
+	if string(TapDirectionHear) == string(RecordDirectionListen) {
+		t.Error("TapDirection must use 'hear', distinct from RecordDirection's 'listen'")
+	}
+}
+
+// TestTap_CodecConstantsAreWireStrings proves (a) each Codec constant equals its
+// exact wire token (Python's valid_codecs = ["PCMU","PCMA"]).
+func TestTap_CodecConstantsAreWireStrings(t *testing.T) {
+	cases := map[Codec]string{
+		CodecPCMU: "PCMU",
+		CodecPCMA: "PCMA",
+	}
+	for c, want := range cases {
+		if string(c) != want {
+			t.Errorf("Codec const %q != wire token %q", string(c), want)
+		}
+	}
+}
+
+// TestTap_DirectionAndCodecEnumOrStringByteIdentical proves (b) the typed
+// TapDirection/Codec constants and their equivalent bare strings produce the
+// BYTE-IDENTICAL tap action. Real behavior: both drive the actual method, are
+// serialized to JSON, and compared byte-for-byte. Uses "speak"/"PCMA" (the
+// non-default arms) so the params actually emit (Tap omits the default
+// both/PCMU), exercising the string(direction)/string(codec) wire conversion.
+func TestTap_DirectionAndCodecEnumOrStringByteIdentical(t *testing.T) {
+	type pair struct {
+		dirTyped   TapDirection
+		dirStr     string
+		codecTyped Codec
+		codecStr   string
+	}
+	for _, p := range []pair{
+		{TapDirectionSpeak, "speak", CodecPCMA, "PCMA"},
+		{TapDirectionHear, "hear", CodecPCMA, "PCMA"},
+		{TapDirectionBoth, "both", CodecPCMU, "PCMU"},
+	} {
+		typedJSON, err := json.Marshal(NewFunctionResult("tap").
+			Tap("rtp://h:1", "id", p.dirTyped, p.codecTyped, 0, "").ToMap())
+		if err != nil {
+			t.Fatalf("marshal typed: %v", err)
+		}
+		strJSON, err := json.Marshal(NewFunctionResult("tap").
+			Tap("rtp://h:1", "id", TapDirection(p.dirStr), Codec(p.codecStr), 0, "").ToMap())
+		if err != nil {
+			t.Fatalf("marshal string: %v", err)
+		}
+		if string(typedJSON) != string(strJSON) {
+			t.Errorf("dir=%q codec=%q: typed and bare-string tap actions differ:\n typed=%s\n  str=%s",
+				p.dirStr, p.codecStr, typedJSON, strJSON)
+		}
+	}
+}
+
+// TestTap_DirectionAndCodecAllRoundTrip proves (c) every advertised TapDirection
+// and Codec round-trips onto the wire. The default arms (both/PCMU) are
+// deliberately OMITTED by Tap (parity with Python's "differ from defaults"
+// emission), so they are asserted ABSENT; the non-default arms must appear
+// verbatim.
+func TestTap_DirectionAndCodecAllRoundTrip(t *testing.T) {
+	// Non-default directions are emitted verbatim.
+	for _, d := range []TapDirection{TapDirectionSpeak, TapDirectionHear} {
+		got := tapParamsOf(NewFunctionResult("tap").Tap("ws://x", "", d, CodecPCMU, 0, ""))["direction"]
+		if got != string(d) {
+			t.Errorf("TapDirection %q did not round-trip (got %v)", string(d), got)
+		}
+	}
+	// The default direction (both) is suppressed.
+	if _, ok := tapParamsOf(NewFunctionResult("tap").
+		Tap("ws://x", "", TapDirectionBoth, CodecPCMU, 0, ""))["direction"]; ok {
+		t.Error("TapDirectionBoth (default) must be omitted from tap params")
+	}
+	// The non-default codec is emitted verbatim.
+	if got := tapParamsOf(NewFunctionResult("tap").
+		Tap("ws://x", "", TapDirectionBoth, CodecPCMA, 0, ""))["codec"]; got != "PCMA" {
+		t.Errorf("CodecPCMA did not round-trip (got %v)", got)
+	}
+	// The default codec (PCMU) is suppressed.
+	if _, ok := tapParamsOf(NewFunctionResult("tap").
+		Tap("ws://x", "", TapDirectionBoth, CodecPCMU, 0, ""))["codec"]; ok {
+		t.Error("CodecPCMU (default) must be omitted from tap params")
+	}
+	// (d) Out-of-set rejection: as with RecordCall/RecordFormat, the Go Tap
+	// builder returns *FunctionResult for chaining and does NO client-side
+	// validation (documented Go-idiom divergence; the server validates). The
+	// type's set is pinned to the reference's valid_directions/valid_codecs by
+	// the constant assertions above rather than by a method-side rejection.
 }
 
 func TestStopTap(t *testing.T) {

@@ -332,14 +332,20 @@ func loadAliases(path string) (map[string]string, error) {
 // plain `str`, so typing these params adds zero signature drift while giving
 // Go callers typed constants. See the Tier-1 block in translateType.
 var closedSetUnions = map[string]string{
-	"skills.SkillName":   "union<class:signalwire.skills.SkillName,string>",
-	"SkillName":          "union<class:signalwire.skills.SkillName,string>",
-	"swaig.RecordFormat": "union<class:signalwire.swaig.RecordFormat,string>",
-	"RecordFormat":       "union<class:signalwire.swaig.RecordFormat,string>",
-	"relay.TTSGender":    "union<class:signalwire.relay.TTSGender,string>",
-	"TTSGender":          "union<class:signalwire.relay.TTSGender,string>",
-	"logging.LogLevel":   "union<class:signalwire.logging.LogLevel,string>",
-	"LogLevel":           "union<class:signalwire.logging.LogLevel,string>",
+	"skills.SkillName":      "union<class:signalwire.skills.SkillName,string>",
+	"SkillName":             "union<class:signalwire.skills.SkillName,string>",
+	"swaig.RecordFormat":    "union<class:signalwire.swaig.RecordFormat,string>",
+	"RecordFormat":          "union<class:signalwire.swaig.RecordFormat,string>",
+	"swaig.RecordDirection": "union<class:signalwire.swaig.RecordDirection,string>",
+	"RecordDirection":       "union<class:signalwire.swaig.RecordDirection,string>",
+	"swaig.TapDirection":    "union<class:signalwire.swaig.TapDirection,string>",
+	"TapDirection":          "union<class:signalwire.swaig.TapDirection,string>",
+	"swaig.Codec":           "union<class:signalwire.swaig.Codec,string>",
+	"Codec":                 "union<class:signalwire.swaig.Codec,string>",
+	"relay.TTSGender":       "union<class:signalwire.relay.TTSGender,string>",
+	"TTSGender":             "union<class:signalwire.relay.TTSGender,string>",
+	"logging.LogLevel":      "union<class:signalwire.logging.LogLevel,string>",
+	"LogLevel":              "union<class:signalwire.logging.LogLevel,string>",
 }
 
 // translateType maps a source-level Go type expression to the canonical
@@ -562,8 +568,8 @@ func splitTopLevelCommas(s string) []string {
 }
 
 // lookupClassRef tries to resolve a Go selector expression like
-// ``relay.Call`` or ``agent.AgentBase`` to the canonical
-// ``class:signalwire.<...>.<Class>`` form using StructTable.
+// “relay.Call“ or “agent.AgentBase“ to the canonical
+// “class:signalwire.<...>.<Class>“ form using StructTable.
 func lookupClassRef(sel string) string {
 	if targets, ok := structTable[sel]; ok && len(targets) > 0 {
 		return "class:" + targets[0].Module + "." + targets[0].Class
@@ -591,13 +597,13 @@ func lookupClassRefByShort(short string) string {
 // ---------------------------------------------------------------------------
 
 type sigDoc struct {
-	Version       string                       `json:"version"`
-	GeneratedFrom string                       `json:"generated_from"`
+	Version       string                        `json:"version"`
+	GeneratedFrom string                        `json:"generated_from"`
 	Modules       map[string]sigModuleInventory `json:"modules"`
 }
 
 type sigModuleInventory struct {
-	Classes   map[string]sigClassEntry  `json:"classes,omitempty"`
+	Classes   map[string]sigClassEntry      `json:"classes,omitempty"`
 	Functions map[string]canonicalSignature `json:"functions,omitempty"`
 }
 
@@ -648,8 +654,8 @@ func toLower(r rune) rune {
 
 // goFieldToPython converts a Go exported struct field name to its
 // Python-canonical snake_case form, with corrections for SDK-specific
-// abbreviations that don't snake-case naturally (e.g. ``MFA`` -> ``mfa``,
-// ``PubSub`` -> ``pubsub``).
+// abbreviations that don't snake-case naturally (e.g. “MFA“ -> “mfa“,
+// “PubSub“ -> “pubsub“).
 // isPrimitive returns true for Go primitive types (string, int, bool,
 // etc.) — these should not be projected as SDK class accessor methods.
 func isPrimitive(t string) bool {
@@ -906,10 +912,10 @@ func findRepoRoot(start string) (string, error) {
 
 func run() error {
 	var (
-		outputPath   = flag.String("output", "port_signatures.json", "Write JSON to this path")
-		aliasesPath  = flag.String("aliases", "", "Path to porting-sdk/type_aliases.yaml (autodetected if empty)")
-		strict       = flag.Bool("strict", false, "Exit non-zero on any translation failure")
-		stdoutFlag   = flag.Bool("stdout", false, "Print to stdout")
+		outputPath  = flag.String("output", "port_signatures.json", "Write JSON to this path")
+		aliasesPath = flag.String("aliases", "", "Path to porting-sdk/type_aliases.yaml (autodetected if empty)")
+		strict      = flag.Bool("strict", false, "Exit non-zero on any translation failure")
+		stdoutFlag  = flag.Bool("stdout", false, "Print to stdout")
 	)
 	flag.Parse()
 
