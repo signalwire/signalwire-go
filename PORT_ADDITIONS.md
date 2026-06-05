@@ -106,6 +106,37 @@ swaig.RecordCallOptions: Go-only options struct; encodes Python kwargs for the m
 swaig.RecordDirection: Go-only defined-string type (closed set of record_call audio directions: speak/listen/both) + RecordDirection* typed constants; FunctionResult.RecordCall takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "both" string compiling — parity with the reference's str direction (validated valid_directions=["speak","listen","both"] at function_result.py:917). Wire-identical to string, so signature drift stays 0 (the union<class:swaig.RecordDirection,string> the enumerator emits for record_call's direction param absorbs against the reference's str). DISTINCT from swaig.TapDirection (tap uses "hear" where record_call uses "listen") — never unify the two.
 swaig.RecordFormat: Go-only defined-string type (closed set of recording formats: mp3/wav/mp4) + Format* typed constants; FunctionResult.RecordCall (and the relay/agent WithRecordFormat options) take it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "wav" string compiling — parity with the reference's str format. Wire-identical to string, so signature drift stays 0 (the union<class:swaig.RecordFormat,string> the enumerator emits for record_call's format param absorbs against the reference's str).
 swaig.TapDirection: Go-only defined-string type (closed set of tap audio directions: speak/hear/both) + TapDirection* typed constants; FunctionResult.Tap takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "both" string compiling — parity with the reference's str direction (validated valid_directions=["speak","hear","both"] at function_result.py:1212). Wire-identical to string, so signature drift stays 0 (the union<class:swaig.TapDirection,string> the enumerator emits for tap's direction param absorbs against the reference's str). DISTINCT from swaig.RecordDirection (record_call uses "listen" where tap uses "hear") — never unify the two.
+
+# --- Tier-2 flagship: typed SWAIG tool-parameter builder (IDIOM_PASS_JOURNAL §4) ---
+# A fluent, type-safe builder over the SAME wire shape ToolDefinition.Parameters
+# (a JSON-Schema *properties* map[string]any) + ToolDefinition.Required ([]string)
+# already carry. Replaces the hand-written nested-map blob (concierge.go:180+,
+# survey.go:285+); produces byte-identical output (reflect.DeepEqual / JSON-equal,
+# proven by TestParamsByteIdentical* + the agent render integration tests). Purely
+# additive — the untyped Parameters path is unchanged. Integrates the Tier-1 typed
+# enums via the *Values() helpers (Params.Enum(name, swaig.RecordFormatValues(), …)
+# → schema "enum":[…]). No Python-reference counterpart (Python hand-builds the same
+# dict); the signatures enumerator doesn't see these (not in StructTable/FreeFnTable)
+# so signature drift stays 0, but the SURFACE enumerator records port-only structs +
+# free functions, so each is listed here for the --port-additions-actual audit trail.
+swaig.Params: Go-only fluent builder struct accumulating SWAIG tool-parameter properties + the top-level required list; renders to ToolDefinition.Parameters (map[string]any properties map) via Properties()/Build() and ToolDefinition.Required ([]string) via RequiredNames()/Build(). Typed convenience over the untyped Parameters blob — byte-identical wire output. No Python counterpart.
+swaig.Prop: Go-only struct — a single JSON-Schema property under construction (produced by the Prop* kind constructors, used as Array item / Object schemas). No Python counterpart.
+swaig.NewParams: Go-only constructor returning an empty *Params builder. No Python counterpart.
+swaig.PropString: Go-only kind constructor returning a string-typed *Prop (for Array items / standalone use). No Python counterpart.
+swaig.PropNumber: Go-only kind constructor returning a number-typed (float) *Prop. No Python counterpart.
+swaig.PropInteger: Go-only kind constructor returning an integer-typed *Prop. No Python counterpart.
+swaig.PropBoolean: Go-only kind constructor returning a boolean-typed *Prop. No Python counterpart.
+swaig.PropEnum: Go-only kind constructor returning a string-typed *Prop constrained to a closed set (JSON-Schema "enum"); pairs with the *Values() helpers. No Python counterpart.
+swaig.PropArray: Go-only kind constructor returning an array-typed *Prop whose elements match a given item *Prop. No Python counterpart.
+swaig.PropObject: Go-only kind constructor returning an object-typed *Prop with nested properties + nested required list (from a *Params). No Python counterpart.
+swaig.Default: Go-only PropOption setting a property's JSON-Schema "default" keyword. No Python counterpart.
+swaig.Format: Go-only PropOption setting a property's JSON-Schema "format" keyword (e.g. "date"). No Python counterpart.
+swaig.WithEnum: Go-only PropOption attaching a JSON-Schema "enum" closed set to a property. No Python counterpart.
+swaig.Required: Go-only PropOption marking the enclosing property required (inline alternative to Params.Required(names...)). No Python counterpart. (Note: the same name is also the variadic fluent setter method Params.Required(...) — a method, invisible to the surface enumerator; this entry is the free-function option.)
+swaig.RecordFormatValues: Go-only helper returning the RecordFormat closed set as wire strings (mp3/wav/mp4) for Params.Enum/PropEnum/WithEnum — bridges the Tier-1 enum into schema "enum". No Python counterpart.
+swaig.RecordDirectionValues: Go-only helper returning the RecordDirection closed set as wire strings (speak/listen/both) for schema "enum". No Python counterpart.
+swaig.TapDirectionValues: Go-only helper returning the TapDirection closed set as wire strings (speak/hear/both) for schema "enum". No Python counterpart.
+swaig.CodecValues: Go-only helper returning the Codec closed set as wire strings (PCMU/PCMA) for schema "enum". No Python counterpart.
 swml.AIVerbHandler: Go-only struct; no direct Python counterpart
 swml.Document: Go-only struct; no direct Python counterpart
 swml.Schema: Go-only struct; no direct Python counterpart

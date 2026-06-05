@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 8a46e6f5a8f4cf81b8d86612d981466a32de9d18",
+  "generated_from": "signalwire-go (go-native) @ d1a9c02ff3f378161a8756dcff4ba3237b590eb1",
   "modules": {
     "agent": {
       "classes": {
@@ -1520,14 +1520,44 @@
           "WaitForUser"
         ],
         "JoinConferenceOptions": [],
+        "Params": [
+          "Array",
+          "Boolean",
+          "Build",
+          "Enum",
+          "Integer",
+          "Number",
+          "Object",
+          "Properties",
+          "Required",
+          "RequiredNames",
+          "String"
+        ],
         "PayOptions": [],
+        "Prop": [],
         "RecordCallOptions": []
       },
       "functions": [
+        "CodecValues",
         "CreatePaymentAction",
         "CreatePaymentParameter",
         "CreatePaymentPrompt",
-        "NewFunctionResult"
+        "Default",
+        "Format",
+        "NewFunctionResult",
+        "NewParams",
+        "PropArray",
+        "PropBoolean",
+        "PropEnum",
+        "PropInteger",
+        "PropNumber",
+        "PropObject",
+        "PropString",
+        "RecordDirectionValues",
+        "RecordFormatValues",
+        "Required",
+        "TapDirectionValues",
+        "WithEnum"
       ]
     },
     "swml": {
