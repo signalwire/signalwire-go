@@ -28,12 +28,15 @@ const (
 
 // Call end reasons indicate why a call ended.
 const (
-	EndReasonHangup   = "hangup"
-	EndReasonCancel   = "cancel"
-	EndReasonBusy     = "busy"
-	EndReasonNoAnswer = "noAnswer"
-	EndReasonDecline  = "decline"
-	EndReasonError    = "error"
+	EndReasonHangup      = "hangup"
+	EndReasonCancel      = "cancel"
+	EndReasonBusy        = "busy"
+	EndReasonNoAnswer    = "noAnswer"
+	EndReasonDecline     = "decline"
+	EndReasonError       = "error"
+	EndReasonAbandoned   = "abandoned"
+	EndReasonMaxDuration = "max_duration"
+	EndReasonNotFound    = "not_found"
 )
 
 // Message states represent the lifecycle of an SMS/MMS message.
