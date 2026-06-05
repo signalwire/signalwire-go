@@ -20,16 +20,16 @@ import (
 // connection to SignalWire, handles Blade/JSON-RPC 2.0 authentication,
 // event dispatch, and exposes high-level Dial/SendMessage methods.
 type Client struct {
-	projectID      string
-	token          string
-	jwtToken       string
-	space          string
-	conn           *websocket.Conn
-	mu             sync.RWMutex
-	pending        map[string]chan json.RawMessage // JSON-RPC id -> response channel
-	calls          map[string]*Call                // call_id -> Call
-	messages       map[string]*Message             // message_id -> Message
-	pendingDials   map[string]chan *Call            // tag -> dial result
+	projectID          string
+	token              string
+	jwtToken           string
+	space              string
+	conn               *websocket.Conn
+	mu                 sync.RWMutex
+	pending            map[string]chan json.RawMessage // JSON-RPC id -> response channel
+	calls              map[string]*Call                // call_id -> Call
+	messages           map[string]*Message             // message_id -> Message
+	pendingDials       map[string]chan *Call           // tag -> dial result
 	protocol           string
 	authState          string
 	authorizationState string // signalwire.authorization.state event payload
@@ -239,6 +239,26 @@ func (c *Client) Unreceive(contexts ...string) error {
 // goroutine BEFORE the subscribe call, then block on a done channel
 // here.
 func (c *Client) Run() error {
+	return c.RunContext(context.Background())
+}
+
+// RunContext is the context-aware form of Run. It behaves identically to Run
+// (connect, authenticate, subscribe, drive the read loop, block) but also
+// stops cleanly when ctx is cancelled or its deadline passes — equivalent to
+// another goroutine calling Stop(). On a ctx-driven shutdown it returns
+// ctx.Err() (wrapping context.Canceled / context.DeadlineExceeded); on a
+// caller Stop() it returns nil, matching Run.
+//
+// This is a Go-port addition (the Python reference's run()/serve loop has no
+// caller-supplied cancellation token); documented in PORT_ADDITIONS.md.
+func (c *Client) RunContext(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	if err := c.connect(); err != nil {
 		return fmt.Errorf("relay connect: %w", err)
 	}
@@ -261,7 +281,29 @@ func (c *Client) Run() error {
 		return fmt.Errorf("relay subscribe contexts: %w", err)
 	}
 
+	// Bridge the caller's context onto the client lifecycle: when ctx is
+	// cancelled, tear the connection down exactly as Stop() would, which
+	// unblocks the read loop and ends this call. A sentinel channel lets the
+	// watcher exit promptly on a normal Stop()-driven shutdown so it doesn't
+	// leak for the client's lifetime.
+	watcherDone := make(chan struct{})
+	defer close(watcherDone)
+	go func() {
+		select {
+		case <-ctx.Done():
+			c.Stop()
+		case <-c.ctx.Done():
+		case <-watcherDone:
+		}
+	}()
+
 	<-done
+
+	// If the caller's context drove the shutdown, surface its error so the
+	// caller can distinguish a deadline/cancel from an explicit Stop().
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -330,7 +372,32 @@ func (c *Client) Stop() {
 //
 // To pass a caller-supplied tag, use WithDialTag. Without it the SDK
 // generates a UUID, matching Python's tag = tag or str(uuid.uuid4()).
+//
+// Dial delegates to DialContext with context.Background(); use DialContext to
+// abort the dial via a caller-controlled context (cancellation or deadline).
 func (c *Client) Dial(devices [][]map[string]any, opts ...DialOption) (*Call, error) {
+	return c.DialContext(context.Background(), devices, opts...)
+}
+
+// DialContext is the context-aware form of Dial: in addition to the
+// dial-timeout and the client's own lifecycle, it aborts when ctx is
+// cancelled or its deadline passes, returning ctx.Err() (wrapping
+// context.Canceled / context.DeadlineExceeded). This is a Go-port addition —
+// the Python reference's dial() has no caller-cancellation channel
+// (documented in PORT_ADDITIONS.md).
+//
+// Error sentinels (errors.Is-able): a per-dial timeout wraps ErrDialTimeout,
+// a server "failed" dial_state wraps ErrDialFailed, and an RPC-send failure
+// against a torn-down socket surfaces ErrNotConnected from the transport.
+func (c *Client) DialContext(ctx context.Context, devices [][]map[string]any, opts ...DialOption) (*Call, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	// Honor an already-cancelled context before doing any work.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	params := map[string]any{
 		"devices": devices,
 	}
@@ -370,16 +437,25 @@ func (c *Client) Dial(devices [][]map[string]any, opts ...DialOption) (*Call, er
 		return nil, fmt.Errorf("dial: %w", err)
 	}
 
+	timer := time.NewTimer(dialTimeout)
+	defer timer.Stop()
+
 	select {
 	case call := <-ch:
 		if call == nil {
-			return nil, NewRelayError(-1, fmt.Sprintf("Dial failed (tag=%s)", tag))
+			// Carry both the typed RelayError (existing errors.As callers,
+			// "RELAY error -1: …" string) and the ErrDialFailed sentinel
+			// (errors.Is callers).
+			return nil, newRelayErrorWrapping(-1, fmt.Sprintf("Dial failed (tag=%s)", tag), ErrDialFailed)
 		}
 		return call, nil
+	case <-ctx.Done():
+		// Caller-controlled cancellation / deadline.
+		return nil, ctx.Err()
 	case <-c.ctx.Done():
 		return nil, c.ctx.Err()
-	case <-time.After(dialTimeout):
-		return nil, NewRelayError(-1, fmt.Sprintf("Dial timed out waiting for answer (tag=%s)", tag))
+	case <-timer.C:
+		return nil, newRelayErrorWrapping(-1, fmt.Sprintf("Dial timed out waiting for answer (tag=%s)", tag), ErrDialTimeout)
 	}
 }
 
@@ -589,8 +665,8 @@ func (c *Client) authenticate() error {
 			}
 
 			var authResult struct {
-				Protocol     string `json:"protocol"`
-				JWTToken     string `json:"jwt_token"`
+				Protocol      string `json:"protocol"`
+				JWTToken      string `json:"jwt_token"`
 				Authorization struct {
 					Project string `json:"project"`
 				} `json:"authorization"`
@@ -755,7 +831,7 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 		c.mu.Lock()
 		delete(c.pending, id)
 		c.mu.Unlock()
-		return nil, fmt.Errorf("execute %s: timeout", method)
+		return nil, fmt.Errorf("execute %s: %w", method, ErrExecuteTimeout)
 	}
 }
 
@@ -1079,7 +1155,7 @@ func (c *Client) writeJSON(v any) error {
 	conn := c.conn
 	c.mu.RUnlock()
 	if conn == nil {
-		return fmt.Errorf("no websocket connection")
+		return fmt.Errorf("no websocket connection: %w", ErrNotConnected)
 	}
 	// Use a write lock to ensure only one goroutine writes at a time.
 	// gorilla/websocket connections are not safe for concurrent writes.

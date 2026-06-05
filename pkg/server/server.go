@@ -3,7 +3,9 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,6 +15,13 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/logging"
 	"github.com/signalwire/signalwire-go/pkg/swml"
 )
+
+// ErrServerNotRunning is returned (wrapped) by Shutdown when no HTTP server is
+// currently active — i.e. Shutdown was called before Run, or after the server
+// already stopped. It is errors.Is-able. This is a Go-port addition (the
+// Python reference's AgentServer has no graceful-shutdown surface); documented
+// in PORT_ADDITIONS.md.
+var ErrServerNotRunning = errors.New("server: not running")
 
 // ---------------------------------------------------------------------------
 // AgentServer
@@ -38,6 +47,10 @@ type AgentServer struct {
 
 	// Static files
 	staticDirs map[string]string // route -> directory
+
+	// Lifecycle: the live HTTP server, set while Run/RunContext is serving so
+	// Shutdown can drain it. Guarded by mu. nil when not serving.
+	httpServer *http.Server
 }
 
 // ---------------------------------------------------------------------------
@@ -319,7 +332,29 @@ func (s *AgentServer) RegisterGlobalSipRoutingCallback(
 // CGI and Lambda environments, Run() is HTTP-server-only.  For AWS Lambda
 // deployments use the pkg/lambda package instead.  CGI mode has no Go
 // equivalent; deploy as a standard HTTP service behind a reverse proxy.
+//
+// Run delegates to RunContext with context.Background(); use RunContext to
+// drive shutdown from a context, or call Shutdown from another goroutine.
 func (s *AgentServer) Run(opts ...RunOption) error {
+	return s.RunContext(context.Background(), opts...)
+}
+
+// RunContext is the context-aware form of Run. It blocks serving HTTP exactly
+// like Run, but when ctx is cancelled (or its deadline passes) it performs a
+// graceful Shutdown — stopping new connections and draining in-flight requests
+// — then returns nil. A concurrent Shutdown call has the same effect. Any
+// other listen error is returned as-is.
+//
+// This is a Go-port addition (the Python reference's AgentServer.run() has no
+// caller-supplied cancellation token); documented in PORT_ADDITIONS.md.
+func (s *AgentServer) RunContext(ctx context.Context, opts ...RunOption) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -341,7 +376,65 @@ func (s *AgentServer) Run(opts ...RunOption) error {
 		Addr:    addr,
 		Handler: mux,
 	}
-	return srv.ListenAndServe()
+
+	s.mu.Lock()
+	s.httpServer = srv
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		// Only clear if it is still our server (a re-entrant Run would have
+		// replaced it).
+		if s.httpServer == srv {
+			s.httpServer = nil
+		}
+		s.mu.Unlock()
+	}()
+
+	// Bridge ctx cancellation onto a graceful Shutdown. The watcher exits as
+	// soon as serving ends (serveDone) so it never leaks past this call.
+	serveDone := make(chan struct{})
+	defer close(serveDone)
+	go func() {
+		select {
+		case <-ctx.Done():
+			// context.Background() for the drain so an already-cancelled ctx
+			// still drains in-flight requests rather than instantly killing
+			// them; callers wanting a bounded drain should call Shutdown(ctx)
+			// themselves with a deadline'd context.
+			_ = srv.Shutdown(context.Background())
+		case <-serveDone:
+		}
+	}()
+
+	err := srv.ListenAndServe()
+	if errors.Is(err, http.ErrServerClosed) {
+		// Clean shutdown (Shutdown or ctx-driven). Not an error.
+		return nil
+	}
+	return err
+}
+
+// Shutdown gracefully stops the running HTTP server: it stops accepting new
+// connections and waits for in-flight requests to complete, bounded by ctx's
+// deadline (a passed deadline returns ctx.Err() and closes idle connections,
+// per net/http.Server.Shutdown). It returns ErrServerNotRunning (wrapped) when
+// no server is currently serving.
+//
+// After Shutdown returns, the in-flight Run/RunContext call unblocks and
+// returns nil. This is a Go-port addition (no Python-reference equivalent);
+// documented in PORT_ADDITIONS.md.
+func (s *AgentServer) Shutdown(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	s.mu.RLock()
+	srv := s.httpServer
+	s.mu.RUnlock()
+	if srv == nil {
+		return fmt.Errorf("AgentServer.Shutdown: %w", ErrServerNotRunning)
+	}
+	s.logger.Info("AgentServer shutting down gracefully")
+	return srv.Shutdown(ctx)
 }
 
 // buildMux assembles an http.ServeMux with all agent routes, health checks,
@@ -515,4 +608,3 @@ func addSecurityHeaders(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-

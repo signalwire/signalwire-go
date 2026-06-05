@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 1a21e67bef83bc1da43ee29216574a616b12dd87",
+  "generated_from": "signalwire-go (go-native) @ 8a46e6f5a8f4cf81b8d86612d981466a32de9d18",
   "modules": {
     "agent": {
       "classes": {
@@ -71,6 +71,7 @@
           "RenderSWML",
           "ResetContexts",
           "Run",
+          "RunContext",
           "Serve",
           "SetDynamicConfigCallback",
           "SetFunctionIncludes",
@@ -1104,6 +1105,7 @@
           "Connect",
           "Contexts",
           "Dial",
+          "DialContext",
           "Execute",
           "JWTToken",
           "Notify",
@@ -1114,6 +1116,7 @@
           "Receive",
           "RelayProtocol",
           "Run",
+          "RunContext",
           "SendMessage",
           "Space",
           "StartReadLoop",
@@ -1182,7 +1185,8 @@
         "RecordEvent": [],
         "ReferEvent": [],
         "RelayError": [
-          "Error"
+          "Error",
+          "Unwrap"
         ],
         "RelayEvent": [
           "GetBool",
@@ -1396,8 +1400,10 @@
           "RegisterGlobalSipRoutingCallback",
           "RegisterSipUsername",
           "Run",
+          "RunContext",
           "ServeStaticFiles",
           "SetupSipRouting",
+          "Shutdown",
           "Unregister"
         ]
       },

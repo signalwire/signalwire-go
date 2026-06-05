@@ -13,6 +13,34 @@ signalwire.relay.event.AIEvent: Go-only typed wrapper around AI action events; P
 signalwire.livewire.plugins.GoogleSTT: Go-only plugin stub; matches WithSTT("google") at AgentSession construction
 signalwire.livewire.plugins.OpenAITTS: Go-only plugin stub; matches WithTTS("openai") at AgentSession construction
 
+# --- Tier-2 idiom additions: context.Context-aware entry points (IDIOM_PASS_JOURNAL §4) ---
+# Additive *Context variants of the blocking/async entry points that honor ctx
+# cancellation + deadline. The existing non-ctx methods are PRESERVED and delegate
+# with context.Background(), so these add zero drift (no oracle method changes
+# shape). Python's run()/serve/dial loops have no caller-supplied cancellation token.
+# NOTE: the signature/surface enumerators only project methods listed in the
+# adapter rename tables and only record port-only STRUCTS / FREE FUNCTIONS in
+# port_additions_actual.json — these methods-on-mapped-structs and package-level
+# vars are invisible to both diff gates; documented here for the audit trail.
+relay.Client.RunContext: Go ctx-aware form of Run; stops cleanly on ctx cancel/deadline (equivalent to Stop), returns ctx.Err(). Non-ctx Run preserved, delegates with context.Background()
+relay.Client.DialContext: Go ctx-aware form of Dial; aborts the dial on ctx cancel/deadline returning ctx.Err(), alongside the dial-timeout + client lifecycle. Non-ctx Dial preserved
+server.AgentServer.RunContext: Go ctx-aware form of AgentServer.Run; on ctx cancel/deadline performs a graceful Shutdown (drain) then returns nil. Non-ctx Run preserved
+agent.AgentBase.RunContext: Go ctx-aware form of AgentBase.Run; on ctx cancel/deadline triggers the existing graceful HTTP shutdown (drains in-flight) then returns nil. Composes with SetupGracefulShutdown. Non-ctx Run preserved
+
+# --- Tier-2 idiom additions: AgentServer graceful shutdown (IDIOM_PASS_JOURNAL §4) ---
+server.AgentServer.Shutdown: Go graceful shutdown — stops accepting new connections and drains in-flight requests bounded by ctx's deadline (net/http.Server.Shutdown). Returns ErrServerNotRunning when not serving. No Python-reference equivalent (AgentServer has no graceful-shutdown surface)
+
+# --- Tier-2 idiom additions: errors.Is-able sentinel errors (IDIOM_PASS_JOURNAL §4) ---
+# Package-level sentinels wrapped with %w at their return sites so callers branch
+# with errors.Is instead of scraping strings. Python uses RelayError + bare
+# exceptions with no sentinel set. RelayError gained an Unwrap() so a single value
+# satisfies BOTH errors.As(*RelayError) (existing) and errors.Is(sentinel) (new).
+relay.ErrNotConnected: Go sentinel — operation needs a live WS connection but none exists (or it was torn down). errors.Is-able
+relay.ErrDialTimeout: Go sentinel — Dial received no answering calling.call.dial event before its dial-timeout. errors.Is-able; also a *RelayError
+relay.ErrDialFailed: Go sentinel — server reported a terminal "failed" dial_state (no device answered). errors.Is-able; also a *RelayError
+relay.ErrExecuteTimeout: Go sentinel — a JSON-RPC request got no response within its deadline. errors.Is-able
+server.ErrServerNotRunning: Go sentinel — Shutdown called with no server currently serving (before Run, or after stop). errors.Is-able
+
 # --- Go-only structs (port-only public types) ---
 agent.MCPServerConfig: Go-only config struct; not part of Python public API
 agent.ToolDefinition: Go-only struct; no direct Python counterpart

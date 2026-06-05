@@ -72,9 +72,9 @@ type ToolDefinition struct {
 	Handler        ToolHandler
 	Secure         bool
 	Fillers        map[string][]string
-	WaitFile       string         // URL to audio file to play while the function executes
-	WaitFileLoops  int            // Number of times to loop WaitFile (0 = no loop)
-	WebhookURL     string         // Per-tool webhook URL; overrides the agent-level webhook when non-empty
+	WaitFile       string // URL to audio file to play while the function executes
+	WaitFileLoops  int    // Number of times to loop WaitFile (0 = no loop)
+	WebhookURL     string // Per-tool webhook URL; overrides the agent-level webhook when non-empty
 	MetaData       map[string]any
 	SwaigFields    map[string]any // extra per-function SWAIG fields
 	IsTypedHandler bool           // whether handler uses typed structs (Python: is_typed_handler)
@@ -343,7 +343,7 @@ type AgentBase struct {
 	AgentID string
 
 	// Prompt management
-	promptText  string           // raw text mode
+	promptText  string // raw text mode
 	postPrompt  string
 	usePom      bool             // default true
 	pomSections []map[string]any // POM sections list
@@ -353,17 +353,17 @@ type AgentBase struct {
 	toolOrder []string                   // insertion order
 
 	// AI configuration
-	hints              []string
-	patternHints       []map[string]any
-	languages          []map[string]any
-	pronunciations     []map[string]any
-	params             map[string]any // AI params like temperature
-	globalData         map[string]any
-	nativeFunctions    []string
-	internalFillers    map[string]map[string][]string
-	debugEventsLevel   int
-	functionIncludes   []map[string]any
-	promptLlmParams    map[string]any
+	hints               []string
+	patternHints        []map[string]any
+	languages           []map[string]any
+	pronunciations      []map[string]any
+	params              map[string]any // AI params like temperature
+	globalData          map[string]any
+	nativeFunctions     []string
+	internalFillers     map[string]map[string][]string
+	debugEventsLevel    int
+	functionIncludes    []map[string]any
+	promptLlmParams     map[string]any
 	postPromptLlmParams map[string]any
 
 	// Context/Steps
@@ -380,19 +380,19 @@ type AgentBase struct {
 	recordStereo    bool
 
 	// Web/HTTP
-	dynamicConfigCallback      DynamicConfigCallback
-	onSwmlRequestHook          OnSwmlRequestHook
-	webhookURL                 string
-	postPromptURL              string
-	defaultWebhookURL          string // Python: _default_webhook_url
-	swaigQueryParams           map[string]string
-	proxyURLBase               string
-	suppressLogs               bool // Python: _suppress_logs
-	enablePostPromptOverride   bool // Python: enable_post_prompt_override
-	checkForInputOverride      bool // Python: check_for_input_override
-	configFile                 string // Python: config_file
-	schemaPath                 string // Python: schema_path
-	schemaValidation           bool   // Python: schema_validation (default true)
+	dynamicConfigCallback    DynamicConfigCallback
+	onSwmlRequestHook        OnSwmlRequestHook
+	webhookURL               string
+	postPromptURL            string
+	defaultWebhookURL        string // Python: _default_webhook_url
+	swaigQueryParams         map[string]string
+	proxyURLBase             string
+	suppressLogs             bool   // Python: _suppress_logs
+	enablePostPromptOverride bool   // Python: enable_post_prompt_override
+	checkForInputOverride    bool   // Python: check_for_input_override
+	configFile               string // Python: config_file
+	schemaPath               string // Python: schema_path
+	schemaValidation         bool   // Python: schema_validation (default true)
 
 	// Session security
 	sessionManager  *security.SessionManager
@@ -408,11 +408,11 @@ type AgentBase struct {
 	//
 	// Python parity: AgentBase.__init__(signing_key=...) and the
 	// SIGNALWIRE_SIGNING_KEY env-var fallback applied in NewAgentBase.
-	signingKey            string
-	signingKeyTrustProxy  bool
+	signingKey           string
+	signingKeyTrustProxy bool
 
 	// Lifecycle callbacks
-	summaryCallback  SummaryCallback
+	summaryCallback   SummaryCallback
 	debugEventHandler DebugEventHandler
 
 	// Skills
@@ -430,8 +430,8 @@ type AgentBase struct {
 	sipRoutingCallbacks map[string]func(r *http.Request, body map[string]any) string
 
 	// MCP integration
-	mcpServers        []map[string]any // external MCP server configs
-	mcpServerEnabled  bool             // expose /mcp endpoint
+	mcpServers       []map[string]any // external MCP server configs
+	mcpServerEnabled bool             // expose /mcp endpoint
 
 	// AI verb overrides — used by specialised sub-agents (e.g. BedrockAgent)
 	// aiVerbName replaces the literal "ai" key in the SWML document.
@@ -461,24 +461,24 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 		aiVerbName:       "ai",
 
 		// Initialize all maps and slices
-		pomSections:        make([]map[string]any, 0),
-		tools:              make(map[string]*ToolDefinition),
-		toolOrder:          make([]string, 0),
-		hints:              make([]string, 0),
-		patternHints:       make([]map[string]any, 0),
-		languages:          make([]map[string]any, 0),
-		pronunciations:     make([]map[string]any, 0),
-		params:             make(map[string]any),
-		globalData:         make(map[string]any),
-		internalFillers:    make(map[string]map[string][]string),
-		functionIncludes:   make([]map[string]any, 0),
-		promptLlmParams:    make(map[string]any),
+		pomSections:         make([]map[string]any, 0),
+		tools:               make(map[string]*ToolDefinition),
+		toolOrder:           make([]string, 0),
+		hints:               make([]string, 0),
+		patternHints:        make([]map[string]any, 0),
+		languages:           make([]map[string]any, 0),
+		pronunciations:      make([]map[string]any, 0),
+		params:              make(map[string]any),
+		globalData:          make(map[string]any),
+		internalFillers:     make(map[string]map[string][]string),
+		functionIncludes:    make([]map[string]any, 0),
+		promptLlmParams:     make(map[string]any),
 		postPromptLlmParams: make(map[string]any),
-		answerConfig:       make(map[string]any),
-		swaigQueryParams:   make(map[string]string),
-		sipUsernames:       make(map[string]bool),
+		answerConfig:        make(map[string]any),
+		swaigQueryParams:    make(map[string]string),
+		sipUsernames:        make(map[string]bool),
 		sipRoutingCallbacks: make(map[string]func(r *http.Request, body map[string]any) string),
-		mcpServers:         make([]map[string]any, 0),
+		mcpServers:          make([]map[string]any, 0),
 	}
 
 	for _, opt := range opts {
@@ -786,12 +786,12 @@ func (a *AgentBase) GetPrompt() any {
 
 // Pom returns a typed PromptObjectModel built from the agent's current
 // POM sections. Returns nil when use_pom is false (Python parity:
-// ``self.pom`` is ``None`` when ``use_pom=False``). The returned value
+// “self.pom“ is “None“ when “use_pom=False“). The returned value
 // is a deep copy / fresh build — mutations don't affect the agent's
 // internal state.
 //
-// Python equivalent: ``agent.pom`` instance attribute (agent_base.py
-// line 209), which is a ``PromptObjectModel`` instance.
+// Python equivalent: “agent.pom“ instance attribute (agent_base.py
+// line 209), which is a “PromptObjectModel“ instance.
 func (a *AgentBase) Pom() *pom.PromptObjectModel {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -873,7 +873,7 @@ func (a *AgentBase) GetPostPrompt() string {
 	return a.postPrompt
 }
 
-// GetRawPrompt returns the raw prompt text whatever ``SetPromptText`` stored,
+// GetRawPrompt returns the raw prompt text whatever “SetPromptText“ stored,
 // regardless of POM mode. Returns an empty string when no raw prompt has
 // been set.
 //
@@ -886,8 +886,8 @@ func (a *AgentBase) GetRawPrompt() string {
 
 // GetContexts returns the contexts as a serialised map (the same shape SWML
 // expects), or nil when no contexts have been defined yet. This mirrors
-// Python's ``PromptManager.get_contexts`` which returns the contexts dict
-// or ``None``.
+// Python's “PromptManager.get_contexts“ which returns the contexts dict
+// or “None“.
 //
 // Python equivalent: prompt_manager.PromptManager.get_contexts
 func (a *AgentBase) GetContexts() map[string]any {
@@ -994,7 +994,7 @@ func (a *AgentBase) RegisterSwaigFunction(funcDef map[string]any) *AgentBase {
 }
 
 // HasFunction reports whether a SWAIG function with the given name is
-// registered. (Python parity: ``ToolRegistry.has_function``.)
+// registered. (Python parity: “ToolRegistry.has_function“.)
 func (a *AgentBase) HasFunction(name string) bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1004,7 +1004,7 @@ func (a *AgentBase) HasFunction(name string) bool {
 
 // GetFunction returns the registered tool definition for the given
 // name, or nil when no such function is registered. (Python parity:
-// ``ToolRegistry.get_function``.)
+// “ToolRegistry.get_function“.)
 func (a *AgentBase) GetFunction(name string) *ToolDefinition {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1016,7 +1016,7 @@ func (a *AgentBase) GetFunction(name string) *ToolDefinition {
 
 // GetAllFunctions returns a snapshot of all registered SWAIG functions
 // keyed by name. The returned map is a copy — subsequent registrations
-// do not mutate it. (Python parity: ``ToolRegistry.get_all_functions``.)
+// do not mutate it. (Python parity: “ToolRegistry.get_all_functions“.)
 func (a *AgentBase) GetAllFunctions() map[string]*ToolDefinition {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1029,7 +1029,7 @@ func (a *AgentBase) GetAllFunctions() map[string]*ToolDefinition {
 
 // RemoveFunction removes a registered SWAIG function. Returns true when
 // the function was found and removed; false when it wasn't registered.
-// (Python parity: ``ToolRegistry.remove_function``.)
+// (Python parity: “ToolRegistry.remove_function“.)
 func (a *AgentBase) RemoveFunction(name string) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1800,7 +1800,7 @@ func (a *AgentBase) GetBasicAuthCredentials() (string, string) {
 // GetBasicAuthCredentialsWithSource returns the basic-auth credentials
 // plus a string indicating their SOURCE — one of "provided",
 // "environment", or "generated". Mirrors Python's
-// ``auth_mixin.AuthMixin.get_basic_auth_credentials(include_source=True)``
+// “auth_mixin.AuthMixin.get_basic_auth_credentials(include_source=True)“
 // (auth_mixin.py line 42-73).
 func (a *AgentBase) GetBasicAuthCredentialsWithSource() (user, pass, source string) {
 	user, pass = a.Service.GetBasicAuthCredentials()
@@ -1942,7 +1942,7 @@ func (a *AgentBase) handleMcpRequest(body map[string]any) map[string]any {
 			"id":      reqID,
 			"result": map[string]any{
 				"protocolVersion": "2025-06-18",
-				"capabilities":   map[string]any{"tools": map[string]any{}},
+				"capabilities":    map[string]any{"tools": map[string]any{}},
 				"serverInfo": map[string]any{
 					"name":    a.Name,
 					"version": "1.0.0",
@@ -2660,7 +2660,63 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 // ---------------------------------------------------------------------------
 
 // Run starts the HTTP server for the agent.  This is a blocking call.
+//
+// Run delegates to RunContext with context.Background(); use RunContext to
+// drive a graceful shutdown from a context (cancellation or deadline).
 func (a *AgentBase) Run() error {
+	return a.RunContext(context.Background())
+}
+
+// RunContext is the context-aware form of Run. It blocks serving HTTP exactly
+// like Run, but when ctx is cancelled (or its deadline passes) it triggers the
+// same graceful HTTP shutdown that SetupGracefulShutdown performs on a signal —
+// draining in-flight requests — then returns nil. It composes with
+// SetupGracefulShutdown: whichever of (ctx, SIGTERM/SIGINT) fires first wins.
+//
+// This is a Go-port addition (the Python reference's run()/serve loop has no
+// caller-supplied cancellation token); documented in PORT_ADDITIONS.md.
+func (a *AgentBase) RunContext(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	// Ensure the shutdown channel exists before we spawn the watcher so a
+	// ctx cancellation that races buildAndServe's own initialisation still
+	// has a channel to close. buildAndServe reuses a non-nil shutdownCh.
+	a.mu.Lock()
+	if a.shutdownCh == nil {
+		a.shutdownCh = make(chan struct{})
+	}
+	ch := a.shutdownCh
+	a.mu.Unlock()
+
+	// Bridge ctx cancellation onto the existing graceful-shutdown channel
+	// (the same one SetupGracefulShutdown closes on a signal). The watcher
+	// exits when serving ends so it never leaks past this call.
+	watcherDone := make(chan struct{})
+	defer close(watcherDone)
+	go func() {
+		select {
+		case <-ctx.Done():
+			a.mu.Lock()
+			if a.shutdownCh != nil {
+				select {
+				case <-a.shutdownCh:
+					// already closed by a signal / earlier cancellation
+				default:
+					close(a.shutdownCh)
+				}
+			}
+			a.mu.Unlock()
+		case <-ch:
+			// graceful shutdown initiated elsewhere (signal handler)
+		case <-watcherDone:
+		}
+	}()
+
 	return a.buildAndServe()
 }
 
@@ -3011,8 +3067,8 @@ func (a *AgentBase) clone() *AgentBase {
 		postPromptURL: a.postPromptURL,
 		proxyURLBase:  a.proxyURLBase,
 
-		tokenExpirySecs: a.tokenExpirySecs,
-		sessionManager:  a.sessionManager,
+		tokenExpirySecs:  a.tokenExpirySecs,
+		sessionManager:   a.sessionManager,
 		debugEventsLevel: a.debugEventsLevel,
 
 		contextBuilder: a.contextBuilder,
