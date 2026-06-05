@@ -3,6 +3,7 @@
 package swaig
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -306,10 +307,12 @@ func (fr *FunctionResult) StopBackgroundFile() *FunctionResult {
 type RecordCallOptions struct {
 	// Terminators specifies digits that stop recording when pressed.
 	Terminators string
-	// Beep plays a beep before recording starts when true.
+	// Beep plays a beep before recording starts when true. Always emitted
+	// (Python emits beep unconditionally; default false).
 	Beep bool
-	// InputSensitivity sets the input sensitivity for recording (default 44.0 in Python).
-	// Zero value is omitted from the SWML payload.
+	// InputSensitivity sets the input sensitivity for recording. Always emitted
+	// (Python emits input_sensitivity unconditionally; default 44.0). The Go zero
+	// value (0.0) is mapped to the Python default 44.0 — pass a non-zero value to override.
 	InputSensitivity float64
 	// InitialTimeout is the time in seconds to wait for speech to start (voicemail-style).
 	// Negative value is omitted.
@@ -338,10 +341,23 @@ type RecordCallOptions struct {
 // auto-conversion keeps a bare "wav" literal compiling — parity with the Python
 // reference's str format. It is written to the wire as a plain string.
 func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format RecordFormat, direction string, opts *RecordCallOptions) *FunctionResult {
+	// Python builds record_params with stereo, format, direction, beep, and
+	// input_sensitivity UNCONDITIONALLY (function_result.py:921-928 — beep:false,
+	// input_sensitivity:44.0 default on every call). Emit all five always.
+	beep := false
+	inputSensitivity := 44.0
+	if opts != nil {
+		beep = opts.Beep
+		if opts.InputSensitivity != 0 {
+			inputSensitivity = opts.InputSensitivity
+		}
+	}
 	recordParams := map[string]any{
-		"stereo":    stereo,
-		"format":    string(format),
-		"direction": direction,
+		"stereo":            stereo,
+		"format":            string(format),
+		"direction":         direction,
+		"beep":              beep,
+		"input_sensitivity": inputSensitivity,
 	}
 	if controlID != "" {
 		recordParams["control_id"] = controlID
@@ -350,12 +366,6 @@ func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format Recor
 	if opts != nil {
 		if opts.Terminators != "" {
 			recordParams["terminators"] = opts.Terminators
-		}
-		if opts.Beep {
-			recordParams["beep"] = opts.Beep
-		}
-		if opts.InputSensitivity != 0 {
-			recordParams["input_sensitivity"] = opts.InputSensitivity
 		}
 		if opts.InitialTimeoutSet || opts.InitialTimeout > 0 {
 			recordParams["initial_timeout"] = opts.InitialTimeout
@@ -459,7 +469,16 @@ func (fr *FunctionResult) ExecuteSwml(swmlContent any, transfer bool) *FunctionR
 			action[k] = val
 		}
 	case string:
-		action = map[string]any{"raw_swml": v}
+		// Python json.loads() the string first; on success it spreads the parsed
+		// SWML document at top level, and only falls back to {"raw_swml": v} on a
+		// JSONDecodeError (function_result.py:411-417). Match that: a string that
+		// parses to a JSON object is spread; anything else becomes raw_swml.
+		var parsed map[string]any
+		if err := json.Unmarshal([]byte(v), &parsed); err == nil {
+			action = parsed
+		} else {
+			action = map[string]any{"raw_swml": v}
+		}
 	default:
 		log.Warn("ExecuteSwml: unsupported content type %T", swmlContent)
 		action = map[string]any{"raw_swml": fmt.Sprintf("%v", swmlContent)}
@@ -729,8 +748,9 @@ type PayOptions struct {
 	Parameters []map[string]string
 	// Prompts is an array of custom prompt configurations.
 	Prompts []map[string]any
-	// AIResponse is the message set via "set" verb before pay; empty string uses Python default.
-	// Set to "-" to suppress the set verb entirely (no ai_response).
+	// AIResponse is the message set via the "set" verb that always precedes the
+	// pay verb; empty string uses the Python default status message. The set verb
+	// is always emitted (Python has no suppression path), matching pay()'s SWML.
 	AIResponse string
 }
 
@@ -844,20 +864,16 @@ func (fr *FunctionResult) Pay(connectorURL string, opts *PayOptions) *FunctionRe
 		aiResponse = "The payment status is ${pay_result}, do not mention anything else about collecting payment if successful."
 	}
 
-	mainVerbs := []any{
-		map[string]any{"pay": payParams},
-	}
-
-	if aiResponse != "-" {
-		mainVerbs = append([]any{
-			map[string]any{"set": map[string]any{"ai_response": aiResponse}},
-		}, mainVerbs...)
-	}
-
+	// Python ALWAYS emits both the set{ai_response} verb and the pay verb
+	// (function_result.py:870-878) — there is no suppression path. A single-verb
+	// pay main is a shape Python can never produce, so emit both unconditionally.
 	swmlDoc := map[string]any{
 		"version": "1.0.0",
 		"sections": map[string]any{
-			"main": mainVerbs,
+			"main": []any{
+				map[string]any{"set": map[string]any{"ai_response": aiResponse}},
+				map[string]any{"pay": payParams},
+			},
 		},
 	}
 	return fr.AddAction("SWML", swmlDoc)
@@ -868,9 +884,11 @@ func (fr *FunctionResult) Pay(connectorURL string, opts *PayOptions) *FunctionRe
 // ExecuteRpc executes an RPC method on a call.
 // Pass empty strings for callID and nodeID to omit them from the payload.
 func (fr *FunctionResult) ExecuteRpc(method string, params map[string]any, callID string, nodeID string) *FunctionResult {
+	// Python's execute_rpc emits only {method, [call_id], [node_id], [params]} —
+	// the jsonrpc envelope belongs to the RELAY/MCP transport layer, never to the
+	// SWML execute_rpc verb. Matching Python's rpc_params exactly (function_result.py:1316).
 	rpcParams := map[string]any{
-		"method":  method,
-		"jsonrpc": "2.0",
+		"method": method,
 	}
 	if callID != "" {
 		rpcParams["call_id"] = callID

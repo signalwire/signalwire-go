@@ -588,6 +588,21 @@ func TestRecordCall(t *testing.T) {
 	if params["direction"] != "both" {
 		t.Errorf("direction = %v, want %q", params["direction"], "both")
 	}
+	// Python emits beep and input_sensitivity UNCONDITIONALLY on every call
+	// (function_result.py:921-928 — beep:false, input_sensitivity:44.0 defaults).
+	// With nil opts, both defaults must still be present.
+	beep, ok := params["beep"]
+	if !ok {
+		t.Error("beep must always be present (Python emits it unconditionally)")
+	} else if beep != false {
+		t.Errorf("beep = %v, want false (default)", beep)
+	}
+	is, ok := params["input_sensitivity"]
+	if !ok {
+		t.Error("input_sensitivity must always be present (Python emits it unconditionally)")
+	} else if is != 44.0 {
+		t.Errorf("input_sensitivity = %v, want 44.0 (default)", is)
+	}
 }
 
 // TestRecordCall_FormatEnumOrString proves the typed RecordFormat constant and
@@ -634,6 +649,13 @@ func TestRecordCallNoControlID(t *testing.T) {
 
 	if _, ok := params["control_id"]; ok {
 		t.Error("control_id should not be present when empty")
+	}
+	// Even on this nil-opts path, beep/input_sensitivity defaults are always emitted.
+	if params["beep"] != false {
+		t.Errorf("beep = %v, want false (always emitted, default)", params["beep"])
+	}
+	if params["input_sensitivity"] != 44.0 {
+		t.Errorf("input_sensitivity = %v, want 44.0 (always emitted, default)", params["input_sensitivity"])
 	}
 }
 
@@ -823,13 +845,52 @@ func TestExecuteSwmlMapWithTransfer(t *testing.T) {
 	}
 }
 
-func TestExecuteSwmlString(t *testing.T) {
-	fr := NewFunctionResult("exec").ExecuteSwml(`{"version":"1.0.0"}`, false)
+func TestExecuteSwmlStringParsesJSON(t *testing.T) {
+	// Python json.loads() a valid JSON-object string and spreads the parsed
+	// document at top level (function_result.py:411-417). The version key lands
+	// at the top of the SWML action, and there is NO raw_swml wrapper.
+	fr := NewFunctionResult("exec").ExecuteSwml(`{"version":"1.0.0","sections":{"main":[]}}`, false)
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
-	if swml["raw_swml"] != `{"version":"1.0.0"}` {
-		t.Errorf("raw_swml = %v", swml["raw_swml"])
+	if _, ok := swml["raw_swml"]; ok {
+		t.Errorf("a valid JSON-object string should be parsed and spread, not wrapped in raw_swml; got %v", swml["raw_swml"])
+	}
+	if swml["version"] != "1.0.0" {
+		t.Errorf("version = %v, want %q (spread from parsed JSON)", swml["version"], "1.0.0")
+	}
+	if _, ok := swml["sections"]; !ok {
+		t.Error("sections key should be spread from the parsed JSON document")
+	}
+}
+
+func TestExecuteSwmlStringParsedWithTransfer(t *testing.T) {
+	// A parsed JSON-object string still gets the transfer key added on top.
+	fr := NewFunctionResult("exec").ExecuteSwml(`{"version":"1.0.0"}`, true)
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	if swml["version"] != "1.0.0" {
+		t.Errorf("version = %v, want %q", swml["version"], "1.0.0")
+	}
+	if swml["transfer"] != "true" {
+		t.Errorf("transfer = %v, want %q", swml["transfer"], "true")
+	}
+	if _, ok := swml["raw_swml"]; ok {
+		t.Error("raw_swml should not be present for a valid JSON-object string")
+	}
+}
+
+func TestExecuteSwmlStringInvalidJSONFallsBackToRawSwml(t *testing.T) {
+	// Python falls back to {"raw_swml": v} only on a JSONDecodeError. A
+	// non-JSON string is preserved verbatim under raw_swml.
+	raw := "this is not json"
+	fr := NewFunctionResult("exec").ExecuteSwml(raw, false)
+
+	actions := fr.ToMap()["action"].([]map[string]any)
+	swml := actions[0]["SWML"].(map[string]any)
+	if swml["raw_swml"] != raw {
+		t.Errorf("raw_swml = %v, want %q", swml["raw_swml"], raw)
 	}
 }
 
@@ -1156,8 +1217,11 @@ func TestPay(t *testing.T) {
 	}
 }
 
-func TestPayNoAiResponse(t *testing.T) {
-	// Use AIResponse="-" to suppress the set verb
+func TestPayAlwaysEmitsSetVerb(t *testing.T) {
+	// Python ALWAYS emits both the set{ai_response} verb and the pay verb
+	// (function_result.py:870-878). A single-verb pay main is a shape Python can
+	// never produce — there is no suppression path. Any AIResponse value (even a
+	// bare "-") is emitted verbatim as the set verb's ai_response, never dropped.
 	fr := NewFunctionResult("processing payment").
 		Pay("https://example.com/pay", &PayOptions{AIResponse: "-"})
 
@@ -1166,11 +1230,18 @@ func TestPayNoAiResponse(t *testing.T) {
 	sections := swml["sections"].(map[string]any)
 	main := sections["main"].([]any)
 
-	// No "set" verb when AIResponse is "-"
-	if len(main) != 1 {
-		t.Fatalf("main verbs = %d, want 1 (pay only)", len(main))
+	// Both verbs are always present: set first, then pay.
+	if len(main) != 2 {
+		t.Fatalf("main verbs = %d, want 2 (set + pay)", len(main))
 	}
-	verb := main[0].(map[string]any)
+
+	setVerb := main[0].(map[string]any)
+	setData := setVerb["set"].(map[string]any)
+	if setData["ai_response"] != "-" {
+		t.Errorf("ai_response = %v, want %q (emitted verbatim, not suppressed)", setData["ai_response"], "-")
+	}
+
+	verb := main[1].(map[string]any)
 	params := verb["pay"].(map[string]any)
 	if params["payment_connector_url"] != "https://example.com/pay" {
 		t.Errorf("payment_connector_url = %v", params["payment_connector_url"])
@@ -1214,14 +1285,23 @@ func TestPayWithFullOptions(t *testing.T) {
 			Voice:           "man",
 			ValidCardTypes:  "visa",
 			StatusURL:       "https://example.com/status",
-			AIResponse:      "-",
+			AIResponse:      "Payment processed",
 		})
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
 	sections := swml["sections"].(map[string]any)
 	main := sections["main"].([]any)
-	verb := main[0].(map[string]any)
+
+	// set verb is always first, pay verb second (Python emits both unconditionally).
+	if len(main) != 2 {
+		t.Fatalf("main verbs = %d, want 2 (set + pay)", len(main))
+	}
+	setData := main[0].(map[string]any)["set"].(map[string]any)
+	if setData["ai_response"] != "Payment processed" {
+		t.Errorf("ai_response = %v, want %q", setData["ai_response"], "Payment processed")
+	}
+	verb := main[1].(map[string]any)
 	params := verb["pay"].(map[string]any)
 
 	if params["input"] != "voice" {
@@ -1260,8 +1340,10 @@ func TestExecuteRpc(t *testing.T) {
 	if rpc["method"] != "custom.method" {
 		t.Errorf("method = %v, want %q", rpc["method"], "custom.method")
 	}
-	if rpc["jsonrpc"] != "2.0" {
-		t.Errorf("jsonrpc = %v, want %q", rpc["jsonrpc"], "2.0")
+	// Python's execute_rpc verb never carries a jsonrpc key — that envelope
+	// belongs to the RELAY/MCP transport layer, not the SWML verb.
+	if _, ok := rpc["jsonrpc"]; ok {
+		t.Errorf("jsonrpc should NOT be present in the execute_rpc verb, got %v", rpc["jsonrpc"])
 	}
 	params := rpc["params"].(map[string]any)
 	if params["key"] != "value" {
@@ -1319,6 +1401,10 @@ func TestRpcDial(t *testing.T) {
 	if rpc["method"] != "dial" {
 		t.Errorf("method = %v, want %q", rpc["method"], "dial")
 	}
+	// The jsonrpc-removal fix ripples through RpcDial (built on ExecuteRpc).
+	if _, ok := rpc["jsonrpc"]; ok {
+		t.Errorf("jsonrpc should NOT be present, got %v", rpc["jsonrpc"])
+	}
 
 	params := rpc["params"].(map[string]any)
 	if params["dest_swml"] != "https://example.com/swml" {
@@ -1372,6 +1458,10 @@ func TestRpcAiMessage(t *testing.T) {
 	if rpc["call_id"] != "call-abc-123" {
 		t.Errorf("call_id = %v, want %q", rpc["call_id"], "call-abc-123")
 	}
+	// The jsonrpc-removal fix ripples through RpcAiMessage (built on ExecuteRpc).
+	if _, ok := rpc["jsonrpc"]; ok {
+		t.Errorf("jsonrpc should NOT be present, got %v", rpc["jsonrpc"])
+	}
 
 	params := rpc["params"].(map[string]any)
 	if params["role"] != "system" {
@@ -1416,6 +1506,10 @@ func TestRpcAiUnhold(t *testing.T) {
 	}
 	if rpc["call_id"] != "call-abc-123" {
 		t.Errorf("call_id = %v, want %q", rpc["call_id"], "call-abc-123")
+	}
+	// The jsonrpc-removal fix ripples through RpcAiUnhold (built on ExecuteRpc).
+	if _, ok := rpc["jsonrpc"]; ok {
+		t.Errorf("jsonrpc should NOT be present, got %v", rpc["jsonrpc"])
 	}
 }
 
