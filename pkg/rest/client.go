@@ -13,6 +13,8 @@ package rest
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -75,15 +77,47 @@ func NewHttpClient(projectID, token, space string) *HttpClient {
 	if baseURL == "" {
 		baseURL = "https://" + space
 	}
-	return &HttpClient{
-		baseURL:   baseURL,
-		projectID: projectID,
-		token:     token,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-		logger: logging.New("rest_client"),
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	// When SIGNALWIRE_REST_CA_FILE names a PEM CA bundle, trust it for HTTPS by
+	// building a RootCAs pool and a custom transport. This matches the
+	// cross-port convention (rust honors SIGNALWIRE_REST_CA_FILE, ruby a
+	// ca_file arg) and lets callers behind a private CA verify the server
+	// without relying on the OS trust store — which, via SSL_CERT_FILE, Go's
+	// system cert pool honors on Linux but NOT on macOS. Unset/empty => the
+	// default transport + system roots (unchanged behavior).
+	if pool := caPoolFromEnv("SIGNALWIRE_REST_CA_FILE"); pool != nil {
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: pool},
+		}
 	}
+	return &HttpClient{
+		baseURL:    baseURL,
+		projectID:  projectID,
+		token:      token,
+		httpClient: httpClient,
+		logger:     logging.New("rest_client"),
+	}
+}
+
+// caPoolFromEnv reads the PEM file named by the given env var and returns a
+// CertPool containing its certificates, or nil when the env var is unset/empty.
+// A non-empty env var pointing at an unreadable/invalid PEM is fatal: a
+// configured-but-broken CA must not silently fall back to system roots (that
+// would mask a misconfiguration as a different, confusing TLS error later).
+func caPoolFromEnv(envVar string) *x509.CertPool {
+	path := os.Getenv(envVar)
+	if path == "" {
+		return nil
+	}
+	pem, err := os.ReadFile(path)
+	if err != nil {
+		panic(fmt.Sprintf("read %s %q: %v", envVar, path, err))
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		panic(fmt.Sprintf("parse %s %q: no certificates found in PEM", envVar, path))
+	}
+	return pool
 }
 
 // BaseURL returns the base URL used by this client.

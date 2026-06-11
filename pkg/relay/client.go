@@ -2,6 +2,8 @@ package relay
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -556,6 +558,16 @@ func (c *Client) connect() error {
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
 	}
+	// When SIGNALWIRE_RELAY_CA_FILE names a PEM CA bundle, trust it for the
+	// wss:// handshake by setting an explicit RootCAs pool. This matches the
+	// cross-port convention (rust/cpp honor SIGNALWIRE_RELAY_CA_FILE) and lets
+	// callers behind a private CA verify the server without the OS trust store
+	// — which, via SSL_CERT_FILE, gorilla's nil-config system pool honors on
+	// Linux but NOT on macOS. Unset/empty => nil TLSClientConfig + system roots
+	// (unchanged behavior, no InsecureSkipVerify).
+	if pool := caPoolFromEnv("SIGNALWIRE_RELAY_CA_FILE"); pool != nil {
+		dialer.TLSClientConfig = &tls.Config{RootCAs: pool}
+	}
 
 	header := http.Header{}
 	conn, _, err := dialer.DialContext(c.ctx, url, header)
@@ -568,6 +580,27 @@ func (c *Client) connect() error {
 	c.mu.Unlock()
 
 	return nil
+}
+
+// caPoolFromEnv reads the PEM file named by the given env var and returns a
+// CertPool containing its certificates, or nil when the env var is unset/empty.
+// A non-empty env var pointing at an unreadable/invalid PEM is fatal: a
+// configured-but-broken CA must not silently fall back to system roots (that
+// would mask a misconfiguration as a different, confusing TLS error later).
+func caPoolFromEnv(envVar string) *x509.CertPool {
+	path := os.Getenv(envVar)
+	if path == "" {
+		return nil
+	}
+	pem, err := os.ReadFile(path)
+	if err != nil {
+		panic(fmt.Sprintf("read %s %q: %v", envVar, path, err))
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		panic(fmt.Sprintf("parse %s %q: no certificates found in PEM", envVar, path))
+	}
+	return pool
 }
 
 // authenticate sends signalwire.connect with credentials and reads the

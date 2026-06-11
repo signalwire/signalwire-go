@@ -72,8 +72,25 @@ func TestTLS_Server_HTTPS(t *testing.T) {
 
 	baseURL := fmt.Sprintf("https://127.0.0.1:%d", port)
 
-	// SSL_CERT_FILE (TestMain) makes this default client trust the test CA.
-	client := &http.Client{Timeout: 3 * time.Second}
+	// Trust the test CA via an explicit RootCAs pool built from ca.crt. This
+	// works on every OS — unlike SSL_CERT_FILE, which Go's system cert pool
+	// honors on Linux but NOT on macOS (Darwin delegates to Security.framework
+	// and ignores SSL_CERT_FILE, so the default client there gets "certificate
+	// is not trusted"). Mirrors the explicit-pool approach the negative-control
+	// subtest below already uses. trustTestCA still sets SSL_CERT_FILE for any
+	// other consumers; this client doesn't depend on it.
+	caPEM, err := os.ReadFile(filepath.Join(certs, "ca.crt"))
+	if err != nil {
+		t.Fatalf("read test CA: %v", err)
+	}
+	caPool := x509.NewCertPool()
+	if !caPool.AppendCertsFromPEM(caPEM) {
+		t.Fatal("failed to load test CA into pool")
+	}
+	client := &http.Client{
+		Timeout:   3 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: caPool}},
+	}
 
 	// Poll /health until the TLS listener is up, then assert a real response.
 	var resp *http.Response
