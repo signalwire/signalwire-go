@@ -72,6 +72,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      # This workflow checks out porting-sdk adjacent (above), so the TLS
+      # capability tests in `go test ./...` (TestTLS_RelayClient_WSS /
+      # TestTLS_RestClient_HTTPS) discover the mock harness and try to spawn
+      # `python -m mock_{relay,signalwire} --tls`. Those mocks import
+      # starlette/uvicorn/pyyaml, so without installing the harness the spawned
+      # process dies on import and the test reports "mock --tls not ready"
+      # instead of skipping. Install both harnesses so the TLS tests run for
+      # real (the per-port `test.yml` does NOT check out porting-sdk, so there
+      # the same tests skip — only this Layer C job exercises them).
+      - name: Install Python test harnesses (mock_relay + mock_signalwire)
+        run: |
+          pip install -e porting-sdk/test_harness/mock_relay
+          pip install -e porting-sdk/test_harness/mock_signalwire
+
       - name: Enumerate Go surface (Python + Go shapes)
         run: go run ./cmd/enumerate-surface
 

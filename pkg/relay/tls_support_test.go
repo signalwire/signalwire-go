@@ -11,6 +11,7 @@
 package relay_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,10 +21,31 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
 )
+
+// tlsSyncBuffer is a goroutine-safe bytes.Buffer: the spawned mock writes to it
+// from the os/exec writer goroutine while the test reads it on the readiness
+// timeout. Without the mutex that is a data race (caught by `go test -race`).
+type tlsSyncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *tlsSyncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *tlsSyncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
 
 // trustTestCA wires the porting-sdk throwaway CA into Go's system cert pool by
 // setting SSL_CERT_FILE to certs/ca.crt (running the idempotent gen_certs.sh
@@ -45,7 +67,14 @@ func trustTestCA(t *testing.T) {
 	if dir == "" {
 		t.Skip("tls: porting-sdk/test_harness/tls not found adjacent to repo")
 	}
-	t.Setenv("SSL_CERT_FILE", filepath.Join(dir, "ca.crt"))
+	caPath := filepath.Join(dir, "ca.crt")
+	// SIGNALWIRE_RELAY_CA_FILE makes the SDK's dialer trust the test CA via an
+	// explicit RootCAs pool — works on every OS, including macOS where Go's
+	// system cert pool ignores SSL_CERT_FILE (Darwin delegates to
+	// Security.framework). SSL_CERT_FILE is still set for any Linux consumer
+	// that relies on the system pool, but the SDK no longer depends on it.
+	t.Setenv("SIGNALWIRE_RELAY_CA_FILE", caPath)
+	t.Setenv("SSL_CERT_FILE", caPath)
 }
 
 // findTLSCertsDir walks up to porting-sdk/test_harness/tls, runs the idempotent
@@ -137,9 +166,14 @@ func startTLSMockRelay(t *testing.T) *tlsMockRelay {
 		"SIGNALWIRE_MOCK_TLS": "1",
 		"MOCK_RELAY_PORT":     strconv.Itoa(wsPort),
 	})
-	devnull, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0)
-	if devnull != nil {
-		cmd.Stdout, cmd.Stderr, cmd.Stdin = devnull, devnull, devnull
+	// Capture the mock's stdout+stderr so a startup failure (e.g. its
+	// starlette/uvicorn/pyyaml deps aren't installed in this job) is surfaced in
+	// the readiness-timeout message below instead of a bare "not ready". stdin
+	// is detached to /dev/null.
+	var mockOut tlsSyncBuffer
+	cmd.Stdout, cmd.Stderr = &mockOut, &mockOut
+	if devnull, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0); devnull != nil {
+		cmd.Stdin = devnull
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := cmd.Start(); err != nil {
@@ -162,7 +196,7 @@ func startTLSMockRelay(t *testing.T) *tlsMockRelay {
 		}
 		time.Sleep(150 * time.Millisecond)
 	}
-	t.Fatalf("tls: mock_relay --tls not ready on ws=%d http=%d", wsPort, httpPort)
+	t.Fatalf("tls: mock_relay --tls not ready on ws=%d http=%d after 30s; mock output:\n%s", wsPort, httpPort, mockOut.String())
 	return nil
 }
 

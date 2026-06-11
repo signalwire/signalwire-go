@@ -13,6 +13,9 @@
 package namespaces_test
 
 import (
+	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,10 +25,31 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
 )
+
+// tlsSyncBuffer is a goroutine-safe bytes.Buffer: the spawned mock writes to it
+// from the os/exec writer goroutine while the test reads it on the readiness
+// timeout. Without the mutex that is a data race (caught by `go test -race`).
+type tlsSyncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *tlsSyncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *tlsSyncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
 
 // trustTestCA wires the porting-sdk throwaway CA into Go's system cert pool by
 // setting SSL_CERT_FILE to certs/ca.crt (running the idempotent gen_certs.sh
@@ -44,7 +68,14 @@ func trustTestCA(t *testing.T) {
 	if dir == "" {
 		t.Skip("tls: porting-sdk/test_harness/tls not found adjacent to repo")
 	}
-	t.Setenv("SSL_CERT_FILE", filepath.Join(dir, "ca.crt"))
+	caPath := filepath.Join(dir, "ca.crt")
+	// SIGNALWIRE_REST_CA_FILE makes the SDK's REST client trust the test CA via
+	// an explicit RootCAs pool — works on every OS, including macOS where Go's
+	// system cert pool ignores SSL_CERT_FILE (Darwin delegates to
+	// Security.framework). SSL_CERT_FILE is still set for any Linux consumer
+	// that relies on the system pool, but the SDK no longer depends on it.
+	t.Setenv("SIGNALWIRE_REST_CA_FILE", caPath)
+	t.Setenv("SSL_CERT_FILE", caPath)
 }
 
 func findTLSCertsDir() string {
@@ -71,6 +102,26 @@ func findTLSCertsDir() string {
 
 func runGenCerts(tlsDir string) error {
 	return exec.Command("bash", filepath.Join(tlsDir, "gen_certs.sh")).Run()
+}
+
+// testCAPool builds an x509 pool from the test CA (certs/ca.crt), for the
+// in-test https:// health-probe client. Explicit RootCAs work on every OS,
+// unlike SSL_CERT_FILE which Go's system pool ignores on macOS.
+func testCAPool(t *testing.T) *x509.CertPool {
+	t.Helper()
+	dir := findTLSCertsDir()
+	if dir == "" {
+		t.Skip("tls: porting-sdk/test_harness/tls not found adjacent to repo")
+	}
+	pem, err := os.ReadFile(filepath.Join(dir, "ca.crt"))
+	if err != nil {
+		t.Fatalf("read test CA: %v", err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		t.Fatal("failed to load test CA into pool")
+	}
+	return pool
 }
 
 // tlsMockSignalwire is a single --tls mock_signalwire instance on its own port.
@@ -125,9 +176,14 @@ func startTLSMockSignalwire(t *testing.T) *tlsMockSignalwire {
 		"--log-level", "error",
 	)
 	cmd.Env = harnessEnv(pkgDir, map[string]string{"SIGNALWIRE_MOCK_TLS": "1"})
-	devnull, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0)
-	if devnull != nil {
-		cmd.Stdout, cmd.Stderr, cmd.Stdin = devnull, devnull, devnull
+	// Capture the mock's stdout+stderr so that if it dies on startup (e.g. its
+	// starlette/uvicorn/pyyaml deps aren't installed in this job), the readiness
+	// timeout below can surface *why* instead of a bare "not ready". stdin is
+	// detached to /dev/null.
+	var mockOut tlsSyncBuffer
+	cmd.Stdout, cmd.Stderr = &mockOut, &mockOut
+	if devnull, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0); devnull != nil {
+		cmd.Stdin = devnull
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := cmd.Start(); err != nil {
@@ -138,8 +194,14 @@ func startTLSMockSignalwire(t *testing.T) *tlsMockSignalwire {
 		go func() { _ = cmd.Wait() }()
 	})
 
-	// SSL_CERT_FILE (set in TestMain) makes this default client trust the CA.
-	client := &http.Client{Timeout: 3 * time.Second}
+	// The health probe hits the mock over https://, so it needs to trust the
+	// test CA. Use an explicit RootCAs pool built from ca.crt rather than
+	// SSL_CERT_FILE — the latter is ignored by Go's system pool on macOS, which
+	// is exactly what made this probe time out into a bogus "not ready" there.
+	client := &http.Client{
+		Timeout:   3 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: testCAPool(t)}},
+	}
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(baseURL + "/__mock__/health")
@@ -151,7 +213,7 @@ func startTLSMockSignalwire(t *testing.T) *tlsMockSignalwire {
 		}
 		time.Sleep(150 * time.Millisecond)
 	}
-	t.Fatalf("tls: mock_signalwire --tls not ready on port %d", port)
+	t.Fatalf("tls: mock_signalwire --tls not ready on port %d after 30s; mock output:\n%s", port, mockOut.String())
 	return nil
 }
 
