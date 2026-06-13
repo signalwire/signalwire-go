@@ -140,7 +140,7 @@ func main() {
 
 	// 8. Get SIP profile
 	fmt.Println("\nGetting SIP profile...")
-	profile, err := client.SipProfile.Get()
+	profile, err := client.SIPProfile.Get()
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  SIP profile failed (expected in demo): %d\n", restErr.StatusCode)

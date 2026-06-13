@@ -35,7 +35,7 @@ func TestBuildWebhookURL_WithRoute(t *testing.T) {
 
 func TestBuildWebhookURL_ExplicitOverride_Web(t *testing.T) {
 	a := NewAgentBase()
-	a.SetWebHookUrl("https://custom.example.com/swaig")
+	a.SetWebHookURL("https://custom.example.com/swaig")
 	url := a.buildWebhookURL()
 	if url != "https://custom.example.com/swaig" {
 		t.Errorf("expected explicit URL, got %q", url)
@@ -77,7 +77,7 @@ func TestBuildPostPromptURL_Default(t *testing.T) {
 
 func TestBuildPostPromptURL_ExplicitOverride(t *testing.T) {
 	a := NewAgentBase()
-	a.SetPostPromptUrl("https://custom.example.com/summary")
+	a.SetPostPromptURL("https://custom.example.com/summary")
 	url := a.buildPostPromptURL()
 	if url != "https://custom.example.com/summary" {
 		t.Errorf("expected explicit URL, got %q", url)
@@ -129,7 +129,7 @@ func TestAddSwaigQueryParams_Overwrite(t *testing.T) {
 
 func TestManualSetProxyUrl_Basic(t *testing.T) {
 	a := NewAgentBase()
-	a.ManualSetProxyUrl("https://proxy.example.com")
+	a.ManualSetProxyURL("https://proxy.example.com")
 	if a.proxyURLBase != "https://proxy.example.com" {
 		t.Errorf("proxyURLBase = %q", a.proxyURLBase)
 	}
@@ -242,8 +242,8 @@ func TestSetDynamicConfigCallback_Basic(t *testing.T) {
 func TestExtractSIPUsername_FromCallTo(t *testing.T) {
 	// This tests the SWML service's ExtractSIPUsername indirectly
 	a := NewAgentBase()
-	a.EnableSipRouting(true, "")
-	a.RegisterSipUsername("alice")
+	a.EnableSIPRouting(true, "")
+	a.RegisterSIPUsername("alice")
 
 	if !a.sipRoutingEnabled {
 		t.Error("expected sipRoutingEnabled=true")
@@ -255,9 +255,9 @@ func TestExtractSIPUsername_FromCallTo(t *testing.T) {
 
 func TestRegisterSipUsername_Multiple(t *testing.T) {
 	a := NewAgentBase()
-	a.RegisterSipUsername("user1")
-	a.RegisterSipUsername("user2")
-	a.RegisterSipUsername("user1") // duplicate
+	a.RegisterSIPUsername("user1")
+	a.RegisterSIPUsername("user2")
+	a.RegisterSIPUsername("user1") // duplicate
 	if len(a.sipUsernames) != 2 {
 		t.Errorf("expected 2 unique usernames, got %d", len(a.sipUsernames))
 	}
@@ -269,14 +269,14 @@ func TestRegisterSipUsername_Multiple(t *testing.T) {
 
 func TestWebMethods_ReturnSelf(t *testing.T) {
 	a := NewAgentBase()
-	if a.ManualSetProxyUrl("x") != a {
-		t.Error("ManualSetProxyUrl should return self")
+	if a.ManualSetProxyURL("x") != a {
+		t.Error("ManualSetProxyURL should return self")
 	}
-	if a.SetWebHookUrl("x") != a {
-		t.Error("SetWebHookUrl should return self")
+	if a.SetWebHookURL("x") != a {
+		t.Error("SetWebHookURL should return self")
 	}
-	if a.SetPostPromptUrl("x") != a {
-		t.Error("SetPostPromptUrl should return self")
+	if a.SetPostPromptURL("x") != a {
+		t.Error("SetPostPromptURL should return self")
 	}
 	if a.AddSwaigQueryParams(nil) != a {
 		t.Error("AddSwaigQueryParams should return self")
@@ -284,11 +284,11 @@ func TestWebMethods_ReturnSelf(t *testing.T) {
 	if a.ClearSwaigQueryParams() != a {
 		t.Error("ClearSwaigQueryParams should return self")
 	}
-	if a.EnableSipRouting(false, "") != a {
-		t.Error("EnableSipRouting should return self")
+	if a.EnableSIPRouting(false, "") != a {
+		t.Error("EnableSIPRouting should return self")
 	}
-	if a.RegisterSipUsername("x") != a {
-		t.Error("RegisterSipUsername should return self")
+	if a.RegisterSIPUsername("x") != a {
+		t.Error("RegisterSIPUsername should return self")
 	}
 	if a.EnableDebugRoutes() != a {
 		t.Error("EnableDebugRoutes should return self")

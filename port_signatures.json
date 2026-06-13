@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 28164ae07bbe4a3b6d954ed55ddada5c2c75ba65 (go/ast walker)",
+  "generated_from": "signalwire-go @ a885be93b590e49f2a5b84c22dd3d47b31c55a25 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -6213,7 +6213,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:HTTPClient"
+              "returns": "class:signalwire.rest._base.HttpClient"
             }
           }
         },
@@ -6742,7 +6742,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -6820,7 +6820,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -7535,7 +7535,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -8207,7 +8207,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 },
                 {
@@ -8790,7 +8790,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -8973,7 +8973,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -9420,7 +9420,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -9506,7 +9506,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -9647,7 +9647,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -9688,7 +9688,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -9757,7 +9757,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -9845,7 +9845,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10049,7 +10049,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10131,7 +10131,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10167,7 +10167,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10241,7 +10241,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10483,7 +10483,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10577,7 +10577,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10646,7 +10646,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10691,7 +10691,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],
@@ -10839,7 +10839,7 @@
                 },
                 {
                   "name": "client",
-                  "type": "class:HTTPClient",
+                  "type": "class:signalwire.rest._base.HttpClient",
                   "required": true
                 }
               ],

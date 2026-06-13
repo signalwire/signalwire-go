@@ -368,7 +368,7 @@ func New(t *testing.T) (*rest.RestClient, *Harness) {
 	if err != nil {
 		t.Fatalf("mocktest: NewRestClient: %v", err)
 	}
-	// Repoint the underlying HttpClient at http:// (the constructor builds
+	// Repoint the underlying HTTPClient at http:// (the constructor builds
 	// https:// + space). SetBaseURL exists for exactly this purpose.
 	client.SetBaseURL(h.URL)
 	return client, h

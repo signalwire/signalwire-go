@@ -242,7 +242,7 @@ func TestSetupSipRouting(t *testing.T) {
 	s := NewAgentServer()
 	s.Register(agent.NewAgentBase(agent.WithName("SipBot")), "/sipbot")
 
-	s.SetupSipRouting("/sip", false)
+	s.SetupSIPRouting("/sip", false)
 
 	if !s.sipEnabled {
 		t.Error("expected sipEnabled=true")
@@ -257,7 +257,7 @@ func TestSetupSipRouting_AutoMap(t *testing.T) {
 	s.Register(agent.NewAgentBase(agent.WithName("Sales")), "/sales")
 	s.Register(agent.NewAgentBase(agent.WithName("Support")), "/support")
 
-	s.SetupSipRouting("", true)
+	s.SetupSIPRouting("", true)
 
 	if s.sipRoute != "/sip" {
 		t.Errorf("expected default sipRoute=/sip, got %q", s.sipRoute)
@@ -274,7 +274,7 @@ func TestSetupSipRouting_AutoMap(t *testing.T) {
 
 func TestRegisterSipUsername(t *testing.T) {
 	s := NewAgentServer()
-	s.RegisterSipUsername("alice", "/alice-agent")
+	s.RegisterSIPUsername("alice", "/alice-agent")
 
 	if s.sipUsernames["alice"] != "/alice-agent" {
 		t.Errorf("expected alice -> /alice-agent, got %q", s.sipUsernames["alice"])
@@ -444,8 +444,8 @@ func TestHTTP_RootIndex_Empty(t *testing.T) {
 func TestHTTP_SipRouting(t *testing.T) {
 	s := NewAgentServer()
 	s.Register(agent.NewAgentBase(agent.WithName("Sales")), "/sales")
-	s.SetupSipRouting("/sip", false)
-	s.RegisterSipUsername("alice", "/sales")
+	s.SetupSIPRouting("/sip", false)
+	s.RegisterSIPUsername("alice", "/sales")
 
 	mux := s.buildMux()
 
@@ -470,7 +470,7 @@ func TestHTTP_SipRouting(t *testing.T) {
 
 func TestHTTP_SipRouting_UnknownUsername(t *testing.T) {
 	s := NewAgentServer()
-	s.SetupSipRouting("/sip", false)
+	s.SetupSIPRouting("/sip", false)
 
 	mux := s.buildMux()
 
@@ -487,7 +487,7 @@ func TestHTTP_SipRouting_UnknownUsername(t *testing.T) {
 
 func TestHTTP_SipRouting_MethodNotAllowed(t *testing.T) {
 	s := NewAgentServer()
-	s.SetupSipRouting("/sip", false)
+	s.SetupSIPRouting("/sip", false)
 
 	mux := s.buildMux()
 
@@ -520,39 +520,39 @@ func TestRunOptions(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// extractSipUsername tests
+// extractSIPUsername tests
 // ---------------------------------------------------------------------------
 
 func TestExtractSipUsername_TopLevel(t *testing.T) {
 	body := map[string]any{"sip_username": "bob"}
-	if got := extractSipUsername(body); got != "bob" {
+	if got := extractSIPUsername(body); got != "bob" {
 		t.Errorf("expected bob, got %q", got)
 	}
 }
 
 func TestExtractSipUsername_To(t *testing.T) {
 	body := map[string]any{"to": "charlie"}
-	if got := extractSipUsername(body); got != "charlie" {
+	if got := extractSIPUsername(body); got != "charlie" {
 		t.Errorf("expected charlie, got %q", got)
 	}
 }
 
 func TestExtractSipUsername_Nested(t *testing.T) {
 	body := map[string]any{"call": map[string]any{"to": "dave"}}
-	if got := extractSipUsername(body); got != "dave" {
+	if got := extractSIPUsername(body); got != "dave" {
 		t.Errorf("expected dave, got %q", got)
 	}
 }
 
 func TestExtractSipUsername_Empty(t *testing.T) {
 	body := map[string]any{"other": "value"}
-	if got := extractSipUsername(body); got != "" {
+	if got := extractSIPUsername(body); got != "" {
 		t.Errorf("expected empty string, got %q", got)
 	}
 }
 
 // ---------------------------------------------------------------------------
-// RegisterGlobalSipRoutingCallback (Python register_global_routing_callback
+// RegisterGlobalSIPRoutingCallback (Python register_global_routing_callback
 // with redirect-string semantics)
 // ---------------------------------------------------------------------------
 
@@ -565,7 +565,7 @@ func TestRegisterGlobalSipRoutingCallback_FansOutToAllAgents(t *testing.T) {
 	s.Register(a2, "/a2")
 
 	const target = "https://elsewhere.example/global"
-	s.RegisterGlobalSipRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
+	s.RegisterGlobalSIPRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
 		return target
 	})
 
@@ -594,7 +594,7 @@ func TestRegisterGlobalSipRoutingCallback_NormalizesPath(t *testing.T) {
 	s.Register(a, "/a")
 
 	// Trailing slash should be stripped; leading slash should be added.
-	s.RegisterGlobalSipRoutingCallback("sip/", func(r *http.Request, body map[string]any) string {
+	s.RegisterGlobalSIPRoutingCallback("sip/", func(r *http.Request, body map[string]any) string {
 		return "https://x.example"
 	})
 
@@ -610,7 +610,7 @@ func TestRegisterGlobalSipRoutingCallback_NormalizesPath(t *testing.T) {
 }
 
 // Ensure response-document override (RegisterGlobalRoutingCallback) and
-// redirect-string (RegisterGlobalSipRoutingCallback) variants do not collide
+// redirect-string (RegisterGlobalSIPRoutingCallback) variants do not collide
 // when registered on different paths.
 func TestRegisterGlobalSipRoutingCallback_CoexistsWithDocumentVariant(t *testing.T) {
 	s := NewAgentServer()
@@ -624,7 +624,7 @@ func TestRegisterGlobalSipRoutingCallback_CoexistsWithDocumentVariant(t *testing
 			"sections": map[string]any{"main": []any{}},
 		}
 	})
-	s.RegisterGlobalSipRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
+	s.RegisterGlobalSIPRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
 		return "https://elsewhere.example"
 	})
 

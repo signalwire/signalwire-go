@@ -337,7 +337,7 @@ func TestExpressions(t *testing.T) {
 }
 
 func TestCreateSimpleApiTool(t *testing.T) {
-	dm := CreateSimpleApiTool(
+	dm := CreateSimpleAPITool(
 		"get_stock",
 		"https://api.stocks.com/v1/quote?symbol=${symbol}",
 		"${response.name}: $${response.price}",
@@ -396,7 +396,7 @@ func TestCreateSimpleApiTool(t *testing.T) {
 }
 
 func TestCreateSimpleApiToolWithBody(t *testing.T) {
-	dm := CreateSimpleApiTool(
+	dm := CreateSimpleAPITool(
 		"search",
 		"https://api.search.com/query",
 		"Found: ${response.results[0].title}",

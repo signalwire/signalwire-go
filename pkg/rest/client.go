@@ -55,11 +55,11 @@ func NewSignalWireRestError(statusCode int, body, url, method string) *SignalWir
 	return &SignalWireRestError{StatusCode: statusCode, Body: body, URL: url, Method: method}
 }
 
-// ---------- HttpClient ----------
+// ---------- HTTPClient ----------
 
-// HttpClient is a thin wrapper around net/http that provides Basic Auth,
+// HTTPClient is a thin wrapper around net/http that provides Basic Auth,
 // JSON encoding/decoding, and standard headers for SignalWire API calls.
-type HttpClient struct {
+type HTTPClient struct {
 	baseURL    string
 	projectID  string
 	token      string
@@ -67,12 +67,12 @@ type HttpClient struct {
 	logger     *logging.Logger
 }
 
-// NewHttpClient creates a new HttpClient configured for the given SignalWire
+// NewHTTPClient creates a new HTTPClient configured for the given SignalWire
 // space. The baseURL is normally constructed as "https://<space>", but the
 // SIGNALWIRE_REST_BASE_URL environment variable overrides it when set —
 // pointing the client at a loopback fixture for the porting-sdk
 // audit_rest_transport.py harness, or at any non-default endpoint.
-func NewHttpClient(projectID, token, space string) *HttpClient {
+func NewHTTPClient(projectID, token, space string) *HTTPClient {
 	baseURL := os.Getenv("SIGNALWIRE_REST_BASE_URL")
 	if baseURL == "" {
 		baseURL = "https://" + space
@@ -90,7 +90,7 @@ func NewHttpClient(projectID, token, space string) *HttpClient {
 			TLSClientConfig: &tls.Config{RootCAs: pool},
 		}
 	}
-	return &HttpClient{
+	return &HTTPClient{
 		baseURL:    baseURL,
 		projectID:  projectID,
 		token:      token,
@@ -121,7 +121,7 @@ func caPoolFromEnv(envVar string) *x509.CertPool {
 }
 
 // BaseURL returns the base URL used by this client.
-func (c *HttpClient) BaseURL() string {
+func (c *HTTPClient) BaseURL() string {
 	return c.baseURL
 }
 
@@ -129,42 +129,42 @@ func (c *HttpClient) BaseURL() string {
 // pointing the client at a non-default endpoint (audit fixtures, mock
 // servers, etc.) without re-running the constructor with a synthetic
 // space name.
-func (c *HttpClient) SetBaseURL(url string) {
+func (c *HTTPClient) SetBaseURL(url string) {
 	c.baseURL = url
 }
 
 // Get performs an HTTP GET request. params are added as query-string
 // parameters.
-func (c *HttpClient) Get(path string, params map[string]string) (map[string]any, error) {
+func (c *HTTPClient) Get(path string, params map[string]string) (map[string]any, error) {
 	return c.doRequest("GET", path, nil, params)
 }
 
 // Post performs an HTTP POST request with a JSON body. Optional params are
 // appended to the URL as query-string parameters.
-func (c *HttpClient) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
+func (c *HTTPClient) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
 	return c.doRequest("POST", path, body, params)
 }
 
 // Put performs an HTTP PUT request with a JSON body.
-func (c *HttpClient) Put(path string, body map[string]any) (map[string]any, error) {
+func (c *HTTPClient) Put(path string, body map[string]any) (map[string]any, error) {
 	return c.doRequest("PUT", path, body, nil)
 }
 
 // Patch performs an HTTP PATCH request with a JSON body.
-func (c *HttpClient) Patch(path string, body map[string]any) (map[string]any, error) {
+func (c *HTTPClient) Patch(path string, body map[string]any) (map[string]any, error) {
 	return c.doRequest("PATCH", path, body, nil)
 }
 
 // Delete performs an HTTP DELETE request. It returns the parsed response body
 // (or an empty map for 204 No Content) and any error.
-func (c *HttpClient) Delete(path string) (map[string]any, error) {
+func (c *HTTPClient) Delete(path string) (map[string]any, error) {
 	return c.doRequest("DELETE", path, nil, nil)
 }
 
 // doRequest is the shared request execution method. It sets Basic Auth,
 // Content-Type, Accept, and User-Agent headers. A 204 No Content response
 // returns an empty map. Non-2xx responses return a *SignalWireRestError.
-func (c *HttpClient) doRequest(method, path string, body any, params map[string]string) (map[string]any, error) {
+func (c *HTTPClient) doRequest(method, path string, body any, params map[string]string) (map[string]any, error) {
 	// Build URL
 	reqURL := c.baseURL + path
 	if len(params) > 0 {
@@ -237,14 +237,14 @@ func (c *HttpClient) doRequest(method, path string, body any, params map[string]
 // against a REST collection endpoint. Update defaults to PATCH; set
 // UpdateMethod to "PUT" to override.
 type CrudResource struct {
-	Client       *HttpClient
+	Client       *HTTPClient
 	Path         string
 	UpdateMethod string // "PATCH" (default) or "PUT"
 }
 
 // NewCrudResource creates a CrudResource for the given path. The default
 // update method is PATCH.
-func NewCrudResource(client *HttpClient, path string) *CrudResource {
+func NewCrudResource(client *HTTPClient, path string) *CrudResource {
 	return &CrudResource{
 		Client:       client,
 		Path:         path,
@@ -253,7 +253,7 @@ func NewCrudResource(client *HttpClient, path string) *CrudResource {
 }
 
 // NewCrudResourcePUT creates a CrudResource that uses PUT for updates.
-func NewCrudResourcePUT(client *HttpClient, path string) *CrudResource {
+func NewCrudResourcePUT(client *HTTPClient, path string) *CrudResource {
 	return &CrudResource{
 		Client:       client,
 		Path:         path,
@@ -304,7 +304,7 @@ func (r *CrudResource) Delete(id string) (map[string]any, error) {
 // Each call to Next returns the items from the current page, a boolean
 // indicating whether more pages exist, and any error encountered.
 type PaginatedIterator struct {
-	client  *HttpClient
+	client  *HTTPClient
 	path    string
 	params  map[string]string
 	dataKey string
@@ -313,7 +313,7 @@ type PaginatedIterator struct {
 
 // NewPaginatedIterator creates a new iterator for the given endpoint.
 // dataKey is the JSON key that holds the array of items (typically "data").
-func NewPaginatedIterator(client *HttpClient, path string, params map[string]string, dataKey string) *PaginatedIterator {
+func NewPaginatedIterator(client *HTTPClient, path string, params map[string]string, dataKey string) *PaginatedIterator {
 	if params == nil {
 		params = map[string]string{}
 	}

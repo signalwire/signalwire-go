@@ -51,7 +51,7 @@ func TestBuilderParams_RenderedIntoRealSWAIGJSON(t *testing.T) {
 
 	a := NewAgentBase(WithName("builder-it"), WithBasicAuth("u", "p"))
 	a.SetPromptText("hello")
-	a.SetWebHookUrl("https://example.com/swaig")
+	a.SetWebHookURL("https://example.com/swaig")
 	a.DefineTool(ToolDefinition{
 		Name:        "check_availability",
 		Description: "Check availability for a service",
@@ -132,7 +132,7 @@ func TestBuilderParams_EquivalentToHandWrittenInRender(t *testing.T) {
 	makeAgent := func(p map[string]any, req []string) *AgentBase {
 		a := NewAgentBase(WithName("eq"), WithBasicAuth("u", "p"))
 		a.SetPromptText("hi")
-		a.SetWebHookUrl("https://example.com/swaig")
+		a.SetWebHookURL("https://example.com/swaig")
 		a.DefineTool(ToolDefinition{
 			Name:        "validate_response",
 			Description: "Validate a response",

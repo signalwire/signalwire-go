@@ -35,8 +35,6 @@ import (
 
 // Re-export internal/surface package symbols under the previous local
 // names so the existing main.go body keeps working without churn.
-type classTarget = surfacepkg.ClassTarget
-
 var (
 	structTable = surfacepkg.StructTable
 	freeFnTable = surfacepkg.FreeFnTable

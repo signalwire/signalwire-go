@@ -8,13 +8,13 @@
 // Mock-backed unit tests translated from
 // signalwire-python/tests/unit/rest/test_pagination_mock.py.
 //
-// PaginatedIterator wraps any HttpClient.Get call and walks paged
+// PaginatedIterator wraps any HTTPClient.Get call and walks paged
 // responses following the links.next cursor. We test it end-to-end by:
 //
 //   1. Staging two FIFO scenarios on a known mock endpoint — the first
 //      scenario has a ``links.next`` cursor, the second is the terminal page.
 //   2. Iterating over a real PaginatedIterator wired to the SDK's
-//      HttpClient pointed at the mock.
+//      HTTPClient pointed at the mock.
 //   3. Asserting on the items collected and on the journal entries that
 //      correspond to the two HTTP fetches.
 
@@ -44,7 +44,7 @@ func TestPaginatedIterator_InitState(t *testing.T) {
 	mock.Reset(t)
 
 	it := rest.NewPaginatedIterator(
-		client.HttpClient(),
+		client.HTTPClient(),
 		fabricAddressesPath,
 		map[string]string{"page_size": "2"},
 		"data",
@@ -86,7 +86,7 @@ func TestPaginatedIterator_NextPagesThroughAllItems(t *testing.T) {
 	})
 
 	it := rest.NewPaginatedIterator(
-		client.HttpClient(),
+		client.HTTPClient(),
 		fabricAddressesPath,
 		nil,
 		"data",
@@ -147,7 +147,7 @@ func TestPaginatedIterator_NextStopsWhenDone(t *testing.T) {
 	})
 
 	it := rest.NewPaginatedIterator(
-		client.HttpClient(),
+		client.HTTPClient(),
 		fabricAddressesPath,
 		nil,
 		"data",
@@ -201,7 +201,7 @@ func TestPaginatedIterator_ForEachStopsOnError(t *testing.T) {
 	})
 
 	it := rest.NewPaginatedIterator(
-		client.HttpClient(),
+		client.HTTPClient(),
 		fabricAddressesPath,
 		nil,
 		"data",

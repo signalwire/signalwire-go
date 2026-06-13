@@ -573,10 +573,10 @@ func (s *Service) AsRouter() http.Handler {
 	return s.buildMux()
 }
 
-// ManualSetProxyUrl overrides the proxy URL base used for URL generation.
+// ManualSetProxyURL overrides the proxy URL base used for URL generation.
 // Call this at runtime to set or update the proxy URL (e.g. an ngrok URL).
 // Mirrors Python's manual_set_proxy_url(proxy_url: str) on SWMLService.
-func (s *Service) ManualSetProxyUrl(url string) {
+func (s *Service) ManualSetProxyURL(url string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.proxyURLBase = strings.TrimRight(url, "/")

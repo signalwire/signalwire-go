@@ -94,7 +94,7 @@ func TestAllNamespacesInitialized(t *testing.T) {
 		{"Recordings", client.Recordings},
 		{"NumberGroups", client.NumberGroups},
 		{"VerifiedCallers", client.VerifiedCallers},
-		{"SipProfile", client.SipProfile},
+		{"SIPProfile", client.SIPProfile},
 		{"Lookup", client.Lookup},
 		{"ShortCodes", client.ShortCodes},
 		{"ImportedNumbers", client.ImportedNumbers},
@@ -341,7 +341,7 @@ func TestCrudResourcePUT_UpdateMethod(t *testing.T) {
 }
 
 func TestHttpClient_URLConstruction(t *testing.T) {
-	c := NewHttpClient("proj-id", "token", "my-space.signalwire.com")
+	c := NewHTTPClient("proj-id", "token", "my-space.signalwire.com")
 	expected := "https://my-space.signalwire.com"
 	if c.BaseURL() != expected {
 		t.Errorf("BaseURL() = %q, want %q", c.BaseURL(), expected)
@@ -349,7 +349,7 @@ func TestHttpClient_URLConstruction(t *testing.T) {
 }
 
 func TestHttpClient_BasicFields(t *testing.T) {
-	c := NewHttpClient("proj-id", "my-token", "space.signalwire.com")
+	c := NewHTTPClient("proj-id", "my-token", "space.signalwire.com")
 	if c.projectID != "proj-id" {
 		t.Errorf("projectID = %q, want %q", c.projectID, "proj-id")
 	}

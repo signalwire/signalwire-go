@@ -26,7 +26,7 @@ import (
 //	agents, err := client.Fabric.AIAgents.List(nil)
 //	client.Calling.Play("call-id", map[string]any{"play": [...]})
 type RestClient struct {
-	http      *HttpClient
+	http      *HTTPClient
 	projectID string
 
 	// Fabric API
@@ -42,7 +42,7 @@ type RestClient struct {
 	Recordings      *namespaces.RecordingsNamespace
 	NumberGroups    *namespaces.NumberGroupsNamespace
 	VerifiedCallers *namespaces.VerifiedCallersNamespace
-	SipProfile      *namespaces.SipProfileNamespace
+	SIPProfile      *namespaces.SIPProfileNamespace
 	Lookup          *namespaces.LookupNamespace
 	ShortCodes      *namespaces.ShortCodesNamespace
 	ImportedNumbers *namespaces.ImportedNumbersNamespace
@@ -71,7 +71,7 @@ type RestClient struct {
 	Chat   *namespaces.ChatNamespace
 }
 
-// SetBaseURL overrides the base URL used by the underlying HttpClient.
+// SetBaseURL overrides the base URL used by the underlying HTTPClient.
 // Useful for pointing the client at a non-default endpoint such as the
 // audit_rest_transport.py harness fixture, a recorded-cassette mock
 // server, or a regional endpoint without re-running the constructor.
@@ -79,11 +79,11 @@ func (c *RestClient) SetBaseURL(url string) {
 	c.http.SetBaseURL(url)
 }
 
-// HttpClient exposes the underlying HTTP transport. It is the public form
+// HTTPClient exposes the underlying HTTP transport. It is the public form
 // of Python's “signalwire_client._http“ and is the entry point used by
 // helpers like PaginatedIterator that need raw GET access without going
 // through a namespace resource.
-func (c *RestClient) HttpClient() *HttpClient {
+func (c *RestClient) HTTPClient() *HTTPClient {
 	return c.http
 }
 
@@ -114,9 +114,9 @@ func NewRestClient(project, token, space string) (*RestClient, error) {
 		)
 	}
 
-	h := NewHttpClient(project, token, space)
+	h := NewHTTPClient(project, token, space)
 
-	// Wrap the HttpClient in a namespaces.HTTPClient adapter so namespaces
+	// Wrap the HTTPClient in a namespaces.HTTPClient adapter so namespaces
 	// can use it without importing the rest package (avoiding a cycle).
 	adapter := &httpAdapter{h}
 
@@ -134,7 +134,7 @@ func NewRestClient(project, token, space string) (*RestClient, error) {
 	c.Recordings = namespaces.NewRecordingsNamespace(adapter)
 	c.NumberGroups = namespaces.NewNumberGroupsNamespace(adapter)
 	c.VerifiedCallers = namespaces.NewVerifiedCallersNamespace(adapter)
-	c.SipProfile = namespaces.NewSipProfileNamespace(adapter)
+	c.SIPProfile = namespaces.NewSIPProfileNamespace(adapter)
 	c.Lookup = namespaces.NewLookupNamespace(adapter)
 	c.ShortCodes = namespaces.NewShortCodesNamespace(adapter)
 	c.ImportedNumbers = namespaces.NewImportedNumbersNamespace(adapter)
@@ -153,9 +153,9 @@ func NewRestClient(project, token, space string) (*RestClient, error) {
 
 // ---------- httpAdapter ----------
 
-// httpAdapter wraps *HttpClient to satisfy the namespaces.HTTPClient interface.
+// httpAdapter wraps *HTTPClient to satisfy the namespaces.HTTPClient interface.
 type httpAdapter struct {
-	c *HttpClient
+	c *HTTPClient
 }
 
 func (a *httpAdapter) Get(path string, params map[string]string) (map[string]any, error) {

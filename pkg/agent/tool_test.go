@@ -269,7 +269,7 @@ func TestOnFunctionCall_NilResult(t *testing.T) {
 
 func TestToolRendering_WebhookURL(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("user", "pass"))
-	a.SetWebHookUrl("https://example.com/swaig")
+	a.SetWebHookURL("https://example.com/swaig")
 	a.DefineTool(ToolDefinition{
 		Name:        "test_tool",
 		Description: "A test tool",

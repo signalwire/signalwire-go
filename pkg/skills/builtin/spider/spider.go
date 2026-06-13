@@ -1,3 +1,6 @@
+// Package spider provides the web-spider builtin skill (HTML scrape + crawl via
+// CSS and XPath selectors). It lives in its own package so its goquery/htmlquery
+// HTML-parsing dependencies are compiled in only by consumers that import it.
 package spider
 
 import (

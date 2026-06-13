@@ -57,7 +57,7 @@ func main() {
 	//   docs, err := client.Datasphere.Documents.List(nil)
 
 	// SIP profiles:
-	//   profiles, err := client.SipProfile.List(nil)
+	//   profiles, err := client.SIPProfile.List(nil)
 
 	// Verified callers:
 	//   callers, err := client.VerifiedCallers.List(nil)

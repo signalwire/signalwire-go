@@ -1051,7 +1051,7 @@ func TestBuildWebhookURL_Default(t *testing.T) {
 
 func TestBuildWebhookURL_ExplicitOverride(t *testing.T) {
 	a := NewAgentBase()
-	a.SetWebHookUrl("https://custom.example.com/swaig")
+	a.SetWebHookURL("https://custom.example.com/swaig")
 
 	url := a.buildWebhookURL()
 	if url != "https://custom.example.com/swaig" {
@@ -1090,7 +1090,7 @@ func TestClearSwaigQueryParams(t *testing.T) {
 
 func TestSetPostPromptUrl(t *testing.T) {
 	a := NewAgentBase()
-	a.SetPostPromptUrl("https://example.com/summary")
+	a.SetPostPromptURL("https://example.com/summary")
 	if a.postPromptURL != "https://example.com/summary" {
 		t.Error("unexpected postPromptURL")
 	}
@@ -1098,7 +1098,7 @@ func TestSetPostPromptUrl(t *testing.T) {
 
 func TestManualSetProxyUrl(t *testing.T) {
 	a := NewAgentBase()
-	a.ManualSetProxyUrl("https://proxy.example.com")
+	a.ManualSetProxyURL("https://proxy.example.com")
 	if a.proxyURLBase != "https://proxy.example.com" {
 		t.Error("unexpected proxyURLBase")
 	}
@@ -1110,7 +1110,7 @@ func TestManualSetProxyUrl(t *testing.T) {
 
 func TestEnableSipRouting(t *testing.T) {
 	a := NewAgentBase()
-	a.EnableSipRouting(true, "/sip")
+	a.EnableSIPRouting(true, "/sip")
 	if !a.sipRoutingEnabled {
 		t.Error("expected sipRoutingEnabled=true")
 	}
@@ -1118,7 +1118,7 @@ func TestEnableSipRouting(t *testing.T) {
 
 func TestRegisterSipUsername(t *testing.T) {
 	a := NewAgentBase()
-	a.RegisterSipUsername("alice")
+	a.RegisterSIPUsername("alice")
 	if !a.sipUsernames["alice"] {
 		t.Error("expected alice in SIP usernames")
 	}
@@ -1337,9 +1337,9 @@ func TestMethodChaining(t *testing.T) {
 		AddPreAnswerVerb("play", map[string]any{}).
 		AddPostAnswerVerb("sleep", map[string]any{}).
 		AddPostAiVerb("hangup", map[string]any{}).
-		SetWebHookUrl("https://example.com").
-		SetPostPromptUrl("https://example.com/pp").
-		ManualSetProxyUrl("https://proxy.example.com")
+		SetWebHookURL("https://example.com").
+		SetPostPromptURL("https://example.com/pp").
+		ManualSetProxyURL("https://proxy.example.com")
 
 	if result != a {
 		t.Error("chaining should return the same agent")

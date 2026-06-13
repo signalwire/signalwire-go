@@ -379,7 +379,7 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 	}
 }
 
-// CreateSimpleApiTool creates a DataMap configured for a simple API call.
+// CreateSimpleAPITool creates a DataMap configured for a simple API call.
 // name is the function name.
 // url is the API endpoint URL.
 // responseTemplate is the template for formatting the response.
@@ -388,7 +388,7 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 // headers are optional HTTP headers (can be nil).
 // body is an optional request body for POST/PUT (can be nil).
 // errorKeys are optional error indicator keys (can be nil).
-func CreateSimpleApiTool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, body map[string]any, errorKeys []string) *DataMap {
+func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, body map[string]any, errorKeys []string) *DataMap {
 	dm := New(name)
 
 	// Add parameters
