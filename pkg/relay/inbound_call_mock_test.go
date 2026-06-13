@@ -286,7 +286,12 @@ func TestRelay_HangupInHandlerJournalsCallingEnd(t *testing.T) {
 		CallID:     "c-hangup",
 		AutoStates: []string{"created"},
 	})
-	<-done
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		h.DumpDiagnostics(t, "OnCall handler did not fire within 5s")
+		t.Fatal("OnCall handler did not fire within 5s (mock inbound-call event not dispatched)")
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	ends := h.JournalRecv(t, "calling.end")
@@ -318,7 +323,12 @@ func TestRelay_PassInHandlerJournalsCallingPass(t *testing.T) {
 		CallID:     "c-pass",
 		AutoStates: []string{"created"},
 	})
-	<-done
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		h.DumpDiagnostics(t, "OnCall handler did not fire within 5s")
+		t.Fatal("OnCall handler did not fire within 5s (mock inbound-call event not dispatched)")
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	passes := h.JournalRecv(t, "calling.pass")
@@ -603,7 +613,13 @@ func TestRelay_ScenarioPlayFullInboundFlow(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("handler did not fire in scenario_play timeline")
 	}
-	result := <-resultCh
+	var result map[string]any
+	select {
+	case result = <-resultCh:
+	case <-time.After(10 * time.Second):
+		h.DumpDiagnostics(t, "ScenarioPlay did not return within 10s")
+		t.Fatal("ScenarioPlay did not return within 10s")
+	}
 	if result["status"] != "completed" {
 		t.Fatalf("scenario didn't complete: %v", result)
 	}
@@ -636,7 +652,12 @@ func TestRelay_InboundCallJournalSendRecordsCallingCallReceive(t *testing.T) {
 		CallID:     "c-wire",
 		AutoStates: []string{"created"},
 	})
-	<-done
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		h.DumpDiagnostics(t, "OnCall handler did not fire within 5s")
+		t.Fatal("OnCall handler did not fire within 5s (mock inbound-call event not dispatched)")
+	}
 
 	sends := h.JournalSend(t, "calling.call.receive")
 	if len(sends) == 0 {

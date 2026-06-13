@@ -364,6 +364,80 @@ func valOrDefault(v, d string) string {
 	return v
 }
 
+// getJSON is a non-fatal GET+decode used by DumpDiagnostics so that dumping
+// state on a failure path never itself calls t.Fatalf (which would mask the
+// original failure). Returns the raw body on decode error.
+func (h *Harness) getJSON(path string, out any) (string, error) {
+	resp, err := h.httpClient.Get(h.HTTPURL + path)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if out != nil {
+		if err := json.Unmarshal(body, out); err != nil {
+			return string(body), err
+		}
+	}
+	return string(body), nil
+}
+
+// DumpDiagnostics writes the full mock-server journal and live WS sessions to
+// the test log. Call it right before failing an event-driven wait so that an
+// intermittent CI failure ("handler never fired") is self-diagnosing: the dump
+// shows whether the server sent the event at all, over which session, and
+// whether the SDK's session was still connected. It never fails the test
+// itself (best-effort, swallows transport errors) so it can run on the failure
+// path without masking the original cause.
+//
+// `context` is a short label (usually the wait that timed out) included at the
+// top of the dump.
+func (h *Harness) DumpDiagnostics(t *testing.T, context string) {
+	t.Helper()
+	t.Logf("=== mocktest diagnostics: %s ===", context)
+
+	// Live sessions: the most decisive signal for "event never fired" — if the
+	// SDK's session is absent/closed here, the push had nowhere to go.
+	var sess struct {
+		Sessions []map[string]any `json:"sessions"`
+	}
+	if raw, err := h.getJSON("/__mock__/sessions", &sess); err != nil {
+		t.Logf("  sessions: <unavailable: %v> raw=%q", err, raw)
+	} else if len(sess.Sessions) == 0 {
+		t.Logf("  sessions: NONE (no live WS session — a push would be dropped)")
+	} else {
+		for i, s := range sess.Sessions {
+			t.Logf("  session[%d]: %v", i, s)
+		}
+	}
+
+	// Full journal in arrival order, both directions, with session attribution
+	// so a send-to-wrong-session race is visible.
+	var entries []JournalEntry
+	if raw, err := h.getJSON("/__mock__/journal", &entries); err != nil {
+		t.Logf("  journal: <unavailable: %v> raw=%q", err, raw)
+		return
+	}
+	if len(entries) == 0 {
+		t.Logf("  journal: EMPTY (server saw no frames in either direction)")
+		return
+	}
+	t.Logf("  journal: %d frame(s) in arrival order:", len(entries))
+	for i, e := range entries {
+		desc := e.Method
+		if e.Direction == "send" && e.Method == "signalwire.event" {
+			desc = "signalwire.event:" + e.EventType()
+		}
+		t.Logf("    [%d] t=%.3f %-4s %-28s sess=%s conn=%s id=%s",
+			i, e.Timestamp, e.Direction, desc,
+			valOrDefault(e.SessionID, "-"), valOrDefault(e.ConnectionID, "-"),
+			valOrDefault(e.RequestID, "-"))
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Server lifecycle
 // ---------------------------------------------------------------------------
