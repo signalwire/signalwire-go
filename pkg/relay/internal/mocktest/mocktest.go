@@ -323,13 +323,13 @@ func (h *Harness) ArmMethod(t *testing.T, method string, events []map[string]any
 
 // DialOpts mirrors the dial-scenario JSON body.
 type DialOpts struct {
-	Tag           string         `json:"tag"`
-	WinnerCallID  string         `json:"winner_call_id"`
-	States        []string       `json:"states"`
-	NodeID        string         `json:"node_id"`
-	Device        map[string]any `json:"device,omitempty"`
-	Losers        []DialLoserOpts `json:"losers,omitempty"`
-	DelayMS       int            `json:"delay_ms,omitempty"`
+	Tag          string          `json:"tag"`
+	WinnerCallID string          `json:"winner_call_id"`
+	States       []string        `json:"states"`
+	NodeID       string          `json:"node_id"`
+	Device       map[string]any  `json:"device,omitempty"`
+	Losers       []DialLoserOpts `json:"losers,omitempty"`
+	DelayMS      int             `json:"delay_ms,omitempty"`
 }
 
 // DialLoserOpts mirrors the loser leg shape inside arm_dial.
@@ -475,12 +475,12 @@ const defaultWSPort = 8775
 const startupTimeout = 30 * time.Second
 
 // discoverPortingSDKPackage walks up from this source file looking for
-// an adjacent ``porting-sdk/test_harness/<name>/<name>/__init__.py``.
+// an adjacent “porting-sdk/test_harness/<name>/<name>/__init__.py“.
 // The adjacency contract is "porting-sdk lives next to signalwire-go in
 // ~/src/", so a fresh clone of either repo can find the mock harness
 // with no prior pip install. Returns the absolute path to the
 // directory containing the Python package (i.e. the path that should
-// be added to PYTHONPATH so that ``python -m <name>`` resolves), or
+// be added to PYTHONPATH so that “python -m <name>“ resolves), or
 // "" when no adjacent porting-sdk is reachable.
 func discoverPortingSDKPackage(name string) string {
 	_, file, _, ok := runtime.Caller(0)

@@ -19,11 +19,11 @@ import (
 
 // _unsupportedFields maps SKILL.md frontmatter field names to warning message templates.
 var _unsupportedFields = map[string]string{
-	"context":      "context: fork is not supported in SignalWire agents — skill '%s' will run inline, not in a subagent",
-	"agent":        "agent field is not supported in SignalWire agents — skill '%s' cannot select a subagent type",
+	"context":       "context: fork is not supported in SignalWire agents — skill '%s' will run inline, not in a subagent",
+	"agent":         "agent field is not supported in SignalWire agents — skill '%s' cannot select a subagent type",
 	"allowed-tools": "allowed-tools is not supported in SignalWire agents — skill '%s' tool restrictions will not be enforced",
-	"model":        "model field is not supported in SignalWire agents — skill '%s' model selection is controlled at the agent level",
-	"hooks":        "hooks field is not supported in SignalWire agents — skill '%s' lifecycle hooks will not fire",
+	"model":         "model field is not supported in SignalWire agents — skill '%s' model selection is controlled at the agent level",
+	"hooks":         "hooks field is not supported in SignalWire agents — skill '%s' lifecycle hooks will not fire",
 }
 
 // _shellInjectionRE matches !`command` patterns in skill bodies.
@@ -83,17 +83,17 @@ type ClaudeSkillsSkill struct {
 	skills.BaseSkill
 
 	// Configuration
-	skillsPath            string
-	includePatterns       []string
-	excludePatterns       []string
-	toolPrefix            string
-	responsePrefix        string
-	responsePostfix       string
-	skillDescriptions     map[string]string
-	allowShellInjection   bool
-	allowScriptExecution  bool
+	skillsPath              string
+	includePatterns         []string
+	excludePatterns         []string
+	toolPrefix              string
+	responsePrefix          string
+	responsePostfix         string
+	skillDescriptions       map[string]string
+	allowShellInjection     bool
+	allowScriptExecution    bool
 	ignoreInvocationControl bool
-	shellTimeout          int
+	shellTimeout            int
 
 	// Discovered skills
 	loadedSkills []skillEntry

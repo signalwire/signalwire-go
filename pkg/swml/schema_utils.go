@@ -45,11 +45,11 @@ func (e *SchemaValidationError) Error() string {
 	)
 }
 
-// ValidationResult mirrors Python's ``Tuple[bool, List[str]]`` return
+// ValidationResult mirrors Python's “Tuple[bool, List[str]]“ return
 // shape used by ValidateVerb / ValidateDocument.
 //
 // The cross-language type alias table maps this struct to the canonical
-// ``tuple<bool,list<string>>`` so audits accept it as Python-shaped.
+// “tuple<bool,list<string>>“ so audits accept it as Python-shaped.
 type ValidationResult struct {
 	Valid  bool
 	Errors []string
@@ -80,7 +80,7 @@ type SchemaUtils struct {
 }
 
 // NewSchemaUtils constructs a SchemaUtils.
-// Mirrors Python's ``SchemaUtils(schema_path, schema_validation=True)``.
+// Mirrors Python's “SchemaUtils(schema_path, schema_validation=True)“.
 //
 // Pass schemaPath="" to use the embedded schema.json bundled with the SDK.
 // schemaValidation=false disables validation; the env var
@@ -109,7 +109,7 @@ func envBoolish(v string) bool {
 }
 
 // LoadSchema reads and parses the JSON Schema.
-// Mirrors Python's ``load_schema()``.
+// Mirrors Python's “load_schema()“.
 func (s *SchemaUtils) LoadSchema() map[string]any {
 	if s.schemaPath != "" {
 		return s.loadFromPath(s.schemaPath)
@@ -201,7 +201,7 @@ func (s *SchemaUtils) FullValidationAvailable() bool {
 }
 
 // GetAllVerbNames returns the sorted list of all known verb names.
-// Mirrors Python's ``get_all_verb_names()``.
+// Mirrors Python's “get_all_verb_names()“.
 func (s *SchemaUtils) GetAllVerbNames() []string {
 	out := make([]string, 0, len(s.verbs))
 	for k := range s.verbs {
@@ -211,9 +211,9 @@ func (s *SchemaUtils) GetAllVerbNames() []string {
 	return out
 }
 
-// GetVerbProperties returns the inner ``properties[verb_name]`` block
+// GetVerbProperties returns the inner “properties[verb_name]“ block
 // for a verb, or an empty map when the verb is unknown.
-// Mirrors Python's ``get_verb_properties(verb_name)``.
+// Mirrors Python's “get_verb_properties(verb_name)“.
 func (s *SchemaUtils) GetVerbProperties(verbName string) map[string]any {
 	v, ok := s.verbs[verbName]
 	if !ok {
@@ -230,8 +230,8 @@ func (s *SchemaUtils) GetVerbProperties(verbName string) map[string]any {
 	return inner
 }
 
-// GetVerbRequiredProperties returns the ``required`` list for a verb.
-// Mirrors Python's ``get_verb_required_properties(verb_name)``.
+// GetVerbRequiredProperties returns the “required“ list for a verb.
+// Mirrors Python's “get_verb_required_properties(verb_name)“.
 func (s *SchemaUtils) GetVerbRequiredProperties(verbName string) []string {
 	inner := s.GetVerbProperties(verbName)
 	req, ok := inner["required"].([]any)
@@ -249,7 +249,7 @@ func (s *SchemaUtils) GetVerbRequiredProperties(verbName string) []string {
 
 // GetVerbParameters returns the parameter-definition block used for
 // codegen — verb_props["properties"].
-// Mirrors Python's ``get_verb_parameters(verb_name)``.
+// Mirrors Python's “get_verb_parameters(verb_name)“.
 func (s *SchemaUtils) GetVerbParameters(verbName string) map[string]any {
 	inner := s.GetVerbProperties(verbName)
 	params, ok := inner["properties"].(map[string]any)
@@ -260,7 +260,7 @@ func (s *SchemaUtils) GetVerbParameters(verbName string) map[string]any {
 }
 
 // ValidateVerb validates a verb config against the schema.
-// Mirrors Python's ``validate_verb(verb_name, verb_config)``.
+// Mirrors Python's “validate_verb(verb_name, verb_config)“.
 //
 // When validation is disabled returns Valid=true.  When the verb name
 // is unknown returns Valid=false with a single "Unknown verb" error.
@@ -298,10 +298,10 @@ func (s *SchemaUtils) validateVerbLightweight(verbName string, verbConfig map[st
 }
 
 // ValidateDocument validates a complete SWML document against the
-// schema.  Mirrors Python's ``validate_document(document)``.
+// schema.  Mirrors Python's “validate_document(document)“.
 //
 // When the full validator is unavailable Python returns
-// ``(False, ["Schema validator not initialized"])``; the Go port
+// “(False, ["Schema validator not initialized"])“; the Go port
 // matches that contract bit-for-bit.
 func (s *SchemaUtils) ValidateDocument(document map[string]any) ValidationResult {
 	if s.schemaValidator == nil {
@@ -313,7 +313,7 @@ func (s *SchemaUtils) ValidateDocument(document map[string]any) ValidationResult
 
 // GenerateMethodSignature renders a Python-style method signature
 // for a verb — used by code-gen tooling.  Mirrors Python's
-// ``generate_method_signature(verb_name)``.
+// “generate_method_signature(verb_name)“.
 func (s *SchemaUtils) GenerateMethodSignature(verbName string) string {
 	params := s.GetVerbParameters(verbName)
 	required := map[string]bool{}
@@ -354,7 +354,7 @@ func (s *SchemaUtils) GenerateMethodSignature(verbName string) string {
 }
 
 // GenerateMethodBody renders a Python-style method body for a verb.
-// Mirrors Python's ``generate_method_body(verb_name)``.
+// Mirrors Python's “generate_method_body(verb_name)“.
 func (s *SchemaUtils) GenerateMethodBody(verbName string) string {
 	params := s.GetVerbParameters(verbName)
 	keys := make([]string, 0, len(params))
@@ -381,7 +381,7 @@ func (s *SchemaUtils) GenerateMethodBody(verbName string) string {
 }
 
 // pythonTypeAnnotation maps a JSON-Schema parameter definition to a
-// Python type annotation string, mirroring Python's ``_get_type_annotation``.
+// Python type annotation string, mirroring Python's “_get_type_annotation“.
 func pythonTypeAnnotation(def any) string {
 	d, ok := def.(map[string]any)
 	if !ok {

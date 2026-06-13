@@ -791,7 +791,7 @@ func (p *PromptObjectModel) RenderMarkdown() string {
 }
 
 // RenderXML renders the entire POM as an XML document with the
-// canonical ``<?xml ...?><prompt> ... </prompt>`` envelope.
+// canonical “<?xml ...?><prompt> ... </prompt>“ envelope.
 //
 // Python equivalent: PromptObjectModel.render_xml
 func (p *PromptObjectModel) RenderXML() string {

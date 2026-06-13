@@ -798,13 +798,13 @@ func TestNewBedrockAgent_Defaults(t *testing.T) {
 
 func TestNewBedrockAgent_CustomOptions(t *testing.T) {
 	ba := NewBedrockAgent(BedrockOptions{
-		Name:        "my_bedrock",
-		Route:       "/aws",
+		Name:         "my_bedrock",
+		Route:        "/aws",
 		SystemPrompt: "Hello from Bedrock",
-		VoiceID:     "joanna",
-		Temperature: 0.5,
-		TopP:        0.8,
-		MaxTokens:   512,
+		VoiceID:      "joanna",
+		Temperature:  0.5,
+		TopP:         0.8,
+		MaxTokens:    512,
 	})
 	if ba.GetName() != "my_bedrock" {
 		t.Errorf("expected name my_bedrock, got %q", ba.GetName())

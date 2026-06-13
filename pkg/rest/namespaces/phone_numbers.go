@@ -13,7 +13,7 @@ import "fmt"
 // typed helpers for binding an inbound call to a handler (SWML webhook, cXML
 // webhook, AI agent, call flow, RELAY application/topic).
 //
-// Binding model: set ``call_handler`` + the handler-specific companion field
+// Binding model: set “call_handler“ + the handler-specific companion field
 // on the phone number; the server auto-materializes the matching Fabric
 // resource. The helpers below (Set*) are one-line wrappers around Update
 // with the right call_handler + field combination baked in. See
@@ -114,8 +114,8 @@ func (r *PhoneNumbersNamespace) SetCxmlApplication(sid, applicationID string, ex
 // SetAiAgent routes inbound calls to an AI Agent Fabric resource by ID.
 func (r *PhoneNumbersNamespace) SetAiAgent(sid, agentID string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
-		"call_handler":      string(PhoneCallHandlerAiAgent),
-		"call_ai_agent_id":  agentID,
+		"call_handler":     string(PhoneCallHandlerAiAgent),
+		"call_ai_agent_id": agentID,
 	}
 	mergeExtra(body, extra)
 	return r.Update(sid, body)
@@ -151,8 +151,8 @@ func (r *PhoneNumbersNamespace) SetCallFlow(sid, flowID string, opts *CallFlowOp
 // SetRelayApplication routes inbound calls to a named RELAY application.
 func (r *PhoneNumbersNamespace) SetRelayApplication(sid, name string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
-		"call_handler":            string(PhoneCallHandlerRelayApplication),
-		"call_relay_application":  name,
+		"call_handler":           string(PhoneCallHandlerRelayApplication),
+		"call_relay_application": name,
 	}
 	mergeExtra(body, extra)
 	return r.Update(sid, body)

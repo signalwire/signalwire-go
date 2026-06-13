@@ -130,9 +130,9 @@ type Agent struct {
 	session *AgentSession
 
 	// Lifecycle callback hooks — set via OnEnter, OnExit, OnUserTurnCompleted.
-	onEnterFn        func()
-	onExitFn         func()
-	onUserTurnFn     func(turnCtx any, newMessage any)
+	onEnterFn    func()
+	onExitFn     func()
+	onUserTurnFn func(turnCtx any, newMessage any)
 }
 
 // AgentOption configures an Agent during construction.

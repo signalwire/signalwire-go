@@ -29,9 +29,9 @@ func main() {
 		"Avoid speculation or guessing",
 	})
 	precise.SetPromptLlmParams(map[string]any{
-		"temperature":      0.2,
-		"top_p":            0.85,
-		"barge_confidence": 0.8,
+		"temperature":       0.2,
+		"top_p":             0.85,
+		"barge_confidence":  0.8,
 		"frequency_penalty": 0.1,
 	})
 	precise.SetPostPrompt("Provide a brief technical summary of the key points discussed.")

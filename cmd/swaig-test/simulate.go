@@ -5,18 +5,18 @@
 // in-process. Go has no equivalent dynamic-loader for compiled binaries,
 // so the simulator is split in two:
 //
-//   1. A library API (this file) that sets/clears the mode-detection
-//      env vars, dispatches a synthetic Lambda Function URL event
-//      through pkg/lambda, and restores the outer environment on exit.
-//      Tests and in-process callers (e.g. users who embed `swaig-test`
-//      in their own test suites) drive the simulator through this API.
+//  1. A library API (this file) that sets/clears the mode-detection
+//     env vars, dispatches a synthetic Lambda Function URL event
+//     through pkg/lambda, and restores the outer environment on exit.
+//     Tests and in-process callers (e.g. users who embed `swaig-test`
+//     in their own test suites) drive the simulator through this API.
 //
-//   2. A flag on the `swaig-test` CLI (see main.go) that validates the
-//      requested platform against what the port actually implements and
-//      surfaces a clear error for unsupported platforms (Phase 9 of the
-//      porting guide). The flag also works with --url: it sets the
-//      mode-detection env vars for the duration of the invocation so
-//      the server-side URL generation goes through the platform branch.
+//  2. A flag on the `swaig-test` CLI (see main.go) that validates the
+//     requested platform against what the port actually implements and
+//     surfaces a clear error for unsupported platforms (Phase 9 of the
+//     porting guide). The flag also works with --url: it sets the
+//     mode-detection env vars for the duration of the invocation so
+//     the server-side URL generation goes through the platform branch.
 //
 // The simulator mirrors the behaviour of Python's
 // `signalwire/cli/simulation/mock_env.py`:
@@ -60,11 +60,11 @@ var supportedSimulatePlatforms = map[string]bool{
 // requirement that unimplemented platforms surface a clear error rather
 // than silently falling back to the server path.
 var notYetImplementedSimulatePlatforms = map[string]bool{
-	"gcf":             true, // Google Cloud Functions
-	"cloud_function":  true, // alternate Python name
-	"azure":           true,
-	"azure_function":  true,
-	"cgi":             true,
+	"gcf":            true, // Google Cloud Functions
+	"cloud_function": true, // alternate Python name
+	"azure":          true,
+	"azure_function": true,
+	"cgi":            true,
 }
 
 // validateSimulatePlatform checks that the given platform name is

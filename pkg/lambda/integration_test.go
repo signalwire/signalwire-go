@@ -372,4 +372,3 @@ func extractFirstSwaigWebhook(t *testing.T, body string) string {
 	t.Fatalf("could not find ai verb with SWAIG functions in document; body=%s", body)
 	return ""
 }
-

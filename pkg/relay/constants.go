@@ -19,11 +19,11 @@ const AgentString = "signalwire-agents-go/1.0"
 
 // Call states represent the lifecycle of a call.
 const (
-	CallStateCreated = "created"
-	CallStateRinging = "ringing"
+	CallStateCreated  = "created"
+	CallStateRinging  = "ringing"
 	CallStateAnswered = "answered"
-	CallStateEnding  = "ending"
-	CallStateEnded   = "ended"
+	CallStateEnding   = "ending"
+	CallStateEnded    = "ended"
 )
 
 // Call end reasons indicate why a call ended.

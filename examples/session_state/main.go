@@ -32,7 +32,7 @@ func main() {
 		"cart_items":  []any{},
 		"cart_total":  0.0,
 		"customer_id": "",
-		"currency":   "USD",
+		"currency":    "USD",
 	})
 
 	// Set a post-prompt for conversation summary

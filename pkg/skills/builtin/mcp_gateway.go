@@ -16,18 +16,18 @@ import (
 // MCPGatewaySkill connects to MCP gateway servers and registers their tools.
 type MCPGatewaySkill struct {
 	skills.BaseSkill
-	gatewayURL     string
-	authToken      string
-	authUser       string
-	authPassword   string
-	toolPrefix     string
-	requestTimeout int
-	sessionTimeout int
-	retryAttempts  int
-	verifySSL      bool
-	services       []map[string]any
+	gatewayURL      string
+	authToken       string
+	authUser        string
+	authPassword    string
+	toolPrefix      string
+	requestTimeout  int
+	sessionTimeout  int
+	retryAttempts   int
+	verifySSL       bool
+	services        []map[string]any
 	registeredTools []skills.ToolRegistration
-	lastSessionID  string
+	lastSessionID   string
 }
 
 // NewMCPGateway creates a new MCPGatewaySkill.

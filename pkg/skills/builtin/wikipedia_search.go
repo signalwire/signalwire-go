@@ -16,7 +16,7 @@ import (
 // WikipediaSearchSkill searches Wikipedia for information.
 type WikipediaSearchSkill struct {
 	skills.BaseSkill
-	numResults      int
+	numResults       int
 	noResultsMessage string
 }
 

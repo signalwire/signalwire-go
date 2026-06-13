@@ -2,11 +2,11 @@
 //
 // Demonstrates both MCP features:
 //
-// 1. MCP Server: Exposes tools at /mcp so external MCP clients
-//    (Claude Desktop, other agents) can discover and invoke them.
+//  1. MCP Server: Exposes tools at /mcp so external MCP clients
+//     (Claude Desktop, other agents) can discover and invoke them.
 //
-// 2. MCP Client: Connects to external MCP servers to pull in additional
-//    tools for voice calls.
+//  2. MCP Client: Connects to external MCP servers to pull in additional
+//     tools for voice calls.
 //
 // Usage:
 //

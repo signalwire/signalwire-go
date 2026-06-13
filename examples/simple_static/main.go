@@ -40,8 +40,8 @@ func main() {
 
 	// Global data
 	a.SetGlobalData(map[string]any{
-		"agent_type":    "customer_service",
-		"service_level": "standard",
+		"agent_type":       "customer_service",
+		"service_level":    "standard",
 		"features_enabled": []string{"basic_conversation", "help_desk"},
 	})
 

@@ -11,6 +11,8 @@
 #   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
 #   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 #   6. emission gate                      — porting-sdk diff_port_emission.py
+#   7. fmt gate                           — gofmt (local: auto-fix; CI: -l check)
+#   8. lint gate                          — go vet ./...
 #
 # Each gate prints `[GATE-NAME] ... PASS` or `[GATE-NAME] ... FAIL: <reason>`
 # Final line: `==> CI PASS` or `==> CI FAIL (gates: <list>)`.
@@ -136,6 +138,49 @@ run_gate "EMISSION" "diff_port_emission vs python to_dict() oracle" \
     python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --port go \
         --port-repo "$PORT_ROOT"
+
+# Gate 7: FMT — the language format gate. Canonical gate name is language-neutral
+# (FMT); each port runs its own formatter under it. Here that is gofmt (Go's
+# builtin, canonical formatter — no tool to install, no config to bikeshed,
+# matches Rust's "formatter ships with the toolchain" shape). Source-style only
+# — proven surface/emission-neutral (a gofmt reformat leaves port_signatures.json
+# byte-identical modulo the git-sha provenance), so it can never move the audit.
+#   * LOCAL ($CI unset)  → `gofmt -w .`: silently reformats your working tree, so
+#     you never have to run gofmt by hand; surfaces a note if it changed files.
+#   * CI ($CI=true)      → `gofmt -l .` must list nothing: read-only safety net
+#     that FAILS if unformatted code reached CI (a committer who skipped run-ci).
+# (goimports/golangci-lint are the deferred ADVISORY tier — they need a tool
+# install + carry a backlog; gofmt + go vet are the zero-backlog day-1 floor.)
+fmt_gate() {
+    if [ -n "${CI:-}" ]; then
+        local unformatted
+        unformatted="$(gofmt -l .)"
+        if [ -n "$unformatted" ]; then
+            echo "unformatted files (run \`gofmt -w .\`):"
+            echo "$unformatted"
+            return 1
+        fi
+        return 0
+    else
+        gofmt -w .
+        if ! git diff --quiet 2>/dev/null; then
+            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
+        fi
+        return 0
+    fi
+}
+run_gate "FMT" "gofmt (local: auto-fix; CI: -l check)" fmt_gate
+
+# Gate 8: LINT — the language lint gate (go: go vet). `go vet ./...` is the
+# builtin static-analysis floor and exits 0 on this codebase today, so it gates
+# blocking from day one with zero backlog. The TEST gate's `go test ./...` only
+# vets test-bearing packages, so vet is NOT already guaranteed — making it
+# explicit is a free, high-signal gate. (golangci-lint, which bundles
+# staticcheck/errcheck/unused, is the deferred advisory tier: it needs a
+# .golangci.yml excluding examples/ and will surface a backlog — burn down
+# advisory, then promote, exactly as Rust did with clippy.)
+run_gate "LINT" "go vet ./... (lint gate)" \
+    go vet ./...
 
 # ---- summary ----------------------------------------------------------------
 

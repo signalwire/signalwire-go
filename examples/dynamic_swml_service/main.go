@@ -27,7 +27,7 @@ func main() {
 	greeting := "say:Hello, thank you for calling our service."
 	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
 	svc.Prompt(map[string]any{
-		"play":       "say:Press 1 for sales, 2 for support, or 3 to leave a message.",
+		"play":        "say:Press 1 for sales, 2 for support, or 3 to leave a message.",
 		"max_digits":  1,
 		"terminators": "#",
 	})
@@ -71,13 +71,13 @@ func main() {
 			})
 		case "existing":
 			doc.AddVerb("prompt", map[string]any{
-				"play":       "say:Press 1 for account management, 2 for support, or 3 for billing.",
+				"play":        "say:Press 1 for account management, 2 for support, or 3 for billing.",
 				"max_digits":  1,
 				"terminators": "#",
 			})
 		default:
 			doc.AddVerb("prompt", map[string]any{
-				"play":       "say:Press 1 for sales, 2 for support, or 3 to leave a message.",
+				"play":        "say:Press 1 for sales, 2 for support, or 3 to leave a message.",
 				"max_digits":  1,
 				"terminators": "#",
 			})

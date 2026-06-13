@@ -53,14 +53,14 @@ func setProcessGroup(cmd *exec.Cmd) {
 // for application/json bodies and a string for everything else, so callers
 // will typically need a type assertion via journal.BodyMap() or similar.
 type JournalEntry struct {
-	Timestamp      float64                  `json:"timestamp"`
-	Method         string                   `json:"method"`
-	Path           string                   `json:"path"`
-	QueryParams    map[string][]string      `json:"query_params"`
-	Headers        map[string]string        `json:"headers"`
-	Body           any                      `json:"body"`
-	MatchedRoute   *string                  `json:"matched_route"`
-	ResponseStatus *int                     `json:"response_status"`
+	Timestamp      float64             `json:"timestamp"`
+	Method         string              `json:"method"`
+	Path           string              `json:"path"`
+	QueryParams    map[string][]string `json:"query_params"`
+	Headers        map[string]string   `json:"headers"`
+	Body           any                 `json:"body"`
+	MatchedRoute   *string             `json:"matched_route"`
+	ResponseStatus *int                `json:"response_status"`
 }
 
 // BodyMap returns the request body coerced to map[string]any. It returns
@@ -161,9 +161,9 @@ func (h *Harness) PushScenario(t *testing.T, endpointID string, status int, body
 // serverState holds the singleton harness so subsequent New calls reuse the
 // same backing server.
 type serverState struct {
-	once    sync.Once
-	harness *Harness
-	cmd     *exec.Cmd
+	once     sync.Once
+	harness  *Harness
+	cmd      *exec.Cmd
 	startErr error
 }
 
@@ -179,12 +179,12 @@ const defaultPort = 8765
 const startupTimeout = 30 * time.Second
 
 // discoverPortingSDKPackage walks up from this source file looking for an
-// adjacent ``porting-sdk/test_harness/<name>/<name>/__init__.py``. The
+// adjacent “porting-sdk/test_harness/<name>/<name>/__init__.py“. The
 // adjacency contract is "porting-sdk lives next to signalwire-go in ~/src/",
 // so a fresh clone of either repo can find the mock harness with no prior
 // pip install. Returns the absolute path to the directory containing the
 // Python package (i.e. the path that should be added to PYTHONPATH so that
-// ``python -m <name>`` resolves), or "" when no adjacent porting-sdk is
+// “python -m <name>“ resolves), or "" when no adjacent porting-sdk is
 // reachable.
 func discoverPortingSDKPackage(name string) string {
 	_, file, _, ok := runtime.Caller(0)

@@ -21,9 +21,9 @@ type FAQ struct {
 
 // FAQBotOptions configures a new FAQBotAgent.
 type FAQBotOptions struct {
-	Name           string
-	Route          string
-	FAQs           []FAQ
+	Name  string
+	Route string
+	FAQs  []FAQ
 	// SuggestRelated controls whether the agent suggests related questions.
 	// Defaults to true when nil, matching the Python SDK default.
 	SuggestRelated *bool

@@ -80,7 +80,7 @@ func (c *RestClient) SetBaseURL(url string) {
 }
 
 // HttpClient exposes the underlying HTTP transport. It is the public form
-// of Python's ``signalwire_client._http`` and is the entry point used by
+// of Python's “signalwire_client._http“ and is the entry point used by
 // helpers like PaginatedIterator that need raw GET access without going
 // through a namespace resource.
 func (c *RestClient) HttpClient() *HttpClient {

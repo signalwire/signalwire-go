@@ -28,7 +28,7 @@ import (
 )
 
 // fabric_addresses_path is stable across spec revisions and the mock
-// returns a ``data + links`` shape by default.
+// returns a “data + links“ shape by default.
 const (
 	fabricAddressesPath       = "/api/fabric/addresses"
 	fabricAddressesEndpointID = "fabric.list_fabric_addresses"

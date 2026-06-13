@@ -65,8 +65,8 @@ func main() {
 				"Authorization": "Bearer ${token}",
 				"User-Agent":    "SignalWire-Agent/1.0",
 			},
-			"payload", // form_param: sends body as a form parameter
-			true,      // inputArgsAsParams: merge function args into params
+			"payload",          // form_param: sends body as a form parameter
+			true,               // inputArgsAsParams: merge function args into params
 			[]string{"action"}, // requireArgs: only execute if action is present
 		).
 		WebhookExpressions([]map[string]any{

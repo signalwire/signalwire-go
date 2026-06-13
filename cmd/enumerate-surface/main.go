@@ -1,13 +1,13 @@
 // Command enumerate-surface emits a JSON snapshot of the Go SDK's public API
 // translated into Python-reference symbol names.
 //
-// The output (``port_surface.json``) is compared against
-// ``porting-sdk/python_surface.json`` by ``diff_port_surface.py`` to detect
+// The output (“port_surface.json“) is compared against
+// “porting-sdk/python_surface.json“ by “diff_port_surface.py“ to detect
 // unexcused drift.  Each Go struct is mapped onto a (python_module,
 // python_class) pair and each Go method onto a python method name — so that
-// ``AgentBase.SetPromptText`` is emitted as
-// ``signalwire.core.mixins.prompt_mixin.PromptMixin.set_prompt_text``.  The
-// same Go struct may contribute to multiple Python classes (``AgentBase`` is
+// “AgentBase.SetPromptText“ is emitted as
+// “signalwire.core.mixins.prompt_mixin.PromptMixin.set_prompt_text“.  The
+// same Go struct may contribute to multiple Python classes (“AgentBase“ is
 // scattered across every mixin in the Python tree).
 //
 // Usage:
@@ -151,7 +151,7 @@ func recvTypeName(expr ast.Expr) string {
 
 // --- Emission ---------------------------------------------------------------
 
-// surface is the final JSON shape.  Matches ``python_surface.json``.
+// surface is the final JSON shape.  Matches “python_surface.json“.
 type surface struct {
 	Version       string                     `json:"version"`
 	GeneratedFrom string                     `json:"generated_from"`
@@ -293,7 +293,7 @@ type PortAdditions struct {
 // computePortAdditions walks the parsed Go inventory, keeps only the
 // genuinely-public exports that have no entry in the translation tables,
 // and emits the list in canonical order. Methods on unmapped structs are
-// implicitly covered by listing the struct itself. Factory ``New<Struct>``
+// implicitly covered by listing the struct itself. Factory “New<Struct>“
 // constructors paired with a mapped struct are already projected as
 // __init__ and not listed here.
 func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]struct{}, repo string) PortAdditions {
@@ -333,13 +333,13 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 }
 
 // buildGoSurface turns (goStructs, goFuncs) into a surface file keyed on the
-// **native** Go struct + method names.  Unlike ``build`` — which translates
+// **native** Go struct + method names.  Unlike “build“ — which translates
 // everything onto the Python reference's dotted path — this captures the
-// exact identifiers a Go doc or example would use (``AgentBase.DefineTool``,
-// ``RestClient``, ``RunAgent``).  Used by ``audit_docs.py`` on the Go port
+// exact identifiers a Go doc or example would use (“AgentBase.DefineTool“,
+// “RestClient“, “RunAgent“).  Used by “audit_docs.py“ on the Go port
 // so that method-call references resolve against the actual surface.
 //
-// Shape matches ``port_surface.json`` but the module name is the short Go
+// Shape matches “port_surface.json“ but the module name is the short Go
 // package, the class is the exported struct, and methods are the exported
 // Go method names.
 func buildGoSurface(structs map[string]*goStructFacts, funcs map[string]struct{}) surface {
@@ -432,11 +432,11 @@ func findRepoRoot(cwd string) (string, error) {
 
 func run() error {
 	var (
-		outputPath        = flag.String("output", "port_surface.json", "Write JSON to this path")
-		goOutputPath      = flag.String("go-output", "port_surface_go.json", "Write Go-native surface JSON to this path (used by audit_docs.py)")
-		additionsOutput   = flag.String("additions-output", "port_additions_actual.json", "Write the unmapped-symbol inventory to this path; consumed by diff_port_surface.py to enforce PORT_ADDITIONS.md")
-		stdout            = flag.Bool("stdout", false, "Print Python-shape JSON to stdout instead of --output")
-		check             = flag.Bool("check", false, "Compare against existing --output / --go-output / --additions-output files; exit 1 on drift")
+		outputPath      = flag.String("output", "port_surface.json", "Write JSON to this path")
+		goOutputPath    = flag.String("go-output", "port_surface_go.json", "Write Go-native surface JSON to this path (used by audit_docs.py)")
+		additionsOutput = flag.String("additions-output", "port_additions_actual.json", "Write the unmapped-symbol inventory to this path; consumed by diff_port_surface.py to enforce PORT_ADDITIONS.md")
+		stdout          = flag.Bool("stdout", false, "Print Python-shape JSON to stdout instead of --output")
+		check           = flag.Bool("check", false, "Compare against existing --output / --go-output / --additions-output files; exit 1 on drift")
 	)
 	flag.Parse()
 

@@ -13,19 +13,19 @@ import (
 // DataSphereServerlessSkill provides DataSphere search using DataMap (serverless execution).
 type DataSphereServerlessSkill struct {
 	skills.BaseSkill
-	spaceName       string
-	projectID       string
-	token           string
-	documentID      string
-	count           int
-	distance        float64
-	toolName        string
-	apiURL          string
-	authHeader      string
-	tags            []any
-	language        string
-	posToExpand     []any
-	maxSynonyms     int
+	spaceName        string
+	projectID        string
+	token            string
+	documentID       string
+	count            int
+	distance         float64
+	toolName         string
+	apiURL           string
+	authHeader       string
+	tags             []any
+	language         string
+	posToExpand      []any
+	maxSynonyms      int
 	noResultsMessage string
 }
 
@@ -176,8 +176,8 @@ func (s *DataSphereServerlessSkill) handleSearch(args map[string]any, _ map[stri
 func (s *DataSphereServerlessSkill) GetGlobalData() map[string]any {
 	return map[string]any{
 		"datasphere_serverless_enabled": true,
-		"document_id":                  s.documentID,
-		"knowledge_provider":           "SignalWire DataSphere (Serverless)",
+		"document_id":                   s.documentID,
+		"knowledge_provider":            "SignalWire DataSphere (Serverless)",
 	}
 }
 

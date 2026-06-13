@@ -25,9 +25,9 @@ var (
 	vectorBURL    = "https://mycompany.com/myapp.php?foo=1&bar=2"
 	vectorBExpect = "RSOYDt4T1cUTdK1PDd93/VVr8B8="
 
-	vectorCKey    = "PSKtest1234567890abcdef"
-	vectorCBody   = `{"event":"call.state"}`
-	vectorCURL    = "https://example.ngrok.io/webhook?bodySHA256=" +
+	vectorCKey  = "PSKtest1234567890abcdef"
+	vectorCBody = `{"event":"call.state"}`
+	vectorCURL  = "https://example.ngrok.io/webhook?bodySHA256=" +
 		"69f3cbfc18e386ef8236cb7008cd5a54b7fed637a8cb3373b5a1591d7f0fd5f4"
 	vectorCExpect = "dfO9ek8mxyFtn2nMz24plPmPfIY="
 )

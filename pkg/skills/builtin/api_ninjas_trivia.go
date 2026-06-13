@@ -14,20 +14,20 @@ import (
 
 // Valid trivia categories from API Ninjas.
 var validTriviaCategories = map[string]string{
-	"artliterature":    "Art and Literature",
-	"language":         "Language",
-	"sciencenature":    "Science and Nature",
-	"general":          "General Knowledge",
-	"fooddrink":        "Food and Drink",
-	"peopleplaces":     "People and Places",
-	"geography":        "Geography",
-	"historyholidays":  "History and Holidays",
-	"entertainment":    "Entertainment",
-	"toysgames":        "Toys and Games",
-	"music":            "Music",
-	"mathematics":      "Mathematics",
+	"artliterature":     "Art and Literature",
+	"language":          "Language",
+	"sciencenature":     "Science and Nature",
+	"general":           "General Knowledge",
+	"fooddrink":         "Food and Drink",
+	"peopleplaces":      "People and Places",
+	"geography":         "Geography",
+	"historyholidays":   "History and Holidays",
+	"entertainment":     "Entertainment",
+	"toysgames":         "Toys and Games",
+	"music":             "Music",
+	"mathematics":       "Mathematics",
 	"religionmythology": "Religion and Mythology",
-	"sportsleisure":    "Sports and Leisure",
+	"sportsleisure":     "Sports and Leisure",
 }
 
 // APINinjasTriviaSkill gets trivia questions from API Ninjas.
