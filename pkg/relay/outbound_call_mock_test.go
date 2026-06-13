@@ -207,7 +207,11 @@ func TestRelay_DialAutoGeneratesUUIDTagWhenOmitted(t *testing.T) {
 		[][]map[string]any{{phoneDevice("", "")}},
 		relay.WithDialClientTimeout(5*time.Second),
 	)
-	<-done
+	select {
+	case <-done:
+	case <-time.After(8 * time.Second):
+		t.Fatal("answer-pushing goroutine did not finish within 8s (dial tag never observed in journal?)")
+	}
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
