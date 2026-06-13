@@ -596,7 +596,14 @@ func TestRelay_ScenarioPlayFullInboundFlow(t *testing.T) {
 				},
 			},
 		},
-		{"expect_recv": map[string]any{"method": "calling.answer", "timeout_ms": 5000}},
+		// 15s (not 5s): this server-side step waits for the SDK's calling.answer
+		// frame after OnCall fires call.Answer(). On a loaded CI runner the
+		// OnCall dispatch → call.Answer() → WS write → mock receive round-trip
+		// can exceed 5s, so the scenario timed out at step 1
+		// (status:timeout, steps_completed:1) — a flake, not a logic error
+		// (passes 5/5 locally). 15s gives CI headroom, matching the other
+		// relay timeout guards; sub-second on a fast box, so no cost there.
+		{"expect_recv": map[string]any{"method": "calling.answer", "timeout_ms": 15000}},
 		{"push": map[string]any{"frame": statePushFrame("c-scen", "answered", "", "")}},
 		{"sleep_ms": 50},
 		{"push": map[string]any{"frame": statePushFrame("c-scen", "ended", "", "")}},
@@ -616,9 +623,12 @@ func TestRelay_ScenarioPlayFullInboundFlow(t *testing.T) {
 	var result map[string]any
 	select {
 	case result = <-resultCh:
-	case <-time.After(10 * time.Second):
-		h.DumpDiagnostics(t, "ScenarioPlay did not return within 10s")
-		t.Fatal("ScenarioPlay did not return within 10s")
+	// 20s must exceed the scenario's own budget (its expect_recv step waits up
+	// to 15s for calling.answer), or this client-side guard would fire first
+	// and fail a scenario that's still legitimately running under CI load.
+	case <-time.After(20 * time.Second):
+		h.DumpDiagnostics(t, "ScenarioPlay did not return within 20s")
+		t.Fatal("ScenarioPlay did not return within 20s")
 	}
 	if result["status"] != "completed" {
 		t.Fatalf("scenario didn't complete: %v", result)
