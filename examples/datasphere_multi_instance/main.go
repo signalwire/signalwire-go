@@ -11,7 +11,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/agent"
 
-	_ "github.com/signalwire/signalwire-go/pkg/skills/builtin"
+	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
 )
 
 func main() {

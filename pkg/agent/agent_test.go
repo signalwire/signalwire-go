@@ -11,7 +11,7 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/swaig"
 
 	// Import builtin skills so their init() functions register them
-	_ "github.com/signalwire/signalwire-go/pkg/skills/builtin"
+	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
 )
 
 // ---------------------------------------------------------------------------

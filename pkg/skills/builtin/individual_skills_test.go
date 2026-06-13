@@ -219,48 +219,9 @@ func TestWikipedia_HasPromptSections(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Spider skill
-// ---------------------------------------------------------------------------
-
-func TestSpider_CustomToolName(t *testing.T) {
-	factory := skills.GetSkillFactory("spider")
-	s := factory(map[string]any{"tool_name": "my_spider"})
-	s.Setup()
-	tools := s.RegisterTools()
-	if tools[0].Name != "my_spider_scrape_url" {
-		t.Errorf("tool name = %q, want my_spider_scrape_url", tools[0].Name)
-	}
-}
-
-func TestSpider_DefaultToolName(t *testing.T) {
-	factory := skills.GetSkillFactory("spider")
-	s := factory(nil)
-	s.Setup()
-	tools := s.RegisterTools()
-	if tools[0].Name != "scrape_url" {
-		t.Errorf("tool name = %q, want scrape_url", tools[0].Name)
-	}
-}
-
-func TestSpider_HasHints(t *testing.T) {
-	factory := skills.GetSkillFactory("spider")
-	s := factory(nil)
-	s.Setup()
-	hints := s.GetHints()
-	if len(hints) == 0 {
-		t.Error("expected hints")
-	}
-}
-
-func TestSpider_InstanceKey(t *testing.T) {
-	factory := skills.GetSkillFactory("spider")
-	s := factory(map[string]any{"tool_name": "custom"})
-	key := s.GetInstanceKey()
-	if key != "spider_custom" {
-		t.Errorf("instance key = %q, want spider_custom", key)
-	}
-}
+// Spider skill tests moved to pkg/skills/builtin/spider (the skill now lives in
+// its own sub-package so its goquery/htmlquery/x/net deps aren't compiled into
+// importers of the light builtin package).
 
 // ---------------------------------------------------------------------------
 // Datasphere skill

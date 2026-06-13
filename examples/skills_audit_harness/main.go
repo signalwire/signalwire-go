@@ -45,7 +45,7 @@ import (
 	// Side-effect import: registers all built-in skills with the
 	// shared registry. Without this the registry is empty and the
 	// harness can't construct any skill.
-	_ "github.com/signalwire/signalwire-go/pkg/skills/builtin"
+	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
 )
 
 func main() {
