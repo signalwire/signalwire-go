@@ -29,7 +29,7 @@ func main() {
 	svc.Play(&welcome, nil, nil, nil, nil, nil, nil)
 
 	svc.Prompt(map[string]any{
-		"play":       "say:Please make your selection now.",
+		"play":        "say:Please make your selection now.",
 		"max_digits":  1,
 		"terminators": "#",
 	})

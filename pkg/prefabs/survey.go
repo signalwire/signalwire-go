@@ -223,11 +223,11 @@ func NewSurveyAgent(opts SurveyOptions) *SurveyAgent {
 
 	// ---- AI behavior parameters ----
 	base.SetParams(map[string]any{
-		"wait_for_user":              false,
-		"end_of_speech_timeout":      1500,
-		"ai_volume":                  5,
-		"static_greeting":            intro,
-		"static_greeting_no_barge":   true,
+		"wait_for_user":            false,
+		"end_of_speech_timeout":    1500,
+		"ai_volume":                5,
+		"static_greeting":          intro,
+		"static_greeting_no_barge": true,
 	})
 
 	// ---- Global data ----

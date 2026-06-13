@@ -418,7 +418,7 @@ func (s *Service) ResetDocument() {
 }
 
 // SchemaUtils returns the SchemaUtils helper bound to this Service.
-// Mirrors Python's ``self.schema_utils`` instance attribute exposed
+// Mirrors Python's “self.schema_utils“ instance attribute exposed
 // publicly on signalwire.core.swml_service.SWMLService.
 func (s *Service) SchemaUtils() *SchemaUtils {
 	return s.schemaUtils

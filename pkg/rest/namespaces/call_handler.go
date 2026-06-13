@@ -7,7 +7,7 @@
 
 package namespaces
 
-// PhoneCallHandler is the value of the ``call_handler`` field accepted by
+// PhoneCallHandler is the value of the “call_handler“ field accepted by
 // phone_numbers.Update.
 //
 // Named PhoneCallHandler (not CallHandler) to avoid colliding with the RELAY

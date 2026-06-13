@@ -21,7 +21,7 @@ type ClassTarget struct {
 	SyntheticMethods []string
 }
 
-// structTable maps a Go ``<shortPkg>.<StructName>`` to one or more Python
+// structTable maps a Go “<shortPkg>.<StructName>“ to one or more Python
 // class targets.  Unmapped structs are treated as port-only extensions
 // (they must appear in PORT_ADDITIONS.md to avoid drift, but because we
 // simply don't emit them they are silently dropped).
@@ -256,14 +256,14 @@ var StructTable = map[string][]ClassTarget{
 	"swml.SchemaUtils": {{
 		Module: "signalwire.utils.schema_utils", Class: "SchemaUtils",
 		Methods: map[string]string{
-			"NewSchemaUtils":              "__init__",
-			"LoadSchema":                  "load_schema",
-			"GetAllVerbNames":             "get_all_verb_names",
-			"GetVerbProperties":           "get_verb_properties",
-			"GetVerbRequiredProperties":   "get_verb_required_properties",
-			"GetVerbParameters":           "get_verb_parameters",
-			"ValidateVerb":                "validate_verb",
-			"ValidateDocument":            "validate_document",
+			"NewSchemaUtils":            "__init__",
+			"LoadSchema":                "load_schema",
+			"GetAllVerbNames":           "get_all_verb_names",
+			"GetVerbProperties":         "get_verb_properties",
+			"GetVerbRequiredProperties": "get_verb_required_properties",
+			"GetVerbParameters":         "get_verb_parameters",
+			"ValidateVerb":              "validate_verb",
+			"ValidateDocument":          "validate_document",
 		},
 	}},
 
@@ -348,62 +348,62 @@ var StructTable = map[string][]ClassTarget{
 	"relay.Call": {{
 		Module: "signalwire.relay.call", Class: "Call",
 		Methods: map[string]string{
-			"Answer":             "answer",
-			"Hangup":             "hangup",
-			"Pass":               "pass_",
-			"Transfer":           "transfer",
-			"Play":               "play",
-			"PlayTTS":            "play_tts",
-			"PlayAudio":          "play_audio",
-			"PlaySilence":        "play_silence",
-			"PlayRingtone":       "play_ringtone",
-			"PlayAndCollect":     "play_and_collect",
-			"PromptTTS":          "prompt_tts",
-			"PromptAudio":        "prompt_audio",
-			"Collect":            "collect",
+			"Answer":                 "answer",
+			"Hangup":                 "hangup",
+			"Pass":                   "pass_",
+			"Transfer":               "transfer",
+			"Play":                   "play",
+			"PlayTTS":                "play_tts",
+			"PlayAudio":              "play_audio",
+			"PlaySilence":            "play_silence",
+			"PlayRingtone":           "play_ringtone",
+			"PlayAndCollect":         "play_and_collect",
+			"PromptTTS":              "prompt_tts",
+			"PromptAudio":            "prompt_audio",
+			"Collect":                "collect",
 			"DetectDigit":            "detect_digit",
 			"DetectAnsweringMachine": "detect_answering_machine",
 			"DetectFax":              "detect_fax",
-			"WaitForAnswered":    "wait_for_answered",
-			"WaitForRinging":     "wait_for_ringing",
-			"WaitForEnding":      "wait_for_ending",
-			"Record":             "record",
-			"Connect":            "connect",
-			"Disconnect":         "disconnect",
-			"SendDigits":         "send_digits",
-			"Detect":             "detect",
-			"SendFax":            "send_fax",
-			"ReceiveFax":         "receive_fax",
-			"Tap":                "tap",
-			"Stream":             "stream",
-			"JoinConference":     "join_conference",
-			"LeaveConference":    "leave_conference",
-			"AI":                 "ai",
-			"AmazonBedrock":      "amazon_bedrock",
-			"AIMessage":          "ai_message",
-			"AIHold":             "ai_hold",
-			"AIUnhold":           "ai_unhold",
-			"Hold":               "hold",
-			"Unhold":             "unhold",
-			"Denoise":            "denoise",
-			"DenoiseStop":        "denoise_stop",
-			"JoinRoom":           "join_room",
-			"LeaveRoom":          "leave_room",
-			"QueueEnter":         "queue_enter",
-			"QueueLeave":         "queue_leave",
-			"BindDigit":          "bind_digit",
-			"ClearDigitBindings": "clear_digit_bindings",
-			"UserEvent":          "user_event",
-			"Echo":               "echo",
-			"Pay":                "pay",
-			"Transcribe":         "transcribe",
-			"LiveTranscribe":     "live_transcribe",
-			"LiveTranslate":      "live_translate",
-			"Refer":              "refer",
-			"On":                 "on",
-			"WaitFor":            "wait_for",
-			"WaitForEnded":       "wait_for_ended",
-			"String":             "__repr__",
+			"WaitForAnswered":        "wait_for_answered",
+			"WaitForRinging":         "wait_for_ringing",
+			"WaitForEnding":          "wait_for_ending",
+			"Record":                 "record",
+			"Connect":                "connect",
+			"Disconnect":             "disconnect",
+			"SendDigits":             "send_digits",
+			"Detect":                 "detect",
+			"SendFax":                "send_fax",
+			"ReceiveFax":             "receive_fax",
+			"Tap":                    "tap",
+			"Stream":                 "stream",
+			"JoinConference":         "join_conference",
+			"LeaveConference":        "leave_conference",
+			"AI":                     "ai",
+			"AmazonBedrock":          "amazon_bedrock",
+			"AIMessage":              "ai_message",
+			"AIHold":                 "ai_hold",
+			"AIUnhold":               "ai_unhold",
+			"Hold":                   "hold",
+			"Unhold":                 "unhold",
+			"Denoise":                "denoise",
+			"DenoiseStop":            "denoise_stop",
+			"JoinRoom":               "join_room",
+			"LeaveRoom":              "leave_room",
+			"QueueEnter":             "queue_enter",
+			"QueueLeave":             "queue_leave",
+			"BindDigit":              "bind_digit",
+			"ClearDigitBindings":     "clear_digit_bindings",
+			"UserEvent":              "user_event",
+			"Echo":                   "echo",
+			"Pay":                    "pay",
+			"Transcribe":             "transcribe",
+			"LiveTranscribe":         "live_transcribe",
+			"LiveTranslate":          "live_translate",
+			"Refer":                  "refer",
+			"On":                     "on",
+			"WaitFor":                "wait_for",
+			"WaitForEnded":           "wait_for_ended",
+			"String":                 "__repr__",
 		},
 		// Call's constructor is unexported (`newCall`); Python's
 		// ``__init__`` is an internal contract method.  Omit here;
@@ -789,11 +789,11 @@ var StructTable = map[string][]ClassTarget{
 	"namespaces.SubscribersResource": {{
 		Module: "signalwire.rest.namespaces.fabric", Class: "SubscribersResource",
 		Methods: map[string]string{
-			"ListSIPEndpoints":   "list_sip_endpoints",
-			"CreateSIPEndpoint":  "create_sip_endpoint",
-			"GetSIPEndpoint":     "get_sip_endpoint",
-			"UpdateSIPEndpoint":  "update_sip_endpoint",
-			"DeleteSIPEndpoint":  "delete_sip_endpoint",
+			"ListSIPEndpoints":  "list_sip_endpoints",
+			"CreateSIPEndpoint": "create_sip_endpoint",
+			"GetSIPEndpoint":    "get_sip_endpoint",
+			"UpdateSIPEndpoint": "update_sip_endpoint",
+			"DeleteSIPEndpoint": "delete_sip_endpoint",
 		},
 	}},
 	"namespaces.CallFlowsResource": {{
@@ -984,9 +984,9 @@ var StructTable = map[string][]ClassTarget{
 	"namespaces.VideoConferences": {{
 		Module: "signalwire.rest.namespaces.video", Class: "VideoConferences",
 		Methods: map[string]string{
-			"ListStreams":           "list_streams",
-			"CreateStream":          "create_stream",
-			"ListConferenceTokens":  "list_conference_tokens",
+			"ListStreams":          "list_streams",
+			"CreateStream":         "create_stream",
+			"ListConferenceTokens": "list_conference_tokens",
 		},
 	}},
 	"namespaces.VideoConferenceTokens": {{
@@ -1056,11 +1056,11 @@ var StructTable = map[string][]ClassTarget{
 	"namespaces.RegistryCampaigns": {{
 		Module: "signalwire.rest.namespaces.registry", Class: "RegistryCampaigns",
 		Methods: map[string]string{
-			"Get":          "get",
-			"Update":       "update",
-			"ListNumbers":  "list_numbers",
-			"ListOrders":   "list_orders",
-			"CreateOrder":  "create_order",
+			"Get":         "get",
+			"Update":      "update",
+			"ListNumbers": "list_numbers",
+			"ListOrders":  "list_orders",
+			"CreateOrder": "create_order",
 		},
 	}},
 	"namespaces.RegistryOrders": {{
@@ -1116,24 +1116,24 @@ var StructTable = map[string][]ClassTarget{
 	"contexts.Step": {{
 		Module: "signalwire.core.contexts", Class: "Step",
 		Methods: map[string]string{
-			"SetText":               "set_text",
-			"AddSection":            "add_section",
-			"AddBullets":            "add_bullets",
-			"SetStepCriteria":       "set_step_criteria",
-			"SetFunctions":          "set_functions",
-			"SetValidSteps":         "set_valid_steps",
-			"SetValidContexts":      "set_valid_contexts",
-			"SetEnd":                "set_end",
-			"SetSkipUserTurn":       "set_skip_user_turn",
-			"SetSkipToNextStep":     "set_skip_to_next_step",
-			"SetGatherInfo":         "set_gather_info",
-			"AddGatherQuestion":     "add_gather_question",
-			"ClearSections":         "clear_sections",
-			"SetResetSystemPrompt":  "set_reset_system_prompt",
-			"SetResetUserPrompt":    "set_reset_user_prompt",
-			"SetResetConsolidate":   "set_reset_consolidate",
-			"SetResetFullReset":     "set_reset_full_reset",
-			"ToMap":                 "to_dict",
+			"SetText":              "set_text",
+			"AddSection":           "add_section",
+			"AddBullets":           "add_bullets",
+			"SetStepCriteria":      "set_step_criteria",
+			"SetFunctions":         "set_functions",
+			"SetValidSteps":        "set_valid_steps",
+			"SetValidContexts":     "set_valid_contexts",
+			"SetEnd":               "set_end",
+			"SetSkipUserTurn":      "set_skip_user_turn",
+			"SetSkipToNextStep":    "set_skip_to_next_step",
+			"SetGatherInfo":        "set_gather_info",
+			"AddGatherQuestion":    "add_gather_question",
+			"ClearSections":        "clear_sections",
+			"SetResetSystemPrompt": "set_reset_system_prompt",
+			"SetResetUserPrompt":   "set_reset_user_prompt",
+			"SetResetConsolidate":  "set_reset_consolidate",
+			"SetResetFullReset":    "set_reset_full_reset",
+			"ToMap":                "to_dict",
 		},
 		SyntheticMethods: []string{"__init__"},
 	}},
@@ -1362,10 +1362,10 @@ var StructTable = map[string][]ClassTarget{
 	// Go-only livewire plugins (GoogleSTT, OpenAITTS) are port-only extensions.
 }
 
-// freeFnTable maps a Go ``<shortPkg>.<FuncName>`` to a Python module-level
+// freeFnTable maps a Go “<shortPkg>.<FuncName>“ to a Python module-level
 // function.  Only used for genuinely free-standing functions — factory
-// constructors (``New<Struct>``) that should become ``__init__`` are
-// declared via ``factoryInit`` instead.
+// constructors (“New<Struct>“) that should become “__init__“ are
+// declared via “factoryInit“ instead.
 var FreeFnTable = map[string]struct{ Module, Name string }{
 	// Top-level signalwire package entry points
 	"agent.RunAgent":              {Module: "signalwire", Name: "run_agent"},
@@ -1377,10 +1377,10 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"rest.NewRestClient":          {Module: "signalwire", Name: "RestClient"},
 
 	// Core modules
-	"contexts.CreateSimpleContext":  {Module: "signalwire.core.contexts", Name: "create_simple_context"},
-	"datamap.CreateSimpleApiTool":   {Module: "signalwire.core.data_map", Name: "create_simple_api_tool"},
-	"datamap.CreateExpressionTool":  {Module: "signalwire.core.data_map", Name: "create_expression_tool"},
-	"relay.ParseEvent":              {Module: "signalwire.relay.event", Name: "parse_event"},
+	"contexts.CreateSimpleContext": {Module: "signalwire.core.contexts", Name: "create_simple_context"},
+	"datamap.CreateSimpleApiTool":  {Module: "signalwire.core.data_map", Name: "create_simple_api_tool"},
+	"datamap.CreateExpressionTool": {Module: "signalwire.core.data_map", Name: "create_expression_tool"},
+	"relay.ParseEvent":             {Module: "signalwire.relay.event", Name: "parse_event"},
 
 	// Utilities — SSRF guard, projects onto Python's free function
 	// signalwire.utils.url_validator.validate_url.
@@ -1404,17 +1404,16 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"security.ValidateRequest":          {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
 }
 
-// factoryInit maps a Go factory function (not a ``New<Struct>`` that matches
-// its struct name) to the class whose ``__init__`` it satisfies.  Example:
-// ``datamap.New`` constructs ``DataMap`` — lift it into the __init__ slot.
+// factoryInit maps a Go factory function (not a “New<Struct>“ that matches
+// its struct name) to the class whose “__init__“ it satisfies.  Example:
+// “datamap.New“ constructs “DataMap“ — lift it into the __init__ slot.
 var FactoryInit = map[string]struct{ StructKey string }{
 	"datamap.New": {StructKey: "datamap.DataMap"},
 }
 
-
 // eventTarget builds the standard relay event class target: the class is
-// present, plus ``from_payload`` emitted synthetically when Go's factory
-// ``New<Event>`` is present.
+// present, plus “from_payload“ emitted synthetically when Go's factory
+// “New<Event>“ is present.
 func eventTarget(cls string) ClassTarget {
 	return ClassTarget{
 		Module:           "signalwire.relay.event",

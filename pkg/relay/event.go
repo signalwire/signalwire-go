@@ -503,11 +503,11 @@ func (e *DialEvent) DialStateTyped() DialState {
 // ReferEvent represents a calling.call.refer event.
 type ReferEvent struct {
 	*RelayEvent
-	ControlID              string
-	State                  string
-	SIPReferTo             string
-	SIPReferResponseCode   string
-	SIPNotifyResponseCode  string
+	ControlID             string
+	State                 string
+	SIPReferTo            string
+	SIPReferResponseCode  string
+	SIPNotifyResponseCode string
 }
 
 // NewReferEvent constructs a ReferEvent from raw params.
@@ -702,15 +702,15 @@ func NewCallingErrorEvent(params map[string]any) *CallingErrorEvent {
 // MessageReceiveEvent represents a messaging.receive event.
 type MessageReceiveEvent struct {
 	*RelayEvent
-	MessageID    string
-	Context      string
-	Direction    string
-	FromNumber   string
-	ToNumber     string
-	Body         string
-	Media        []string
-	Segments     int
-	Tags         []string
+	MessageID  string
+	Context    string
+	Direction  string
+	FromNumber string
+	ToNumber   string
+	Body       string
+	Media      []string
+	Segments   int
+	Tags       []string
 	// MessageState matches Python's message_state field.
 	MessageState string
 }
@@ -755,7 +755,7 @@ func NewMessageReceiveEvent(params map[string]any) *MessageReceiveEvent {
 // MessageStateEvent represents a messaging.state event.
 type MessageStateEvent struct {
 	*RelayEvent
-	MessageID  string
+	MessageID string
 	// MessageState reads wire key "message_state" matching Python's message_state field.
 	// (Replaces the previous State field which incorrectly read "state".)
 	MessageState string

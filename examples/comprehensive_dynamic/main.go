@@ -142,9 +142,9 @@ func main() {
 		}
 
 		ep.SetGlobalData(map[string]any{
-			"service_tier":    tier,
-			"industry_focus":  industry,
-			"test_group":      testGroup,
+			"service_tier":     tier,
+			"industry_focus":   industry,
+			"test_group":       testGroup,
 			"features_enabled": features,
 		})
 	})

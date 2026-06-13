@@ -50,18 +50,18 @@ type webhookDef struct {
 // DataMap is a fluent builder for SWAIG data_map function definitions.
 // Data map tools execute on SignalWire servers without needing a webhook endpoint.
 type DataMap struct {
-	functionName      string
-	description       string
-	parameters        []paramDef
-	expressions       []expressionDef
-	webhookConfig     *webhookDef
-	webhookExprs      []map[string]any
-	bodyData          map[string]any
-	paramsData        map[string]any
-	foreachConfig     map[string]any
-	outputResult      *swaig.FunctionResult
-	fallbackResult    *swaig.FunctionResult
-	errorKeysList     []string
+	functionName        string
+	description         string
+	parameters          []paramDef
+	expressions         []expressionDef
+	webhookConfig       *webhookDef
+	webhookExprs        []map[string]any
+	bodyData            map[string]any
+	paramsData          map[string]any
+	foreachConfig       map[string]any
+	outputResult        *swaig.FunctionResult
+	fallbackResult      *swaig.FunctionResult
+	errorKeysList       []string
 	globalErrorKeysList []string
 
 	// Internal: accumulated webhooks for multi-webhook support.

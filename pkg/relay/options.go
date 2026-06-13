@@ -68,7 +68,7 @@ func WithPlayOnCompleted(cb func(*RelayEvent)) PlayOption {
 // the wire — the method deletes them.
 
 // TTSOption configures a PlayTTS or PromptTTS call. It sets the language /
-// gender / voice fields nested inside the ``{"type":"tts","params":{...}}``
+// gender / voice fields nested inside the “{"type":"tts","params":{...}}“
 // media entry and the top-level volume on the play frame.
 type TTSOption func(m map[string]any)
 
@@ -110,7 +110,7 @@ type RingtoneOption func(m map[string]any)
 
 // WithRingtoneDuration sets how long the ringtone plays, in seconds
 // (Python play_ringtone duration). It is nested inside the ringtone media
-// params, matching Python's ``{"type":"ringtone","params":{"duration":...}}``.
+// params, matching Python's “{"type":"ringtone","params":{"duration":...}}“.
 func WithRingtoneDuration(seconds float64) RingtoneOption {
 	return func(m map[string]any) { m["_ringtone_duration"] = seconds }
 }
@@ -136,7 +136,7 @@ func WithDigitTimeout(seconds float64) DetectDigitOption {
 
 // AMDOption configures a DetectAnsweringMachine call. Each option maps to
 // one Python detect_answering_machine keyword argument and is nested inside
-// the ``{"type":"machine","params":{...}}`` detect media entry — only the
+// the “{"type":"machine","params":{...}}“ detect media entry — only the
 // options the caller supplies are emitted (matching Python's
 // only-provided-keys behavior).
 type AMDOption func(m map[string]any)

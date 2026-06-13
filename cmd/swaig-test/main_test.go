@@ -320,15 +320,15 @@ func TestExtractFunctions(t *testing.T) {
 
 func TestParseFlags(t *testing.T) {
 	tests := []struct {
-		name       string
-		args       []string
-		wantURL    string
-		wantDump   bool
-		wantList   bool
-		wantExec   string
-		wantRaw    bool
+		name        string
+		args        []string
+		wantURL     string
+		wantDump    bool
+		wantList    bool
+		wantExec    string
+		wantRaw     bool
 		wantVerbose bool
-		wantParams int
+		wantParams  int
 	}{
 		{
 			name:     "dump-swml",
@@ -350,11 +350,11 @@ func TestParseFlags(t *testing.T) {
 			wantParams: 2,
 		},
 		{
-			name:    "raw flag",
-			args:    []string{"--url", "http://localhost:3000/", "--dump-swml", "--raw"},
-			wantURL: "http://localhost:3000/",
+			name:     "raw flag",
+			args:     []string{"--url", "http://localhost:3000/", "--dump-swml", "--raw"},
+			wantURL:  "http://localhost:3000/",
 			wantDump: true,
-			wantRaw: true,
+			wantRaw:  true,
 		},
 		{
 			name:        "verbose flag",

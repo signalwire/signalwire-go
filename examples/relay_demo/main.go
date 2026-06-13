@@ -30,8 +30,8 @@ func main() {
 		relay.WithProject(projectID),
 		relay.WithToken(token),
 		relay.WithSpace(space),
-		relay.WithContexts("default"),        // Subscribe to the "default" inbound context
-		relay.WithMaxActiveCalls(10),          // Limit concurrent calls
+		relay.WithContexts("default"), // Subscribe to the "default" inbound context
+		relay.WithMaxActiveCalls(10),  // Limit concurrent calls
 	)
 
 	// Set up the inbound call handler

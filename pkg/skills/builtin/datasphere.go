@@ -15,18 +15,18 @@ import (
 // DataSphereSkill searches knowledge using SignalWire DataSphere RAG stack.
 type DataSphereSkill struct {
 	skills.BaseSkill
-	spaceName       string
-	projectID       string
-	token           string
-	documentID      string
-	count           int
-	distance        float64
-	toolName        string
-	apiURL          string
-	tags            []string
-	language        string
-	posToExpand     []string
-	maxSynonyms     int
+	spaceName        string
+	projectID        string
+	token            string
+	documentID       string
+	count            int
+	distance         float64
+	toolName         string
+	apiURL           string
+	tags             []string
+	language         string
+	posToExpand      []string
+	maxSynonyms      int
 	noResultsMessage string
 }
 

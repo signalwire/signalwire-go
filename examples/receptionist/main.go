@@ -15,8 +15,8 @@ import (
 
 func main() {
 	receptionist := prefabs.NewReceptionistAgent(prefabs.ReceptionistOptions{
-		Name:  "AcmeReceptionist",
-		Route: "/reception",
+		Name:     "AcmeReceptionist",
+		Route:    "/reception",
 		Greeting: "Hello, thank you for calling ACME Corporation. How may I direct your call today?",
 		Departments: []prefabs.Department{
 			{

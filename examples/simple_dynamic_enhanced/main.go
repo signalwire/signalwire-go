@@ -9,8 +9,9 @@
 // - language=en/es (language and voice selection)
 //
 // Test:
-//   curl "http://localhost:3035/dynamic-enhanced?vip=true&department=sales"
-//   curl "http://localhost:3035/dynamic-enhanced?department=billing&language=es"
+//
+//	curl "http://localhost:3035/dynamic-enhanced?vip=true&department=sales"
+//	curl "http://localhost:3035/dynamic-enhanced?department=billing&language=es"
 package main
 
 import (

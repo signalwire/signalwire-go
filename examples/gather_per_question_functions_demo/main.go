@@ -114,8 +114,8 @@ func main() {
 		})
 
 	onboard.SetGatherInfo(
-		"customer",   // outputKey
-		"next_step",  // completionAction
+		"customer",  // outputKey
+		"next_step", // completionAction
 		"I'll need to collect a few details to set up your "+
 			"account. I'll ask one question at a time.",
 	)

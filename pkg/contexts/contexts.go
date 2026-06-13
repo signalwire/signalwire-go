@@ -16,7 +16,7 @@ import (
 
 // Limits guard against unreasonable configurations.
 const (
-	MaxContexts       = 50
+	MaxContexts        = 50
 	MaxStepsPerContext = 100
 )
 
@@ -69,7 +69,7 @@ func WithFunctions(f []string) GatherQuestionOption {
 type GatherQuestion struct {
 	Key       string
 	Question  string
-	Type      string   // default "string"
+	Type      string // default "string"
 	Confirm   bool
 	Prompt    string   // optional
 	Functions []string // optional
@@ -164,21 +164,21 @@ func (g *GatherInfo) ToMap() map[string]any {
 // Step represents a single step within a context. All setter methods return
 // *Step so they can be chained.
 type Step struct {
-	name               string
-	text               string
-	sections           []map[string]any
-	stepCriteria       string
-	functions          any // string "none" or []string
-	validSteps         []string
-	validContexts      []string
-	isEnd              bool
-	skipUserTurn       bool
-	skipToNextStep     bool
-	gatherInfo         *GatherInfo
-	resetSystemPrompt  string
-	resetUserPrompt    string
-	resetConsolidate   *bool
-	resetFullReset     *bool
+	name              string
+	text              string
+	sections          []map[string]any
+	stepCriteria      string
+	functions         any // string "none" or []string
+	validSteps        []string
+	validContexts     []string
+	isEnd             bool
+	skipUserTurn      bool
+	skipToNextStep    bool
+	gatherInfo        *GatherInfo
+	resetSystemPrompt string
+	resetUserPrompt   string
+	resetConsolidate  *bool
+	resetFullReset    *bool
 }
 
 // Name returns the step's name.

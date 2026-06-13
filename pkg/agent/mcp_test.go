@@ -74,8 +74,8 @@ func TestInitializeHandshake(t *testing.T) {
 		"method":  "initialize",
 		"params": map[string]any{
 			"protocolVersion": "2025-06-18",
-			"capabilities":   map[string]any{},
-			"clientInfo":     map[string]any{"name": "test", "version": "1.0"},
+			"capabilities":    map[string]any{},
+			"clientInfo":      map[string]any{"name": "test", "version": "1.0"},
 		},
 	})
 

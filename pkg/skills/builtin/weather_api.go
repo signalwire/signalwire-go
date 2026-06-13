@@ -16,9 +16,9 @@ import (
 // WeatherAPISkill gets current weather from WeatherAPI.com.
 type WeatherAPISkill struct {
 	skills.BaseSkill
-	apiKey      string
-	toolName    string
-	tempUnit    string
+	apiKey   string
+	toolName string
+	tempUnit string
 }
 
 // NewWeatherAPI creates a new WeatherAPISkill.

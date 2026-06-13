@@ -23,8 +23,8 @@ var (
 // `add_skill_directory` parity case has a real owning object the
 // audit and downstream callers can hold.
 type SkillRegistry struct {
-	mu             sync.Mutex
-	externalPaths  []string
+	mu            sync.Mutex
+	externalPaths []string
 }
 
 // NewSkillRegistry constructs a new SkillRegistry. The Python reference

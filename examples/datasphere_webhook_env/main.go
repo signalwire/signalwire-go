@@ -6,7 +6,8 @@
 // variables. Compare with datasphere_serverless_env for the serverless approach.
 //
 // Required: SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE,
-//           DATASPHERE_DOCUMENT_ID
+//
+//	DATASPHERE_DOCUMENT_ID
 package main
 
 import (

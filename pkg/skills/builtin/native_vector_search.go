@@ -19,19 +19,19 @@ import (
 // NativeVectorSearchSkill searches knowledge using a remote search server.
 type NativeVectorSearchSkill struct {
 	skills.BaseSkill
-	toolName           string
-	remoteURL          string
-	remoteBaseURL      string
-	remoteAuth         string // Base64-encoded "user:pass" for Authorization header, empty if no auth
-	indexName          string
-	count              int
-	noResults          string
+	toolName            string
+	remoteURL           string
+	remoteBaseURL       string
+	remoteAuth          string // Base64-encoded "user:pass" for Authorization header, empty if no auth
+	indexName           string
+	count               int
+	noResults           string
 	similarityThreshold float64
-	tags               []string
-	responsePrefix     string
-	responsePostfix    string
-	maxContentLength   int
-	logger             *slog.Logger
+	tags                []string
+	responsePrefix      string
+	responsePostfix     string
+	maxContentLength    int
+	logger              *slog.Logger
 }
 
 // NewNativeVectorSearch creates a new NativeVectorSearchSkill.
