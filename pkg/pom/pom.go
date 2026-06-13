@@ -838,9 +838,7 @@ func (p *PromptObjectModel) AddPomAsSubsection(target any, pomToAdd *PromptObjec
 	default:
 		return errors.New("pom: target must be a string or *Section")
 	}
-	for _, s := range pomToAdd.Sections {
-		host.Subsections = append(host.Subsections, s)
-	}
+	host.Subsections = append(host.Subsections, pomToAdd.Sections...)
 	return nil
 }
 

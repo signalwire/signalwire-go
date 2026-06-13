@@ -310,7 +310,7 @@ func (s *NativeVectorSearchSkill) handleSearch(args map[string]any, _ map[string
 		sb.WriteString(s.responsePrefix)
 		sb.WriteString("\n")
 	}
-	sb.WriteString(fmt.Sprintf("Found %d results for '%s':\n\n", len(results), query))
+	fmt.Fprintf(&sb, "Found %d results for '%s':\n\n", len(results), query)
 
 	for i, r := range results {
 		m, _ := r.(map[string]any)

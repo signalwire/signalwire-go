@@ -296,6 +296,8 @@ func TestSignalWireRestError_Format(t *testing.T) {
 }
 
 func TestSignalWireRestError_ImplementsError(t *testing.T) {
+	// Assigning to `error` proves *SignalWireRestError satisfies the interface at
+	// compile time; exercise Error() to prove the method is wired and usable.
 	var err error = &SignalWireRestError{
 		StatusCode: 500,
 		Body:       "internal server error",
@@ -303,8 +305,10 @@ func TestSignalWireRestError_ImplementsError(t *testing.T) {
 		Method:     "POST",
 	}
 
-	if err == nil {
-		t.Fatal("expected non-nil error")
+	got := err.Error()
+	want := `POST /api/test returned 500: internal server error`
+	if got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
 	}
 }
 

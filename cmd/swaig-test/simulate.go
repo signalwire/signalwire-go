@@ -84,7 +84,7 @@ func validateSimulatePlatform(platform string) error {
 			"--simulate-serverless %s: platform not implemented in this port. "+
 				"Phase 9 of the porting guide has only been completed for: %s. "+
 				"To use --simulate-serverless %s, implement the corresponding "+
-				"adapter under pkg/ first.",
+				"adapter under pkg/ first",
 			platform, supportedPlatformList(), platform,
 		)
 	}

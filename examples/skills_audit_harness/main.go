@@ -242,7 +242,7 @@ func expandTemplate(tmpl string, args map[string]any) string {
 			if strings.HasPrefix(key, "args.") {
 				field := strings.TrimPrefix(key, "args.")
 				if v, ok := args[field]; ok {
-					sb.WriteString(fmt.Sprintf("%v", v))
+					fmt.Fprintf(&sb, "%v", v)
 					i = i + 2 + end + 1
 					continue
 				}
@@ -264,7 +264,7 @@ func expandTemplate(tmpl string, args map[string]any) string {
 			if idx := strings.Index(expr, "args."); idx >= 0 {
 				field := expr[idx+len("args."):]
 				if v, ok := args[field]; ok {
-					sb.WriteString(fmt.Sprintf("%v", v))
+					fmt.Fprintf(&sb, "%v", v)
 					i = i + 2 + end + 1
 					continue
 				}

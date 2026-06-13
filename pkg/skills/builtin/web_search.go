@@ -303,16 +303,16 @@ func (s *WebSearchSkill) extractRedditContent(ctx context.Context, rawURL string
 	subreddit := stringVal(postData["subreddit"])
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Reddit r/%s Discussion\n", subreddit))
-	sb.WriteString(fmt.Sprintf("Post: %s\n", title))
-	sb.WriteString(fmt.Sprintf("Author: %s | Score: %d | Comments: %d\n", author, score, numComments))
+	fmt.Fprintf(&sb, "Reddit r/%s Discussion\n", subreddit)
+	fmt.Fprintf(&sb, "Post: %s\n", title)
+	fmt.Fprintf(&sb, "Author: %s | Score: %d | Comments: %d\n", author, score, numComments)
 
 	selftext := strings.TrimSpace(stringVal(postData["selftext"]))
 	if selftext != "" && selftext != "[removed]" && selftext != "[deleted]" {
 		if len(selftext) > 1000 {
 			selftext = selftext[:1000]
 		}
-		sb.WriteString(fmt.Sprintf("\nOriginal Post:\n%s\n", selftext))
+		fmt.Fprintf(&sb, "\nOriginal Post:\n%s\n", selftext)
 	}
 
 	// Extract comments from data[1] if present
@@ -372,7 +372,7 @@ func (s *WebSearchSkill) extractRedditContent(ctx context.Context, rawURL string
 			if len(text) > 500 {
 				text = text[:500] + "..."
 			}
-			sb.WriteString(fmt.Sprintf("\nComment %d (Score: %d, Author: %s):\n%s\n", i+1, c.score, c.author, text))
+			fmt.Fprintf(&sb, "\nComment %d (Score: %d, Author: %s):\n%s\n", i+1, c.score, c.author, text)
 		}
 	}
 
@@ -815,15 +815,15 @@ func (s *WebSearchSkill) handleWebSearch(args map[string]any, _ map[string]any) 
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Found %d results meeting quality threshold from %d searched.\n", len(processed), len(searchResults)))
-	sb.WriteString(fmt.Sprintf("Showing top %d from diverse sources:\n\n", len(best)))
+	fmt.Fprintf(&sb, "Found %d results meeting quality threshold from %d searched.\n", len(processed), len(searchResults))
+	fmt.Fprintf(&sb, "Showing top %d from diverse sources:\n\n", len(best))
 
 	for i, r := range best {
-		sb.WriteString(fmt.Sprintf("=== RESULT %d (Quality: %.2f) ===\n", i+1, r.qualityScore))
-		sb.WriteString(fmt.Sprintf("Title: %s\n", r.title))
-		sb.WriteString(fmt.Sprintf("URL: %s\n", r.link))
-		sb.WriteString(fmt.Sprintf("Source: %s\n", r.domain))
-		sb.WriteString(fmt.Sprintf("Snippet: %s\n", r.snippet))
+		fmt.Fprintf(&sb, "=== RESULT %d (Quality: %.2f) ===\n", i+1, r.qualityScore)
+		fmt.Fprintf(&sb, "Title: %s\n", r.title)
+		fmt.Fprintf(&sb, "URL: %s\n", r.link)
+		fmt.Fprintf(&sb, "Source: %s\n", r.domain)
+		fmt.Fprintf(&sb, "Snippet: %s\n", r.snippet)
 
 		textLen, _ := r.metrics["text_length"].(int)
 		sentCount, _ := r.metrics["sentence_count"].(int)
@@ -832,8 +832,8 @@ func (s *WebSearchSkill) handleWebSearch(args map[string]any, _ map[string]any) 
 		if qWords == "" {
 			qWords = "N/A"
 		}
-		sb.WriteString(fmt.Sprintf("Content Stats: %d chars, %d sentences\n", textLen, sentCount))
-		sb.WriteString(fmt.Sprintf("Query Relevance: %.2f (keywords: %s)\n", qRel, qWords))
+		fmt.Fprintf(&sb, "Content Stats: %d chars, %d sentences\n", textLen, sentCount)
+		fmt.Fprintf(&sb, "Query Relevance: %.2f (keywords: %s)\n", qRel, qWords)
 		sb.WriteString("Content:\n")
 
 		content := r.content
@@ -871,12 +871,12 @@ func (s *WebSearchSkill) formatSnippetResults(query string, results []searchResu
 		top = len(results)
 	}
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Snippet-only results for '%s' (page content not scraped):\n\n", query))
+	fmt.Fprintf(&sb, "Snippet-only results for '%s' (page content not scraped):\n\n", query)
 	for i, r := range results[:top] {
-		sb.WriteString(fmt.Sprintf("=== RESULT %d ===\n", i+1))
-		sb.WriteString(fmt.Sprintf("Title: %s\n", r.title))
-		sb.WriteString(fmt.Sprintf("URL: %s\n", r.link))
-		sb.WriteString(fmt.Sprintf("Snippet: %s\n", strings.TrimSpace(r.snippet)))
+		fmt.Fprintf(&sb, "=== RESULT %d ===\n", i+1)
+		fmt.Fprintf(&sb, "Title: %s\n", r.title)
+		fmt.Fprintf(&sb, "URL: %s\n", r.link)
+		fmt.Fprintf(&sb, "Snippet: %s\n", strings.TrimSpace(r.snippet))
 		sb.WriteString("\n")
 	}
 	return s.wrapResponse(strings.TrimRight(sb.String(), "\n"))

@@ -145,7 +145,7 @@ func run(cfg config) error {
 					"running the agent URL with the platform env vars applied. "+
 					"For true in-process adapter dispatch, use "+
 					"SimulateDumpSWMLViaLambda / SimulateExecToolViaLambda "+
-					"from package main directly (see cmd/swaig-test/simulate.go).",
+					"from package main directly (see cmd/swaig-test/simulate.go)",
 				cfg.simulateServerless,
 			)
 		}

@@ -200,7 +200,7 @@ func (s *DataSphereSkill) handleSearch(args map[string]any, _ map[string]any) *s
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Found %d results for '%s':\n\n", len(chunks), query))
+	fmt.Fprintf(&sb, "Found %d results for '%s':\n\n", len(chunks), query)
 	for i, chunk := range chunks {
 		m, _ := chunk.(map[string]any)
 		if m == nil {
@@ -212,7 +212,7 @@ func (s *DataSphereSkill) handleSearch(args map[string]any, _ map[string]any) *s
 		} else if t, ok := m["content"].(string); ok {
 			text = t
 		}
-		sb.WriteString(fmt.Sprintf("=== RESULT %d ===\n%s\n%s\n\n", i+1, text, strings.Repeat("=", 50)))
+		fmt.Fprintf(&sb, "=== RESULT %d ===\n%s\n%s\n\n", i+1, text, strings.Repeat("=", 50))
 	}
 
 	return swaig.NewFunctionResult(sb.String())

@@ -1057,9 +1057,7 @@ func ExtractSIPUsername(body map[string]any) string {
 		return ""
 	}
 	// Parse SIP URI: sip:username@domain
-	if strings.HasPrefix(to, "sip:") {
-		to = to[4:]
-	}
+	to = strings.TrimPrefix(to, "sip:")
 	if idx := strings.Index(to, "@"); idx > 0 {
 		return to[:idx]
 	}
@@ -1456,7 +1454,7 @@ func (s *Service) handleSWML(w http.ResponseWriter, r *http.Request) {
 	// matched, fall through to the renderable document via the extension
 	// point (AgentBase overrides RenderMainSwml).
 	doc := s.OnRequest(body, r.URL.Path)
-	if doc == nil || (len(doc) == 0) {
+	if len(doc) == 0 {
 		doc = s.RenderMainSwml(r)
 	}
 

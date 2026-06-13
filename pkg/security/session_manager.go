@@ -9,7 +9,6 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -249,7 +248,7 @@ func (sm *SessionManager) DebugToken(token string) map[string]any {
 		} else {
 			expiresIn = int64(0)
 		}
-		expiryDate = fmt.Sprintf("%s", time.Unix(expiryUnix, 0).Format(time.RFC3339))
+		expiryDate = time.Unix(expiryUnix, 0).Format(time.RFC3339)
 		expiryRaw = tokenExpiryStr
 	}
 

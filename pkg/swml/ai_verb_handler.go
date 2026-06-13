@@ -113,12 +113,12 @@ func (h *AIVerbHandler) BuildConfig(params map[string]any) (map[string]any, erro
 	config := make(map[string]any)
 
 	// Extract named params — mirroring Python's named arguments.
-	promptText, _ := params["prompt_text"]
-	promptPom, _ := params["prompt_pom"]
-	contexts, _ := params["contexts"]
-	postPrompt, _ := params["post_prompt"]
-	postPromptURL, _ := params["post_prompt_url"]
-	swaig, _ := params["swaig"]
+	promptText := params["prompt_text"]
+	promptPom := params["prompt_pom"]
+	contexts := params["contexts"]
+	postPrompt := params["post_prompt"]
+	postPromptURL := params["post_prompt_url"]
+	swaig := params["swaig"]
 
 	// Exactly one of prompt_text / prompt_pom is required.
 	hasText := promptText != nil
