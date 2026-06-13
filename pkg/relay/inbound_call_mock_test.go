@@ -289,6 +289,7 @@ func TestRelay_HangupInHandlerJournalsCallingEnd(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
+		h.DumpDiagnostics(t, "OnCall handler did not fire within 5s")
 		t.Fatal("OnCall handler did not fire within 5s (mock inbound-call event not dispatched)")
 	}
 	time.Sleep(100 * time.Millisecond)
@@ -325,6 +326,7 @@ func TestRelay_PassInHandlerJournalsCallingPass(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
+		h.DumpDiagnostics(t, "OnCall handler did not fire within 5s")
 		t.Fatal("OnCall handler did not fire within 5s (mock inbound-call event not dispatched)")
 	}
 	time.Sleep(100 * time.Millisecond)
@@ -615,6 +617,7 @@ func TestRelay_ScenarioPlayFullInboundFlow(t *testing.T) {
 	select {
 	case result = <-resultCh:
 	case <-time.After(10 * time.Second):
+		h.DumpDiagnostics(t, "ScenarioPlay did not return within 10s")
 		t.Fatal("ScenarioPlay did not return within 10s")
 	}
 	if result["status"] != "completed" {
@@ -652,6 +655,7 @@ func TestRelay_InboundCallJournalSendRecordsCallingCallReceive(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
+		h.DumpDiagnostics(t, "OnCall handler did not fire within 5s")
 		t.Fatal("OnCall handler did not fire within 5s (mock inbound-call event not dispatched)")
 	}
 
