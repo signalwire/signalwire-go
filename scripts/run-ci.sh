@@ -13,6 +13,8 @@
 #   6. emission gate                      — porting-sdk diff_port_emission.py
 #   7. fmt gate                           — gofmt (local: auto-fix; CI: -l check)
 #   8. lint gate                          — go vet ./...
+#   9. doc-audit gate                     — porting-sdk audit_docs.py
+#  10. surface-diff gate                  — porting-sdk diff_port_surface.py
 #
 # Each gate prints `[GATE-NAME] ... PASS` or `[GATE-NAME] ... FAIL: <reason>`
 # Final line: `==> CI PASS` or `==> CI FAIL (gates: <list>)`.
@@ -181,6 +183,31 @@ run_gate "FMT" "gofmt (local: auto-fix; CI: -l check)" fmt_gate
 # advisory, then promote, exactly as Rust did with clippy.)
 run_gate "LINT" "go vet ./... (lint gate)" \
     go vet ./...
+
+# Gate 9: DOC-AUDIT — every method/class referenced in docs/ + examples/ fenced
+# code blocks must resolve to a real symbol in the port surface (catches
+# phantom-API doc promises). Mirrors .github/workflows/doc-audit.yml exactly so
+# there's no local/CI drift — previously this ran ONLY in that workflow, never
+# under run-ci.sh, so a developer's local run was blind to doc drift. Uses the
+# committed port_surface_go.json (the Go-shaped surface audit_docs consumes);
+# the SURFACE-FRESH gate above already proved the surface is fresh.
+run_gate "DOC-AUDIT" "audit_docs vs port_surface_go.json" \
+    python3 "$PORTING_SDK_DIR/scripts/audit_docs.py" \
+        --root "$PORT_ROOT" \
+        --surface "$PORT_ROOT/port_surface_go.json" \
+        --ignore "$PORT_ROOT/DOC_AUDIT_IGNORE.md"
+
+# Gate 10: SURFACE-DIFF — diff the port surface against the Python reference
+# (omissions/additions accounted for in PORT_OMISSIONS.md / PORT_ADDITIONS.md).
+# SURFACE-FRESH (gate 4) only checks the committed surface MATCHES A REGEN; this
+# checks it MATCHES PYTHON. Mirrors .github/workflows/surface-audit.yml — same
+# no-drift reason as gate 9: it ran only in that workflow, not under run-ci.sh.
+run_gate "SURFACE-DIFF" "diff_port_surface vs python_surface.json" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
+        --reference "$PORTING_SDK_DIR/python_surface.json" \
+        --port-surface "$PORT_ROOT/port_surface.json" \
+        --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
+        --additions "$PORT_ROOT/PORT_ADDITIONS.md"
 
 # ---- summary ----------------------------------------------------------------
 
