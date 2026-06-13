@@ -36,6 +36,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -224,7 +225,17 @@ func (h *Harness) post(t *testing.T, path string, body any) []byte {
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	resp, err := h.httpClient.Do(req)
+	// Most control-plane calls are fast (the shared 2s-timeout client is fine).
+	// `/__mock__/scenario_play` is the exception: it plays a scripted timeline
+	// SYNCHRONOUSLY (sleep_ms steps + event round-trips) and only responds when
+	// the whole timeline completes, so under CI load it routinely exceeds 2s.
+	// Use a generous per-call timeout for it so the POST doesn't spuriously
+	// "context deadline exceeded" while the server is legitimately mid-timeline.
+	client := h.httpClient
+	if strings.Contains(path, "/scenario_play") {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("mocktest: %s: %v", path, err)
 	}
