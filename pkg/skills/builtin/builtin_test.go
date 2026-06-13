@@ -7,7 +7,12 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/skills"
 )
 
-// allSkillNames contains the 18 built-in skill names that must be registered.
+// allSkillNames contains the built-in skill names THIS package registers (the
+// 17 light skills, zero external deps). The spider skill moved to
+// pkg/skills/builtin/spider — it carries goquery/htmlquery/x/net, so isolating
+// it means importing this light package never compiles those in. The full
+// 18-skill set (light + spider) is asserted by the umbrella package's test in
+// pkg/skills/all.
 var allSkillNames = []string{
 	"datetime",
 	"math",
@@ -16,7 +21,6 @@ var allSkillNames = []string{
 	"web_search",
 	"wikipedia_search",
 	"google_maps",
-	"spider",
 	"datasphere",
 	"datasphere_serverless",
 	"swml_transfer",
@@ -29,7 +33,9 @@ var allSkillNames = []string{
 	"custom_skills",
 }
 
-// TestRegistryHasAllSkills verifies all 18 skills are registered.
+// TestRegistryHasAllSkills verifies the 17 light skills are registered by
+// importing this package alone (no spider). The umbrella all package asserts
+// the full set including spider.
 func TestRegistryHasAllSkills(t *testing.T) {
 	registered := skills.ListSkills()
 	registeredMap := make(map[string]bool)
@@ -43,8 +49,8 @@ func TestRegistryHasAllSkills(t *testing.T) {
 		}
 	}
 
-	if len(registered) < 18 {
-		t.Errorf("expected at least 18 registered skills, got %d", len(registered))
+	if len(registered) < len(allSkillNames) {
+		t.Errorf("expected at least %d registered skills, got %d", len(allSkillNames), len(registered))
 	}
 }
 
@@ -219,24 +225,9 @@ func TestGoogleMapsSetup(t *testing.T) {
 	}
 }
 
-// TestSpiderSetup tests SpiderSkill.
-func TestSpiderSetup(t *testing.T) {
-	factory := skills.GetSkillFactory("spider")
-	if factory == nil {
-		t.Fatal("spider factory not found")
-	}
-	s := factory(nil)
-	if !s.Setup() {
-		t.Error("spider Setup() returned false")
-	}
-	if !s.SupportsMultipleInstances() {
-		t.Error("spider should support multiple instances")
-	}
-	tools := s.RegisterTools()
-	if len(tools) == 0 {
-		t.Error("spider RegisterTools() returned empty")
-	}
-}
+// TestSpiderSetup moved to pkg/skills/builtin/spider (the spider skill now lives
+// in its own sub-package so its goquery/htmlquery/x/net deps aren't compiled in
+// by importers of the light builtin package).
 
 // TestDataSphereSetup tests DataSphereSkill.
 func TestDataSphereSetup(t *testing.T) {
@@ -730,7 +721,6 @@ func TestSkillsWithNoEnvVarsCanSetup(t *testing.T) {
 		"math":             nil,
 		"joke":             nil,
 		"wikipedia_search": nil,
-		"spider":           nil,
 	}
 
 	for name, params := range simpleSkills {
