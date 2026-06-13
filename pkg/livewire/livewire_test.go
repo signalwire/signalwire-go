@@ -178,7 +178,9 @@ func TestAgentSession_WithAllowInterruptions_MapsToBarge(t *testing.T) {
 	ag := NewAgent("test")
 
 	ctx := &JobContext{Room: &Room{Name: "test"}}
-	s.Start(ctx, ag)
+	if err := s.Start(ctx, ag); err != nil {
+		t.Fatalf("session start: %v", err)
+	}
 
 	// The barge_confidence should be set high to prevent interruptions
 	sw := s.GetSwAgent()
@@ -269,7 +271,9 @@ func TestAgentSession_UpdateInstructions(t *testing.T) {
 	s := NewAgentSession()
 	ag := NewAgent("original instructions")
 	ctx := &JobContext{Room: &Room{Name: "test"}}
-	s.Start(ctx, ag)
+	if err := s.Start(ctx, ag); err != nil {
+		t.Fatalf("session start: %v", err)
+	}
 
 	s.UpdateInstructions("new instructions")
 	if ag.instructions != "new instructions" {
@@ -316,11 +320,13 @@ func TestRunApp_Flow(t *testing.T) {
 	// RunApp will call entrypoint but then log an error because no agent was started
 	RunApp(server)
 
-	w.Close()
+	_ = w.Close()
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("read captured output: %v", err)
+	}
 	output := buf.String()
 
 	if !entrypointCalled {
@@ -581,8 +587,8 @@ func TestBannerContent(t *testing.T) {
 
 func TestPrintBanner_NoTerm(t *testing.T) {
 	old := os.Getenv("TERM")
-	os.Setenv("TERM", "")
-	defer os.Setenv("TERM", old)
+	_ = os.Setenv("TERM", "")
+	defer func() { _ = os.Setenv("TERM", old) }()
 
 	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()
@@ -590,11 +596,13 @@ func TestPrintBanner_NoTerm(t *testing.T) {
 
 	printBanner()
 
-	w.Close()
+	_ = w.Close()
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("read captured output: %v", err)
+	}
 	output := buf.String()
 
 	// Should NOT contain ANSI escape codes
@@ -608,8 +616,8 @@ func TestPrintBanner_NoTerm(t *testing.T) {
 
 func TestPrintBanner_WithTerm(t *testing.T) {
 	old := os.Getenv("TERM")
-	os.Setenv("TERM", "xterm-256color")
-	defer os.Setenv("TERM", old)
+	_ = os.Setenv("TERM", "xterm-256color")
+	defer func() { _ = os.Setenv("TERM", old) }()
 
 	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()
@@ -617,11 +625,13 @@ func TestPrintBanner_WithTerm(t *testing.T) {
 
 	printBanner()
 
-	w.Close()
+	_ = w.Close()
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("read captured output: %v", err)
+	}
 	output := buf.String()
 
 	// Should contain ANSI cyan

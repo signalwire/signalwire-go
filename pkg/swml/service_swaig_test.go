@@ -106,7 +106,9 @@ func makeRequest(method, path, body string) *http.Request {
 
 func TestServiceSwaigGETReturnsSwml(t *testing.T) {
 	svc := makeSwaigSvc(t)
-	svc.Hangup(nil)
+	if err := svc.Hangup(nil); err != nil {
+		t.Fatalf("Hangup: %v", err)
+	}
 	mux := svc.buildMux()
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, makeRequest(http.MethodGet, "/swaig", ""))
@@ -184,12 +186,16 @@ func TestServiceSidecarPatternEmitsVerbAndRegistersTool(t *testing.T) {
 
 	// 1. Build the SWML — answer + ai_sidecar verb config. ai_sidecar isn't
 	// in the schema yet, so add it directly to the document.
-	svc.Answer(nil, nil)
-	svc.GetDocument().AddVerbToSection("main", "ai_sidecar", map[string]any{
+	if err := svc.Answer(nil, nil); err != nil {
+		t.Fatalf("Answer: %v", err)
+	}
+	if err := svc.GetDocument().AddVerbToSection("main", "ai_sidecar", map[string]any{
 		"prompt":    "real-time copilot",
 		"lang":      "en-US",
 		"direction": []string{"remote-caller", "local-caller"},
-	})
+	}); err != nil {
+		t.Fatalf("AddVerbToSection: %v", err)
+	}
 
 	doc := svc.GetDocument().ToMap()
 	sections, _ := doc["sections"].(map[string]any)

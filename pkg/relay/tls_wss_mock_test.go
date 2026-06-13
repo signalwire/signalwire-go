@@ -90,7 +90,7 @@ func TestTLS_RelayClient_WSS(t *testing.T) {
 		url := fmt.Sprintf("wss://127.0.0.1:%d/api/relay/ws", mock.wsPort)
 		conn, _, err := dialer.Dial(url, http.Header{})
 		if err == nil {
-			conn.Close()
+			_ = conn.Close()
 			t.Fatal("WSS dial with empty trust store unexpectedly succeeded")
 		}
 		t.Logf("untrusted WSS dial correctly rejected: %v", err)

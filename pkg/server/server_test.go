@@ -427,7 +427,9 @@ func TestHTTP_RootIndex_Empty(t *testing.T) {
 	}
 
 	var body map[string]any
-	json.NewDecoder(rr.Body).Decode(&body)
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
 
 	agentsRaw := body["agents"].([]any)
 	if len(agentsRaw) != 0 {
@@ -458,7 +460,9 @@ func TestHTTP_SipRouting(t *testing.T) {
 	}
 
 	var body map[string]string
-	json.NewDecoder(rr.Body).Decode(&body)
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
 	if body["route"] != "/sales" {
 		t.Errorf("expected route=/sales, got %q", body["route"])
 	}

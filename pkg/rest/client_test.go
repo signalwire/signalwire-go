@@ -26,14 +26,9 @@ func TestNewRestClient_ExplicitArgs(t *testing.T) {
 }
 
 func TestNewRestClient_EnvVars(t *testing.T) {
-	os.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
-	os.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
-	os.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
-	defer func() {
-		os.Unsetenv("SIGNALWIRE_PROJECT_ID")
-		os.Unsetenv("SIGNALWIRE_API_TOKEN")
-		os.Unsetenv("SIGNALWIRE_SPACE")
-	}()
+	t.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
+	t.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
+	t.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
 
 	client, err := NewRestClient("", "", "")
 	if err != nil {
@@ -45,14 +40,9 @@ func TestNewRestClient_EnvVars(t *testing.T) {
 }
 
 func TestNewRestClient_ExplicitOverridesEnv(t *testing.T) {
-	os.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
-	os.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
-	os.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
-	defer func() {
-		os.Unsetenv("SIGNALWIRE_PROJECT_ID")
-		os.Unsetenv("SIGNALWIRE_API_TOKEN")
-		os.Unsetenv("SIGNALWIRE_SPACE")
-	}()
+	t.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
+	t.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
+	t.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
 
 	client, err := NewRestClient("explicit-proj", "explicit-tok", "explicit.signalwire.com")
 	if err != nil {
@@ -65,9 +55,9 @@ func TestNewRestClient_ExplicitOverridesEnv(t *testing.T) {
 
 func TestNewRestClient_MissingCredentials(t *testing.T) {
 	// Clear env vars
-	os.Unsetenv("SIGNALWIRE_PROJECT_ID")
-	os.Unsetenv("SIGNALWIRE_API_TOKEN")
-	os.Unsetenv("SIGNALWIRE_SPACE")
+	_ = os.Unsetenv("SIGNALWIRE_PROJECT_ID")
+	_ = os.Unsetenv("SIGNALWIRE_API_TOKEN")
+	_ = os.Unsetenv("SIGNALWIRE_SPACE")
 
 	_, err := NewRestClient("", "", "")
 	if err == nil {
@@ -76,9 +66,9 @@ func TestNewRestClient_MissingCredentials(t *testing.T) {
 }
 
 func TestNewRestClient_PartialCredentials(t *testing.T) {
-	os.Unsetenv("SIGNALWIRE_PROJECT_ID")
-	os.Unsetenv("SIGNALWIRE_API_TOKEN")
-	os.Unsetenv("SIGNALWIRE_SPACE")
+	_ = os.Unsetenv("SIGNALWIRE_PROJECT_ID")
+	_ = os.Unsetenv("SIGNALWIRE_API_TOKEN")
+	_ = os.Unsetenv("SIGNALWIRE_SPACE")
 
 	_, err := NewRestClient("proj-123", "", "")
 	if err == nil {

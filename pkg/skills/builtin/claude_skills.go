@@ -553,7 +553,9 @@ func (s *ClaudeSkillsSkill) substituteArguments(body, arguments string) string {
 	}
 
 	// Track whether body had a bare $ARGUMENTS (not indexed) before substitution.
-	bareRE := regexp.MustCompile(`\$ARGUMENTS(?!\[)`)
+	// Go's regexp (RE2) has no negative lookahead, so match $ARGUMENTS followed
+	// by a non-'[' character OR end-of-string — equivalent to `\$ARGUMENTS(?!\[)`.
+	bareRE := regexp.MustCompile(`\$ARGUMENTS([^[]|$)`)
 	hasBareArguments := bareRE.MatchString(body)
 
 	// Split into positional args.
@@ -570,7 +572,9 @@ func (s *ClaudeSkillsSkill) substituteArguments(body, arguments string) string {
 			return match
 		}
 		var idx int
-		fmt.Sscanf(sub[1], "%d", &idx)
+		if _, err := fmt.Sscanf(sub[1], "%d", &idx); err != nil {
+			return match
+		}
 		if idx < len(positional) {
 			return positional[idx]
 		}
@@ -585,7 +589,9 @@ func (s *ClaudeSkillsSkill) substituteArguments(body, arguments string) string {
 			return match
 		}
 		var idx int
-		fmt.Sscanf(sub[1], "%d", &idx)
+		if _, err := fmt.Sscanf(sub[1], "%d", &idx); err != nil {
+			return match
+		}
 		// Preserve trailing non-digit character.
 		suffix := ""
 		if len(match) > len(sub[1])+1 {

@@ -101,7 +101,7 @@ func TestWithConfigFile_MissingFile_NoCrash(t *testing.T) {
 		WithConfigFile("/nonexistent/path/to/file.yaml"),
 	)
 
-	w.Close()
+	_ = w.Close()
 	os.Stderr = oldStderr
 
 	buf := make([]byte, 4096)
@@ -138,7 +138,7 @@ func TestWithConfigFile_InvalidYAML_NoCrash(t *testing.T) {
 
 	s := NewService(WithBearerToken("preset-token"), WithConfigFile(cfgPath))
 
-	w.Close()
+	_ = w.Close()
 	os.Stderr = oldStderr
 
 	buf := make([]byte, 4096)

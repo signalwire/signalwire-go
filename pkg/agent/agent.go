@@ -2046,13 +2046,17 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(mcpError(nil, -32700, "Parse error"))
+		if err := json.NewEncoder(w).Encode(mcpError(nil, -32700, "Parse error")); err != nil {
+			a.Logger.Warn("failed to write MCP parse-error response: %s", err)
+		}
 		return
 	}
 
 	resp := a.handleMcpRequest(body)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		a.Logger.Warn("failed to write MCP response: %s", err)
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -2493,7 +2497,9 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 
 	// 1. Pre-answer verbs
 	for _, v := range a.preAnswerVerbs {
-		doc.AddVerb(v.Name, v.Config)
+		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+			a.Logger.Warn("failed to add pre-answer verb %q: %s", v.Name, err)
+		}
 	}
 
 	// 2. Answer verb
@@ -2504,7 +2510,9 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		for k, v := range a.answerConfig {
 			answerCfg[k] = v
 		}
-		doc.AddVerb("answer", answerCfg)
+		if err := doc.AddVerb("answer", answerCfg); err != nil {
+			a.Logger.Warn("failed to add answer verb: %s", err)
+		}
 	}
 
 	// 3. Record call if enabled
@@ -2513,12 +2521,16 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 			"format": a.recordFormat,
 			"stereo": a.recordStereo,
 		}
-		doc.AddVerb("record_call", recordCfg)
+		if err := doc.AddVerb("record_call", recordCfg); err != nil {
+			a.Logger.Warn("failed to add record_call verb: %s", err)
+		}
 	}
 
 	// 4. Post-answer verbs
 	for _, v := range a.postAnswerVerbs {
-		doc.AddVerb(v.Name, v.Config)
+		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+			a.Logger.Warn("failed to add post-answer verb %q: %s", v.Name, err)
+		}
 	}
 
 	// 5. Build AI verb config
@@ -2645,11 +2657,15 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 	if verbName == "" {
 		verbName = "ai"
 	}
-	doc.AddVerb(verbName, aiConfig)
+	if err := doc.AddVerb(verbName, aiConfig); err != nil {
+		a.Logger.Warn("failed to add AI verb %q: %s", verbName, err)
+	}
 
 	// 7. Post-AI verbs
 	for _, v := range a.postAiVerbs {
-		doc.AddVerb(v.Name, v.Config)
+		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+			a.Logger.Warn("failed to add post-AI verb %q: %s", v.Name, err)
+		}
 	}
 
 	return doc.ToMap()
@@ -2786,11 +2802,15 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 	// Health endpoints (no auth)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "healthy"}); err != nil {
+			a.Logger.Warn("failed to write health response: %s", err)
+		}
 	})
 	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ready"}); err != nil {
+			a.Logger.Warn("failed to write ready response: %s", err)
+		}
 	})
 
 	// Main SWML endpoint (with auth + signature on POST)
@@ -2884,7 +2904,11 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
 	if r.Method == http.MethodPost {
 		r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			// Best-effort parse: an undecodable body leaves body nil and
+			// downstream rendering falls back to defaults.
+			body = nil
+		}
 	}
 
 	// SIP redirect-routing dispatch. Python web_mixin._handle_request
@@ -2964,7 +2988,9 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(doc)
+	if err := json.NewEncoder(w).Encode(doc); err != nil {
+		a.Logger.Warn("failed to write SWML response: %s", err)
+	}
 }
 
 // applySwmlModifications merges on_swml_request modifications into the AI
@@ -3188,7 +3214,11 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 	if args == nil {
 		// Try parsing argument as JSON string
 		if argStr, ok := body["argument"].(string); ok && argStr != "" {
-			json.Unmarshal([]byte(argStr), &args)
+			if err := json.Unmarshal([]byte(argStr), &args); err != nil {
+				// Best-effort parse: on failure fall through to the
+				// empty-map fallback below rather than erroring out.
+				args = nil
+			}
 		}
 		if args == nil {
 			args = make(map[string]any)
@@ -3200,15 +3230,21 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 		a.Logger.Error("function call %q failed: %s", funcName, err)
 		errResult := swaig.NewFunctionResult(fmt.Sprintf("Error: %s", err))
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(errResult.ToMap())
+		if encErr := json.NewEncoder(w).Encode(errResult.ToMap()); encErr != nil {
+			a.Logger.Warn("failed to write function-error response: %s", encErr)
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if result != nil {
-		json.NewEncoder(w).Encode(result)
+		if err := json.NewEncoder(w).Encode(result); err != nil {
+			a.Logger.Warn("failed to write function result: %s", err)
+		}
 	} else {
-		json.NewEncoder(w).Encode(swaig.NewFunctionResult("ok").ToMap())
+		if err := json.NewEncoder(w).Encode(swaig.NewFunctionResult("ok").ToMap()); err != nil {
+			a.Logger.Warn("failed to write function result: %s", err)
+		}
 	}
 }
 
@@ -3235,7 +3271,9 @@ func (a *AgentBase) handlePostPrompt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		a.Logger.Warn("failed to write postprompt response: %s", err)
+	}
 }
 
 // handleCheckForInput serves the /check_for_input endpoint. Matches Python
@@ -3277,12 +3315,14 @@ func (a *AgentBase) handleCheckForInput(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"status":          "success",
 		"conversation_id": conversationID,
 		"new_input":       false,
 		"messages":        []any{},
-	})
+	}); err != nil {
+		a.Logger.Warn("failed to write check_for_input response: %s", err)
+	}
 }
 
 // isValidConversationID mirrors Python's check: <=256 chars and each char

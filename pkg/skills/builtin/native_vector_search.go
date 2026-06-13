@@ -182,7 +182,7 @@ func (s *NativeVectorSearchSkill) Setup() bool {
 		s.logger.Error("native_vector_search: failed to connect to remote search server", "error", err)
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		s.logger.Error("native_vector_search: authentication failed for remote search server")
@@ -265,7 +265,7 @@ func (s *NativeVectorSearchSkill) handleSearch(args map[string]any, _ map[string
 		s.logger.Error("native_vector_search: search request failed", "error", err)
 		return swaig.NewFunctionResult("Search service is temporarily unavailable. Please try again later.")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		s.logger.Error("native_vector_search: search server returned error", "status", resp.StatusCode)

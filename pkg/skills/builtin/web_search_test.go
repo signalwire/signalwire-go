@@ -69,13 +69,13 @@ func newWebSearchStubServer(t *testing.T, query string) *httptest.Server {
 		if strings.HasPrefix(r.URL.Path, "/customsearch/v1") {
 			// One result that points back at this same server for content.
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprintf(w, `{"items":[{"title":"Result about %[1]s","link":"%[2]s/page","snippet":"info on %[1]s"}]}`, query, "http://"+r.Host)
+			_, _ = fmt.Fprintf(w, `{"items":[{"title":"Result about %[1]s","link":"%[2]s/page","snippet":"info on %[1]s"}]}`, query, "http://"+r.Host)
 			return
 		}
 		// Content fetch — return enough relevant text to clear the quality bar.
 		w.Header().Set("Content-Type", "text/html")
 		body := strings.Repeat(fmt.Sprintf("This document discusses %s in detail. Researchers studying %s have found important insights. The topic of %s is covered comprehensively in this article. ", query, query, query), 30)
-		fmt.Fprintf(w, "<html><body><article>%s</article></body></html>", body)
+		_, _ = fmt.Fprintf(w, "<html><body><article>%s</article></body></html>", body)
 	}))
 	t.Setenv("WEB_SEARCH_BASE_URL", srv.URL)
 	return srv
@@ -229,7 +229,7 @@ func latencyStubServer(t *testing.T, query string, numItems int, contentDelay ti
 					`{"title":"Result %[1]d about %[2]s","link":"%[3]s/page%[1]d","snippet":"snippet %[1]d on %[2]s"}`,
 					i, query, "http://"+r.Host))
 			}
-			fmt.Fprintf(w, `{"items":[%s]}`, strings.Join(items, ","))
+			_, _ = fmt.Fprintf(w, `{"items":[%s]}`, strings.Join(items, ","))
 			return
 		}
 		// Content fetch — record the hit, then stall longer than the deadline.
@@ -248,7 +248,7 @@ func latencyStubServer(t *testing.T, query string, numItems int, contentDelay ti
 		}
 		w.Header().Set("Content-Type", "text/html")
 		body := strings.Repeat(fmt.Sprintf("This document discusses %s in detail. ", query), 50)
-		fmt.Fprintf(w, "<html><body><article>%s</article></body></html>", body)
+		_, _ = fmt.Fprintf(w, "<html><body><article>%s</article></body></html>", body)
 	}))
 	t.Setenv("WEB_SEARCH_BASE_URL", srv.URL)
 	return srv

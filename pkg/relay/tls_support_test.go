@@ -123,7 +123,7 @@ func (m *tlsMockRelay) sawRecvMethod(t *testing.T, method string) bool {
 	if err != nil {
 		t.Fatalf("tls mock_relay journal GET: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	var entries []struct {
 		Direction string `json:"direction"`

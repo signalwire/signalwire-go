@@ -4,13 +4,20 @@
 // Uses familiar LiveKit API symbols — just change your import path.
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/livewire"
+import (
+	"log"
+
+	"github.com/signalwire/signalwire-go/pkg/livewire"
+)
 
 func main() {
 	server := livewire.NewAgentServer()
 
 	server.RTCSession(func(ctx *livewire.JobContext) {
-		ctx.Connect()
+		if err := ctx.Connect(); err != nil {
+			log.Printf("connect failed: %v", err)
+			return
+		}
 
 		session := livewire.NewAgentSession(
 			livewire.WithSTT("deepgram"),
@@ -23,7 +30,10 @@ func main() {
 			return "The weather in " + location + " is sunny, 72°F"
 		}, livewire.WithDescription("Get weather for a location"))
 
-		session.Start(ctx, agent)
+		if err := session.Start(ctx, agent); err != nil {
+			log.Printf("session start failed: %v", err)
+			return
+		}
 		session.GenerateReply(livewire.WithReplyInstructions("Greet the user and ask how you can help."))
 	})
 

@@ -181,7 +181,7 @@ func (s *WebSearchSkill) searchGoogle(query string, numResults int) ([]searchRes
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("search API returned %d", resp.StatusCode)
@@ -264,7 +264,7 @@ func (s *WebSearchSkill) extractRedditContent(ctx context.Context, rawURL string
 	if err != nil {
 		return s.extractHTMLContent(ctx, rawURL, timeout)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return s.extractHTMLContent(ctx, rawURL, timeout)
@@ -420,7 +420,7 @@ func (s *WebSearchSkill) extractHTMLContent(ctx context.Context, rawURL string, 
 	if err != nil {
 		return "", map[string]any{"error": err.Error(), "quality_score": 0}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", map[string]any{"error": fmt.Sprintf("HTTP %d", resp.StatusCode), "quality_score": 0}
@@ -627,12 +627,14 @@ func calculateContentQuality(text, rawURL, query string) map[string]any {
 // bound (and the overall_deadline carried by ctx). Returns nil when the page is
 // empty or below the quality threshold. Mirrors Python's _scrape_one closure.
 func (s *WebSearchSkill) scrapeOne(ctx context.Context, query string, r searchResult) *processedResult {
-	text, metrics := s.extractTextFromURL(ctx, r.link, s.pageTimeout(10*time.Second))
+	text, _ := s.extractTextFromURL(ctx, r.link, s.pageTimeout(10*time.Second))
 	if text == "" {
 		return nil
 	}
-	// Recalculate with query for relevance scoring.
-	metrics = calculateContentQuality(text, r.link, query)
+	// Recalculate with query for relevance scoring. The metrics returned by the
+	// extract call above are intentionally discarded — they're recomputed here
+	// with the query for relevance, so that first value was never read (SA4006).
+	metrics := calculateContentQuality(text, r.link, query)
 	qs, _ := metrics["quality_score"].(float64)
 	if qs < s.minQualityScore {
 		return nil

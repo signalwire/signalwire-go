@@ -199,7 +199,7 @@ func executeDataMap(tool skills.ToolRegistration, args map[string]any) {
 	if err != nil {
 		die(fmt.Sprintf("HTTP %s %s: %v", method, urlStr, err))
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -307,7 +307,7 @@ func emitWebSearchRawBody(args map[string]any) {
 		fmt.Fprintf(os.Stderr, "emitWebSearchRawBody: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	fmt.Println(string(body))
 }

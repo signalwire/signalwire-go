@@ -447,12 +447,16 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 	// ---------------------------------------------------------------
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "healthy"}); err != nil {
+			s.logger.Warn("failed to write health response: %s", err)
+		}
 	})
 
 	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ready"}); err != nil {
+			s.logger.Warn("failed to write ready response: %s", err)
+		}
 	})
 
 	// ---------------------------------------------------------------
@@ -521,10 +525,12 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
+			if err := json.NewEncoder(w).Encode(map[string]string{
 				"action": "redirect",
 				"route":  agentRoute,
-			})
+			}); err != nil {
+				s.logger.Warn("failed to write SIP redirect response: %s", err)
+			}
 		})
 	}
 
@@ -567,9 +573,11 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"agents": entries,
-		})
+		}); err != nil {
+			s.logger.Warn("failed to write agents response: %s", err)
+		}
 	})
 
 	return mux

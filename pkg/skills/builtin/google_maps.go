@@ -138,7 +138,7 @@ func (s *GoogleMapsSkill) handleLookupAddress(args map[string]any, _ map[string]
 	if err != nil {
 		return swaig.NewFunctionResult("Error connecting to Google Maps.")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var data map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -175,7 +175,7 @@ func (s *GoogleMapsSkill) handleLookupAddress(args map[string]any, _ map[string]
 	if err != nil {
 		return swaig.NewFunctionResult("Address: " + description)
 	}
-	defer detResp.Body.Close()
+	defer func() { _ = detResp.Body.Close() }()
 
 	var detData map[string]any
 	if err := json.NewDecoder(detResp.Body).Decode(&detData); err != nil {
@@ -260,7 +260,7 @@ func (s *GoogleMapsSkill) handleComputeRoute(args map[string]any, _ map[string]a
 	if err != nil {
 		return swaig.NewFunctionResult("Error connecting to Google Maps Routes API.")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var data map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -278,7 +278,10 @@ func (s *GoogleMapsSkill) handleComputeRoute(args map[string]any, _ map[string]a
 	durationStr = strings.TrimSuffix(durationStr, "s")
 
 	var durationSeconds float64
-	fmt.Sscanf(durationStr, "%f", &durationSeconds)
+	if _, err := fmt.Sscanf(durationStr, "%f", &durationSeconds); err != nil {
+		// Unparseable duration: fall back to 0 (reported as 0 minutes).
+		durationSeconds = 0
+	}
 
 	distanceMiles := distanceMeters / 1609.344
 	durationMin := durationSeconds / 60.0

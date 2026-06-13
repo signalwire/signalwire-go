@@ -135,9 +135,9 @@ func snapshotEnv(keys []string) envSnapshot {
 func (s envSnapshot) restore() {
 	for k, v := range s.values {
 		if v == nil {
-			os.Unsetenv(k)
+			_ = os.Unsetenv(k)
 		} else {
-			os.Setenv(k, *v)
+			_ = os.Setenv(k, *v)
 		}
 	}
 }
@@ -230,7 +230,7 @@ func activateLambdaEnv(opts SimulateLambdaOptions) envSnapshot {
 	// simulation (or the outer shell, for SWML_PROXY_URL_BASE) can't
 	// leak into the new simulation.
 	for _, k := range keys {
-		os.Unsetenv(k)
+		_ = os.Unsetenv(k)
 	}
 
 	// Apply presets.
@@ -245,7 +245,7 @@ func activateLambdaEnv(opts SimulateLambdaOptions) envSnapshot {
 		preset["AWS_LAMBDA_FUNCTION_URL"] = opts.FunctionURLOverride
 	}
 	for k, v := range preset {
-		os.Setenv(k, v)
+		_ = os.Setenv(k, v)
 	}
 
 	// Belt-and-suspenders: if the outer environment or a cooperating

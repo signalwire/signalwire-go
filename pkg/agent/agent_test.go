@@ -1174,7 +1174,9 @@ func TestHTTP_HealthEndpoint(t *testing.T) {
 		t.Errorf("expected 200, got %d", rr.Code)
 	}
 	var body map[string]string
-	json.NewDecoder(rr.Body).Decode(&body)
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("decode health response: %v", err)
+	}
 	if body["status"] != "healthy" {
 		t.Errorf("unexpected health status: %v", body)
 	}
@@ -1259,7 +1261,9 @@ func TestHTTP_SwaigEndpoint(t *testing.T) {
 	}
 
 	var result map[string]any
-	json.NewDecoder(rr.Body).Decode(&result)
+	if err := json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
 	if result["response"] != "Hi, World" {
 		t.Errorf("unexpected response: %v", result)
 	}
@@ -1281,7 +1285,9 @@ func TestHTTP_SwaigEndpoint_UnknownFunction(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
 	var result map[string]any
-	json.NewDecoder(rr.Body).Decode(&result)
+	if err := json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
 	resp, _ := result["response"].(string)
 	if !strings.Contains(resp, "Error") {
 		t.Errorf("expected error in response, got %q", resp)

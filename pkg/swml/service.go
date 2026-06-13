@@ -1221,11 +1221,15 @@ func (s *Service) buildMux() *http.ServeMux {
 	// Health endpoints (no auth)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "healthy"}); err != nil {
+			s.Logger.Warn("failed to write health response: %s", err)
+		}
 	})
 	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ready"}); err != nil {
+			s.Logger.Warn("failed to write ready response: %s", err)
+		}
 	})
 
 	route := s.Route
@@ -1357,7 +1361,9 @@ func contains(haystack []string, needle string) bool {
 func (s *Service) handleSWAIG(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(s.RenderMainSwml(r))
+		if err := json.NewEncoder(w).Encode(s.RenderMainSwml(r)); err != nil {
+			s.Logger.Warn("failed to write SWML response: %s", err)
+		}
 		return
 	}
 
@@ -1367,20 +1373,26 @@ func (s *Service) handleSWAIG(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]any{"error": "Invalid JSON"})
+		if err := json.NewEncoder(w).Encode(map[string]any{"error": "Invalid JSON"}); err != nil {
+			s.Logger.Warn("failed to write SWAIG error response: %s", err)
+		}
 		return
 	}
 	funcName, _ := payload["function"].(string)
 	if funcName == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]any{"error": "Missing function name"})
+		if err := json.NewEncoder(w).Encode(map[string]any{"error": "Missing function name"}); err != nil {
+			s.Logger.Warn("failed to write SWAIG error response: %s", err)
+		}
 		return
 	}
 	if !swaigFnNameRe.MatchString(funcName) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]any{"error": fmt.Sprintf("Invalid function name format: %q", funcName)})
+		if err := json.NewEncoder(w).Encode(map[string]any{"error": fmt.Sprintf("Invalid function name format: %q", funcName)}); err != nil {
+			s.Logger.Warn("failed to write SWAIG error response: %s", err)
+		}
 		return
 	}
 
@@ -1399,7 +1411,9 @@ func (s *Service) handleSWAIG(w http.ResponseWriter, r *http.Request) {
 	target, shortCircuit := s.SwaigPreDispatch(payload, funcName)
 	if shortCircuit != nil {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(shortCircuit)
+		if err := json.NewEncoder(w).Encode(shortCircuit); err != nil {
+			s.Logger.Warn("failed to write SWAIG short-circuit response: %s", err)
+		}
 		return
 	}
 	if target == nil {
@@ -1408,7 +1422,9 @@ func (s *Service) handleSWAIG(w http.ResponseWriter, r *http.Request) {
 
 	result := target.OnFunctionCall(funcName, args, payload)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		s.Logger.Warn("failed to write SWAIG result response: %s", err)
+	}
 }
 
 // maxRequestBody is the maximum allowed request body size (1MB).
@@ -1419,7 +1435,11 @@ func (s *Service) handleSWML(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
 	if r.Method == http.MethodPost {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			// Best-effort parse: an undecodable body leaves body nil and
+			// falls through to the default-document path below.
+			body = nil
+		}
 	}
 
 	// Skip if this is actually a /swaig request — the swaig handler will
@@ -1441,7 +1461,9 @@ func (s *Service) handleSWML(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(doc)
+	if err := json.NewEncoder(w).Encode(doc); err != nil {
+		s.Logger.Warn("failed to write SWML response: %s", err)
+	}
 }
 
 // withSecurity wraps a handler with auth and security headers.

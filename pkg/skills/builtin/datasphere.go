@@ -183,7 +183,7 @@ func (s *DataSphereSkill) handleSearch(args map[string]any, _ map[string]any) *s
 	if err != nil {
 		return swaig.NewFunctionResult("Sorry, the knowledge search timed out. Please try again.")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return swaig.NewFunctionResult("Sorry, there was an error accessing the knowledge base.")

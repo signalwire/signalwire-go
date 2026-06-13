@@ -31,7 +31,7 @@ func freePort(t *testing.T) int {
 	if err != nil {
 		t.Fatalf("freePort: %v", err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 	return ln.Addr().(*net.TCPAddr).Port
 }
 
@@ -43,7 +43,7 @@ func waitHealthy(t *testing.T, base string) {
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(base + "/health")
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				return
 			}
@@ -80,7 +80,7 @@ func TestServer_RunContextCancelStops(t *testing.T) {
 
 	// After shutdown, new requests must fail (server stopped listening).
 	if resp, err := http.Get(base + "/health"); err == nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		t.Fatal("server still serving after ctx-cancel shutdown")
 	}
 }
@@ -111,7 +111,7 @@ func TestServer_ShutdownStopsRunningServer(t *testing.T) {
 	}
 
 	if resp, err := http.Get(base + "/health"); err == nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		t.Fatal("server still serving after Shutdown")
 	}
 }
@@ -168,8 +168,8 @@ func TestServer_ShutdownDrainsInFlight(t *testing.T) {
 			reqResult <- -1
 			return
 		}
-		defer resp.Body.Close()
-		io.Copy(io.Discard, resp.Body)
+		defer func() { _ = resp.Body.Close() }()
+		_, _ = io.Copy(io.Discard, resp.Body)
 		reqResult <- resp.StatusCode
 	}()
 
@@ -237,7 +237,7 @@ func TestServer_RunContextPreCancelled(t *testing.T) {
 	}
 	// The port must still be free — nothing was bound.
 	if resp, err := http.Get("http://127.0.0.1:" + itoa(port) + "/health"); err == nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		t.Fatal("RunContext bound the listener despite pre-cancelled ctx")
 	}
 }

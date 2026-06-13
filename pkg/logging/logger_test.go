@@ -176,7 +176,7 @@ func TestLoggerMethods_SuppressedSilencesAllLevels(t *testing.T) {
 	l.Warn("warn message %s", "w")
 	l.Error("error message %s", "e")
 
-	w.Close()
+	_ = w.Close()
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer

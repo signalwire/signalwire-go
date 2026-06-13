@@ -186,7 +186,7 @@ func TestAgentSigning_ExplicitOverridesEnv(t *testing.T) {
 
 func TestAgentSigning_DisabledWarningLogged(t *testing.T) {
 	// Make sure neither explicit nor env key is present.
-	os.Unsetenv("SIGNALWIRE_SIGNING_KEY")
+	_ = os.Unsetenv("SIGNALWIRE_SIGNING_KEY")
 
 	captured := captureStderr(t, func() {
 		a := NewAgentBase()
@@ -201,7 +201,7 @@ func TestAgentSigning_DisabledWarningLogged(t *testing.T) {
 }
 
 func TestAgentSigning_NoWarningWhenKeyPresent(t *testing.T) {
-	os.Unsetenv("SIGNALWIRE_SIGNING_KEY")
+	_ = os.Unsetenv("SIGNALWIRE_SIGNING_KEY")
 
 	captured := captureStderr(t, func() {
 		_ = NewAgentBase(WithSigningKey("present"))
@@ -217,7 +217,7 @@ func TestAgentSigning_NoWarningWhenKeyPresent(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAgentSigning_DisabledAllowsUnsigned(t *testing.T) {
-	os.Unsetenv("SIGNALWIRE_SIGNING_KEY")
+	_ = os.Unsetenv("SIGNALWIRE_SIGNING_KEY")
 
 	a := NewAgentBase(WithBasicAuth("u", "p"))
 	if a.signingKey != "" {
@@ -262,8 +262,8 @@ func captureStderr(t *testing.T, fn func()) string {
 	}()
 
 	fn()
-	w.Close()
+	_ = w.Close()
 	captured := <-done
-	r.Close()
+	_ = r.Close()
 	return captured
 }

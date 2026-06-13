@@ -201,7 +201,7 @@ func (s *APINinjasTriviaSkill) handleGetTrivia(args map[string]any, _ map[string
 	if err != nil {
 		return swaig.NewFunctionResult("Sorry, I cannot get trivia questions right now.")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return swaig.NewFunctionResult("Sorry, I cannot get trivia questions right now. Please try again later.")

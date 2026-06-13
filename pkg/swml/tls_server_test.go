@@ -106,7 +106,7 @@ func TestTLS_Server_HTTPS(t *testing.T) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("https /health status = %d, want 200", resp.StatusCode)
@@ -147,7 +147,7 @@ func freeTCPPort(t *testing.T) int {
 	if err != nil {
 		t.Fatalf("freeTCPPort: %v", err)
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 	return l.Addr().(*net.TCPAddr).Port
 }
 

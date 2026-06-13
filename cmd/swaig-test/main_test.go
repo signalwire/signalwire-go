@@ -474,7 +474,7 @@ func TestDoDumpSWML(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(swmlDoc)
+		_ = json.NewEncoder(w).Encode(swmlDoc)
 	}))
 	defer srv.Close()
 
@@ -512,7 +512,7 @@ func TestDoListTools(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(swmlDoc)
+		_ = json.NewEncoder(w).Encode(swmlDoc)
 	}))
 	defer srv.Close()
 
@@ -566,7 +566,7 @@ func TestDoExec(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"response": "Weather in London: Sunny, 20C",
 		})
 	}))
@@ -594,7 +594,7 @@ func TestDoExecWithAuth(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}))
 	defer srv.Close()
 

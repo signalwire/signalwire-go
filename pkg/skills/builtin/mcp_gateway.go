@@ -81,7 +81,7 @@ func (s *MCPGatewaySkill) Setup() bool {
 	if err != nil {
 		return false
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
 }
 
@@ -152,7 +152,7 @@ func (s *MCPGatewaySkill) discoverServices() []map[string]any {
 	if err != nil {
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var data map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -178,7 +178,7 @@ func (s *MCPGatewaySkill) getServiceTools(serviceName string) []map[string]any {
 	if err != nil {
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var data map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -246,7 +246,7 @@ func (s *MCPGatewaySkill) hangupHandler(args map[string]any, rawData map[string]
 		s.applyAuth(req)
 		resp, err := client.Do(req)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 	}
 
@@ -312,10 +312,10 @@ func (s *MCPGatewaySkill) callMCPTool(serviceName, toolName string, args map[str
 		if resp.StatusCode == http.StatusOK {
 			var data map[string]any
 			if decErr := json.NewDecoder(resp.Body).Decode(&data); decErr != nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				return swaig.NewFunctionResult("Error processing MCP response.")
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			resultText, _ := data["result"].(string)
 			if resultText == "" {
 				resultText = "No response from MCP tool."
@@ -335,7 +335,7 @@ func (s *MCPGatewaySkill) callMCPTool(serviceName, toolName string, args map[str
 		} else {
 			lastError = fmt.Sprintf("HTTP %d", statusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		if statusCode >= 500 {
 			// Server error — retry

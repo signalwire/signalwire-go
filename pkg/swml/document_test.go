@@ -17,7 +17,9 @@ func TestNewDocument(t *testing.T) {
 
 func TestDocumentReset(t *testing.T) {
 	doc := NewDocument()
-	doc.AddVerb("play", map[string]any{"url": "test"})
+	if err := doc.AddVerb("play", map[string]any{"url": "test"}); err != nil {
+		t.Fatalf("AddVerb: %v", err)
+	}
 	doc.AddSection("extra")
 
 	doc.Reset()
@@ -93,8 +95,12 @@ func TestGetVerbsNonExistent(t *testing.T) {
 
 func TestToMap(t *testing.T) {
 	doc := NewDocument()
-	doc.AddVerb("answer", map[string]any{"max_duration": 300})
-	doc.AddVerb("play", map[string]any{"url": "https://example.com/audio.mp3"})
+	if err := doc.AddVerb("answer", map[string]any{"max_duration": 300}); err != nil {
+		t.Fatalf("AddVerb answer: %v", err)
+	}
+	if err := doc.AddVerb("play", map[string]any{"url": "https://example.com/audio.mp3"}); err != nil {
+		t.Fatalf("AddVerb play: %v", err)
+	}
 
 	m := doc.ToMap()
 	if m["version"] != "1.0.0" {
@@ -115,8 +121,12 @@ func TestToMap(t *testing.T) {
 
 func TestRender(t *testing.T) {
 	doc := NewDocument()
-	doc.AddVerb("answer", map[string]any{})
-	doc.AddVerb("hangup", map[string]any{})
+	if err := doc.AddVerb("answer", map[string]any{}); err != nil {
+		t.Fatalf("AddVerb answer: %v", err)
+	}
+	if err := doc.AddVerb("hangup", map[string]any{}); err != nil {
+		t.Fatalf("AddVerb hangup: %v", err)
+	}
 
 	rendered, err := doc.Render()
 	if err != nil {
@@ -135,7 +145,9 @@ func TestRender(t *testing.T) {
 
 func TestMarshalJSON(t *testing.T) {
 	doc := NewDocument()
-	doc.AddVerb("play", map[string]any{"url": "test"})
+	if err := doc.AddVerb("play", map[string]any{"url": "test"}); err != nil {
+		t.Fatalf("AddVerb: %v", err)
+	}
 
 	data, err := json.Marshal(doc)
 	if err != nil {
@@ -143,7 +155,9 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	var parsed map[string]any
-	json.Unmarshal(data, &parsed)
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
 	if parsed["version"] != "1.0.0" {
 		t.Error("MarshalJSON should produce valid SWML")
 	}

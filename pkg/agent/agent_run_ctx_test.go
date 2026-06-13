@@ -24,7 +24,7 @@ func agentFreePort(t *testing.T) int {
 	if err != nil {
 		t.Fatalf("agentFreePort: %v", err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 	return ln.Addr().(*net.TCPAddr).Port
 }
 
@@ -48,7 +48,7 @@ func agentWaitHealthy(t *testing.T, base string) {
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(base + "/health")
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				return
 			}
@@ -89,7 +89,7 @@ func TestAgent_RunContextCancelStops(t *testing.T) {
 
 	// The server must have stopped listening.
 	if resp, err := http.Get(base + "/health"); err == nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		t.Fatal("agent server still serving after ctx-cancel shutdown")
 	}
 }
@@ -141,7 +141,7 @@ func TestAgent_RunContextPreCancelled(t *testing.T) {
 		t.Fatalf("expected context.Canceled, got %T: %v", err, err)
 	}
 	if resp, err := http.Get("http://127.0.0.1:" + portToStr(port) + "/health"); err == nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		t.Fatal("RunContext bound the listener despite pre-cancelled ctx")
 	}
 }
