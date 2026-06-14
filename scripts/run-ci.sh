@@ -12,7 +12,7 @@
 #   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 #   6. emission gate                      — porting-sdk diff_port_emission.py
 #   7. fmt gate                           — gofmt (local: auto-fix; CI: -l check)
-#   8. lint gate                          — go vet ./...
+#   8. lint gate                          — go vet + golangci-lint (.golangci.yml)
 #   9. doc-audit gate                     — porting-sdk audit_docs.py
 #  10. surface-diff gate                  — porting-sdk diff_port_surface.py
 #
@@ -173,16 +173,33 @@ fmt_gate() {
 }
 run_gate "FMT" "gofmt (local: auto-fix; CI: -l check)" fmt_gate
 
-# Gate 8: LINT — the language lint gate (go: go vet). `go vet ./...` is the
-# builtin static-analysis floor and exits 0 on this codebase today, so it gates
-# blocking from day one with zero backlog. The TEST gate's `go test ./...` only
-# vets test-bearing packages, so vet is NOT already guaranteed — making it
-# explicit is a free, high-signal gate. (golangci-lint, which bundles
-# staticcheck/errcheck/unused, is the deferred advisory tier: it needs a
-# .golangci.yml excluding examples/ and will surface a backlog — burn down
-# advisory, then promote, exactly as Rust did with clippy.)
-run_gate "LINT" "go vet ./... (lint gate)" \
-    go vet ./...
+# Gate 8: LINT — the language lint gate (go). Two layers:
+#   1. `go vet ./...` — the builtin static-analysis floor (always available).
+#   2. golangci-lint — the deep linter set governed by .golangci.yml (errcheck,
+#      staticcheck, forcetypeassert, errchkjson, … — burned to zero, see the
+#      config header). Mirrors how Rust promoted clippy to a blocking gate after
+#      its burn-down.
+#
+# golangci-lint is installed by the CI workflow via the official
+# golangci/golangci-lint-action (cached, pinned — see .github/workflows/test.yml)
+# rather than curl|sh'd here, so the script never executes a remote installer.
+# In CI ($CI set) golangci MUST be present and the gate is BLOCKING. Locally, if
+# a developer hasn't installed it, the gate warns and runs go-vet-only instead of
+# failing — `go install` it (or `brew install golangci-lint`) to get the full
+# check locally. Pinned version lives in the workflow; keep them in lockstep.
+lint_gate() {
+    go vet ./... || return 1
+    if command -v golangci-lint >/dev/null 2>&1; then
+        golangci-lint run --config "$PORT_ROOT/.golangci.yml" \
+            --max-same-issues 0 --max-issues-per-linter 0 ./... || return 1
+    elif [ -n "${CI:-}" ]; then
+        echo "golangci-lint not found in CI — the workflow must install it (golangci-lint-action)"
+        return 1
+    else
+        echo "    (golangci-lint not installed — running go vet only; install it for the full lint gate)"
+    fi
+}
+run_gate "LINT" "go vet + golangci-lint (lint gate)" lint_gate
 
 # Gate 9: DOC-AUDIT — every method/class referenced in docs/ + examples/ fenced
 # code blocks must resolve to a real symbol in the port surface (catches

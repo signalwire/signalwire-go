@@ -32,6 +32,8 @@ linters:
     - prealloc         # slice preallocation (perf) — applied
     - unconvert        # redundant type conversions — removed
     - errname          # sentinel errors named errXxx — renamed
+    - errorlint        # err != sentinel fails on wrapped errors — switched to errors.Is
+    - predeclared      # param shadowing a predeclared builtin (max) — renamed
     - gocritic         # mixed; assignOp/ifElseChain/unlambda fixed, 3 appendAssign //nolint'd as intentional
     # Zero-hit guards (clean today; the bug class CAN occur here, so they protect
     # against regressions — adopted on value, not on hit-count):
@@ -41,6 +43,7 @@ linters:
     - bidichk          # dangerous bidi unicode (trojan-source)
     - reassign         # reassigning stdlib/pkg-level vars
     - recvcheck        # mixed value/pointer receivers on one type
+    - wastedassign     # assignments whose value is never read (clean today)
   # DELIBERATELY NOT ADOPTED (measured + sampled — they fire on idiomatic Go in
   # this codebase, 0 real issues; adopting would mean //nolint on correct code):
   #   nilerr        — flags the filepath.Walk continue-on-error idiom + graceful
@@ -53,6 +56,15 @@ linters:
   #                   helper has one caller; not a real defect.
   #   bodyclose     — all sites are expect-failure TLS tests (untrusted.Get that
   #                   must error) where there is no response body to close.
+  #   goprintffuncname — would rename logger.Debug/Info/Warn/Error to *f; those
+  #                   are public API named to mirror Python's logger.debug/info,
+  #                   so renaming both breaks the API and diverges from parity.
+  #   usetesting    — os.Setenv -> t.Setenv in tests; the existing manual
+  #                   save/restore is already correct, and t.Setenv("",..) sets
+  #                   empty (not unset), changing LookupEnv semantics — net style,
+  #                   not a bug. Revisit if we standardize test env handling.
+  #   dupword       — single hit is a legitimate rendered-markdown test fixture
+  #                   ("## Top\n\nTop body"), a false positive on correct data.
   settings:
     staticcheck:
       checks:

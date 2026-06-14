@@ -26,6 +26,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -63,7 +64,7 @@ func TestTLS_Server_HTTPS(t *testing.T) {
 		_ = svc.Stop()
 		select {
 		case err := <-serveErr:
-			if err != nil && err != http.ErrServerClosed {
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				t.Logf("Serve returned: %v", err)
 			}
 		case <-time.After(3 * time.Second):

@@ -2,6 +2,7 @@ name: Test
 
 # Runs the full per-port CI gate set via scripts/run-ci.sh:
 #   TEST → SIGNATURES → DRIFT → SURFACE-FRESH → NO-CHEAT → EMISSION
+#   → FMT → LINT (go vet + golangci-lint) → DOC-AUDIT → SURFACE-DIFF
 # Mirrors `bash scripts/run-ci.sh` exactly so there's no drift between local
 # and CI behavior. Previously this workflow ran only `go vet` + `go test`,
 # which left the EMISSION and NO-CHEAT gates unenforced on every Go PR — a
@@ -51,6 +52,18 @@ jobs:
           cache: true
           cache-dependency-path: signalwire-go/go.sum
 
+      # Install golangci-lint (install-only) so run-ci.sh's LINT gate
+      # (go vet + golangci-lint) finds it on PATH. The official action handles
+      # caching + pinning; the version here MUST stay in lockstep with the note
+      # in scripts/run-ci.sh. We do NOT lint via the action — run-ci.sh is the
+      # single canonical entry point and invokes golangci with the repo's
+      # .golangci.yml itself.
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          install-only: true
+
       - name: Set up Python (porting-sdk audit scripts + mock servers)
         uses: actions/setup-python@v6
         with:
@@ -71,7 +84,7 @@ jobs:
             pip install ./signalwire-python
           fi
 
-      - name: Run CI gate script (TEST → SIGNATURES → DRIFT → SURFACE-FRESH → NO-CHEAT → EMISSION)
+      - name: "Run CI gate script (10 gates: TEST, SIGNATURES, DRIFT, SURFACE-FRESH, NO-CHEAT, EMISSION, FMT, LINT, DOC-AUDIT, SURFACE-DIFF)"
         working-directory: signalwire-go
         env:
           PORTING_SDK: ${{ github.workspace }}/porting-sdk
