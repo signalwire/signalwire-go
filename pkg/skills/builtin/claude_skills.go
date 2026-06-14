@@ -476,17 +476,18 @@ func (s *ClaudeSkillsSkill) applyInvocationControl(parsed *skillEntry) {
 		return
 	}
 
-	if parsed.disableModelInvocation {
+	switch {
+	case parsed.disableModelInvocation:
 		// disable-model-invocation: true → no tool, no prompt.
 		parsed.skipTool = true
 		parsed.skipPrompt = true
 		slog.Debug("claude_skills: skill has disable-model-invocation=true — skipping tool and prompt", "name", parsed.name)
-	} else if !parsed.userInvocable {
+	case !parsed.userInvocable:
 		// user-invocable: false → no tool, yes prompt (knowledge-only).
 		parsed.skipTool = true
 		parsed.skipPrompt = false
 		slog.Debug("claude_skills: skill has user-invocable=false — skipping tool, keeping prompt", "name", parsed.name)
-	} else {
+	default:
 		parsed.skipTool = false
 		parsed.skipPrompt = false
 	}

@@ -148,7 +148,11 @@ func freeTCPPort(t *testing.T) int {
 		t.Fatalf("freeTCPPort: %v", err)
 	}
 	defer func() { _ = l.Close() }()
-	return l.Addr().(*net.TCPAddr).Port
+	addr, ok := l.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatalf("expected *net.TCPAddr, got %T", l.Addr())
+	}
+	return addr.Port
 }
 
 // ---------------------------------------------------------------------------

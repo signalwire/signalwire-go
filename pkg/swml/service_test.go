@@ -162,8 +162,14 @@ func TestServiceRender(t *testing.T) {
 		t.Fatalf("invalid JSON: %v", err)
 	}
 
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections, ok := doc["sections"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", doc["sections"])
+	}
+	main, ok := sections["main"].([]any)
+	if !ok {
+		t.Fatalf("expected []any, got %T", sections["main"])
+	}
 	if len(main) != 3 {
 		t.Errorf("expected 3 verbs, got %d", len(main))
 	}

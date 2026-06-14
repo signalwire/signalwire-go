@@ -82,12 +82,13 @@ func NewConciergeAgent(opts ConciergeOptions) *ConciergeAgent {
 		"Provide exceptional service by helping users with information, recommendations, and booking assistance.",
 		nil,
 	)
-	instructions := []string{
+	instructions := make([]string, 0, 4+len(opts.SpecialInstructions))
+	instructions = append(instructions,
 		"Be warm and welcoming but professional at all times.",
 		"Provide accurate information about amenities, services, and operating hours.",
 		"Offer to help with reservations and bookings when appropriate.",
 		"Answer questions concisely with specific, relevant details.",
-	}
+	)
 	instructions = append(instructions, opts.SpecialInstructions...)
 	base.PromptAddSection("Instructions", "", instructions)
 
@@ -158,7 +159,8 @@ func NewConciergeAgent(opts ConciergeOptions) *ConciergeAgent {
 	})
 
 	// ---- Hints ----
-	hints := []string{opts.VenueName}
+	hints := make([]string, 0, 1+len(opts.Services)+len(opts.Amenities))
+	hints = append(hints, opts.VenueName)
 	hints = append(hints, opts.Services...)
 	for k := range opts.Amenities {
 		hints = append(hints, k)
@@ -195,7 +197,8 @@ func (ca *ConciergeAgent) registerTools() {
 			},
 		},
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			service := strings.ToLower(strings.TrimSpace(args["service"].(string)))
+			serviceRaw, _ := args["service"].(string)
+			service := strings.ToLower(strings.TrimSpace(serviceRaw))
 			date, _ := args["date"].(string)
 			time, _ := args["time"].(string)
 
@@ -232,7 +235,8 @@ func (ca *ConciergeAgent) registerTools() {
 			},
 		},
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			dest := strings.ToLower(strings.TrimSpace(args["location"].(string)))
+			destRaw, _ := args["location"].(string)
+			dest := strings.ToLower(strings.TrimSpace(destRaw))
 
 			if amenity, ok := ca.amenities[dest]; ok && amenity.Location != "" {
 				return swaig.NewFunctionResult(

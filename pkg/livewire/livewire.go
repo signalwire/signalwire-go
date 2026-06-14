@@ -616,7 +616,11 @@ func (s *AgentSession) Start(ctx *JobContext, ag *Agent, opts ...StartOption) er
 
 	// Register session-level tools first, then agent tools.
 	// Mirrors Python _build_sw_agent(): all_tools = list(self._tools) + list(agent._tools) (line 591).
-	allTools := append(s.sessionTools, ag.tools...)
+	// Build a fresh slice (Python's concat makes a new list) rather than append
+	// onto s.sessionTools, whose backing array must not be aliased/mutated.
+	allTools := make([]toolDef, 0, len(s.sessionTools)+len(ag.tools))
+	allTools = append(allTools, s.sessionTools...)
+	allTools = append(allTools, ag.tools...)
 	for _, td := range allTools {
 		def := agent.ToolDefinition{
 			Name:        td.name,

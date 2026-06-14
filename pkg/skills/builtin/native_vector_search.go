@@ -248,7 +248,11 @@ func (s *NativeVectorSearchSkill) handleSearch(args map[string]any, _ map[string
 		"tags":                 s.tags,
 	}
 
-	bodyBytes, _ := json.Marshal(searchReq)
+	bodyBytes, err := json.Marshal(searchReq)
+	if err != nil {
+		s.logger.Error("native_vector_search: failed to marshal search request", "error", err)
+		return swaig.NewFunctionResult("Search service is temporarily unavailable. Please try again later.")
+	}
 	client := &http.Client{Timeout: 30 * time.Second}
 	req, err := http.NewRequest("POST", s.remoteBaseURL+"/search", strings.NewReader(string(bodyBytes)))
 	if err != nil {

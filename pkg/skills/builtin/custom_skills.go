@@ -58,7 +58,7 @@ func (s *CustomSkillsSkill) Setup() bool {
 }
 
 func (s *CustomSkillsSkill) RegisterTools() []skills.ToolRegistration {
-	var registrations []skills.ToolRegistration
+	registrations := make([]skills.ToolRegistration, 0, len(s.tools))
 
 	for _, toolDef := range s.tools {
 		name, _ := toolDef["name"].(string)

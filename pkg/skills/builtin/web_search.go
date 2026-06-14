@@ -591,7 +591,7 @@ func calculateContentQuality(text, rawURL, query string) map[string]any {
 				}
 			}
 			exactBonus := 0.0
-			for i := 0; i < len(queryWords)-1; i++ {
+			for i := range len(queryWords) - 1 {
 				phrase := queryWords[i] + " " + queryWords[i+1]
 				if strings.Contains(lowerContent, phrase) {
 					exactBonus += 0.2

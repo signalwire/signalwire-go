@@ -443,7 +443,9 @@ func writeJSONSection(buf *bytes.Buffer, s *Section, indent int) error {
 			}
 			buf.Write(b)
 		case "bullets":
-			writeJSONStringList(buf, s.Bullets, indent+1)
+			if err := writeJSONStringList(buf, s.Bullets, indent+1); err != nil {
+				return err
+			}
 		case "subsections":
 			buf.WriteString("[\n")
 			for j, sub := range s.Subsections {
@@ -472,12 +474,15 @@ func writeJSONSection(buf *bytes.Buffer, s *Section, indent int) error {
 	return nil
 }
 
-func writeJSONStringList(buf *bytes.Buffer, items []string, indent int) {
+func writeJSONStringList(buf *bytes.Buffer, items []string, indent int) error {
 	pad := strings.Repeat("  ", indent)
 	pad2 := strings.Repeat("  ", indent+1)
 	buf.WriteString("[\n")
 	for i, it := range items {
-		b, _ := json.Marshal(it)
+		b, err := json.Marshal(it)
+		if err != nil {
+			return err
+		}
 		buf.WriteString(pad2)
 		buf.Write(b)
 		if i < len(items)-1 {
@@ -487,6 +492,7 @@ func writeJSONStringList(buf *bytes.Buffer, items []string, indent int) {
 		}
 	}
 	buf.WriteString(pad + "]")
+	return nil
 }
 
 // ToYAML serializes the POM to a YAML string in the same shape as
@@ -775,7 +781,7 @@ func (p *PromptObjectModel) RenderMarkdown() string {
 			break
 		}
 	}
-	var md []string
+	md := make([]string, 0, len(p.Sections))
 	counter := 0
 	for _, s := range p.Sections {
 		var sectionNumber []int
@@ -795,7 +801,7 @@ func (p *PromptObjectModel) RenderMarkdown() string {
 //
 // Python equivalent: PromptObjectModel.render_xml
 func (p *PromptObjectModel) RenderXML() string {
-	var xml []string
+	xml := make([]string, 0, 2+len(p.Sections)+1)
 	xml = append(xml, `<?xml version="1.0" encoding="UTF-8"?>`)
 	xml = append(xml, "<prompt>")
 	anyNumbered := false

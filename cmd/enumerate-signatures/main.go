@@ -266,7 +266,7 @@ func funcTypeString(t *ast.FuncType) string {
 			if len(f.Names) > 0 {
 				n = len(f.Names)
 			}
-			for i := 0; i < n; i++ {
+			for range n {
 				args = append(args, ts)
 			}
 		}
@@ -279,7 +279,7 @@ func funcTypeString(t *ast.FuncType) string {
 			if len(f.Names) > 0 {
 				n = len(f.Names)
 			}
-			for i := 0; i < n; i++ {
+			for range n {
 				results = append(results, ts)
 			}
 		}
@@ -498,7 +498,7 @@ func translateFunc(t string, aliases map[string]string, ctx string) (string, *tr
 	// Find matching closing paren for args
 	depth := 1
 	var argEnd int
-	for i := 0; i < len(rest); i++ {
+	for i := range len(rest) {
 		switch rest[i] {
 		case '(':
 			depth++

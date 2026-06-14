@@ -156,9 +156,18 @@ func TestParametersWithEnum(t *testing.T) {
 
 	result := dm.ToSwaigFunction()
 
-	argument := result["parameters"].(map[string]any)
-	properties := argument["properties"].(map[string]any)
-	modeProp := properties["mode"].(map[string]any)
+	argument, ok := result["parameters"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", result["parameters"])
+	}
+	properties, ok := argument["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", argument["properties"])
+	}
+	modeProp, ok := properties["mode"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", properties["mode"])
+	}
 
 	enumVal, ok := modeProp["enum"].([]string)
 	if !ok {
@@ -181,9 +190,18 @@ func TestParametersNoEnum(t *testing.T) {
 
 	result := dm.ToSwaigFunction()
 
-	argument := result["parameters"].(map[string]any)
-	properties := argument["properties"].(map[string]any)
-	queryProp := properties["query"].(map[string]any)
+	argument, ok := result["parameters"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", result["parameters"])
+	}
+	properties, ok := argument["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", argument["properties"])
+	}
+	queryProp, ok := properties["query"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", properties["query"])
+	}
 
 	if _, exists := queryProp["enum"]; exists {
 		t.Error("expected no enum key when enum is nil")
@@ -210,8 +228,8 @@ func TestWebhookConfiguration(t *testing.T) {
 		Output(swaig.NewFunctionResult("Done: ${response.status}"))
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 
 	if len(webhooks) != 1 {
 		t.Fatalf("expected 1 webhook, got %d", len(webhooks))
@@ -226,7 +244,7 @@ func TestWebhookConfiguration(t *testing.T) {
 		t.Errorf("unexpected url: %v", wh["url"])
 	}
 
-	headers := wh["headers"].(map[string]string)
+	headers := as[map[string]string](t, wh["headers"])
 	if headers["Authorization"] != "Bearer tok" {
 		t.Errorf("unexpected Authorization header: %v", headers["Authorization"])
 	}
@@ -238,12 +256,12 @@ func TestWebhookConfiguration(t *testing.T) {
 		t.Errorf("expected input_args_as_params true, got %v", wh["input_args_as_params"])
 	}
 
-	requireArgs := wh["require_args"].([]string)
+	requireArgs := as[[]string](t, wh["require_args"])
 	if len(requireArgs) != 2 {
 		t.Errorf("expected 2 require_args, got %d", len(requireArgs))
 	}
 
-	body := wh["body"].(map[string]any)
+	body := as[map[string]any](t, wh["body"])
 	if body["id"] != "${args.id}" {
 		t.Errorf("unexpected body id: %v", body["id"])
 	}
@@ -259,27 +277,27 @@ func TestOutputAndFallbackOutput(t *testing.T) {
 		FallbackOutput(swaig.NewFunctionResult("All APIs failed"))
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
 
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 	if len(webhooks) != 2 {
 		t.Fatalf("expected 2 webhooks, got %d", len(webhooks))
 	}
 
 	// Check first webhook output
-	output1 := webhooks[0]["output"].(map[string]any)
+	output1 := as[map[string]any](t, webhooks[0]["output"])
 	if output1["response"] != "Primary: ${response.data}" {
 		t.Errorf("unexpected first webhook output: %v", output1["response"])
 	}
 
 	// Check second webhook output
-	output2 := webhooks[1]["output"].(map[string]any)
+	output2 := as[map[string]any](t, webhooks[1]["output"])
 	if output2["response"] != "Fallback: ${response.data}" {
 		t.Errorf("unexpected second webhook output: %v", output2["response"])
 	}
 
 	// Check fallback output at data_map level
-	fallback := dataMap["output"].(map[string]any)
+	fallback := as[map[string]any](t, dataMap["output"])
 	if fallback["response"] != "All APIs failed" {
 		t.Errorf("unexpected fallback output: %v", fallback["response"])
 	}
@@ -299,7 +317,7 @@ func TestExpressions(t *testing.T) {
 		)
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
 
 	expressions, ok := dataMap["expressions"].([]map[string]any)
 	if !ok {
@@ -317,7 +335,7 @@ func TestExpressions(t *testing.T) {
 	if expr1["pattern"] != "start.*" {
 		t.Errorf("unexpected expression pattern: %v", expr1["pattern"])
 	}
-	output1 := expr1["output"].(map[string]any)
+	output1 := as[map[string]any](t, expr1["output"])
 	if output1["response"] != "Starting..." {
 		t.Errorf("unexpected expression output: %v", output1["response"])
 	}
@@ -330,7 +348,7 @@ func TestExpressions(t *testing.T) {
 	if _, exists := expr2["nomatch-output"]; !exists {
 		t.Error("expected nomatch-output for second expression")
 	}
-	nomatch := expr2["nomatch-output"].(map[string]any)
+	nomatch := as[map[string]any](t, expr2["nomatch-output"])
 	if nomatch["response"] != "Unknown stop command" {
 		t.Errorf("unexpected nomatch output: %v", nomatch["response"])
 	}
@@ -365,8 +383,8 @@ func TestCreateSimpleApiTool(t *testing.T) {
 		t.Errorf("expected default description, got %v", result["description"])
 	}
 
-	dataMap := result["data_map"].(map[string]any)
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 	if len(webhooks) != 1 {
 		t.Fatalf("expected 1 webhook, got %d", len(webhooks))
 	}
@@ -377,19 +395,19 @@ func TestCreateSimpleApiTool(t *testing.T) {
 	}
 
 	// Check error keys are on the webhook
-	errorKeys := wh["error_keys"].([]string)
+	errorKeys := as[[]string](t, wh["error_keys"])
 	if len(errorKeys) != 2 {
 		t.Errorf("expected 2 error keys, got %d", len(errorKeys))
 	}
 
 	// Check output
-	output := wh["output"].(map[string]any)
+	output := as[map[string]any](t, wh["output"])
 	if output["response"] != "${response.name}: $${response.price}" {
 		t.Errorf("unexpected output response: %v", output["response"])
 	}
 
 	// Check headers
-	headers := wh["headers"].(map[string]string)
+	headers := as[map[string]string](t, wh["headers"])
 	if headers["X-Api-Key"] != "key123" {
 		t.Errorf("unexpected header: %v", headers["X-Api-Key"])
 	}
@@ -414,15 +432,15 @@ func TestCreateSimpleApiToolWithBody(t *testing.T) {
 	)
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 	wh := webhooks[0]
 
 	if wh["method"] != "POST" {
 		t.Errorf("expected POST, got %v", wh["method"])
 	}
 
-	body := wh["body"].(map[string]any)
+	body := as[map[string]any](t, wh["body"])
 	if body["q"] != "${args.query}" {
 		t.Errorf("unexpected body q: %v", body["q"])
 	}
@@ -455,8 +473,8 @@ func TestCreateExpressionTool(t *testing.T) {
 		t.Errorf("expected function %q, got %v", "playback_control", result["function"])
 	}
 
-	dataMap := result["data_map"].(map[string]any)
-	expressions := dataMap["expressions"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	expressions := as[[]map[string]any](t, dataMap["expressions"])
 	if len(expressions) != 1 {
 		t.Fatalf("expected 1 expression, got %d", len(expressions))
 	}
@@ -487,8 +505,8 @@ func TestWebhookExpressions(t *testing.T) {
 		Output(swaig.NewFunctionResult("Status: ${response.status}"))
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 
 	wh := webhooks[0]
 	whExprs, ok := wh["expressions"].([]map[string]any)
@@ -507,7 +525,7 @@ func TestGlobalErrorKeys(t *testing.T) {
 		GlobalErrorKeys([]string{"error", "err_msg"})
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
 
 	errorKeys, ok := dataMap["error_keys"].([]string)
 	if !ok {
@@ -536,8 +554,8 @@ func TestForeachConfig(t *testing.T) {
 		Output(swaig.NewFunctionResult("Results:\n${formatted}"))
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 
 	wh := webhooks[0]
 	foreach, ok := wh["foreach"].(map[string]any)
@@ -562,8 +580,8 @@ func TestParamsOnWebhook(t *testing.T) {
 		Output(swaig.NewFunctionResult("Found: ${response.result}"))
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 
 	wh := webhooks[0]
 	params, ok := wh["params"].(map[string]any)
@@ -583,13 +601,13 @@ func TestEmptyDataMap(t *testing.T) {
 		t.Errorf("expected function %q, got %v", "empty_tool", result["function"])
 	}
 
-	dataMap := result["data_map"].(map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
 	if len(dataMap) != 0 {
 		t.Errorf("expected empty data_map, got %d entries", len(dataMap))
 	}
 
-	argument := result["parameters"].(map[string]any)
-	properties := argument["properties"].(map[string]any)
+	argument := as[map[string]any](t, result["parameters"])
+	properties := as[map[string]any](t, argument["properties"])
 	if len(properties) != 0 {
 		t.Errorf("expected empty properties, got %d entries", len(properties))
 	}
@@ -601,8 +619,8 @@ func TestMethodUppercased(t *testing.T) {
 		Output(swaig.NewFunctionResult("ok"))
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 
 	if webhooks[0]["method"] != "POST" {
 		t.Errorf("expected method to be uppercased to POST, got %v", webhooks[0]["method"])
@@ -620,25 +638,25 @@ func TestMultipleWebhooksPreserveSeparateConfig(t *testing.T) {
 		Output(swaig.NewFunctionResult("Secondary result"))
 
 	result := dm.ToSwaigFunction()
-	dataMap := result["data_map"].(map[string]any)
-	webhooks := dataMap["webhooks"].([]map[string]any)
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
 
 	if len(webhooks) != 2 {
 		t.Fatalf("expected 2 webhooks, got %d", len(webhooks))
 	}
 
 	// First webhook should have its own body and error keys
-	body1 := webhooks[0]["body"].(map[string]any)
+	body1 := as[map[string]any](t, webhooks[0]["body"])
 	if body1["source"] != "primary" {
 		t.Errorf("expected first webhook body source %q, got %v", "primary", body1["source"])
 	}
-	ek1 := webhooks[0]["error_keys"].([]string)
+	ek1 := as[[]string](t, webhooks[0]["error_keys"])
 	if len(ek1) != 1 || ek1[0] != "err" {
 		t.Errorf("expected first webhook error_keys [err], got %v", ek1)
 	}
 
 	// Second webhook should have its own body, no error keys
-	body2 := webhooks[1]["body"].(map[string]any)
+	body2 := as[map[string]any](t, webhooks[1]["body"])
 	if body2["source"] != "secondary" {
 		t.Errorf("expected second webhook body source %q, got %v", "secondary", body2["source"])
 	}

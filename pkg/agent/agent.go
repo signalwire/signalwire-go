@@ -1165,7 +1165,8 @@ func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, fu
 
 	// Voice formatting: prefer explicit engine/model params; then try to parse
 	// "engine.voice:model" combined format; otherwise use voice string as-is.
-	if engine != "" || model != "" {
+	switch {
+	case engine != "" || model != "":
 		lang["voice"] = voice
 		if engine != "" {
 			lang["engine"] = engine
@@ -1173,7 +1174,7 @@ func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, fu
 		if model != "" {
 			lang["model"] = model
 		}
-	} else if strings.Contains(voice, ".") && strings.Contains(voice, ":") {
+	case strings.Contains(voice, ".") && strings.Contains(voice, ":"):
 		// Parse "engine.voice:model" combined format
 		parts := strings.SplitN(voice, ":", 2)
 		if len(parts) == 2 {
@@ -1189,17 +1190,18 @@ func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, fu
 		} else {
 			lang["voice"] = voice
 		}
-	} else {
+	default:
 		lang["voice"] = voice
 	}
 
 	// Fillers
-	if len(speechFillers) > 0 && len(functionFillers) > 0 {
+	switch {
+	case len(speechFillers) > 0 && len(functionFillers) > 0:
 		lang["speech_fillers"] = speechFillers
 		lang["function_fillers"] = functionFillers
-	} else if len(speechFillers) > 0 {
+	case len(speechFillers) > 0:
 		lang["fillers"] = speechFillers
-	} else if len(functionFillers) > 0 {
+	case len(functionFillers) > 0:
 		lang["fillers"] = functionFillers
 	}
 
@@ -2972,14 +2974,15 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	modifications := a.OnSwmlRequest(body, callbackPath, r)
 
 	var doc map[string]any
-	if callbackPath != "" {
+	switch {
+	case callbackPath != "":
 		// The swml service's OnRequest dispatches to the registered callback
 		// and returns the callback's result; if the callback returns nil,
 		// OnRequest falls back to the default rendered document.
 		doc = a.Service.OnRequest(body, callbackPath)
-	} else if hasDynamic {
+	case hasDynamic:
 		doc = a.handleDynamicConfig(body, r)
-	} else {
+	default:
 		doc = a.RenderSWML(body, r)
 	}
 
@@ -3381,7 +3384,7 @@ func (a *AgentBase) withSignedPost(next http.HandlerFunc) http.HandlerFunc {
 		TrustProxy:   a.signingKeyTrustProxy,
 		ProxyURLBase: a.proxyURLBase,
 	})
-	wrapped := mw(http.HandlerFunc(next))
+	wrapped := mw(next)
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			next(w, r)

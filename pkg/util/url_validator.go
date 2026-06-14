@@ -49,9 +49,7 @@ var blockedNetworks = func() []*net.IPNet {
 var urlValidatorLogger = logging.New("signalwire.url_validator")
 
 // resolveHost is overridable so tests can inject a fake DNS resolver.
-var resolveHost = func(hostname string) ([]net.IP, error) {
-	return net.LookupIP(hostname)
-}
+var resolveHost = net.LookupIP
 
 // ValidateURL reports whether the supplied URL is safe to fetch.
 //

@@ -516,7 +516,7 @@ func TestNoopTracker_OnlyLogsOnce(t *testing.T) {
 	tracker := newNoopTracker(logging.New("test"))
 
 	// Call once multiple times with same key
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		tracker.once("feature", "some message")
 	}
 
@@ -538,7 +538,7 @@ func TestNoopTracker_ConcurrentSafety(t *testing.T) {
 	tracker := newNoopTracker(logging.New("test"))
 
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()

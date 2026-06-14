@@ -25,7 +25,11 @@ func agentFreePort(t *testing.T) int {
 		t.Fatalf("agentFreePort: %v", err)
 	}
 	defer func() { _ = ln.Close() }()
-	return ln.Addr().(*net.TCPAddr).Port
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatalf("expected *net.TCPAddr, got %T", ln.Addr())
+	}
+	return addr.Port
 }
 
 func portToStr(n int) string {

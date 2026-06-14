@@ -168,7 +168,10 @@ func (s *DataSphereSkill) handleSearch(args map[string]any, _ map[string]any) *s
 		payload["max_synonyms"] = s.maxSynonyms
 	}
 
-	bodyBytes, _ := json.Marshal(payload)
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return swaig.NewFunctionResult("Error creating search request.")
+	}
 
 	req, err := http.NewRequest("POST", s.apiURL, strings.NewReader(string(bodyBytes)))
 	if err != nil {

@@ -559,7 +559,11 @@ func TestRelay_DialRecordsCallStateProgressionOnWinner(t *testing.T) {
 	for _, e := range stateEvents {
 		inner, _ := e.EventParams()
 		if inner["call_id"] == "WIN-PROG" {
-			winnerStates = append(winnerStates, inner["call_state"].(string))
+			cs, ok := inner["call_state"].(string)
+			if !ok {
+				t.Fatalf("expected string call_state, got %T", inner["call_state"])
+			}
+			winnerStates = append(winnerStates, cs)
 		}
 	}
 	for _, s := range []string{"created", "ringing", "answered"} {

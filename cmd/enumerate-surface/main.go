@@ -526,7 +526,10 @@ func stripGen(b []byte) string {
 		return string(b)
 	}
 	delete(m, "generated_from")
-	out, _ := json.MarshalIndent(m, "", "  ")
+	out, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return string(b)
+	}
 	return string(out)
 }
 

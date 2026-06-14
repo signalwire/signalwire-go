@@ -87,7 +87,8 @@ func (s *SWMLTransferSkill) RegisterTools() []skills.ToolRegistration {
 			"enum":        enumVals,
 		},
 	}
-	requiredParams := []string{s.paramName}
+	requiredParams := make([]string, 0, 1+len(s.requiredFields))
+	requiredParams = append(requiredParams, s.paramName)
 
 	for fieldName, fieldDesc := range s.requiredFields {
 		properties[fieldName] = map[string]any{
@@ -266,13 +267,12 @@ func (s *SWMLTransferSkill) GetPromptSections() []map[string]any {
 		transferBullets = append(transferBullets, fmt.Sprintf(`"%s" - transfers to %s`, cleaned, destination))
 	}
 
-	sections := []map[string]any{
-		{
-			"title":   "Transferring",
-			"body":    fmt.Sprintf("You can transfer calls using the %s function with the following destinations:", s.toolName),
-			"bullets": transferBullets,
-		},
-	}
+	sections := make([]map[string]any, 0, 2)
+	sections = append(sections, map[string]any{
+		"title":   "Transferring",
+		"body":    fmt.Sprintf("You can transfer calls using the %s function with the following destinations:", s.toolName),
+		"bullets": transferBullets,
+	})
 
 	// Section 2: "Transfer Instructions"
 	instructionBullets := []string{

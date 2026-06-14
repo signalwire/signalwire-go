@@ -546,7 +546,7 @@ func (c *Client) connect() error {
 	if host == "" {
 		host = c.space
 		if !strings.Contains(host, ".") {
-			host = host + ".signalwire.com"
+			host += ".signalwire.com"
 		}
 	}
 	scheme := os.Getenv("SIGNALWIRE_RELAY_SCHEME")
@@ -780,7 +780,10 @@ func (c *Client) readLoop() {
 			c.mu.RUnlock()
 			if ok {
 				if msg.Error != nil {
-					errJSON, _ := json.Marshal(msg.Error)
+					errJSON, err := json.Marshal(msg.Error)
+					if err != nil {
+						c.logger.Printf("relay error marshal error: %v", err)
+					}
 					ch <- errJSON
 				} else {
 					ch <- msg.Result

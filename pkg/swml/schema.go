@@ -35,15 +35,15 @@ type Schema struct {
 var (
 	globalSchema     *Schema
 	globalSchemaOnce sync.Once
-	globalSchemaErr  error
+	errGlobalSchema  error
 )
 
 // GetSchema returns the global singleton Schema loaded from the embedded schema.json.
 func GetSchema() (*Schema, error) {
 	globalSchemaOnce.Do(func() {
-		globalSchema, globalSchemaErr = loadEmbeddedSchema()
+		globalSchema, errGlobalSchema = loadEmbeddedSchema()
 	})
-	return globalSchema, globalSchemaErr
+	return globalSchema, errGlobalSchema
 }
 
 func loadEmbeddedSchema() (*Schema, error) {

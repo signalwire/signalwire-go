@@ -405,7 +405,10 @@ func TestHTTP_RootIndex_ListsAgents(t *testing.T) {
 		t.Fatalf("expected 2 agents, got %d", len(agentsRaw))
 	}
 
-	first := agentsRaw[0].(map[string]any)
+	first, ok := agentsRaw[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", agentsRaw[0])
+	}
 	if first["route"] != "/bot1" {
 		t.Errorf("expected first agent route=/bot1, got %v", first["route"])
 	}
@@ -431,7 +434,10 @@ func TestHTTP_RootIndex_Empty(t *testing.T) {
 		t.Fatalf("decode response: %v", err)
 	}
 
-	agentsRaw := body["agents"].([]any)
+	agentsRaw, ok := body["agents"].([]any)
+	if !ok {
+		t.Fatalf("expected []any, got %T", body["agents"])
+	}
 	if len(agentsRaw) != 0 {
 		t.Errorf("expected 0 agents, got %d", len(agentsRaw))
 	}

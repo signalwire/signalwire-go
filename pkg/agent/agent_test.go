@@ -184,7 +184,10 @@ func TestPromptAddSection_WithBullets(t *testing.T) {
 	a := NewAgentBase()
 	a.PromptAddSection("Rules", "", []string{"Be polite", "Be concise"})
 
-	sections := a.GetPrompt().([]map[string]any)
+	sections, ok := a.GetPrompt().([]map[string]any)
+	if !ok {
+		t.Fatalf("expected []map[string]any, got %T", a.GetPrompt())
+	}
 	bullets, ok := sections[0]["bullets"].([]string)
 	if !ok {
 		t.Fatal("expected bullets as []string")
@@ -210,8 +213,14 @@ func TestPromptAddToSection(t *testing.T) {
 	a.PromptAddSection("Info", "Line 1", nil)
 	a.PromptAddToSection("Info", "Line 2")
 
-	sections := a.GetPrompt().([]map[string]any)
-	body := sections[0]["body"].(string)
+	sections, ok := a.GetPrompt().([]map[string]any)
+	if !ok {
+		t.Fatalf("expected []map[string]any, got %T", a.GetPrompt())
+	}
+	body, ok := sections[0]["body"].(string)
+	if !ok {
+		t.Fatalf("expected string body, got %T", sections[0]["body"])
+	}
 	if body != "Line 1\nLine 2" {
 		t.Errorf("expected appended body, got %q", body)
 	}
@@ -222,7 +231,10 @@ func TestPromptAddSubsection(t *testing.T) {
 	a.PromptAddSection("Parent", "parent body", nil)
 	a.PromptAddSubsection("Parent", "Child", "child body", nil)
 
-	sections := a.GetPrompt().([]map[string]any)
+	sections, ok := a.GetPrompt().([]map[string]any)
+	if !ok {
+		t.Fatalf("expected []map[string]any, got %T", a.GetPrompt())
+	}
 	subs, ok := sections[0]["subsections"].([]map[string]any)
 	if !ok || len(subs) != 1 {
 		t.Fatal("expected 1 subsection")
@@ -243,7 +255,10 @@ func TestSetPromptPom(t *testing.T) {
 	if !a.usePom {
 		t.Error("expected usePom=true after SetPromptPom")
 	}
-	sections := a.GetPrompt().([]map[string]any)
+	sections, ok := a.GetPrompt().([]map[string]any)
+	if !ok {
+		t.Fatalf("expected []map[string]any, got %T", a.GetPrompt())
+	}
 	if len(sections) != 1 || sections[0]["title"] != "Section1" {
 		t.Error("unexpected POM content")
 	}
@@ -667,7 +682,10 @@ func TestRenderSWML_BasicStructure(t *testing.T) {
 		}
 		if _, hasAI := vm["ai"]; hasAI {
 			foundAI = true
-			aiConfig := vm["ai"].(map[string]any)
+			aiConfig, ok := vm["ai"].(map[string]any)
+			if !ok {
+				t.Fatalf("expected map[string]any, got %T", vm["ai"])
+			}
 
 			// Check prompt
 			promptCfg, ok := aiConfig["prompt"].(map[string]any)
@@ -690,11 +708,11 @@ func TestRenderSWML_WithPOM(t *testing.T) {
 	a.PromptAddSection("Rules", "", []string{"Be polite"})
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			promptCfg, ok := aiCfg["prompt"].(map[string]any)
 			if !ok {
@@ -718,11 +736,11 @@ func TestRenderSWML_AutoAnswerFalse(t *testing.T) {
 	a.SetPromptText("Hello")
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if _, hasAnswer := vm["answer"]; hasAnswer {
 			t.Error("answer verb should not be present when autoAnswer=false")
 		}
@@ -744,11 +762,11 @@ func TestRenderSWML_WithTools(t *testing.T) {
 	})
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			swaigCfg, ok := aiCfg["SWAIG"].(map[string]any)
 			if !ok {
@@ -793,11 +811,11 @@ func TestRenderSWML_WithParams(t *testing.T) {
 		SetGlobalData(map[string]any{"company": "SW"})
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			// Check params
 			params, ok := aiCfg["params"].(map[string]any)
@@ -836,12 +854,12 @@ func TestRenderSWML_WithRecordCall(t *testing.T) {
 	a.SetPromptText("Bot")
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	foundRecord := false
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if _, has := vm["record_call"]; has {
 			foundRecord = true
 		}
@@ -859,17 +877,17 @@ func TestRenderSWML_PreAndPostVerbs(t *testing.T) {
 	a.AddPostAiVerb("hangup", map[string]any{})
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	// First verb should be play (pre-answer)
-	first := main[0].(map[string]any)
+	first := as[map[string]any](t, main[0])
 	if _, hasPlay := first["play"]; !hasPlay {
 		t.Error("expected first verb to be play (pre-answer)")
 	}
 
 	// Last verb should be hangup (post-ai)
-	last := main[len(main)-1].(map[string]any)
+	last := as[map[string]any](t, main[len(main)-1])
 	if _, hasHangup := last["hangup"]; !hasHangup {
 		t.Error("expected last verb to be hangup (post-ai)")
 	}
@@ -881,11 +899,11 @@ func TestRenderSWML_WithPostPrompt(t *testing.T) {
 		SetPostPrompt("Summarize the call.")
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			ppCfg, ok := aiCfg["post_prompt"].(map[string]any)
 			if !ok {
@@ -910,11 +928,11 @@ func TestRenderSWML_WithNativeFunctions(t *testing.T) {
 		SetNativeFunctions([]string{"transfer", "hangup"})
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			nf, ok := aiCfg["native_functions"].([]string)
 			if !ok {
@@ -936,11 +954,11 @@ func TestRenderSWML_WithContexts(t *testing.T) {
 	ctx.AddStep("greeting").SetText("Hello!")
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			ctxs, ok := aiCfg["contexts"].(map[string]any)
 			if !ok {
@@ -960,11 +978,11 @@ func TestRenderSWML_WithDebugEvents(t *testing.T) {
 	a.SetPromptText("Bot").EnableDebugEvents(2)
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			if aiCfg["debug_events"] != 2 {
 				t.Errorf("expected debug_events=2, got %v", aiCfg["debug_events"])
@@ -995,13 +1013,13 @@ func TestDynamicConfigCallback(t *testing.T) {
 	body := map[string]any{}
 	doc := a.handleDynamicConfig(body, req)
 
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			promptCfg := aiCfg["prompt"].(map[string]any)
+			promptCfg := as[map[string]any](t, aiCfg["prompt"])
 			if promptCfg["text"] != "Hello, Alice!" {
 				t.Errorf("expected dynamic prompt, got %v", promptCfg["text"])
 			}
@@ -1023,7 +1041,7 @@ func TestDynamicConfig_DoesNotMutateOriginal(t *testing.T) {
 	a.handleDynamicConfig(nil, req)
 
 	// Original agent should be unchanged
-	prompt := a.GetPrompt().(string)
+	prompt := as[string](t, a.GetPrompt())
 	if prompt != "Original" {
 		t.Errorf("original agent was mutated: %q", prompt)
 	}
@@ -1352,11 +1370,11 @@ func TestRenderSWML_WithFunctionIncludes(t *testing.T) {
 	a.AddFunctionInclude("https://remote.com/swaig", []string{"tool_a"}, nil)
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			swaigCfg, ok := aiCfg["SWAIG"].(map[string]any)
 			if !ok {
@@ -1384,11 +1402,11 @@ func TestRenderSWML_WithPronunciations(t *testing.T) {
 	a.AddPronunciation("SWML", "swimmel")
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			pronounce, ok := aiCfg["pronounce"].([]map[string]any)
 			if !ok {
@@ -1417,14 +1435,14 @@ func TestRenderSWML_DataMapTool(t *testing.T) {
 	})
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			swaigCfg := aiCfg["SWAIG"].(map[string]any)
-			functions := swaigCfg["functions"].([]map[string]any)
+			swaigCfg := as[map[string]any](t, aiCfg["SWAIG"])
+			functions := as[[]map[string]any](t, swaigCfg["functions"])
 			if len(functions) != 1 {
 				t.Fatalf("expected 1 function, got %d", len(functions))
 			}
@@ -1457,15 +1475,15 @@ func TestRenderSWML_WithRoute(t *testing.T) {
 	})
 
 	doc := a.RenderSWML(nil, nil)
-	sections := doc["sections"].(map[string]any)
-	main := sections["main"].([]any)
+	sections := as[map[string]any](t, doc["sections"])
+	main := as[[]any](t, sections["main"])
 
 	for _, v := range main {
-		vm := v.(map[string]any)
+		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			swaigCfg := aiCfg["SWAIG"].(map[string]any)
-			functions := swaigCfg["functions"].([]map[string]any)
-			webhookURL := functions[0]["web_hook_url"].(string)
+			swaigCfg := as[map[string]any](t, aiCfg["SWAIG"])
+			functions := as[[]map[string]any](t, swaigCfg["functions"])
+			webhookURL := as[string](t, functions[0]["web_hook_url"])
 			if !strings.Contains(webhookURL, "/myagent/swaig") {
 				t.Errorf("expected webhook URL to contain route /myagent/swaig, got %q", webhookURL)
 			}
