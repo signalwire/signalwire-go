@@ -16,7 +16,7 @@ import (
 )
 
 // Tests covering AgentBase.GetFullURL forwarding and
-// AgentBase.RegisterSipRoutingCallback (Python web_mixin
+// AgentBase.RegisterSIPRoutingCallback (Python web_mixin
 // register_routing_callback semantics: string return → HTTP 307 redirect).
 
 func TestGetFullURLForwardsToSwmlService(t *testing.T) {
@@ -39,7 +39,7 @@ func TestSipRoutingCallbackEmitsRedirectOnString(t *testing.T) {
 	a := NewAgentBase(WithName("t"), WithRoute("/svc"), WithBasicAuth("u", "p"))
 
 	const target = "https://elsewhere.example/handoff"
-	a.RegisterSipRoutingCallback(func(r *http.Request, body map[string]any) string {
+	a.RegisterSIPRoutingCallback(func(r *http.Request, body map[string]any) string {
 		return target
 	}, "/sip")
 
@@ -62,7 +62,7 @@ func TestSipRoutingCallbackFallsThroughOnEmptyString(t *testing.T) {
 	a := NewAgentBase(WithName("t"), WithRoute("/svc"), WithBasicAuth("u", "p"))
 
 	called := false
-	a.RegisterSipRoutingCallback(func(r *http.Request, body map[string]any) string {
+	a.RegisterSIPRoutingCallback(func(r *http.Request, body map[string]any) string {
 		called = true
 		return "" // fall through to normal SWML pipeline
 	}, "/sip")
@@ -108,7 +108,7 @@ func TestSipRoutingCallbackPathNormalization(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := NewAgentBase(WithName("t"), WithRoute("/svc"))
-			a.RegisterSipRoutingCallback(func(r *http.Request, body map[string]any) string {
+			a.RegisterSIPRoutingCallback(func(r *http.Request, body map[string]any) string {
 				return ""
 			}, tc.registered)
 
@@ -124,7 +124,7 @@ func TestSipRoutingCallbackIgnoresGetRequests(t *testing.T) {
 	a := NewAgentBase(WithName("t"), WithRoute("/svc"), WithBasicAuth("u", "p"))
 
 	called := false
-	a.RegisterSipRoutingCallback(func(r *http.Request, body map[string]any) string {
+	a.RegisterSIPRoutingCallback(func(r *http.Request, body map[string]any) string {
 		called = true
 		return "https://elsewhere.example/handoff"
 	}, "/sip")

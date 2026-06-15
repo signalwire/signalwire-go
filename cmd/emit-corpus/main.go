@@ -145,7 +145,7 @@ var corpus = []entry{
 
 	// ---- join_room / sip_refer ---------------------------------------------
 	{"join_room", func() *swaig.FunctionResult { return fr("").JoinRoom("team-standup") }},
-	{"sip_refer", func() *swaig.FunctionResult { return fr("").SipRefer("sip:agent@example.com") }},
+	{"sip_refer", func() *swaig.FunctionResult { return fr("").SIPRefer("sip:agent@example.com") }},
 
 	// ---- send_sms -----------------------------------------------------------
 	{"send_sms.body", func() *swaig.FunctionResult {
@@ -261,18 +261,18 @@ var corpus = []entry{
 	}},
 
 	// ---- execute_rpc + the three rpc helpers -------------------------------
-	{"execute_rpc.minimal", func() *swaig.FunctionResult { return fr("").ExecuteRpc("ai_unhold", nil, "", "") }},
+	{"execute_rpc.minimal", func() *swaig.FunctionResult { return fr("").ExecuteRPC("ai_unhold", nil, "", "") }},
 	{"execute_rpc.full", func() *swaig.FunctionResult {
-		return fr("").ExecuteRpc("ai_message",
+		return fr("").ExecuteRPC("ai_message",
 			map[string]any{"role": "system", "message_text": "Hello"}, "call-abc", "node-1")
 	}},
 	{"rpc_dial", func() *swaig.FunctionResult {
-		return fr("").RpcDial("+15551234567", "+15559876543", "https://ex.com/call-agent", "phone")
+		return fr("").RPCDial("+15551234567", "+15559876543", "https://ex.com/call-agent", "phone")
 	}},
 	{"rpc_ai_message", func() *swaig.FunctionResult {
-		return fr("").RpcAiMessage("call-abc", "Please take a message.", "system")
+		return fr("").RPCAiMessage("call-abc", "Please take a message.", "system")
 	}},
-	{"rpc_ai_unhold", func() *swaig.FunctionResult { return fr("").RpcAiUnhold("call-abc") }},
+	{"rpc_ai_unhold", func() *swaig.FunctionResult { return fr("").RPCAiUnhold("call-abc") }},
 
 	// ---- simulate_user_input -----------------------------------------------
 	{"simulate_user_input", func() *swaig.FunctionResult {

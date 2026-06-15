@@ -44,7 +44,7 @@ func TestMiddleware_AcceptsValidSignature(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	mw := WebhookMiddleware(signingKey, nil)

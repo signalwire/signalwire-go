@@ -103,7 +103,10 @@ func parseFlags(args []string) config {
 		fs.PrintDefaults()
 	}
 
-	fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		os.Exit(1)
+	}
 	return cfg
 }
 
@@ -142,7 +145,7 @@ func run(cfg config) error {
 					"running the agent URL with the platform env vars applied. "+
 					"For true in-process adapter dispatch, use "+
 					"SimulateDumpSWMLViaLambda / SimulateExecToolViaLambda "+
-					"from package main directly (see cmd/swaig-test/simulate.go).",
+					"from package main directly (see cmd/swaig-test/simulate.go)",
 				cfg.simulateServerless,
 			)
 		}
@@ -296,7 +299,7 @@ func doRequest(method, reqURL, user, pass string, body io.Reader, cfg config) ([
 	if err != nil {
 		return nil, 0, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

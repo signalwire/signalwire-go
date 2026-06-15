@@ -523,10 +523,10 @@ func TestSkillManagerLoadWithEnvVarRequirement(t *testing.T) {
 	// weather_api without API key env var should fail.
 	// If the env var is currently set, temporarily unset it.
 	origKey := os.Getenv("WEATHER_API_KEY")
-	os.Unsetenv("WEATHER_API_KEY")
+	_ = os.Unsetenv("WEATHER_API_KEY")
 	defer func() {
 		if origKey != "" {
-			os.Setenv("WEATHER_API_KEY", origKey)
+			_ = os.Setenv("WEATHER_API_KEY", origKey)
 		}
 	}()
 

@@ -3,7 +3,7 @@
 // Example: room_and_sip
 //
 // Room and SIP configuration. Demonstrates JoinRoom, JoinConference,
-// and SipRefer helpers on SwaigFunctionResult for multi-party
+// and SIPRefer helpers on SwaigFunctionResult for multi-party
 // communication and SIP call transfers.
 package main
 
@@ -45,7 +45,7 @@ func main() {
 	fmt.Println("=== Basic SIP REFER ===")
 	sipRefer := swaig.NewFunctionResult("Transferring your call to support").
 		Say("Please hold while I transfer you to our support specialist").
-		SipRefer("sip:support@company.com")
+		SIPRefer("sip:support@company.com")
 	printResult(sipRefer)
 
 	// ---- Advanced SIP REFER with metadata ----
@@ -57,7 +57,7 @@ func main() {
 			"original_caller": "+15551234567",
 		}).
 		Say("Connecting you to our senior technical specialist").
-		SipRefer("sip:tech-specialist@pbx.company.com:5060").
+		SIPRefer("sip:tech-specialist@pbx.company.com:5060").
 		UpdateGlobalData(map[string]any{
 			"transfer_completed":   true,
 			"transfer_destination": "tech-specialist@pbx.company.com",

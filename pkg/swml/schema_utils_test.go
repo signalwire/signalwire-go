@@ -212,7 +212,7 @@ func TestSchemaUtils_LoadSchemaFromExplicitPath(t *testing.T) {
 	if _, err := tmp.Write(data); err != nil {
 		t.Fatal(err)
 	}
-	tmp.Close()
+	_ = tmp.Close()
 	su := NewSchemaUtils(tmp.Name(), true)
 	if len(su.GetAllVerbNames()) == 0 {
 		t.Error("expected verbs from file-loaded schema")

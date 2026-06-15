@@ -7,28 +7,28 @@
 
 package namespaces
 
-// SipProfileNamespace provides project SIP profile management (singleton resource).
-type SipProfileNamespace struct {
+// SIPProfileNamespace provides project SIP profile management (singleton resource).
+type SIPProfileNamespace struct {
 	Resource
 }
 
-// NewSipProfileNamespace creates a new SipProfileNamespace.
-func NewSipProfileNamespace(client HTTPClient) *SipProfileNamespace {
-	return &SipProfileNamespace{
+// NewSIPProfileNamespace creates a new SIPProfileNamespace.
+func NewSIPProfileNamespace(client HTTPClient) *SIPProfileNamespace {
+	return &SIPProfileNamespace{
 		Resource: Resource{HTTP: client, Base: "/api/relay/rest/sip_profile"},
 	}
 }
 
 // Get retrieves the project SIP profile.
-func (r *SipProfileNamespace) Get() (map[string]any, error) {
+func (r *SIPProfileNamespace) Get() (map[string]any, error) {
 	return r.HTTP.Get(r.Base, nil)
 }
 
 // Update modifies the project SIP profile.
-func (r *SipProfileNamespace) Update(data map[string]any) (map[string]any, error) {
+func (r *SIPProfileNamespace) Update(data map[string]any) (map[string]any, error) {
 	return r.HTTP.Put(r.Base, data)
 }
 
-// SipProfileResource is an alias for SipProfileNamespace, matching the Python
-// class name for cross-SDK parity. Prefer SipProfileNamespace in new Go code.
-type SipProfileResource = SipProfileNamespace
+// SIPProfileResource is an alias for SIPProfileNamespace, matching the Python
+// class name for cross-SDK parity. Prefer SIPProfileNamespace in new Go code.
+type SIPProfileResource = SIPProfileNamespace

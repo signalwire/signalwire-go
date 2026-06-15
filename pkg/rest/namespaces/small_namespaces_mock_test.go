@@ -211,7 +211,7 @@ func TestSipProfile_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.SipProfile.Update(map[string]any{
+	body, err := client.SIPProfile.Update(map[string]any{
 		"domain":         "myco.sip.signalwire.com",
 		"default_codecs": []string{"PCMU", "PCMA"},
 	})

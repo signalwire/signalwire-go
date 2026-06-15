@@ -26,14 +26,9 @@ func TestNewRestClient_ExplicitArgs(t *testing.T) {
 }
 
 func TestNewRestClient_EnvVars(t *testing.T) {
-	os.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
-	os.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
-	os.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
-	defer func() {
-		os.Unsetenv("SIGNALWIRE_PROJECT_ID")
-		os.Unsetenv("SIGNALWIRE_API_TOKEN")
-		os.Unsetenv("SIGNALWIRE_SPACE")
-	}()
+	t.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
+	t.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
+	t.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
 
 	client, err := NewRestClient("", "", "")
 	if err != nil {
@@ -45,14 +40,9 @@ func TestNewRestClient_EnvVars(t *testing.T) {
 }
 
 func TestNewRestClient_ExplicitOverridesEnv(t *testing.T) {
-	os.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
-	os.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
-	os.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
-	defer func() {
-		os.Unsetenv("SIGNALWIRE_PROJECT_ID")
-		os.Unsetenv("SIGNALWIRE_API_TOKEN")
-		os.Unsetenv("SIGNALWIRE_SPACE")
-	}()
+	t.Setenv("SIGNALWIRE_PROJECT_ID", "env-proj")
+	t.Setenv("SIGNALWIRE_API_TOKEN", "env-tok")
+	t.Setenv("SIGNALWIRE_SPACE", "env.signalwire.com")
 
 	client, err := NewRestClient("explicit-proj", "explicit-tok", "explicit.signalwire.com")
 	if err != nil {
@@ -65,9 +55,9 @@ func TestNewRestClient_ExplicitOverridesEnv(t *testing.T) {
 
 func TestNewRestClient_MissingCredentials(t *testing.T) {
 	// Clear env vars
-	os.Unsetenv("SIGNALWIRE_PROJECT_ID")
-	os.Unsetenv("SIGNALWIRE_API_TOKEN")
-	os.Unsetenv("SIGNALWIRE_SPACE")
+	_ = os.Unsetenv("SIGNALWIRE_PROJECT_ID")
+	_ = os.Unsetenv("SIGNALWIRE_API_TOKEN")
+	_ = os.Unsetenv("SIGNALWIRE_SPACE")
 
 	_, err := NewRestClient("", "", "")
 	if err == nil {
@@ -76,9 +66,9 @@ func TestNewRestClient_MissingCredentials(t *testing.T) {
 }
 
 func TestNewRestClient_PartialCredentials(t *testing.T) {
-	os.Unsetenv("SIGNALWIRE_PROJECT_ID")
-	os.Unsetenv("SIGNALWIRE_API_TOKEN")
-	os.Unsetenv("SIGNALWIRE_SPACE")
+	_ = os.Unsetenv("SIGNALWIRE_PROJECT_ID")
+	_ = os.Unsetenv("SIGNALWIRE_API_TOKEN")
+	_ = os.Unsetenv("SIGNALWIRE_SPACE")
 
 	_, err := NewRestClient("proj-123", "", "")
 	if err == nil {
@@ -104,7 +94,7 @@ func TestAllNamespacesInitialized(t *testing.T) {
 		{"Recordings", client.Recordings},
 		{"NumberGroups", client.NumberGroups},
 		{"VerifiedCallers", client.VerifiedCallers},
-		{"SipProfile", client.SipProfile},
+		{"SIPProfile", client.SIPProfile},
 		{"Lookup", client.Lookup},
 		{"ShortCodes", client.ShortCodes},
 		{"ImportedNumbers", client.ImportedNumbers},
@@ -306,6 +296,8 @@ func TestSignalWireRestError_Format(t *testing.T) {
 }
 
 func TestSignalWireRestError_ImplementsError(t *testing.T) {
+	// Assigning to `error` proves *SignalWireRestError satisfies the interface at
+	// compile time; exercise Error() to prove the method is wired and usable.
 	var err error = &SignalWireRestError{
 		StatusCode: 500,
 		Body:       "internal server error",
@@ -313,8 +305,10 @@ func TestSignalWireRestError_ImplementsError(t *testing.T) {
 		Method:     "POST",
 	}
 
-	if err == nil {
-		t.Fatal("expected non-nil error")
+	got := err.Error()
+	want := `POST /api/test returned 500: internal server error`
+	if got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
 	}
 }
 
@@ -347,7 +341,7 @@ func TestCrudResourcePUT_UpdateMethod(t *testing.T) {
 }
 
 func TestHttpClient_URLConstruction(t *testing.T) {
-	c := NewHttpClient("proj-id", "token", "my-space.signalwire.com")
+	c := NewHTTPClient("proj-id", "token", "my-space.signalwire.com")
 	expected := "https://my-space.signalwire.com"
 	if c.BaseURL() != expected {
 		t.Errorf("BaseURL() = %q, want %q", c.BaseURL(), expected)
@@ -355,7 +349,7 @@ func TestHttpClient_URLConstruction(t *testing.T) {
 }
 
 func TestHttpClient_BasicFields(t *testing.T) {
-	c := NewHttpClient("proj-id", "my-token", "space.signalwire.com")
+	c := NewHTTPClient("proj-id", "my-token", "space.signalwire.com")
 	if c.projectID != "proj-id" {
 		t.Errorf("projectID = %q, want %q", c.projectID, "proj-id")
 	}

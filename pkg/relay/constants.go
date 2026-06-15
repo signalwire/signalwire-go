@@ -82,8 +82,9 @@ const (
 	EventMessagingState   = "messaging.state"
 )
 
-// Authorization-state event used to refresh reconnect material. Mirrors
-// Python's EVENT_AUTHORIZATION_STATE = "signalwire.authorization.state"
+// EventAuthorizationState is the authorization-state event used to refresh
+// reconnect material. Mirrors Python's
+// EVENT_AUTHORIZATION_STATE = "signalwire.authorization.state"
 // (relay/constants.py:16).
 const EventAuthorizationState = "signalwire.authorization.state"
 

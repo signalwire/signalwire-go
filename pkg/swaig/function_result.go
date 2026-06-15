@@ -662,8 +662,8 @@ func (fr *FunctionResult) JoinRoom(name string) *FunctionResult {
 	return fr.AddAction("SWML", swmlDoc)
 }
 
-// SipRefer sends a SIP REFER for call transfer in SIP environments.
-func (fr *FunctionResult) SipRefer(toURI string) *FunctionResult {
+// SIPRefer sends a SIP REFER for call transfer in SIP environments.
+func (fr *FunctionResult) SIPRefer(toURI string) *FunctionResult {
 	swmlDoc := map[string]any{
 		"version": "1.0.0",
 		"sections": map[string]any{
@@ -938,9 +938,9 @@ func (fr *FunctionResult) Pay(connectorURL string, opts *PayOptions) *FunctionRe
 
 // --- RPC Actions ---
 
-// ExecuteRpc executes an RPC method on a call.
+// ExecuteRPC executes an RPC method on a call.
 // Pass empty strings for callID and nodeID to omit them from the payload.
-func (fr *FunctionResult) ExecuteRpc(method string, params map[string]any, callID string, nodeID string) *FunctionResult {
+func (fr *FunctionResult) ExecuteRPC(method string, params map[string]any, callID string, nodeID string) *FunctionResult {
 	// Python's execute_rpc emits only {method, [call_id], [node_id], [params]} —
 	// the jsonrpc envelope belongs to the RELAY/MCP transport layer, never to the
 	// SWML execute_rpc verb. Matching Python's rpc_params exactly (function_result.py:1316).
@@ -968,10 +968,10 @@ func (fr *FunctionResult) ExecuteRpc(method string, params map[string]any, callI
 	return fr.AddAction("SWML", swmlDoc)
 }
 
-// RpcDial dials out to a number with a destination SWML URL using execute_rpc.
+// RPCDial dials out to a number with a destination SWML URL using execute_rpc.
 // deviceType defaults to "phone" when empty.
 // This matches the Python SDK's rpc_dial() which calls execute_rpc(method="dial", ...).
-func (fr *FunctionResult) RpcDial(toNumber, fromNumber, destSwml string, deviceType string) *FunctionResult {
+func (fr *FunctionResult) RPCDial(toNumber, fromNumber, destSwml string, deviceType string) *FunctionResult {
 	if deviceType == "" {
 		deviceType = "phone"
 	}
@@ -986,26 +986,26 @@ func (fr *FunctionResult) RpcDial(toNumber, fromNumber, destSwml string, deviceT
 		"dest_swml": destSwml,
 	}
 
-	return fr.ExecuteRpc("dial", dialParams, "", "")
+	return fr.ExecuteRPC("dial", dialParams, "", "")
 }
 
-// RpcAiMessage injects a message into an AI agent on another call.
+// RPCAiMessage injects a message into an AI agent on another call.
 // role defaults to "system" when empty, matching the Python SDK default.
 // This matches the Python SDK's rpc_ai_message() which calls execute_rpc(method="ai_message", ...).
-func (fr *FunctionResult) RpcAiMessage(callID, messageText, role string) *FunctionResult {
+func (fr *FunctionResult) RPCAiMessage(callID, messageText, role string) *FunctionResult {
 	if role == "" {
 		role = "system"
 	}
-	return fr.ExecuteRpc("ai_message", map[string]any{
+	return fr.ExecuteRPC("ai_message", map[string]any{
 		"role":         role,
 		"message_text": messageText,
 	}, callID, "")
 }
 
-// RpcAiUnhold unholds another call.
+// RPCAiUnhold unholds another call.
 // This matches the Python SDK's rpc_ai_unhold() which calls execute_rpc(method="ai_unhold", ...).
-func (fr *FunctionResult) RpcAiUnhold(callID string) *FunctionResult {
-	return fr.ExecuteRpc("ai_unhold", map[string]any{}, callID, "")
+func (fr *FunctionResult) RPCAiUnhold(callID string) *FunctionResult {
+	return fr.ExecuteRPC("ai_unhold", map[string]any{}, callID, "")
 }
 
 // SimulateUserInput queues simulated user input text.

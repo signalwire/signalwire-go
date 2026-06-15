@@ -111,7 +111,7 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 	if err != nil {
 		return swaig.NewFunctionResult(fmt.Sprintf("Error accessing Wikipedia: %v", err))
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var searchData map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&searchData); err != nil {
@@ -152,10 +152,10 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 
 		var extractData map[string]any
 		if err := json.NewDecoder(extractResp.Body).Decode(&extractData); err != nil {
-			extractResp.Body.Close()
+			_ = extractResp.Body.Close()
 			continue
 		}
-		extractResp.Body.Close()
+		_ = extractResp.Body.Close()
 
 		pages, _ := extractData["query"].(map[string]any)
 		pagesMap, _ := pages["pages"].(map[string]any)

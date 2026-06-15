@@ -1155,7 +1155,7 @@ func TestJoinRoom(t *testing.T) {
 }
 
 func TestSipRefer(t *testing.T) {
-	fr := NewFunctionResult("referring").SipRefer("sip:agent@example.com")
+	fr := NewFunctionResult("referring").SIPRefer("sip:agent@example.com")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1585,7 +1585,7 @@ func TestPayWithFullOptions(t *testing.T) {
 
 func TestExecuteRpc(t *testing.T) {
 	fr := NewFunctionResult("rpc").
-		ExecuteRpc("custom.method", map[string]any{"key": "value"}, "", "")
+		ExecuteRPC("custom.method", map[string]any{"key": "value"}, "", "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1610,7 +1610,7 @@ func TestExecuteRpc(t *testing.T) {
 
 func TestExecuteRpcNoParams(t *testing.T) {
 	fr := NewFunctionResult("rpc").
-		ExecuteRpc("simple.method", nil, "", "")
+		ExecuteRPC("simple.method", nil, "", "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1626,7 +1626,7 @@ func TestExecuteRpcNoParams(t *testing.T) {
 
 func TestExecuteRpcWithCallIDAndNodeID(t *testing.T) {
 	fr := NewFunctionResult("rpc").
-		ExecuteRpc("my.method", map[string]any{"key": "val"}, "call-123", "node-456")
+		ExecuteRPC("my.method", map[string]any{"key": "val"}, "call-123", "node-456")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1645,7 +1645,7 @@ func TestExecuteRpcWithCallIDAndNodeID(t *testing.T) {
 
 func TestRpcDial(t *testing.T) {
 	fr := NewFunctionResult("dialing").
-		RpcDial("+15551234567", "+15559876543", "https://example.com/swml", "phone")
+		RPCDial("+15551234567", "+15559876543", "https://example.com/swml", "phone")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1658,7 +1658,7 @@ func TestRpcDial(t *testing.T) {
 	if rpc["method"] != "dial" {
 		t.Errorf("method = %v, want %q", rpc["method"], "dial")
 	}
-	// The jsonrpc-removal fix ripples through RpcDial (built on ExecuteRpc).
+	// The jsonrpc-removal fix ripples through RPCDial (built on ExecuteRPC).
 	if _, ok := rpc["jsonrpc"]; ok {
 		t.Errorf("jsonrpc should NOT be present, got %v", rpc["jsonrpc"])
 	}
@@ -1680,7 +1680,7 @@ func TestRpcDial(t *testing.T) {
 
 func TestRpcDialDefaultDeviceType(t *testing.T) {
 	fr := NewFunctionResult("dialing").
-		RpcDial("+15551234567", "+15559876543", "https://example.com/swml", "")
+		RPCDial("+15551234567", "+15559876543", "https://example.com/swml", "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1699,7 +1699,7 @@ func TestRpcDialDefaultDeviceType(t *testing.T) {
 
 func TestRpcAiMessage(t *testing.T) {
 	fr := NewFunctionResult("messaging").
-		RpcAiMessage("call-abc-123", "Please take a message", "")
+		RPCAiMessage("call-abc-123", "Please take a message", "")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1715,7 +1715,7 @@ func TestRpcAiMessage(t *testing.T) {
 	if rpc["call_id"] != "call-abc-123" {
 		t.Errorf("call_id = %v, want %q", rpc["call_id"], "call-abc-123")
 	}
-	// The jsonrpc-removal fix ripples through RpcAiMessage (built on ExecuteRpc).
+	// The jsonrpc-removal fix ripples through RPCAiMessage (built on ExecuteRPC).
 	if _, ok := rpc["jsonrpc"]; ok {
 		t.Errorf("jsonrpc should NOT be present, got %v", rpc["jsonrpc"])
 	}
@@ -1731,7 +1731,7 @@ func TestRpcAiMessage(t *testing.T) {
 
 func TestRpcAiMessageCustomRole(t *testing.T) {
 	fr := NewFunctionResult("messaging").
-		RpcAiMessage("call-abc-123", "Hello", "user")
+		RPCAiMessage("call-abc-123", "Hello", "user")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1748,7 +1748,7 @@ func TestRpcAiMessageCustomRole(t *testing.T) {
 
 func TestRpcAiUnhold(t *testing.T) {
 	fr := NewFunctionResult("unholding").
-		RpcAiUnhold("call-abc-123")
+		RPCAiUnhold("call-abc-123")
 
 	actions := fr.ToMap()["action"].([]map[string]any)
 	swml := actions[0]["SWML"].(map[string]any)
@@ -1764,7 +1764,7 @@ func TestRpcAiUnhold(t *testing.T) {
 	if rpc["call_id"] != "call-abc-123" {
 		t.Errorf("call_id = %v, want %q", rpc["call_id"], "call-abc-123")
 	}
-	// The jsonrpc-removal fix ripples through RpcAiUnhold (built on ExecuteRpc).
+	// The jsonrpc-removal fix ripples through RPCAiUnhold (built on ExecuteRPC).
 	if _, ok := rpc["jsonrpc"]; ok {
 		t.Errorf("jsonrpc should NOT be present, got %v", rpc["jsonrpc"])
 	}

@@ -162,7 +162,7 @@ func (s *WeatherAPISkill) handleGetWeather(args map[string]any, _ map[string]any
 	if err != nil {
 		return swaig.NewFunctionResult("Sorry, I cannot get weather information right now. Please try again later.")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return swaig.NewFunctionResult("Sorry, I cannot get weather information right now. Please try again later or check if the location name is correct.")

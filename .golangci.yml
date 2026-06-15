@@ -1,0 +1,40 @@
+# golangci-lint config for signalwire-go.
+#
+# This is the LINT-depth config — the advisory-tier linter that goes beyond the
+# `go vet` floor wired into scripts/run-ci.sh. It was stood up after a one-time
+# burndown (PR "golangci burndown") cleared the backlog to zero:
+#   - errcheck:    every unchecked error handled (incl. _test.go — tests are
+#                  usage examples, so an unchecked error there is a bad example).
+#   - staticcheck: real bugs fixed (a regexp with RE2-unsupported lookahead that
+#                  panicked at runtime; two dead-value SA4006s; a never-true
+#                  SA4023 test assertion) + the S-series simplifications applied.
+#   - ineffassign / unused: cleared.
+#
+# Discipline (mirrors the signalwire-rust clippy gate): fix by hand, never
+# --fix; a short, JUSTIFIED disable list, not blanket suppression; parity wins
+# over style in a genuine conflict (e.g. two registry.go error strings stay
+# capitalized to match Python's ValueError text, suppressed inline via
+# //nolint:staticcheck with a reason).
+version: "2"
+
+linters:
+  # The curated-standard set: errcheck, govet, ineffassign, staticcheck, unused.
+  default: standard
+  settings:
+    staticcheck:
+      checks:
+        - all
+        # Disable the QF* "quickfix" family. These are staticcheck's lowest-
+        # confidence, purely-opinionated style refactors (the QF prefix is
+        # literally "quickfix"), and the specific instances here are either
+        # less readable rewritten or risk a subtle inversion of Python-mirrored
+        # logic — exactly the parity-over-style line we hold:
+        #   QF1001 (apply De Morgan's law): the pom.go pointer-tristate
+        #     conditions (`!(x != nil && !*x)`) and char-range checks read
+        #     clearer as-is; De Morgan would obscure the "not a letter" intent
+        #     and risk inverting the nil/true/false logic that mirrors Python.
+        #   QF1008 (remove embedded field from selector): `a.Service.Route` is
+        #     deliberately explicit about where Route comes from; dropping the
+        #     embedded `Service` qualifier is a readability downgrade, not a fix.
+        - -QF1001
+        - -QF1008

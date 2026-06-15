@@ -214,10 +214,10 @@ func (s *AgentServer) GetAgent(route string) *agent.AgentBase {
 // SIP routing
 // ---------------------------------------------------------------------------
 
-// SetupSipRouting enables a central SIP routing endpoint.  When autoMap is
+// SetupSIPRouting enables a central SIP routing endpoint.  When autoMap is
 // true, all currently registered agents are automatically mapped using their
 // route as the SIP username.
-func (s *AgentServer) SetupSipRouting(route string, autoMap bool) {
+func (s *AgentServer) SetupSIPRouting(route string, autoMap bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -241,9 +241,9 @@ func (s *AgentServer) SetupSipRouting(route string, autoMap bool) {
 	s.logger.Info("SIP routing enabled at %s (autoMap=%v)", s.sipRoute, autoMap)
 }
 
-// RegisterSipUsername maps a SIP username to an agent route so that
+// RegisterSIPUsername maps a SIP username to an agent route so that
 // inbound SIP calls for that username are routed to the correct agent.
-func (s *AgentServer) RegisterSipUsername(username, route string) {
+func (s *AgentServer) RegisterSIPUsername(username, route string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.sipUsernames[username] = route
@@ -293,16 +293,16 @@ func (s *AgentServer) RegisterGlobalRoutingCallback(path string, cb swml.Routing
 	s.logger.Info("registered global routing callback at %s on %d agent(s)", path, len(s.agents))
 }
 
-// RegisterGlobalSipRoutingCallback registers a SIP redirect-routing callback
+// RegisterGlobalSIPRoutingCallback registers a SIP redirect-routing callback
 // across all currently-registered agents at the given path. The callback
 // returns a route string; on a non-empty return the framework responds with
 // HTTP 307 Temporary Redirect (matching Python register_routing_callback
-// semantics — see AgentBase.RegisterSipRoutingCallback for details).
+// semantics — see AgentBase.RegisterSIPRoutingCallback for details).
 //
 // Use this form when porting Python AgentServer code that registers a
 // redirect-style global routing callback. For a global response-document
 // override (the richer Go-only mechanism), use RegisterGlobalRoutingCallback.
-func (s *AgentServer) RegisterGlobalSipRoutingCallback(
+func (s *AgentServer) RegisterGlobalSIPRoutingCallback(
 	path string,
 	cb func(r *http.Request, body map[string]any) string,
 ) {
@@ -315,7 +315,7 @@ func (s *AgentServer) RegisterGlobalSipRoutingCallback(
 	defer s.mu.RUnlock()
 
 	for _, a := range s.agents {
-		a.RegisterSipRoutingCallback(cb, path)
+		a.RegisterSIPRoutingCallback(cb, path)
 	}
 
 	s.logger.Info("registered global SIP routing callback at %s on %d agent(s)", path, len(s.agents))
@@ -447,12 +447,16 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 	// ---------------------------------------------------------------
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "healthy"}); err != nil {
+			s.logger.Warn("failed to write health response: %s", err)
+		}
 	})
 
 	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ready"}); err != nil {
+			s.logger.Warn("failed to write ready response: %s", err)
+		}
 	})
 
 	// ---------------------------------------------------------------
@@ -508,7 +512,7 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 			}
 
 			// Extract SIP username from the request body
-			username := extractSipUsername(body)
+			username := extractSIPUsername(body)
 			if username == "" {
 				http.Error(w, "missing SIP username", http.StatusBadRequest)
 				return
@@ -521,10 +525,12 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
+			if err := json.NewEncoder(w).Encode(map[string]string{
 				"action": "redirect",
 				"route":  agentRoute,
-			})
+			}); err != nil {
+				s.logger.Warn("failed to write SIP redirect response: %s", err)
+			}
 		})
 	}
 
@@ -567,9 +573,11 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"agents": entries,
-		})
+		}); err != nil {
+			s.logger.Warn("failed to write agents response: %s", err)
+		}
 	})
 
 	return mux
@@ -579,9 +587,9 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// extractSipUsername extracts the SIP username from an inbound SIP routing
+// extractSIPUsername extracts the SIP username from an inbound SIP routing
 // request body.  It checks common field paths used by SignalWire.
-func extractSipUsername(body map[string]any) string {
+func extractSIPUsername(body map[string]any) string {
 	// Try top-level "sip_username"
 	if u, ok := body["sip_username"].(string); ok && u != "" {
 		return u

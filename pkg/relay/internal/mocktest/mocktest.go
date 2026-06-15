@@ -131,7 +131,7 @@ func (h *Harness) Journal(t *testing.T) []JournalEntry {
 	if err != nil {
 		t.Fatalf("mocktest: GET /__mock__/journal: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("mocktest: read journal body: %v", err)
@@ -239,7 +239,7 @@ func (h *Harness) post(t *testing.T, path string, body any) []byte {
 	if err != nil {
 		t.Fatalf("mocktest: %s: %v", path, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("mocktest: read body for %s: %v", path, err)
@@ -354,7 +354,7 @@ func (h *Harness) Sessions(t *testing.T) []map[string]any {
 	if err != nil {
 		t.Fatalf("mocktest: GET /__mock__/sessions: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("mocktest: read sessions body: %v", err)
@@ -383,7 +383,7 @@ func (h *Harness) getJSON(path string, out any) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
@@ -643,7 +643,7 @@ func probeHealth(client *http.Client, base string) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return false
 	}

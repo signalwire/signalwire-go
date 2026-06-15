@@ -1642,24 +1642,24 @@ func (a *AgentBase) SetDynamicConfigCallback(cb DynamicConfigCallback) *AgentBas
 	return a
 }
 
-// ManualSetProxyUrl overrides the proxy URL base used for webhook URL generation.
-func (a *AgentBase) ManualSetProxyUrl(url string) *AgentBase {
+// ManualSetProxyURL overrides the proxy URL base used for webhook URL generation.
+func (a *AgentBase) ManualSetProxyURL(url string) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.proxyURLBase = url
 	return a
 }
 
-// SetWebHookUrl explicitly sets the webhook URL used in SWAIG function defs.
-func (a *AgentBase) SetWebHookUrl(url string) *AgentBase {
+// SetWebHookURL explicitly sets the webhook URL used in SWAIG function defs.
+func (a *AgentBase) SetWebHookURL(url string) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.webhookURL = url
 	return a
 }
 
-// SetPostPromptUrl sets the URL for post-prompt summary delivery.
-func (a *AgentBase) SetPostPromptUrl(url string) *AgentBase {
+// SetPostPromptURL sets the URL for post-prompt summary delivery.
+func (a *AgentBase) SetPostPromptURL(url string) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.postPromptURL = url
@@ -2046,13 +2046,17 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(mcpError(nil, -32700, "Parse error"))
+		if err := json.NewEncoder(w).Encode(mcpError(nil, -32700, "Parse error")); err != nil {
+			a.Logger.Warn("failed to write MCP parse-error response: %s", err)
+		}
 		return
 	}
 
 	resp := a.handleMcpRequest(body)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		a.Logger.Warn("failed to write MCP response: %s", err)
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -2067,13 +2071,13 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 // SIP methods
 // ---------------------------------------------------------------------------
 
-// EnableSipRouting enables SIP-based routing for this agent.
+// EnableSIPRouting enables SIP-based routing for this agent.
 //
 // Python equivalent: AgentBase.enable_sip_routing(auto_map=True, path="/sip")
 //
 // This registers a routing callback at the given path that checks incoming
 // SIP usernames against the agent's registered username set. When autoMap is
-// true, AutoMapSipUsernames is called to derive common usernames from the
+// true, AutoMapSIPUsernames is called to derive common usernames from the
 // agent name and route.
 //
 // The Python implementation (agent_base.py line 612) creates a sip_routing_callback
@@ -2081,7 +2085,7 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 // and returns None in both the matched and unmatched case — letting the normal
 // routing continue. It then calls register_routing_callback to register the
 // callback, and optionally calls auto_map_sip_usernames.
-func (a *AgentBase) EnableSipRouting(autoMap bool, path string) *AgentBase {
+func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
 	// Build SIP routing callback that matches Python behavior
 	cb := func(r *http.Request, body map[string]any) map[string]any {
 		sipUsername := swml.ExtractSIPUsername(body)
@@ -2111,7 +2115,7 @@ func (a *AgentBase) EnableSipRouting(autoMap bool, path string) *AgentBase {
 
 	// Auto-map common usernames if requested
 	if autoMap {
-		a.AutoMapSipUsernames()
+		a.AutoMapSIPUsernames()
 	}
 
 	return a
@@ -2128,7 +2132,7 @@ func (a *AgentBase) EnableSipRouting(autoMap bool, path string) *AgentBase {
 // This method delegates to swml.Service.RegisterRoutingCallback.
 //
 // For Python-aligned redirect semantics (callback returns a route string and
-// the framework issues an HTTP 307 redirect), use RegisterSipRoutingCallback.
+// the framework issues an HTTP 307 redirect), use RegisterSIPRoutingCallback.
 func (a *AgentBase) RegisterRoutingCallback(callbackFn func(r *http.Request, body map[string]any) map[string]any, path string) {
 	if path == "" {
 		path = "/sip"
@@ -2136,7 +2140,7 @@ func (a *AgentBase) RegisterRoutingCallback(callbackFn func(r *http.Request, bod
 	a.Service.RegisterRoutingCallback(path, callbackFn)
 }
 
-// RegisterSipRoutingCallback registers a callback whose string return value
+// RegisterSIPRoutingCallback registers a callback whose string return value
 // triggers an HTTP 307 Temporary Redirect to that route. An empty return
 // value (or a GET / non-POST request) lets normal SWML processing continue.
 //
@@ -2150,7 +2154,7 @@ func (a *AgentBase) RegisterRoutingCallback(callbackFn func(r *http.Request, bod
 //
 // Use this form when porting Python code that relies on redirect-based SIP
 // or route-dispatch patterns.
-func (a *AgentBase) RegisterSipRoutingCallback(
+func (a *AgentBase) RegisterSIPRoutingCallback(
 	callbackFn func(r *http.Request, body map[string]any) string,
 	path string,
 ) {
@@ -2183,7 +2187,7 @@ func (a *AgentBase) sipRoutingCallbackPaths() []string {
 	return paths
 }
 
-// AutoMapSipUsernames automatically registers common SIP usernames derived
+// AutoMapSIPUsernames automatically registers common SIP usernames derived
 // from this agent's name and route.
 //
 // Python equivalent: AgentBase.auto_map_sip_usernames (agent_base.py line 674)
@@ -2192,7 +2196,7 @@ func (a *AgentBase) sipRoutingCallbackPaths() []string {
 //  1. Stripping non-alphanumeric/underscore chars from the agent name (lowercased)
 //  2. Stripping non-alphanumeric/underscore chars from the route (lowercased)
 //  3. If the cleaned name is longer than 3 chars, also registers a vowel-stripped variant
-func (a *AgentBase) AutoMapSipUsernames() *AgentBase {
+func (a *AgentBase) AutoMapSIPUsernames() *AgentBase {
 	nonAlpha := regexp.MustCompile(`[^a-z0-9_]`)
 
 	a.mu.RLock()
@@ -2202,12 +2206,12 @@ func (a *AgentBase) AutoMapSipUsernames() *AgentBase {
 
 	cleanName := nonAlpha.ReplaceAllString(strings.ToLower(name), "")
 	if cleanName != "" {
-		a.RegisterSipUsername(cleanName)
+		a.RegisterSIPUsername(cleanName)
 	}
 
 	cleanRoute := nonAlpha.ReplaceAllString(strings.ToLower(route), "")
 	if cleanRoute != "" && cleanRoute != cleanName {
-		a.RegisterSipUsername(cleanRoute)
+		a.RegisterSIPUsername(cleanRoute)
 	}
 
 	// Register vowel-stripped variant if name is long enough
@@ -2215,15 +2219,15 @@ func (a *AgentBase) AutoMapSipUsernames() *AgentBase {
 		vowels := regexp.MustCompile(`[aeiou]`)
 		noVowels := vowels.ReplaceAllString(cleanName, "")
 		if noVowels != cleanName && len(noVowels) > 2 {
-			a.RegisterSipUsername(noVowels)
+			a.RegisterSIPUsername(noVowels)
 		}
 	}
 
 	return a
 }
 
-// RegisterSipUsername registers a SIP username that this agent handles.
-func (a *AgentBase) RegisterSipUsername(username string) *AgentBase {
+// RegisterSIPUsername registers a SIP username that this agent handles.
+func (a *AgentBase) RegisterSIPUsername(username string) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.sipUsernames[strings.ToLower(username)] = true
@@ -2493,7 +2497,9 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 
 	// 1. Pre-answer verbs
 	for _, v := range a.preAnswerVerbs {
-		doc.AddVerb(v.Name, v.Config)
+		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+			a.Logger.Warn("failed to add pre-answer verb %q: %s", v.Name, err)
+		}
 	}
 
 	// 2. Answer verb
@@ -2504,7 +2510,9 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		for k, v := range a.answerConfig {
 			answerCfg[k] = v
 		}
-		doc.AddVerb("answer", answerCfg)
+		if err := doc.AddVerb("answer", answerCfg); err != nil {
+			a.Logger.Warn("failed to add answer verb: %s", err)
+		}
 	}
 
 	// 3. Record call if enabled
@@ -2513,12 +2521,16 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 			"format": a.recordFormat,
 			"stereo": a.recordStereo,
 		}
-		doc.AddVerb("record_call", recordCfg)
+		if err := doc.AddVerb("record_call", recordCfg); err != nil {
+			a.Logger.Warn("failed to add record_call verb: %s", err)
+		}
 	}
 
 	// 4. Post-answer verbs
 	for _, v := range a.postAnswerVerbs {
-		doc.AddVerb(v.Name, v.Config)
+		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+			a.Logger.Warn("failed to add post-answer verb %q: %s", v.Name, err)
+		}
 	}
 
 	// 5. Build AI verb config
@@ -2645,11 +2657,15 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 	if verbName == "" {
 		verbName = "ai"
 	}
-	doc.AddVerb(verbName, aiConfig)
+	if err := doc.AddVerb(verbName, aiConfig); err != nil {
+		a.Logger.Warn("failed to add AI verb %q: %s", verbName, err)
+	}
 
 	// 7. Post-AI verbs
 	for _, v := range a.postAiVerbs {
-		doc.AddVerb(v.Name, v.Config)
+		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+			a.Logger.Warn("failed to add post-AI verb %q: %s", v.Name, err)
+		}
 	}
 
 	return doc.ToMap()
@@ -2786,11 +2802,15 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 	// Health endpoints (no auth)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "healthy"}); err != nil {
+			a.Logger.Warn("failed to write health response: %s", err)
+		}
 	})
 	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ready"}); err != nil {
+			a.Logger.Warn("failed to write ready response: %s", err)
+		}
 	})
 
 	// Main SWML endpoint (with auth + signature on POST)
@@ -2884,7 +2904,11 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
 	if r.Method == http.MethodPost {
 		r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			// Best-effort parse: an undecodable body leaves body nil and
+			// downstream rendering falls back to defaults.
+			body = nil
+		}
 	}
 
 	// SIP redirect-routing dispatch. Python web_mixin._handle_request
@@ -2964,7 +2988,9 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(doc)
+	if err := json.NewEncoder(w).Encode(doc); err != nil {
+		a.Logger.Warn("failed to write SWML response: %s", err)
+	}
 }
 
 // applySwmlModifications merges on_swml_request modifications into the AI
@@ -3188,7 +3214,11 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 	if args == nil {
 		// Try parsing argument as JSON string
 		if argStr, ok := body["argument"].(string); ok && argStr != "" {
-			json.Unmarshal([]byte(argStr), &args)
+			if err := json.Unmarshal([]byte(argStr), &args); err != nil {
+				// Best-effort parse: on failure fall through to the
+				// empty-map fallback below rather than erroring out.
+				args = nil
+			}
 		}
 		if args == nil {
 			args = make(map[string]any)
@@ -3200,15 +3230,21 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 		a.Logger.Error("function call %q failed: %s", funcName, err)
 		errResult := swaig.NewFunctionResult(fmt.Sprintf("Error: %s", err))
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(errResult.ToMap())
+		if encErr := json.NewEncoder(w).Encode(errResult.ToMap()); encErr != nil {
+			a.Logger.Warn("failed to write function-error response: %s", encErr)
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if result != nil {
-		json.NewEncoder(w).Encode(result)
+		if err := json.NewEncoder(w).Encode(result); err != nil {
+			a.Logger.Warn("failed to write function result: %s", err)
+		}
 	} else {
-		json.NewEncoder(w).Encode(swaig.NewFunctionResult("ok").ToMap())
+		if err := json.NewEncoder(w).Encode(swaig.NewFunctionResult("ok").ToMap()); err != nil {
+			a.Logger.Warn("failed to write function result: %s", err)
+		}
 	}
 }
 
@@ -3235,7 +3271,9 @@ func (a *AgentBase) handlePostPrompt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		a.Logger.Warn("failed to write postprompt response: %s", err)
+	}
 }
 
 // handleCheckForInput serves the /check_for_input endpoint. Matches Python
@@ -3277,12 +3315,14 @@ func (a *AgentBase) handleCheckForInput(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"status":          "success",
 		"conversation_id": conversationID,
 		"new_input":       false,
 		"messages":        []any{},
-	})
+	}); err != nil {
+		a.Logger.Warn("failed to write check_for_input response: %s", err)
+	}
 }
 
 // isValidConversationID mirrors Python's check: <=256 chars and each char

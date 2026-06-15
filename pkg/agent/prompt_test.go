@@ -228,7 +228,11 @@ func TestGetPrompt_ReturnsCopy(t *testing.T) {
 	a.PromptAddSection("S1", "", nil)
 	result := a.GetPrompt().([]map[string]any)
 	result = append(result, map[string]any{"title": "Extra"})
-	// Original should be unmodified
+	// The returned slice is the caller's to mutate: appending grew it to 2.
+	if len(result) != 2 {
+		t.Errorf("expected appended copy to have 2 sections, got %d", len(result))
+	}
+	// ...and that mutation must NOT have affected the agent's own state.
 	orig := a.GetPrompt().([]map[string]any)
 	if len(orig) != 1 {
 		t.Errorf("modifying result should not affect agent; got %d sections", len(orig))

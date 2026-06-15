@@ -1,3 +1,6 @@
+// Package spider provides the web-spider builtin skill (HTML scrape + crawl via
+// CSS and XPath selectors). It lives in its own package so its goquery/htmlquery
+// HTML-parsing dependencies are compiled in only by consumers that import it.
 package spider
 
 import (
@@ -331,7 +334,7 @@ func (s *SpiderSkill) fetchURL(urlStr string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)

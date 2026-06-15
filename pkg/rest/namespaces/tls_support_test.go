@@ -144,7 +144,7 @@ func (m *tlsMockSignalwire) lastJournal(t *testing.T) tlsJournalEntry {
 	if err != nil {
 		t.Fatalf("tls mock_signalwire journal GET: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	var entries []tlsJournalEntry
 	if err := json.Unmarshal(body, &entries); err != nil {

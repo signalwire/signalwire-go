@@ -52,11 +52,17 @@ func (r *SkillRegistry) AddSkillDirectory(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			// Capitalized to match the Python reference's exact ValueError text
+			// (registry.py:372 "Skill directory does not exist: {path}") — parity
+			// over Go's lowercase-error convention (ST1005). RULES.md: parity wins.
+			//nolint:staticcheck // ST1005: deliberate Python-parity message
 			return fmt.Errorf("Skill directory does not exist: %s", path)
 		}
 		return fmt.Errorf("AddSkillDirectory: stat %q: %w", path, err)
 	}
 	if !info.IsDir() {
+		// Matches Python registry.py:374 "Path is not a directory: {path}".
+		//nolint:staticcheck // ST1005: deliberate Python-parity message
 		return fmt.Errorf("Path is not a directory: %s", path)
 	}
 	for _, existing := range r.externalPaths {

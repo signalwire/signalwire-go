@@ -141,10 +141,16 @@ func TestServiceExecuteVerbInvalid(t *testing.T) {
 func TestServiceRender(t *testing.T) {
 	svc := NewService(WithName("test"))
 	maxDur2 := 300
-	svc.Answer(&maxDur2, nil)
+	if err := svc.Answer(&maxDur2, nil); err != nil {
+		t.Fatalf("Answer: %v", err)
+	}
 	playURL2 := "https://example.com/audio.mp3"
-	svc.Play(&playURL2, nil, nil, nil, nil, nil, nil)
-	svc.Hangup(nil)
+	if err := svc.Play(&playURL2, nil, nil, nil, nil, nil, nil); err != nil {
+		t.Fatalf("Play: %v", err)
+	}
+	if err := svc.Hangup(nil); err != nil {
+		t.Fatalf("Hangup: %v", err)
+	}
 
 	rendered, err := svc.Render()
 	if err != nil {
@@ -178,7 +184,9 @@ func TestServiceGetFullURL(t *testing.T) {
 
 func TestServiceOnRequest(t *testing.T) {
 	svc := NewService(WithName("test"))
-	svc.Answer(nil, nil)
+	if err := svc.Answer(nil, nil); err != nil {
+		t.Fatalf("Answer: %v", err)
+	}
 
 	result := svc.OnRequest(nil, "")
 	if result["version"] != "1.0.0" {
@@ -188,7 +196,9 @@ func TestServiceOnRequest(t *testing.T) {
 
 func TestServiceRoutingCallback(t *testing.T) {
 	svc := NewService(WithName("test"))
-	svc.Answer(nil, nil)
+	if err := svc.Answer(nil, nil); err != nil {
+		t.Fatalf("Answer: %v", err)
+	}
 
 	customDoc := map[string]any{"version": "custom", "sections": map[string]any{"main": []any{}}}
 	svc.RegisterRoutingCallback("/custom", func(r *http.Request, body map[string]any) map[string]any {

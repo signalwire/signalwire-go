@@ -4,7 +4,7 @@
 // (full signatures) consume these tables.
 package surface
 
-// classTarget is one Python class destination for a Go struct's methods.
+// ClassTarget is one Python class destination for a Go struct's methods.
 // Each (pyModule, pyClass) pair is created exactly once; methods accumulate
 // across multiple mappings that share the same target.
 type ClassTarget struct {
@@ -21,7 +21,7 @@ type ClassTarget struct {
 	SyntheticMethods []string
 }
 
-// structTable maps a Go “<shortPkg>.<StructName>“ to one or more Python
+// StructTable maps a Go “<shortPkg>.<StructName>“ to one or more Python
 // class targets.  Unmapped structs are treated as port-only extensions
 // (they must appear in PORT_ADDITIONS.md to avoid drift, but because we
 // simply don't emit them they are silently dropped).
@@ -43,12 +43,12 @@ var StructTable = map[string][]ClassTarget{
 				"ClearPostAnswerVerbs":  "clear_post_answer_verbs",
 				"ClearPreAnswerVerbs":   "clear_pre_answer_verbs",
 				"ClearSwaigQueryParams": "clear_swaig_query_params",
-				"EnableSipRouting":      "enable_sip_routing",
+				"EnableSIPRouting":      "enable_sip_routing",
 				"OnDebugEvent":          "on_debug_event",
 				"OnSummary":             "on_summary",
-				"RegisterSipUsername":   "register_sip_username",
-				"SetPostPromptUrl":      "set_post_prompt_url",
-				"SetWebHookUrl":         "set_web_hook_url",
+				"RegisterSIPUsername":   "register_sip_username",
+				"SetPostPromptURL":      "set_post_prompt_url",
+				"SetWebHookURL":         "set_web_hook_url",
 			},
 			// ``get_full_url`` and ``auto_map_sip_usernames`` are helpers
 			// absent from the Go port's surface — see PORT_OMISSIONS.md.
@@ -163,7 +163,7 @@ var StructTable = map[string][]ClassTarget{
 				"Serve":                    "serve",
 				"AsRouter":                 "as_router",
 				"SetDynamicConfigCallback": "set_dynamic_config_callback",
-				"ManualSetProxyUrl":        "manual_set_proxy_url",
+				"ManualSetProxyURL":        "manual_set_proxy_url",
 				"EnableDebugRoutes":        "enable_debug_routes",
 				"OnRequest":                "on_request",
 				"OnSwmlRequest":            "on_swml_request",
@@ -191,10 +191,10 @@ var StructTable = map[string][]ClassTarget{
 			"GetAgents":           "get_agents",
 			"Register":            "register",
 			"Unregister":          "unregister",
-			"RegisterSipUsername": "register_sip_username",
+			"RegisterSIPUsername": "register_sip_username",
 			"Run":                 "run",
 			"ServeStaticFiles":    "serve_static_files",
-			"SetupSipRouting":     "setup_sip_routing",
+			"SetupSIPRouting":     "setup_sip_routing",
 		},
 	}},
 
@@ -318,14 +318,14 @@ var StructTable = map[string][]ClassTarget{
 			"JoinRoom":                 "join_room",
 			"JoinConference":           "join_conference",
 			"SendSms":                  "send_sms",
-			"SipRefer":                 "sip_refer",
+			"SIPRefer":                 "sip_refer",
 			"Tap":                      "tap",
 			"StopTap":                  "stop_tap",
 			"ExecuteSwml":              "execute_swml",
-			"ExecuteRpc":               "execute_rpc",
-			"RpcAiMessage":             "rpc_ai_message",
-			"RpcAiUnhold":              "rpc_ai_unhold",
-			"RpcDial":                  "rpc_dial",
+			"ExecuteRPC":               "execute_rpc",
+			"RPCAiMessage":             "rpc_ai_message",
+			"RPCAiUnhold":              "rpc_ai_unhold",
+			"RPCDial":                  "rpc_dial",
 			"SimulateUserInput":        "simulate_user_input",
 			"EnableExtensiveData":      "enable_extensive_data",
 			"UpdateSettings":           "update_settings",
@@ -543,10 +543,10 @@ var StructTable = map[string][]ClassTarget{
 			"NewRestClient": "__init__",
 		},
 	}},
-	"rest.HttpClient": {{
+	"rest.HTTPClient": {{
 		Module: "signalwire.rest._base", Class: "HttpClient",
 		Methods: map[string]string{
-			"NewHttpClient": "__init__",
+			"NewHTTPClient": "__init__",
 			"Get":           "get",
 			"Post":          "post",
 			"Put":           "put",
@@ -742,10 +742,10 @@ var StructTable = map[string][]ClassTarget{
 			"Update":                 "update",
 		},
 	}},
-	"namespaces.SipProfileNamespace": {{
+	"namespaces.SIPProfileNamespace": {{
 		Module: "signalwire.rest.namespaces.sip_profile", Class: "SipProfileResource",
 		Methods: map[string]string{
-			"NewSipProfileNamespace": "__init__",
+			"NewSIPProfileNamespace": "__init__",
 			"Get":                    "get",
 			"Update":                 "update",
 		},
@@ -1362,7 +1362,7 @@ var StructTable = map[string][]ClassTarget{
 	// Go-only livewire plugins (GoogleSTT, OpenAITTS) are port-only extensions.
 }
 
-// freeFnTable maps a Go “<shortPkg>.<FuncName>“ to a Python module-level
+// FreeFnTable maps a Go “<shortPkg>.<FuncName>“ to a Python module-level
 // function.  Only used for genuinely free-standing functions — factory
 // constructors (“New<Struct>“) that should become “__init__“ are
 // declared via “factoryInit“ instead.
@@ -1378,7 +1378,7 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 
 	// Core modules
 	"contexts.CreateSimpleContext": {Module: "signalwire.core.contexts", Name: "create_simple_context"},
-	"datamap.CreateSimpleApiTool":  {Module: "signalwire.core.data_map", Name: "create_simple_api_tool"},
+	"datamap.CreateSimpleAPITool":  {Module: "signalwire.core.data_map", Name: "create_simple_api_tool"},
 	"datamap.CreateExpressionTool": {Module: "signalwire.core.data_map", Name: "create_expression_tool"},
 	"relay.ParseEvent":             {Module: "signalwire.relay.event", Name: "parse_event"},
 
@@ -1404,7 +1404,7 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"security.ValidateRequest":          {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
 }
 
-// factoryInit maps a Go factory function (not a “New<Struct>“ that matches
+// FactoryInit maps a Go factory function (not a “New<Struct>“ that matches
 // its struct name) to the class whose “__init__“ it satisfies.  Example:
 // “datamap.New“ constructs “DataMap“ — lift it into the __init__ slot.
 var FactoryInit = map[string]struct{ StructKey string }{

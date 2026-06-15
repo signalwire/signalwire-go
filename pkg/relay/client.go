@@ -624,7 +624,7 @@ func (c *Client) authenticate() error {
 	}
 
 	c.mu.RLock()
-	if c.contexts != nil && len(c.contexts) > 0 {
+	if len(c.contexts) > 0 {
 		// Python sends contexts on the connect frame itself (the same
 		// `subscriptions` set the connect result echoes back). Mirrors
 		// relay/client.py where the contexts list flows into connect.

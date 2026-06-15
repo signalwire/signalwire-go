@@ -53,7 +53,7 @@ func clearSimulatorEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range simulateManagedKeys() {
 		t.Setenv(k, "")
-		os.Unsetenv(k) // t.Setenv uses Setenv("", "") which keeps the key, so follow up with Unsetenv
+		_ = os.Unsetenv(k) // t.Setenv uses Setenv("", "") which keeps the key, so follow up with Unsetenv
 	}
 }
 
@@ -170,7 +170,7 @@ func TestActivateLambdaEnv_RestoresOnHappyPath(t *testing.T) {
 func TestActivateLambdaEnv_RestoresUnsetState(t *testing.T) {
 	clearSimulatorEnv(t)
 	// Make sure this really is unset.
-	os.Unsetenv("AWS_LAMBDA_FUNCTION_NAME")
+	_ = os.Unsetenv("AWS_LAMBDA_FUNCTION_NAME")
 
 	snap := activateLambdaEnv(SimulateLambdaOptions{})
 	snap.restore()
@@ -636,7 +636,7 @@ func TestRun_SimulateServerless_SetsAndRestoresEnvForURLMode(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		seenDuringRequest = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"version":"1.0.0","sections":{"main":[]}}`))
+		_, _ = w.Write([]byte(`{"version":"1.0.0","sections":{"main":[]}}`))
 	}))
 	defer srv.Close()
 
@@ -719,7 +719,7 @@ func TestRun_SimulateServerless_DefaultsToDumpSWML(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		served = true
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"version":"1.0.0","sections":{"main":[]}}`))
+		_, _ = w.Write([]byte(`{"version":"1.0.0","sections":{"main":[]}}`))
 	}))
 	defer srv.Close()
 
