@@ -376,8 +376,8 @@ func WithPayTimeout(timeout string) PayOption {
 }
 
 // WithPayMaxAttempts sets the maximum number of payment attempts.
-func WithPayMaxAttempts(max string) PayOption {
-	return func(m map[string]any) { m["max_attempts"] = max }
+func WithPayMaxAttempts(maxAttempts string) PayOption {
+	return func(m map[string]any) { m["max_attempts"] = maxAttempts }
 }
 
 // WithPaySecurityCode sets whether to collect security code.

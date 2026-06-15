@@ -68,7 +68,10 @@ func TestDevice_NilParamsBecomesEmptyObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	wantJSON, _ := json.Marshal(want)
+	wantJSON, err := json.Marshal(want)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
 	if string(gotJSON) != string(wantJSON) {
 		t.Errorf("JSON = %s, want %s", gotJSON, wantJSON)
 	}
@@ -156,8 +159,14 @@ func TestDevice_RoundTripsThroughRealDialFrame(t *testing.T) {
 	// The device on the wire must equal the hand-written device, JSON-for-JSON
 	// (compare via JSON because the wire round-trip normalises numeric/string
 	// representations identically for both sides).
-	gotJSON, _ := json.Marshal(gotDev)
-	wantJSON, _ := json.Marshal(handWritten)
+	gotJSON, err := json.Marshal(gotDev)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	wantJSON, err := json.Marshal(handWritten)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
 	if string(gotJSON) != string(wantJSON) {
 		t.Errorf("wire device = %s, want %s", gotJSON, wantJSON)
 	}
@@ -203,8 +212,14 @@ func TestDevice_RoundTripsThroughRealConnectFrame(t *testing.T) {
 	if !ok {
 		t.Fatalf("device[0] not an object: %#v", leg[0])
 	}
-	gotJSON, _ := json.Marshal(gotDev)
-	wantJSON, _ := json.Marshal(handWritten)
+	gotJSON, err := json.Marshal(gotDev)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	wantJSON, err := json.Marshal(handWritten)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
 	if string(gotJSON) != string(wantJSON) {
 		t.Errorf("wire device = %s, want %s", gotJSON, wantJSON)
 	}

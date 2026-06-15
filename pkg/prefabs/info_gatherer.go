@@ -235,6 +235,7 @@ func (ig *InfoGathererAgent) registerTools() {
 
 			// Record the answer
 			newAnswer := map[string]any{"key_name": keyName, "answer": answer}
+			//nolint:gocritic // appendAssign: deliberately derives a fresh answers slice that is stored alongside newIdx via UpdateGlobalData; the original answers is intentionally not mutated.
 			newAnswers := append(answers, newAnswer)
 			newIdx := idx + 1
 

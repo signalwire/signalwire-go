@@ -32,7 +32,10 @@ func TestWebSearch_Setup_ReadsPrefixPostfixParams(t *testing.T) {
 	if !s.Setup() {
 		t.Fatal("Setup failed")
 	}
-	ws := s.(*WebSearchSkill)
+	ws, ok := s.(*WebSearchSkill)
+	if !ok {
+		t.Fatalf("expected *WebSearchSkill, got %T", s)
+	}
 	if ws.responsePrefix != "PREFIX" {
 		t.Errorf("responsePrefix = %q, want PREFIX", ws.responsePrefix)
 	}
@@ -50,7 +53,10 @@ func TestWebSearch_Setup_DefaultsPrefixPostfixToEmpty(t *testing.T) {
 	if !s.Setup() {
 		t.Fatal("Setup failed")
 	}
-	ws := s.(*WebSearchSkill)
+	ws, ok := s.(*WebSearchSkill)
+	if !ok {
+		t.Fatalf("expected *WebSearchSkill, got %T", s)
+	}
 	if ws.responsePrefix != "" {
 		t.Errorf("default responsePrefix = %q, want empty", ws.responsePrefix)
 	}
@@ -104,7 +110,10 @@ func runWebSearchHandler(t *testing.T, params map[string]any, query string) stri
 	if !s.Setup() {
 		t.Fatal("Setup failed")
 	}
-	ws := s.(*WebSearchSkill)
+	ws, ok := s.(*WebSearchSkill)
+	if !ok {
+		t.Fatalf("expected *WebSearchSkill, got %T", s)
+	}
 	res := ws.handleWebSearch(map[string]any{"query": query}, nil)
 	m := res.ToMap()
 	resp, _ := m["response"].(string)
@@ -196,7 +205,10 @@ func TestWebSearch_Handler_NoResultsNotWrappedByPrefixPostfix(t *testing.T) {
 	if !s.Setup() {
 		t.Fatal("Setup failed")
 	}
-	ws := s.(*WebSearchSkill)
+	ws, ok := s.(*WebSearchSkill)
+	if !ok {
+		t.Fatalf("expected *WebSearchSkill, got %T", s)
+	}
 	res := ws.handleWebSearch(map[string]any{"query": "obscurequery"}, nil)
 	resp, _ := res.ToMap()["response"].(string)
 	if strings.Contains(resp, "PFX") || strings.Contains(resp, "SFX") {
@@ -223,8 +235,8 @@ func latencyStubServer(t *testing.T, query string, numItems int, contentDelay ti
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/customsearch/v1") {
 			w.Header().Set("Content-Type", "application/json")
-			var items []string
-			for i := 0; i < numItems; i++ {
+			items := make([]string, 0, numItems)
+			for i := range numItems {
 				items = append(items, fmt.Sprintf(
 					`{"title":"Result %[1]d about %[2]s","link":"%[3]s/page%[1]d","snippet":"snippet %[1]d on %[2]s"}`,
 					i, query, "http://"+r.Host))
@@ -273,7 +285,7 @@ func buildWebSearch(t *testing.T, params map[string]any) *WebSearchSkill {
 	if !s.Setup() {
 		t.Fatal("Setup failed")
 	}
-	return s.(*WebSearchSkill)
+	return as[*WebSearchSkill](t, s)
 }
 
 func TestWebSearch_Setup_LatencyParamsDefault(t *testing.T) {
@@ -481,7 +493,7 @@ func TestWebSearch_Handler_ParallelFastPathScrapesContent(t *testing.T) {
 // Every latency/response param read in Setup() must be advertised in the schema
 // with the matching type + default.
 func TestWebSearch_Schema_AdvertisesLatencyAndResponseParams(t *testing.T) {
-	ws := NewWebSearch(map[string]any{"api_key": "k", "search_engine_id": "e"}).(*WebSearchSkill)
+	ws := as[*WebSearchSkill](t, NewWebSearch(map[string]any{"api_key": "k", "search_engine_id": "e"}))
 	schema := ws.GetParameterSchema()
 
 	for _, key := range []string{

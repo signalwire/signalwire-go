@@ -27,6 +27,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/signalwire/signalwire-go/pkg/agent"
 	"github.com/signalwire/signalwire-go/pkg/contexts"
@@ -161,6 +162,9 @@ func main() {
 		SetEnd(true)
 
 	doc := a.RenderSWML(nil, nil)
-	b, _ := json.MarshalIndent(doc, "", "  ")
+	b, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		log.Fatalf("failed to render SWML: %v", err)
+	}
 	fmt.Println(string(b))
 }

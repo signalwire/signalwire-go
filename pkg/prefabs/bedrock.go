@@ -99,11 +99,12 @@ func NewBedrockAgent(opts BedrockOptions) *BedrockAgent {
 	}
 
 	// Build base AgentOption list: name + route first, then caller overrides.
-	baseOpts := []agent.AgentOption{
+	baseOpts := make([]agent.AgentOption, 0, 3+len(opts.AgentOptions))
+	baseOpts = append(baseOpts,
 		agent.WithName(name),
 		agent.WithRoute(route),
 		agent.WithAIVerbName("amazon_bedrock"),
-	}
+	)
 	baseOpts = append(baseOpts, opts.AgentOptions...)
 
 	base := agent.NewAgentBase(baseOpts...)

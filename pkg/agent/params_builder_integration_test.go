@@ -58,7 +58,7 @@ func TestBuilderParams_RenderedIntoRealSWAIGJSON(t *testing.T) {
 		Parameters:  params,
 		Required:    required,
 		Handler: func(args map[string]any, raw map[string]any) *swaig.FunctionResult {
-			return swaig.NewFunctionResult("checked " + args["service"].(string))
+			return swaig.NewFunctionResult("checked " + as[string](t, args["service"]))
 		},
 	})
 
@@ -99,8 +99,14 @@ func TestBuilderParams_RenderedIntoRealSWAIGJSON(t *testing.T) {
 	}
 
 	// JSON-equal comparison (normalizes object key order, preserves array order).
-	gb, _ := json.Marshal(gotParams)
-	wb, _ := json.Marshal(wantParams)
+	gb, err := json.Marshal(gotParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wb, err := json.Marshal(wantParams)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var gv, wv any
 	_ = json.Unmarshal(gb, &gv)
 	_ = json.Unmarshal(wb, &wv)
@@ -109,8 +115,8 @@ func TestBuilderParams_RenderedIntoRealSWAIGJSON(t *testing.T) {
 	}
 
 	// Spot-check the enum array actually rode through into the generated JSON.
-	props := gotParams["properties"].(map[string]any)
-	fmtProp := props["fmt"].(map[string]any)
+	props := as[map[string]any](t, gotParams["properties"])
+	fmtProp := as[map[string]any](t, props["fmt"])
 	enum, ok := fmtProp["enum"].([]any)
 	if !ok || len(enum) != 3 || enum[0] != "mp3" || enum[2] != "mp4" {
 		t.Errorf("fmt enum not rendered correctly: %#v", fmtProp["enum"])
@@ -161,8 +167,14 @@ func TestBuilderParams_EquivalentToHandWrittenInRender(t *testing.T) {
 	builtFn := findSwaigFunctions(t, makeAgent(builderParams, builderReq).RenderSWML(nil, nil))[0]
 	handFn := findSwaigFunctions(t, makeAgent(handParams, handReq).RenderSWML(nil, nil))[0]
 
-	bb, _ := json.Marshal(builtFn["parameters"])
-	hb, _ := json.Marshal(handFn["parameters"])
+	bb, err := json.Marshal(builtFn["parameters"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	hb, err := json.Marshal(handFn["parameters"])
+	if err != nil {
+		t.Fatal(err)
+	}
 	var bv, hv any
 	_ = json.Unmarshal(bb, &bv)
 	_ = json.Unmarshal(hb, &hv)

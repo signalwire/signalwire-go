@@ -68,8 +68,14 @@ func TestExpressionRegexpEquivalentToExpression(t *testing.T) {
 	dmB := New("a")
 	dmB.ExpressionRegexp("${args.x}", regexp.MustCompile("^foo$"), out, nil)
 
-	aBytes, _ := json.Marshal(dmA.ToSwaigFunction())
-	bBytes, _ := json.Marshal(dmB.ToSwaigFunction())
+	aBytes, err := json.Marshal(dmA.ToSwaigFunction())
+	if err != nil {
+		t.Fatal(err)
+	}
+	bBytes, err := json.Marshal(dmB.ToSwaigFunction())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if string(aBytes) != string(bBytes) {
 		t.Fatalf("ExpressionRegexp and Expression should produce equivalent output\nExpression:\n%s\nExpressionRegexp:\n%s",
 			aBytes, bBytes)

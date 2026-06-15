@@ -108,6 +108,7 @@ func main() {
 			// The existing cart_items array in global_data gets the new entry
 			var items []any
 			if existingItems, ok := globalData["cart_items"].([]any); ok {
+				//nolint:gocritic // appendAssign: deliberately derives a new cart slice from the global-data value, stored back via UpdateGlobalData; existingItems is not reused.
 				items = append(existingItems, newItem)
 			} else {
 				items = []any{newItem}

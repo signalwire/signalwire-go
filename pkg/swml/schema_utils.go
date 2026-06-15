@@ -362,10 +362,11 @@ func (s *SchemaUtils) GenerateMethodBody(verbName string) string {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	lines := []string{
+	lines := make([]string, 0, 2+2*len(keys)+1+1+1+1+1+1+1)
+	lines = append(lines,
 		"        # Prepare the configuration",
 		"        config = {}",
-	}
+	)
 	for _, name := range keys {
 		lines = append(lines, fmt.Sprintf("        if %s is not None:", name))
 		lines = append(lines, fmt.Sprintf("            config['%s'] = %s", name, name))

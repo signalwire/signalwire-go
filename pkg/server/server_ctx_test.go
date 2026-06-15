@@ -32,7 +32,11 @@ func freePort(t *testing.T) int {
 		t.Fatalf("freePort: %v", err)
 	}
 	defer func() { _ = ln.Close() }()
-	return ln.Addr().(*net.TCPAddr).Port
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatalf("expected *net.TCPAddr, got %T", ln.Addr())
+	}
+	return addr.Port
 }
 
 // waitHealthy blocks until GET /health on the given base URL returns 200, or

@@ -2,6 +2,7 @@ package relay
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -463,7 +464,7 @@ func TestAction_WaitTimeout(t *testing.T) {
 	if err == nil {
 		t.Fatal("Wait should return error on timeout")
 	}
-	if err != context.DeadlineExceeded {
+	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("expected DeadlineExceeded, got %v", err)
 	}
 }
@@ -617,7 +618,7 @@ func TestCall_WaitForTimeout(t *testing.T) {
 	_, err := call.WaitFor(ctx, EventCallingCallState, func(e *RelayEvent) bool {
 		return e.GetString("call_state") == CallStateEnded
 	})
-	if err != context.DeadlineExceeded {
+	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("expected DeadlineExceeded, got %v", err)
 	}
 }

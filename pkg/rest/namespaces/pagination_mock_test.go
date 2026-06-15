@@ -21,6 +21,7 @@
 package namespaces_test
 
 import (
+	"errors"
 	"testing"
 
 	rest "github.com/signalwire/signalwire-go/pkg/rest"
@@ -216,7 +217,7 @@ func TestPaginatedIterator_ForEachStopsOnError(t *testing.T) {
 		}
 		return nil
 	})
-	if err != stopErr {
+	if !errors.Is(err, stopErr) {
 		t.Errorf("ForEach error = %v, want stopErr", err)
 	}
 	if visited != 2 {

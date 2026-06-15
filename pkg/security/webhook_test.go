@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"errors"
 	"net/url"
 	"sort"
 	"strings"
@@ -273,7 +274,7 @@ func TestErrors_MissingSigningKeyReturnsErrorOnE(t *testing.T) {
 	if ok {
 		t.Fatalf("expected ok=false on empty key")
 	}
-	if err == nil || err != ErrMissingSigningKey {
+	if err == nil || !errors.Is(err, ErrMissingSigningKey) {
 		t.Fatalf("expected ErrMissingSigningKey, got %v", err)
 	}
 }

@@ -226,14 +226,14 @@ func TestGetPrompt_PomMode(t *testing.T) {
 func TestGetPrompt_ReturnsCopy(t *testing.T) {
 	a := NewAgentBase()
 	a.PromptAddSection("S1", "", nil)
-	result := a.GetPrompt().([]map[string]any)
+	result := as[[]map[string]any](t, a.GetPrompt())
 	result = append(result, map[string]any{"title": "Extra"})
 	// The returned slice is the caller's to mutate: appending grew it to 2.
 	if len(result) != 2 {
 		t.Errorf("expected appended copy to have 2 sections, got %d", len(result))
 	}
 	// ...and that mutation must NOT have affected the agent's own state.
-	orig := a.GetPrompt().([]map[string]any)
+	orig := as[[]map[string]any](t, a.GetPrompt())
 	if len(orig) != 1 {
 		t.Errorf("modifying result should not affect agent; got %d sections", len(orig))
 	}

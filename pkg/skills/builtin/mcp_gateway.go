@@ -289,8 +289,12 @@ func (s *MCPGatewaySkill) callMCPTool(serviceName, toolName string, args map[str
 		retries = 1
 	}
 
-	for attempt := 0; attempt < retries; attempt++ {
-		bodyBytes, _ := json.Marshal(reqData)
+	bodyBytes, err := json.Marshal(reqData)
+	if err != nil {
+		return swaig.NewFunctionResult(fmt.Sprintf("Error calling %s.%s", serviceName, toolName))
+	}
+
+	for range retries {
 		req, err := http.NewRequest("POST",
 			fmt.Sprintf("%s/services/%s/call", s.gatewayURL, serviceName),
 			bytes.NewReader(bodyBytes),

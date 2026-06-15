@@ -357,12 +357,15 @@ func TestMcpHttpEndpoint(t *testing.T) {
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
-	body, _ := json.Marshal(map[string]any{
+	body, err := json.Marshal(map[string]any{
 		"jsonrpc": "2.0",
 		"id":      1,
 		"method":  "tools/list",
 		"params":  map[string]any{},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	resp, err := http.Post(ts.URL+"/test/mcp", "application/json", bytes.NewReader(body))
 	if err != nil {

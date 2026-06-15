@@ -621,14 +621,20 @@ func TestAddEnterExitFiller(t *testing.T) {
 	ctx.AddExitFiller("en-US", []string{"Goodbye"})
 
 	m := ctx.ToMap()
-	ef := m["enter_fillers"].(map[string][]string)
+	ef, ok := m["enter_fillers"].(map[string][]string)
+	if !ok {
+		t.Fatalf("expected map[string][]string, got %T", m["enter_fillers"])
+	}
 	if len(ef) != 2 {
 		t.Fatalf("expected 2 enter filler languages, got %d", len(ef))
 	}
 	if ef["es"][0] != "Hola" {
 		t.Fatalf("unexpected es filler: %v", ef["es"])
 	}
-	xf := m["exit_fillers"].(map[string][]string)
+	xf, ok := m["exit_fillers"].(map[string][]string)
+	if !ok {
+		t.Fatalf("expected map[string][]string, got %T", m["exit_fillers"])
+	}
 	if xf["en-US"][0] != "Goodbye" {
 		t.Fatalf("unexpected exit filler: %v", xf["en-US"])
 	}
@@ -774,11 +780,17 @@ func TestFullRoundTrip(t *testing.T) {
 		t.Fatal("expected 'support' context in output")
 	}
 
-	salesMap := m["sales"].(map[string]any)
+	salesMap, ok := m["sales"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", m["sales"])
+	}
 	if salesMap["post_prompt"] != "Summarise the sales call" {
 		t.Fatal("unexpected post_prompt")
 	}
-	steps := salesMap["steps"].([]map[string]any)
+	steps, ok := salesMap["steps"].([]map[string]any)
+	if !ok {
+		t.Fatalf("expected []map[string]any, got %T", salesMap["steps"])
+	}
 	if len(steps) != 2 {
 		t.Fatalf("expected 2 steps in sales, got %d", len(steps))
 	}
@@ -807,10 +819,22 @@ func TestGatherInfoInBuilder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defaultCtx := m["default"].(map[string]any)
-	steps := defaultCtx["steps"].([]map[string]any)
-	giMap := steps[0]["gather_info"].(map[string]any)
-	qs := giMap["questions"].([]map[string]any)
+	defaultCtx, ok := m["default"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", m["default"])
+	}
+	steps, ok := defaultCtx["steps"].([]map[string]any)
+	if !ok {
+		t.Fatalf("expected []map[string]any, got %T", defaultCtx["steps"])
+	}
+	giMap, ok := steps[0]["gather_info"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any, got %T", steps[0]["gather_info"])
+	}
+	qs, ok := giMap["questions"].([]map[string]any)
+	if !ok {
+		t.Fatalf("expected []map[string]any, got %T", giMap["questions"])
+	}
 	if len(qs) != 2 {
 		t.Fatalf("expected 2 questions, got %d", len(qs))
 	}

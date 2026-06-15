@@ -35,6 +35,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/signalwire/signalwire-go/pkg/agent"
 	"github.com/signalwire/signalwire-go/pkg/swaig"
@@ -132,6 +133,9 @@ func main() {
 	// Render the SWML document so you can see exactly which steps have
 	// a `functions` key in the output and which don't.
 	doc := a.RenderSWML(nil, nil)
-	b, _ := json.MarshalIndent(doc, "", "  ")
+	b, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		log.Fatalf("failed to render SWML: %v", err)
+	}
 	fmt.Println(string(b))
 }
