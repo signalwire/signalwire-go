@@ -128,7 +128,7 @@ func (s *WebSearchSkill) RegisterTools() []skills.ToolRegistration {
 						"description": "The search query - what you want to find information about",
 					},
 				},
-				"required": []string{"query"},
+				// No `required` — Python passes none (web_search/skill.py:707).
 			},
 			Handler: s.handleWebSearch,
 		},

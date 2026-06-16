@@ -107,7 +107,8 @@ func (s *InfoGathererSkill) RegisterTools() []skills.ToolRegistration {
 						"description": "Only set to true when the user has explicitly confirmed the answer is correct",
 					},
 				},
-				"required": []string{"answer"},
+				// No `required` — Python's submit_answer passes none
+				// (info_gatherer/skill.py:170).
 			},
 			Handler: s.handleSubmitAnswer,
 		},

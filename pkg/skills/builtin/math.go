@@ -44,7 +44,7 @@ func (s *MathSkill) RegisterTools() []skills.ToolRegistration {
 						"description": "Mathematical expression to evaluate (e.g., '2 + 3 * 4', '(10 + 5) / 3')",
 					},
 				},
-				"required": []string{"expression"},
+				// No `required` — Python's math skill passes none (math/skill.py:33).
 			},
 			Handler: s.handleCalculate,
 		},

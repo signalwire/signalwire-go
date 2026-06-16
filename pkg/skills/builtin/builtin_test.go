@@ -71,13 +71,13 @@ func TestDateTimeInstantiationAndSetup(t *testing.T) {
 	if len(tools) == 0 {
 		t.Error("datetime RegisterTools() returned empty")
 	}
-	// Skills now register get_current_time, get_current_date, and get_datetime.
-	// Verify all three are present.
+	// datetime registers exactly get_current_time + get_current_date (matches
+	// Python; no combined get_datetime tool).
 	toolNames := make(map[string]bool)
 	for _, tool := range tools {
 		toolNames[tool.Name] = true
 	}
-	for _, want := range []string{"get_current_time", "get_current_date", "get_datetime"} {
+	for _, want := range []string{"get_current_time", "get_current_date"} {
 		if !toolNames[want] {
 			t.Errorf("expected tool %q to be registered", want)
 		}

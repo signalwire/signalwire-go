@@ -75,7 +75,7 @@ func (s *WikipediaSearchSkill) RegisterTools() []skills.ToolRegistration {
 						"description": "The search term or topic to look up on Wikipedia",
 					},
 				},
-				"required": []string{"query"},
+				// No `required` — Python passes none (wikipedia_search/skill.py:87).
 			},
 			Handler: s.handleSearch,
 		},

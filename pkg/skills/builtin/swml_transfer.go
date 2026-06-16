@@ -73,18 +73,14 @@ func (s *SWMLTransferSkill) Setup() bool {
 }
 
 func (s *SWMLTransferSkill) RegisterTools() []skills.ToolRegistration {
-	// Build enum from transfer keys
-	enumVals := make([]string, 0, len(s.transfers))
-	for k := range s.transfers {
-		enumVals = append(enumVals, k)
-	}
-
-	// Build properties: primary param + required_fields
+	// Build properties: primary param + required_fields. The primary param is a
+	// plain required string with NO enum — Python's swml_transfer does not put
+	// the transfer keys in the param schema (swml_transfer/skill.py:186); the
+	// keys drive DataMap pattern-matching expressions, not the param's enum.
 	properties := map[string]any{
 		s.paramName: map[string]any{
 			"type":        "string",
 			"description": s.paramDesc,
-			"enum":        enumVals,
 		},
 	}
 	requiredParams := make([]string, 0, 1+len(s.requiredFields))
