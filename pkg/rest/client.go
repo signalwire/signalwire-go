@@ -13,6 +13,7 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -161,10 +162,46 @@ func (c *HTTPClient) Delete(path string) (map[string]any, error) {
 	return c.doRequest("DELETE", path, nil, nil)
 }
 
-// doRequest is the shared request execution method. It sets Basic Auth,
-// Content-Type, Accept, and User-Agent headers. A 204 No Content response
-// returns an empty map. Non-2xx responses return a *SignalWireRestError.
+// GetContext is the context-aware variant of Get: the request is cancelled when
+// ctx is cancelled or its deadline passes.
+func (c *HTTPClient) GetContext(ctx context.Context, path string, params map[string]string) (map[string]any, error) {
+	return c.doRequestContext(ctx, "GET", path, nil, params)
+}
+
+// PostContext is the context-aware variant of Post.
+func (c *HTTPClient) PostContext(ctx context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error) {
+	return c.doRequestContext(ctx, "POST", path, body, params)
+}
+
+// PutContext is the context-aware variant of Put.
+func (c *HTTPClient) PutContext(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
+	return c.doRequestContext(ctx, "PUT", path, body, nil)
+}
+
+// PatchContext is the context-aware variant of Patch.
+func (c *HTTPClient) PatchContext(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
+	return c.doRequestContext(ctx, "PATCH", path, body, nil)
+}
+
+// DeleteContext is the context-aware variant of Delete.
+func (c *HTTPClient) DeleteContext(ctx context.Context, path string) (map[string]any, error) {
+	return c.doRequestContext(ctx, "DELETE", path, nil, nil)
+}
+
+// doRequest is the shared request execution method. It delegates to
+// doRequestContext with a background context (no cancellation/deadline beyond
+// the client's fixed Timeout). Callers wanting per-call cancellation use the
+// ...Context verb variants.
 func (c *HTTPClient) doRequest(method, path string, body any, params map[string]string) (map[string]any, error) {
+	return c.doRequestContext(context.Background(), method, path, body, params)
+}
+
+// doRequestContext is the shared request execution method. It threads the
+// caller's context onto the HTTP request (so cancellation and deadlines are
+// observed), sets Basic Auth, Content-Type, Accept, and User-Agent headers. A
+// 204 No Content response returns an empty map. Non-2xx responses return a
+// *SignalWireRestError.
+func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, body any, params map[string]string) (map[string]any, error) {
 	// Build URL
 	reqURL := c.baseURL + path
 	if len(params) > 0 {
@@ -187,7 +224,7 @@ func (c *HTTPClient) doRequest(method, path string, body any, params map[string]
 
 	c.logger.Debug("REST request %s %s", method, path)
 
-	req, err := http.NewRequest(method, reqURL, bodyReader)
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("new request: %w", err)
 	}
@@ -298,6 +335,35 @@ func (r *CrudResource) Delete(id string) (map[string]any, error) {
 	return r.Client.Delete(r.subPath(id))
 }
 
+// ListContext is the context-aware variant of List.
+func (r *CrudResource) ListContext(ctx context.Context, params map[string]string) (map[string]any, error) {
+	return r.Client.GetContext(ctx, r.Path, params)
+}
+
+// CreateContext is the context-aware variant of Create.
+func (r *CrudResource) CreateContext(ctx context.Context, data map[string]any) (map[string]any, error) {
+	return r.Client.PostContext(ctx, r.Path, data, nil)
+}
+
+// GetContext is the context-aware variant of Get.
+func (r *CrudResource) GetContext(ctx context.Context, id string) (map[string]any, error) {
+	return r.Client.GetContext(ctx, r.subPath(id), nil)
+}
+
+// UpdateContext is the context-aware variant of Update.
+func (r *CrudResource) UpdateContext(ctx context.Context, id string, data map[string]any) (map[string]any, error) {
+	path := r.subPath(id)
+	if r.UpdateMethod == "PUT" {
+		return r.Client.PutContext(ctx, path, data)
+	}
+	return r.Client.PatchContext(ctx, path, data)
+}
+
+// DeleteContext is the context-aware variant of Delete.
+func (r *CrudResource) DeleteContext(ctx context.Context, id string) (map[string]any, error) {
+	return r.Client.DeleteContext(ctx, r.subPath(id))
+}
+
 // ---------- PaginatedIterator ----------
 
 // PaginatedIterator walks through paginated API responses one page at a time.
@@ -332,11 +398,17 @@ func NewPaginatedIterator(client *HTTPClient, path string, params map[string]str
 // a boolean hasMore that is true when additional pages remain, and any error.
 // When there are no more pages, it returns nil, false, nil.
 func (p *PaginatedIterator) Next() ([]map[string]any, bool, error) {
+	return p.NextContext(context.Background())
+}
+
+// NextContext is the context-aware variant of Next: the page fetch is cancelled
+// when ctx is cancelled or its deadline passes.
+func (p *PaginatedIterator) NextContext(ctx context.Context) ([]map[string]any, bool, error) {
 	if p.done {
 		return nil, false, nil
 	}
 
-	resp, err := p.client.Get(p.path, p.params)
+	resp, err := p.client.GetContext(ctx, p.path, p.params)
 	if err != nil {
 		return nil, false, err
 	}
@@ -385,8 +457,14 @@ func (p *PaginatedIterator) Next() ([]map[string]any, bool, error) {
 // Iteration stops early if fn returns a non-nil error (that error is returned
 // to the caller) or when Next signals there are no more pages.
 func (p *PaginatedIterator) ForEach(fn func(map[string]any) error) error {
+	return p.ForEachContext(context.Background(), fn)
+}
+
+// ForEachContext is the context-aware variant of ForEach: page fetches are
+// cancelled when ctx is cancelled or its deadline passes.
+func (p *PaginatedIterator) ForEachContext(ctx context.Context, fn func(map[string]any) error) error {
 	for {
-		items, hasMore, err := p.Next()
+		items, hasMore, err := p.NextContext(ctx)
 		if err != nil {
 			return err
 		}

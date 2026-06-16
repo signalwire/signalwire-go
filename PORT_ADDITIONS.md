@@ -26,6 +26,22 @@ relay.Client.RunContext: Go ctx-aware form of Run; stops cleanly on ctx cancel/d
 relay.Client.DialContext: Go ctx-aware form of Dial; aborts the dial on ctx cancel/deadline returning ctx.Err(), alongside the dial-timeout + client lifecycle. Non-ctx Dial preserved
 server.AgentServer.RunContext: Go ctx-aware form of AgentServer.Run; on ctx cancel/deadline performs a graceful Shutdown (drain) then returns nil. Non-ctx Run preserved
 agent.AgentBase.RunContext: Go ctx-aware form of AgentBase.Run; on ctx cancel/deadline triggers the existing graceful HTTP shutdown (drains in-flight) then returns nil. Composes with SetupGracefulShutdown. Non-ctx Run preserved
+# REST client ctx-aware variants (cloud-product #19436). doRequest now delegates to
+# doRequestContext via http.NewRequestWithContext; the non-ctx verbs are PRESERVED and
+# delegate with context.Background(). Python's REST client has no caller-supplied
+# cancellation token. Methods-on-mapped-structs: invisible to both diff gates.
+rest.HTTPClient.GetContext: Go ctx-aware form of HTTPClient.Get; request is cancelled on ctx cancel/deadline. Non-ctx Get preserved, delegates with context.Background()
+rest.HTTPClient.PostContext: Go ctx-aware form of HTTPClient.Post. Non-ctx Post preserved
+rest.HTTPClient.PutContext: Go ctx-aware form of HTTPClient.Put. Non-ctx Put preserved
+rest.HTTPClient.PatchContext: Go ctx-aware form of HTTPClient.Patch. Non-ctx Patch preserved
+rest.HTTPClient.DeleteContext: Go ctx-aware form of HTTPClient.Delete. Non-ctx Delete preserved
+rest.CrudResource.ListContext: Go ctx-aware form of CrudResource.List; delegates to HTTPClient.GetContext. Non-ctx List preserved
+rest.CrudResource.CreateContext: Go ctx-aware form of CrudResource.Create. Non-ctx Create preserved
+rest.CrudResource.GetContext: Go ctx-aware form of CrudResource.Get. Non-ctx Get preserved
+rest.CrudResource.UpdateContext: Go ctx-aware form of CrudResource.Update (honors UpdateMethod PATCH/PUT). Non-ctx Update preserved
+rest.CrudResource.DeleteContext: Go ctx-aware form of CrudResource.Delete. Non-ctx Delete preserved
+rest.PaginatedIterator.NextContext: Go ctx-aware form of PaginatedIterator.Next; page fetch cancelled on ctx cancel/deadline. Non-ctx Next preserved, delegates with context.Background()
+rest.PaginatedIterator.ForEachContext: Go ctx-aware form of PaginatedIterator.ForEach; page fetches cancelled on ctx cancel/deadline. Non-ctx ForEach preserved
 
 # --- Tier-2 idiom additions: AgentServer graceful shutdown (IDIOM_PASS_JOURNAL §4) ---
 server.AgentServer.Shutdown: Go graceful shutdown — stops accepting new connections and drains in-flight requests bounded by ctx's deadline (net/http.Server.Shutdown). Returns ErrServerNotRunning when not serving. No Python-reference equivalent (AgentServer has no graceful-shutdown surface)

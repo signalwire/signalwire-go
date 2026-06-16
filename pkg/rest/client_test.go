@@ -8,6 +8,10 @@
 package rest
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 )
@@ -345,6 +349,49 @@ func TestHttpClient_URLConstruction(t *testing.T) {
 	expected := "https://my-space.signalwire.com"
 	if c.BaseURL() != expected {
 		t.Errorf("BaseURL() = %q, want %q", c.BaseURL(), expected)
+	}
+}
+
+func TestHttpClient_GetContext_CancelledBeforeRequest(t *testing.T) {
+	// An already-cancelled context must abort the request before it is sent.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		t.Error("server handler was called despite a cancelled context")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := NewHTTPClient("proj", "tok", "ignored")
+	c.SetBaseURL(srv.URL)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+
+	_, err := c.GetContext(ctx, "/anything", nil)
+	if err == nil {
+		t.Fatal("expected an error from a cancelled context, got nil")
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context.Canceled in error chain, got %v", err)
+	}
+}
+
+func TestHttpClient_GetContext_Succeeds(t *testing.T) {
+	// A live context lets the request through and returns the body.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+
+	c := NewHTTPClient("proj", "tok", "ignored")
+	c.SetBaseURL(srv.URL)
+
+	resp, err := c.GetContext(context.Background(), "/anything", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp["ok"] != true {
+		t.Errorf("resp[ok] = %v, want true", resp["ok"])
 	}
 }
 
