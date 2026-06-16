@@ -89,3 +89,31 @@ jobs:
         env:
           PORTING_SDK: ${{ github.workspace }}/porting-sdk
         run: bash scripts/run-ci.sh
+
+  # Windows portability guard. The full run-ci.sh gate set is Linux-only (the
+  # cross-port mock servers are POSIX, and the audit scripts assume bash +
+  # signalwire-python adjacency). But the Go SOURCE must still COMPILE, vet, and
+  # test on Windows — a platform-specific construct without a build constraint
+  # (e.g. syscall.SysProcAttr.Setpgid, which does not exist on GOOS=windows)
+  # otherwise breaks the Windows build silently, since the Linux-only matrix
+  # never exercises it. This lean job builds/vets/tests the module on Windows.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout signalwire-go
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: go build (all packages, incl. test files via vet)
+        run: go build ./...
+
+      - name: go vet (compiles test files too — catches unconstrained syscall use)
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...

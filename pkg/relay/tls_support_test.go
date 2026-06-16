@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -175,7 +174,10 @@ func startTLSMockRelay(t *testing.T) *tlsMockRelay {
 	if devnull, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0); devnull != nil {
 		cmd.Stdin = devnull
 	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// Run the mock in its own process group (Unix) so signals to the test
+	// binary don't cascade to it. Build-constrained (Setpgid is Unix-only; it
+	// does not exist on Windows). See setprocessgroup_*_test.go.
+	tlsSetProcessGroup(cmd)
 	if err := cmd.Start(); err != nil {
 		t.Skipf("tls: spawn mock_relay --tls: %v", err)
 	}
