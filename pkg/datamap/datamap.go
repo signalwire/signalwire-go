@@ -147,9 +147,17 @@ func (dm *DataMap) Parameter(name, paramType, desc string, required bool, enum [
 // Expression adds a pattern-matching expression for expression-based responses.
 // testValue is the template string to test (e.g., "${args.command}").
 // pattern is the regex pattern to match against.
-// output is the FunctionResult returned when the pattern matches.
+// output is the FunctionResult returned when the pattern matches. It is REQUIRED
+// and must not be nil — a nil output panics here (at the call site), mirroring
+// the Python reference, whose expression() calls output.to_dict() immediately
+// and so raises on a None output at build time. Failing here (rather than later
+// at serialize time, where the value would otherwise be dereferenced) keeps the
+// error at the point of misuse.
 // nomatchOutput is an optional FunctionResult returned when the pattern does not match (can be nil).
 func (dm *DataMap) Expression(testValue, pattern string, output *swaig.FunctionResult, nomatchOutput *swaig.FunctionResult) *DataMap {
+	if output == nil {
+		panic("datamap: Expression output must not be nil")
+	}
 	dm.expressions = append(dm.expressions, expressionDef{
 		testValue:     testValue,
 		pattern:       pattern,

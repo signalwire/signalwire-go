@@ -354,6 +354,18 @@ func TestExpressions(t *testing.T) {
 	}
 }
 
+func TestExpressionNilOutputPanics(t *testing.T) {
+	// output is required; passing nil must panic at the Expression() call site
+	// (mirrors the Python reference, which raises immediately on a None output),
+	// rather than panicking later at serialize time.
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected Expression(nil output) to panic, but it did not")
+		}
+	}()
+	New("h").Expression("${args.x}", "^foo$", nil, nil)
+}
+
 func TestCreateSimpleApiTool(t *testing.T) {
 	dm := CreateSimpleAPITool(
 		"get_stock",

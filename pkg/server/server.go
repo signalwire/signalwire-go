@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/signalwire/signalwire-go/pkg/agent"
 	"github.com/signalwire/signalwire-go/pkg/logging"
@@ -375,6 +376,15 @@ func (s *AgentServer) RunContext(ctx context.Context, opts ...RunOption) error {
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: mux,
+		// Bound slow/idle connections so a slow client cannot hold a connection
+		// open indefinitely (Slowloris) — Go's zero defaults leave these
+		// unbounded. ReadHeaderTimeout closes the actual attack vector;
+		// IdleTimeout mirrors the Python/uvicorn reference's keep-alive posture.
+		// ReadTimeout and WriteTimeout are intentionally left 0 (unbounded): the
+		// reference does not bound them, and a non-zero WriteTimeout would
+		// truncate long or streaming AI responses.
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	s.mu.Lock()
