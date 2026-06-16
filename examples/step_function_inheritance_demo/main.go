@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: step_function_inheritance_demo
 //
 // This example exists to teach one specific gotcha: the per-step functions

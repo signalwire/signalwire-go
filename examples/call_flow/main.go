@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: call_flow
 //
 // Call flow verbs and SWAIG actions. Demonstrates pre-answer verbs

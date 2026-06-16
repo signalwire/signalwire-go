@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: mcp_agent
 //
 // Demonstrates both MCP features:

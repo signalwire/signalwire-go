@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: simple_agent
 //
 // Basic AI agent with prompt and tools. Demonstrates creating an AgentBase,

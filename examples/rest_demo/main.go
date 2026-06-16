@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: rest_demo
 //
 // REST API usage with the RestClient. Demonstrates creating a client,

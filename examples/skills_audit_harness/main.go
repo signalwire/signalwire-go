@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: skills_audit_harness
 //
 // Audit-only harness — exercises a single network skill against the

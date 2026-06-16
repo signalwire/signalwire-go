@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: simple_dynamic_agent
 //
 // Per-request agent customization using a dynamic config callback.

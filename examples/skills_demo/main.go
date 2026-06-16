@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: skills_demo
 //
 // Skills integration using the built-in skills registry. Demonstrates

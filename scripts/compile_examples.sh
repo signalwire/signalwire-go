@@ -3,8 +3,12 @@
 #
 # Go's ``package main`` means that two examples living side-by-side in the
 # same directory (as ``rest/examples/*.go`` and ``relay/examples/*.go`` do)
-# cannot be built by ``go build ./rest/examples/...``.  Each file also
-# carries a ``//go:build ignore`` tag so ``go build ./...`` skips them.
+# cannot be built by ``go build ./rest/examples/...``.  EVERY example file
+# across all four trees (``examples/``, ``rest/examples/``,
+# ``relay/examples/``, ``livewire/examples/``) carries a ``//go:build ignore``
+# tag so ``go build ./...`` skips the demos (they are standalone ``main``
+# programs, not library code).  This script is what actually compile-checks
+# them.
 #
 # This script compiles each file independently via
 # ``go build -o /dev/null FILE.go``; that form honours even

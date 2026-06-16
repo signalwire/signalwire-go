@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: relay_demo
 //
 // RELAY WebSocket call control. Demonstrates creating a RELAY client,

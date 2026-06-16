@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: relay_audit_harness
 //
 // Audit-only harness — runs a RelayClient against a local fixture that
