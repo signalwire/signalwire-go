@@ -1523,16 +1523,16 @@ func TestAddSkill_DateTime(t *testing.T) {
 	tools := a.DefineTools()
 	toolFound := false
 	for _, tool := range tools {
-		if tool.Name == "get_datetime" {
+		if tool.Name == "get_current_time" {
 			toolFound = true
 			if tool.Handler == nil {
-				t.Error("expected handler to be set for get_datetime tool")
+				t.Error("expected handler to be set for get_current_time tool")
 			}
 			break
 		}
 	}
 	if !toolFound {
-		t.Error("expected get_datetime tool to be registered")
+		t.Error("expected get_current_time tool to be registered")
 	}
 
 	// Verify hints were added
@@ -1598,9 +1598,9 @@ func TestAddSkill_ToolExecutes(t *testing.T) {
 	a.AddSkill("datetime", nil)
 
 	// Call the tool and verify it returns a valid result
-	result, err := a.OnFunctionCall("get_datetime", map[string]any{}, nil)
+	result, err := a.OnFunctionCall("get_current_time", map[string]any{}, nil)
 	if err != nil {
-		t.Fatalf("unexpected error calling get_datetime: %v", err)
+		t.Fatalf("unexpected error calling get_current_time: %v", err)
 	}
 	m, ok := result.(map[string]any)
 	if !ok {
@@ -1608,7 +1608,7 @@ func TestAddSkill_ToolExecutes(t *testing.T) {
 	}
 	resp, ok := m["response"].(string)
 	if !ok || resp == "" {
-		t.Errorf("expected non-empty response from get_datetime, got %v", m["response"])
+		t.Errorf("expected non-empty response from get_current_time, got %v", m["response"])
 	}
 }
 

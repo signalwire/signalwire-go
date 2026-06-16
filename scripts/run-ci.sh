@@ -141,6 +141,19 @@ run_gate "EMISSION" "diff_port_emission vs python to_dict() oracle" \
         --port go \
         --port-repo "$PORT_ROOT"
 
+# Gate 6b: skill-contract — the sibling of EMISSION for built-in SKILLS. EMISSION
+# byte-compares FunctionResult serialisation; this compares each skill's SWAIG
+# tool contract (name/parameters/required/enum from RegisterTools()) against the
+# Python reference. Catches a class drift/surface/emission can't see: a wrong
+# `required`, a renamed/retyped param, an extra/missing tool. The dump program
+# is cmd/emit-skills (go run ./cmd/emit-skills); dynamic skills are excluded +
+# logged by the shared corpus. Same prereqs as EMISSION (signalwire-python
+# adjacent; no network).
+run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
+        --dump-cmd "go run ./cmd/emit-skills" \
+        --port-repo "$PORT_ROOT"
+
 # Gate 7: FMT — the language format gate. Canonical gate name is language-neutral
 # (FMT); each port runs its own formatter under it. Here that is gofmt (Go's
 # builtin, canonical formatter — no tool to install, no config to bikeshed,

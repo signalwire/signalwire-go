@@ -102,16 +102,19 @@ func TestDateTimeSkill_ToolName(t *testing.T) {
 	s := factory(nil)
 	s.Setup()
 	tools := s.RegisterTools()
-	// Python registers get_current_time and get_current_date as separate tools;
-	// get_datetime is kept for backward compatibility.
+	// Python registers exactly get_current_time and get_current_date
+	// (datetime/skill.py:33,45) — no third combined tool.
 	toolNames := make(map[string]bool)
 	for _, tool := range tools {
 		toolNames[tool.Name] = true
 	}
-	for _, want := range []string{"get_current_time", "get_current_date", "get_datetime"} {
+	for _, want := range []string{"get_current_time", "get_current_date"} {
 		if !toolNames[want] {
 			t.Errorf("expected tool %q to be registered", want)
 		}
+	}
+	if toolNames["get_datetime"] {
+		t.Error("get_datetime is not part of the Python interface; should not be registered")
 	}
 }
 
@@ -121,25 +124,22 @@ func TestDateTimeSkill_ResponseContainsDate(t *testing.T) {
 	s.Setup()
 	tools := s.RegisterTools()
 
-	// Find get_datetime tool (returns both date and time in one response)
-	var datetimeTool *skills.ToolRegistration
+	// get_current_date returns a date-bearing response.
+	var dateTool *skills.ToolRegistration
 	for i := range tools {
-		if tools[i].Name == "get_datetime" {
-			datetimeTool = &tools[i]
+		if tools[i].Name == "get_current_date" {
+			dateTool = &tools[i]
 			break
 		}
 	}
-	if datetimeTool == nil {
-		t.Fatal("expected get_datetime tool to be registered")
+	if dateTool == nil {
+		t.Fatal("expected get_current_date tool to be registered")
 	}
 
-	result := datetimeTool.Handler(map[string]any{"timezone": "UTC"}, nil)
+	result := dateTool.Handler(map[string]any{"timezone": "UTC"}, nil)
 	m := result.ToMap()
 	resp, _ := m["response"].(string)
 	if !strings.Contains(resp, "date") {
 		t.Errorf("expected 'date' in response, got %q", resp)
-	}
-	if !strings.Contains(resp, "time") {
-		t.Errorf("expected 'time' in response, got %q", resp)
 	}
 }

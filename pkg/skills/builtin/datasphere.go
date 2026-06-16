@@ -134,7 +134,7 @@ func (s *DataSphereSkill) RegisterTools() []skills.ToolRegistration {
 						"description": "The search query",
 					},
 				},
-				"required": []string{"query"},
+				// No `required` — Python passes none (datasphere/skill.py:171).
 			},
 			Handler: s.handleSearch,
 		},

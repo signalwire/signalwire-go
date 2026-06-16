@@ -72,7 +72,7 @@ func (s *GoogleMapsSkill) RegisterTools() []skills.ToolRegistration {
 						"description": "Longitude to bias results toward (optional)",
 					},
 				},
-				"required": []string{"address"},
+				// No `required` — Python passes none (google_maps/skill.py:433).
 			},
 			Handler: s.handleLookupAddress,
 		},
@@ -100,7 +100,7 @@ func (s *GoogleMapsSkill) RegisterTools() []skills.ToolRegistration {
 						"description": "Destination longitude",
 					},
 				},
-				"required": []string{"origin_lat", "origin_lng", "dest_lat", "dest_lng"},
+				// No `required` — Python passes none (google_maps/skill.py:457).
 			},
 			Handler: s.handleComputeRoute,
 		},

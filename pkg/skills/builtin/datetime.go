@@ -62,20 +62,6 @@ func (s *DateTimeSkill) RegisterTools() []skills.ToolRegistration {
 			},
 			Handler: s.handleGetCurrentDate,
 		},
-		{
-			Name:        "get_datetime",
-			Description: "Get the current date and time, optionally in a specific timezone",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"timezone": map[string]any{
-						"type":        "string",
-						"description": "Timezone name (e.g., 'America/New_York', 'Europe/London'). Defaults to UTC.",
-					},
-				},
-			},
-			Handler: s.handleGetDateTime,
-		},
 	}
 }
 
@@ -111,20 +97,6 @@ func (s *DateTimeSkill) handleGetCurrentDate(args map[string]any, _ map[string]a
 	return swaig.NewFunctionResult(fmt.Sprintf("Today's date is %s", dateStr))
 }
 
-func (s *DateTimeSkill) handleGetDateTime(args map[string]any, _ map[string]any) *swaig.FunctionResult {
-	loc, err := s.resolveLocation(args)
-	if err != nil {
-		tzName, _ := args["timezone"].(string)
-		return swaig.NewFunctionResult(fmt.Sprintf("Error: invalid timezone '%s'", tzName))
-	}
-
-	now := time.Now().In(loc)
-	dateStr := now.Format("Monday, January 02, 2006")
-	timeStr := now.Format("03:04:05 PM MST")
-
-	return swaig.NewFunctionResult(fmt.Sprintf("The current date is %s and the time is %s", dateStr, timeStr))
-}
-
 func (s *DateTimeSkill) GetHints() []string {
 	return []string{"time", "date", "today", "now", "current", "timezone"}
 }
@@ -135,8 +107,9 @@ func (s *DateTimeSkill) GetPromptSections() []map[string]any {
 			"title": "Date and Time Information",
 			"body":  "You can provide current date and time information.",
 			"bullets": []string{
-				"Use get_datetime to tell users the current date and time",
-				"Supports different timezones",
+				"Use get_current_time to tell users what time it is",
+				"Use get_current_date to tell users today's date",
+				"Both tools support different timezones via IANA identifiers",
 			},
 		},
 	}
