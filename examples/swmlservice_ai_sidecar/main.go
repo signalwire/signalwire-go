@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: swmlservice_ai_sidecar
 //
 // Proves that swml.Service can emit the `ai_sidecar` verb, register SWAIG

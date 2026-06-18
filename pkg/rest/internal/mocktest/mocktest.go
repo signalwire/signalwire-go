@@ -32,20 +32,18 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
 	rest "github.com/signalwire/signalwire-go/pkg/rest"
 )
 
-// setProcessGroup configures the spawned mock-server process to run in its
-// own process group on Unix (Setpgid: true). This prevents signals to the
-// test binary from cascading to the child and keeps the child detached so
-// the testing framework's pipe-drain logic doesn't block on it.
-func setProcessGroup(cmd *exec.Cmd) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-}
+// setProcessGroup configures the spawned mock-server process to run in its own
+// process group. Its implementation is platform-specific (Unix sets
+// Setpgid:true; Windows is a no-op) and lives in build-constrained files
+// (setprocessgroup_unix.go / setprocessgroup_windows.go) because the
+// syscall.SysProcAttr.Setpgid field does not exist on Windows — referencing it
+// unconditionally fails to COMPILE there (not a runtime branch).
 
 // JournalEntry mirrors mock_signalwire.journal.JournalEntry over the wire.
 //

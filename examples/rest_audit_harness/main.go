@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: rest_audit_harness
 //
 // Audit-only harness — drives a single REST operation against the loopback

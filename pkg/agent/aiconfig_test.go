@@ -131,7 +131,7 @@ func TestAddLanguageTyped_WithEmptyParams_OmitsKey(t *testing.T) {
 func TestGetLanguageParams_ReturnsSetDict(t *testing.T) {
 	a := NewAgentBase()
 	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "", map[string]any{"a": 1})
-	got := a.GetLanguageParams("en-US")
+	got := a.LanguageParams("en-US")
 	if got == nil {
 		t.Fatalf("expected params map; got nil")
 	}
@@ -143,14 +143,14 @@ func TestGetLanguageParams_ReturnsSetDict(t *testing.T) {
 func TestGetLanguageParams_ReturnsNilWhenUnset(t *testing.T) {
 	a := NewAgentBase()
 	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "")
-	if got := a.GetLanguageParams("en-US"); got != nil {
+	if got := a.LanguageParams("en-US"); got != nil {
 		t.Errorf("expected nil for unset params; got %v", got)
 	}
 }
 
 func TestGetLanguageParams_ReturnsNilForUnknownCode(t *testing.T) {
 	a := NewAgentBase()
-	if got := a.GetLanguageParams("zh-CN"); got != nil {
+	if got := a.LanguageParams("zh-CN"); got != nil {
 		t.Errorf("expected nil for unknown code; got %v", got)
 	}
 }
@@ -159,7 +159,7 @@ func TestSetLanguageParams_ReplacesExisting(t *testing.T) {
 	a := NewAgentBase()
 	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "", map[string]any{"a": 1})
 	a.SetLanguageParams("en-US", map[string]any{"b": 2})
-	got := a.GetLanguageParams("en-US")
+	got := a.LanguageParams("en-US")
 	if got == nil || got["b"] != 2 {
 		t.Errorf("expected params = {b:2}; got %v", got)
 	}
@@ -172,7 +172,7 @@ func TestSetLanguageParams_AddsWhenUnset(t *testing.T) {
 	a := NewAgentBase()
 	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "")
 	a.SetLanguageParams("en-US", map[string]any{"c": 3})
-	got := a.GetLanguageParams("en-US")
+	got := a.LanguageParams("en-US")
 	if got == nil || got["c"] != 3 {
 		t.Errorf("expected params = {c:3}; got %v", got)
 	}
@@ -182,7 +182,7 @@ func TestSetLanguageParams_EmptyDictRemovesKey(t *testing.T) {
 	a := NewAgentBase()
 	a.AddLanguageTyped("English", "en-US", "v", nil, nil, "", "", map[string]any{"a": 1})
 	a.SetLanguageParams("en-US", map[string]any{})
-	if got := a.GetLanguageParams("en-US"); got != nil {
+	if got := a.LanguageParams("en-US"); got != nil {
 		t.Errorf("expected nil after empty-dict set; got %v", got)
 	}
 	if _, ok := a.languages[0]["params"]; ok {

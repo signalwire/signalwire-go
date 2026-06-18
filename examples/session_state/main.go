@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: session_state
 //
 // Global data management and lifecycle callbacks. Demonstrates setting

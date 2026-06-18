@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: prefab_info_gatherer
 //
 // Prefab agent usage. The InfoGathererAgent is a pre-built agent pattern

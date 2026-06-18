@@ -863,22 +863,22 @@ func agentSectionToPom(m map[string]any) *pom.Section {
 	return s
 }
 
-// GetPostPrompt returns the current post-prompt text. Returns an empty string
+// PostPrompt returns the current post-prompt text. Returns an empty string
 // if no post-prompt has been set.
 //
 // Python equivalent: prompt_mixin.PromptMixin.get_post_prompt (prompt_mixin.py line 374)
-func (a *AgentBase) GetPostPrompt() string {
+func (a *AgentBase) PostPrompt() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.postPrompt
 }
 
-// GetRawPrompt returns the raw prompt text whatever “SetPromptText“ stored,
+// RawPrompt returns the raw prompt text whatever “SetPromptText“ stored,
 // regardless of POM mode. Returns an empty string when no raw prompt has
 // been set.
 //
 // Python equivalent: prompt_manager.PromptManager.get_raw_prompt
-func (a *AgentBase) GetRawPrompt() string {
+func (a *AgentBase) RawPrompt() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.promptText
@@ -1002,10 +1002,10 @@ func (a *AgentBase) HasFunction(name string) bool {
 	return ok
 }
 
-// GetFunction returns the registered tool definition for the given
+// Function returns the registered tool definition for the given
 // name, or nil when no such function is registered. (Python parity:
 // “ToolRegistry.get_function“.)
-func (a *AgentBase) GetFunction(name string) *ToolDefinition {
+func (a *AgentBase) Function(name string) *ToolDefinition {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	if t, ok := a.tools[name]; ok {
@@ -1014,10 +1014,10 @@ func (a *AgentBase) GetFunction(name string) *ToolDefinition {
 	return nil
 }
 
-// GetAllFunctions returns a snapshot of all registered SWAIG functions
+// AllFunctions returns a snapshot of all registered SWAIG functions
 // keyed by name. The returned map is a copy — subsequent registrations
 // do not mutate it. (Python parity: “ToolRegistry.get_all_functions“.)
-func (a *AgentBase) GetAllFunctions() map[string]*ToolDefinition {
+func (a *AgentBase) AllFunctions() map[string]*ToolDefinition {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	out := make(map[string]*ToolDefinition, len(a.tools))
@@ -1247,7 +1247,7 @@ func (a *AgentBase) SetLanguageParams(code string, params map[string]any) *Agent
 	return a
 }
 
-// GetLanguageParams reads the per-language params dict for a previously-added
+// LanguageParams reads the per-language params dict for a previously-added
 // language.
 //
 // Python equivalent: ai_config_mixin.AIConfigMixin.get_language_params
@@ -1257,7 +1257,7 @@ func (a *AgentBase) SetLanguageParams(code string, params map[string]any) *Agent
 // unknown). Callers can distinguish "no params set" from "empty params set" by
 // the fact that empty maps are never stored (SetLanguageParams with an empty
 // dict removes the key).
-func (a *AgentBase) GetLanguageParams(code string) map[string]any {
+func (a *AgentBase) LanguageParams(code string) map[string]any {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	for _, lang := range a.languages {

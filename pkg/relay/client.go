@@ -850,6 +850,12 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 		return nil, err
 	}
 
+	// Use a stoppable timer (not time.After) so the underlying *time.Timer is
+	// released on the common success path instead of lingering up to 30s and
+	// accumulating under load. Mirrors the DialContext pattern above.
+	timer := time.NewTimer(30 * time.Second)
+	defer timer.Stop()
+
 	select {
 	case resp := <-ch:
 		// Check if the response is an error.
@@ -863,7 +869,7 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 		return resp, nil
 	case <-c.ctx.Done():
 		return nil, c.ctx.Err()
-	case <-time.After(30 * time.Second):
+	case <-timer.C:
 		c.mu.Lock()
 		delete(c.pending, id)
 		c.mu.Unlock()

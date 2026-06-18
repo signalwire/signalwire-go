@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: swmlservice_swaig_standalone
 //
 // Proves that swml.Service — by itself, with NO agent.AgentBase — can host

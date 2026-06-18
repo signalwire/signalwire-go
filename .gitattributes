@@ -1,0 +1,6 @@
+# Normalize line endings to LF. Without this, Git's default core.autocrlf=true
+# on Windows checks .go files out with CRLF, which `gofmt -l` (the FMT gate)
+# then flags as unformatted — failing a Windows contributor's commits for
+# reasons unrelated to their changes.
+* text=auto eol=lf
+*.go text eol=lf

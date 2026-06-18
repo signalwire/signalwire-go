@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: contexts_demo
 //
 // Multi-step conversation workflows using contexts and steps.

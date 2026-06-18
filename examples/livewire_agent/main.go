@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: livewire_agent
 //
 // Demonstrates a LiveKit-style agent running on SignalWire's platform.

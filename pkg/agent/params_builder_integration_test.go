@@ -206,7 +206,7 @@ func TestBuilderParams_RealInvoke(t *testing.T) {
 	})
 
 	// The declared-required property is registered on the tool.
-	td := a.GetFunction("check_availability")
+	td := a.Function("check_availability")
 	if td == nil {
 		t.Fatal("tool not registered")
 	}

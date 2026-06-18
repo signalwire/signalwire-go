@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: prefab_survey
 //
 // Survey prefab agent. The SurveyAgent conducts structured surveys with

@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: gather_per_question_functions_demo
 //
 // This example exists to teach one specific gotcha: while a step's

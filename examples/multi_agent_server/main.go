@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: multi_agent_server
 //
 // Hosts multiple AI agents on a single HTTP server using AgentServer.

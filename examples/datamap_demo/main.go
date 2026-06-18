@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example: datamap_demo
 //
 // Server-side tools using DataMap that execute on SignalWire servers
