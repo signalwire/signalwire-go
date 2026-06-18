@@ -20,11 +20,17 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
 )
 
-const compatConfBase = "/api/laml/2010-04-01/Accounts/test_proj/Conferences"
+// compatConfBase is the Conferences collection base path for the harness's
+// per-test random project (see lamlAccountBase). It is a function rather than a
+// const because the AccountSid segment is now per-test (parallel isolation).
+func compatConfBase(m *mocktest.Harness) string {
+	return lamlAccountBase(m) + "/Conferences"
+}
 
 // ---------- Conference itself ----------
 
 func TestCompatConferences_List_ReturnsPaginatedList(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -51,6 +57,7 @@ func TestCompatConferences_List_ReturnsPaginatedList(t *testing.T) {
 }
 
 func TestCompatConferences_List_JournalRecordsGet(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -65,8 +72,8 @@ func TestCompatConferences_List_JournalRecordsGet(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	if j.Path != compatConfBase {
-		t.Errorf("path = %q, want %q", j.Path, compatConfBase)
+	if j.Path != compatConfBase(mock) {
+		t.Errorf("path = %q, want %q", j.Path, compatConfBase(mock))
 	}
 	if j.MatchedRoute == nil {
 		t.Error("matched_route is nil — spec gap: conferences.list")
@@ -74,6 +81,7 @@ func TestCompatConferences_List_JournalRecordsGet(t *testing.T) {
 }
 
 func TestCompatConferences_Get_ReturnsConferenceResource(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -92,6 +100,7 @@ func TestCompatConferences_Get_ReturnsConferenceResource(t *testing.T) {
 }
 
 func TestCompatConferences_Get_JournalRecordsGetWithSid(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -106,13 +115,14 @@ func TestCompatConferences_Get_JournalRecordsGetWithSid(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_GETSID"
+	wantPath := compatConfBase(mock) + "/CF_GETSID"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
 }
 
 func TestCompatConferences_Update_ReturnsUpdatedConference(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -133,6 +143,7 @@ func TestCompatConferences_Update_ReturnsUpdatedConference(t *testing.T) {
 }
 
 func TestCompatConferences_Update_JournalRecordsPostWithStatus(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -150,7 +161,7 @@ func TestCompatConferences_Update_JournalRecordsPostWithStatus(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_UPD"
+	wantPath := compatConfBase(mock) + "/CF_UPD"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -169,6 +180,7 @@ func TestCompatConferences_Update_JournalRecordsPostWithStatus(t *testing.T) {
 // ---------- Participants ----------
 
 func TestCompatConferences_GetParticipant_ReturnsParticipant(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -187,6 +199,7 @@ func TestCompatConferences_GetParticipant_ReturnsParticipant(t *testing.T) {
 }
 
 func TestCompatConferences_GetParticipant_JournalRecordsGet(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -201,13 +214,14 @@ func TestCompatConferences_GetParticipant_JournalRecordsGet(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_GP/Participants/CA_GP"
+	wantPath := compatConfBase(mock) + "/CF_GP/Participants/CA_GP"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
 }
 
 func TestCompatConferences_UpdateParticipant_ReturnsParticipant(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -228,6 +242,7 @@ func TestCompatConferences_UpdateParticipant_ReturnsParticipant(t *testing.T) {
 }
 
 func TestCompatConferences_UpdateParticipant_JournalRecordsPostWithMute(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -245,7 +260,7 @@ func TestCompatConferences_UpdateParticipant_JournalRecordsPostWithMute(t *testi
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_M/Participants/CA_M"
+	wantPath := compatConfBase(mock) + "/CF_M/Participants/CA_M"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -262,6 +277,7 @@ func TestCompatConferences_UpdateParticipant_JournalRecordsPostWithMute(t *testi
 }
 
 func TestCompatConferences_RemoveParticipant_ReturnsObject(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -278,6 +294,7 @@ func TestCompatConferences_RemoveParticipant_ReturnsObject(t *testing.T) {
 }
 
 func TestCompatConferences_RemoveParticipant_JournalRecordsDelete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -292,7 +309,7 @@ func TestCompatConferences_RemoveParticipant_JournalRecordsDelete(t *testing.T) 
 	if j.Method != "DELETE" {
 		t.Errorf("method = %q, want DELETE", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_RM/Participants/CA_RM"
+	wantPath := compatConfBase(mock) + "/CF_RM/Participants/CA_RM"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -301,6 +318,7 @@ func TestCompatConferences_RemoveParticipant_JournalRecordsDelete(t *testing.T) 
 // ---------- Recordings ----------
 
 func TestCompatConferences_ListRecordings_ReturnsPaginated(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -321,6 +339,7 @@ func TestCompatConferences_ListRecordings_ReturnsPaginated(t *testing.T) {
 }
 
 func TestCompatConferences_ListRecordings_JournalRecordsGet(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -335,13 +354,14 @@ func TestCompatConferences_ListRecordings_JournalRecordsGet(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_LRX/Recordings"
+	wantPath := compatConfBase(mock) + "/CF_LRX/Recordings"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
 }
 
 func TestCompatConferences_GetRecording_ReturnsRecording(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -360,6 +380,7 @@ func TestCompatConferences_GetRecording_ReturnsRecording(t *testing.T) {
 }
 
 func TestCompatConferences_GetRecording_JournalRecordsGet(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -374,13 +395,14 @@ func TestCompatConferences_GetRecording_JournalRecordsGet(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_GRX/Recordings/RE_GRX"
+	wantPath := compatConfBase(mock) + "/CF_GRX/Recordings/RE_GRX"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
 }
 
 func TestCompatConferences_UpdateRecording_ReturnsRecording(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -401,6 +423,7 @@ func TestCompatConferences_UpdateRecording_ReturnsRecording(t *testing.T) {
 }
 
 func TestCompatConferences_UpdateRecording_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -417,7 +440,7 @@ func TestCompatConferences_UpdateRecording_JournalRecordsPost(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_UR/Recordings/RE_UR"
+	wantPath := compatConfBase(mock) + "/CF_UR/Recordings/RE_UR"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -431,6 +454,7 @@ func TestCompatConferences_UpdateRecording_JournalRecordsPost(t *testing.T) {
 }
 
 func TestCompatConferences_DeleteRecording_NoException(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -447,6 +471,7 @@ func TestCompatConferences_DeleteRecording_NoException(t *testing.T) {
 }
 
 func TestCompatConferences_DeleteRecording_JournalRecordsDelete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -461,7 +486,7 @@ func TestCompatConferences_DeleteRecording_JournalRecordsDelete(t *testing.T) {
 	if j.Method != "DELETE" {
 		t.Errorf("method = %q, want DELETE", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_DRX/Recordings/RE_DRX"
+	wantPath := compatConfBase(mock) + "/CF_DRX/Recordings/RE_DRX"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -470,6 +495,7 @@ func TestCompatConferences_DeleteRecording_JournalRecordsDelete(t *testing.T) {
 // ---------- Streams ----------
 
 func TestCompatConferences_StartStream_ReturnsStream(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -490,6 +516,7 @@ func TestCompatConferences_StartStream_ReturnsStream(t *testing.T) {
 }
 
 func TestCompatConferences_StartStream_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -507,7 +534,7 @@ func TestCompatConferences_StartStream_JournalRecordsPost(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_SSX/Streams"
+	wantPath := compatConfBase(mock) + "/CF_SSX/Streams"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -521,6 +548,7 @@ func TestCompatConferences_StartStream_JournalRecordsPost(t *testing.T) {
 }
 
 func TestCompatConferences_StopStream_ReturnsStream(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -541,6 +569,7 @@ func TestCompatConferences_StopStream_ReturnsStream(t *testing.T) {
 }
 
 func TestCompatConferences_StopStream_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -557,7 +586,7 @@ func TestCompatConferences_StopStream_JournalRecordsPost(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = compatConfBase + "/CF_TSX/Streams/ST_TSX"
+	wantPath := compatConfBase(mock) + "/CF_TSX/Streams/ST_TSX"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}

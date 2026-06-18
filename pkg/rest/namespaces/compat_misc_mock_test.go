@@ -23,6 +23,7 @@ import (
 // ---------- CompatApplicationsUpdate ----------
 
 func TestCompatApplications_Update_ReturnsApplication(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -43,6 +44,7 @@ func TestCompatApplications_Update_ReturnsApplication(t *testing.T) {
 }
 
 func TestCompatApplications_Update_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -60,7 +62,7 @@ func TestCompatApplications_Update_JournalRecordsPost(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Applications/AP_UU"
+	wantPath := lamlAccountBase(mock) + "/Applications/AP_UU"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -79,6 +81,7 @@ func TestCompatApplications_Update_JournalRecordsPost(t *testing.T) {
 // ---------- CompatLamlBinsUpdate ----------
 
 func TestCompatLamlBins_Update_ReturnsLamlBin(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -100,6 +103,7 @@ func TestCompatLamlBins_Update_ReturnsLamlBin(t *testing.T) {
 }
 
 func TestCompatLamlBins_Update_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -117,7 +121,7 @@ func TestCompatLamlBins_Update_JournalRecordsPost(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/LamlBins/LB_UU"
+	wantPath := lamlAccountBase(mock) + "/LamlBins/LB_UU"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}

@@ -23,6 +23,7 @@ import (
 // ---------- Rooms — streams sub-resource ----------
 
 func TestVideoRooms_ListStreams_ReturnsDataCollection(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -54,6 +55,7 @@ func TestVideoRooms_ListStreams_ReturnsDataCollection(t *testing.T) {
 }
 
 func TestVideoRooms_CreateStream_PostsKwargsInBody(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -89,6 +91,7 @@ func TestVideoRooms_CreateStream_PostsKwargsInBody(t *testing.T) {
 // ---------- Room Sessions ----------
 
 func TestVideoRoomSessions_List_ReturnsDataCollection(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -117,6 +120,7 @@ func TestVideoRoomSessions_List_ReturnsDataCollection(t *testing.T) {
 }
 
 func TestVideoRoomSessions_Get_ReturnsSessionObject(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -144,6 +148,7 @@ func TestVideoRoomSessions_Get_ReturnsSessionObject(t *testing.T) {
 }
 
 func TestVideoRoomSessions_ListEvents_UsesEventsSubpath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -172,6 +177,7 @@ func TestVideoRoomSessions_ListEvents_UsesEventsSubpath(t *testing.T) {
 }
 
 func TestVideoRoomSessions_ListRecordings_UsesRecordingsSubpath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -198,6 +204,7 @@ func TestVideoRoomSessions_ListRecordings_UsesRecordingsSubpath(t *testing.T) {
 // ---------- Room Recordings ----------
 
 func TestVideoRoomRecordings_List_ReturnsDataCollection(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -226,6 +233,7 @@ func TestVideoRoomRecordings_List_ReturnsDataCollection(t *testing.T) {
 }
 
 func TestVideoRoomRecordings_Get_ReturnsSingleRecording(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -250,6 +258,7 @@ func TestVideoRoomRecordings_Get_ReturnsSingleRecording(t *testing.T) {
 }
 
 func TestVideoRoomRecordings_Delete_ReturnsEmptyDictFor204(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -277,6 +286,7 @@ func TestVideoRoomRecordings_Delete_ReturnsEmptyDictFor204(t *testing.T) {
 }
 
 func TestVideoRoomRecordings_ListEvents_UsesEventsSubpath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -303,6 +313,7 @@ func TestVideoRoomRecordings_ListEvents_UsesEventsSubpath(t *testing.T) {
 // ---------- Conferences — sub-collections ----------
 
 func TestVideoConferences_ListConferenceTokens(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -331,6 +342,7 @@ func TestVideoConferences_ListConferenceTokens(t *testing.T) {
 }
 
 func TestVideoConferences_ListStreams(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -361,6 +373,7 @@ func TestVideoConferences_ListStreams(t *testing.T) {
 // ---------- Conference Tokens (top-level) ----------
 
 func TestVideoConferenceTokens_Get_ReturnsSingleToken(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -388,6 +401,7 @@ func TestVideoConferenceTokens_Get_ReturnsSingleToken(t *testing.T) {
 }
 
 func TestVideoConferenceTokens_Reset_PostsToResetSubpath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -429,6 +443,7 @@ func TestVideoConferenceTokens_Reset_PostsToResetSubpath(t *testing.T) {
 // ---------- Streams (top-level) ----------
 
 func TestVideoStreams_Get_ReturnsStream(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -453,6 +468,7 @@ func TestVideoStreams_Get_ReturnsStream(t *testing.T) {
 }
 
 func TestVideoStreams_Update_UsesPutWithKwargs(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -486,6 +502,7 @@ func TestVideoStreams_Update_UsesPutWithKwargs(t *testing.T) {
 }
 
 func TestVideoStreams_Delete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

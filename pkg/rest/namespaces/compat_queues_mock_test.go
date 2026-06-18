@@ -18,11 +18,17 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
 )
 
-const compatQueuesBase = "/api/laml/2010-04-01/Accounts/test_proj/Queues"
+// compatQueuesBase is the Queues collection base path for the harness's
+// per-test random project (see lamlAccountBase). Function, not const, because
+// the AccountSid segment is per-test (parallel isolation).
+func compatQueuesBase(m *mocktest.Harness) string {
+	return lamlAccountBase(m) + "/Queues"
+}
 
 // ---------- CompatQueuesUpdate ----------
 
 func TestCompatQueues_Update_ReturnsQueue(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -43,6 +49,7 @@ func TestCompatQueues_Update_ReturnsQueue(t *testing.T) {
 }
 
 func TestCompatQueues_Update_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -60,7 +67,7 @@ func TestCompatQueues_Update_JournalRecordsPost(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = compatQueuesBase + "/QU_UU"
+	wantPath := compatQueuesBase(mock) + "/QU_UU"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -80,6 +87,7 @@ func TestCompatQueues_Update_JournalRecordsPost(t *testing.T) {
 // ---------- CompatQueuesListMembers ----------
 
 func TestCompatQueues_ListMembers_ReturnsPaginated(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -100,6 +108,7 @@ func TestCompatQueues_ListMembers_ReturnsPaginated(t *testing.T) {
 }
 
 func TestCompatQueues_ListMembers_JournalRecordsGet(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -114,7 +123,7 @@ func TestCompatQueues_ListMembers_JournalRecordsGet(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	const wantPath = compatQueuesBase + "/QU_LMX/Members"
+	wantPath := compatQueuesBase(mock) + "/QU_LMX/Members"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -123,6 +132,7 @@ func TestCompatQueues_ListMembers_JournalRecordsGet(t *testing.T) {
 // ---------- CompatQueuesGetMember ----------
 
 func TestCompatQueues_GetMember_ReturnsMember(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -141,6 +151,7 @@ func TestCompatQueues_GetMember_ReturnsMember(t *testing.T) {
 }
 
 func TestCompatQueues_GetMember_JournalRecordsGet(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -155,7 +166,7 @@ func TestCompatQueues_GetMember_JournalRecordsGet(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	const wantPath = compatQueuesBase + "/QU_GMX/Members/CA_GMX"
+	wantPath := compatQueuesBase(mock) + "/QU_GMX/Members/CA_GMX"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -164,6 +175,7 @@ func TestCompatQueues_GetMember_JournalRecordsGet(t *testing.T) {
 // ---------- CompatQueuesDequeueMember ----------
 
 func TestCompatQueues_DequeueMember_ReturnsMember(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -184,6 +196,7 @@ func TestCompatQueues_DequeueMember_ReturnsMember(t *testing.T) {
 }
 
 func TestCompatQueues_DequeueMember_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -201,7 +214,7 @@ func TestCompatQueues_DequeueMember_JournalRecordsPost(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	const wantPath = compatQueuesBase + "/QU_DMX/Members/CA_DMX"
+	wantPath := compatQueuesBase(mock) + "/QU_DMX/Members/CA_DMX"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}

@@ -318,12 +318,15 @@ func TestRelay_DialEventRoutesViaTagWhenNoTopLevelCallID(t *testing.T) {
 	if h == nil {
 		return
 	}
-	client := mocktest.NewClientOnly(t, h,
+	client, ch := mocktest.NewClientOnly(t, h,
 		relay.WithProject("p"),
 		relay.WithToken("t"),
 		relay.WithContexts("default"),
 	)
-	h.ArmDial(t, mocktest.DialOpts{
+	// Arm + read on the harness scoped to THIS client's session (ch), not the
+	// New() client's harness (h), so the dial dance is queued and observed on
+	// the same session the Dial executes against.
+	ch.ArmDial(t, mocktest.DialOpts{
 		Tag:          "ec-tag-route",
 		WinnerCallID: "WINTAG",
 		States:       []string{"created", "answered"},
@@ -341,7 +344,7 @@ func TestRelay_DialEventRoutesViaTagWhenNoTopLevelCallID(t *testing.T) {
 	if call.CallID() != "WINTAG" {
 		t.Errorf("CallID = %q, want WINTAG", call.CallID())
 	}
-	sends := h.JournalSend(t, "calling.call.dial")
+	sends := ch.JournalSend(t, "calling.call.dial")
 	if len(sends) == 0 {
 		t.Fatal("no calling.call.dial event in journal")
 	}

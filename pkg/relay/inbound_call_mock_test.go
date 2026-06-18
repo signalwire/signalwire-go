@@ -693,13 +693,15 @@ func TestRelay_InboundWithoutHandlerDoesNotCrash(t *testing.T) {
 	if h == nil {
 		return
 	}
-	// Build a fresh client with no on_call registered.
-	client := mocktest.NewClientOnly(t, h,
+	// Build a fresh client with no on_call registered. Use the harness scoped
+	// to THIS client's session (ch) so the inbound-call sequence is delivered
+	// to the client we then ping, not the New() client.
+	client, ch := mocktest.NewClientOnly(t, h,
 		relay.WithProject("p"),
 		relay.WithToken("t"),
 		relay.WithContexts("default"),
 	)
-	h.InboundCall(t, mocktest.InboundCallOpts{
+	ch.InboundCall(t, mocktest.InboundCallOpts{
 		CallID:     "c-nohandler",
 		AutoStates: []string{"created"},
 	})

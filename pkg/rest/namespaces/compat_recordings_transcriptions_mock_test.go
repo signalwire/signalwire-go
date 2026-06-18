@@ -19,12 +19,22 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
 )
 
-const compatRecsBase = "/api/laml/2010-04-01/Accounts/test_proj/Recordings"
-const compatTransBase = "/api/laml/2010-04-01/Accounts/test_proj/Transcriptions"
+// compatRecsBase / compatTransBase are the Recordings / Transcriptions
+// collection base paths for the harness's per-test random project (see
+// lamlAccountBase). Functions, not consts, because the AccountSid segment is
+// per-test (parallel isolation).
+func compatRecsBase(m *mocktest.Harness) string {
+	return lamlAccountBase(m) + "/Recordings"
+}
+
+func compatTransBase(m *mocktest.Harness) string {
+	return lamlAccountBase(m) + "/Transcriptions"
+}
 
 // ---------- CompatRecordings ----------
 
 func TestCompatRecordings_List_ReturnsPaginated(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -45,6 +55,7 @@ func TestCompatRecordings_List_ReturnsPaginated(t *testing.T) {
 }
 
 func TestCompatRecordings_List_JournalRecordsGet(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -59,12 +70,13 @@ func TestCompatRecordings_List_JournalRecordsGet(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	if j.Path != compatRecsBase {
-		t.Errorf("path = %q, want %q", j.Path, compatRecsBase)
+	if j.Path != compatRecsBase(mock) {
+		t.Errorf("path = %q, want %q", j.Path, compatRecsBase(mock))
 	}
 }
 
 func TestCompatRecordings_Get_ReturnsRecording(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -83,6 +95,7 @@ func TestCompatRecordings_Get_ReturnsRecording(t *testing.T) {
 }
 
 func TestCompatRecordings_Get_JournalRecordsGetWithSid(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -97,13 +110,14 @@ func TestCompatRecordings_Get_JournalRecordsGetWithSid(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	const wantPath = compatRecsBase + "/RE_GET"
+	wantPath := compatRecsBase(mock) + "/RE_GET"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
 }
 
 func TestCompatRecordings_Delete_NoException(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -120,6 +134,7 @@ func TestCompatRecordings_Delete_NoException(t *testing.T) {
 }
 
 func TestCompatRecordings_Delete_JournalRecordsDelete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -134,7 +149,7 @@ func TestCompatRecordings_Delete_JournalRecordsDelete(t *testing.T) {
 	if j.Method != "DELETE" {
 		t.Errorf("method = %q, want DELETE", j.Method)
 	}
-	const wantPath = compatRecsBase + "/RE_DEL"
+	wantPath := compatRecsBase(mock) + "/RE_DEL"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -143,6 +158,7 @@ func TestCompatRecordings_Delete_JournalRecordsDelete(t *testing.T) {
 // ---------- CompatTranscriptions ----------
 
 func TestCompatTranscriptions_List_ReturnsPaginated(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -163,6 +179,7 @@ func TestCompatTranscriptions_List_ReturnsPaginated(t *testing.T) {
 }
 
 func TestCompatTranscriptions_List_JournalRecordsGet(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -177,12 +194,13 @@ func TestCompatTranscriptions_List_JournalRecordsGet(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	if j.Path != compatTransBase {
-		t.Errorf("path = %q, want %q", j.Path, compatTransBase)
+	if j.Path != compatTransBase(mock) {
+		t.Errorf("path = %q, want %q", j.Path, compatTransBase(mock))
 	}
 }
 
 func TestCompatTranscriptions_Get_ReturnsTranscription(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -201,6 +219,7 @@ func TestCompatTranscriptions_Get_ReturnsTranscription(t *testing.T) {
 }
 
 func TestCompatTranscriptions_Get_JournalRecordsGetWithSid(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -215,13 +234,14 @@ func TestCompatTranscriptions_Get_JournalRecordsGetWithSid(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q, want GET", j.Method)
 	}
-	const wantPath = compatTransBase + "/TR_GET"
+	wantPath := compatTransBase(mock) + "/TR_GET"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
 }
 
 func TestCompatTranscriptions_Delete_NoException(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -238,6 +258,7 @@ func TestCompatTranscriptions_Delete_NoException(t *testing.T) {
 }
 
 func TestCompatTranscriptions_Delete_JournalRecordsDelete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -252,7 +273,7 @@ func TestCompatTranscriptions_Delete_JournalRecordsDelete(t *testing.T) {
 	if j.Method != "DELETE" {
 		t.Errorf("method = %q, want DELETE", j.Method)
 	}
-	const wantPath = compatTransBase + "/TR_DEL"
+	wantPath := compatTransBase(mock) + "/TR_DEL"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}

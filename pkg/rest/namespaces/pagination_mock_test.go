@@ -38,6 +38,7 @@ const (
 // ---------- Constructor/initial state ----------
 
 func TestPaginatedIterator_InitState(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -63,6 +64,7 @@ func TestPaginatedIterator_InitState(t *testing.T) {
 // ---------- Pages through all items ----------
 
 func TestPaginatedIterator_NextPagesThroughAllItems(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -133,6 +135,7 @@ func TestPaginatedIterator_NextPagesThroughAllItems(t *testing.T) {
 // ---------- StopIteration when exhausted ----------
 
 func TestPaginatedIterator_NextStopsWhenDone(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -186,6 +189,7 @@ func TestPaginatedIterator_NextStopsWhenDone(t *testing.T) {
 // ---------- ForEach early exit on error ----------
 
 func TestPaginatedIterator_ForEachStopsOnError(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

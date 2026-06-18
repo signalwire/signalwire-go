@@ -59,6 +59,7 @@ func commandAssert(t *testing.T, j mocktest.JournalEntry, command, expectedID st
 // Dial(map[string]any{...}) already forwards arbitrary keys, so no source
 // change is needed — this is a behavioral assertion only.
 func TestCallingNamespace_Dial_WithCodecsArray(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -101,6 +102,7 @@ func TestCallingNamespace_Dial_WithCodecsArray(t *testing.T) {
 // string form of codecs (also valid per the OpenAPI spec) reaches the wire
 // verbatim.
 func TestCallingNamespace_Dial_WithCodecsString(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -127,6 +129,7 @@ func TestCallingNamespace_Dial_WithCodecsString(t *testing.T) {
 }
 
 func TestCalling_Update(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -149,6 +152,7 @@ func TestCalling_Update(t *testing.T) {
 }
 
 func TestCalling_Transfer(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -174,6 +178,7 @@ func TestCalling_Transfer(t *testing.T) {
 }
 
 func TestCalling_Disconnect(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -195,6 +200,7 @@ func TestCalling_Disconnect(t *testing.T) {
 // ----------------- Play -----------------
 
 func TestCalling_PlayPause(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -211,6 +217,7 @@ func TestCalling_PlayPause(t *testing.T) {
 }
 
 func TestCalling_PlayResume(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -227,6 +234,7 @@ func TestCalling_PlayResume(t *testing.T) {
 }
 
 func TestCalling_PlayStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -243,6 +251,7 @@ func TestCalling_PlayStop(t *testing.T) {
 }
 
 func TestCalling_PlayVolume(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -264,6 +273,7 @@ func TestCalling_PlayVolume(t *testing.T) {
 // ----------------- Record -----------------
 
 func TestCalling_Record(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -281,6 +291,7 @@ func TestCalling_Record(t *testing.T) {
 }
 
 func TestCalling_RecordPause(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -297,6 +308,7 @@ func TestCalling_RecordPause(t *testing.T) {
 }
 
 func TestCalling_RecordResume(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -315,6 +327,7 @@ func TestCalling_RecordResume(t *testing.T) {
 // ----------------- Collect -----------------
 
 func TestCalling_Collect(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -335,6 +348,7 @@ func TestCalling_Collect(t *testing.T) {
 }
 
 func TestCalling_CollectStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -351,6 +365,7 @@ func TestCalling_CollectStop(t *testing.T) {
 }
 
 func TestCalling_CollectStartInputTimers(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -369,6 +384,7 @@ func TestCalling_CollectStartInputTimers(t *testing.T) {
 // ----------------- Detect / tap / stream / denoise / transcribe -----------------
 
 func TestCalling_Detect(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -388,6 +404,7 @@ func TestCalling_Detect(t *testing.T) {
 }
 
 func TestCalling_DetectStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -404,6 +421,7 @@ func TestCalling_DetectStop(t *testing.T) {
 }
 
 func TestCalling_Tap(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -424,6 +442,7 @@ func TestCalling_Tap(t *testing.T) {
 }
 
 func TestCalling_TapStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -440,6 +459,7 @@ func TestCalling_TapStop(t *testing.T) {
 }
 
 func TestCalling_Stream(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -456,6 +476,7 @@ func TestCalling_Stream(t *testing.T) {
 }
 
 func TestCalling_StreamStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -472,6 +493,7 @@ func TestCalling_StreamStop(t *testing.T) {
 }
 
 func TestCalling_Denoise(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -485,6 +507,7 @@ func TestCalling_Denoise(t *testing.T) {
 }
 
 func TestCalling_DenoiseStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -501,6 +524,7 @@ func TestCalling_DenoiseStop(t *testing.T) {
 }
 
 func TestCalling_Transcribe(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -520,6 +544,7 @@ func TestCalling_Transcribe(t *testing.T) {
 }
 
 func TestCalling_TranscribeStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -538,6 +563,7 @@ func TestCalling_TranscribeStop(t *testing.T) {
 // ----------------- AI -----------------
 
 func TestCalling_AIHold(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -551,6 +577,7 @@ func TestCalling_AIHold(t *testing.T) {
 }
 
 func TestCalling_AIUnhold(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -564,6 +591,7 @@ func TestCalling_AIUnhold(t *testing.T) {
 }
 
 func TestCalling_AIStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -579,6 +607,7 @@ func TestCalling_AIStop(t *testing.T) {
 // ----------------- Live transcribe / translate -----------------
 
 func TestCalling_LiveTranscribe(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -595,6 +624,7 @@ func TestCalling_LiveTranscribe(t *testing.T) {
 }
 
 func TestCalling_LiveTranslate(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -619,6 +649,7 @@ func TestCalling_LiveTranslate(t *testing.T) {
 // ----------------- Fax -----------------
 
 func TestCalling_SendFaxStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -632,6 +663,7 @@ func TestCalling_SendFaxStop(t *testing.T) {
 }
 
 func TestCalling_ReceiveFaxStop(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -647,6 +679,7 @@ func TestCalling_ReceiveFaxStop(t *testing.T) {
 // ----------------- SIP refer + custom user_event -----------------
 
 func TestCalling_Refer(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -663,6 +696,7 @@ func TestCalling_Refer(t *testing.T) {
 }
 
 func TestCalling_UserEvent(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

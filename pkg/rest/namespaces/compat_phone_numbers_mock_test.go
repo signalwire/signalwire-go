@@ -22,6 +22,7 @@ import (
 )
 
 func TestCompatPhoneNumbers_List(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -52,7 +53,7 @@ func TestCompatPhoneNumbers_List(t *testing.T) {
 		if j.Method != "GET" {
 			t.Errorf("method = %q, want GET", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers"
+		wantPath := lamlAccountBase(mock) + "/IncomingPhoneNumbers"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -60,6 +61,7 @@ func TestCompatPhoneNumbers_List(t *testing.T) {
 }
 
 func TestCompatPhoneNumbers_Get(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -88,7 +90,7 @@ func TestCompatPhoneNumbers_Get(t *testing.T) {
 		if j.Method != "GET" {
 			t.Errorf("method = %q, want GET", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers/PN_GET"
+		wantPath := lamlAccountBase(mock) + "/IncomingPhoneNumbers/PN_GET"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -96,6 +98,7 @@ func TestCompatPhoneNumbers_Get(t *testing.T) {
 }
 
 func TestCompatPhoneNumbers_Update(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -129,7 +132,7 @@ func TestCompatPhoneNumbers_Update(t *testing.T) {
 		if j.Method != "POST" {
 			t.Errorf("method = %q, want POST", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers/PN_UU"
+		wantPath := lamlAccountBase(mock) + "/IncomingPhoneNumbers/PN_UU"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -147,6 +150,7 @@ func TestCompatPhoneNumbers_Update(t *testing.T) {
 }
 
 func TestCompatPhoneNumbers_Delete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -173,7 +177,7 @@ func TestCompatPhoneNumbers_Delete(t *testing.T) {
 		if j.Method != "DELETE" {
 			t.Errorf("method = %q, want DELETE", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers/PN_DEL"
+		wantPath := lamlAccountBase(mock) + "/IncomingPhoneNumbers/PN_DEL"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -181,6 +185,7 @@ func TestCompatPhoneNumbers_Delete(t *testing.T) {
 }
 
 func TestCompatPhoneNumbers_Purchase(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -214,7 +219,7 @@ func TestCompatPhoneNumbers_Purchase(t *testing.T) {
 		if j.Method != "POST" {
 			t.Errorf("method = %q, want POST", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers"
+		wantPath := lamlAccountBase(mock) + "/IncomingPhoneNumbers"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -232,6 +237,7 @@ func TestCompatPhoneNumbers_Purchase(t *testing.T) {
 }
 
 func TestCompatPhoneNumbers_ImportNumber(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -265,7 +271,7 @@ func TestCompatPhoneNumbers_ImportNumber(t *testing.T) {
 		if j.Method != "POST" {
 			t.Errorf("method = %q, want POST", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/ImportedPhoneNumbers"
+		wantPath := lamlAccountBase(mock) + "/ImportedPhoneNumbers"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -280,6 +286,7 @@ func TestCompatPhoneNumbers_ImportNumber(t *testing.T) {
 }
 
 func TestCompatPhoneNumbers_ListAvailableCountries(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -310,7 +317,7 @@ func TestCompatPhoneNumbers_ListAvailableCountries(t *testing.T) {
 		if j.Method != "GET" {
 			t.Errorf("method = %q, want GET", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/AvailablePhoneNumbers"
+		wantPath := lamlAccountBase(mock) + "/AvailablePhoneNumbers"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -318,6 +325,7 @@ func TestCompatPhoneNumbers_ListAvailableCountries(t *testing.T) {
 }
 
 func TestCompatPhoneNumbers_SearchTollFree(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -352,7 +360,7 @@ func TestCompatPhoneNumbers_SearchTollFree(t *testing.T) {
 		if j.Method != "GET" {
 			t.Errorf("method = %q, want GET", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/AvailablePhoneNumbers/US/TollFree"
+		wantPath := lamlAccountBase(mock) + "/AvailablePhoneNumbers/US/TollFree"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
