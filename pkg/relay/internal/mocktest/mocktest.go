@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -112,6 +113,17 @@ type Harness struct {
 	WSPort   int
 	HTTPPort int
 
+	// SessionID scopes journal reads, scenario arming, pushes, and reset to a
+	// single RELAY session (the server-assigned `sessionid` from the connect
+	// handshake). When set, control-plane calls carry `?session_id=<id>` (and
+	// scenario_play stamps each push/expect_recv op), so a test only ever sees
+	// and disturbs its own frames — making the shared singleton mock safe under
+	// parallel (t.Parallel) execution. New() sets this automatically to the
+	// connected client's session. Empty => global (legacy, single-threaded).
+	//
+	// Mirrors signalwire-typescript's MockRelayHarness.sessionId.
+	SessionID string
+
 	httpClient *http.Client
 }
 
@@ -121,10 +133,44 @@ func (h *Harness) RelayHost() string {
 	return fmt.Sprintf("127.0.0.1:%d", h.WSPort)
 }
 
-// Journal returns every journaled frame, in arrival order.
+// scoped returns a shallow copy of this harness with SessionID set to the given
+// session id. The copy shares the same underlying HTTP client + server address;
+// only the session scope differs. Used by New()/NewClientOnly() to hand each
+// test (or each client built mid-test) a view scoped to its own session, while
+// leaving the package-singleton harness untouched. Mirrors the TS harness's
+// per-call `new MockRelayHarness(...)` + `mock.sessionId = ...`.
+func (h *Harness) scoped(sessionID string) *Harness {
+	cp := *h
+	cp.SessionID = sessionID
+	return &cp
+}
+
+// ScopeToClient returns a copy of this harness scoped to the given client's
+// captured connect-handshake session id. Tests that build their own client
+// mid-test (e.g. a second client via NewClientOnly already returns a scoped
+// harness, but a hand-rolled relay.NewRelayClient does not) call this to
+// re-scope the harness to that client's session. Mirrors the TS harness's
+// `mock.sessionId = sessionIdOf(client)`.
+func (h *Harness) ScopeToClient(client *relay.Client) *Harness {
+	return h.scoped(client.SessionID())
+}
+
+// sessionQuery returns the "?session_id=<id>" suffix when this harness is
+// session-scoped, or "" otherwise. The id is URL-escaped so a session id with
+// reserved characters stays a single query value.
+func (h *Harness) sessionQuery() string {
+	if h.SessionID == "" {
+		return ""
+	}
+	return "?session_id=" + url.QueryEscape(h.SessionID)
+}
+
+// Journal returns every journaled frame, in arrival order. Scoped to this
+// harness's SessionID when set (so a parallel test never sees another test's
+// frames); unscoped harnesses see the whole journal.
 func (h *Harness) Journal(t *testing.T) []JournalEntry {
 	t.Helper()
-	resp, err := h.httpClient.Get(h.HTTPURL + "/__mock__/journal")
+	resp, err := h.httpClient.Get(h.HTTPURL + "/__mock__/journal" + h.sessionQuery())
 	if err != nil {
 		t.Fatalf("mocktest: GET /__mock__/journal: %v", err)
 	}
@@ -190,18 +236,21 @@ func (h *Harness) JournalLast(t *testing.T, method string) JournalEntry {
 	return entries[len(entries)-1]
 }
 
-// JournalReset clears the mock journal.
+// JournalReset clears the mock journal. Scoped to this harness's SessionID
+// when set (clears only this session's entries), else clears everything.
 func (h *Harness) JournalReset(t *testing.T) {
 	t.Helper()
-	h.post(t, "/__mock__/journal/reset", nil)
+	h.post(t, "/__mock__/journal/reset"+h.sessionQuery(), nil)
 }
 
-// Reset clears journal + scenarios on the mock server. Tests do not call
-// this directly — New registers it as a t.Cleanup hook.
+// Reset clears journal + scenarios on the mock server. Scoped to this harness's
+// SessionID when set (so a parallel test only ever clears its own session and
+// never races a concurrent test's global state), else clears everything. Tests
+// do not call this directly — New registers it as a t.Cleanup hook.
 func (h *Harness) Reset(t *testing.T) {
 	t.Helper()
-	h.post(t, "/__mock__/journal/reset", nil)
-	h.post(t, "/__mock__/scenarios/reset", nil)
+	h.post(t, "/__mock__/journal/reset"+h.sessionQuery(), nil)
+	h.post(t, "/__mock__/scenarios/reset"+h.sessionQuery(), nil)
 }
 
 // post is an internal HTTP-POST helper.
@@ -247,13 +296,20 @@ func (h *Harness) post(t *testing.T, path string, body any) []byte {
 	return respBody
 }
 
-// Push delivers a single frame to all connected sessions (or one
-// session if sessionID != "").
+// Push delivers a single frame to this harness's session (when scoped) so a
+// parallel test's client never receives it. An explicit sessionID arg overrides
+// the harness scope; an unscoped harness with sessionID=="" broadcasts to every
+// connected session (legacy single-threaded behavior). Mirrors the TS harness's
+// push(frame, sessionId?).
 func (h *Harness) Push(t *testing.T, frame map[string]any, sessionID string) {
 	t.Helper()
+	target := sessionID
+	if target == "" {
+		target = h.SessionID
+	}
 	path := "/__mock__/push"
-	if sessionID != "" {
-		path = path + "?session_id=" + sessionID
+	if target != "" {
+		path = path + "?session_id=" + url.QueryEscape(target)
 	}
 	h.post(t, path, map[string]any{"frame": frame})
 }
@@ -292,8 +348,16 @@ func (h *Harness) InboundCall(t *testing.T, opts InboundCallOpts) {
 	} else {
 		body["delay_ms"] = 50
 	}
-	if opts.SessionID != "" {
-		body["session_id"] = opts.SessionID
+	// Target this harness's session by default so the inbound-call sequence is
+	// delivered only to this test's client (an unscoped harness broadcasts, as
+	// before). An explicit opts.SessionID overrides. Mirrors the TS harness's
+	// inboundCall default-to-this-session behavior.
+	sid := opts.SessionID
+	if sid == "" {
+		sid = h.SessionID
+	}
+	if sid != "" {
+		body["session_id"] = sid
 	}
 	h.post(t, "/__mock__/inbound_call", body)
 }
@@ -301,9 +365,23 @@ func (h *Harness) InboundCall(t *testing.T, opts InboundCallOpts) {
 // ScenarioPlay runs a scripted timeline (mix of sleep_ms / push /
 // expect_recv ops). The op shape matches the JSON the mock expects;
 // callers can pass map literals.
+//
+// When this harness is session-scoped, each push/expect_recv op is stamped with
+// this session id (unless it already carries a session_id), so the timeline
+// targets only this test's client and expect_recv matches only this session's
+// frames — making it parallel-safe. (The eviction-bug fix that makes the
+// session-filtered scan correct already lives in the mock server; the harness
+// only has to stamp.) Mirrors the TS harness's scenarioPlay scopeOp().
 func (h *Harness) ScenarioPlay(t *testing.T, ops []map[string]any) map[string]any {
 	t.Helper()
-	body := h.post(t, "/__mock__/scenario_play", ops)
+	scoped := ops
+	if h.SessionID != "" {
+		scoped = make([]map[string]any, len(ops))
+		for i, op := range ops {
+			scoped[i] = h.scopeOp(op)
+		}
+	}
+	body := h.post(t, "/__mock__/scenario_play", scoped)
 	var out map[string]any
 	if err := json.Unmarshal(body, &out); err != nil {
 		t.Fatalf("mocktest: decode scenario_play response: %v", err)
@@ -311,11 +389,39 @@ func (h *Harness) ScenarioPlay(t *testing.T, ops []map[string]any) map[string]an
 	return out
 }
 
+// scopeOp injects this harness's SessionID into a timeline op's push/expect_recv
+// spec when the op doesn't already specify a session_id. Leaves sleep ops
+// untouched. Returns a shallow copy so the caller's map literals are unmodified.
+func (h *Harness) scopeOp(op map[string]any) map[string]any {
+	out := make(map[string]any, len(op))
+	for k, v := range op {
+		out[k] = v
+	}
+	for _, key := range []string{"push", "expect_recv"} {
+		spec, ok := out[key].(map[string]any)
+		if !ok {
+			continue
+		}
+		if _, has := spec["session_id"]; has {
+			continue
+		}
+		newSpec := make(map[string]any, len(spec)+1)
+		for k, v := range spec {
+			newSpec[k] = v
+		}
+		newSpec["session_id"] = h.SessionID
+		out[key] = newSpec
+	}
+	return out
+}
+
 // ArmMethod queues scripted post-RPC events for `method`. Each entry is
 // a map of {emit: {state, ...}, delay_ms?: int, event_type?: string}.
+// Scoped to this harness's SessionID when set, so a parallel test's
+// calling.<method> execute won't consume another test's armed events.
 func (h *Harness) ArmMethod(t *testing.T, method string, events []map[string]any) {
 	t.Helper()
-	h.post(t, "/__mock__/scenarios/"+method, events)
+	h.post(t, "/__mock__/scenarios/"+method+h.sessionQuery(), events)
 }
 
 // DialOpts mirrors the dial-scenario JSON body.
@@ -336,10 +442,11 @@ type DialLoserOpts struct {
 }
 
 // ArmDial queues a full dial dance for the next calling.dial whose params
-// carry the given Tag.
+// carry the given Tag. Scoped to this harness's SessionID when set, so a
+// parallel dial test won't consume another test's queued dial dance.
 func (h *Harness) ArmDial(t *testing.T, opts DialOpts) {
 	t.Helper()
-	h.post(t, "/__mock__/scenarios/dial", opts)
+	h.post(t, "/__mock__/scenarios/dial"+h.sessionQuery(), opts)
 }
 
 // Sessions returns the active WebSocket session list reported by the
@@ -676,17 +783,15 @@ func probeHealth(client *http.Client, base string) bool {
 // t.Cleanup.
 func New(t *testing.T) (*relay.Client, *Harness) {
 	t.Helper()
-	h := ensureServer(t)
-	if h == nil {
+	shared := ensureServer(t)
+	if shared == nil {
 		return nil, nil
 	}
-	h.Reset(t)
-	t.Cleanup(func() { h.Reset(t) })
 
 	// Point the SDK at our mock. The relay client honors
 	// SIGNALWIRE_RELAY_HOST + SIGNALWIRE_RELAY_SCHEME for exactly this
 	// override scenario.
-	t.Setenv("SIGNALWIRE_RELAY_HOST", h.RelayHost())
+	t.Setenv("SIGNALWIRE_RELAY_HOST", shared.RelayHost())
 	t.Setenv("SIGNALWIRE_RELAY_SCHEME", "ws")
 
 	client := relay.NewRelayClient(
@@ -714,17 +819,31 @@ func New(t *testing.T) (*relay.Client, *Harness) {
 	t.Cleanup(func() {
 		client.Stop()
 	})
+
+	// Return a per-test harness view scoped to THIS client's session id (the
+	// server-assigned `sessionid` from the connect handshake), so the test's
+	// journal reads/resets/pushes see only its own frames — making the shared
+	// singleton mock safe under parallel (t.Parallel) execution. No global
+	// reset is needed: a brand-new session starts with an empty (scoped)
+	// journal. The cleanup reset is scoped to this session too, so it never
+	// races a concurrent test's state. Mirrors the TS newRelayClient().
+	h := shared.scoped(client.SessionID())
+	t.Cleanup(func() { h.Reset(t) })
 	return client, h
 }
 
-// NewClientOnly returns a fresh *relay.Client connected to the running
-// mock, with no contexts subscribed. Useful for tests that need to
-// drive multiple clients in one test (e.g. reconnect-with-protocol).
+// NewClientOnly returns a fresh *relay.Client connected to the running mock,
+// with no contexts subscribed, plus a Harness view scoped to THAT client's
+// session id. Useful for tests that drive multiple clients in one test (e.g.
+// reconnect-with-protocol): each client gets its own session, and the returned
+// harness reads/pushes only that client's frames, so the two clients don't
+// step on each other and the test is parallel-safe.
 //
-// The harness is shared with any previously created clients in the same
-// test — t.Cleanup is registered to disconnect this client when the
-// test ends.
-func NewClientOnly(t *testing.T, h *Harness, opts ...relay.ClientOption) *relay.Client {
+// The passed-in `h` is only used for its server address; the returned harness
+// is a fresh scoped copy (the original `h` keeps its own scope). t.Cleanup is
+// registered to disconnect this client and reset its session when the test
+// ends. Mirrors the TS pattern of re-scoping a harness via sessionIdOf(client).
+func NewClientOnly(t *testing.T, h *Harness, opts ...relay.ClientOption) (*relay.Client, *Harness) {
 	t.Helper()
 	t.Setenv("SIGNALWIRE_RELAY_HOST", h.RelayHost())
 	t.Setenv("SIGNALWIRE_RELAY_SCHEME", "ws")
@@ -740,6 +859,10 @@ func NewClientOnly(t *testing.T, h *Harness, opts ...relay.ClientOption) *relay.
 	if err := client.SubscribeContexts(); err != nil {
 		t.Fatalf("mocktest: relay SubscribeContexts: %v", err)
 	}
-	t.Cleanup(func() { client.Stop() })
-	return client
+	scoped := h.scoped(client.SessionID())
+	t.Cleanup(func() {
+		client.Stop()
+		scoped.Reset(t)
+	})
+	return client, scoped
 }

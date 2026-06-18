@@ -22,6 +22,7 @@ import (
 // ---------- Message Logs ----------
 
 func TestMessageLogs_List_ReturnsDict(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -53,6 +54,7 @@ func TestMessageLogs_List_ReturnsDict(t *testing.T) {
 }
 
 func TestMessageLogs_Get_UsesIDInPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -82,6 +84,7 @@ func TestMessageLogs_Get_UsesIDInPath(t *testing.T) {
 // ---------- Voice Logs ----------
 
 func TestVoiceLogs_List_ReturnsDict(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -113,6 +116,7 @@ func TestVoiceLogs_List_ReturnsDict(t *testing.T) {
 }
 
 func TestVoiceLogs_Get_UsesIDInPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -139,6 +143,7 @@ func TestVoiceLogs_Get_UsesIDInPath(t *testing.T) {
 // ---------- Fax Logs ----------
 
 func TestFaxLogs_List_ReturnsDict(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -170,6 +175,7 @@ func TestFaxLogs_List_ReturnsDict(t *testing.T) {
 }
 
 func TestFaxLogs_Get_UsesIDInPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -196,6 +202,7 @@ func TestFaxLogs_Get_UsesIDInPath(t *testing.T) {
 // ---------- Conference Logs ----------
 
 func TestConferenceLogs_List_ReturnsDict(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

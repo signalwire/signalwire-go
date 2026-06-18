@@ -25,6 +25,7 @@ const compatAccountsBase = "/api/laml/2010-04-01/Accounts"
 // ---------- CompatAccountsCreate ----------
 
 func TestCompatAccounts_Create_ReturnsAccountResource(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -43,6 +44,7 @@ func TestCompatAccounts_Create_ReturnsAccountResource(t *testing.T) {
 }
 
 func TestCompatAccounts_Create_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -79,6 +81,7 @@ func TestCompatAccounts_Create_JournalRecordsPost(t *testing.T) {
 // ---------- CompatAccountsGet ----------
 
 func TestCompatAccounts_Get_ReturnsAccountForSid(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -95,6 +98,7 @@ func TestCompatAccounts_Get_ReturnsAccountForSid(t *testing.T) {
 }
 
 func TestCompatAccounts_Get_JournalRecordsGetWithSid(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -121,6 +125,7 @@ func TestCompatAccounts_Get_JournalRecordsGetWithSid(t *testing.T) {
 // ---------- CompatAccountsUpdate ----------
 
 func TestCompatAccounts_Update_ReturnsUpdatedAccount(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -139,6 +144,7 @@ func TestCompatAccounts_Update_ReturnsUpdatedAccount(t *testing.T) {
 }
 
 func TestCompatAccounts_Update_JournalRecordsPostToAccountPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

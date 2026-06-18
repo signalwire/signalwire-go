@@ -22,10 +22,14 @@ package mocktest
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -76,6 +80,24 @@ type Harness struct {
 	URL  string
 	Port int
 
+	// Project is the unique random project this harness's client authenticates
+	// with (`test_proj_<hex>`). Tests that assert on the AccountSid embedded in
+	// a LAML path (`/api/laml/2010-04-01/Accounts/<project>/...`) must read it
+	// from here instead of hard-coding `test_proj`. Empty on an unscoped/raw
+	// harness. Mirrors the TS MockHarness.project.
+	Project string
+
+	// authHeader, when set, scopes journal reads (client-side) and scenario
+	// arming (server-side) to the requests THIS test's client made — identified
+	// by its `Authorization` header (Basic project:token, with a per-test random
+	// project; see New). REST is pure request/response with no session
+	// handshake, so each request is self-identifying via its auth header.
+	// Filtering the shared global journal by that header makes the suite safe
+	// under parallel execution with no SDK change and no mock-server change.
+	// Empty => unscoped (legacy view, returns every entry — only correct under
+	// serial execution). Mirrors the TS MockHarness.authHeader.
+	authHeader string
+
 	httpClient *http.Client
 }
 
@@ -91,7 +113,11 @@ func (h *Harness) Last(t *testing.T) JournalEntry {
 	return entries[len(entries)-1]
 }
 
-// Journal returns every entry recorded since the last reset, in arrival order.
+// Journal returns this client's recorded requests in arrival order. Scoped to
+// this harness's authHeader when set (so a parallel test never sees another
+// test's requests — the filter key is the lowercase `authorization` header,
+// which carries the per-test random project); unscoped harnesses see the whole
+// journal. Mirrors the TS MockHarness.journal().
 func (h *Harness) Journal(t *testing.T) []JournalEntry {
 	t.Helper()
 	resp, err := h.httpClient.Get(h.URL + "/__mock__/journal")
@@ -107,13 +133,30 @@ func (h *Harness) Journal(t *testing.T) []JournalEntry {
 	if err := json.Unmarshal(body, &entries); err != nil {
 		t.Fatalf("mocktest: decode journal: %v (body=%q)", err, body)
 	}
-	return entries
+	if h.authHeader == "" {
+		return entries
+	}
+	filtered := entries[:0:0]
+	for _, e := range entries {
+		if e.Headers["authorization"] == h.authHeader {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
 }
 
-// Reset clears journal + scenarios on the mock server. Tests do not call
-// this directly — New registers it as a t.Cleanup hook.
+// Reset clears journal + scenarios on the mock server. A scoped harness leaves
+// the shared journal alone (it only ever reads its own entries, identified by
+// auth header, so there is nothing to clear and a global wipe would race a
+// concurrent test); the scenario store is server-scoped by auth header too, so
+// a stale scenario can't leak across tests. Unscoped harnesses do the legacy
+// global reset. Tests do not call this directly — New registers it as a
+// t.Cleanup hook. Mirrors the TS MockHarness.reset().
 func (h *Harness) Reset(t *testing.T) {
 	t.Helper()
+	if h.authHeader != "" {
+		return
+	}
 	post := func(path string) {
 		req, err := http.NewRequest("POST", h.URL+path, nil)
 		if err != nil {
@@ -141,11 +184,17 @@ func (h *Harness) PushScenario(t *testing.T, endpointID string, status int, body
 	if err != nil {
 		t.Fatalf("mocktest: marshal scenario: %v", err)
 	}
-	resp, err := h.httpClient.Post(
-		h.URL+"/__mock__/scenarios/"+endpointID,
-		"application/json",
-		bytes.NewReader(payload),
-	)
+	// Scope the override to THIS client's auth header so a concurrent test
+	// can't consume it (and a stale one can't bleed across tests). REST's
+	// session key on the mock is the Authorization header: the mock pops a
+	// scenario using the request's own Authorization header (see
+	// mock_signalwire server `scenarios.pop(..., session_id=auth_header)`), so
+	// we arm it under the same key. Unscoped harness => shared bucket.
+	urlStr := h.URL + "/__mock__/scenarios/" + endpointID
+	if h.authHeader != "" {
+		urlStr += "?session_id=" + url.QueryEscape(h.authHeader)
+	}
+	resp, err := h.httpClient.Post(urlStr, "application/json", bytes.NewReader(payload))
 	if err != nil {
 		t.Fatalf("mocktest: push scenario: %v", err)
 	}
@@ -343,31 +392,68 @@ func probeHealth(client *http.Client, base string) bool {
 // Test entry point
 // ---------------------------------------------------------------------------
 
+// restToken is the fixed API token every mock client authenticates with; the
+// per-test isolation comes from the random PROJECT, not the token.
+const restToken = "test_tok"
+
+// randomProject returns a unique `test_proj_<12 hex>` project name. The random
+// suffix (NOT a counter) keeps the resulting Authorization header collision-free
+// across parallel test goroutines AND separate processes hitting one shared
+// mock. Mirrors the TS newMockClient()'s `test_proj_${randomUUID...}`.
+func randomProject(t *testing.T) string {
+	t.Helper()
+	var b [6]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		t.Fatalf("mocktest: read random bytes for project: %v", err)
+	}
+	return "test_proj_" + hex.EncodeToString(b[:])
+}
+
 // New returns (client, harness) for a single test. The client is a real
-// rest.RestClient pointed at the local mock server with project=test_proj
-// and token=test_tok — matching the Python signalwire_client fixture.
+// rest.RestClient pointed at the local mock server with a UNIQUE RANDOM project
+// (`test_proj_<hex>`) and token=test_tok, so its `Authorization: Basic
+// base64(project:token)` header is unique. The returned harness is a per-test
+// view scoped to that header: it reads only this client's journal entries
+// (client-side filter) and arms scenarios only this client consumes
+// (server-side, keyed on the same header). This makes the shared singleton mock
+// safe under parallel (t.Parallel) execution with no SDK change and no
+// mock-server change. Mirrors the TS newMockClient().
 //
-// The mock's journal + scenarios are reset before the test runs, and the
-// reset is repeated via t.Cleanup so accidental leftover state from a panic
-// doesn't leak into the next test.
+// No global reset is needed: this client starts with zero entries in the
+// (auth-filtered) view. The t.Cleanup reset is a no-op for a scoped harness
+// (see Reset), so it never races a concurrent test.
+//
+// Tests that assert on the AccountSid in a LAML path must read it from
+// h.Project rather than hard-coding `test_proj`.
 func New(t *testing.T) (*rest.RestClient, *Harness) {
 	t.Helper()
-	h := ensureServer(t)
-	if h == nil {
+	shared := ensureServer(t)
+	if shared == nil {
 		// ensureServer already called t.Skipf.
 		return nil, nil
 	}
-	h.Reset(t)
-	t.Cleanup(func() { h.Reset(t) })
 
-	// Build a real client with throwaway credentials. The mock accepts
+	project := randomProject(t)
+	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(project+":"+restToken))
+
+	// Build a real client with the per-test random project. The mock accepts
 	// any non-empty Basic Auth header.
-	client, err := rest.NewRestClient("test_proj", "test_tok", fmt.Sprintf("127.0.0.1:%d", h.Port))
+	client, err := rest.NewRestClient(project, restToken, fmt.Sprintf("127.0.0.1:%d", shared.Port))
 	if err != nil {
 		t.Fatalf("mocktest: NewRestClient: %v", err)
 	}
 	// Repoint the underlying HTTPClient at http:// (the constructor builds
 	// https:// + space). SetBaseURL exists for exactly this purpose.
-	client.SetBaseURL(h.URL)
+	client.SetBaseURL(shared.URL)
+
+	// Per-test harness view scoped to this client's auth header + project.
+	h := &Harness{
+		URL:        shared.URL,
+		Port:       shared.Port,
+		Project:    project,
+		authHeader: authHeader,
+		httpClient: shared.httpClient,
+	}
+	t.Cleanup(func() { h.Reset(t) })
 	return client, h
 }

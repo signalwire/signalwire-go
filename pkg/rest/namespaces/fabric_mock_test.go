@@ -25,6 +25,7 @@ import (
 // ---------------- FabricAddresses ----------------
 
 func TestFabricAddresses_List(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -58,6 +59,7 @@ func TestFabricAddresses_List(t *testing.T) {
 }
 
 func TestFabricAddresses_Get(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -85,6 +87,7 @@ func TestFabricAddresses_Get(t *testing.T) {
 // ---------------- CXMLApplications.Create deliberately fails ----------------
 
 func TestFabricCXMLApplications_CreateRaisesNotImplemented(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -107,6 +110,7 @@ func TestFabricCXMLApplications_CreateRaisesNotImplemented(t *testing.T) {
 // ---------------- CallFlows.ListAddresses uses singular path ----------------
 
 func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -132,6 +136,7 @@ func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
 // ---------------- ConferenceRooms.ListAddresses uses singular path ----------------
 
 func TestFabricConferenceRooms_ListAddressesUsesSingularPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -157,6 +162,7 @@ func TestFabricConferenceRooms_ListAddressesUsesSingularPath(t *testing.T) {
 // ---------------- Subscribers SIP-endpoint per-id ops ----------------
 
 func TestFabricSubscribers_GetSIPEndpoint(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -180,6 +186,7 @@ func TestFabricSubscribers_GetSIPEndpoint(t *testing.T) {
 }
 
 func TestFabricSubscribers_UpdateSIPEndpointUsesPATCH(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -209,6 +216,7 @@ func TestFabricSubscribers_UpdateSIPEndpointUsesPATCH(t *testing.T) {
 }
 
 func TestFabricSubscribers_DeleteSIPEndpoint(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -234,6 +242,7 @@ func TestFabricSubscribers_DeleteSIPEndpoint(t *testing.T) {
 // ---------------- FabricTokens ----------------
 
 func TestFabricTokens_CreateInviteToken(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -262,6 +271,7 @@ func TestFabricTokens_CreateInviteToken(t *testing.T) {
 }
 
 func TestFabricTokens_CreateEmbedToken(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -291,6 +301,7 @@ func TestFabricTokens_CreateEmbedToken(t *testing.T) {
 }
 
 func TestFabricTokens_RefreshSubscriberToken(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -321,6 +332,7 @@ func TestFabricTokens_RefreshSubscriberToken(t *testing.T) {
 // ---------------- GenericResources ----------------
 
 func TestFabricResources_List(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -343,6 +355,7 @@ func TestFabricResources_List(t *testing.T) {
 }
 
 func TestFabricResources_Get(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -362,6 +375,7 @@ func TestFabricResources_Get(t *testing.T) {
 }
 
 func TestFabricResources_Delete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -384,6 +398,7 @@ func TestFabricResources_Delete(t *testing.T) {
 }
 
 func TestFabricResources_ListAddresses(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -406,6 +421,7 @@ func TestFabricResources_ListAddresses(t *testing.T) {
 }
 
 func TestFabricResources_AssignDomainApplication(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

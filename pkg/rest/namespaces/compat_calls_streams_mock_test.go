@@ -21,6 +21,7 @@ import (
 
 // TestCompatCalls_StartStream covers Calls.StartStream → POST /Calls/{sid}/Streams.
 func TestCompatCalls_StartStream(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -58,7 +59,7 @@ func TestCompatCalls_StartStream(t *testing.T) {
 		if j.Method != "POST" {
 			t.Errorf("method = %q, want POST", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_JX1/Streams"
+		wantPath := lamlAccountBase(mock) + "/Calls/CA_JX1/Streams"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -77,6 +78,7 @@ func TestCompatCalls_StartStream(t *testing.T) {
 
 // TestCompatCalls_StopStream covers Calls.StopStream → POST .../Streams/{stream_sid}.
 func TestCompatCalls_StopStream(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -112,7 +114,7 @@ func TestCompatCalls_StopStream(t *testing.T) {
 		if j.Method != "POST" {
 			t.Errorf("method = %q, want POST", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_S1/Streams/ST_S1"
+		wantPath := lamlAccountBase(mock) + "/Calls/CA_S1/Streams/ST_S1"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -128,6 +130,7 @@ func TestCompatCalls_StopStream(t *testing.T) {
 
 // TestCompatCalls_UpdateRecording covers Calls.UpdateRecording.
 func TestCompatCalls_UpdateRecording(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -163,7 +166,7 @@ func TestCompatCalls_UpdateRecording(t *testing.T) {
 		if j.Method != "POST" {
 			t.Errorf("method = %q, want POST", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_R1/Recordings/RE_R1"
+		wantPath := lamlAccountBase(mock) + "/Calls/CA_R1/Recordings/RE_R1"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -185,4 +188,15 @@ func keys(m map[string]any) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// lamlAccountBase returns the Twilio-compatible LAML account base path for the
+// harness's per-test random project, i.e.
+// "/api/laml/2010-04-01/Accounts/<project>". The AccountSid segment is the
+// project the client authenticates with; because each test now uses a UNIQUE
+// random project for journal/scenario isolation under parallel execution, a
+// LAML-path assertion must read it from the harness rather than hard-coding
+// "test_proj". Mirrors the TS tests reading mock.project.
+func lamlAccountBase(m *mocktest.Harness) string {
+	return "/api/laml/2010-04-01/Accounts/" + m.Project
 }

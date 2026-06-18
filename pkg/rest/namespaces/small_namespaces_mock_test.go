@@ -30,6 +30,7 @@ import (
 // ---------- Short Codes ----------
 
 func TestShortCodes_List(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -58,6 +59,7 @@ func TestShortCodes_List(t *testing.T) {
 }
 
 func TestShortCodes_Get(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -82,6 +84,7 @@ func TestShortCodes_Get(t *testing.T) {
 }
 
 func TestShortCodes_Update(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -118,6 +121,7 @@ func TestShortCodes_Update(t *testing.T) {
 // ---------- Imported Numbers ----------
 
 func TestImportedNumbers_Create(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -162,6 +166,7 @@ func TestImportedNumbers_Create(t *testing.T) {
 // ---------- MFA — voice channel ----------
 
 func TestMFA_Call(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -205,6 +210,7 @@ func TestMFA_Call(t *testing.T) {
 // ---------- SIP Profile ----------
 
 func TestSipProfile_Update(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -250,6 +256,7 @@ func TestSipProfile_Update(t *testing.T) {
 // ---------- Number Groups ----------
 
 func TestNumberGroups_ListMemberships(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -283,6 +290,7 @@ func TestNumberGroups_ListMemberships(t *testing.T) {
 }
 
 func TestNumberGroups_DeleteMembership(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -314,6 +322,7 @@ func TestNumberGroups_DeleteMembership(t *testing.T) {
 // ---------- Project tokens ----------
 
 func TestProjectTokens_Update(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -347,6 +356,7 @@ func TestProjectTokens_Update(t *testing.T) {
 }
 
 func TestProjectTokens_Delete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -378,6 +388,7 @@ func TestProjectTokens_Delete(t *testing.T) {
 // ---------- Datasphere ----------
 
 func TestDatasphere_GetChunk(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -404,6 +415,7 @@ func TestDatasphere_GetChunk(t *testing.T) {
 // ---------- Queues — get_member ----------
 
 func TestQueues_GetMember(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

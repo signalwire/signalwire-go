@@ -24,6 +24,7 @@ import (
 // ----------------- Addresses -----------------
 
 func TestAddresses_List(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -56,6 +57,7 @@ func TestAddresses_List(t *testing.T) {
 }
 
 func TestAddresses_Create(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -96,6 +98,7 @@ func TestAddresses_Create(t *testing.T) {
 }
 
 func TestAddresses_Get(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -118,6 +121,7 @@ func TestAddresses_Get(t *testing.T) {
 }
 
 func TestAddresses_Delete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -147,6 +151,7 @@ func TestAddresses_Delete(t *testing.T) {
 // ----------------- Recordings -----------------
 
 func TestRecordings_List(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -176,6 +181,7 @@ func TestRecordings_List(t *testing.T) {
 }
 
 func TestRecordings_Get(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -198,6 +204,7 @@ func TestRecordings_Get(t *testing.T) {
 }
 
 func TestRecordings_Delete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

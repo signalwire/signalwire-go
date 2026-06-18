@@ -33,6 +33,7 @@ type Client struct {
 	messages           map[string]*Message             // message_id -> Message
 	pendingDials       map[string]chan *Call           // tag -> dial result
 	protocol           string
+	sessionID          string // server-issued `sessionid` from the connect handshake; test-only (see export_test.go)
 	authState          string
 	authorizationState string // signalwire.authorization.state event payload
 	contexts           []string
@@ -115,6 +116,30 @@ func (c *Client) RelayProtocol() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.protocol
+}
+
+// SessionID returns the server-assigned session id captured from the
+// signalwire.connect handshake (the connect result's `sessionid`). It is empty
+// until after a successful Connect+Authenticate.
+//
+// This is test-support surface, not part of the Python-mapped public API:
+// Python's RelayClient keeps the session id internal (TS keeps it as a private
+// `_sessionId`), so SessionID is deliberately NOT in the cross-port surface
+// translation table (internal/surface/tables.go) and is invisible to the
+// SURFACE-DIFF gate — exactly like the other connection-lifecycle helpers
+// (Authenticate, StartReadLoop, SubscribeContexts) that the mock test harness
+// needs but Python does not expose. Go's `export_test.go` mechanism is
+// same-package-only and cannot reach across to the separate
+// pkg/relay/internal/mocktest package, so unlike TS (which casts to the private
+// field) the accessor must be an exported method here; it remains off the
+// tracked surface, so no PORT_ADDITIONS entry is required.
+//
+// The mock harness reads it to scope its journal/scenario control-plane calls
+// to this client's session, making the shared mock safe under parallel tests.
+func (c *Client) SessionID() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.sessionID
 }
 
 // ProjectID returns the configured project ID. Mirrors Python's public
@@ -699,6 +724,7 @@ func (c *Client) authenticate() error {
 
 			var authResult struct {
 				Protocol      string `json:"protocol"`
+				SessionID     string `json:"sessionid"`
 				JWTToken      string `json:"jwt_token"`
 				Authorization struct {
 					Project string `json:"project"`
@@ -709,6 +735,13 @@ func (c *Client) authenticate() error {
 			}
 			c.mu.Lock()
 			c.protocol = authResult.Protocol
+			// Capture the server-assigned session id from the connect handshake.
+			// Kept off the public surface (Python's RelayClient does not expose it
+			// either — see PORT parity); tests read it via the test-only accessor
+			// in export_test.go to scope the mock harness to this client's session.
+			if authResult.SessionID != "" {
+				c.sessionID = authResult.SessionID
+			}
 			c.jwtToken = authResult.JWTToken
 			c.authState = "authenticated"
 			c.mu.Unlock()

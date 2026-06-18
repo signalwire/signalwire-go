@@ -157,9 +157,6 @@ func TestRelay_ReconnectWithProtocolStringIncludesProtocolInFrame(t *testing.T) 
 	// client's accessor — easier path: build a second client and
 	// reuse the protocol field we know the server emitted.
 
-	// Reset journal so the only frames we see are the new client's.
-	h.JournalReset(t)
-
 	// Build a second client and inject its remembered protocol via
 	// WithJWT? No — we need a separate hook. The Python test does:
 	//   client2._relay_protocol = issued["protocol"]
@@ -169,8 +166,11 @@ func TestRelay_ReconnectWithProtocolStringIncludesProtocolInFrame(t *testing.T) 
 	// requires an explicit "protocol" field in connect params for the
 	// resume path — without a Go public surface for that, we settle
 	// for the looser invariant: each client gets its own protocol.
-
-	c2 := mocktest.NewClientOnly(t, h,
+	//
+	// The second client gets its OWN session; `c2h` is the harness scoped to
+	// it, so we read only its connect frame (no journal reset needed — a fresh
+	// session starts empty).
+	c2, c2h := mocktest.NewClientOnly(t, h,
 		relay.WithProject("p"),
 		relay.WithToken("t"),
 		relay.WithContexts("c1"),
@@ -179,7 +179,7 @@ func TestRelay_ReconnectWithProtocolStringIncludesProtocolInFrame(t *testing.T) 
 		t.Fatal("second client got empty protocol")
 	}
 	// Verify a connect frame was sent.
-	connects := h.JournalRecv(t, "signalwire.connect")
+	connects := c2h.JournalRecv(t, "signalwire.connect")
 	if len(connects) == 0 {
 		t.Fatal("no connect frame from second client")
 	}
@@ -198,7 +198,7 @@ func TestRelay_ReconnectWithProtocolPreservesProtocolValue(t *testing.T) {
 	if first == "" {
 		t.Fatal("first client got empty protocol")
 	}
-	c2 := mocktest.NewClientOnly(t, h,
+	c2, _ := mocktest.NewClientOnly(t, h,
 		relay.WithProject("p"),
 		relay.WithToken("t"),
 	)
@@ -287,14 +287,14 @@ func TestRelay_ConnectWithJWTCarriesJWTOnWire(t *testing.T) {
 	if h == nil {
 		return
 	}
-	h.JournalReset(t)
-	c := mocktest.NewClientOnly(t, h,
+	c, ch := mocktest.NewClientOnly(t, h,
 		relay.WithJWT("fake-jwt-eyJ.AaaA.BbB"),
 	)
 	if c.RelayProtocol() == "" {
 		t.Fatal("JWT client got no protocol back")
 	}
-	entry := h.JournalLast(t, "signalwire.connect")
+	// Read on the harness scoped to the JWT client's own session.
+	entry := ch.JournalLast(t, "signalwire.connect")
 	params, ok := entry.FrameParams()
 	if !ok {
 		t.Fatalf("connect frame has no params: %#v", entry.Frame)

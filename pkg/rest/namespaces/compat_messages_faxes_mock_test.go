@@ -21,6 +21,7 @@ import (
 // ----------------- Messages -----------------
 
 func TestCompatMessages_Update(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -54,7 +55,7 @@ func TestCompatMessages_Update(t *testing.T) {
 		if j.Method != "POST" {
 			t.Errorf("method = %q, want POST", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_U1"
+		wantPath := lamlAccountBase(mock) + "/Messages/MM_U1"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -72,6 +73,7 @@ func TestCompatMessages_Update(t *testing.T) {
 }
 
 func TestCompatMessages_GetMedia(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -100,7 +102,7 @@ func TestCompatMessages_GetMedia(t *testing.T) {
 		if j.Method != "GET" {
 			t.Errorf("method = %q, want GET", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_X/Media/ME_X"
+		wantPath := lamlAccountBase(mock) + "/Messages/MM_X/Media/ME_X"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -108,6 +110,7 @@ func TestCompatMessages_GetMedia(t *testing.T) {
 }
 
 func TestCompatMessages_DeleteMedia(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -134,7 +137,7 @@ func TestCompatMessages_DeleteMedia(t *testing.T) {
 		if j.Method != "DELETE" {
 			t.Errorf("method = %q, want DELETE", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_D/Media/ME_D"
+		wantPath := lamlAccountBase(mock) + "/Messages/MM_D/Media/ME_D"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -144,6 +147,7 @@ func TestCompatMessages_DeleteMedia(t *testing.T) {
 // ----------------- Faxes -----------------
 
 func TestCompatFaxes_Update(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -176,7 +180,7 @@ func TestCompatFaxes_Update(t *testing.T) {
 		if j.Method != "POST" {
 			t.Errorf("method = %q, want POST", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_U2"
+		wantPath := lamlAccountBase(mock) + "/Faxes/FX_U2"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -191,6 +195,7 @@ func TestCompatFaxes_Update(t *testing.T) {
 }
 
 func TestCompatFaxes_ListMedia(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -219,7 +224,7 @@ func TestCompatFaxes_ListMedia(t *testing.T) {
 		if j.Method != "GET" {
 			t.Errorf("method = %q, want GET", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_LM_X/Media"
+		wantPath := lamlAccountBase(mock) + "/Faxes/FX_LM_X/Media"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -227,6 +232,7 @@ func TestCompatFaxes_ListMedia(t *testing.T) {
 }
 
 func TestCompatFaxes_GetMedia(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -255,7 +261,7 @@ func TestCompatFaxes_GetMedia(t *testing.T) {
 		if j.Method != "GET" {
 			t.Errorf("method = %q, want GET", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_G/Media/ME_G"
+		wantPath := lamlAccountBase(mock) + "/Faxes/FX_G/Media/ME_G"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}
@@ -263,6 +269,7 @@ func TestCompatFaxes_GetMedia(t *testing.T) {
 }
 
 func TestCompatFaxes_DeleteMedia(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -289,7 +296,7 @@ func TestCompatFaxes_DeleteMedia(t *testing.T) {
 		if j.Method != "DELETE" {
 			t.Errorf("method = %q, want DELETE", j.Method)
 		}
-		const wantPath = "/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_D/Media/ME_D"
+		wantPath := lamlAccountBase(mock) + "/Faxes/FX_D/Media/ME_D"
 		if j.Path != wantPath {
 			t.Errorf("path = %q, want %q", j.Path, wantPath)
 		}

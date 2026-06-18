@@ -24,6 +24,7 @@ const regBase = "/api/relay/rest/registry/beta"
 // ---------- Brands ----------
 
 func TestRegistryBrands_List_ReturnsDict(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -51,6 +52,7 @@ func TestRegistryBrands_List_ReturnsDict(t *testing.T) {
 }
 
 func TestRegistryBrands_Get_UsesIDInPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -75,6 +77,7 @@ func TestRegistryBrands_Get_UsesIDInPath(t *testing.T) {
 }
 
 func TestRegistryBrands_ListCampaigns_UsesBrandSubpath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -102,6 +105,7 @@ func TestRegistryBrands_ListCampaigns_UsesBrandSubpath(t *testing.T) {
 }
 
 func TestRegistryBrands_CreateCampaign_PostsToBrandSubpath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -141,6 +145,7 @@ func TestRegistryBrands_CreateCampaign_PostsToBrandSubpath(t *testing.T) {
 // ---------- Campaigns ----------
 
 func TestRegistryCampaigns_Get_UsesIDInPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -165,6 +170,7 @@ func TestRegistryCampaigns_Get_UsesIDInPath(t *testing.T) {
 }
 
 func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -198,6 +204,7 @@ func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
 }
 
 func TestRegistryCampaigns_ListNumbers_UsesNumbersSubpath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -225,6 +232,7 @@ func TestRegistryCampaigns_ListNumbers_UsesNumbersSubpath(t *testing.T) {
 }
 
 func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -264,6 +272,7 @@ func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
 // ---------- Orders ----------
 
 func TestRegistryOrders_Get_UsesIDInPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -293,6 +302,7 @@ func TestRegistryOrders_Get_UsesIDInPath(t *testing.T) {
 // ---------- Numbers ----------
 
 func TestRegistryNumbers_Delete_UsesIDInPath(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return

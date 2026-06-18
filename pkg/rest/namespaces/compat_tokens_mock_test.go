@@ -19,11 +19,17 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
 )
 
-const compatTokensBase = "/api/laml/2010-04-01/Accounts/test_proj/tokens"
+// compatTokensBase is the tokens collection base path for the harness's
+// per-test random project (see lamlAccountBase). Function, not const, because
+// the AccountSid segment is per-test (parallel isolation).
+func compatTokensBase(m *mocktest.Harness) string {
+	return lamlAccountBase(m) + "/tokens"
+}
 
 // ---------- CompatTokensCreate ----------
 
 func TestCompatTokens_Create_ReturnsToken(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -44,6 +50,7 @@ func TestCompatTokens_Create_ReturnsToken(t *testing.T) {
 }
 
 func TestCompatTokens_Create_JournalRecordsPost(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -61,8 +68,8 @@ func TestCompatTokens_Create_JournalRecordsPost(t *testing.T) {
 	if j.Method != "POST" {
 		t.Errorf("method = %q, want POST", j.Method)
 	}
-	if j.Path != compatTokensBase {
-		t.Errorf("path = %q, want %q", j.Path, compatTokensBase)
+	if j.Path != compatTokensBase(mock) {
+		t.Errorf("path = %q, want %q", j.Path, compatTokensBase(mock))
 	}
 	body, ok := j.BodyMap()
 	if !ok {
@@ -79,6 +86,7 @@ func TestCompatTokens_Create_JournalRecordsPost(t *testing.T) {
 // ---------- CompatTokensUpdate ----------
 
 func TestCompatTokens_Update_ReturnsToken(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -99,6 +107,7 @@ func TestCompatTokens_Update_ReturnsToken(t *testing.T) {
 }
 
 func TestCompatTokens_Update_JournalRecordsPatch(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -116,7 +125,7 @@ func TestCompatTokens_Update_JournalRecordsPatch(t *testing.T) {
 	if j.Method != "PATCH" {
 		t.Errorf("method = %q, want PATCH", j.Method)
 	}
-	const wantPath = compatTokensBase + "/TK_UU"
+	wantPath := compatTokensBase(mock) + "/TK_UU"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -132,6 +141,7 @@ func TestCompatTokens_Update_JournalRecordsPatch(t *testing.T) {
 // ---------- CompatTokensDelete ----------
 
 func TestCompatTokens_Delete_NoException(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -148,6 +158,7 @@ func TestCompatTokens_Delete_NoException(t *testing.T) {
 }
 
 func TestCompatTokens_Delete_JournalRecordsDelete(t *testing.T) {
+	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
 		return
@@ -162,7 +173,7 @@ func TestCompatTokens_Delete_JournalRecordsDelete(t *testing.T) {
 	if j.Method != "DELETE" {
 		t.Errorf("method = %q, want DELETE", j.Method)
 	}
-	const wantPath = compatTokensBase + "/TK_DEL"
+	wantPath := compatTokensBase(mock) + "/TK_DEL"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
