@@ -49,7 +49,7 @@ func main() {
 		Description: "Get the health status of this agent",
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
 			return swaig.NewFunctionResult(
-				fmt.Sprintf("Agent %s is healthy, running on port %d in Kubernetes.", a.Name(), port),
+				fmt.Sprintf("Agent %s is healthy, running on port %d in Kubernetes.", a.GetName(), port),
 			)
 		},
 	})
