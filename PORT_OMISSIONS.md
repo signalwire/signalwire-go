@@ -642,16 +642,16 @@ signalwire.relay.message.Message.__repr__: Python Message __init__ dunder is cov
 signalwire.relay.message.Message.result: Python Message __init__ dunder is covered by Go relay internal factory (newMessage)
 
 # --- REST namespace omissions ---
-signalwire.rest._base.CrudWithAddresses: Python mixin shared between fabric resources; Go port inlines list_addresses onto the individual fabric resource structs
-signalwire.rest._base.CrudWithAddresses.list_addresses: Python mixin method; Go port emits list_addresses directly on ConferenceRoomsResource/SubscribersResource/CallFlowsResource/GenericResources
+signalwire.rest._base.CrudWithAddresses: Python mixin shared between fabric resources; Go port has the equivalent namespaces.CrudWithAddresses type (embedded by the PUT/webhook/subscriber fabric resources) under a Go-idiomatic name, so the Python-path symbol is excused
+signalwire.rest._base.CrudWithAddresses.list_addresses: Python mixin method; Go port exposes the equivalent ListAddresses via the embedded namespaces.CrudWithAddresses (and the custom CallFlowsResource/ConferenceRoomsResource/GenericResources overrides), under a Go-idiomatic name
 signalwire.rest.call_handler.PhoneCallHandler: Python PhoneCallHandler is a typing helper alias; Go port uses pkg/rest/namespaces/call_handler.go (string type)
 signalwire.rest.namespaces.compat.CompatTokens.delete: not_yet_implemented: compat namespace item pending
 signalwire.rest.namespaces.compat.CompatTokens.update: not_yet_implemented: compat namespace item pending
 signalwire.rest.namespaces.fabric.CxmlApplicationsResource: not_yet_implemented: CxmlApplicationsResource not yet wired in FabricNamespace
 signalwire.rest.namespaces.fabric.CxmlApplicationsResource.create: not_yet_implemented: CxmlApplicationsResource not yet wired in FabricNamespace
 signalwire.rest.namespaces.fabric.CxmlWebhooksResource: deprecated legacy resource; Go port omits per phone-binding.md (use phone_numbers.SetCxmlWebhook)
-signalwire.rest.namespaces.fabric.FabricResource: internal base class for fabric resources; Go port inlines CRUD onto concrete resource structs
-signalwire.rest.namespaces.fabric.FabricResourcePUT: internal base class variant; Go port inlines update handling onto concrete resource structs
+signalwire.rest.namespaces.fabric.FabricResource: internal base class for fabric resources; Go port aliases it to namespaces.CrudWithAddresses (List/Create/Get/Update/Delete + ListAddresses)
+signalwire.rest.namespaces.fabric.FabricResourcePUT: internal base-class variant (PUT updates); Go port aliases it to namespaces.CrudWithAddresses constructed via NewCrudWithAddressesPUT, so it exposes CRUD + ListAddresses
 signalwire.rest.namespaces.fabric.SwmlWebhooksResource: deprecated legacy resource; Go port omits per phone-binding.md (use phone_numbers.SetSwmlWebhook)
 
 # --- Prefab internal handlers ---

@@ -263,6 +263,14 @@ func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, 
 
 	var result map[string]any
 	if err := json.Unmarshal(respBody, &result); err != nil {
+		// Some endpoints (e.g. fabric list_subscriber_addresses) return a
+		// top-level JSON array rather than an object. Wrap it under the
+		// canonical "data" key so callers and the paginator see a uniform
+		// map[string]any shape.
+		var arr []any
+		if arrErr := json.Unmarshal(respBody, &arr); arrErr == nil {
+			return map[string]any{"data": arr}, nil
+		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil

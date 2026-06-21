@@ -446,11 +446,11 @@ func TestFabricNamespace_PUTResources(t *testing.T) {
 
 	// PUT-update resources
 	putResources := []*CrudResource{
-		f.SWMLScripts,
-		f.RelayApplications,
+		f.SWMLScripts.CrudResource,
+		f.RelayApplications.CrudResource,
 		f.CallFlows.CrudResource,
-		f.FreeSwitchConnectors,
-		f.SIPEndpoints,
+		f.FreeSwitchConnectors.CrudResource,
+		f.SIPEndpoints.CrudResource,
 	}
 	for _, r := range putResources {
 		if r.UpdateMethod != "PUT" {

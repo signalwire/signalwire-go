@@ -111,9 +111,12 @@ func (r *ConferenceRoomsResource) ListAddresses(id string, params map[string]str
 
 // ---------- SubscribersResource ----------
 
-// SubscribersResource extends CrudResource with SIP endpoint management.
+// SubscribersResource extends CrudWithAddresses with SIP endpoint management.
+// It embeds *CrudWithAddresses (not plain *CrudResource) so it exposes
+// ListAddresses, mirroring Python's SubscribersResource(FabricResourcePUT)
+// which inherits list_addresses from CrudWithAddresses.
 type SubscribersResource struct {
-	*CrudResource
+	*CrudWithAddresses
 }
 
 // ListSIPEndpoints lists SIP endpoints for a subscriber.
@@ -180,7 +183,7 @@ func (r *CxmlApplicationsResource) ListAddresses(id string, params map[string]st
 // resource directly produces an orphan that isn't bound to any phone
 // number.
 type AutoMaterializedWebhookResource struct {
-	*CrudResource
+	*CrudWithAddresses
 	// helperName is the recommended replacement helper, inserted into the
 	// deprecation message. E.g. "phone_numbers.SetSwmlWebhook(sid, url)".
 	helperName string
@@ -308,11 +311,13 @@ func (r *FabricTokens) CreateEmbedToken(data map[string]any) (map[string]any, er
 	return r.HTTP.Post(r.Path("embeds", "tokens"), data, nil)
 }
 
-// FabricResourcePUT is the Python class name for a CrudResource that uses
-// PUT for updates. Go aliases CrudResource here so the cross-language
-// audit sees the same type name on both sides without requiring a
-// distinct struct.
-type FabricResourcePUT = CrudResource
+// FabricResourcePUT is the Python class name for a fabric resource that uses
+// PUT for updates and exposes the addresses sub-resource. Go aliases
+// CrudWithAddresses here so the cross-language audit sees the same type name
+// on both sides without requiring a distinct struct, and so the PUT-update
+// fabric resources expose ListAddresses, mirroring Python's
+// FabricResourcePUT(CrudWithAddresses).
+type FabricResourcePUT = CrudWithAddresses
 
 // FabricResource is the Python class name for a CrudResource that exposes
 // the addresses sub-resource. Go aliases CrudWithAddresses here for the
@@ -364,28 +369,28 @@ func NewFabricNamespace(client HTTPClient) *FabricNamespace {
 
 	return &FabricNamespace{
 		// PUT-update resources
-		SWMLScripts:          NewCrudResourcePUT(client, base+"/swml_scripts"),
-		RelayApplications:    NewCrudResourcePUT(client, base+"/relay_applications"),
+		SWMLScripts:          NewCrudWithAddressesPUT(client, base+"/swml_scripts"),
+		RelayApplications:    NewCrudWithAddressesPUT(client, base+"/relay_applications"),
 		CallFlows:            &CallFlowsResource{NewCrudResourcePUT(client, base+"/call_flows")},
 		ConferenceRooms:      &ConferenceRoomsResource{NewCrudResourcePUT(client, base+"/conference_rooms")},
-		FreeSwitchConnectors: NewCrudResourcePUT(client, base+"/freeswitch_connectors"),
-		Subscribers:          &SubscribersResource{NewCrudResourcePUT(client, base+"/subscribers")},
-		SIPEndpoints:         NewCrudResourcePUT(client, base+"/sip_endpoints"),
-		CXMLScripts:          NewCrudResourcePUT(client, base+"/cxml_scripts"),
+		FreeSwitchConnectors: NewCrudWithAddressesPUT(client, base+"/freeswitch_connectors"),
+		Subscribers:          &SubscribersResource{NewCrudWithAddressesPUT(client, base+"/subscribers")},
+		SIPEndpoints:         NewCrudWithAddressesPUT(client, base+"/sip_endpoints"),
+		CXMLScripts:          NewCrudWithAddressesPUT(client, base+"/cxml_scripts"),
 		CXMLApplications:     &CxmlApplicationsResource{NewCrudResourcePUT(client, base+"/cxml_applications")},
 
 		// PATCH-update resources
 		SWMLWebhooks: &AutoMaterializedWebhookResource{
-			CrudResource:   NewCrudResource(client, base+"/swml_webhooks"),
-			helperName:     "phone_numbers.SetSwmlWebhook(sid, url)",
-			deprecationKey: "SWMLWebhooks.Create",
+			CrudWithAddresses: NewCrudWithAddresses(client, base+"/swml_webhooks"),
+			helperName:        "phone_numbers.SetSwmlWebhook(sid, url)",
+			deprecationKey:    "SWMLWebhooks.Create",
 		},
 		AIAgents:    NewCrudWithAddresses(client, base+"/ai_agents"),
 		SIPGateways: NewCrudWithAddresses(client, base+"/sip_gateways"),
 		CXMLWebhooks: &AutoMaterializedWebhookResource{
-			CrudResource:   NewCrudResource(client, base+"/cxml_webhooks"),
-			helperName:     "phone_numbers.SetCxmlWebhook(sid, url, opts)",
-			deprecationKey: "CXMLWebhooks.Create",
+			CrudWithAddresses: NewCrudWithAddresses(client, base+"/cxml_webhooks"),
+			helperName:        "phone_numbers.SetCxmlWebhook(sid, url, opts)",
+			deprecationKey:    "CXMLWebhooks.Create",
 		},
 
 		// Special resources
