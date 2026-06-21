@@ -1,4 +1,4 @@
-// Standalone security hygiene utilities.
+// Package security — standalone security hygiene utilities.
 //
 // These mirror the TypeScript SDK's SecurityUtils (filterSensitiveHeaders,
 // redactUrl, isValidHostname) and the Python reference's
