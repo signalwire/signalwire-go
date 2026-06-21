@@ -1402,6 +1402,16 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	// them as ValidateWebhookSignature / ValidateRequest in pkg/security.
 	"security.ValidateWebhookSignature": {Module: "signalwire.core.security.webhook_validator", Name: "validate_webhook_signature"},
 	"security.ValidateRequest":          {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
+
+	// Standalone security hygiene utilities — Python ships these as
+	// module-level free functions in signalwire.core.security.security_utils.
+	// Go exposes them as package-level functions in pkg/security
+	// (FilterSensitiveHeaders / RedactURL / IsValidHostname); the PascalCase +
+	// all-caps URL initialism is the Go naming idiom, mapped here to the
+	// snake_case canonical names the DRIFT gate compares.
+	"security.FilterSensitiveHeaders": {Module: "signalwire.core.security.security_utils", Name: "filter_sensitive_headers"},
+	"security.RedactURL":              {Module: "signalwire.core.security.security_utils", Name: "redact_url"},
+	"security.IsValidHostname":        {Module: "signalwire.core.security.security_utils", Name: "is_valid_hostname"},
 }
 
 // FactoryInit maps a Go factory function (not a “New<Struct>“ that matches

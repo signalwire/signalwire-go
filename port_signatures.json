@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 950b3dabf96000f8296f3fa7ac965babc0bdf96e (go/ast walker)",
+  "generated_from": "signalwire-go @ 9fe495cb68123abe1b28f6a97617dc32ac84566a (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3650,6 +3650,40 @@
               "returns": "class:signalwire.core.agent_base.AgentBase"
             }
           }
+        }
+      }
+    },
+    "signalwire.core.security.security_utils": {
+      "functions": {
+        "filter_sensitive_headers": {
+          "params": [
+            {
+              "name": "headers",
+              "type": "dict\u003cstring,string\u003e",
+              "required": true
+            }
+          ],
+          "returns": "dict\u003cstring,string\u003e"
+        },
+        "is_valid_hostname": {
+          "params": [
+            {
+              "name": "host",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "redact_url": {
+          "params": [
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
         }
       }
     },

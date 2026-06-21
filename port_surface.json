@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 28164ae07bbe4a3b6d954ed55ddada5c2c75ba65",
+  "generated_from": "signalwire-go @ 9fe495cb68123abe1b28f6a97617dc32ac84566a",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -343,6 +343,14 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.security.security_utils": {
+      "classes": {},
+      "functions": [
+        "filter_sensitive_headers",
+        "is_valid_hostname",
+        "redact_url"
+      ]
     },
     "signalwire.core.security.session_manager": {
       "classes": {
