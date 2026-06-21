@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 28164ae07bbe4a3b6d954ed55ddada5c2c75ba65",
+  "generated_from": "signalwire-go (go-native) @ 9fe495cb68123abe1b28f6a97617dc32ac84566a",
   "modules": {
     "agent": {
       "classes": {
@@ -20,8 +20,9 @@
           "AddPronunciation",
           "AddSkill",
           "AddSwaigQueryParams",
+          "AllFunctions",
           "AsRouter",
-          "AutoMapSipUsernames",
+          "AutoMapSIPUsernames",
           "ClearPostAiVerbs",
           "ClearPostAnswerVerbs",
           "ClearPreAnswerVerbs",
@@ -34,37 +35,36 @@
           "EnableDebugEvents",
           "EnableDebugRoutes",
           "EnableMcpServer",
-          "EnableSipRouting",
-          "GetAllFunctions",
+          "EnableSIPRouting",
+          "Function",
           "GetBasicAuthCredentials",
           "GetBasicAuthCredentialsWithSource",
           "GetContexts",
           "GetFullURL",
-          "GetFunction",
-          "GetLanguageParams",
           "GetName",
-          "GetPostPrompt",
           "GetPrompt",
-          "GetRawPrompt",
           "GetRoute",
           "HasFunction",
           "HasSkill",
+          "LanguageParams",
           "ListSkills",
           "ListToolNames",
-          "ManualSetProxyUrl",
+          "ManualSetProxyURL",
           "OnDebugEvent",
           "OnFunctionCall",
           "OnRequest",
           "OnSummary",
           "OnSwmlRequest",
           "Pom",
+          "PostPrompt",
           "PromptAddSection",
           "PromptAddSubsection",
           "PromptAddToSection",
           "PromptHasSection",
+          "RawPrompt",
           "RegisterRoutingCallback",
-          "RegisterSipRoutingCallback",
-          "RegisterSipUsername",
+          "RegisterSIPRoutingCallback",
+          "RegisterSIPUsername",
           "RegisterSwaigFunction",
           "RemoveFunction",
           "RemoveSkill",
@@ -85,13 +85,13 @@
           "SetParams",
           "SetPostPrompt",
           "SetPostPromptLlmParams",
-          "SetPostPromptUrl",
+          "SetPostPromptURL",
           "SetPromptLlmParams",
           "SetPromptPom",
           "SetPromptText",
           "SetPromptTransformer",
           "SetPronunciations",
-          "SetWebHookUrl",
+          "SetWebHookURL",
           "SetupGracefulShutdown",
           "UpdateGlobalData",
           "ValidateBasicAuth",
@@ -253,15 +253,6 @@
           "Setup",
           "SupportsMultipleInstances"
         ],
-        "SpiderSkill": [
-          "Cleanup",
-          "GetHints",
-          "GetInstanceKey",
-          "GetParameterSchema",
-          "RegisterTools",
-          "Setup",
-          "SupportsMultipleInstances"
-        ],
         "WeatherAPISkill": [
           "GetHints",
           "GetParameterSchema",
@@ -302,7 +293,6 @@
         "NewNativeVectorSearch",
         "NewPlayBackgroundFile",
         "NewSWMLTransfer",
-        "NewSpider",
         "NewWeatherAPI",
         "NewWebSearch",
         "NewWikipediaSearch"
@@ -407,7 +397,7 @@
       },
       "functions": [
         "CreateExpressionTool",
-        "CreateSimpleApiTool",
+        "CreateSimpleAPITool",
         "New"
       ]
     },
@@ -552,6 +542,7 @@
         "Harness": [
           "ArmDial",
           "ArmMethod",
+          "DumpDiagnostics",
           "InboundCall",
           "Journal",
           "JournalLast",
@@ -564,6 +555,7 @@
           "RelayHost",
           "Reset",
           "ScenarioPlay",
+          "ScopeToClient",
           "Sessions"
         ],
         "InboundCallOpts": [],
@@ -845,13 +837,13 @@
         "Resource": [
           "Path"
         ],
+        "SIPProfileNamespace": [
+          "Get",
+          "Update"
+        ],
         "ShortCodesNamespace": [
           "Get",
           "List",
-          "Update"
-        ],
-        "SipProfileNamespace": [
-          "Get",
           "Update"
         ],
         "SubscribersResource": [
@@ -929,8 +921,8 @@
         "NewQueuesNamespace",
         "NewRecordingsNamespace",
         "NewRegistryNamespace",
+        "NewSIPProfileNamespace",
         "NewShortCodesNamespace",
-        "NewSipProfileNamespace",
         "NewVerifiedCallersNamespace",
         "NewVideoNamespace",
         "ResetDeprecationWarnOnce",
@@ -1124,6 +1116,7 @@
           "Run",
           "RunContext",
           "SendMessage",
+          "SessionID",
           "Space",
           "StartReadLoop",
           "Stop",
@@ -1358,26 +1351,38 @@
       "classes": {
         "CrudResource": [
           "Create",
+          "CreateContext",
           "Delete",
+          "DeleteContext",
           "Get",
+          "GetContext",
           "List",
-          "Update"
+          "ListContext",
+          "Update",
+          "UpdateContext"
         ],
-        "HttpClient": [
+        "HTTPClient": [
           "BaseURL",
           "Delete",
+          "DeleteContext",
           "Get",
+          "GetContext",
           "Patch",
+          "PatchContext",
           "Post",
+          "PostContext",
           "Put",
+          "PutContext",
           "SetBaseURL"
         ],
         "PaginatedIterator": [
           "ForEach",
-          "Next"
+          "ForEachContext",
+          "Next",
+          "NextContext"
         ],
         "RestClient": [
-          "HttpClient",
+          "HTTPClient",
           "SetBaseURL"
         ],
         "SignalWireRestError": [
@@ -1387,7 +1392,7 @@
       "functions": [
         "NewCrudResource",
         "NewCrudResourcePUT",
-        "NewHttpClient",
+        "NewHTTPClient",
         "NewPaginatedIterator",
         "NewRestClient",
         "NewSignalWireRestError"
@@ -1404,8 +1409,11 @@
         "WebhookOpts": []
       },
       "functions": [
+        "FilterSensitiveHeaders",
+        "IsValidHostname",
         "NewSessionManager",
         "RawBodyFromContext",
+        "RedactURL",
         "ValidateRequest",
         "ValidateRequestE",
         "ValidateWebhookSignature",
@@ -1423,12 +1431,12 @@
           "GetAgents",
           "Register",
           "RegisterGlobalRoutingCallback",
-          "RegisterGlobalSipRoutingCallback",
-          "RegisterSipUsername",
+          "RegisterGlobalSIPRoutingCallback",
+          "RegisterSIPUsername",
           "Run",
           "RunContext",
           "ServeStaticFiles",
-          "SetupSipRouting",
+          "SetupSIPRouting",
           "Shutdown",
           "Unregister"
         ]
@@ -1489,6 +1497,22 @@
         "RegisterSkill"
       ]
     },
+    "spider": {
+      "classes": {
+        "SpiderSkill": [
+          "Cleanup",
+          "GetHints",
+          "GetInstanceKey",
+          "GetParameterSchema",
+          "RegisterTools",
+          "Setup",
+          "SupportsMultipleInstances"
+        ]
+      },
+      "functions": [
+        "NewSpider"
+      ]
+    },
     "swaig": {
       "classes": {
         "FunctionResult": [
@@ -1500,7 +1524,7 @@
           "Connect",
           "EnableExtensiveData",
           "EnableFunctionsOnTimeout",
-          "ExecuteRpc",
+          "ExecuteRPC",
           "ExecuteSwml",
           "Hangup",
           "Hold",
@@ -1509,6 +1533,9 @@
           "Pay",
           "PlayBackgroundFile",
           "PostProcess",
+          "RPCAiMessage",
+          "RPCAiUnhold",
+          "RPCDial",
           "RecordCall",
           "RemoveGlobalData",
           "RemoveGlobalDataKey",
@@ -1516,9 +1543,7 @@
           "RemoveMetadataKey",
           "ReplaceInHistory",
           "Response",
-          "RpcAiMessage",
-          "RpcAiUnhold",
-          "RpcDial",
+          "SIPRefer",
           "Say",
           "SendSms",
           "SetEndOfSpeechTimeout",
@@ -1527,7 +1552,6 @@
           "SetResponse",
           "SetSpeechEventTimeout",
           "SimulateUserInput",
-          "SipRefer",
           "Stop",
           "StopBackgroundFile",
           "StopRecordCall",
@@ -1660,7 +1684,7 @@
           "ListToolNames",
           "LiveTranscribe",
           "LiveTranslate",
-          "ManualSetProxyUrl",
+          "ManualSetProxyURL",
           "OnFunctionCall",
           "OnRequest",
           "Pay",
