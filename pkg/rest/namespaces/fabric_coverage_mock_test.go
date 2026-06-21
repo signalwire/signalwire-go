@@ -22,14 +22,14 @@
 //     plain .../sip_gateways/{id}/addresses, which matches no canonical route.
 //   - fabric.assign_resource_sip_endpoint (1) — canonical path doubles the segment
 //     (.../sip_endpoints/resources/{id}/sip_endpoints); no SDK method builds it.
-//   - the *_addresses sub-routes for cxml_scripts, cxml_webhooks,
-//     freeswitch_connectors, relay_applications, sip_endpoints, subscribers,
-//     swml_scripts, swml_webhooks (8) — these resources are backed by Go's
-//     FabricResourcePUT (= plain CrudResource), AutoMaterializedWebhookResource,
-//     or SubscribersResource, NONE of which exposes ListAddresses. Python's
-//     FabricResourcePUT(CrudWithAddresses) DOES, so list_addresses is reachable
-//     there; this is a Go SDK drift, reported by the task. Without a source
-//     change these 8 canonical routes cannot be reached on the correct path.
+//
+// The *_addresses sub-routes for cxml_scripts, cxml_webhooks,
+// freeswitch_connectors, relay_applications, sip_endpoints, subscribers,
+// swml_scripts and swml_webhooks (8) used to be unreachable, but
+// FabricResourcePUT now aliases CrudWithAddresses (and AutoMaterializedWebhook /
+// SubscribersResource embed it), so all eight expose ListAddresses, matching
+// Python's FabricResourcePUT(CrudWithAddresses). They are covered in
+// fabric_addresses_coverage_mock_test.go.
 
 package namespaces_test
 
