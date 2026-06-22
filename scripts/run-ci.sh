@@ -165,6 +165,41 @@ rest_coverage_gate() {
 run_gate "REST-COVERAGE" "every implemented REST route covered success+error (parity + allowlist)" \
     rest_coverage_gate
 
+# Gate 5c: SPEC-PARITY — the routes the SDK actually IMPLEMENTS must equal the
+# canonical spec route set, modulo porting-sdk/SPEC_IMPLEMENTATION_GAPS.md. This
+# is the spec-first guard REST-COVERAGE can't give: REST-COVERAGE only proves
+# *tested* routes match the spec, so a route the SDK implements that the spec
+# doesn't define (or a canonical route the SDK never implemented) would slip past
+# it. Set B is built by cmd/route-registry — it drives the live RestClient through
+# a recording HTTP transport (an httptest server that records (method, path) and
+# returns a stub 200) and reflects over every namespace/sub-resource method,
+# invoking each with sentinel args, so it sees every dispatched route whether or
+# not it's tested (not an AST scrape, not the journal). The shared porting-sdk
+# diff consumes that JSON via --registry-json. The registry prints ONLY JSON to
+# stdout (the SDK logger writes to stderr), captured to a temp file here.
+#
+# NOTE: --registry-json is on porting-sdk PR #45 (feat/spec-parity-registry-json).
+spec_parity_gate() {
+    local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
+    export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
+    local registry
+    registry="$(mktemp)"
+    # 2>/dev/null so the SDK's deprecation-warning logger (stderr) can't pollute
+    # the JSON; the registry exits non-zero if Set B is incomplete.
+    if ! go run "$PORT_ROOT/cmd/route-registry" >"$registry" 2>/dev/null; then
+        rm -f "$registry"
+        return 1
+    fi
+    python3 "$PORTING_SDK_DIR/scripts/diff_spec_implementation.py" \
+        --registry-json "$registry" \
+        --gaps "$PORTING_SDK_DIR/SPEC_IMPLEMENTATION_GAPS.md"
+    local rc=$?
+    rm -f "$registry"
+    return $rc
+}
+run_gate "SPEC-PARITY" "implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
+    spec_parity_gate
+
 # Gate 6: emission — byte-compare the SWAIG FunctionResult serialisation against
 # Python's to_dict() over the shared 81-entry corpus. The drift gate (Gate 3)
 # polices the SURFACE; this one polices the EMISSION (action shape/keys/values +
@@ -231,24 +266,37 @@ run_gate "FMT" "gofmt (local: auto-fix; CI: -l check)" fmt_gate
 #      config header). Mirrors how Rust promoted clippy to a blocking gate after
 #      its burn-down.
 #
-# golangci-lint is installed by the CI workflow via the official
-# golangci/golangci-lint-action (cached, pinned — see .github/workflows/test.yml)
-# rather than curl|sh'd here, so the script never executes a remote installer.
-# In CI ($CI set) golangci MUST be present and the gate is BLOCKING. Locally, if
-# a developer hasn't installed it, the gate warns and runs go-vet-only instead of
-# failing — `go install` it (or `brew install golangci-lint`) to get the full
-# check locally. Pinned version lives in the workflow; keep them in lockstep.
+# golangci-lint is a PINNED dev dependency (GOLANGCI_VERSION below — keep it in
+# lockstep with .github/workflows/test.yml's golangci-lint-action version). It is
+# BLOCKING both locally and in CI — no "run go-vet-only locally" degradation,
+# because that let golangci-only findings reach CI red after a local "PASS"
+# (drift the porting-sdk no-drift rule forbids). Self-heal like perl's
+# ensure_dev_tools: if it's missing locally, `go install` the pinned version into
+# GOPATH/bin and put that on PATH. In CI the workflow installs it; if it's still
+# absent there, fail loudly rather than skip.
+GOLANGCI_VERSION="v2.12.2"
+ensure_golangci() {
+    command -v golangci-lint >/dev/null 2>&1 && return 0
+    local gobin
+    gobin="$(go env GOPATH)/bin"
+    export PATH="$gobin:$PATH"
+    command -v golangci-lint >/dev/null 2>&1 && return 0
+    if [ -n "${CI:-}" ]; then
+        echo "golangci-lint not found in CI — the workflow must install it (golangci-lint-action)" >&2
+        return 1
+    fi
+    echo "    (golangci-lint $GOLANGCI_VERSION missing — installing the pinned dev dependency...)"
+    go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$GOLANGCI_VERSION" || {
+        echo "    golangci-lint install failed — install it manually (go install …@$GOLANGCI_VERSION)" >&2
+        return 1
+    }
+    command -v golangci-lint >/dev/null 2>&1
+}
 lint_gate() {
     go vet ./... || return 1
-    if command -v golangci-lint >/dev/null 2>&1; then
-        golangci-lint run --config "$PORT_ROOT/.golangci.yml" \
-            --max-same-issues 0 --max-issues-per-linter 0 ./... || return 1
-    elif [ -n "${CI:-}" ]; then
-        echo "golangci-lint not found in CI — the workflow must install it (golangci-lint-action)"
-        return 1
-    else
-        echo "    (golangci-lint not installed — running go vet only; install it for the full lint gate)"
-    fi
+    ensure_golangci || return 1
+    golangci-lint run --config "$PORT_ROOT/.golangci.yml" \
+        --max-same-issues 0 --max-issues-per-linter 0 ./... || return 1
 }
 run_gate "LINT" "go vet + golangci-lint (lint gate)" lint_gate
 
