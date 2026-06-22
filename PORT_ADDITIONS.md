@@ -26,6 +26,25 @@ relay.Client.RunContext: Go ctx-aware form of Run; stops cleanly on ctx cancel/d
 relay.Client.DialContext: Go ctx-aware form of Dial; aborts the dial on ctx cancel/deadline returning ctx.Err(), alongside the dial-timeout + client lifecycle. Non-ctx Dial preserved
 server.AgentServer.RunContext: Go ctx-aware form of AgentServer.Run; on ctx cancel/deadline performs a graceful Shutdown (drain) then returns nil. Non-ctx Run preserved
 agent.AgentBase.RunContext: Go ctx-aware form of AgentBase.Run; on ctx cancel/deadline triggers the existing graceful HTTP shutdown (drains in-flight) then returns nil. Composes with SetupGracefulShutdown. Non-ctx Run preserved
+
+# --- #192: Run() serverless-mode auto-detection + dispatch ---
+# Run() is now the universal entry point: it computes the execution mode via
+# swml.GetExecutionMode() (the cross-language detection contract — CGI/Lambda/
+# GCF/Azure/server) and dispatches, mirroring Python web_mixin.run() +
+# serverless_mixin. Server mode serves HTTP (existing behavior, preserved);
+# a detected serverless platform returns ErrServerlessUnsupported rather than
+# silently binding a TCP listener that never receives traffic — Go's serverless
+# request handling lives in the dedicated adapter pkg/lambda (wraps AsRouter(),
+# driven from main() by aws-lambda-go), not inline in Run(). DetectRunMode and
+# RunWithMode are the Go-idiomatic shape for Python run()'s implicit
+# get_execution_mode() call and its force_mode= override arg respectively;
+# Python folds both into run()'s param list, Go exposes them as methods on the
+# mapped struct (invisible to both diff gates, like the *Context methods above).
+# Tested in pkg/agent/run_serverless_test.go (detection fixtures, force-mode
+# dispatch, server-mode still serves HTTP).
+agent.AgentBase.DetectRunMode: Go accessor returning the swml.ExecutionMode Run() would dispatch on (from swml.GetExecutionMode()). Mirrors Python run()'s internal get_execution_mode() call; lets callers branch (e.g. wire a pkg/lambda adapter) before invoking Run. Method-on-mapped-struct: invisible to both diff gates
+agent.AgentBase.RunWithMode: Go force-mode form of Run — dispatches on the supplied swml.ExecutionMode rather than auto-detecting. Mirrors Python run(force_mode=...). Server mode serves HTTP; a serverless mode returns ErrServerlessUnsupported. Method-on-mapped-struct: invisible to both diff gates
+agent.ErrServerlessUnsupported: Go sentinel — Run/RunWithMode detected a serverless execution mode (Lambda/GCF/Azure/CGI); the agent must be served via its http.Handler (AsRouter) using the platform adapter (e.g. pkg/lambda), not Run(). errors.Is-able. No Python counterpart (Python's run() handles each platform inline; Go's serverless handling is the AsRouter+adapter path)
 # REST client ctx-aware variants (cloud-product #19436). doRequest now delegates to
 # doRequestContext via http.NewRequestWithContext; the non-ctx verbs are PRESERVED and
 # delegate with context.Background(). Python's REST client has no caller-supplied

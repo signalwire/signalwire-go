@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -2969,12 +2970,60 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 // HTTP Server
 // ---------------------------------------------------------------------------
 
-// Run starts the HTTP server for the agent.  This is a blocking call.
+// ErrServerlessUnsupported is returned by Run / RunWithMode when a serverless
+// execution mode (AWS Lambda, Google Cloud Functions, Azure Functions, or CGI)
+// is detected. Go's serverless request handling is NOT performed inline by
+// Run: it lives in the dedicated adapter pkg/lambda, which wraps the agent's
+// http.Handler (AgentBase.AsRouter) and is driven from main() by the platform
+// runtime (e.g. aws-lambda-go's lambda.Start). Run returning this error rather
+// than silently serving HTTP avoids binding a TCP listener that would never
+// receive traffic inside a function runtime. errors.Is-able.
+var ErrServerlessUnsupported = errors.New("agent: serverless execution mode detected; serve the agent via its http.Handler (AsRouter) using the platform adapter (e.g. pkg/lambda) rather than Run()")
+
+// Run is the universal entry point for the agent. It auto-detects the runtime
+// execution mode from the process environment and dispatches accordingly,
+// mirroring Python's run() (web_mixin.py:341 + serverless_mixin.py):
 //
-// Run delegates to RunContext with context.Background(); use RunContext to
-// drive a graceful shutdown from a context (cancellation or deadline).
+//   - server                → start the long-running HTTP server (blocking)
+//   - lambda / gcf / azure  → return ErrServerlessUnsupported (these are
+//     served via the platform adapter, see ErrServerlessUnsupported)
+//   - cgi                   → return ErrServerlessUnsupported (no CGI bridge)
+//
+// Detection order matches the cross-language SDK contract (see
+// swml.GetExecutionMode). To override the detected mode (e.g. in tests or an
+// explicit deployment), use RunWithMode.
+//
+// Run delegates server mode to RunContext with context.Background(); use
+// RunContext directly to drive a graceful shutdown from a context.
 func (a *AgentBase) Run() error {
-	return a.RunContext(context.Background())
+	return a.RunWithMode(a.DetectRunMode())
+}
+
+// DetectRunMode reports the execution mode Run would dispatch on, derived from
+// the process environment via swml.GetExecutionMode. Exposed so callers can
+// branch (e.g. wire a pkg/lambda adapter) before invoking Run. Mirrors
+// Python's get_execution_mode() as consumed by run().
+func (a *AgentBase) DetectRunMode() swml.ExecutionMode {
+	return swml.GetExecutionMode()
+}
+
+// RunWithMode is the force-mode form of Run: it dispatches on the supplied mode
+// rather than auto-detecting, mirroring Python run(force_mode=...). Server mode
+// serves HTTP (blocking); any serverless mode returns ErrServerlessUnsupported
+// (wrapped with the mode name) because Go handles those via the platform
+// adapter (AsRouter + pkg/lambda), not inline. This is a Go-port addition
+// documented in PORT_ADDITIONS.md.
+func (a *AgentBase) RunWithMode(mode swml.ExecutionMode) error {
+	switch mode {
+	case swml.ModeServer:
+		return a.RunContext(context.Background())
+	case swml.ModeLambda, swml.ModeGoogleCloudFunction, swml.ModeAzureFunction, swml.ModeCGI:
+		return fmt.Errorf("%w (detected mode: %q)", ErrServerlessUnsupported, mode)
+	default:
+		// Unknown mode: be conservative and serve HTTP (matches Python's
+		// run(), whose final else branch falls through to serve()).
+		return a.RunContext(context.Background())
+	}
 }
 
 // RunContext is the context-aware form of Run. It blocks serving HTTP exactly
@@ -3030,9 +3079,13 @@ func (a *AgentBase) RunContext(ctx context.Context) error {
 	return a.buildAndServe()
 }
 
-// Serve is an alias for Run.
+// Serve starts the long-running HTTP server for this agent unconditionally,
+// mirroring Python's serve() (web_mixin.py:175) which always serves and does
+// no execution-mode detection — that is Run()'s job. Use Run for the universal
+// auto-detecting entry point; use Serve to force HTTP serving regardless of
+// the detected environment. This is a blocking call.
 func (a *AgentBase) Serve() error {
-	return a.Run()
+	return a.RunContext(context.Background())
 }
 
 // AsRouter returns an http.Handler for embedding in a custom server.
