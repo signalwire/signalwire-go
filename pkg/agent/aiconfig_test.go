@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -381,12 +382,23 @@ func TestEnableDebugEvents_RendersInSWML(t *testing.T) {
 	for _, v := range main {
 		vm, _ := v.(map[string]any)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			level, ok := aiCfg["debug_events"].(int)
-			if !ok {
-				t.Fatal("expected debug_events in AI config")
+			// Python parity (agent_base.py:1232-1246): debug events are wired
+			// as params.debug_webhook_url + params.debug_webhook_level. There
+			// is no separate ai.debug_events key.
+			if aiCfg["debug_events"] != nil {
+				t.Errorf("unexpected ai.debug_events key: %v", aiCfg["debug_events"])
 			}
-			if level != 1 {
-				t.Errorf("debug_events = %d, want 1", level)
+			params, ok := aiCfg["params"].(map[string]any)
+			if !ok {
+				t.Fatal("expected params in AI config")
+			}
+			level, ok := params["debug_webhook_level"].(int)
+			if !ok || level != 1 {
+				t.Errorf("params.debug_webhook_level = %v, want 1", params["debug_webhook_level"])
+			}
+			url, _ := params["debug_webhook_url"].(string)
+			if !strings.Contains(url, "/debug_events") {
+				t.Errorf("params.debug_webhook_url = %q, want it to contain /debug_events", url)
 			}
 			return
 		}

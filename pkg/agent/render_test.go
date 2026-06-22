@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/swaig"
@@ -169,9 +170,16 @@ func TestRenderSWML_AllAIConfigOptions(t *testing.T) {
 			if aiCfg["pattern_hints"] == nil {
 				t.Error("expected pattern_hints")
 			}
-			// Check debug_events
-			if aiCfg["debug_events"] != 1 {
-				t.Errorf("debug_events = %v", aiCfg["debug_events"])
+			// Check debug events wiring (Python parity: params.debug_webhook_url
+			// + params.debug_webhook_level; no separate ai.debug_events key).
+			if aiCfg["debug_events"] != nil {
+				t.Errorf("unexpected ai.debug_events key: %v", aiCfg["debug_events"])
+			}
+			if params["debug_webhook_level"] != 1 {
+				t.Errorf("debug_webhook_level = %v", params["debug_webhook_level"])
+			}
+			if u, _ := params["debug_webhook_url"].(string); !strings.Contains(u, "/debug_events") {
+				t.Errorf("debug_webhook_url = %v", params["debug_webhook_url"])
 			}
 			// Check SWAIG
 			if aiCfg["SWAIG"] == nil {

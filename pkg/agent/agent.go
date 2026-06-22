@@ -1527,10 +1527,76 @@ func (a *AgentBase) SetPromptTransformer(fn func(map[string]any) map[string]any)
 // Verb management
 // ---------------------------------------------------------------------------
 
+// preAnswerSafeVerbs mirrors Python AgentBase._PRE_ANSWER_SAFE_VERBS
+// (agent_base.py:331) — the set of SWML verbs known to be safe to run while
+// the call is still ringing (before the answer).
+var preAnswerSafeVerbs = map[string]struct{}{
+	"transfer":         {},
+	"execute":          {},
+	"return":           {},
+	"label":            {},
+	"goto":             {},
+	"request":          {},
+	"switch":           {},
+	"cond":             {},
+	"if":               {},
+	"eval":             {},
+	"set":              {},
+	"unset":            {},
+	"hangup":           {},
+	"send_sms":         {},
+	"sleep":            {},
+	"stop_record_call": {},
+	"stop_denoise":     {},
+	"stop_tap":         {},
+}
+
+// preAnswerAutoAnswerVerbs mirrors Python AgentBase._AUTO_ANSWER_VERBS
+// (agent_base.py:351) — verbs that answer the call unless "auto_answer" is
+// explicitly false.
+var preAnswerAutoAnswerVerbs = map[string]struct{}{
+	"play":    {},
+	"connect": {},
+}
+
+// sortedPreAnswerSafeVerbs returns the safe-verb names in sorted order for a
+// stable warning message (Python sorts the set when formatting).
+func sortedPreAnswerSafeVerbs() []string {
+	names := make([]string, 0, len(preAnswerSafeVerbs))
+	for v := range preAnswerSafeVerbs {
+		names = append(names, v)
+	}
+	sort.Strings(names)
+	return names
+}
+
 // AddPreAnswerVerb adds a SWML verb to execute before the answer.
+//
+// Python equivalent: AgentBase.add_pre_answer_verb (agent_base.py:546).
+// Pre-answer verbs run while the call is still ringing, so only certain verbs
+// are safe. Python raises ValueError for an unknown verb; the Go port instead
+// logs a warning and still registers the verb (additive diagnostic — the
+// emitted SWML is unchanged). Verbs that answer the call (play, connect) get a
+// distinct warning unless "auto_answer": false is present, mirroring Python's
+// _AUTO_ANSWER_VERBS branch.
 func (a *AgentBase) AddPreAnswerVerb(verbName string, config map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
+	if _, isAutoAnswer := preAnswerAutoAnswerVerbs[verbName]; isAutoAnswer {
+		if aa, ok := config["auto_answer"]; !ok || aa != false {
+			a.Logger.Warn(
+				"pre_answer_verb_will_answer: verb=%q hint=add 'auto_answer': false to prevent %s from answering the call",
+				verbName, verbName,
+			)
+		}
+	} else if _, safe := preAnswerSafeVerbs[verbName]; !safe {
+		a.Logger.Warn(
+			"verb %q is not safe for pre-answer use. Safe verbs: %s",
+			verbName, strings.Join(sortedPreAnswerSafeVerbs(), ", "),
+		)
+	}
+
 	a.preAnswerVerbs = append(a.preAnswerVerbs, verb{Name: verbName, Config: config})
 	return a
 }
@@ -1601,6 +1667,164 @@ func (a *AgentBase) DefineContexts() *contexts.ContextBuilder {
 		a.contextBuilder.AttachAgent(a)
 	}
 	return a.contextBuilder
+}
+
+// DefineContextsFromMap populates the agent's ContextBuilder from a
+// fully-formed contexts map and returns the agent for chaining.
+//
+// Python equivalent: AgentBase.define_contexts({...}) (prompt_mixin.py:131 →
+// prompt manager define_contexts, manager.py:75), which accepts a dict in the
+// canonical SWML contexts shape — the same shape ContextBuilder.to_dict()
+// emits. The accepted shape is:
+//
+//	{
+//	  "<context-name>": {
+//	    "steps": [
+//	      {"name": "...", "text": "...", "step_criteria": "...",
+//	       "functions": "none" | ["fn", ...],
+//	       "valid_steps": ["..."], "valid_contexts": ["..."],
+//	       "end": bool, "skip_user_turn": bool, "skip_to_next_step": bool}
+//	    ],
+//	    "valid_contexts": ["..."], "valid_steps": ["..."],
+//	    "initial_step": "...", "post_prompt": "...", "system_prompt": "...",
+//	    "user_prompt": "...", "prompt": "...", "consolidate": bool,
+//	    "full_reset": bool, "isolated": bool
+//	  }
+//	}
+//
+// Unlike the chained DefineContexts builder, this populates the existing
+// ContextBuilder in one call so callers can hand it a deserialised map.
+func (a *AgentBase) DefineContextsFromMap(cfg map[string]any) *AgentBase {
+	builder := a.DefineContexts()
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	// Deterministic order so re-runs and the SWML output are stable.
+	names := make([]string, 0, len(cfg))
+	for name := range cfg {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		raw, ok := cfg[name].(map[string]any)
+		if !ok {
+			continue
+		}
+		ctx := builder.AddContext(name)
+
+		if steps, ok := raw["steps"].([]any); ok {
+			for _, s := range steps {
+				stepMap, ok := s.(map[string]any)
+				if !ok {
+					continue
+				}
+				stepName, _ := stepMap["name"].(string)
+				if stepName == "" {
+					continue
+				}
+				step := ctx.AddStep(stepName)
+				if text, ok := stepMap["text"].(string); ok {
+					step.SetText(text)
+				}
+				if criteria, ok := stepMap["step_criteria"].(string); ok {
+					step.SetStepCriteria(criteria)
+				}
+				if fns, ok := stepMap["functions"]; ok {
+					if coerced := coerceFunctions(fns); coerced != nil {
+						step.SetFunctions(coerced)
+					}
+				}
+				if vs := coerceStringSlice(stepMap["valid_steps"]); vs != nil {
+					step.SetValidSteps(vs)
+				}
+				if vc := coerceStringSlice(stepMap["valid_contexts"]); vc != nil {
+					step.SetValidContexts(vc)
+				}
+				if end, ok := stepMap["end"].(bool); ok && end {
+					step.SetEnd(true)
+				}
+				if skip, ok := stepMap["skip_user_turn"].(bool); ok && skip {
+					step.SetSkipUserTurn(true)
+				}
+				if skip, ok := stepMap["skip_to_next_step"].(bool); ok && skip {
+					step.SetSkipToNextStep(true)
+				}
+			}
+		}
+
+		if initial, ok := raw["initial_step"].(string); ok {
+			ctx.SetInitialStep(initial)
+		}
+		if vc := coerceStringSlice(raw["valid_contexts"]); vc != nil {
+			ctx.SetValidContexts(vc)
+		}
+		if vs := coerceStringSlice(raw["valid_steps"]); vs != nil {
+			ctx.SetValidSteps(vs)
+		}
+		if pp, ok := raw["post_prompt"].(string); ok {
+			ctx.SetPostPrompt(pp)
+		}
+		if sp, ok := raw["system_prompt"].(string); ok {
+			ctx.SetSystemPrompt(sp)
+		}
+		if up, ok := raw["user_prompt"].(string); ok {
+			ctx.SetUserPrompt(up)
+		}
+		if p, ok := raw["prompt"].(string); ok {
+			ctx.SetPrompt(p)
+		}
+		if c, ok := raw["consolidate"].(bool); ok && c {
+			ctx.SetConsolidate(true)
+		}
+		if fr, ok := raw["full_reset"].(bool); ok && fr {
+			ctx.SetFullReset(true)
+		}
+		if iso, ok := raw["isolated"].(bool); ok && iso {
+			ctx.SetIsolated(true)
+		}
+	}
+
+	return a
+}
+
+// coerceFunctions normalises the SWML "functions" value, which may be the
+// string "none" or a list of tool names, into the form SetFunctions accepts.
+func coerceFunctions(v any) any {
+	switch t := v.(type) {
+	case string:
+		return t
+	case []string:
+		return t
+	case []any:
+		out := make([]string, 0, len(t))
+		for _, e := range t {
+			if s, ok := e.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+// coerceStringSlice converts a JSON-decoded []any (or []string) into []string,
+// returning nil when the value is absent or not a list.
+func coerceStringSlice(v any) []string {
+	switch t := v.(type) {
+	case []string:
+		return t
+	case []any:
+		out := make([]string, 0, len(t))
+		for _, e := range t {
+			if s, ok := e.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	return nil
 }
 
 // ListToolNames returns the names of every registered SWAIG tool in
@@ -1687,9 +1911,15 @@ func (a *AgentBase) ClearSwaigQueryParams() *AgentBase {
 	return a
 }
 
-// EnableDebugRoutes is a placeholder for adding debug HTTP routes.
+// EnableDebugRoutes enables the agent's debug HTTP routes (/debug and
+// /debug_events).
+//
+// Python equivalent: web_mixin.enable_debug_routes (web_mixin.py:1343), which
+// is a backward-compatibility no-op returning self because the debug routes
+// are registered unconditionally in _register_routes. The Go port mirrors that:
+// AsRouter always registers /debug and /debug_events, so this method exists for
+// API parity and chaining and simply returns the agent.
 func (a *AgentBase) EnableDebugRoutes() *AgentBase {
-	// Future: register /debug routes on the mux
 	return a
 }
 
@@ -2136,10 +2366,27 @@ func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
 // For Python-aligned redirect semantics (callback returns a route string and
 // the framework issues an HTTP 307 redirect), use RegisterSIPRoutingCallback.
 func (a *AgentBase) RegisterRoutingCallback(callbackFn func(r *http.Request, body map[string]any) map[string]any, path string) {
+	a.Service.RegisterRoutingCallback(normalizeCallbackPath(path), callbackFn)
+}
+
+// normalizeCallbackPath mirrors Python web_mixin.register_routing_callback's
+// path handling: default the empty path to "/sip", ensure a single leading
+// slash, and strip any trailing slash so e.g. "agents/" registers (and later
+// matches) as "/agents".
+func normalizeCallbackPath(path string) string {
 	if path == "" {
-		path = "/sip"
+		return "/sip"
 	}
-	a.Service.RegisterRoutingCallback(path, callbackFn)
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	if len(path) > 1 {
+		path = strings.TrimRight(path, "/")
+	}
+	if path == "" {
+		path = "/"
+	}
+	return path
 }
 
 // RegisterSIPRoutingCallback registers a callback whose string return value
@@ -2419,6 +2666,40 @@ func (a *AgentBase) buildPostPromptURL() string {
 	return strings.TrimRight(url, "/") + "/post_prompt"
 }
 
+// buildEndpointURL constructs the authed webhook URL for an arbitrary agent
+// endpoint (e.g. "debug_events"), including swaigQueryParams. Mirrors Python
+// _build_webhook_url(endpoint, query_params) (used at agent_base.py:1240 for
+// the debug_events webhook).
+func (a *AgentBase) buildEndpointURL(endpoint string) string {
+	user, pass := a.Service.GetBasicAuthCredentials()
+	baseURL := a.Service.GetFullURL(false)
+
+	scheme := "http://"
+	if strings.HasPrefix(baseURL, "https://") {
+		scheme = "https://"
+	}
+	rest := strings.TrimPrefix(strings.TrimPrefix(baseURL, "http://"), "https://")
+	authedBase := fmt.Sprintf("%s%s:%s@%s", scheme, user, pass, rest)
+
+	route := strings.TrimRight(a.Service.Route, "/")
+	url := authedBase
+	if !strings.HasSuffix(url, route) {
+		url = strings.TrimRight(url, "/") + route
+	}
+	url = strings.TrimRight(url, "/") + "/" + endpoint
+
+	if len(a.swaigQueryParams) > 0 {
+		params := make([]string, 0, len(a.swaigQueryParams))
+		for k, v := range a.swaigQueryParams {
+			params = append(params, fmt.Sprintf("%s=%s", k, v))
+		}
+		sort.Strings(params)
+		url += "?" + strings.Join(params, "&")
+	}
+
+	return url
+}
+
 // buildSwaigFunctions returns the SWAIG functions array for the AI verb.
 func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 	functions := make([]map[string]any, 0, len(a.toolOrder)+len(a.functionIncludes))
@@ -2637,9 +2918,20 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		}
 	}
 
-	// Debug events
+	// Debug events. Python (agent_base.py:1232-1246) wires a debug webhook so
+	// the platform POSTs debug events back to the agent's /debug_events
+	// endpoint: it sets params.debug_webhook_url and params.debug_webhook_level
+	// (no separate ai.debug_events key is emitted). Mirror that here so the
+	// /debug_events route (registered in AsRouter) actually receives events and
+	// OnDebugEvent fires.
 	if a.debugEventsLevel > 0 {
-		aiConfig["debug_events"] = a.debugEventsLevel
+		params, ok := aiConfig["params"].(map[string]any)
+		if !ok {
+			params = map[string]any{}
+			aiConfig["params"] = params
+		}
+		params["debug_webhook_url"] = a.buildEndpointURL("debug_events")
+		params["debug_webhook_level"] = a.debugEventsLevel
 	}
 
 	// MCP servers
@@ -2850,6 +3142,23 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 	mux.HandleFunc(checkRoute, a.withAuth(a.handleCheckForInput))
 	mux.HandleFunc(checkRoute+"/", a.withAuth(a.handleCheckForInput))
 
+	// Debug routes — matches Python web_mixin._register_routes (web_mixin.py
+	// lines 422-472), which unconditionally registers /debug (a SWML dump for
+	// inspection, behaves like the main endpoint) and /debug_events (the
+	// webhook the platform POSTs debug events to when EnableDebugEvents is on).
+	// These are what EnableDebugRoutes documents; in Python that method is a
+	// backward-compat no-op because the routes are always registered here.
+	debugRoute := route + "/debug"
+	debugEventsRoute := route + "/debug_events"
+	if route == "/" {
+		debugRoute = "/debug"
+		debugEventsRoute = "/debug_events"
+	}
+	mux.HandleFunc(debugRoute, a.withAuth(a.withSignedPost(a.handleSWML)))
+	mux.HandleFunc(debugRoute+"/", a.withAuth(a.withSignedPost(a.handleSWML)))
+	mux.HandleFunc(debugEventsRoute, a.withAuth(a.withSignedPost(a.handleDebugEvents)))
+	mux.HandleFunc(debugEventsRoute+"/", a.withAuth(a.withSignedPost(a.handleDebugEvents)))
+
 	// MCP server endpoint (no auth — MCP clients authenticate via headers)
 	if a.mcpServerEnabled {
 		mcpRoute := route + "/mcp"
@@ -2976,10 +3285,19 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	var doc map[string]any
 	switch {
 	case callbackPath != "":
-		// The swml service's OnRequest dispatches to the registered callback
-		// and returns the callback's result; if the callback returns nil,
-		// OnRequest falls back to the default rendered document.
-		doc = a.Service.OnRequest(body, callbackPath)
+		// Dispatch to the registered routing callback with the LIVE request so
+		// the callback can read headers, query params, etc. (Python passes the
+		// request: web_mixin.py:704 `callback_fn(request, body)`). When the
+		// callback returns nil — or no callback is registered for the path —
+		// fall back to the default rendered document.
+		if cb, ok := a.Service.RoutingCallbackFor(callbackPath); ok {
+			if result := cb(r, body); result != nil {
+				doc = result
+			}
+		}
+		if doc == nil {
+			doc = a.RenderSWML(body, r)
+		}
 	case hasDynamic:
 		doc = a.handleDynamicConfig(body, r)
 	default:
@@ -3251,6 +3569,103 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// findSummary extracts a structured summary from a post-prompt request body,
+// mirroring Python AgentBase._find_summary_in_post_data (agent_base.py:1494)
+// and the TypeScript AgentBase.findSummary. The extraction order is exact:
+//
+//  1. body["summary"]
+//  2. body["post_prompt_data"]["parsed"][0] when "parsed" is a non-empty array
+//  3. body["post_prompt_data"]["raw"] parsed as JSON; on parse failure the raw
+//     value itself ("raw-as-both" in Python/TS)
+//
+// Returns nil when no summary is present. Because the OnSummary callback's
+// first argument is typed map[string]any, a successful extraction that is not
+// a JSON object (e.g. a non-JSON raw string in the raw-as-both branch, or a
+// scalar/array) is returned as nil — the raw body is always available as the
+// callback's second argument regardless.
+func findSummary(body map[string]any) map[string]any {
+	if body == nil {
+		return nil
+	}
+
+	if s, ok := body["summary"]; ok {
+		if m, ok := s.(map[string]any); ok {
+			return m
+		}
+		return nil
+	}
+
+	pdata, ok := body["post_prompt_data"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	if parsed, ok := pdata["parsed"].([]any); ok && len(parsed) > 0 {
+		if m, ok := parsed[0].(map[string]any); ok {
+			return m
+		}
+		return nil
+	}
+
+	if rawVal, ok := pdata["raw"]; ok && rawVal != nil {
+		// Already a structured object — return as-is.
+		if m, ok := rawVal.(map[string]any); ok {
+			return m
+		}
+		// String raw text: try to parse JSON. On success return the object;
+		// on failure fall back to the raw value (Python/TS "raw-as-both"),
+		// which here can only surface a JSON object.
+		if rawStr, ok := rawVal.(string); ok {
+			var parsed map[string]any
+			if err := json.Unmarshal([]byte(rawStr), &parsed); err == nil {
+				return parsed
+			}
+		}
+	}
+
+	return nil
+}
+
+// handleDebugEvents receives debug-event webhooks the platform POSTs back to
+// the agent when debug events are enabled (EnableDebugEvents). It parses the
+// JSON body and dispatches it to the registered OnDebugEvent handler.
+//
+// Python equivalent: web_mixin._handle_debug_events_request (web_mixin.py:1081)
+// which parses the body and invokes self._debug_event_handler(event_type, body).
+// The Go DebugEventHandler takes the event body map (matching the TypeScript
+// onDebugEvent(body) shape); the raw body is passed through unchanged.
+func (a *AgentBase) handleDebugEvents(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"POST required"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxAgentRequestBody)
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		// Match Python: an unparseable body yields an error status but not a
+		// hard HTTP failure.
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": "invalid JSON"}); err != nil {
+			a.Logger.Warn("failed to write debug_events error response: %s", err)
+		}
+		return
+	}
+
+	a.mu.RLock()
+	handler := a.debugEventHandler
+	a.mu.RUnlock()
+
+	if handler != nil {
+		handler(body)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		a.Logger.Warn("failed to write debug_events response: %s", err)
+	}
+}
+
 // handlePostPrompt handles the post-prompt summary callback.
 func (a *AgentBase) handlePostPrompt(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -3270,7 +3685,7 @@ func (a *AgentBase) handlePostPrompt(w http.ResponseWriter, r *http.Request) {
 	a.mu.RUnlock()
 
 	if cb != nil {
-		cb(body, body)
+		cb(findSummary(body), body)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
