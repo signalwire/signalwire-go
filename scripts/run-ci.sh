@@ -265,24 +265,37 @@ run_gate "FMT" "gofmt (local: auto-fix; CI: -l check)" fmt_gate
 #      config header). Mirrors how Rust promoted clippy to a blocking gate after
 #      its burn-down.
 #
-# golangci-lint is installed by the CI workflow via the official
-# golangci/golangci-lint-action (cached, pinned — see .github/workflows/test.yml)
-# rather than curl|sh'd here, so the script never executes a remote installer.
-# In CI ($CI set) golangci MUST be present and the gate is BLOCKING. Locally, if
-# a developer hasn't installed it, the gate warns and runs go-vet-only instead of
-# failing — `go install` it (or `brew install golangci-lint`) to get the full
-# check locally. Pinned version lives in the workflow; keep them in lockstep.
+# golangci-lint is a PINNED dev dependency (GOLANGCI_VERSION below — keep it in
+# lockstep with .github/workflows/test.yml's golangci-lint-action version). It is
+# BLOCKING both locally and in CI — no "run go-vet-only locally" degradation,
+# because that let golangci-only findings reach CI red after a local "PASS"
+# (drift the porting-sdk no-drift rule forbids). Self-heal like perl's
+# ensure_dev_tools: if it's missing locally, `go install` the pinned version into
+# GOPATH/bin and put that on PATH. In CI the workflow installs it; if it's still
+# absent there, fail loudly rather than skip.
+GOLANGCI_VERSION="v2.12.2"
+ensure_golangci() {
+    command -v golangci-lint >/dev/null 2>&1 && return 0
+    local gobin
+    gobin="$(go env GOPATH)/bin"
+    export PATH="$gobin:$PATH"
+    command -v golangci-lint >/dev/null 2>&1 && return 0
+    if [ -n "${CI:-}" ]; then
+        echo "golangci-lint not found in CI — the workflow must install it (golangci-lint-action)" >&2
+        return 1
+    fi
+    echo "    (golangci-lint $GOLANGCI_VERSION missing — installing the pinned dev dependency...)"
+    go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$GOLANGCI_VERSION" || {
+        echo "    golangci-lint install failed — install it manually (go install …@$GOLANGCI_VERSION)" >&2
+        return 1
+    }
+    command -v golangci-lint >/dev/null 2>&1
+}
 lint_gate() {
     go vet ./... || return 1
-    if command -v golangci-lint >/dev/null 2>&1; then
-        golangci-lint run --config "$PORT_ROOT/.golangci.yml" \
-            --max-same-issues 0 --max-issues-per-linter 0 ./... || return 1
-    elif [ -n "${CI:-}" ]; then
-        echo "golangci-lint not found in CI — the workflow must install it (golangci-lint-action)"
-        return 1
-    else
-        echo "    (golangci-lint not installed — running go vet only; install it for the full lint gate)"
-    fi
+    ensure_golangci || return 1
+    golangci-lint run --config "$PORT_ROOT/.golangci.yml" \
+        --max-same-issues 0 --max-issues-per-linter 0 ./... || return 1
 }
 run_gate "LINT" "go vet + golangci-lint (lint gate)" lint_gate
 
