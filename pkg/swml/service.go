@@ -989,6 +989,17 @@ func (s *Service) RegisterRoutingCallback(path string, cb RoutingCallback) {
 	s.routingCallbacks[path] = cb
 }
 
+// RoutingCallbackFor returns the routing callback registered for path, and
+// whether one exists. Callers that have the live *http.Request (e.g. the
+// agent's HTTP handler) use this to invoke the callback with the real request
+// rather than the nil passed by OnRequest.
+func (s *Service) RoutingCallbackFor(path string) (RoutingCallback, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	cb, ok := s.routingCallbacks[path]
+	return cb, ok
+}
+
 // RoutingCallbackPaths returns the paths that have routing callbacks
 // registered. Callers use this to register corresponding HTTP endpoints
 // (mirrors Python web_mixin.py line 428 which iterates

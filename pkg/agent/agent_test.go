@@ -984,8 +984,15 @@ func TestRenderSWML_WithDebugEvents(t *testing.T) {
 	for _, v := range main {
 		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			if aiCfg["debug_events"] != 2 {
-				t.Errorf("expected debug_events=2, got %v", aiCfg["debug_events"])
+			// Python parity: debug events are wired as
+			// params.debug_webhook_url + params.debug_webhook_level (no
+			// separate ai.debug_events key).
+			if aiCfg["debug_events"] != nil {
+				t.Errorf("unexpected ai.debug_events key: %v", aiCfg["debug_events"])
+			}
+			params := as[map[string]any](t, aiCfg["params"])
+			if params["debug_webhook_level"] != 2 {
+				t.Errorf("expected params.debug_webhook_level=2, got %v", params["debug_webhook_level"])
 			}
 			return
 		}

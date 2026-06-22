@@ -273,7 +273,8 @@ func TestRecordCall_CustomFormat(t *testing.T) {
 
 func TestVerbMethods_ReturnSelf(t *testing.T) {
 	a := NewAgentBase()
-	if a.AddPreAnswerVerb("x", nil) != a {
+	// Use a safe pre-answer verb — an unsafe verb now panics (Python parity).
+	if a.AddPreAnswerVerb("sleep", nil) != a {
 		t.Error("AddPreAnswerVerb should return self")
 	}
 	if a.AddAnswerVerb(nil) != a {
