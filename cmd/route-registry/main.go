@@ -135,6 +135,12 @@ func (r *recorder) snapshot() []struct{ method, path string } {
 }
 
 func main() {
+	// Body lives in run() so deferred cleanup (srv.Close) runs on every exit
+	// path — os.Exit in main would skip defers (gocritic exitAfterDefer).
+	os.Exit(run())
+}
+
+func run() int {
 	rec := &recorder{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		rec.mu.Lock()
@@ -151,7 +157,7 @@ func main() {
 	client, err := rest.NewRestClient(sentinel, "t", "example.signalwire.com")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "route-registry: NewRestClient failed: %v\n", err)
-		os.Exit(2)
+		return 2
 	}
 	client.SetBaseURL(srv.URL)
 
@@ -196,7 +202,7 @@ func main() {
 	// Walk the client's exported namespace fields.
 	cv := reflect.ValueOf(client).Elem()
 	ct := cv.Type()
-	for i := 0; i < ct.NumField(); i++ {
+	for i := range ct.NumField() {
 		f := ct.Field(i)
 		if !f.IsExported() {
 			continue
@@ -241,13 +247,14 @@ func main() {
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(payload); err != nil {
 		fmt.Fprintf(os.Stderr, "route-registry: encode failed: %v\n", err)
-		os.Exit(2)
+		return 2
 	}
 
 	if len(errs) > 0 {
 		fmt.Fprintf(os.Stderr, "route-registry: %d uninvokable/no-request method(s) (Set B incomplete)\n", len(errs))
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 type namedMethod struct {
@@ -264,7 +271,7 @@ type namedValue struct {
 // namespace or resource instance). Plain data fields (strings, the unexported
 // http handle) are not walked.
 func isResourceLike(v reflect.Value) bool {
-	if v.Kind() != reflect.Ptr || v.IsNil() {
+	if v.Kind() != reflect.Pointer || v.IsNil() {
 		return false
 	}
 	return v.Elem().Kind() == reflect.Struct
@@ -275,7 +282,7 @@ func isResourceLike(v reflect.Value) bool {
 func publicMethods(v reflect.Value) []namedMethod {
 	t := v.Type()
 	out := make([]namedMethod, 0, t.NumMethod())
-	for i := 0; i < t.NumMethod(); i++ {
+	for i := range t.NumMethod() {
 		m := t.Method(i)
 		if !m.IsExported() {
 			continue
@@ -293,7 +300,7 @@ func subResources(ns reflect.Value) []namedValue {
 	e := ns.Elem()
 	t := e.Type()
 	var out []namedValue
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		f := t.Field(i)
 		if !f.IsExported() || f.Anonymous {
 			continue
@@ -319,7 +326,7 @@ func invoke(fn reflect.Value) (errMsg string) {
 	}()
 
 	args := make([]reflect.Value, 0, t.NumIn())
-	for i := 0; i < t.NumIn(); i++ {
+	for i := range t.NumIn() {
 		// For a variadic final parameter, supply zero extra args.
 		if t.IsVariadic() && i == t.NumIn()-1 {
 			break
@@ -348,7 +355,7 @@ func sentinelFor(t reflect.Type) (reflect.Value, bool) {
 	case reflect.Map:
 		// Empty, non-nil map of the right type (map[string]string / map[string]any).
 		return reflect.MakeMap(t), true
-	case reflect.Ptr:
+	case reflect.Pointer:
 		// Typed nil pointer — the Set* helpers accept nil *Options.
 		return reflect.Zero(t), true
 	case reflect.Slice:
