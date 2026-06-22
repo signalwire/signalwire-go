@@ -88,6 +88,28 @@ relay.Call.CallState: Go typed-kind accessor returning relay.CallState alongside
 relay.Message.MessageState: Go typed-kind accessor returning relay.MessageState alongside the bare-string Message.State() (kept). String == State() exactly
 relay.DialEvent.DialStateTyped: Go typed-kind accessor returning relay.DialState alongside the bare-string DialEvent.DialState field (kept). String == DialState exactly
 
+# --- #188: Go-only response-override form of register_routing_callback (maintainer-approved) ---
+# Python's register_routing_callback (web_mixin.py:1227 / swml_service.py:863) is
+# REDIRECT-ONLY: the callback returns a route string and the framework replies
+# HTTP 307 Temporary Redirect to that route (web_mixin.py:704-711). Go's
+# RegisterRoutingCallback callback instead returns a map[string]any that REPLACES
+# the rendered SWML response document for that path (agent.go:2369; dispatched in
+# the SWML handler at agent.go ~3293-3300 — when the callback returns non-nil its
+# map is served as the SWML doc, else the default RenderSWML doc is used). This
+# response-override form is a genuine Go-only EXTENSION beyond Python's
+# redirect-only contract. It exists for SWML-service routing / sidecar event
+# sinks where the handler wants to synthesize or rewrite the SWML document
+# in-process rather than redirect the caller to a different route; used by the
+# examples swmlservice_ai_sidecar, dynamic_swml_service, and swml_service_routing.
+# The maintainer has explicitly APPROVED keeping this Go-only behavior. It has a
+# behavioral test at pkg/agent/routing_callback_test.go (the callback receives the
+# live *http.Request and its returned map replaces the document). The callback
+# function type is a parameter type, not an enumerated public symbol, so it is
+# invisible to both diff gates; documented here for the audit trail. (The team
+# will separately port a response-override capability to Python later; that is
+# out of scope for this entry.)
+signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: Go's RegisterRoutingCallback takes a callback returning map[string]any that REPLACES the rendered SWML document (response-override), extending Python's redirect-only (route string -> HTTP 307) contract. Maintainer-approved Go-only extension; behavioral test in pkg/agent/routing_callback_test.go
+
 # --- Go-only structs (port-only public types) ---
 agent.MCPServerConfig: Go-only config struct; not part of Python public API
 agent.ToolDefinition: Go-only struct; no direct Python counterpart
