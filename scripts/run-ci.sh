@@ -164,6 +164,41 @@ rest_coverage_gate() {
 run_gate "REST-COVERAGE" "every implemented REST route covered success+error (parity + allowlist)" \
     rest_coverage_gate
 
+# Gate 5c: SPEC-PARITY — the routes the SDK actually IMPLEMENTS must equal the
+# canonical spec route set, modulo porting-sdk/SPEC_IMPLEMENTATION_GAPS.md. This
+# is the spec-first guard REST-COVERAGE can't give: REST-COVERAGE only proves
+# *tested* routes match the spec, so a route the SDK implements that the spec
+# doesn't define (or a canonical route the SDK never implemented) would slip past
+# it. Set B is built by cmd/route-registry — it drives the live RestClient through
+# a recording HTTP transport (an httptest server that records (method, path) and
+# returns a stub 200) and reflects over every namespace/sub-resource method,
+# invoking each with sentinel args, so it sees every dispatched route whether or
+# not it's tested (not an AST scrape, not the journal). The shared porting-sdk
+# diff consumes that JSON via --registry-json. The registry prints ONLY JSON to
+# stdout (the SDK logger writes to stderr), captured to a temp file here.
+#
+# NOTE: --registry-json is on porting-sdk PR #45 (feat/spec-parity-registry-json).
+spec_parity_gate() {
+    local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
+    export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
+    local registry
+    registry="$(mktemp)"
+    # 2>/dev/null so the SDK's deprecation-warning logger (stderr) can't pollute
+    # the JSON; the registry exits non-zero if Set B is incomplete.
+    if ! go run "$PORT_ROOT/cmd/route-registry" >"$registry" 2>/dev/null; then
+        rm -f "$registry"
+        return 1
+    fi
+    python3 "$PORTING_SDK_DIR/scripts/diff_spec_implementation.py" \
+        --registry-json "$registry" \
+        --gaps "$PORTING_SDK_DIR/SPEC_IMPLEMENTATION_GAPS.md"
+    local rc=$?
+    rm -f "$registry"
+    return $rc
+}
+run_gate "SPEC-PARITY" "implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
+    spec_parity_gate
+
 # Gate 6: emission — byte-compare the SWAIG FunctionResult serialisation against
 # Python's to_dict() over the shared 81-entry corpus. The drift gate (Gate 3)
 # polices the SURFACE; this one polices the EMISSION (action shape/keys/values +
