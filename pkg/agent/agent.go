@@ -1575,11 +1575,12 @@ func sortedPreAnswerSafeVerbs() []string {
 //
 // Python equivalent: AgentBase.add_pre_answer_verb (agent_base.py:546).
 // Pre-answer verbs run while the call is still ringing, so only certain verbs
-// are safe. Python raises ValueError for an unknown verb; the Go port instead
-// logs a warning and still registers the verb (additive diagnostic — the
-// emitted SWML is unchanged). Verbs that answer the call (play, connect) get a
-// distinct warning unless "auto_answer": false is present, mirroring Python's
-// _AUTO_ANSWER_VERBS branch.
+// are safe. A verb that is genuinely unsafe before answer is an INVALID input:
+// Python raises ValueError, and the Go port panics (a chaining builder that
+// returns *AgentBase cannot return an error; panic matches the port's
+// convention for build-time invalid args — see datamap.Expression). Verbs that
+// answer the call (play, connect) instead get a warning unless
+// "auto_answer": false is present, mirroring Python's _AUTO_ANSWER_VERBS branch.
 func (a *AgentBase) AddPreAnswerVerb(verbName string, config map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1592,10 +1593,10 @@ func (a *AgentBase) AddPreAnswerVerb(verbName string, config map[string]any) *Ag
 			)
 		}
 	} else if _, safe := preAnswerSafeVerbs[verbName]; !safe {
-		a.Logger.Warn(
-			"verb %q is not safe for pre-answer use. Safe verbs: %s",
+		panic(fmt.Sprintf(
+			"AddPreAnswerVerb: verb %q is not safe for pre-answer use. Safe verbs: %s",
 			verbName, strings.Join(sortedPreAnswerSafeVerbs(), ", "),
-		)
+		))
 	}
 
 	a.preAnswerVerbs = append(a.preAnswerVerbs, verb{Name: verbName, Config: config})

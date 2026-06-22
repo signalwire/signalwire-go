@@ -29,23 +29,27 @@ import (
 // the swapped os.Stderr at construction time, so its warnings are captured.
 
 // ---------------------------------------------------------------------------
-// #177 — AddPreAnswerVerb warns on unknown/unsafe verbs (warn-only)
+// #177 — AddPreAnswerVerb: unsafe verbs are invalid → panic (Python parity:
+// add_pre_answer_verb raises ValueError); auto-answer verbs (play/connect) warn.
 // ---------------------------------------------------------------------------
 
-func TestAddPreAnswerVerb_WarnsOnUnknownVerb(t *testing.T) {
-	var a *AgentBase
-	out := captureStderr(t, func() {
-		a = NewAgentBase(WithName("t"))
-		a.AddPreAnswerVerb("definitely_not_a_verb", map[string]any{})
-	})
-
-	if !strings.Contains(out, "not safe for pre-answer use") {
-		t.Errorf("expected a warning about unsafe pre-answer verb, got stderr:\n%s", out)
-	}
-	// Warn-only: the verb must still be registered (wire-neutral).
-	if len(a.preAnswerVerbs) != 1 || a.preAnswerVerbs[0].Name != "definitely_not_a_verb" {
-		t.Errorf("verb should still be registered despite the warning, got %v", a.preAnswerVerbs)
-	}
+func TestAddPreAnswerVerb_PanicsOnUnsafeVerb(t *testing.T) {
+	a := NewAgentBase(WithName("t"))
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatalf("expected AddPreAnswerVerb to panic on an unsafe verb")
+		}
+		msg, _ := r.(string)
+		if !strings.Contains(msg, "not safe for pre-answer use") {
+			t.Errorf("panic message should explain the unsafe verb, got: %v", r)
+		}
+		// On panic the verb must NOT have been registered.
+		if len(a.preAnswerVerbs) != 0 {
+			t.Errorf("unsafe verb must not be registered, got %v", a.preAnswerVerbs)
+		}
+	}()
+	a.AddPreAnswerVerb("definitely_not_a_verb", map[string]any{})
 }
 
 func TestAddPreAnswerVerb_NoWarnForSafeVerb(t *testing.T) {
