@@ -679,7 +679,7 @@ Add a modular skill to the agent.
 - `math`: Mathematical calculations
 - `web_search`: Google Custom Search integration
 - `datasphere`: SignalWire DataSphere search
-- `native_vector_search`: Local document search
+- `native_vector_search`: Remote document search via a search server
 
 **Usage:**
 ```python
@@ -2983,27 +2983,41 @@ agent.add_skill("datasphere", {
 ```
 
 #### `native_vector_search` Skill
-Local document search with vector similarity and keyword search.
+Remote document search against a SignalWire search server. This skill is
+**remote-only** in the Go SDK — it queries a running search server over HTTP and
+has no local index file.
 
 **Parameters:**
-- `index_path` (str): Path to search index file (required)
-- `tool_name` (Optional[str]): Custom tool name (default: "search_documents")
-- `max_results` (Optional[int]): Maximum results to return (default: 5)
-- `similarity_threshold` (Optional[float]): Minimum similarity score 0.0-1.0 (default: 0.0). Higher values are stricter, lower values are more permissive. Typical range: 0.2-0.4 for all-MiniLM-L6-v2, 0.3-0.5 for all-mpnet-base-v2
+- `remote_url` (string, **required**): URL of the remote search server (e.g.
+  `http://localhost:8001` or `http://user:pass@host:8001`). Basic-auth credentials
+  may be embedded in the URL.
+- `index_name` (string): Name of the index on the remote server (default: `"default"`)
+- `tool_name` (string): Custom tool name (default: `"search_knowledge"`)
+- `count` (int): Number of results to return (default: 5)
+- `similarity_threshold` (float): Minimum similarity score 0.0-1.0 (default: 0.0).
+  Higher values are stricter; lower values are more permissive.
+- `tags` ([]string): Tags to filter search results
+- `response_prefix` (string): Text prepended to results (default: "")
+- `response_postfix` (string): Text appended to results (default: "")
+- `max_content_length` (int): Maximum total response size in characters (default: 32768)
+- `no_results_message` (string): Message when no results found; use `{query}` as a placeholder (default: `"No information found for '{query}'"`)
+- `hints` ([]string): Speech-recognition hints for this skill
+- `description` (string): Tool description shown to the AI (default: `"Search the knowledge base for information"`)
 
-**Usage:**
-```python
-# Basic local search
-agent.add_skill("native_vector_search", {
-    "index_path": "./knowledge.swsearch"
+**Usage (Go):**
+```go
+// Basic remote search
+agent.AddSkill("native_vector_search", map[string]any{
+    "remote_url": "http://localhost:8001",
 })
 
-# With custom settings
-agent.add_skill("native_vector_search", {
-    "index_path": "./docs.swsearch",
-    "tool_name": "search_docs",
-    "max_results": 10,
-    "similarity_threshold": 0.25
+// With custom settings
+agent.AddSkill("native_vector_search", map[string]any{
+    "remote_url":           "http://user:pass@search.example.com:8001",
+    "index_name":           "docs",
+    "tool_name":            "search_docs",
+    "count":                10,
+    "similarity_threshold": 0.25,
 })
 ```
 

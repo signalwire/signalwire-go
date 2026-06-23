@@ -1,6 +1,6 @@
 # Security Configuration Guide
 
-This guide covers the security features and configuration options available in SignalWire AI Agents SDK for both SWML-based services (SWML -- SignalWire Markup Language -- is the JSON document format that defines agent behavior) and the standalone Search Service.
+This guide covers the security features and configuration options available in the SignalWire AI Agents SDK for SWML-based services (SWML -- SignalWire Markup Language -- is the JSON document format that defines agent behavior).
 
 ## Overview
 
@@ -83,24 +83,23 @@ agent = MyAgent()
 agent.run()
 ```
 
-### Search Service
+### Remote Search Server
 
-The standalone search service also supports the same security configuration:
+The Go SDK does not run a search service or build local index files. Knowledge-base
+search is provided by the built-in `native_vector_search` skill, which connects to a
+**remote** search server over HTTP. Security for that server is configured on the
+server itself; the skill authenticates to it using HTTP Basic credentials embedded in
+the `remote_url` (`http://user:pass@host:8001`).
 
-```python
-from signalwire_agents.search import SearchService
+The skill also performs SSRF validation on `remote_url`: requests to private,
+loopback, and link-local addresses are rejected unless `SWML_ALLOW_PRIVATE_URLS` is
+set to a truthy value (intended for local/test environments only).
 
-# Basic usage - security configured from environment
-service = SearchService(port=8001, indexes={"docs": "index.swsearch"})
-service.start()
-
-# Override SSL settings programmatically
-service.start(
-    host="0.0.0.0",
-    port=8001,
-    ssl_cert="/path/to/cert.pem",
-    ssl_key="/path/to/key.pem"
-)
+```go
+agent.AddSkill("native_vector_search", map[string]any{
+    "remote_url": "https://user:pass@search.example.com:8001",
+    "index_name": "docs",
+})
 ```
 
 ## Security Headers
@@ -208,12 +207,11 @@ The security configuration is backward compatible. Existing environment variable
 
 The following are new security features:
 
-1. **Search Service HTTPS**: The search service now supports HTTPS using the same environment variables
-2. **Security Headers**: Automatically added when appropriate
-3. **CORS Configuration**: Fine-grained control over CORS origins
-4. **Host Validation**: Restrict which hosts can access the service
-5. **Rate Limiting**: Built-in rate limiting support
-6. **HSTS**: HTTP Strict Transport Security for HTTPS connections
+1. **Security Headers**: Automatically added when appropriate
+2. **CORS Configuration**: Fine-grained control over CORS origins
+3. **Host Validation**: Restrict which hosts can access the service
+4. **Rate Limiting**: Built-in rate limiting support
+5. **HSTS**: HTTP Strict Transport Security for HTTPS connections
 
 ## Troubleshooting
 

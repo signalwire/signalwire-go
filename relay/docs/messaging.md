@@ -32,7 +32,7 @@ if err != nil {
 	fmt.Printf("Send failed: %v\n", err)
 	return
 }
-event := message.Wait(context.Background()) // blocks until delivered/failed
+message.Wait(context.Background()) // blocks until delivered/failed
 fmt.Printf("Final state: %s\n", message.State())
 if message.Reason() != "" {
 	fmt.Printf("Reason: %s\n", message.Reason())
@@ -64,7 +64,7 @@ if err != nil {
 }
 
 go func() {
-	event := message.Wait(context.Background())
+	event, _ := message.Wait(context.Background())
 	state, _ := event.Params["message_state"].(string)
 	fmt.Printf("Delivery: %s\n", state)
 }()
@@ -117,18 +117,18 @@ func main() {
 	)
 
 	client.OnMessage(func(message *relay.Message) {
-		fmt.Printf("From: %s\n", message.FromNumber)
-		fmt.Printf("To: %s\n", message.ToNumber)
-		fmt.Printf("Body: %s\n", message.Body)
-		if len(message.Media) > 0 {
-			fmt.Printf("Media: %v\n", message.Media)
+		fmt.Printf("From: %s\n", message.FromNumber())
+		fmt.Printf("To: %s\n", message.ToNumber())
+		fmt.Printf("Body: %s\n", message.Body())
+		if len(message.Media()) > 0 {
+			fmt.Printf("Media: %v\n", message.Media())
 		}
 
 		// Reply back
 		client.SendMessage(
-			message.FromNumber,
-			message.ToNumber,
-			fmt.Sprintf("You said: %s", message.Body),
+			message.FromNumber(),
+			message.ToNumber(),
+			fmt.Sprintf("You said: %s", message.Body()),
 		)
 	})
 
@@ -138,25 +138,28 @@ func main() {
 
 ## Message Object
 
-### Properties
+### Accessors
 
-| Property | Type | Description |
+These are methods (not fields) -- call them with `()`:
+
+| Accessor | Type | Description |
 |----------|------|-------------|
-| `MessageID` | `string` | Unique message identifier |
-| `Context` | `string` | Context the message belongs to |
-| `Direction` | `string` | `inbound` or `outbound` |
-| `FromNumber` | `string` | Sender phone number (E.164) |
-| `ToNumber` | `string` | Recipient phone number (E.164) |
-| `Body` | `string` | Text body of the message |
-| `Media` | `[]string` | Media URLs (MMS) |
-| `Segments` | `int` | Number of message segments |
-| `Tags` | `[]string` | Tags attached to the message |
+| `MessageID()` | `string` | Unique message identifier |
+| `Context()` | `string` | Context the message belongs to |
+| `Direction()` | `string` | `inbound` or `outbound` |
+| `FromNumber()` | `string` | Sender phone number (E.164) |
+| `ToNumber()` | `string` | Recipient phone number (E.164) |
+| `Body()` | `string` | Text body of the message |
+| `Media()` | `[]string` | Media URLs (MMS) |
+| `Segments()` | `int` | Number of message segments |
+| `Tags()` | `[]string` | Tags attached to the message |
+| `MessageState()` | `MessageState` | State as a typed `MessageState` value |
 
 ### Methods
 
 | Method | Description |
 |--------|-------------|
-| `message.Wait(ctx)` | Block until terminal state. Returns the terminal `*RelayEvent`. |
+| `message.Wait(ctx)` | Block until terminal state. Returns `(*RelayEvent, error)`. |
 | `message.State()` | Current message state as a string. |
 | `message.Reason()` | Failure reason (on `undelivered` or `failed`). |
 | `message.IsDone()` | `true` if message reached a terminal state. |

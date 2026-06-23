@@ -124,8 +124,8 @@ agent, err := client.Fabric.AIAgents.Get("nonexistent-id")
 if err != nil {
 	var restErr *rest.SignalWireRestError
 	if errors.As(err, &restErr) {
-		fmt.Printf("HTTP %d: %v\n", restErr.StatusCode, restErr.Body)
-		// HTTP 404: map[error:not found]
+		fmt.Printf("HTTP %d: %s\n", restErr.StatusCode, restErr.Body)
+		// HTTP 404: {"error":"not found"}
 	}
 }
 ```

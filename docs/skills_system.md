@@ -102,57 +102,62 @@ Perform mathematical calculations.
 - `calculate(expression)` - Evaluate mathematical expressions safely
 
 ### Native Vector Search (`native_vector_search`)
-Search local document collections using vector similarity and keyword search.
+Search a knowledge base hosted on a **remote search server** using vector similarity
+and keyword search. The Go SDK skill is **remote-only**: it connects to a running
+search server over HTTP and does not build or read any local index files. There is
+no local `.swsearch` index, no SQLite/pgvector backend, and no index-building CLI in
+the Go SDK -- the search server is operated separately and exposes `/health` and
+`/search` HTTP endpoints.
 
 **Requirements:**
-- Packages: `sentence-transformers`, `scikit-learn`, `numpy`
-- Install with: `pip install signalwire-agents[search]`
+- A reachable remote search server (the `remote_url` parameter is required).
+- No additional Go packages -- the skill is a built-in and uses only the standard
+  library HTTP client.
 
 **Parameters:**
+- `remote_url` (required) - URL of the remote search server, e.g.
+  `http://localhost:8001` or `http://user:pass@host:8001` (embedded credentials are
+  sent as HTTP Basic auth). The URL is validated for SSRF protection; private and
+  loopback addresses are rejected unless `SWML_ALLOW_PRIVATE_URLS` is set.
+- `index_name` (default: "default") - Name of the index to query on the remote server
 - `tool_name` (default: "search_knowledge") - Custom name for the search tool
-- `index_file` (optional) - Path to local `.swsearch` index file
-- `remote_url` (optional) - URL of remote search server
-- `index_name` (default: "default") - Index name on remote server
-- `build_index` (default: False) - Auto-build index if missing
-- `source_dir` (optional) - Source directory for auto-building
-- `count` (default: 3) - Number of search results to return
-- `distance_threshold` (default: 0.0) - Minimum similarity score
+- `count` (default: 5) - Number of search results to return (1-20)
+- `similarity_threshold` (default: 0.0) - Minimum similarity score (0.0 = no limit, 1.0 = exact match)
+- `tags` (optional) - List of tags to filter search results
 - `response_prefix` (optional) - Text to prepend to responses
 - `response_postfix` (optional) - Text to append to responses
+- `max_content_length` (default: 32768) - Maximum total response size in characters
+- `no_results_message` (default: `"No information found for '{query}'"`) - Message when no results are found; `{query}` is substituted
+- `hints` (optional) - Additional speech-recognition hints
+- `description` (default: "Search the knowledge base for information") - Tool description shown to the AI
 
 **Tools provided:**
-- `search_knowledge(query, count)` - Search documents with hybrid vector/keyword search
+- `search_knowledge(query, count)` (or your custom `tool_name`) - Search the remote index
 
 **Usage examples:**
-```python
-# Local mode with auto-build from concepts guide
-agent.add_skill("native_vector_search", {
-    "tool_name": "search_docs",
-    "build_index": True,
-    "source_dir": "./docs",  # Will build from directory
-    "index_file": "concepts.swsearch"
-})
-
-# Or build from specific concepts guide file
-agent.add_skill("native_vector_search", {
-    "tool_name": "search_concepts",
-    "index_file": "concepts.swsearch"  # Pre-built from concepts guide
-})
-
-# Remote mode
-agent.add_skill("native_vector_search", {
+```go
+// Connect to a remote search server
+agent.AddSkill("native_vector_search", map[string]any{
     "remote_url": "http://localhost:8001",
-    "index_name": "knowledge"
+    "index_name": "knowledge",
 })
 
-# Multiple instances for different document collections
-agent.add_skill("native_vector_search", {
-    "tool_name": "search_examples",
-    "index_file": "examples.swsearch"
+// Custom tool name, more results, and a similarity floor
+agent.AddSkill("native_vector_search", map[string]any{
+    "remote_url":           "http://search.internal:8001",
+    "index_name":           "docs",
+    "tool_name":            "search_docs",
+    "count":                10,
+    "similarity_threshold": 0.5,
+})
+
+// Multiple instances querying different indexes on the same server
+agent.AddSkill("native_vector_search", map[string]any{
+    "remote_url": "http://localhost:8001",
+    "index_name": "examples",
+    "tool_name":  "search_examples",
 })
 ```
-
-For complete documentation, see [Search Overview](search_overview.md).
 
 ### SWML Transfer (`swml_transfer`)
 Transfer calls between agents using pattern matching.

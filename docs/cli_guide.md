@@ -4,42 +4,53 @@ This guide covers the command-line tools included with the SignalWire Agents SDK
 
 ## Overview
 
-The `swaig-test` CLI tool provides a complete testing environment for:
-- **SWAIG Functions**: SWAIG (SignalWire AI Gateway) is the platform's AI tool-calling system. Test both webhook and DataMap functions with automatic type detection
-- **SWML Generation**: SWML (SignalWire Markup Language) is the JSON document format that defines agent behavior during calls. Test static and dynamic SWML documents with realistic fake data
-- **Mock Requests**: Complete FastAPI Request simulation for dynamic agent testing
+The Go `swaig-test` CLI tool tests an agent by exercising its **HTTP endpoints**.
+Unlike the Python SDK's `swaig-test` (which dynamically loads agent source files), the
+Go tool operates against a **running agent server** via `--url`, or introspects a
+compiled example binary via `--example`. It can:
+- **Dump SWML**: Fetch the agent's rendered SWML document (`--dump-swml`).
+- **List tools**: List the agent's registered SWAIG functions (`--list-tools`).
+- **Execute a function**: Invoke a SWAIG function by name with `--param key=value`
+  arguments (`--exec`). SWAIG (SignalWire AI Gateway) is the platform's AI
+  tool-calling system; SWML (SignalWire Markup Language) is the JSON document format
+  that defines agent behavior during calls.
 
-The tool automatically detects function types, provides appropriate execution environments, and simulates the SignalWire platform locally while making real HTTP requests for DataMap functions.
+> **Important:** This document was largely ported from the Python SDK guide. The
+> Python tool's file-loading model, fake-data/override flags, mock-request flags,
+> agent auto-selection, and multi-platform serverless simulation do **not** exist in
+> the Go tool. See [Command Line Options](#command-line-options) for the authoritative
+> Go flag set. Sections below that load `.py` files or use Python-only flags are kept
+> as conceptual illustrations of SWAIG/DataMap/SWML behavior, not literal Go commands.
 
 ## Key Features
 
-- **`--exec` Syntax**: Modern CLI-style function arguments
-- **Agent Auto-Selection**: Automatically chooses agent when only one exists in file
-- **Agent Discovery**: Lists available agents when no arguments provided
-- **Auto-Detection**: Automatically detects webhook vs DataMap functions - no manual flags needed
-- **Complete DataMap Simulation**: Full processing including URL templates, responses, and fallbacks
-- **SWML Testing**: Generate and test SWML documents with realistic fake call data
-- **Dynamic Agent Support**: Test request-dependent SWML generation with mock request objects
-- **Real HTTP Execution**: DataMap functions make actual HTTP requests to real APIs
-- **Comprehensive Simulation**: Generate realistic post_data with all SignalWire metadata
-- **Advanced Template Engine**: Supports all DataMap variable syntax (`${args.param}`, `${response.field}`, `${array[0].property}`)
-- **Flexible CLI Syntax**: Support both `--exec` and JSON argument styles
-- **Override System**: Precise control over test data with dot notation paths
-- **Mock Request Objects**: Complete FastAPI Request simulation for dynamic agents
-- **Verbose Debugging**: Detailed execution tracing for both function types
-- **Flexible Data Modes**: Choose between minimal, comprehensive, or custom post_data
-- **Serverless Environment Simulation**: Complete platform simulation for Lambda, CGI, Cloud Functions, and Azure Functions with environment variable management
-- **Automatic Log Suppression**: Logs are suppressed by default unless `--verbose` flag is used
-- **Enhanced Parameter Display**: Shows all JSON Schema constraints including enum values, min/max, patterns, and more
+- **HTTP-based testing**: Tests a running agent server over HTTP via `--url`.
+- **Binary introspection**: Lists tools from a compiled example via `--example` (no HTTP).
+- **SWML dumping**: Fetch and pretty-print (or `--raw` compact) the rendered SWML document.
+- **Function execution**: Invoke SWAIG functions with repeatable `--param key=value` arguments.
+- **Lambda serverless simulation**: `--simulate-serverless lambda` applies Lambda
+  mode-detection env vars around the invocation. (Only `lambda` is implemented in Go;
+  other platforms return a clear "not implemented" error.)
+- **Verbose debugging**: `--verbose` shows request/response details.
 
 ## Installation
 
-Install as part of the signalwire_agents package:
+`swaig-test` is a Go command in this repository (`cmd/swaig-test`). Build or run it
+with the Go toolchain (Go 1.25 or later):
 
 ```bash
-pip install -e .
+# Run directly from the repo
+go run ./cmd/swaig-test --help
+
+# Or install the binary onto your PATH
+go install github.com/signalwire/signalwire-go/cmd/swaig-test@latest
 swaig-test --help
 ```
+
+> **Note:** Unlike the Python SDK's `swaig-test` (which dynamically loads agent
+> source files), the Go `swaig-test` operates against a **running agent server**
+> over HTTP via `--url`, or introspects a compiled example binary via `--example`.
+> The flag set is correspondingly smaller — see [Command Line Options](#command-line-options).
 
 ## Quick Start
 
@@ -180,12 +191,23 @@ swaig-test examples/my_agent.py --simulate-serverless lambda --env DEBUG=1 --env
 
 ### Supported Serverless Platforms
 
-| Platform | Simulation Flag | Key Features |
-|----------|-----------------|--------------|
-| **AWS Lambda** | `--simulate-serverless lambda` | Function URLs, API Gateway, environment detection |
-| **CGI** | `--simulate-serverless cgi` | HTTP host, script paths, HTTPS simulation |
-| **Google Cloud Functions** | `--simulate-serverless cloud_function` | Function URLs, project configuration |
-| **Azure Functions** | `--simulate-serverless azure_function` | Function URLs, environment settings |
+In the Go SDK, only **AWS Lambda** is implemented for `--simulate-serverless`. The
+other platform names below are recognized but return a clear "not implemented in this
+port" error rather than running — they are listed here for reference only.
+
+| Platform | Simulation Flag | Status |
+|----------|-----------------|--------|
+| **AWS Lambda** | `--simulate-serverless lambda` | Supported (requires `--url`) |
+| **CGI** | `--simulate-serverless cgi` | Not implemented (errors) |
+| **Google Cloud Functions** | `--simulate-serverless cloud_function` | Not implemented (errors) |
+| **Azure Functions** | `--simulate-serverless azure_function` | Not implemented (errors) |
+
+The Python-only platform-configuration flags shown in the subsections below
+(`--aws-function-name`, `--cgi-host`, `--gcp-project`, `--azure-env`, `--env`,
+`--env-file`, etc.) do **not** exist in the Go tool. The Go Lambda simulation uses
+fixed preset env vars and requires `--url`; for in-process Lambda dispatch with custom
+options, use the library functions `SimulateDumpSWMLViaLambda` /
+`SimulateExecToolViaLambda` in `cmd/swaig-test/simulate.go`.
 
 ### Platform-Specific Configuration
 
@@ -1346,57 +1368,34 @@ Available SWAIG functions:
 
 ## Command Line Options
 
-### Core Options
+The Go `swaig-test` accepts the following flags (from `cmd/swaig-test`). It targets a
+**running agent server** over HTTP via `--url`, or introspects a compiled example
+binary via `--example`. Exactly one of `--dump-swml`, `--list-tools`, or `--exec`
+selects the action.
 
 | Option | Description |
 |--------|-------------|
-| `--exec FUNCTION` | Execute function with CLI-style arguments (recommended) |
-| `--agent-class CLASS` | Specify agent class for multi-agent files |
-| `--route ROUTE` | Select agent by route path (e.g., /matti-agent) |
-| `--list-agents` | List all available agents in the file |
-| `--list-tools` | List all available SWAIG functions and their types |
-| `--verbose`, `-v` | Enable detailed execution tracing and debugging (also shows logs) |
-| `--fake-full-data` | Generate comprehensive post_data with all SignalWire metadata |
-| `--minimal` | Use minimal post_data (essential keys only) |
-| `--custom-data` | JSON string with custom post_data overrides |
+| `--url URL` | Agent URL, e.g. `http://user:pass@localhost:3000/`. Basic-auth credentials may be embedded in the URL. |
+| `--example NAME` | Introspect a binary in `./examples/<NAME>/` via the `SWAIG_LIST_TOOLS` env var (no HTTP, no port binding). Mutually exclusive with `--url`; currently only supports `--list-tools`. |
+| `--dump-swml` | Dump the SWML document from the agent (HTTP GET). |
+| `--list-tools` | List available SWAIG tools. |
+| `--exec NAME` | Execute a SWAIG tool by name (HTTP POST). |
+| `--param key=value` | Parameter for `--exec`, as `key=value` (repeatable). Values that parse as JSON numbers/booleans/null are converted; everything else is kept as a string. |
+| `--raw` | Output compact JSON instead of pretty-printed. |
+| `--verbose` | Show request/response details. |
+| `--simulate-serverless PLATFORM` | Simulate a serverless environment around the invocation. Currently only `lambda` is supported; it sets Lambda mode-detection env vars and clears `SWML_PROXY_URL_BASE` so platform-specific URL generation is exercised. Requires `--url`. |
 
-### SWML Testing Options
-
-| Option | Description |
-|--------|-------------|
-| `--dump-swml` | Generate SWML document with fake call data |
-| `--raw` | Output raw JSON only (no headers, pipeable) |
-| `--call-type` | Call type: `sip` or `webrtc` (default: webrtc) |
-| `--call-direction` | Call direction: `inbound` or `outbound` (default: inbound) |
-| `--call-state` | Call state (default: created) |
-| `--call-id` | Override call_id |
-| `--project-id` | Override project_id |
-| `--space-id` | Override space_id |
-| `--from-number` | Override from address |
-| `--to-extension` | Override to address |
-
-### Data Override Options
-
-| Option | Description |
-|--------|-------------|
-| `--user-vars` | JSON for vars.userVariables |
-| `--query-params` | JSON for query parameters (merged into userVariables) |
-| `--override` | Override values using dot notation (repeatable) |
-| `--override-json` | Override with JSON values using dot notation (repeatable) |
-
-### Mock Request Options
-
-| Option | Description |
-|--------|-------------|
-| `--header` | Add HTTP headers for mock request (repeatable) |
-| `--method` | HTTP method for mock request (default: POST) |
-| `--body` | JSON string for mock request body |
-
-### Alternative Syntax
-
-| Option | Description |
-|--------|-------------|
-| `--args` | Separator for CLI-style function arguments |
+> **Note:** The Go tool does **not** have the Python CLI's file-loading flags
+> (`--agent-class`, `--route`, `--list-agents`), fake-data/override flags
+> (`--fake-full-data`, `--minimal`, `--custom-data`, `--call-type`,
+> `--call-direction`, `--call-state`, `--call-id`, `--project-id`, `--space-id`,
+> `--from-number`, `--to-extension`, `--user-vars`, `--query-params`, `--override`,
+> `--override-json`), or mock-request flags (`--header`, `--method`, `--body`,
+> `--args`). Many of the example commands later in this guide were ported from the
+> Python documentation and use those flags or load `.py` files; treat them as
+> conceptual illustrations of SWAIG/DataMap/SWML behavior rather than literal Go
+> `swaig-test` invocations. For function arguments, the Go tool uses repeatable
+> `--param key=value` flags rather than JSON-string positional arguments.
 
 ## Real-World Examples
 
@@ -2136,112 +2135,8 @@ This demonstrates both:
 5. **Clear environment variables** between platform tests to avoid conflicts
 6. **Use `--verbose`** to debug environment setup and URL generation
 
----
-
-## sw-search - Build and Query Search Indexes
-
-Build local search indexes from document collections for use with the native vector search skill.
-
-```bash
-sw-search <source_dir> [options]
-```
-
-### Building Indexes
-
-**Arguments:**
-- `source_dir` - Directory containing documents to index
-
-**Options:**
-- `--output FILE` - Output .swsearch file (default: `<source_dir>.swsearch`)
-- `--chunk-size SIZE` - Chunk size in words (default: 50)
-- `--chunk-overlap SIZE` - Overlap between chunks in words (default: 10)
-- `--file-types TYPES` - Comma-separated file extensions (default: md,txt,rst)
-- `--exclude PATTERNS` - Comma-separated glob patterns to exclude
-- `--model MODEL` - Embedding model name (default: sentence-transformers/all-mpnet-base-v2)
-- `--tags TAGS` - Comma-separated tags to add to all chunks
-- `--verbose` - Show detailed progress information
-- `--validate` - Validate the created index after building
-- `--chunking-strategy STRATEGY` - Chunking strategy: sentence, sliding, paragraph, page, semantic, topic, qa (default: sentence)
-- `--max-sentences-per-chunk NUM` - Maximum sentences per chunk (default: 3)
-- `--semantic-threshold FLOAT` - Threshold for semantic chunking (default: 0.5)
-- `--topic-threshold FLOAT` - Threshold for topic-based chunking (default: 0.3)
-- `--index-nlp-backend BACKEND` - NLP backend for processing (default: basic)
-- `--split-newlines` - Split on newlines in addition to sentence boundaries
-- `--languages LANGS` - Comma-separated language codes (default: en)
-
-### Validating Indexes
-
-```bash
-sw-search validate <index_file> [--verbose]
-```
-
-### Searching Indexes
-
-```bash
-sw-search search <index_file> <query> [options]
-```
-
-**Options:**
-- `--count COUNT` - Number of results to return (default: 5)
-- `--distance-threshold FLOAT` - Minimum similarity score (default: 0.0)
-- `--tags TAGS` - Comma-separated tags to filter by
-- `--verbose` - Show detailed information
-- `--json` - Output results as JSON
-- `--no-content` - Hide content in results (show only metadata)
-- `--query-nlp-backend BACKEND` - NLP backend for query processing
-
-### Remote Search
-
-```bash
-sw-search remote <endpoint> <query> [options]
-```
-
-**Options:**
-- `--index-name NAME` - Name of the index to search (required)
-- `--count COUNT` - Number of results to return (default: 5)
-- `--distance-threshold FLOAT` - Minimum similarity score (default: 0.0)
-- `--tags TAGS` - Comma-separated tags to filter by
-- `--json` - Output results as JSON
-- `--timeout SECONDS` - Request timeout in seconds (default: 30)
-
-### Examples
-
-```bash
-# Build from a directory
-sw-search docs --output docs.swsearch
-
-# Build from multiple sources
-sw-search docs examples README.md --output comprehensive.swsearch
-
-# Validate an index
-sw-search validate docs.swsearch
-
-# Search within an index
-sw-search search docs.swsearch "how to create an agent"
-sw-search search docs.swsearch "API reference" --count 3 --verbose
-
-# Search remote index via API
-sw-search remote http://localhost:8001/search "query" --index-name docs
-```
-
-For complete documentation on the search system, see [Search Overview](search_overview.md).
-
----
-
-## Installation
-
-All CLI tools are included when you install the SignalWire Agents SDK:
-
-```bash
-pip install signalwire-agents
-
-# For search functionality
-pip install signalwire-agents[search]
-```
-
 ## Getting Help
 
 ```bash
-sw-search --help
 swaig-test --help
 ```

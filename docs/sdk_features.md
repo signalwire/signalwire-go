@@ -318,34 +318,33 @@ Each inbound request creates an **ephemeral copy** of the agent. The callback cu
 
 ## Search System
 
-The SDK includes a complete hybrid search engine for local knowledge bases:
+The Go SDK provides knowledge-base search through the built-in `native_vector_search`
+skill, which connects to a **remote search server** over HTTP. The skill is
+remote-only: it does not build or read local index files, and the Go SDK ships no
+index-building CLI or local search backend. You run the search server separately
+(it exposes `/health` and `/search` endpoints) and point the skill at it:
 
-**Building indexes:**
-```bash
-sw-search ./docs --output knowledge.swsearch
-sw-search ./docs ./examples --file-types md,txt,py --chunking-strategy sentence
-sw-search validate ./knowledge.swsearch
-sw-search search ./knowledge.swsearch "how do I configure SSL?"
-```
-
-**In agents:**
-```python
-agent.add_skill("native_vector_search", {
-    "index_path": "knowledge.swsearch",
-    "tool_name": "search_docs",
-    "description": "Search product documentation"
+```go
+agent.AddSkill("native_vector_search", map[string]any{
+    "remote_url":  "http://localhost:8001",       // required
+    "index_name":  "knowledge",                    // index to query on the server
+    "tool_name":   "search_docs",
+    "description":  "Search product documentation",
 })
 ```
 
-The search system supports:
-- **Document processing:** PDF, DOCX, Excel, PowerPoint, HTML, Markdown, plain text
-- **Chunking strategies:** sentence, sliding window, paragraph, page, semantic, topic, QA-optimized, markdown-aware, JSON
-- **Embedding models:** mini (384d, fast), base (768d), large
-- **Hybrid search:** Vector similarity + keyword matching + filename search + metadata search
-- **Backends:** SQLite (`.swsearch` files for local/serverless) or PostgreSQL (pgvector for production)
-- **Installation tiers:** `search-queryonly` (~400MB, query only), `search` (~500MB, basic), `search-full` (~600MB, document processing), `search-all` (~700MB, everything)
+The skill:
+- Sends the AI's query to the remote server's `/search` endpoint and formats the
+  returned results (content, source filename/section, and relevance score) for the AI.
+- Supports HTTP Basic auth via `http://user:pass@host:8001` in `remote_url`.
+- Validates the URL for SSRF protection (private/loopback addresses are rejected
+  unless `SWML_ALLOW_PRIVATE_URLS` is set).
+- Accepts `count`, `similarity_threshold`, `tags`, `response_prefix`,
+  `response_postfix`, `max_content_length`, and `no_results_message` parameters to
+  tune queries and response formatting.
 
-The `.swsearch` format is a self-contained SQLite database with embeddings, chunks, and metadata -- deploy it alongside your agent to Lambda or any serverless platform.
+How documents are ingested, chunked, embedded, and stored is the responsibility of
+the remote search server, not the Go SDK.
 
 ---
 
@@ -466,7 +465,7 @@ The SDK handles auth automatically:
 | Multi-language | Manually construct language arrays | `add_language()` one-liner |
 | State machine | Manually build contexts JSON | Fluent `define_contexts()` API |
 | Structured data collection | Build gather configs by hand | `add_gather_question()` chain |
-| Search/RAG | Build entire pipeline | `add_skill("native_vector_search")` |
+| Search/RAG | Wire up a search client | `AddSkill("native_vector_search", ...)` against a remote search server |
 | Multi-agent | Separate deployments + router | `AgentServer` with route registration |
 | Dynamic config | Custom middleware | `set_dynamic_config_callback()` |
 | Post-call analytics | Parse raw webhook payload | `on_summary()` callback |

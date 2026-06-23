@@ -36,7 +36,7 @@ Actions returned by `Play()`, `Record()`, etc. have a `Wait()` method that resol
 action := call.Play([]map[string]any{
 	{"type": "tts", "params": map[string]any{"text": "Hello"}},
 })
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
 // event is a *RelayEvent with the terminal state
 ```
 
@@ -46,26 +46,28 @@ All event type constants are defined in the `relay` package:
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `EventCallState` | `calling.call.state` | Call state changes (created, ringing, answered, ending, ended) |
-| `EventCallReceive` | `calling.call.receive` | Inbound call notification |
-| `EventCallPlay` | `calling.call.play` | Play operation state changes |
-| `EventCallRecord` | `calling.call.record` | Record operation state changes |
-| `EventCallCollect` | `calling.call.collect` | Input collection results |
-| `EventCallConnect` | `calling.call.connect` | Bridge/connect state changes |
-| `EventCallDetect` | `calling.call.detect` | Detection results |
-| `EventCallFax` | `calling.call.fax` | Fax operation state changes |
-| `EventCallTap` | `calling.call.tap` | Tap operation state changes |
-| `EventCallStream` | `calling.call.stream` | Stream operation state changes |
-| `EventCallSendDigits` | `calling.call.send_digits` | DTMF send completion |
-| `EventCallDial` | `calling.call.dial` | Outbound dial progress |
-| `EventCallRefer` | `calling.call.refer` | SIP REFER results |
-| `EventCallDenoise` | `calling.call.denoise` | Denoise state changes |
-| `EventCallPay` | `calling.call.pay` | Payment state changes |
-| `EventCallQueue` | `calling.call.queue` | Queue state changes |
-| `EventCallEcho` | `calling.call.echo` | Echo state changes |
-| `EventCallTranscribe` | `calling.call.transcribe` | Transcription state changes |
-| `EventConference` | `calling.conference` | Conference state changes |
-| `EventCallingError` | `calling.error` | Error events |
+| `EventCallingCallState` | `calling.call.state` | Call state changes (created, ringing, answered, ending, ended) |
+| `EventCallingCallReceive` | `calling.call.receive` | Inbound call notification |
+| `EventCallingCallPlay` | `calling.call.play` | Play operation state changes |
+| `EventCallingCallRecord` | `calling.call.record` | Record operation state changes |
+| `EventCallingCallCollect` | `calling.call.collect` | Input collection results |
+| `EventCallingCallConnect` | `calling.call.connect` | Bridge/connect state changes |
+| `EventCallingCallDetect` | `calling.call.detect` | Detection results |
+| `EventCallingCallFax` | `calling.call.fax` | Fax operation state changes |
+| `EventCallingCallTap` | `calling.call.tap` | Tap operation state changes |
+| `EventCallingCallStream` | `calling.call.stream` | Stream operation state changes |
+| `EventCallingCallSendDigits` | `calling.call.send_digits` | DTMF send completion |
+| `EventCallingCallDial` | `calling.call.dial` | Outbound dial progress |
+| `EventCallingCallRefer` | `calling.call.refer` | SIP REFER results |
+| `EventCallingCallDenoise` | `calling.call.denoise` | Denoise state changes |
+| `EventCallingCallPay` | `calling.call.pay` | Payment state changes |
+| `EventCallingCallQueue` | `calling.call.queue` | Queue state changes |
+| `EventCallingCallEcho` | `calling.call.echo` | Echo state changes |
+| `EventCallingCallTranscribe` | `calling.call.transcribe` | Transcription state changes |
+| `EventCallingCallHold` | `calling.call.hold` | Hold/unhold state changes |
+| `EventCallingCallAI` | `calling.call.ai` | AI agent session events |
+| `EventCallingCallConference` | `calling.conference` | Conference state changes |
+| `EventCallingCallError` | `calling.error` | Error events |
 | `EventMessagingReceive` | `messaging.receive` | Inbound message received |
 | `EventMessagingState` | `messaging.state` | Outbound message state change |
 
@@ -77,7 +79,7 @@ Raw events are always `*RelayEvent` with a `Params` map. For convenience, typed 
 import "github.com/signalwire/signalwire-go/pkg/relay"
 
 // The event arrives as a *RelayEvent with an EventType and Params map.
-if event.EventType == relay.EventCallState {
+if event.EventType == relay.EventCallingCallState {
 	// Promote the generic event to its typed struct by passing the
 	// Params map to the matching New<EventName> factory.
 	stateEvent := relay.NewCallStateEvent(event.Params)
@@ -156,7 +158,7 @@ client.OnCall(func(call *relay.Call) {
 	go func() {
 		for {
 			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-			event, err := call.WaitFor(ctx, relay.EventCallState, nil)
+			event, err := call.WaitFor(ctx, relay.EventCallingCallState, nil)
 			cancel()
 			if err != nil {
 				return // timeout or call ended
@@ -183,15 +185,15 @@ client.OnCall(func(call *relay.Call) {
 client.OnCall(func(call *relay.Call) {
 	call.Answer()
 
-	call.On(relay.EventCallPlay, func(event *relay.RelayEvent) {
+	call.On(relay.EventCallingCallPlay, func(event *relay.RelayEvent) {
 		fmt.Printf("Play state: %v\n", event.Params["state"])
 	})
 
-	call.On(relay.EventCallRecord, func(event *relay.RelayEvent) {
+	call.On(relay.EventCallingCallRecord, func(event *relay.RelayEvent) {
 		fmt.Printf("Record state: %v\n", event.Params["state"])
 	})
 
-	call.On(relay.EventCallingError, func(event *relay.RelayEvent) {
+	call.On(relay.EventCallingCallError, func(event *relay.RelayEvent) {
 		fmt.Printf("Error: %v\n", event.Params["message"])
 	})
 

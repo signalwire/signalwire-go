@@ -13,7 +13,7 @@ client := relay.NewRelayClient(opts ...ClientOption)
 | `WithProject(id)` | `SIGNALWIRE_PROJECT_ID` | Project ID for authentication |
 | `WithToken(token)` | `SIGNALWIRE_API_TOKEN` | API token for authentication |
 | `WithJWT(jwt)` | `SIGNALWIRE_JWT_TOKEN` | JWT token (alternative to project/token) |
-| `WithSpace(host)` | `SIGNALWIRE_SPACE` | Space hostname (default: `relay.signalwire.com`) |
+| `WithSpace(host)` | `SIGNALWIRE_SPACE` | Space hostname (e.g. `example.signalwire.com`; a bare name has `.signalwire.com` appended) |
 | `WithContexts(ctx...)` | -- | Topics to subscribe to |
 | `WithMaxActiveCalls(n)` | `RELAY_MAX_ACTIVE_CALLS` | Max concurrent calls (default: 1000) |
 
@@ -123,9 +123,7 @@ to change.
 
 ## Concurrency
 
-Each inbound call handler runs in its own goroutine, so multiple calls are handled concurrently. The `WithMaxActiveCalls()` option (default: 1000) caps concurrent calls to prevent unbounded goroutine growth.
-
-For multiple WebSocket connections in one process, set `RELAY_MAX_CONNECTIONS` (default: 1).
+Each inbound call handler runs in its own goroutine, so multiple calls are handled concurrently. The `WithMaxActiveCalls()` option (default: 1000, or the `RELAY_MAX_ACTIVE_CALLS` env var) caps concurrent calls to prevent unbounded goroutine growth.
 
 ## Error Handling
 
@@ -141,7 +139,11 @@ if err != nil {
 }
 ```
 
-`RelayError` is returned when the server returns a non-2xx response code. Errors 404 and 410 (call gone) are silently swallowed by Call methods since the call no longer exists.
+`RelayError` carries the numeric `Code` and `Message` the RELAY server
+returned for a failed command (its `Error()` string is formatted as
+`RELAY error {code}: {message}`). A `RelayError` may also wrap a sentinel
+(such as `relay.ErrDialTimeout`) so the same value satisfies both
+`errors.As(err, &relayErr)` and `errors.Is(err, relay.ErrDialTimeout)`.
 
 ## Graceful Shutdown
 

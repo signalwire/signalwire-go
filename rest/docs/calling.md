@@ -59,12 +59,13 @@ Transfer a call to a new destination.
 client.Calling.Transfer(callID, map[string]any{"dest": "sip:agent@example.com"})
 ```
 
-### `Disconnect(callID string) (map[string]any, error)`
+### `Disconnect(callID string, params map[string]any) (map[string]any, error)`
 
-Disconnect bridged calls without hanging up either leg.
+Disconnect bridged calls without hanging up either leg. Pass `nil` for
+`params` when no extra fields are needed.
 
 ```go
-client.Calling.Disconnect(callID)
+client.Calling.Disconnect(callID, nil)
 ```
 
 ## Audio Playback
@@ -174,8 +175,8 @@ client.Calling.StreamStop(callID, map[string]any{"control_id": "str-1"})
 ### `Denoise` / `DenoiseStop`
 
 ```go
-client.Calling.Denoise(callID)
-client.Calling.DenoiseStop(callID)
+client.Calling.Denoise(callID, nil)
+client.Calling.DenoiseStop(callID, nil)
 ```
 
 ## Transcription
@@ -257,7 +258,7 @@ client.Calling.UserEvent(callID, map[string]any{
 | `Update(params)` | `update` | No |
 | `End(callID, params)` | `calling.end` | Yes |
 | `Transfer(callID, params)` | `calling.transfer` | Yes |
-| `Disconnect(callID)` | `calling.disconnect` | Yes |
+| `Disconnect(callID, params)` | `calling.disconnect` | Yes |
 | `Play(callID, params)` | `calling.play` | Yes |
 | `PlayPause(callID, params)` | `calling.play.pause` | Yes |
 | `PlayResume(callID, params)` | `calling.play.resume` | Yes |
@@ -276,8 +277,8 @@ client.Calling.UserEvent(callID, map[string]any{
 | `TapStop(callID, params)` | `calling.tap.stop` | Yes |
 | `Stream(callID, params)` | `calling.stream` | Yes |
 | `StreamStop(callID, params)` | `calling.stream.stop` | Yes |
-| `Denoise(callID)` | `calling.denoise` | Yes |
-| `DenoiseStop(callID)` | `calling.denoise.stop` | Yes |
+| `Denoise(callID, params)` | `calling.denoise` | Yes |
+| `DenoiseStop(callID, params)` | `calling.denoise.stop` | Yes |
 | `Transcribe(callID, params)` | `calling.transcribe` | Yes |
 | `TranscribeStop(callID, params)` | `calling.transcribe.stop` | Yes |
 | `AIMessage(callID, params)` | `calling.ai_message` | Yes |

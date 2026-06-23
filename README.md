@@ -201,7 +201,7 @@ func main() {
 		"url":  "https://example.com/call-handler",
 	})
 
-	results, _ := client.PhoneNumbers.Search(map[string]string{"area_code": "512"})
+	results, _ := client.PhoneNumbers.Search(map[string]any{"area_code": "512"})
 	fmt.Println(results)
 }
 ```
@@ -220,7 +220,7 @@ See the **[REST documentation](rest/README.md)** for the full guide, API referen
 go get github.com/signalwire/signalwire-go
 ```
 
-Requires Go 1.22 or later.
+Requires Go 1.25 or later.
 
 ## Documentation
 
