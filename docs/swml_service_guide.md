@@ -27,10 +27,10 @@ The class is designed to be extended for specific use cases, while providing a f
 
 ## Installation
 
-The `SWMLService` class is part of the SignalWire AI Agent SDK. Install it using pip:
+The `SWMLService` type is part of the SignalWire AI Agents Go SDK. Add it to your module with `go get`:
 
 ```bash
-pip install signalwire-agents
+go get github.com/signalwire/signalwire-go
 ```
 
 ## Basic Usage

@@ -1,474 +1,144 @@
-# SignalWire AI Agents - Cloud Functions Deployment Guide
+# SignalWire AI Agents (Go) - Serverless Deployment Guide
 
-This guide covers deploying SignalWire AI Agents to Google Cloud Functions and Azure Functions.
+This guide covers deploying SignalWire AI Agents built with the Go SDK to serverless
+platforms.
 
-## Overview
+## Platform Support
 
-SignalWire AI Agents now support deployment to major cloud function platforms:
+The Go SDK ships a serverless adapter for **AWS Lambda** only (package
+`github.com/signalwire/signalwire-go/pkg/lambda`).
 
-- **Google Cloud Functions** - Serverless compute platform on Google Cloud
-- **Azure Functions** - Serverless compute service on Microsoft Azure
-- **AWS Lambda** - Already supported (see existing documentation)
+- **AWS Lambda** — Supported via `pkg/lambda` (Function URLs and API Gateway HTTP API v2).
+- **Google Cloud Functions** — Not yet implemented in the Go SDK. There is no GCF
+  adapter package. (`swaig-test --simulate-serverless cloud_function` returns a
+  "not implemented in this port" error.)
+- **Azure Functions** — Not yet implemented in the Go SDK. There is no Azure adapter
+  package. (`swaig-test --simulate-serverless azure_function` returns a "not
+  implemented in this port" error.)
 
-## Google Cloud Functions
+> The Python SDK supports GCF and Azure deployment; the Go port does not yet. If you
+> need GCF or Azure today, run the agent as a normal HTTP server (see
+> [web_service.md](web_service.md)) behind the platform's HTTP trigger, or use AWS
+> Lambda with the adapter below.
 
-### Environment Detection
+## AWS Lambda
 
-The agent automatically detects Google Cloud Functions environment using these variables:
-- `FUNCTION_TARGET` - The function entry point
-- `K_SERVICE` - Knative service name (Cloud Run/Functions)
-- `GOOGLE_CLOUD_PROJECT` - Google Cloud project ID
+The Lambda adapter wraps the `http.Handler` produced by `agent.AsRouter()` (any
+`http.Handler` works) and translates Lambda invocation events into synthetic
+`*http.Request` values. Two event shapes are supported:
 
-### Deployment Steps
+- **Lambda Function URLs** (`HandleFunctionURL`) — the simplest deployment; no API
+  Gateway required. This is the recommended path.
+- **API Gateway HTTP API v2** (`HandleAPIGatewayV2`) — for deployments that front the
+  function with an API Gateway HTTP API.
 
-1. **Create your agent file** (`main.py`):
-```python
-import functions_framework
-from your_agent_module import YourAgent
+### Function URL deployment (recommended)
 
-# Create agent instance
-agent = YourAgent(
-    name="my-agent",
-    # Configure your agent parameters
+```go
+package main
+
+import (
+	awslambda "github.com/aws/aws-lambda-go/lambda"
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	swlambda "github.com/signalwire/signalwire-go/pkg/lambda"
 )
 
-@functions_framework.http
-def agent_handler(request):
-    """HTTP Cloud Function entry point"""
-    return agent.handle_serverless_request(event=request)
-```
-
-2. **Create requirements.txt**:
-```
-functions-framework==3.*
-signalwire-agents
-# Add your other dependencies
-```
-
-3. **Deploy using gcloud**:
-```bash
-gcloud functions deploy my-agent \
-    --runtime python39 \
-    --trigger-http \
-    --entry-point agent_handler \
-    --allow-unauthenticated
-```
-
-### Environment Variables
-
-Set these environment variables for your function:
-
-```bash
-# SignalWire credentials
-export SIGNALWIRE_PROJECT_ID="your-project-id"
-export SIGNALWIRE_TOKEN="your-token"
-
-# Agent configuration
-export AGENT_USERNAME="your-username"
-export AGENT_PASSWORD="your-password"
-
-# Optional: Custom region/project settings
-export FUNCTION_REGION="us-central1"
-export GOOGLE_CLOUD_PROJECT="your-project-id"
-```
-
-### URL Format
-
-Google Cloud Functions URLs follow this pattern:
-```
-https://{region}-{project-id}.cloudfunctions.net/{function-name}
-```
-
-With authentication:
-```
-https://username:password@{region}-{project-id}.cloudfunctions.net/{function-name}
-```
-
-## Azure Functions
-
-### Environment Detection
-
-The agent automatically detects Azure Functions environment using these variables:
-- `AZURE_FUNCTIONS_ENVIRONMENT` - Azure Functions runtime environment
-- `FUNCTIONS_WORKER_RUNTIME` - Runtime language (python, node, etc.)
-- `AzureWebJobsStorage` - Azure storage connection string
-
-### Deployment Steps
-
-1. **Create your function app structure**:
-```
-my-agent-function/
-├── __init__.py
-├── function.json
-└── requirements.txt
-```
-
-2. **Create `__init__.py`**:
-```python
-import azure.functions as func
-from your_agent_module import YourAgent
-
-# Create agent instance
-agent = YourAgent(
-    name="my-agent",
-    # Configure your agent parameters
+var a = agent.NewAgentBase(
+	agent.WithName("MyAgent"),
+	agent.WithRoute("/my-agent"),
 )
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
-    """Azure Function entry point"""
-    return agent.handle_serverless_request(event=req)
-```
+var handler = swlambda.NewHandler(a.AsRouter())
 
-3. **Create `function.json`**:
-```json
-{
-  "scriptFile": "__init__.py",
-  "bindings": [
-    {
-      "authLevel": "anonymous",
-      "type": "httpTrigger",
-      "direction": "in",
-      "name": "req",
-      "methods": ["get", "post"]
-    },
-    {
-      "type": "http",
-      "direction": "out",
-      "name": "$return"
-    }
-  ]
+func main() {
+	awslambda.Start(handler.HandleFunctionURL)
 }
 ```
 
-4. **Create `requirements.txt`**:
-```
-azure-functions
-signalwire-agents
-# Add your other dependencies
-```
+Because `agent.AsRouter()` installs routes relative to the agent's route (e.g.
+`/my-agent`, `/my-agent/swaig`), the Lambda event's request path must line up with that
+route. Lambda Function URLs preserve the full request path unchanged, so no rewriting
+is needed in the common case.
 
-5. **Deploy using Azure CLI**:
-```bash
-# Create function app
-az functionapp create \
-    --resource-group myResourceGroup \
-    --consumption-plan-location westus \
-    --runtime python \
-    --runtime-version 3.9 \
-    --functions-version 4 \
-    --name my-agent-function \
-    --storage-account mystorageaccount
+### API Gateway HTTP API v2 deployment
 
-# Deploy code
-func azure functionapp publish my-agent-function
+```go
+func main() {
+	awslambda.Start(handler.HandleAPIGatewayV2)
+}
 ```
 
-### Environment Variables
+The classic REST API (v1) payload is intentionally not supported as a first-class path.
+Users who need v1 can wrap it via `github.com/awslabs/aws-lambda-go-api-proxy`.
 
-Set these in your Azure Function App settings:
+### Building and deploying
+
+Build a Linux binary named `bootstrap` (required by the `provided.al2`/`al2023`
+runtimes) and package it for upload:
 
 ```bash
-# SignalWire credentials
-SIGNALWIRE_PROJECT_ID="your-project-id"
-SIGNALWIRE_TOKEN="your-token"
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bootstrap ./cmd/my-agent
+zip function.zip bootstrap
 
-# Agent configuration
-AGENT_USERNAME="your-username"
-AGENT_PASSWORD="your-password"
-
-# Azure-specific (usually auto-set)
-AZURE_FUNCTIONS_ENVIRONMENT="Development"
-WEBSITE_SITE_NAME="my-agent-function"
+aws lambda create-function \
+  --function-name my-agent \
+  --runtime provided.al2023 \
+  --handler bootstrap \
+  --zip-file fileb://function.zip \
+  --role arn:aws:iam::<account-id>:role/<lambda-role>
 ```
 
-### URL Format
+### Environment detection and URL generation
 
-Azure Functions URLs follow this pattern:
-```
-https://{function-app-name}.azurewebsites.net/api/{function-name}
+The SDK detects the Lambda environment from standard Lambda environment variables
+(e.g. `AWS_LAMBDA_FUNCTION_NAME`, `AWS_REGION`, and `AWS_LAMBDA_FUNCTION_URL` when using
+Function URLs) and generates webhook URLs accordingly. Setting `SWML_PROXY_URL_BASE`
+overrides URL generation with a fixed base; clear it if you want the platform-derived
+URLs.
+
+## Testing Lambda locally
+
+Use the `swaig-test` CLI to exercise an agent with the Lambda mode-detection
+environment applied. The Go tool requires a running agent server (`--url`):
+
+```bash
+# Apply Lambda env vars around a SWML dump against a running agent
+swaig-test --url http://user:pass@localhost:3000/my-agent \
+  --simulate-serverless lambda --dump-swml
+
+# Execute a function under the simulated Lambda environment
+swaig-test --url http://user:pass@localhost:3000/my-agent \
+  --simulate-serverless lambda \
+  --exec search_knowledge --param query=test
 ```
 
-With authentication:
-```
-https://username:password@{function-app-name}.azurewebsites.net/api/{function-name}
-```
+For true in-process Lambda adapter dispatch (constructing the agent *after* the Lambda
+environment is active, so env-captured state reflects the simulated environment), call
+the library functions `SimulateDumpSWMLViaLambda` / `SimulateExecToolViaLambda` in
+`cmd/swaig-test/simulate.go` directly from a Go test.
+
+See the [CLI Guide](cli_guide.md) for the full `swaig-test` flag set.
 
 ## Authentication
 
-Both platforms support HTTP Basic Authentication:
-
-### Automatic Authentication
-The agent automatically validates credentials in cloud function environments:
-
-```python
-agent = YourAgent(
-    name="my-agent",
-    username="your-username",
-    password="your-password"
-)
-```
-
-### Authentication Flow
-1. Client sends request with `Authorization: Basic <credentials>` header
-2. Agent validates credentials against configured username/password
-3. If invalid, returns 401 with `WWW-Authenticate` header
-4. If valid, processes the request normally
-
-## Testing
-
-### SignalWire Agent Testing Tool
-
-The SignalWire AI Agents SDK includes a testing tool (`swaig-test`) that can simulate cloud function environments for comprehensive testing before deployment.
-
-#### Cloud Function Environment Simulation
-
-**Google Cloud Functions:**
-```bash
-# Test SWML generation in GCP environment
-swaig-test examples/my_agent.py --simulate-serverless cloud_function --gcp-project my-project --dump-swml
-
-# Test function execution
-swaig-test examples/my_agent.py --simulate-serverless cloud_function --gcp-project my-project --exec my_function --param value
-
-# With custom region and service
-swaig-test examples/my_agent.py --simulate-serverless cloud_function \
-  --gcp-project my-project \
-  --gcp-region us-west1 \
-  --gcp-service my-service \
-  --dump-swml
-```
-
-**Azure Functions:**
-```bash
-# Test SWML generation in Azure environment
-swaig-test examples/my_agent.py --simulate-serverless azure_function --dump-swml
-
-# Test function execution
-swaig-test examples/my_agent.py --simulate-serverless azure_function --exec my_function --param value
-
-# With custom environment and URL
-swaig-test examples/my_agent.py --simulate-serverless azure_function \
-  --azure-env Production \
-  --azure-function-url https://myapp.azurewebsites.net/api/myfunction \
-  --dump-swml
-```
-
-#### Environment Variable Testing
-
-Test with custom environment variables:
-```bash
-# Set individual environment variables
-swaig-test examples/my_agent.py --simulate-serverless cloud_function \
-  --env GOOGLE_CLOUD_PROJECT=my-project \
-  --env DEBUG=1 \
-  --exec my_function
-
-# Load from environment file
-swaig-test examples/my_agent.py --simulate-serverless azure_function \
-  --env-file production.env \
-  --dump-swml
-```
-
-#### Authentication Testing
-
-Test authentication in cloud function environments:
-```bash
-# Test with authentication (uses agent's configured credentials)
-swaig-test examples/my_agent.py --simulate-serverless cloud_function \
-  --gcp-project my-project \
-  --dump-swml --verbose
-
-# The tool automatically tests:
-# - Basic auth credential embedding in URLs
-# - Authentication challenge responses
-# - Platform-specific auth handling
-```
-
-#### URL Generation Testing
-
-Verify that URLs are generated correctly for each platform:
-```bash
-# Check URL generation with verbose output
-swaig-test examples/my_agent.py --simulate-serverless cloud_function \
-  --gcp-project my-project \
-  --dump-swml --verbose
-
-# Extract webhook URLs from SWML
-swaig-test examples/my_agent.py --simulate-serverless azure_function \
-  --dump-swml --raw | jq '.sections.main[1].ai.SWAIG.functions[].web_hook_url'
-```
-
-#### Available Testing Options
-
-**Platform Selection:**
-- `--simulate-serverless cloud_function` - Google Cloud Functions
-- `--simulate-serverless azure_function` - Azure Functions  
-- `--simulate-serverless lambda` - AWS Lambda
-- `--simulate-serverless cgi` - CGI environment
-
-**Google Cloud Platform Options:**
-- `--gcp-project PROJECT_ID` - Set Google Cloud project ID
-- `--gcp-region REGION` - Set Google Cloud region (default: us-central1)
-- `--gcp-service SERVICE` - Set service name
-- `--gcp-function-url URL` - Override function URL
-
-**Azure Functions Options:**
-- `--azure-env ENVIRONMENT` - Set Azure environment (default: Development)
-- `--azure-function-url URL` - Override Azure Function URL
-
-**Environment Variables:**
-- `--env KEY=value` - Set individual environment variables
-- `--env-file FILE` - Load environment variables from file
-
-**Output Options:**
-- `--dump-swml` - Generate and display SWML document
-- `--verbose` - Show detailed information
-- `--raw` - Output raw JSON (useful for piping to jq)
-
-#### Complete Testing Workflow
+The agent validates HTTP Basic Auth credentials configured on the agent. Configure
+them with the relevant `AgentOption`s when constructing the agent, then send an
+`Authorization: Basic <credentials>` header (or embed `user:pass@` in the URL when
+testing). An unauthenticated request to a protected agent returns 401 with a
+`WWW-Authenticate` header.
 
 ```bash
-# 1. List available agents and tools
-swaig-test examples/my_agent.py --list-agents
-swaig-test examples/my_agent.py --list-tools
+# Should return 401
+curl https://<function-url>/my-agent
 
-# 2. Test SWML generation for each platform
-swaig-test examples/my_agent.py --simulate-serverless cloud_function --gcp-project test-project --dump-swml
-swaig-test examples/my_agent.py --simulate-serverless azure_function --dump-swml
-
-# 3. Test specific function execution
-swaig-test examples/my_agent.py --simulate-serverless cloud_function --gcp-project test-project --exec search_knowledge --query "test"
-
-# 4. Test with production-like environment
-swaig-test examples/my_agent.py --simulate-serverless azure_function --env-file production.env --exec my_function --param value
-
-# 5. Verify authentication and URL generation
-swaig-test examples/my_agent.py --simulate-serverless cloud_function --gcp-project prod-project --dump-swml --verbose
-```
-
-### Local Testing
-
-**Google Cloud Functions:**
-```bash
-# Install Functions Framework
-pip install functions-framework
-
-# Run locally
-functions-framework --target=agent_handler --debug
-```
-
-**Azure Functions:**
-```bash
-# Install Azure Functions Core Tools
-npm install -g azure-functions-core-tools@4
-
-# Run locally
-func start
-```
-
-### Testing Authentication
-
-```bash
-# Test without auth (should return 401)
-curl https://your-function-url/
-
-# Test with valid auth
-curl -u username:password https://your-function-url/
-
-# Test SWAIG function call
-curl -u username:password \
-  -H "Content-Type: application/json" \
-  -d '{"call_id": "test", "argument": {"parsed": [{"param": "value"}]}}' \
-  https://your-function-url/your_function_name
+# With valid credentials
+curl -u username:password https://<function-url>/my-agent
 ```
 
 ## Best Practices
 
-### Performance
-- Use connection pooling for database connections
-- Implement proper caching strategies
-- Minimize cold start times with smaller deployment packages
-
-### Security
-- Always use HTTPS endpoints
-- Implement proper authentication
-- Use environment variables for sensitive data
-- Consider using cloud-native secret management
-
-### Monitoring
-- Enable cloud platform logging
-- Monitor function execution times
-- Set up alerts for errors and timeouts
-- Use distributed tracing for complex workflows
-
-### Cost Optimization
-- Right-size memory allocation
-- Implement proper timeout settings
-- Use reserved capacity for predictable workloads
-- Monitor and optimize function execution patterns
-
-## Troubleshooting
-
-### Common Issues
-
-**Environment Detection:**
-```python
-# Check detected mode
-from signalwire_agents.core.logging_config import get_execution_mode
-print(f"Detected mode: {get_execution_mode()}")
-```
-
-**URL Generation:**
-```python
-# Check generated URLs
-agent = YourAgent(name="test")
-print(f"Base URL: {agent.get_full_url()}")
-print(f"Auth URL: {agent.get_full_url(include_auth=True)}")
-```
-
-**Authentication Issues:**
-- Verify username/password are set correctly
-- Check that Authorization header is being sent
-- Ensure credentials match exactly (case-sensitive)
-
-### Debugging
-
-Enable debug logging:
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-Check environment variables:
-```python
-import os
-for key, value in os.environ.items():
-    if 'FUNCTION' in key or 'AZURE' in key or 'GOOGLE' in key:
-        print(f"{key}: {value}")
-```
-
-## Migration from Other Platforms
-
-### From AWS Lambda
-- Update environment variable names
-- Modify request/response handling if needed
-- Update deployment scripts
-
-### From Traditional Servers
-- Add cloud function entry point
-- Configure environment variables
-- Update URL generation logic
-- Test authentication flow
-
-## Examples
-
-See `examples/lambda_agent.py` for a complete AWS Lambda deployment example.
-
-## Support
-
-For issues specific to cloud function deployment:
-1. Check the troubleshooting section above
-2. Verify environment variables are set correctly
-3. Test authentication flow manually
-4. Check cloud platform logs for detailed error messages
-5. Refer to platform-specific documentation for deployment issues 
+- Minimize cold-start time by keeping the deployment package small and using
+  `CGO_ENABLED=0` static binaries.
+- Always use HTTPS endpoints.
+- Use environment variables / a secret manager for credentials; do not hard-code them.
+- Enable platform logging and set sensible timeouts.

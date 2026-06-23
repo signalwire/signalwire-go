@@ -2,17 +2,22 @@
 
 A `Call` object represents a live phone call. You get one from the `OnCall` handler (inbound) or `client.Dial()` (outbound).
 
-## Properties
+## Accessors
 
-| Property | Type | Description |
+These are methods (not fields) -- call them with `()`:
+
+| Accessor | Type | Description |
 |----------|------|-------------|
-| `CallID` | `string` | Unique call identifier |
-| `NodeID` | `string` | Server node handling the call |
-| `State` | `string` | Current state: `created`, `ringing`, `answered`, `ending`, `ended` |
-| `Direction` | `string` | `inbound` or `outbound` |
-| `Tag` | `string` | Correlation tag |
-| `Device` | `map[string]any` | Device info (type, params) |
-| `SegmentID` | `string` | Segment identifier |
+| `CallID()` | `string` | Unique call identifier |
+| `NodeID()` | `string` | Server node handling the call |
+| `State()` | `string` | Current state: `created`, `ringing`, `answered`, `ending`, `ended` |
+| `CallState()` | `CallState` | Current state as a typed `CallState` value |
+| `Direction()` | `string` | `inbound` or `outbound` |
+| `Tag()` | `string` | Correlation tag |
+| `Device()` | `map[string]any` | Device info (type, params) |
+| `SegmentID()` | `string` | Segment identifier |
+| `ProjectID()` | `string` | Project ID owning the call |
+| `Context()` | `string` | Context the call arrived on |
 
 ## Actions: Blocking vs Fire-and-Forget
 
@@ -24,7 +29,7 @@ Methods like `Play()`, `Record()`, `Detect()`, etc. return **Action** objects. T
 action := call.Play([]map[string]any{
 	{"type": "tts", "params": map[string]any{"text": "Hello"}},
 })
-event := action.Wait(context.Background()) // blocks until playback finishes
+event, _ := action.Wait(context.Background()) // blocks until playback finishes
 // execution continues only after play is done
 ```
 
@@ -51,7 +56,7 @@ action := call.Play([]map[string]any{
 })
 
 go func() {
-	event := action.Wait(context.Background())
+	event, _ := action.Wait(context.Background())
 	fmt.Printf("Done: %v\n", event.Params)
 }()
 // continues immediately; goroutine fires when playback finishes
@@ -61,7 +66,7 @@ go func() {
 
 | Method | Returns |
 |--------|---------|
-| `action.Wait(ctx)` | Blocks until the action completes, returns the terminal `*RelayEvent` |
+| `action.Wait(ctx)` | Blocks until the action completes, returns `(*RelayEvent, error)` |
 | `action.IsDone()` | `true` if the action has completed |
 | `action.Result()` | The terminal `*RelayEvent` (or `nil` if not done) |
 | `action.Completed()` | `true` if the action reached a terminal state |
@@ -71,7 +76,7 @@ Some actions also have `Pause()`, `Resume()`, and `Volume()`.
 
 ## Lifecycle
 
-### `Answer(opts ...CallOption) (map[string]any, error)`
+### `Answer() error`
 
 Answer an inbound call.
 
@@ -79,7 +84,7 @@ Answer an inbound call.
 call.Answer()
 ```
 
-### `Hangup(reason string) (map[string]any, error)`
+### `Hangup(reason string) error`
 
 End the call.
 
@@ -88,7 +93,7 @@ call.Hangup("")
 call.Hangup("busy")
 ```
 
-### `Pass() (map[string]any, error)`
+### `Pass() error`
 
 Decline control, returning the call to routing.
 
@@ -145,7 +150,7 @@ action := call.Record(
 )
 // ... later ...
 action.Stop()
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
 fmt.Printf("Recording URL: %v\n", event.Params["url"])
 ```
 
@@ -162,29 +167,31 @@ action := call.PlayAndCollect(
 	},
 	map[string]any{"digits": map[string]any{"max": 1, "digit_timeout": 5.0}},
 )
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
 result, _ := event.Params["result"].(map[string]any)
 params, _ := result["params"].(map[string]any)
 digit, _ := params["digits"].(string)
 ```
 
-### `Collect(collect map[string]any) *StandaloneCollectAction`
+### `Collect(params *CollectParams) *StandaloneCollectAction`
 
-Collect input without playing audio. Pass a collect-config map describing
-the digit and/or speech recognition to perform.
+Collect input without playing audio. Pass a `*CollectParams` describing
+the digit and/or speech recognition to perform (pass `nil` for an empty
+collect body).
 
 ```go
-action := call.Collect(map[string]any{
-	"digits":          map[string]any{"max": 4, "terminators": "#"},
-	"speech":          map[string]any{"language": "en-US"},
-	"partial_results": true,
+partial := true
+action := call.Collect(&relay.CollectParams{
+	Digits:         map[string]any{"max": 4, "terminators": "#"},
+	Speech:         map[string]any{"language": "en-US"},
+	PartialResults: &partial,
 })
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
 ```
 
 ## Bridging
 
-### `Connect(devices [][]map[string]any, opts ...ConnectOption) (map[string]any, error)`
+### `Connect(devices [][]map[string]any, opts ...ConnectOption) error`
 
 Bridge the call to another destination.
 
@@ -197,7 +204,7 @@ call.Connect(
 )
 ```
 
-### `Disconnect() (map[string]any, error)`
+### `Disconnect() error`
 
 Unbridge a connected call.
 
@@ -207,7 +214,7 @@ call.Disconnect()
 
 ## DTMF
 
-### `SendDigits(digits string, opts ...DigitOption) (map[string]any, error)`
+### `SendDigits(digits string) error`
 
 Send DTMF tones.
 
@@ -217,32 +224,42 @@ call.SendDigits("1234#")
 
 ## Detection
 
-### `Detect(detect map[string]any, timeout int) *DetectAction`
+### `Detect(detect map[string]any, timeout *float64, controlID ...string) *DetectAction`
 
-Detect machine, fax, or digits. `timeout` is in seconds; pass `0` for the
-server default.
+Detect machine, fax, or digits. `timeout` is a `*float64` (seconds); pass
+`nil` for the server default. The optional `controlID` overrides the
+auto-generated control identifier.
 
 ```go
+timeout := 30.0
 action := call.Detect(
 	map[string]any{"type": "machine"},
-	30, // seconds
+	&timeout,
 )
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
+```
+
+Typed helpers cover the common cases with functional options:
+
+```go
+call.DetectAnsweringMachine(relay.WithAMDInitialTimeout(4.5)) // *DetectAction
+call.DetectDigit()                                            // *DetectAction
+call.DetectFax()                                              // *DetectAction
 ```
 
 ## SIP Refer
 
-### `Refer(device map[string]any, opts ...ReferOption) (map[string]any, error)`
+### `Refer(device map[string]any, statusURL string) error`
 
-Transfer via SIP REFER.
+Transfer via SIP REFER. Pass an empty `statusURL` for no status callback.
 
 ```go
-call.Refer(map[string]any{"type": "sip", "params": map[string]any{"to": "sip:user@example.com"}})
+call.Refer(map[string]any{"type": "sip", "params": map[string]any{"to": "sip:user@example.com"}}, "")
 ```
 
 ## Transfer
 
-### `Transfer(dest string) (map[string]any, error)`
+### `Transfer(dest string) error`
 
 Transfer call control to another RELAY app or SWML script.
 
@@ -252,21 +269,21 @@ call.Transfer("https://example.com/swml-endpoint")
 
 ## Fax
 
-### `SendFax(document, identity string) *FaxAction`
+### `SendFax(document, identity string, opts ...FaxOption) *FaxAction`
 
 ```go
 action := call.SendFax(
 	"https://example.com/document.pdf",
 	"+15551234567", // caller identity
 )
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
 ```
 
 ### `ReceiveFax(opts ...FaxOption) *FaxAction`
 
 ```go
 action := call.ReceiveFax()
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
 ```
 
 ## Tap (Media Interception)
@@ -299,22 +316,23 @@ action.Stop()
 
 ## Payment
 
-### `Pay(connectorURL, amount, currency string) *PayAction`
+### `Pay(connectorURL string, opts ...PayOption) *PayAction`
 
-Collect a payment via DTMF.
+Collect a payment via DTMF. Amount, currency, prompts, etc. are supplied
+through functional options.
 
 ```go
 action := call.Pay(
 	"https://pay.example.com",
-	"25.99",
-	"usd",
+	relay.WithPayChargeAmount("25.99"),
+	relay.WithPayCurrency("usd"),
 )
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
 ```
 
 ## Conference
 
-### `JoinConference(name string, opts ...ConferenceOption) (map[string]any, error)`
+### `JoinConference(name string, opts ...ConferenceOption) error`
 
 ```go
 call.JoinConference("my_conference",
@@ -323,7 +341,7 @@ call.JoinConference("my_conference",
 )
 ```
 
-### `LeaveConference(conferenceID string) (map[string]any, error)`
+### `LeaveConference(confID string) error`
 
 ```go
 call.LeaveConference("conf-123")
@@ -331,7 +349,7 @@ call.LeaveConference("conf-123")
 
 ## Hold
 
-### `Hold() (map[string]any, error)` / `Unhold() (map[string]any, error)`
+### `Hold() error` / `Unhold() error`
 
 ```go
 call.Hold()
@@ -341,7 +359,7 @@ call.Unhold()
 
 ## Denoise
 
-### `Denoise() (map[string]any, error)` / `DenoiseStop() (map[string]any, error)`
+### `Denoise() error` / `DenoiseStop() error`
 
 ```go
 call.Denoise()
@@ -361,27 +379,29 @@ action.Stop()
 
 ## Live Transcribe / Translate
 
-### `LiveTranscribe(actionObj map[string]any) (map[string]any, error)`
+### `LiveTranscribe(action map[string]any) error`
 
 ```go
 call.LiveTranscribe(map[string]any{"start": map[string]any{"language": "en-US"}})
 ```
 
-### `LiveTranslate(actionObj map[string]any, opts ...TranslateOption) (map[string]any, error)`
+### `LiveTranslate(action map[string]any, statusURL string) error`
 
 ```go
-call.LiveTranslate(map[string]any{"start": map[string]any{"source": "en-US", "target": "es"}})
+call.LiveTranslate(map[string]any{"start": map[string]any{"source": "en-US", "target": "es"}}, "")
 ```
 
 ## Echo
 
-### `Echo(timeout int) (map[string]any, error)`
+### `Echo(timeout *float64, statusURL string) error`
 
-Echo audio back to the caller (useful for testing). `timeout` is in seconds
-(pass `0` for the server default).
+Echo audio back to the caller (useful for testing). `timeout` is a
+`*float64` (seconds); pass `nil` for the server default. Pass an empty
+`statusURL` for no status callback.
 
 ```go
-call.Echo(30)
+timeout := 30.0
+call.Echo(&timeout, "")
 ```
 
 ## AI Agent
@@ -395,30 +415,39 @@ action := call.AI(
 	relay.WithAIPrompt(map[string]any{"text": "You are a helpful support agent."}),
 	relay.WithAIParams(map[string]any{"end_of_speech_timeout": 3000}),
 )
-event := action.Wait(context.Background())
+event, _ := action.Wait(context.Background())
 ```
 
-### `AmazonBedrock(opts ...AIOption) (map[string]any, error)`
+### `AmazonBedrock(opts ...AIOption) *AIAction`
 
 Connect to an Amazon Bedrock AI agent.
 
-### `AIMessage(opts ...AIMessageOption) (map[string]any, error)`
+### `AIMessage(controlID, text, role string, reset, globalData map[string]any) error`
 
 Send a message to an active AI session.
 
-### `AIHold(opts ...AIHoldOption) (map[string]any, error)` / `AIUnhold(opts ...AIUnholdOption) (map[string]any, error)`
+```go
+call.AIMessage("ai-1", "Transfer me to billing", "user", nil, nil)
+```
+
+### `AIHold(controlID, timeout, prompt string) error` / `AIUnhold(controlID, prompt string) error`
 
 Put an AI session on/off hold.
 
-## Rooms
-
-### `JoinRoom(name string, opts ...RoomOption) (map[string]any, error)`
-
 ```go
-call.JoinRoom("my_room")
+call.AIHold("ai-1", "60", "Please wait while I transfer you.")
+call.AIUnhold("ai-1", "I'm back, how can I help?")
 ```
 
-### `LeaveRoom() (map[string]any, error)`
+## Rooms
+
+### `JoinRoom(name string, statusURL string) error`
+
+```go
+call.JoinRoom("my_room", "")
+```
+
+### `LeaveRoom() error`
 
 ```go
 call.LeaveRoom()
@@ -426,34 +455,35 @@ call.LeaveRoom()
 
 ## Queue
 
-### `QueueEnter(queueName string, opts ...QueueOption) (map[string]any, error)`
+### `QueueEnter(name string, statusURL string) error`
 
 ```go
-call.QueueEnter("support")
+call.QueueEnter("support", "")
 ```
 
-### `QueueLeave(queueName string) (map[string]any, error)`
+### `QueueLeave(name string, queueID string, statusURL string) error`
 
 ```go
-call.QueueLeave("support")
+call.QueueLeave("support", "", "")
 ```
 
 ## Digit Bindings
 
-### `BindDigit(digits, method string, params map[string]any) (map[string]any, error)`
+### `BindDigit(digits, method string, bindParams map[string]any, realm string, maxTriggers int) error`
 
-Bind a DTMF sequence to trigger a RELAY method.
+Bind a DTMF sequence to trigger a RELAY method. Pass an empty `realm` for
+the default and `0` for unlimited triggers.
 
 ```go
 call.BindDigit("*1", "calling.play", map[string]any{
 	"play": []map[string]any{{"type": "tts", "params": map[string]any{"text": "You pressed star-1"}}},
-})
+}, "", 0)
 ```
 
-### `ClearDigitBindings() (map[string]any, error)`
+### `ClearDigitBindings(realm string) error`
 
 ```go
-call.ClearDigitBindings()
+call.ClearDigitBindings("")
 ```
 
 ## User Events
@@ -495,17 +525,32 @@ defer cancel()
 event, err := call.WaitFor(ctx, "calling.call.play", nil)
 ```
 
-### End-of-call event
+### State-change convenience helpers
 
-`Call` only exposes an explicit `WaitFor` helper; to wait for the call to
-end, filter on the state-change event:
+`Call` provides typed helpers for the common state transitions, each
+returning `(*relay.RelayEvent, error)`:
+
+| Helper | Resolves when |
+|--------|---------------|
+| `WaitForRinging(ctx)` | the call starts ringing |
+| `WaitForAnswered(ctx)` | the call is answered |
+| `WaitForEnding(ctx)` | the call begins ending |
+| `WaitForEnded(ctx)` | the call has ended |
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 defer cancel()
+event, err := call.WaitForEnded(ctx)
+if err == nil {
+	fmt.Printf("End reason: %v\n", event.Params["end_reason"])
+}
+```
+
+You can also filter the raw state-change event yourself with `WaitFor`:
+
+```go
 event, err := call.WaitFor(ctx, "calling.call.state", func(e *relay.RelayEvent) bool {
 	state, _ := e.Params["call_state"].(string)
 	return state == "ended"
 })
-fmt.Printf("End reason: %v\n", event.Params["end_reason"])
 ```

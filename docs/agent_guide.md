@@ -807,88 +807,64 @@ agent.add_skill("datasphere", {
 ```
 
 #### Native Vector Search Skill (`native_vector_search`)
-Provides local document search capabilities using vector similarity and keyword search. This skill works entirely offline with local `.swsearch` index files or can connect to remote search servers.
+Provides knowledge-base search by querying a **remote search server** over HTTP. The Go skill is **remote-only**: it requires a `remote_url` and does not build or read local index files. (This differs from the Python SDK, which also supports local `.swsearch` index files.)
+
+The skill connects to a search server that exposes `/health` and `/search` HTTP endpoints. On setup it validates `remote_url` (SSRF protection — http/https only, no private/loopback hosts unless `SWML_ALLOW_PRIVATE_URLS` is set) and checks the server's `/health` endpoint. Basic-auth credentials may be embedded in the URL (`http://user:pass@host:8001`).
 
 **Requirements:**
-- Packages: `sentence-transformers`, `scikit-learn`, `numpy` (install with `pip install signalwire-agents[search]`)
+- A reachable remote search server (no local packages or index files required).
 
 **Parameters:**
-- `tool_name` (default: "search_knowledge"): Custom name for the search tool
-- `description` (default: "Search the local knowledge base for information"): Tool description
-- `index_file` (optional): Path to local `.swsearch` index file
-- `remote_url` (optional): URL of remote search server (e.g., "http://localhost:8001")
-- `index_name` (default: "default"): Index name on remote server (for remote mode)
-- `build_index` (default: False): Auto-build index if missing
-- `source_dir` (optional): Source directory for auto-building index
-- `file_types` (default: ["md", "txt"]): File types to include when building index
-- `count` (default: 3): Number of search results to return
-- `distance_threshold` (default: 0.0): Minimum similarity score for results
+- `remote_url` (**required**): URL of the remote search server (e.g., `http://localhost:8001`, or `http://user:pass@host:8001` for basic auth)
+- `index_name` (default: `"default"`): Name of the index to query on the remote server
+- `tool_name` (default: `"search_knowledge"`): Custom name for the search tool
+- `description` (default: `"Search the knowledge base for information"`): Tool description shown to the AI
+- `count` (default: 5): Number of search results to return
+- `similarity_threshold` (default: 0.0): Minimum similarity score for results (0.0 = no limit, 1.0 = exact match)
 - `tags` (optional): List of tags to filter search results
-- `response_prefix` (optional): Text to prepend to all search responses
-- `response_postfix` (optional): Text to append to all search responses
-- `no_results_message` (default: "No information found for '{query}'"): Custom message when no results found
+- `response_prefix` (optional): Text to prepend to search responses
+- `response_postfix` (optional): Text to append to search responses
+- `max_content_length` (default: 32768): Maximum total response size in characters (distributed across results)
+- `no_results_message` (default: `"No information found for '{query}'"`): Message when no results are found; `{query}` is substituted
+- `hints` (optional): Additional speech-recognition hints for this skill
 
 **Multiple Instance Support:**
-The native vector search skill supports multiple instances with different indexes and tool names:
+The native vector search skill supports multiple instances with different remote indexes and tool names:
 
 **Example:**
 ```python
-# Local mode with auto-build
+# Basic remote search
 agent.add_skill("native_vector_search", {
-    "tool_name": "search_docs",
-    "description": "Search SDK concepts guide",
-    "build_index": True,
-    "source_dir": "./docs",
-    "index_file": "concepts.swsearch",
-    "count": 5
-})
-# Creates tool: search_docs
-
-# Remote mode connecting to search server
-agent.add_skill("native_vector_search", {
-    "tool_name": "search_knowledge",
-    "description": "Search the knowledge base",
     "remote_url": "http://localhost:8001",
     "index_name": "concepts",
+    "tool_name": "search_knowledge",
+    "description": "Search the knowledge base",
     "count": 3
 })
 # Creates tool: search_knowledge
 
-# Multiple local indexes
+# Second instance against a different index/server
 agent.add_skill("native_vector_search", {
+    "remote_url": "http://search.internal:8001",
+    "index_name": "examples",
     "tool_name": "search_examples",
     "description": "Search code examples",
-    "index_file": "examples.swsearch",
     "response_prefix": "From the examples:"
 })
 # Creates tool: search_examples
 
-# Voice-optimized responses using concepts guide
+# Voice-optimized responses
 agent.add_skill("native_vector_search", {
+    "remote_url": "http://localhost:8001",
+    "index_name": "concepts",
     "tool_name": "search_docs",
-    "index_file": "concepts.swsearch",
     "response_prefix": "Based on the comprehensive SDK guide:",
     "response_postfix": "Would you like more specific information?",
     "no_results_message": "I couldn't find information about '{query}' in the concepts guide."
 })
 ```
 
-**Building Search Indexes:**
-Before using local mode, you need to build search indexes:
-
-```bash
-# Build index from documentation
-python -m signalwire_agents.cli.build_search docs --output docs.swsearch
-
-# Build with custom settings
-python -m signalwire_agents.cli.build_search ./knowledge \
-    --output knowledge.swsearch \
-    --file-types md,txt,pdf \
-    --chunk-size 500 \
-    --verbose
-```
-
-For complete documentation on the search system, see [Search Overview](search_overview.md).
+The remote search server is a separate component that hosts the indexes; the Go SDK does not include a CLI for building indexes.
 
 ### Skill Management
 
@@ -1098,7 +1074,7 @@ class DynamicSkillAgent(AgentBase):
 
 4. **Test skills in isolation**: Create simple test scripts to verify skill functionality
 
-For more detailed information about the skills system architecture and advanced customization, see the [Skills System README](SKILLS_SYSTEM_README.md).
+For more detailed information about the skills system architecture and advanced customization, see the [Skills System Guide](skills_system.md).
 
 ## Multilingual Support
 
@@ -3041,18 +3017,4 @@ For working examples of dynamic agent configuration, see these files in the `exa
 
 These examples demonstrate the progression from static to dynamic configuration and show real-world use cases like multi-tenant applications, A/B testing, and personalization.
 
-For more examples, see the `examples` directory in the SignalWire AI Agent SDK repository. 
-
-# Build index from the comprehensive concepts guide
-sw-search docs/agent_guide.md --output concepts.swsearch
-
-# Build from multiple sources
-sw-search docs/agent_guide.md examples README.md --output comprehensive.swsearch
-
-# Traditional directory approach with custom settings
-sw-search ./knowledge \
-    --output knowledge.swsearch \
-    --file-types md,txt,pdf \
-    --chunking-strategy sentence \
-    --max-sentences-per-chunk 8 \
-    --verbose
+For more examples, see the `examples` directory in the SignalWire AI Agent SDK repository.

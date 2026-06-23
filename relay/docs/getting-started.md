@@ -24,7 +24,7 @@ Alternatively, you can authenticate with a JWT token:
 
 | Parameter | Env Var | Description |
 |-----------|---------|-------------|
-| `WithJWTToken()` | `SIGNALWIRE_JWT_TOKEN` | A SignalWire JWT auth token |
+| `WithJWT()` | `SIGNALWIRE_JWT_TOKEN` | A SignalWire JWT auth token |
 
 ## Minimal Example
 

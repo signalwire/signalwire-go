@@ -32,7 +32,7 @@ Every API surface is available as a namespace attribute on the client:
 | `client.Fabric.RelayApplications` | Relay application resources |
 | `client.Fabric.CallFlows` | Call flow resources (+ versions) |
 | `client.Fabric.ConferenceRooms` | Conference room resources |
-| `client.Fabric.FreeSWITCHConnectors` | FreeSWITCH connector resources |
+| `client.Fabric.FreeSwitchConnectors` | FreeSWITCH connector resources |
 | `client.Fabric.Subscribers` | Subscriber resources (+ SIP endpoints) |
 | `client.Fabric.SIPEndpoints` | SIP endpoint resources |
 | `client.Fabric.SIPGateways` | SIP gateway resources |
@@ -93,7 +93,7 @@ if err != nil {
 	var restErr *rest.SignalWireRestError
 	if errors.As(err, &restErr) {
 		fmt.Println(restErr.StatusCode) // 404
-		fmt.Println(restErr.Body)       // map[error:not found]
+		fmt.Println(restErr.Body)       // `{"error":"not found"}` (raw response body)
 		fmt.Println(restErr.URL)        // "/api/fabric/resources/ai_agents/bad-id"
 		fmt.Println(restErr.Method)     // "GET"
 	}
@@ -107,7 +107,7 @@ if err != nil {
 | Field | Type | Description |
 |-------|------|-------------|
 | `StatusCode` | `int` | HTTP status code |
-| `Body` | `any` | Response body (parsed JSON map or raw string) |
+| `Body` | `string` | Raw response body |
 | `URL` | `string` | Request path |
 | `Method` | `string` | HTTP method |
 

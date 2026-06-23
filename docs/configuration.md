@@ -118,29 +118,12 @@ Configuration values are applied in this order (highest to lowest):
 }
 ```
 
-### Search Service Configuration
-
-```json
-{
-  "service": {
-    "port": "${SEARCH_PORT|8001}",
-    "indexes": {
-      "docs": "${DOCS_INDEX|./docs.swsearch}",
-      "api": "${API_INDEX|./api.swsearch}"
-    }
-  },
-  "security": {
-    "ssl_enabled": "${SEARCH_SSL|false}",
-    "auth": {
-      "basic": {
-        "enabled": true,
-        "user": "${SEARCH_USER|search}",
-        "password": "${SEARCH_PASSWORD}"
-      }
-    }
-  }
-}
-```
+> **Note on search:** The Go SDK does not host a search service or build local
+> `.swsearch` indexes. Knowledge-base search is provided by the built-in
+> `native_vector_search` skill, which connects to a **remote** search server
+> (see the [Skills System](skills_system.md) guide). That remote server is operated
+> and configured separately; the Go SDK only needs the server's `remote_url` and an
+> `index_name` passed as skill parameters.
 
 ### MCP Gateway Configuration
 
@@ -297,11 +280,6 @@ class MyAgent(AgentBase):
     def __init__(self):
         # Auto-detects config.json if present
         super().__init__(name="my-agent", config_file="agent_config.json")
-
-# Search Service
-from signalwire_agents.search import SearchService
-
-service = SearchService(config_file="search_config.json")
 
 # MCP Gateway
 from mcp_gateway.gateway_service import MCPGateway
