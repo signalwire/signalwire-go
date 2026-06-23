@@ -88,6 +88,8 @@ func TestTLS_RelayClient_WSS(t *testing.T) {
 			TLSClientConfig:  &tls.Config{RootCAs: x509.NewCertPool()}, // empty pool
 		}
 		url := fmt.Sprintf("wss://127.0.0.1:%d/api/relay/ws", mock.wsPort)
+		//nolint:bodyclose // expect-failure test: the dial MUST fail (empty trust
+		// pool), so conn/resp are nil on the error path — nothing to close.
 		conn, _, err := dialer.Dial(url, http.Header{})
 		if err == nil {
 			_ = conn.Close()

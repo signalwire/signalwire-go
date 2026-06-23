@@ -72,6 +72,8 @@ func (s *JokeSkill) RegisterTools() []skills.ToolRegistration {
 }
 
 func (s *JokeSkill) handleTellJoke(_ map[string]any, _ map[string]any) *swaig.FunctionResult {
+	//nolint:gosec // G404: math/rand is fine here — picking a random joke to
+	// tell, no security/crypto context.
 	joke := builtinJokes[rand.Intn(len(builtinJokes))]
 	return swaig.NewFunctionResult("Here's a joke: " + joke)
 }

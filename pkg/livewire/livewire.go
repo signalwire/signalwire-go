@@ -59,6 +59,8 @@ var tips = []string{
 }
 
 func printTip() {
+	//nolint:gosec // G404: math/rand is fine here — picking a cosmetic "did you
+	// know" tip to print, no security/crypto context.
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tip := tips[r.Intn(len(tips))]
 	fmt.Fprintf(os.Stderr, "\n\U0001f4a1 Did you know?  %s\n\n", tip)

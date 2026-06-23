@@ -44,18 +44,31 @@ linters:
     - reassign         # reassigning stdlib/pkg-level vars
     - recvcheck        # mixed value/pointer receivers on one type
     - wastedassign     # assignments whose value is never read (clean today)
+    # Bug-finder tier — adopted after a SECOND measured survey (the "lint
+    # bug-finders" sweep) of 7 not-yet-enabled bug-finders, at a LOW keep
+    # threshold: keep a linter if it could plausibly catch even ONE real bug
+    # someday (the //nolint noise tax is acceptable); drop only pure noise.
+    # gosec found a GENUINE prod bug — the Slowloris/ReadHeaderTimeout gap on
+    # BOTH HTTP servers (now fixed); the rest are clean-today regression guards.
+    - gosec            # security: caught G112 Slowloris (no ReadHeaderTimeout) on both servers — FIXED; guards SSRF/weak-crypto/path-traversal. Test+codegen paths excluded below; genuine prod FPs carry //nolint:gosec with the G-code reason.
+    - bodyclose        # leaked HTTP response bodies — clean after 1 //nolint on the gorilla/websocket dial (lib closes the handshake body) + 3 expect-failure TLS tests (resp is nil on the error path)
+    - nilerr           # `if err != nil { return nil }` — the real swallowed-error bug class; the 5 sites are the filepath.Walk continue idiom + a CLI raw-output fallback (//nolint'd)
+    - nilnil           # `return nil, nil` ambiguity — the 3 sites are intentional "absent, not an error" (no-result SWAIG handler / selector matched nothing) //nolint'd
+    - exhaustive       # missing enum switch arm (the "added a value, forgot the case" bug) — default-signifies-exhaustive (below) + one //exhaustive:ignore cover the by-design subset switches
   # DELIBERATELY NOT ADOPTED (measured + sampled — they fire on idiomatic Go in
   # this codebase, 0 real issues; adopting would mean //nolint on correct code):
-  #   nilerr        — flags the filepath.Walk continue-on-error idiom + graceful
-  #                   fallbacks (return nil to keep walking is correct).
   #   contextcheck  — flags the defensive `if ctx == nil { ctx = Background() }`
-  #                   guard on RunContext/DialContext, which DO honor the caller's ctx.
-  #   nilnil        — flags `return nil, nil` meaning "absent, and not an error"
-  #                   (a tool with no output / a selector matching nothing).
+  #                   guard on RunContext/DialContext (+ the deliberate Background()
+  #                   drain that must outlive a cancelled ctx), which DO honor the
+  #                   caller's ctx. Re-probed in the bug-finder sweep: 6 findings,
+  #                   all that idiom, 0 real ctx-drop — no realistic true positive.
+  #   noctx         — would force NewRequestWithContext everywhere, but the
+  #                   SWAIG/skill handler API (func(args, rawData) any) is
+  #                   context-free by Python parity, so the prod call sites can
+  #                   NEVER thread a caller ctx. Re-probed: 103 findings (88 tests,
+  #                   15 structurally-unfixable prod), 0 real bugs — pure noise here.
   #   unparam       — flags test-helper params that are constant because the
   #                   helper has one caller; not a real defect.
-  #   bodyclose     — all sites are expect-failure TLS tests (untrusted.Get that
-  #                   must error) where there is no response body to close.
   #   goprintffuncname — would rename logger.Debug/Info/Warn/Error to *f; those
   #                   are public API named to mirror Python's logger.debug/info,
   #                   so renaming both breaks the API and diverges from parity.
@@ -83,3 +96,31 @@ linters:
         #     embedded `Service` qualifier is a readability downgrade, not a fix.
         - -QF1001
         - -QF1008
+    exhaustive:
+      # A switch with a `default:` is treated as exhaustive. Every flagged
+      # switch here deliberately handles a SUBSET of its enum and routes the
+      # rest through `default` (math.go's calculator over go/token.Token,
+      # route-registry over reflect.Kind, platformBaseURL over ExecutionMode) —
+      # so a `default` is the correct, intentional shape, not a missing arm.
+      # The one default-less subset switch (MessageState.IsTerminal) carries an
+      # //exhaustive:ignore with its rationale. exhaustive still fires on a
+      # genuinely missing arm in a default-less switch — the bug we want caught.
+      default-signifies-exhaustive: true
+  exclusions:
+    rules:
+      # gosec on TEST files: hardcoded test credentials (G101), and the
+      # subprocess / file-inclusion / file-perm patterns in test + mock
+      # harnesses (G204/G304/G306/G705) are test-only and not production attack
+      # surface. Scoped here rather than scattering ~40 //nolint across tests.
+      - path: _test\.go
+        linters:
+          - gosec
+      # gosec on DEV/CODEGEN tooling and internal mock harnesses — not shipped,
+      # not production attack surface. `cmd/*`: signature/surface enumerators,
+      # swaig-test CLI, emit-skills, route-registry. `internal/*`: top-level
+      # internal/surface (the doc-symbol mapping tables that trip G101 on
+      # method-name strings) AND pkg/{relay,rest}/internal/mocktest (test mock
+      # servers — those internal dirs contain only the mocktest harness).
+      - path: (^|/)(cmd|internal)/
+        linters:
+          - gosec

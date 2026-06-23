@@ -642,6 +642,8 @@ func applySelector(doc *goquery.Document, xpathRoot *html.Node, selector string)
 		}
 		switch len(texts) {
 		case 0:
+			//nolint:nilnil // "selector matched nothing" is a valid, non-error
+			// result (documented above); callers distinguish nil from an error.
 			return nil, nil
 		case 1:
 			return texts[0], nil
@@ -652,6 +654,8 @@ func applySelector(doc *goquery.Document, xpathRoot *html.Node, selector string)
 
 	sel := doc.Find(selector)
 	if sel.Length() == 0 {
+		//nolint:nilnil // "selector matched nothing" is a valid, non-error
+		// result (documented above); callers distinguish nil from an error.
 		return nil, nil
 	}
 	if sel.Length() == 1 {

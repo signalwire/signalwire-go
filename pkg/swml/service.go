@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/signalwire/signalwire-go/pkg/logging"
 )
@@ -1188,6 +1189,11 @@ func (s *Service) Serve() error {
 	s.server = &http.Server{
 		Addr:    addr,
 		Handler: mux,
+		// Bound the request-header read so a slow/incomplete header write
+		// (Slowloris) cannot pin a connection open indefinitely. net/http
+		// applies no header-read deadline by default, so this must be set
+		// explicitly. 20s is generous for a well-behaved SignalWire client.
+		ReadHeaderTimeout: 20 * time.Second,
 	}
 	if s.TLSEnabled() {
 		// Require TLS 1.2+ (mirrors Python's CERT_REQUIRED ssl_verify_mode default).

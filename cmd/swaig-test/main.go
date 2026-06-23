@@ -503,9 +503,10 @@ func doExec(baseURL, user, pass string, cfg config) error {
 
 	output, err := formatJSON(body, cfg.raw)
 	if err != nil {
-		// If JSON formatting fails, print the raw response
+		// CLI graceful fallback: if pretty-printing fails, emit the raw response
+		// body (still useful to the user) and exit success.
 		fmt.Println(string(body))
-		return nil
+		return nil //nolint:nilerr // intentional: raw body already emitted above
 	}
 
 	fmt.Println(output)

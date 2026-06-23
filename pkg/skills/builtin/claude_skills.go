@@ -257,6 +257,8 @@ func (s *ClaudeSkillsSkill) discoverSections(skillDir string) map[string]string 
 
 	err := filepath.Walk(skillDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			//nolint:nilerr // filepath.Walk idiom: skip this unreadable entry and
+			// keep walking — returning err would abort the whole traversal.
 			return nil
 		}
 		if info.IsDir() {
@@ -272,6 +274,8 @@ func (s *ClaudeSkillsSkill) discoverSections(skillDir string) map[string]string 
 		// Relative path from skillDir.
 		rel, err := filepath.Rel(skillDir, path)
 		if err != nil {
+			//nolint:nilerr // skip an entry whose relative path can't be computed;
+			// continue the walk rather than aborting it.
 			return nil
 		}
 
@@ -304,6 +308,8 @@ func (s *ClaudeSkillsSkill) discoverAllFiles(skillDir string) map[string][]strin
 
 	err := filepath.Walk(skillDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			//nolint:nilerr // filepath.Walk idiom: skip this unreadable entry and
+			// keep walking — returning err would abort the whole traversal.
 			return nil
 		}
 		if info.IsDir() {
@@ -315,6 +321,8 @@ func (s *ClaudeSkillsSkill) discoverAllFiles(skillDir string) map[string][]strin
 
 		rel, err := filepath.Rel(skillDir, path)
 		if err != nil {
+			//nolint:nilerr // skip an entry whose relative path can't be computed;
+			// continue the walk rather than aborting it.
 			return nil
 		}
 		parts := strings.Split(filepath.ToSlash(rel), "/")
@@ -364,6 +372,8 @@ func (s *ClaudeSkillsSkill) matchesPatterns(name string) bool {
 
 // parseSkillMD reads and parses a SKILL.md file with optional YAML frontmatter.
 func (s *ClaudeSkillsSkill) parseSkillMD(path string) (*skillEntry, error) {
+	//nolint:gosec // G304: path is a SKILL.md discovered under the operator's
+	// configured skills directory, not attacker input — reading it is the intent.
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %w", path, err)
@@ -518,6 +528,9 @@ func (s *ClaudeSkillsSkill) executeShellInjection(content, skillDir string, time
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 		defer cancel()
 
+		//nolint:gosec // G204: command is a !`...` macro authored inside the
+		// operator-installed SKILL.md (a trusted skill-author file, like a build
+		// script), not remote/end-user input — executing it is the feature.
 		cmd := exec.CommandContext(ctx, "sh", "-c", command)
 		cmd.Dir = skillDir
 		out, err := cmd.Output()
@@ -676,6 +689,9 @@ func (s *ClaudeSkillsSkill) RegisterTools() []skills.ToolRegistration {
 			var content string
 			if section != "" {
 				if sectionPath, ok := capturedSkill.sections[section]; ok {
+					//nolint:gosec // G304: sectionPath is looked up from the
+					// pre-discovered sections map (built by walking the operator's
+					// skill dir); the user only selects a known key, not a raw path.
 					data, err := os.ReadFile(sectionPath)
 					if err != nil {
 						slog.Error("claude_skills: failed to read section", "section", section, "error", err)

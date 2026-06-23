@@ -72,6 +72,8 @@ func TestTLS_RestClient_HTTPS(t *testing.T) {
 				TLSClientConfig: &tls.Config{RootCAs: x509.NewCertPool()}, // empty pool
 			},
 		}
+		//nolint:bodyclose // expect-failure test: the request MUST fail (empty
+		// trust pool), so the response is nil on the error path — nothing to close.
 		_, err := untrusted.Get(baseURL + "/__mock__/health")
 		if err == nil {
 			t.Fatal("HTTPS GET with empty trust store unexpectedly succeeded")

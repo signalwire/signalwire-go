@@ -404,6 +404,9 @@ func (s *AgentServer) RunContext(ctx context.Context, opts ...RunOption) error {
 	// soon as serving ends (serveDone) so it never leaks past this call.
 	serveDone := make(chan struct{})
 	defer close(serveDone)
+	//nolint:gosec // G118: context.Background() in the drain goroutine below is
+	// deliberate (see comment) — using the already-cancelled ctx would abort
+	// in-flight requests instead of draining them gracefully.
 	go func() {
 		select {
 		case <-ctx.Done():

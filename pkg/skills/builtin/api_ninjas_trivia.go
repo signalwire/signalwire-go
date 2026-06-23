@@ -190,6 +190,8 @@ func (s *APINinjasTriviaSkill) handleGetTrivia(args map[string]any, _ map[string
 	base = strings.TrimRight(base, "/")
 	apiURL := fmt.Sprintf("%s/v1/trivia?category=%s", base, category)
 
+	//nolint:gosec // G704: not SSRF — fixed operator-configured base host; only
+	// the category value is user-supplied. The user cannot redirect the host.
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return swaig.NewFunctionResult("Error creating trivia request.")
@@ -197,6 +199,7 @@ func (s *APINinjasTriviaSkill) handleGetTrivia(args map[string]any, _ map[string
 	req.Header.Set("X-Api-Key", s.apiKey)
 
 	client := &http.Client{Timeout: 10 * time.Second}
+	//nolint:gosec // G704: not SSRF — see request construction above (fixed host).
 	resp, err := client.Do(req)
 	if err != nil {
 		return swaig.NewFunctionResult("Sorry, I cannot get trivia questions right now.")
