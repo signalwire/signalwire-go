@@ -110,6 +110,8 @@ func caPoolFromEnv(envVar string) *x509.CertPool {
 	if path == "" {
 		return nil
 	}
+	//nolint:gosec // G304: path is the operator-supplied CA-file env var, not
+	// attacker input — reading the configured CA bundle is the intended behavior.
 	pem, err := os.ReadFile(path)
 	if err != nil {
 		panic(fmt.Sprintf("read %s %q: %v", envVar, path, err))

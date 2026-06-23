@@ -595,6 +595,9 @@ func (c *Client) connect() error {
 	}
 
 	header := http.Header{}
+	//nolint:bodyclose // gorilla/websocket: on a successful dial it closes the
+	// handshake response body itself; on failure (err != nil, handled below) the
+	// *http.Response body need not be closed per the DialContext contract.
 	conn, _, err := dialer.DialContext(c.ctx, url, header)
 	if err != nil {
 		return fmt.Errorf("websocket dial %s: %w", url, err)
@@ -617,6 +620,8 @@ func caPoolFromEnv(envVar string) *x509.CertPool {
 	if path == "" {
 		return nil
 	}
+	//nolint:gosec // G304: path is the operator-supplied CA-file env var, not
+	// attacker input — reading the configured CA bundle is the intended behavior.
 	pem, err := os.ReadFile(path)
 	if err != nil {
 		panic(fmt.Sprintf("read %s %q: %v", envVar, path, err))

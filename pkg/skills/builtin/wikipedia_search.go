@@ -107,6 +107,9 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 		s.numResults,
 	)
 
+	//nolint:gosec // G704: not SSRF — the host/scheme come from a fixed,
+	// operator-configured base URL; only the search term is user-supplied and it
+	// is url.QueryEscape'd. The user cannot redirect the request to another host.
 	resp, err := client.Get(searchURL)
 	if err != nil {
 		return swaig.NewFunctionResult(fmt.Sprintf("Error accessing Wikipedia: %v", err))
@@ -145,6 +148,8 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 			url.QueryEscape(title),
 		)
 
+		//nolint:gosec // G704: not SSRF — fixed operator-configured base host; the
+		// title is server-derived (from the prior search) and url.QueryEscape'd.
 		extractResp, err := client.Get(extractURL)
 		if err != nil {
 			continue

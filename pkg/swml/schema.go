@@ -161,6 +161,8 @@ func (s *Schema) VerbCount() int {
 // LoadSchemaFromFile loads a SWML schema from the given file path instead of
 // the embedded schema.json. Mirrors Python's schema_path constructor param.
 func LoadSchemaFromFile(path string) (*Schema, error) {
+	//nolint:gosec // G304: path is the operator-supplied schema_path argument,
+	// not attacker input — reading the configured schema file is the intent.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read schema file %q: %w", path, err)

@@ -164,6 +164,10 @@ func (s MessageState) IsKnown() bool {
 // separate, behavior-only concern and is deliberately not folded into this
 // grounded predicate.
 func (s MessageState) IsTerminal() bool {
+	//exhaustive:ignore // only the three outbound-terminal states return true by
+	// design (mirrors Python's MESSAGE_TERMINAL_STATES); all other states —
+	// including any future additions — are correctly non-terminal via the
+	// trailing `return false`.
 	switch s {
 	case MsgDelivered, MsgUndelivered, MsgFailed:
 		return true

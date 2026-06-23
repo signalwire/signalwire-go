@@ -127,6 +127,8 @@ func (s *SchemaUtils) LoadSchema() map[string]any {
 }
 
 func (s *SchemaUtils) loadFromPath(path string) map[string]any {
+	//nolint:gosec // G304: path is an operator-supplied schema path, not attacker
+	// input — reading the configured schema file is the intended behavior.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return map[string]any{}

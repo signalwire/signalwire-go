@@ -177,6 +177,9 @@ func (s *WebSearchSkill) searchGoogle(query string, numResults int) ([]searchRes
 	)
 
 	client := &http.Client{Timeout: 15 * time.Second}
+	//nolint:gosec // G704: not SSRF — the host/scheme come from a fixed,
+	// operator-configured base URL; only the query value is user-supplied and it
+	// is url.QueryEscape'd. The user cannot redirect the request to another host.
 	resp, err := client.Get(apiURL)
 	if err != nil {
 		return nil, err

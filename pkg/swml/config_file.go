@@ -38,6 +38,8 @@ type configFileSchema struct {
 // which executes during NewService. At that point s.Logger is not yet
 // allocated, so warnings are written to stderr via fmt.Fprintf.
 func applyConfigFile(s *Service, path string) {
+	//nolint:gosec // G304: path is the operator-supplied WithConfigFile argument,
+	// not attacker input — reading the configured file is the intended behavior.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Fprintf(os.Stderr,

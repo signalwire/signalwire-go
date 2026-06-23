@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/signalwire/signalwire-go/pkg/contexts"
 	"github.com/signalwire/signalwire-go/pkg/logging"
@@ -1074,6 +1075,8 @@ func (a *AgentBase) OnFunctionCall(name string, args map[string]any, rawData map
 	}
 	result := tool.Handler(args, rawData)
 	if result == nil {
+		//nolint:nilnil // a SWAIG handler legitimately produces no result and no
+		// error (mirrors Python's handler returning None); not an error condition.
 		return nil, nil
 	}
 	return result.ToMap(), nil
@@ -3117,6 +3120,11 @@ func (a *AgentBase) buildAndServe() error {
 	server := &http.Server{
 		Addr:    addr,
 		Handler: mux,
+		// Bound the request-header read so a slow/incomplete header write
+		// (Slowloris) cannot pin a connection open indefinitely. net/http
+		// applies no header-read deadline by default, so this must be set
+		// explicitly. 20s is generous for a well-behaved SignalWire client.
+		ReadHeaderTimeout: 20 * time.Second,
 	}
 
 	// If SetupGracefulShutdown is active, spin a goroutine that waits for
@@ -3124,7 +3132,9 @@ func (a *AgentBase) buildAndServe() error {
 	go func() {
 		<-ch
 		a.Logger.Info("graceful shutdown: stopping HTTP server")
-		server.Shutdown(context.Background()) //nolint:errcheck
+		if err := server.Shutdown(context.Background()); err != nil {
+			a.Logger.Warn("graceful shutdown: server.Shutdown returned: %s", err)
+		}
 	}()
 
 	err := server.ListenAndServe()
