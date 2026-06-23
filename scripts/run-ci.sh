@@ -343,6 +343,22 @@ run_gate "SURFACE-DIFF" "diff_port_surface vs python_surface.json" \
         --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
         --additions "$PORT_ROOT/PORT_ADDITIONS.md"
 
+# SWAIG-CLI — lightweight shared swaig-test mini-contract (NOT python parity;
+# python's in-process simulator surface is reference-only). Black-box: invokes
+# `go run ./cmd/swaig-test --help` + golden invocations and asserts the shared
+# verbs are documented, an unknown --simulate-serverless platform errors (no
+# silent fallback), and no-action errors (the cross-port majority default). Go
+# uses the HTTP --url probe model AND accepts --simulate-serverless, so both
+# --require-url-model and --has-serverless apply.
+run_gate "SWAIG-CLI" "swaig-test shared mini-contract (verbs/serverless-reject/default-action)" \
+    python3 "$PORTING_SDK_DIR/scripts/audit_swaig_cli_contract.py" \
+        --port go \
+        --cmd "go run ./cmd/swaig-test" \
+        --require-url-model \
+        --default-action-argv='--url|http://user:pass@127.0.0.1:1/' \
+        --has-serverless \
+        --serverless-argv='--url|http://user:pass@127.0.0.1:1/|--simulate-serverless|bogus-platform-xyz|--dump-swml'
+
 # ---- summary ----------------------------------------------------------------
 
 if [ -z "$FAILED_GATES" ]; then
