@@ -76,7 +76,6 @@ Every API surface is available as a namespace attribute on the client:
 | `client.Project` | API token management |
 | `client.PubSub` | PubSub token creation |
 | `client.Chat` | Chat token creation |
-| `client.Compat` | Twilio-compatible LAML API |
 
 ## Error Handling
 

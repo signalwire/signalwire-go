@@ -645,8 +645,6 @@ signalwire.relay.message.Message.result: Python Message __init__ dunder is cover
 signalwire.rest._base.CrudWithAddresses: Python mixin shared between fabric resources; Go port has the equivalent namespaces.CrudWithAddresses type (embedded by the PUT/webhook/subscriber fabric resources) under a Go-idiomatic name, so the Python-path symbol is excused
 signalwire.rest._base.CrudWithAddresses.list_addresses: Python mixin method; Go port exposes the equivalent ListAddresses via the embedded namespaces.CrudWithAddresses (and the custom CallFlowsResource/ConferenceRoomsResource/GenericResources overrides), under a Go-idiomatic name
 signalwire.rest.call_handler.PhoneCallHandler: Python PhoneCallHandler is a typing helper alias; Go port uses pkg/rest/namespaces/call_handler.go (string type)
-signalwire.rest.namespaces.compat.CompatTokens.delete: not_yet_implemented: compat namespace item pending
-signalwire.rest.namespaces.compat.CompatTokens.update: not_yet_implemented: compat namespace item pending
 signalwire.rest.namespaces.fabric.CxmlApplicationsResource: not_yet_implemented: CxmlApplicationsResource not yet wired in FabricNamespace
 signalwire.rest.namespaces.fabric.CxmlApplicationsResource.create: not_yet_implemented: CxmlApplicationsResource not yet wired in FabricNamespace
 signalwire.rest.namespaces.fabric.CxmlWebhooksResource: deprecated legacy resource; Go port omits per phone-binding.md (use phone_numbers.SetCxmlWebhook)

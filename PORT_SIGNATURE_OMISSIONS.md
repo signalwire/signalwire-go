@@ -80,8 +80,6 @@ signalwire.relay.event.StreamEvent.__init__: Go uses NewX factory function as co
 signalwire.relay.event.TapEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.relay.event.TranscribeEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.relay.message.Message.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatAccounts.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatPhoneNumbers.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.rest.namespaces.datasphere.DatasphereDocuments.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.rest.namespaces.fabric.FabricTokens.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.rest.namespaces.project.ProjectTokens.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs

@@ -57,9 +57,6 @@ type RestClient struct {
 	// Video API
 	Video *namespaces.VideoNamespace
 
-	// Compatibility (Twilio-compatible) LAML API
-	Compat *namespaces.CompatNamespace
-
 	// Logs
 	Logs *namespaces.LogsNamespace
 
@@ -142,7 +139,6 @@ func NewRestClient(project, token, space string) (*RestClient, error) {
 	c.Registry = namespaces.NewRegistryNamespace(adapter)
 	c.Datasphere = namespaces.NewDatasphereNamespace(adapter)
 	c.Video = namespaces.NewVideoNamespace(adapter)
-	c.Compat = namespaces.NewCompatNamespace(adapter, project)
 	c.Logs = namespaces.NewLogsNamespace(adapter)
 	c.Project = namespaces.NewProjectNamespace(adapter)
 	c.PubSub = namespaces.NewPubSubNamespace(adapter)

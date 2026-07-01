@@ -143,5 +143,4 @@ export SIGNALWIRE_LOG_LEVEL=debug
 - [Client Reference](client-reference.md) -- all namespaces and constructor options
 - [Fabric Resources](fabric.md) -- managing AI agents, SWML scripts, and more
 - [Calling Commands](calling.md) -- REST-based call control
-- [Compatibility API](compat.md) -- Twilio-compatible LAML endpoints
 - [All Namespaces](namespaces.md) -- phone numbers, video, datasphere, and more
