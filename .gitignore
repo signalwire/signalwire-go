@@ -41,6 +41,7 @@ debug
 # Compiled cmd/ binaries built at repo root (extensionless; share names with cmd/ dirs)
 /enumerate-signatures
 /generate-payloads
+/generate-rest
 /emit-corpus
 /emit-skills
 /enumerate-surface
