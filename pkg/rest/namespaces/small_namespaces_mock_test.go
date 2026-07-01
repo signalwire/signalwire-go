@@ -37,7 +37,7 @@ func TestShortCodes_List(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.List(map[string]any{"page_size": 20})
+	body, err := client.ShortCodes.List(map[string]string{"page_size": "20"})
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestShortCodes_Get(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.Get("sc-1")
+	body, err := client.ShortCodes.Get("sc-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -395,7 +395,7 @@ func TestDatasphere_GetChunk(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-99")
+	body, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-99", nil)
 	if err != nil {
 		t.Fatalf("GetChunk: %v", err)
 	}
@@ -422,7 +422,7 @@ func TestQueues_GetMember(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Queues.GetMember("q-1", "mem-7")
+	body, err := client.Queues.GetMember("q-1", "mem-7", nil)
 	if err != nil {
 		t.Fatalf("GetMember: %v", err)
 	}

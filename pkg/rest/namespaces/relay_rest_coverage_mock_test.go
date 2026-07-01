@@ -170,7 +170,7 @@ func TestRelayRestCov_PhoneNumbers_Search(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.PhoneNumbers.Search(map[string]any{"area_code": "415"})
+	body, err := client.PhoneNumbers.Search(map[string]string{"area_code": "415"})
 	if err != nil {
 		t.Fatalf("Search: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestRelayRestCov_PhoneNumbers_Search_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.search_available_phone_numbers", 500, func() error {
-		_, err := client.PhoneNumbers.Search(map[string]any{"area_code": "415"})
+		_, err := client.PhoneNumbers.Search(map[string]string{"area_code": "415"})
 		return err
 	})
 	if gotStatus != 500 {
@@ -381,7 +381,7 @@ func TestRelayRestCov_Addresses_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Get("addr-1")
+	body, err := client.Addresses.Get("addr-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -399,7 +399,7 @@ func TestRelayRestCov_Addresses_Get_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.get_address", 404, func() error {
-		_, err := client.Addresses.Get("missing")
+		_, err := client.Addresses.Get("missing", nil)
 		return err
 	})
 	if gotStatus != 404 {
@@ -935,7 +935,7 @@ func TestRelayRestCov_Queues_GetNextMember(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Queues.GetNextMember("q-1")
+	body, err := client.Queues.GetNextMember("q-1", nil)
 	if err != nil {
 		t.Fatalf("GetNextMember: %v", err)
 	}
@@ -953,7 +953,7 @@ func TestRelayRestCov_Queues_GetNextMember_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.retrieve_next_queue_member", 404, func() error {
-		_, err := client.Queues.GetNextMember("q-1")
+		_, err := client.Queues.GetNextMember("q-1", nil)
 		return err
 	})
 	if gotStatus != 404 {
@@ -968,7 +968,7 @@ func TestRelayRestCov_Queues_GetMember(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Queues.GetMember("q-1", "mem-7")
+	body, err := client.Queues.GetMember("q-1", "mem-7", nil)
 	if err != nil {
 		t.Fatalf("GetMember: %v", err)
 	}
@@ -986,7 +986,7 @@ func TestRelayRestCov_Queues_GetMember_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.retrieve_queue_member", 404, func() error {
-		_, err := client.Queues.GetMember("q-1", "missing")
+		_, err := client.Queues.GetMember("q-1", "missing", nil)
 		return err
 	})
 	if gotStatus != 404 {
@@ -1036,7 +1036,7 @@ func TestRelayRestCov_Recordings_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Recordings.Get("rec-1")
+	body, err := client.Recordings.Get("rec-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -1054,7 +1054,7 @@ func TestRelayRestCov_Recordings_Get_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.get_recording", 404, func() error {
-		_, err := client.Recordings.Get("missing")
+		_, err := client.Recordings.Get("missing", nil)
 		return err
 	})
 	if gotStatus != 404 {
@@ -1347,7 +1347,7 @@ func TestRelayRestCov_NumberGroups_GetMembership(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.NumberGroups.GetMembership("mem-1")
+	body, err := client.NumberGroups.GetMembership("mem-1", nil)
 	if err != nil {
 		t.Fatalf("GetMembership: %v", err)
 	}
@@ -1365,7 +1365,7 @@ func TestRelayRestCov_NumberGroups_GetMembership_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.retrieve_number_group_membership", 404, func() error {
-		_, err := client.NumberGroups.GetMembership("missing")
+		_, err := client.NumberGroups.GetMembership("missing", nil)
 		return err
 	})
 	if gotStatus != 404 {
@@ -1448,7 +1448,7 @@ func TestRelayRestCov_ShortCodes_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.ShortCodes.Get("sc-1")
+	body, err := client.ShortCodes.Get("sc-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -1466,7 +1466,7 @@ func TestRelayRestCov_ShortCodes_Get_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.retrieve_short_code", 404, func() error {
-		_, err := client.ShortCodes.Get("missing")
+		_, err := client.ShortCodes.Get("missing", nil)
 		return err
 	})
 	if gotStatus != 404 {
@@ -1672,7 +1672,7 @@ func TestRelayRestCov_SipProfile_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.SIPProfile.Get()
+	body, err := client.SIPProfile.Get(nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -1690,7 +1690,7 @@ func TestRelayRestCov_SipProfile_Get_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.retrieve_sip_profile", 500, func() error {
-		_, err := client.SIPProfile.Get()
+		_, err := client.SIPProfile.Get(nil)
 		return err
 	})
 	if gotStatus != 500 {
@@ -1814,7 +1814,7 @@ func TestRelayRestCov_RegistryBrands_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Registry.Brands.Get("brand-1")
+	body, err := client.Registry.Brands.Get("brand-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -1832,7 +1832,7 @@ func TestRelayRestCov_RegistryBrands_Get_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.retrieve_brand", 404, func() error {
-		_, err := client.Registry.Brands.Get("missing")
+		_, err := client.Registry.Brands.Get("missing", nil)
 		return err
 	})
 	if gotStatus != 404 {
@@ -1917,7 +1917,7 @@ func TestRelayRestCov_RegistryCampaigns_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Registry.Campaigns.Get("camp-1")
+	body, err := client.Registry.Campaigns.Get("camp-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -1935,7 +1935,7 @@ func TestRelayRestCov_RegistryCampaigns_Get_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.retrieve_campaign", 404, func() error {
-		_, err := client.Registry.Campaigns.Get("missing")
+		_, err := client.Registry.Campaigns.Get("missing", nil)
 		return err
 	})
 	if gotStatus != 404 {
@@ -2094,7 +2094,7 @@ func TestRelayRestCov_RegistryOrders_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Registry.Orders.Get("order-1")
+	body, err := client.Registry.Orders.Get("order-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -2112,7 +2112,7 @@ func TestRelayRestCov_RegistryOrders_Get_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.retrieve_order", 404, func() error {
-		_, err := client.Registry.Orders.Get("missing")
+		_, err := client.Registry.Orders.Get("missing", nil)
 		return err
 	})
 	if gotStatus != 404 {

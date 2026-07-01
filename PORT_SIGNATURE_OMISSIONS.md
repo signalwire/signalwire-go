@@ -80,9 +80,9 @@ signalwire.relay.event.StreamEvent.__init__: Go uses NewX factory function as co
 signalwire.relay.event.TapEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.relay.event.TranscribeEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.relay.message.Message.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.rest.namespaces.datasphere.DatasphereDocuments.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.FabricTokens.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.rest.namespaces.project.ProjectTokens.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
+signalwire.rest.namespaces.datasphere_resources_generated.DatasphereDocuments.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
+signalwire.rest.namespaces.fabric_resources_generated.FabricTokens.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
+signalwire.rest.namespaces.project_resources_generated.ProjectTokens.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 
 ## Idiom: Go fluent API returns *Self for chaining
 
@@ -241,10 +241,10 @@ signalwire.relay.event.StreamEvent.from_payload: BACKLOG / missing-port/ in refe
 signalwire.relay.event.TapEvent.from_payload: BACKLOG / missing-port/ in reference, not in port
 signalwire.relay.event.TranscribeEvent.from_payload: BACKLOG / missing-port/ in reference, not in port
 signalwire.relay.message.Message.on: BACKLOG / param-mismatch/ param[1] (handler)/ type 'class/Callable' vs 'callable<list<class/signalwire.rel
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_ai_agent: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_call_flow: BACKLOG / param-count-mismatch/ reference has 5 param(s), port has 4/ reference=['self', 'resource_id', 'flow_id; return-mismatch/
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_cxml_application: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_cxml_webhook: BACKLOG / param-count-mismatch/ reference has 6 param(s), port has 4/ reference=['self', 'resource_id', 'url', '; return-mismatch/
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_relay_application: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_relay_topic: BACKLOG / param-count-mismatch/ reference has 5 param(s), port has 4/ reference=['self', 'resource_id', 'topic',; return-mismatch/
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_swml_webhook: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
+signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_ai_agent: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
+signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_call_flow: BACKLOG / param-count-mismatch/ reference has 5 param(s), port has 4/ reference=['self', 'resource_id', 'flow_id; return-mismatch/
+signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_cxml_application: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
+signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_cxml_webhook: BACKLOG / param-count-mismatch/ reference has 6 param(s), port has 4/ reference=['self', 'resource_id', 'url', '; return-mismatch/
+signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_relay_application: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
+signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_relay_topic: BACKLOG / param-count-mismatch/ reference has 5 param(s), port has 4/ reference=['self', 'resource_id', 'topic',; return-mismatch/
+signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_swml_webhook: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword

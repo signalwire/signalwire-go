@@ -59,7 +59,7 @@ func TestRegistryBrands_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Brands.Get("brand-77")
+	body, err := client.Registry.Brands.Get("brand-77", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestRegistryCampaigns_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.Get("camp-1")
+	body, err := client.Registry.Campaigns.Get("camp-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -279,7 +279,7 @@ func TestRegistryOrders_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Orders.Get("order-1")
+	body, err := client.Registry.Orders.Get("order-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}

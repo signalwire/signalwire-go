@@ -252,7 +252,7 @@ func TestDatasphereCov_GetChunk_Success(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-9")
+	body, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-9", nil)
 	if err != nil {
 		t.Fatalf("GetChunk: %v", err)
 	}
@@ -279,7 +279,7 @@ func TestDatasphereCov_GetChunk_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.get_document_chunk", 404, map[string]any{"error": "no chunk"})
-	_, err := client.Datasphere.Documents.GetChunk("doc-1", "missing")
+	_, err := client.Datasphere.Documents.GetChunk("doc-1", "missing", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

@@ -10,8 +10,6 @@ package rest
 import (
 	"fmt"
 	"os"
-
-	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 // RestClient is the top-level REST client for the SignalWire platform.
@@ -29,43 +27,13 @@ type RestClient struct {
 	http      *HTTPClient
 	projectID string
 
-	// Fabric API
-	Fabric *namespaces.FabricNamespace
-
-	// Calling API (REST-based call control)
-	Calling *namespaces.CallingNamespace
-
-	// Relay REST resources
-	PhoneNumbers    *namespaces.PhoneNumbersNamespace
-	Addresses       *namespaces.AddressesNamespace
-	Queues          *namespaces.QueuesNamespace
-	Recordings      *namespaces.RecordingsNamespace
-	NumberGroups    *namespaces.NumberGroupsNamespace
-	VerifiedCallers *namespaces.VerifiedCallersNamespace
-	SIPProfile      *namespaces.SIPProfileNamespace
-	Lookup          *namespaces.LookupNamespace
-	ShortCodes      *namespaces.ShortCodesNamespace
-	ImportedNumbers *namespaces.ImportedNumbersNamespace
-	MFA             *namespaces.MFANamespace
-
-	// 10DLC Campaign Registry
-	Registry *namespaces.RegistryNamespace
-
-	// Datasphere API
-	Datasphere *namespaces.DatasphereNamespace
-
-	// Video API
-	Video *namespaces.VideoNamespace
-
-	// Logs
-	Logs *namespaces.LogsNamespace
-
-	// Project management
-	Project *namespaces.ProjectNamespace
-
-	// PubSub & Chat
-	PubSub *namespaces.PubSubNamespace
-	Chat   *namespaces.ChatNamespace
+	// _GeneratedResourceTree (rest_tree_generated.go) supplies every namespace
+	// field — Fabric, Calling, PhoneNumbers, Addresses, …, PubSub, Chat — and
+	// promotes them through the embed, so client.Fabric.AIAgents.List(...) etc.
+	// resolve exactly as before. The tree is generated from the x-sdk-* markup;
+	// this file keeps only the non-spec-derivable bits (auth, HTTP construction,
+	// env-var handling, the httpAdapter import-cycle breaker).
+	_GeneratedResourceTree
 }
 
 // SetBaseURL overrides the base URL used by the underlying HTTPClient.
@@ -122,27 +90,8 @@ func NewRestClient(project, token, space string) (*RestClient, error) {
 		projectID: project,
 	}
 
-	// Initialize all namespace objects
-	c.Fabric = namespaces.NewFabricNamespace(adapter)
-	c.Calling = namespaces.NewCallingNamespace(adapter)
-	c.PhoneNumbers = namespaces.NewPhoneNumbersNamespace(adapter)
-	c.Addresses = namespaces.NewAddressesNamespace(adapter)
-	c.Queues = namespaces.NewQueuesNamespace(adapter)
-	c.Recordings = namespaces.NewRecordingsNamespace(adapter)
-	c.NumberGroups = namespaces.NewNumberGroupsNamespace(adapter)
-	c.VerifiedCallers = namespaces.NewVerifiedCallersNamespace(adapter)
-	c.SIPProfile = namespaces.NewSIPProfileNamespace(adapter)
-	c.Lookup = namespaces.NewLookupNamespace(adapter)
-	c.ShortCodes = namespaces.NewShortCodesNamespace(adapter)
-	c.ImportedNumbers = namespaces.NewImportedNumbersNamespace(adapter)
-	c.MFA = namespaces.NewMFANamespace(adapter)
-	c.Registry = namespaces.NewRegistryNamespace(adapter)
-	c.Datasphere = namespaces.NewDatasphereNamespace(adapter)
-	c.Video = namespaces.NewVideoNamespace(adapter)
-	c.Logs = namespaces.NewLogsNamespace(adapter)
-	c.Project = namespaces.NewProjectNamespace(adapter)
-	c.PubSub = namespaces.NewPubSubNamespace(adapter)
-	c.Chat = namespaces.NewChatNamespace(adapter)
+	// Wire every namespace resource + container from the generated tree.
+	c.wireGeneratedTree(adapter)
 
 	return c, nil
 }

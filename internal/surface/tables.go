@@ -4,6 +4,27 @@
 // (full signatures) consume these tables.
 package surface
 
+import (
+	"fmt"
+	"maps"
+)
+
+// init folds the generated REST StructTable entries (GeneratedRESTStructTable,
+// in struct_table_generated.go — same package surface, so no import cycle) into
+// the master StructTable. The generated slice owns every per-resource REST entry
+// (namespaces.AddressesNamespace, namespaces.AIAgents, …); the hand entries above
+// keep only what the generator does not emit (namespaces.Resource + the six
+// namespace containers). A key collision between the two is a real bug (a hand
+// entry the generator now also owns) — fail loud rather than silently overwrite.
+func init() {
+	for k := range GeneratedRESTStructTable {
+		if _, dup := StructTable[k]; dup {
+			panic(fmt.Sprintf("surface: StructTable key %q defined both by hand and by GeneratedRESTStructTable — remove the hand entry", k))
+		}
+	}
+	maps.Copy(StructTable, GeneratedRESTStructTable)
+}
+
 // ClassTarget is one Python class destination for a Go struct's methods.
 // Each (pyModule, pyClass) pair is created exactly once; methods accumulate
 // across multiple mappings that share the same target.
@@ -579,6 +600,18 @@ var StructTable = map[string][]ClassTarget{
 		SyntheticMethods: []string{"__iter__"},
 	}},
 
+	// --- REST namespaces (adopted from the generated surface) --------------
+	//
+	// The per-resource StructTable entries (namespaces.AddressesNamespace,
+	// namespaces.AIAgents, namespaces.FabricTokens, …) are GENERATED into
+	// internal/surface/struct_table_generated.go (var GeneratedRESTStructTable)
+	// from the x-sdk-* markup and merged into StructTable by the init() at the
+	// bottom of this file. Only the entries the generator does NOT emit are kept
+	// by hand below: the shared Resource base (Python BaseResource) and the six
+	// namespace containers, which the generator's resource pass does not produce
+	// but the oracle records in signalwire.rest.namespaces._client_tree_generated
+	// (their resource-accessor fields auto-project as snake_case accessors).
+
 	// rest/namespaces/common.go (Resource struct = Python's BaseResource)
 	"namespaces.Resource": {{
 		Module: "signalwire.rest._base", Class: "BaseResource",
@@ -586,370 +619,33 @@ var StructTable = map[string][]ClassTarget{
 		SyntheticMethods: []string{"__init__"},
 	}},
 
-	// REST namespaces — one Go struct per Python class.
-	"namespaces.AddressesNamespace": {{
-		Module: "signalwire.rest.namespaces.addresses", Class: "AddressesResource",
-		Methods: map[string]string{
-			"NewAddressesNamespace": "__init__",
-			"List":                  "list",
-			"Get":                   "get",
-			"Create":                "create",
-			"Delete":                "delete",
-		},
-	}},
-	"namespaces.CallingNamespace": {{
-		Module: "signalwire.rest.namespaces.calling", Class: "CallingNamespace",
-		Methods: map[string]string{
-			"NewCallingNamespace":     "__init__",
-			"Dial":                    "dial",
-			"End":                     "end",
-			"Update":                  "update",
-			"Disconnect":              "disconnect",
-			"Refer":                   "refer",
-			"Transfer":                "transfer",
-			"Play":                    "play",
-			"PlayStop":                "play_stop",
-			"PlayPause":               "play_pause",
-			"PlayResume":              "play_resume",
-			"PlayVolume":              "play_volume",
-			"Record":                  "record",
-			"RecordStop":              "record_stop",
-			"RecordPause":             "record_pause",
-			"RecordResume":            "record_resume",
-			"Collect":                 "collect",
-			"CollectStop":             "collect_stop",
-			"CollectStartInputTimers": "collect_start_input_timers",
-			"Detect":                  "detect",
-			"DetectStop":              "detect_stop",
-			"Stream":                  "stream",
-			"StreamStop":              "stream_stop",
-			"Tap":                     "tap",
-			"TapStop":                 "tap_stop",
-			"Transcribe":              "transcribe",
-			"TranscribeStop":          "transcribe_stop",
-			"LiveTranscribe":          "live_transcribe",
-			"LiveTranslate":           "live_translate",
-			"SendFaxStop":             "send_fax_stop",
-			"ReceiveFaxStop":          "receive_fax_stop",
-			"Denoise":                 "denoise",
-			"DenoiseStop":             "denoise_stop",
-			"AIHold":                  "ai_hold",
-			"AIUnhold":                "ai_unhold",
-			"AIMessage":               "ai_message",
-			"AIStop":                  "ai_stop",
-			"UserEvent":               "user_event",
-		},
-	}},
-	"namespaces.ChatNamespace": {{
-		Module: "signalwire.rest.namespaces.chat", Class: "ChatResource",
-		Methods: map[string]string{
-			"NewChatNamespace": "__init__",
-			"CreateToken":      "create_token",
-		},
-	}},
+	// Namespace containers (client_tree_generated.go). The oracle records these
+	// in the _client_tree_generated module; each container's resource fields
+	// (AIAgents, CallFlows, Documents, …) auto-project as snake_case accessor
+	// methods, matching Python's __getattr__/property accessors.
 	"namespaces.DatasphereNamespace": {{
-		Module: "signalwire.rest.namespaces.datasphere", Class: "DatasphereNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "DatasphereNamespace",
 		Methods: map[string]string{"NewDatasphereNamespace": "__init__"},
 	}},
-	"namespaces.DatasphereDocuments": {{
-		Module: "signalwire.rest.namespaces.datasphere", Class: "DatasphereDocuments",
-		Methods: map[string]string{
-			"Search":      "search",
-			"ListChunks":  "list_chunks",
-			"GetChunk":    "get_chunk",
-			"DeleteChunk": "delete_chunk",
-		},
-		SyntheticMethods: []string{"__init__"},
-	}},
-	"namespaces.ImportedNumbersNamespace": {{
-		Module: "signalwire.rest.namespaces.imported_numbers", Class: "ImportedNumbersResource",
-		Methods: map[string]string{
-			"NewImportedNumbersNamespace": "__init__",
-			"Create":                      "create",
-		},
-	}},
-	"namespaces.LookupNamespace": {{
-		Module: "signalwire.rest.namespaces.lookup", Class: "LookupResource",
-		Methods: map[string]string{
-			"NewLookupNamespace": "__init__",
-			"PhoneNumber":        "phone_number",
-		},
-	}},
-	"namespaces.MFANamespace": {{
-		Module: "signalwire.rest.namespaces.mfa", Class: "MfaResource",
-		Methods: map[string]string{
-			"NewMFANamespace": "__init__",
-			"SMS":             "sms",
-			"Call":            "call",
-			"Verify":          "verify",
-		},
-	}},
-	"namespaces.NumberGroupsNamespace": {{
-		Module: "signalwire.rest.namespaces.number_groups", Class: "NumberGroupsResource",
-		Methods: map[string]string{
-			"NewNumberGroupsNamespace": "__init__",
-			"ListMemberships":          "list_memberships",
-			"GetMembership":            "get_membership",
-			"AddMembership":            "add_membership",
-			"DeleteMembership":         "delete_membership",
-		},
-	}},
-	"namespaces.PhoneNumbersNamespace": {{
-		Module: "signalwire.rest.namespaces.phone_numbers", Class: "PhoneNumbersResource",
-		Methods: map[string]string{
-			"NewPhoneNumbersNamespace": "__init__",
-			"Search":                   "search",
-			"SetSwmlWebhook":           "set_swml_webhook",
-			"SetCxmlWebhook":           "set_cxml_webhook",
-			"SetCxmlApplication":       "set_cxml_application",
-			"SetAiAgent":               "set_ai_agent",
-			"SetCallFlow":              "set_call_flow",
-			"SetRelayApplication":      "set_relay_application",
-			"SetRelayTopic":            "set_relay_topic",
-		},
-	}},
-	"namespaces.PubSubNamespace": {{
-		Module: "signalwire.rest.namespaces.pubsub", Class: "PubSubResource",
-		Methods: map[string]string{
-			"NewPubSubNamespace": "__init__",
-			"CreateToken":        "create_token",
-		},
-	}},
-	"namespaces.QueuesNamespace": {{
-		Module: "signalwire.rest.namespaces.queues", Class: "QueuesResource",
-		Methods: map[string]string{
-			"NewQueuesNamespace": "__init__",
-			"ListMembers":        "list_members",
-			"GetMember":          "get_member",
-			"GetNextMember":      "get_next_member",
-		},
-	}},
-	"namespaces.RecordingsNamespace": {{
-		Module: "signalwire.rest.namespaces.recordings", Class: "RecordingsResource",
-		Methods: map[string]string{
-			"NewRecordingsNamespace": "__init__",
-			"List":                   "list",
-			"Get":                    "get",
-			"Delete":                 "delete",
-		},
-	}},
-	"namespaces.ShortCodesNamespace": {{
-		Module: "signalwire.rest.namespaces.short_codes", Class: "ShortCodesResource",
-		Methods: map[string]string{
-			"NewShortCodesNamespace": "__init__",
-			"List":                   "list",
-			"Get":                    "get",
-			"Update":                 "update",
-		},
-	}},
-	"namespaces.SIPProfileNamespace": {{
-		Module: "signalwire.rest.namespaces.sip_profile", Class: "SipProfileResource",
-		Methods: map[string]string{
-			"NewSIPProfileNamespace": "__init__",
-			"Get":                    "get",
-			"Update":                 "update",
-		},
-	}},
-	"namespaces.VerifiedCallersNamespace": {{
-		Module: "signalwire.rest.namespaces.verified_callers", Class: "VerifiedCallersResource",
-		Methods: map[string]string{
-			"NewVerifiedCallersNamespace": "__init__",
-			"RedialVerification":          "redial_verification",
-			"SubmitVerification":          "submit_verification",
-		},
-	}},
-
-	// Fabric namespace
 	"namespaces.FabricNamespace": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "FabricNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "FabricNamespace",
 		Methods: map[string]string{"NewFabricNamespace": "__init__"},
 	}},
-	"namespaces.FabricAddresses": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "FabricAddresses",
-		Methods: map[string]string{
-			"List": "list",
-			"Get":  "get",
-		},
-	}},
-	"namespaces.FabricTokens": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "FabricTokens",
-		Methods: map[string]string{
-			"CreateSubscriberToken":  "create_subscriber_token",
-			"RefreshSubscriberToken": "refresh_subscriber_token",
-			"CreateInviteToken":      "create_invite_token",
-			"CreateGuestToken":       "create_guest_token",
-			"CreateEmbedToken":       "create_embed_token",
-		},
-		SyntheticMethods: []string{"__init__"},
-	}},
-	"namespaces.ConferenceRoomsResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "ConferenceRoomsResource",
-		Methods: map[string]string{"ListAddresses": "list_addresses"},
-	}},
-	"namespaces.SubscribersResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "SubscribersResource",
-		Methods: map[string]string{
-			"ListSIPEndpoints":  "list_sip_endpoints",
-			"CreateSIPEndpoint": "create_sip_endpoint",
-			"GetSIPEndpoint":    "get_sip_endpoint",
-			"UpdateSIPEndpoint": "update_sip_endpoint",
-			"DeleteSIPEndpoint": "delete_sip_endpoint",
-		},
-	}},
-	"namespaces.CallFlowsResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "CallFlowsResource",
-		Methods: map[string]string{
-			"ListAddresses": "list_addresses",
-			"ListVersions":  "list_versions",
-			"DeployVersion": "deploy_version",
-		},
-	}},
-	"namespaces.GenericResources": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "GenericResources",
-		Methods: map[string]string{
-			"List":                    "list",
-			"Get":                     "get",
-			"Delete":                  "delete",
-			"ListAddresses":           "list_addresses",
-			"AssignPhoneRoute":        "assign_phone_route",
-			"AssignDomainApplication": "assign_domain_application",
-		},
-	}},
-	"namespaces.AutoMaterializedWebhookResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "AutoMaterializedWebhook",
-		Methods: map[string]string{"Create": "create"},
-	}},
-	"namespaces.CxmlApplicationsResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "CxmlApplicationsResource",
-		Methods: map[string]string{
-			"Create": "create",
-		},
-	}},
-
-	// Video namespace
 	"namespaces.VideoNamespace": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "VideoNamespace",
 		Methods: map[string]string{"NewVideoNamespace": "__init__"},
 	}},
-	"namespaces.VideoRooms": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoRooms",
-		Methods: map[string]string{
-			"ListStreams":  "list_streams",
-			"CreateStream": "create_stream",
-		},
-	}},
-	"namespaces.VideoRoomTokens": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoRoomTokens",
-		Methods: map[string]string{"Create": "create"},
-	}},
-	"namespaces.VideoRoomSessions": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoRoomSessions",
-		Methods: map[string]string{
-			"List":           "list",
-			"Get":            "get",
-			"ListEvents":     "list_events",
-			"ListMembers":    "list_members",
-			"ListRecordings": "list_recordings",
-		},
-	}},
-	"namespaces.VideoRoomRecordings": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoRoomRecordings",
-		Methods: map[string]string{
-			"List":       "list",
-			"Get":        "get",
-			"Delete":     "delete",
-			"ListEvents": "list_events",
-		},
-	}},
-	"namespaces.VideoConferences": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoConferences",
-		Methods: map[string]string{
-			"ListStreams":          "list_streams",
-			"CreateStream":         "create_stream",
-			"ListConferenceTokens": "list_conference_tokens",
-		},
-	}},
-	"namespaces.VideoConferenceTokens": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoConferenceTokens",
-		Methods: map[string]string{
-			"Get":   "get",
-			"Reset": "reset",
-		},
-	}},
-	"namespaces.VideoStreams": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoStreams",
-		Methods: map[string]string{
-			"Get":    "get",
-			"Update": "update",
-			"Delete": "delete",
-		},
-	}},
-
-	// Project / Registry / Logs namespaces
 	"namespaces.ProjectNamespace": {{
-		Module: "signalwire.rest.namespaces.project", Class: "ProjectNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "ProjectNamespace",
 		Methods: map[string]string{"NewProjectNamespace": "__init__"},
 	}},
-	"namespaces.ProjectTokens": {{
-		Module: "signalwire.rest.namespaces.project", Class: "ProjectTokens",
-		Methods: map[string]string{
-			"Create": "create",
-			"Update": "update",
-			"Delete": "delete",
-		},
-		SyntheticMethods: []string{"__init__"},
-	}},
 	"namespaces.LogsNamespace": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "LogsNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "LogsNamespace",
 		Methods: map[string]string{"NewLogsNamespace": "__init__"},
 	}},
-	"namespaces.MessageLogs": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "MessageLogs",
-		Methods: map[string]string{"List": "list", "Get": "get"},
-	}},
-	"namespaces.VoiceLogs": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "VoiceLogs",
-		Methods: map[string]string{"List": "list", "Get": "get", "ListEvents": "list_events"},
-	}},
-	"namespaces.FaxLogs": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "FaxLogs",
-		Methods: map[string]string{"List": "list", "Get": "get"},
-	}},
-	"namespaces.ConferenceLogs": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "ConferenceLogs",
-		Methods: map[string]string{"List": "list"},
-	}},
 	"namespaces.RegistryNamespace": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "RegistryNamespace",
 		Methods: map[string]string{"NewRegistryNamespace": "__init__"},
-	}},
-	"namespaces.RegistryBrands": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryBrands",
-		Methods: map[string]string{
-			"List":           "list",
-			"Create":         "create",
-			"Get":            "get",
-			"ListCampaigns":  "list_campaigns",
-			"CreateCampaign": "create_campaign",
-		},
-	}},
-	"namespaces.RegistryCampaigns": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryCampaigns",
-		Methods: map[string]string{
-			"Get":         "get",
-			"Update":      "update",
-			"ListNumbers": "list_numbers",
-			"ListOrders":  "list_orders",
-			"CreateOrder": "create_order",
-		},
-	}},
-	"namespaces.RegistryOrders": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryOrders",
-		Methods: map[string]string{"Get": "get"},
-	}},
-	"namespaces.RegistryNumbers": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryNumbers",
-		Methods: map[string]string{"Delete": "delete"},
 	}},
 
 	// --- contexts package -------------------------------------------------

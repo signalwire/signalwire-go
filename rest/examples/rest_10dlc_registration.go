@@ -77,7 +77,7 @@ func main() {
 
 	// 3. Get brand details
 	if brandID != "" {
-		detail, err := client.Registry.Brands.Get(brandID)
+		detail, err := client.Registry.Brands.Get(brandID, nil)
 		if err == nil {
 			fmt.Printf("\nBrand detail: %v (%v)\n", detail["name"], detail["state"])
 		}
@@ -116,7 +116,7 @@ func main() {
 
 	// 6. Get and update campaign
 	if campaignID != "" {
-		campDetail, err := client.Registry.Campaigns.Get(campaignID)
+		campDetail, err := client.Registry.Campaigns.Get(campaignID, nil)
 		if err == nil {
 			fmt.Printf("\nCampaign: %v (%v)\n", campDetail["name"], campDetail["state"])
 		}
@@ -144,7 +144,7 @@ func main() {
 
 	// 8. Get order status
 	if orderID != "" {
-		orderDetail, err := client.Registry.Orders.Get(orderID)
+		orderDetail, err := client.Registry.Orders.Get(orderID, nil)
 		if err == nil {
 			fmt.Printf("  Order status: %v\n", orderDetail["status"])
 		}

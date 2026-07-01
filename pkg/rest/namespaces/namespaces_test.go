@@ -357,7 +357,7 @@ func TestSubscribersResource_CRUD_SIPEndpoint(t *testing.T) {
 		t.Errorf("create method = %q, want POST", mock.lastMethod)
 	}
 
-	_, _ = f.Subscribers.GetSIPEndpoint("sub-1", "ep-1")
+	_, _ = f.Subscribers.GetSIPEndpoint("sub-1", "ep-1", nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("get method = %q, want GET", mock.lastMethod)
 	}
@@ -400,7 +400,7 @@ func TestGenericResources_Operations(t *testing.T) {
 		t.Errorf("list method = %q", mock.lastMethod)
 	}
 
-	_, _ = f.Resources.Get("res-1")
+	_, _ = f.Resources.Get("res-1", nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("get method = %q", mock.lastMethod)
 	}

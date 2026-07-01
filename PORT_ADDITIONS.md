@@ -148,12 +148,9 @@ livewire.OpenAITTS: Go livewire plugin stub; resolves WithSTT/WithTTS provider s
 livewire.ToolError: Go-only struct; no direct Python counterpart
 logging.Logger: Go-only struct; no direct Python counterpart
 logging.LogLevel: Go-only defined-string type (closed set of log-level names: debug/info/warn/warning/error/off) + LevelName* typed constants; server.WithLogLevel takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "debug" string compiling — parity with the reference's plain str log_level. ParseLevel(string(LogLevel)) resolves it to the internal Level, so it adds zero signature drift (it appears on no oracle method param). Distinct from the internal Level severity int.
-namespaces.CallFlowOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 namespaces.CrudResource: Go REST resource type; Python uses dynamic resource accessors via __getattr__
 namespaces.CrudWithAddresses: Go-only struct; no direct Python counterpart
 namespaces.CxmlApplicationsResource: Go REST resource type; Python uses dynamic resource accessors via __getattr__
-namespaces.CxmlWebhookOptions: Go-only options struct; encodes Python kwargs for the matching constructor
-namespaces.RelayTopicOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 prefabs.Amenity: Go-only struct; no direct Python counterpart
 prefabs.BedrockAgent: Go-only struct; no direct Python counterpart
 prefabs.BedrockOptions: Go-only options struct; encodes Python kwargs for the matching constructor
@@ -321,8 +318,6 @@ namespaces.NewCrudResource: Go factory constructor for a port-only struct; Pytho
 namespaces.NewCrudResourcePUT: Go factory constructor for a port-only struct; Python equivalent does not exist
 namespaces.NewCrudWithAddresses: Go factory constructor for a port-only struct; Python equivalent does not exist
 namespaces.NewCrudWithAddressesPUT: Go factory constructor for a port-only struct; Python equivalent does not exist
-namespaces.ResetDeprecationWarnOnce: Go-only public function; no direct Python counterpart
-namespaces.SetDeprecationLogger: Go-only public function; no direct Python counterpart
 prefabs.NewBedrockAgent: Go factory constructor for a port-only struct; Python equivalent does not exist
 prefabs.NewSurveyQuestion: Go factory constructor for a port-only struct; Python equivalent does not exist
 prefabs.WithOptional: Go functional-options helper; encodes a Python kwarg for the matching constructor

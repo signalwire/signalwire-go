@@ -46,7 +46,7 @@ func TestVideoCov_GetConferenceToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Video.ConferenceTokens.Get("ct-1")
+	body, err := client.Video.ConferenceTokens.Get("ct-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestVideoCov_GetConferenceToken_NotFound(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_conference_token", 404, map[string]any{"error": "not found"})
-	_, err := client.Video.ConferenceTokens.Get("missing")
+	_, err := client.Video.ConferenceTokens.Get("missing", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -625,7 +625,7 @@ func TestVideoCov_GetRoomRecording(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Video.RoomRecordings.Get("rec-1")
+	body, err := client.Video.RoomRecordings.Get("rec-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -652,7 +652,7 @@ func TestVideoCov_GetRoomRecording_NotFound(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_room_recording", 404, map[string]any{"error": "not found"})
-	_, err := client.Video.RoomRecordings.Get("missing")
+	_, err := client.Video.RoomRecordings.Get("missing", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1469,7 +1469,7 @@ func TestVideoCov_GetStream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Video.Streams.Get("stream-1")
+	body, err := client.Video.Streams.Get("stream-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -1496,7 +1496,7 @@ func TestVideoCov_GetStream_NotFound(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_stream", 404, map[string]any{"error": "not found"})
-	_, err := client.Video.Streams.Get("missing")
+	_, err := client.Video.Streams.Get("missing", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

@@ -35,7 +35,6 @@ package namespaces_test
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
@@ -355,7 +354,7 @@ func TestFabricCov_Resources_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Resources.Get("res-1")
+	body, err := client.Fabric.Resources.Get("res-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -373,7 +372,7 @@ func TestFabricCov_Resources_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_resource", 404, map[string]any{"error": "not found"})
-	_, err := client.Fabric.Resources.Get("missing")
+	_, err := client.Fabric.Resources.Get("missing", nil)
 	e := fabAssertError(t, mock, err, 404, "fabric.get_resource")
 	if e.StatusCode != 404 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -1195,7 +1194,7 @@ func TestFabricCov_CXMLApplications_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.CXMLApplications.Get("app-1")
+	body, err := client.Fabric.CXMLApplications.Get("app-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -1213,7 +1212,7 @@ func TestFabricCov_CXMLApplications_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_cxml_application", 404, map[string]any{"error": "not found"})
-	_, err := client.Fabric.CXMLApplications.Get("missing")
+	_, err := client.Fabric.CXMLApplications.Get("missing", nil)
 	e := fabAssertError(t, mock, err, 404, "fabric.get_cxml_application")
 	if e.StatusCode != 404 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -1313,28 +1312,6 @@ func TestFabricCov_CXMLApplications_ListAddresses_Error(t *testing.T) {
 	e := fabAssertError(t, mock, err, 404, "fabric.list_cxml_application_addresses")
 	if e.StatusCode != 404 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
-	}
-}
-
-// CXMLApplications.Create is deliberately disallowed by the SDK (mirrors
-// Python's NotImplementedError). It is NOT a canonical route; assert the
-// real refusal behavior and that nothing reached the wire.
-func TestFabricCov_CXMLApplications_CreateRefused(t *testing.T) {
-	t.Parallel()
-	client, mock := mocktest.New(t)
-	if client == nil {
-		return
-	}
-	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.Create(map[string]any{"name": "x"})
-	if err == nil {
-		t.Fatal("Create must return an error - cXML applications cannot be created via this API")
-	}
-	if !strings.Contains(err.Error(), "cXML applications cannot") {
-		t.Errorf("error = %q, want substring 'cXML applications cannot'", err.Error())
-	}
-	if j := mock.Journal(t); len(j) != 0 {
-		t.Errorf("expected no journal entries, got %d", len(j))
 	}
 }
 
@@ -2546,7 +2523,7 @@ func TestFabricCov_Subscribers_GetSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1")
+	body, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1", nil)
 	if err != nil {
 		t.Fatalf("GetSIPEndpoint: %v", err)
 	}
@@ -2564,7 +2541,7 @@ func TestFabricCov_Subscribers_GetSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_subscriber_sip_endpoint", 404, map[string]any{"error": "not found"})
-	_, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "missing")
+	_, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "missing", nil)
 	e := fabAssertError(t, mock, err, 404, "fabric.get_subscriber_sip_endpoint")
 	if e.StatusCode != 404 {
 		t.Errorf("StatusCode = %d", e.StatusCode)

@@ -92,7 +92,7 @@ func main() {
 			}
 		}
 
-		next, err := client.Queues.GetNextMember(queueID)
+		next, err := client.Queues.GetNextMember(queueID, nil)
 		if err == nil {
 			fmt.Printf("  Next member: %v\n", next)
 		}
@@ -122,7 +122,7 @@ func main() {
 		if data, ok := recordings["data"].([]any); ok && len(data) > 0 {
 			if first, ok := data[0].(map[string]any); ok {
 				if id, ok := first["id"].(string); ok {
-					recDetail, err := client.Recordings.Get(id)
+					recDetail, err := client.Recordings.Get(id, nil)
 					if err == nil {
 						fmt.Printf("  Recording: %vs, %v\n", recDetail["duration"], recDetail["format"])
 					}

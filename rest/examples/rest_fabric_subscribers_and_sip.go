@@ -74,7 +74,7 @@ func main() {
 
 	// 4. Get specific SIP endpoint details
 	fmt.Printf("\nGetting SIP endpoint %s...\n", epID)
-	epDetail, err := client.Fabric.Subscribers.GetSIPEndpoint(subID, epID)
+	epDetail, err := client.Fabric.Subscribers.GetSIPEndpoint(subID, epID, nil)
 	if err == nil {
 		fmt.Printf("  Username: %v\n", epDetail["username"])
 	}
