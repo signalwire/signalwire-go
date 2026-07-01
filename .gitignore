@@ -42,6 +42,7 @@ debug
 /enumerate-signatures
 /generate-payloads
 /generate-rest
+/generate-rest-tests
 /emit-corpus
 /emit-skills
 /enumerate-surface
