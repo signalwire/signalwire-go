@@ -41,6 +41,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -80,9 +81,80 @@ type goStructFacts struct {
 	methods map[string]*goSignature
 }
 
-func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, error) {
+// ---------------------------------------------------------------------------
+// Generated-payload (SWAIG + SWML-verb) interface-field emission (D3)
+//
+// The generated READ-side payload structs (cmd/generate-payloads output) are NOT
+// in the StructTable — they carry no ergonomic method surface, only typed wire
+// FIELDS. Without special handling the drift gate can't SEE them and reports
+// every field the Python/TS reference records as `missing-port`. So, SCOPED to
+// the generated-payload files only (by filename), we emit each struct's exported
+// FIELDS as zero-arg members — matching the reference `_is_sdk_class_type` rule:
+// only a CLASS-typed field (a `$ref` to another generated payload struct, a list
+// of one, or a union carrying one) is part of the cross-port surface; a
+// primitive/plain-dict field is Python-internal scaffolding the reference skips.
+//
+// Each generated field carries a `gen:"<canonical-audit-type>"` struct tag (Go
+// has no union type, so a `union<int,class:SWMLVar>` field is `any` at runtime
+// but its exact audit shape lives in the tag). We read that tag verbatim as the
+// member's canonical return type — the tag is the single source of truth, so the
+// (lossy) Go static type never has to be re-derived here.
+//
+// The MODULE names below end in the `_generated` markers the shared diff tool
+// folds to the stable `gen-payload` token (diff_port_signatures.py
+// _GEN_PAYLOAD_MODULE_MARKERS), so a payload class keys as `gen-payload.<Class>.
+// <field>` cross-port regardless of which file/package a port groups it in.
+// ---------------------------------------------------------------------------
+
+// genPayloadModule maps a generated-payload file's base name to the canonical
+// module it is recorded under. Only files listed here are interface-walked (the
+// scope restriction — no other struct leaks into the payload oracle).
+var genPayloadModule = map[string]string{
+	"swaig_request_generated.go": "signalwire.core.swaig_request_generated",
+	"post_prompt_generated.go":   "signalwire.core.post_prompt_generated",
+	"swaig_actions_generated.go": "signalwire.core.swaig_actions_generated",
+	"swml_verbs_generated.go":    "signalwire.core.swml_verbs_generated",
+}
+
+// genPayloadFacts collects the class-typed members of the generated-payload
+// structs, keyed by canonical module -> class -> member -> canonical return.
+type genPayloadFacts struct {
+	// members[module][class][member] = canonical return type (from the gen: tag)
+	members map[string]map[string]map[string]string
+}
+
+func newGenPayloadFacts() *genPayloadFacts {
+	return &genPayloadFacts{members: map[string]map[string]map[string]string{}}
+}
+
+func (g *genPayloadFacts) add(module, class, member, ret string) {
+	if g.members[module] == nil {
+		g.members[module] = map[string]map[string]string{}
+	}
+	if g.members[module][class] == nil {
+		g.members[module][class] = map[string]string{}
+	}
+	g.members[module][class][member] = ret
+}
+
+// genTagRe extracts the `gen:"..."` value from a struct-field tag literal.
+var genTagRe = regexp.MustCompile(`gen:"([^"]*)"`)
+
+// jsonTagRe extracts the wire key from the `json:"key,..."` tag — the member is
+// keyed by the WIRE name (snake_case), matching how the reference records the
+// TypedDict field (its member name IS the wire key).
+var jsonTagRe = regexp.MustCompile(`json:"([^",]*)`)
+
+// isGenClassType applies the reference `_is_sdk_class_type` rule to a canonical
+// type string: emit the field only when it carries a class ref.
+func isGenClassType(canon string) bool {
+	return strings.Contains(canon, "class:")
+}
+
+func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, *genPayloadFacts, error) {
 	structs := map[string]*goStructFacts{}
 	funcs := map[string]*goFunc{}
+	payloads := newGenPayloadFacts()
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -98,16 +170,69 @@ func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, error) {
 		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
-		return parseFile(path, structs, funcs)
+		return parseFile(path, structs, funcs, payloads)
 	})
-	return structs, funcs, err
+	return structs, funcs, payloads, err
 }
 
-func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]*goFunc) error {
+// collectGenPayload walks a generated-payload file's structs and records each
+// exported, class-typed field as a member (keyed by wire name).
+func collectGenPayload(file *ast.File, module string, payloads *genPayloadFacts) {
+	for _, decl := range file.Decls {
+		gd, ok := decl.(*ast.GenDecl)
+		if !ok || gd.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range gd.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok || !ast.IsExported(ts.Name.Name) {
+				continue
+			}
+			st, isStruct := ts.Type.(*ast.StructType)
+			if !isStruct || st.Fields == nil {
+				continue
+			}
+			class := ts.Name.Name
+			for _, f := range st.Fields.List {
+				if len(f.Names) == 0 || f.Tag == nil {
+					continue
+				}
+				tag := f.Tag.Value
+				gm := genTagRe.FindStringSubmatch(tag)
+				if gm == nil {
+					continue
+				}
+				canon := gm[1]
+				// Only class-typed fields are part of the cross-port surface
+				// (the reference _is_sdk_class_type rule).
+				if !isGenClassType(canon) {
+					continue
+				}
+				member := ""
+				if jm := jsonTagRe.FindStringSubmatch(tag); jm != nil {
+					member = jm[1]
+				}
+				if member == "" {
+					continue
+				}
+				payloads.add(module, class, member, canon)
+			}
+		}
+	}
+}
+
+func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts) error {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
 	if err != nil {
 		return fmt.Errorf("parse %s: %w", path, err)
+	}
+	// Generated-payload files are interface-walked separately (D3) and NOT fed
+	// into the StructTable-driven method projection (they carry no method
+	// surface, only typed wire fields).
+	if module, ok := genPayloadModule[filepath.Base(path)]; ok {
+		collectGenPayload(file, module, payloads)
+		return nil
 	}
 	pkgName := file.Name.Name
 	for _, decl := range file.Decls {
@@ -732,7 +857,7 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 	return canonicalSignature{Params: params, Returns: returns}, failures
 }
 
-func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases map[string]string) (sigDoc, []translationFailure) {
+func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts, aliases map[string]string) (sigDoc, []translationFailure) {
 	out := sigDoc{
 		Version: "2",
 		Modules: map[string]sigModuleInventory{},
@@ -854,6 +979,24 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases 
 		}
 	}
 
+	// --- 4. Generated-payload interface fields (D3) ---
+	// Each class-typed field of a generated payload struct is a zero-arg member
+	// returning its canonical (gen: tag) type, under a module that folds to
+	// gen-payload in the shared diff tool. This is what makes the SWAIG + SWML
+	// read-side payloads (cmd/generate-payloads) visible to the drift gate.
+	if payloads != nil {
+		for module, classes := range payloads.members {
+			for class, members := range classes {
+				for member, ret := range members {
+					addClassMethod(module, class, member, canonicalSignature{
+						Params:  []canonicalParam{{Name: "self", Kind: "self"}},
+						Returns: ret,
+					})
+				}
+			}
+		}
+	}
+
 	// Sort modules + classes + methods deterministically
 	sortedMods := map[string]sigModuleInventory{}
 	keys := make([]string, 0, len(out.Modules))
@@ -951,12 +1094,12 @@ func run() error {
 		return fmt.Errorf("loadAliases: %w", err)
 	}
 
-	structs, funcs, err := walk(pkgRoot)
+	structs, funcs, payloads, err := walk(pkgRoot)
 	if err != nil {
 		return fmt.Errorf("walk: %w", err)
 	}
 
-	doc, failures := build(structs, funcs, aliases)
+	doc, failures := build(structs, funcs, payloads, aliases)
 	doc.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s (go/ast walker)", goSHA(repoRoot))
 
 	if len(failures) > 0 {
