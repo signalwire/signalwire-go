@@ -705,16 +705,20 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 			tail = "data"
 		}
 	case verb == "get":
-		// The hand loose surface takes query params on LIST/collection-style GETs
-		// (path targets a collection: last segment is a literal, not a {param}),
-		// and NOT on single-item Get(id) (path ends in {param}). A handful of
-		// singleton/action GETs (SipProfile.Get, GetNextMember) target a literal
-		// tail but take no query — opted out via noQueryGets.
-		lastLiteral := len(segs) == 0 || !isBrace(segs[len(segs)-1])
-		if lastLiteral && !noQueryGets[rm.name+"."+mm.name] {
-			params = append(params, "params map[string]string")
-			tail = "params"
-		}
+		// §5.3: a GET has no request body, so every generated GET operation
+		// method takes an optional query-params tail (the Python oracle records
+		// a `params` var_keyword on EVERY declared GET method — verified against
+		// python_signatures.json across all specs, zero exceptions). This is the
+		// general rule, NOT a per-method opt-in: it is independent of whether the
+		// spec happens to declare a query parameter today (`include` on Lookup,
+		// `media_ttl` on room recordings) and independent of path shape — a
+		// {param}-terminal single-item GET (RegistryBrands.get, VideoStreams.get,
+		// Subscribers.get_sip_endpoint, DatasphereDocuments.get_chunk, …) takes
+		// the tail exactly like a collection-style GET. Only the base-provided
+		// Get(id) (in common.go / synthesized for ReadResource) omits it, matching
+		// the oracle's fixed base get(resource_id).
+		params = append(params, "params map[string]string")
+		tail = "params"
 	}
 
 	// Path expression.
@@ -759,16 +763,6 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	}
 	b.WriteString("}\n\n")
 	return nil
-}
-
-func isBrace(s string) bool { return strings.HasPrefix(s, "{") && strings.HasSuffix(s, "}") }
-
-// noQueryGets are singleton/action GET methods whose op path ends in a literal
-// segment (so the list-style heuristic would add query params) but the hand
-// surface takes NONE — keyed by "<specName>.<markupMethod>".
-var noQueryGets = map[string]bool{
-	"SipProfile.get":         true, // singleton project SIP profile
-	"Queues.get_next_member": true, // single-member action (…/members/next)
 }
 
 func containsStr(xs []string, s string) bool {
@@ -908,13 +902,18 @@ func emitResource(b *strings.Builder, rm *resourceMarkup, sd *specDoc, bases map
 	fmt.Fprintf(b, "// %s is generated from x-sdk-resource %q in the %s spec.\n", goName, rm.name, sd.name)
 	fmt.Fprintf(b, "type %s struct {\n\t%s\n}\n\n", goName, emb.field)
 
+	// Per-resource constructor (§4): bakes the resource's base path into the
+	// embedded base. The base path is serverPath + collection, computed once.
+	base := rm.basePath(sd.serverPath)
+	ctorExpr := fmt.Sprintf(emb.ctor, fmt.Sprintf("%q", base))
+	fmt.Fprintf(b, "// New%s constructs a %s bound to base path %q.\n", goName, goName, base)
+	fmt.Fprintf(b, "func New%s(client HTTPClient) *%s {\n\treturn &%s{%s}\n}\n\n", goName, goName, goName, ctorExpr)
+
 	// ReadResource maps to the method-less Go `Resource` embed, so the base's
 	// list+get are synthesized here (the hand code writes them out explicitly).
 	if rm.base == "ReadResource" {
-		base := rm.basePath(sd.serverPath)
 		fmt.Fprintf(b, "func (r *%s) List(params map[string]string) (map[string]any, error) {\n\treturn r.HTTP.Get(r.Base, params)\n}\n\n", goName)
 		fmt.Fprintf(b, "func (r *%s) Get(id string) (map[string]any, error) {\n\treturn r.HTTP.Get(r.Path(id), nil)\n}\n\n", goName)
-		_ = base
 	}
 
 	for _, mm := range extraMethods(rm, emb, sd) {
@@ -1080,7 +1079,9 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 	}
 	fmt.Fprintf(b, "// %s is generated from the command-dispatch x-sdk-resource %q (%s spec).\n", goName, rm.name, sd.name)
 	fmt.Fprintf(b, "type %s struct {\n\tResource\n}\n\n", goName)
-	fmt.Fprintf(b, "// basePath for %s is %q (baked into the constructor).\n\n", goName, base)
+	// Constructor bakes the command endpoint base path (§4).
+	fmt.Fprintf(b, "// New%s constructs a %s bound to base path %q.\n", goName, goName, base)
+	fmt.Fprintf(b, "func New%s(client HTTPClient) *%s {\n\treturn &%s{Resource{HTTP: client, Base: %q}}\n}\n\n", goName, goName, goName, base)
 	// execute helper.
 	fmt.Fprintf(b, "func (c *%s) execute(command string, callID string, params map[string]any) (map[string]any, error) {\n", goName)
 	b.WriteString("\tbody := map[string]any{\"command\": command, \"params\": params}\n")
@@ -1179,31 +1180,237 @@ func resolvePlacement(specs []*specDoc) []placedResource {
 	return out
 }
 
-// emitClientTree writes the placement report: the container groups and the flat
-// resources. Because the hand FabricNamespace/VideoNamespace/etc. carry
-// irregular wrapper types + field names + baked sub-paths, this emits a
-// SUMMARY tree (container -> [accessor: goStruct]) that a later turn reconciles
-// against rest_client.go, rather than re-deriving the hand constructors (which
-// embed hand-only abstractions like AutoMaterializedWebhookResource).
+// containerInfo describes one client namespace container: its Go struct type,
+// the RestClient field it is exposed as, and the ordered fields it holds.
+// Keyed by the placement `container` attr (fabric/video/logs/registry/project/
+// datasphere). The container struct/field names reproduce the CURRENT hand
+// FabricNamespace/VideoNamespace/… surface (the DRIFT parity target) — the
+// adoption turn swaps the generated tree in with these exact names so
+// rest_client.go and examples keep compiling.
+type containerInfo struct {
+	structName string // e.g. "FabricNamespace"
+	clientAttr string // RestClient field, e.g. "Fabric"
+}
+
+// containers maps a placement container attr -> its Go container type + the
+// RestClient field name. Order of client fields follows containerOrder below.
+var containers = map[string]containerInfo{
+	"fabric":     {structName: "FabricNamespace", clientAttr: "Fabric"},
+	"video":      {structName: "VideoNamespace", clientAttr: "Video"},
+	"logs":       {structName: "LogsNamespace", clientAttr: "Logs"},
+	"registry":   {structName: "RegistryNamespace", clientAttr: "Registry"},
+	"project":    {structName: "ProjectNamespace", clientAttr: "Project"},
+	"datasphere": {structName: "DatasphereNamespace", clientAttr: "Datasphere"},
+}
+
+// containerFieldName maps a contained resource's Go struct name to the field
+// name it takes inside its container. Reproduces the hand container field
+// names (irregular: GenericResources -> Resources, VideoRooms -> Rooms,
+// MessageLogs -> Messages, RegistryBrands -> Brands, …). A containered resource
+// with no entry falls back to its Go struct name.
+var containerFieldName = map[string]string{
+	// fabric
+	"GenericResources":         "Resources",
+	"FabricAddresses":          "Addresses",
+	"FabricTokens":             "Tokens",
+	"CxmlApplicationsResource": "CXMLApplications",
+	"CallFlowsResource":        "CallFlows",
+	"ConferenceRoomsResource":  "ConferenceRooms",
+	"SubscribersResource":      "Subscribers",
+	// video
+	"VideoRooms":            "Rooms",
+	"VideoRoomTokens":       "RoomTokens",
+	"VideoRoomSessions":     "RoomSessions",
+	"VideoRoomRecordings":   "RoomRecordings",
+	"VideoConferences":      "Conferences",
+	"VideoConferenceTokens": "ConferenceTokens",
+	"VideoStreams":          "Streams",
+	// logs
+	"MessageLogs":    "Messages",
+	"VoiceLogs":      "Voice",
+	"FaxLogs":        "Fax",
+	"ConferenceLogs": "Conferences",
+	// registry
+	"RegistryBrands":    "Brands",
+	"RegistryCampaigns": "Campaigns",
+	"RegistryOrders":    "Orders",
+	"RegistryNumbers":   "Numbers",
+	// project
+	"ProjectTokens": "Tokens",
+	// datasphere
+	"DatasphereDocuments": "Documents",
+}
+
+func fieldNameFor(goStruct string) string {
+	if v, ok := containerFieldName[goStruct]; ok {
+		return v
+	}
+	return goStruct
+}
+
+// flatClientField maps a FLAT resource's Go struct name to the RestClient field
+// it is exposed as (the hand RestClient names: PhoneNumbers, SIPProfile, MFA,
+// Calling, …). Reproduces the committed rest_client.go field names so the
+// generated tree drops in with no example churn.
+var flatClientField = map[string]string{
+	"AddressesNamespace":       "Addresses",
+	"ImportedNumbersNamespace": "ImportedNumbers",
+	"LookupNamespace":          "Lookup",
+	"MFANamespace":             "MFA",
+	"NumberGroupsNamespace":    "NumberGroups",
+	"PhoneNumbersNamespace":    "PhoneNumbers",
+	"QueuesNamespace":          "Queues",
+	"RecordingsNamespace":      "Recordings",
+	"ShortCodesNamespace":      "ShortCodes",
+	"SIPProfileNamespace":      "SIPProfile",
+	"VerifiedCallersNamespace": "VerifiedCallers",
+	"CallingNamespace":         "Calling",
+	"ChatNamespace":            "Chat",
+	"PubSubNamespace":          "PubSub",
+}
+
+// clientFieldOrder is the field order on the generated resource tree (flat
+// resources first, then containers), matching the committed rest_client.go
+// layout so the diff stays reviewable.
+var clientFieldOrder = []string{
+	"Fabric", "Calling",
+	"PhoneNumbers", "Addresses", "Queues", "Recordings", "NumberGroups",
+	"VerifiedCallers", "SIPProfile", "Lookup", "ShortCodes", "ImportedNumbers", "MFA",
+	"Registry", "Datasphere", "Video", "Logs", "Project", "PubSub", "Chat",
+}
+
+// emitClientTree emits the full generated REST client tree (§8): one container
+// struct + New<Container>Namespace constructor per namespace group, wired by
+// calling the per-resource New<Struct> constructors; plus a _GeneratedResourceTree
+// struct (unexported-prefixed so it stays off the oracle surface, mirroring TS's
+// _GeneratedResourceTree) holding every flat resource + container, with a
+// wireGeneratedTree method the hand RestClient composes. The hand RestClient
+// keeps only the non-spec-derivable bits (auth, HTTP construction, env-var
+// handling, the httpAdapter import-cycle breaker).
 func emitClientTree(placed []placedResource) string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf(genHeader,
-		"The generated REST client-namespace placement tree (§8): which resources\n// are flat on the client vs grouped under a container, resolved from\n// x-sdk-namespace.attr + per-resource x-sdk-resource.namespace/attr."))
-	b.WriteString("\n// ClientPlacement is one resolved resource placement.\n")
-	b.WriteString("type ClientPlacement struct {\n\tSpecName  string\n\tGoStruct  string\n\tContainer string // \"\" = flat on the client\n\tAccessor  string\n}\n\n")
-	b.WriteString("// GeneratedPlacements is the resolved REST client tree.\n")
-	b.WriteString("var GeneratedPlacements = []ClientPlacement{\n")
-	sorted := make([]placedResource, len(placed))
-	copy(sorted, placed)
-	sort.SliceStable(sorted, func(i, j int) bool {
-		if sorted[i].container != sorted[j].container {
-			return sorted[i].container < sorted[j].container
+		"The generated REST client-namespace tree (§8): container structs +\n// constructors + the _GeneratedResourceTree the hand RestClient embeds and\n// wires. Placement resolved from x-sdk-namespace.attr + per-resource\n// x-sdk-resource.namespace/attr; base paths per §4."))
+	b.WriteString("\n")
+
+	// Group containered resources by container attr, preserving encounter order
+	// (spec order). Also collect flat resources.
+	type member struct {
+		field    string // field name inside the container
+		goStruct string
+	}
+	byContainer := map[string][]member{}
+	var containerAttrs []string
+	seenContainer := map[string]bool{}
+	type flat struct {
+		field    string
+		goStruct string
+	}
+	var flats []flat
+	seenFlat := map[string]bool{}
+	for _, p := range placed {
+		if p.container == "" {
+			f := flatClientField[p.goStruct]
+			if f == "" {
+				f = p.goStruct
+			}
+			if seenFlat[f] {
+				continue
+			}
+			seenFlat[f] = true
+			flats = append(flats, flat{field: f, goStruct: p.goStruct})
+			continue
 		}
-		return sorted[i].specName < sorted[j].specName
-	})
-	for _, p := range sorted {
-		fmt.Fprintf(&b, "\t{SpecName: %q, GoStruct: %q, Container: %q, Accessor: %q},\n",
-			p.specName, p.goStruct, p.container, p.accessor)
+		if !seenContainer[p.container] {
+			seenContainer[p.container] = true
+			containerAttrs = append(containerAttrs, p.container)
+		}
+		fld := p.accessor
+		if fld == "" {
+			fld = fieldNameFor(p.goStruct)
+		} else {
+			fld = pascal(fld)
+		}
+		byContainer[p.container] = append(byContainer[p.container], member{field: fld, goStruct: p.goStruct})
+	}
+	sort.Strings(containerAttrs)
+
+	// Emit each container struct + constructor.
+	for _, attr := range containerAttrs {
+		ci, ok := containers[attr]
+		if !ok {
+			// A container attr with no registered Go container type is a real
+			// finding (add to the containers table), not silently skipped.
+			panic(fmt.Sprintf("container attr %q has no Go container type (add to containers table)", attr))
+		}
+		members := byContainer[attr]
+		fmt.Fprintf(&b, "// %s groups the %s namespace resources (§8 container).\n", ci.structName, attr)
+		fmt.Fprintf(&b, "type %s struct {\n", ci.structName)
+		for _, m := range members {
+			fmt.Fprintf(&b, "\t%s *%s\n", m.field, m.goStruct)
+		}
+		b.WriteString("}\n\n")
+		fmt.Fprintf(&b, "// New%s constructs the %s container, wiring each resource by\n// calling its per-resource constructor (base paths baked in per §4).\n", ci.structName, ci.structName)
+		fmt.Fprintf(&b, "func New%s(client HTTPClient) *%s {\n\treturn &%s{\n", ci.structName, ci.structName, ci.structName)
+		for _, m := range members {
+			fmt.Fprintf(&b, "\t\t%s: New%s(client),\n", m.field, m.goStruct)
+		}
+		b.WriteString("\t}\n}\n\n")
+	}
+
+	// Emit the _GeneratedResourceTree struct: flat resources + containers, in the
+	// committed rest_client.go field order.
+	b.WriteString("// _GeneratedResourceTree holds every flat REST resource plus the namespace\n")
+	b.WriteString("// containers. The hand RestClient embeds it and calls wireGeneratedTree; the\n")
+	b.WriteString("// leading underscore keeps it off the enumerated oracle surface.\n")
+	b.WriteString("type _GeneratedResourceTree struct {\n")
+	// Build lookup: field -> Go type expression for both flat and containers.
+	fieldType := map[string]string{}
+	for _, f := range flats {
+		fieldType[f.field] = "*" + f.goStruct
+	}
+	for _, attr := range containerAttrs {
+		ci := containers[attr]
+		fieldType[ci.clientAttr] = "*" + ci.structName
+	}
+	// Emit in clientFieldOrder; fail loud if any generated field is not ordered
+	// and any ordered field is missing (keeps the two lists in lockstep).
+	ordered := map[string]bool{}
+	for _, f := range clientFieldOrder {
+		ordered[f] = true
+		t, ok := fieldType[f]
+		if !ok {
+			panic(fmt.Sprintf("clientFieldOrder lists %q but no generated resource/container produces it", f))
+		}
+		fmt.Fprintf(&b, "\t%s %s\n", f, t)
+	}
+	for f := range fieldType {
+		if !ordered[f] {
+			panic(fmt.Sprintf("generated field %q is not in clientFieldOrder (add it)", f))
+		}
+	}
+	b.WriteString("}\n\n")
+
+	// Emit the wire method.
+	b.WriteString("// wireGeneratedTree constructs every flat resource + container from the given\n")
+	b.WriteString("// HTTPClient. The hand RestClient calls this after building its HTTP layer.\n")
+	b.WriteString("func (t *_GeneratedResourceTree) wireGeneratedTree(client HTTPClient) {\n")
+	// flat resources
+	flatCtor := map[string]string{} // field -> constructor call
+	for _, f := range flats {
+		flatCtor[f.field] = "New" + f.goStruct + "(client)"
+	}
+	containerCtor := map[string]string{}
+	for _, attr := range containerAttrs {
+		ci := containers[attr]
+		containerCtor[ci.clientAttr] = "New" + ci.structName + "(client)"
+	}
+	for _, f := range clientFieldOrder {
+		if c, ok := flatCtor[f]; ok {
+			fmt.Fprintf(&b, "\tt.%s = %s\n", f, c)
+		} else if c, ok := containerCtor[f]; ok {
+			fmt.Fprintf(&b, "\tt.%s = %s\n", f, c)
+		}
 	}
 	b.WriteString("}\n")
 	return b.String()
