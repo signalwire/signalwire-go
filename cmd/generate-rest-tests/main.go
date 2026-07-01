@@ -274,7 +274,7 @@ func buildCallIndex() (map[string]callInfo, error) {
 
 	record := func(nsName, resName string, resVal reflect.Value) {
 		t := resVal.Type()
-		for i := 0; i < t.NumMethod(); i++ {
+		for i := range t.NumMethod() {
 			m := t.Method(i)
 			if !m.IsExported() {
 				continue
@@ -296,7 +296,7 @@ func buildCallIndex() (map[string]callInfo, error) {
 	var walk func(sv reflect.Value)
 	walk = func(sv reflect.Value) {
 		st := sv.Type()
-		for i := 0; i < st.NumField(); i++ {
+		for i := range st.NumField() {
 			f := st.Field(i)
 			if f.Anonymous {
 				fv := sv.Field(i)
@@ -321,7 +321,7 @@ func buildCallIndex() (map[string]callInfo, error) {
 			// sub-resources
 			e := nsVal.Elem()
 			et := e.Type()
-			for j := 0; j < et.NumField(); j++ {
+			for j := range et.NumField() {
 				sf := et.Field(j)
 				if !sf.IsExported() || sf.Anonymous {
 					continue

@@ -137,7 +137,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.datasphere_resources_generated", Class: "DatasphereDocuments",
 		Methods: map[string]string{
 			"Create":                 "create",
-			"Delete":                 "delete",
 			"DeleteChunk":            "delete_chunk",
 			"GetChunk":               "get_chunk",
 			"ListChunks":             "list_chunks",
@@ -149,8 +148,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 	"namespaces.FabricAddresses": {{
 		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "FabricAddresses",
 		Methods: map[string]string{
-			"Get":                "get",
-			"List":               "list",
 			"NewFabricAddresses": "__init__",
 		},
 	}},
@@ -168,8 +165,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 	"namespaces.FaxLogs": {{
 		Module: "signalwire.rest.namespaces.fax_resources_generated", Class: "FaxLogs",
 		Methods: map[string]string{
-			"Get":        "get",
-			"List":       "list",
 			"NewFaxLogs": "__init__",
 		},
 	}},
@@ -219,8 +214,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 	"namespaces.MessageLogs": {{
 		Module: "signalwire.rest.namespaces.message_resources_generated", Class: "MessageLogs",
 		Methods: map[string]string{
-			"Get":            "get",
-			"List":           "list",
 			"NewMessageLogs": "__init__",
 		},
 	}},
@@ -229,7 +222,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"AddMembership":            "add_membership",
 			"Create":                   "create",
-			"Delete":                   "delete",
 			"DeleteMembership":         "delete_membership",
 			"GetMembership":            "get_membership",
 			"ListMemberships":          "list_memberships",
@@ -241,7 +233,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.relay_rest_resources_generated", Class: "PhoneNumbers",
 		Methods: map[string]string{
 			"Create":                   "create",
-			"Delete":                   "delete",
 			"NewPhoneNumbersNamespace": "__init__",
 			"Search":                   "search",
 			"SetAiAgent":               "set_ai_agent",
@@ -274,7 +265,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.relay_rest_resources_generated", Class: "Queues",
 		Methods: map[string]string{
 			"Create":             "create",
-			"Delete":             "delete",
 			"GetMember":          "get_member",
 			"GetNextMember":      "get_next_member",
 			"ListMembers":        "list_members",
@@ -401,7 +391,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.relay_rest_resources_generated", Class: "VerifiedCallers",
 		Methods: map[string]string{
 			"Create":                      "create",
-			"Delete":                      "delete",
 			"NewVerifiedCallersNamespace": "__init__",
 			"RedialVerification":          "redial_verification",
 			"SubmitVerification":          "submit_verification",
@@ -421,7 +410,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"Create":               "create",
 			"CreateStream":         "create_stream",
-			"Delete":               "delete",
 			"ListConferenceTokens": "list_conference_tokens",
 			"ListStreams":          "list_streams",
 			"NewVideoConferences":  "__init__",
@@ -441,8 +429,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 	"namespaces.VideoRoomSessions": {{
 		Module: "signalwire.rest.namespaces.video_resources_generated", Class: "VideoRoomSessions",
 		Methods: map[string]string{
-			"Get":                  "get",
-			"List":                 "list",
 			"ListEvents":           "list_events",
 			"ListMembers":          "list_members",
 			"ListRecordings":       "list_recordings",
@@ -461,7 +447,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"Create":        "create",
 			"CreateStream":  "create_stream",
-			"Delete":        "delete",
 			"ListStreams":   "list_streams",
 			"NewVideoRooms": "__init__",
 			"Update":        "update",
@@ -479,8 +464,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 	"namespaces.VoiceLogs": {{
 		Module: "signalwire.rest.namespaces.voice_resources_generated", Class: "VoiceLogs",
 		Methods: map[string]string{
-			"Get":          "get",
-			"List":         "list",
 			"ListEvents":   "list_events",
 			"NewVoiceLogs": "__init__",
 		},

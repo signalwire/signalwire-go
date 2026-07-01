@@ -87,6 +87,15 @@ type goStructFacts struct {
 	pkg     string
 	name    string
 	methods map[string]*goSignature
+	// embeds holds the SHORT type names of the struct's anonymous (embedded)
+	// fields whose declared methods are PROMOTED onto this struct — e.g. a
+	// generated REST resource embeds `*CrudResource` / `*CrudWithAddresses`,
+	// promoting their Create/Update/Get/List/Delete. When a StructTable-listed
+	// goMethod is not declared directly on the struct, it is resolved through
+	// this embed chain and the promoted method's SIGNATURE is used for the
+	// projection, attributed to the subclass. Only the short type name is
+	// stored; the embed chain lives in the same package (namespaces).
+	embeds []string
 }
 
 // ---------------------------------------------------------------------------
@@ -273,6 +282,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						methods: map[string]*goSignature{},
 					}
 				}
+				// Record anonymous (embedded) fields so promoted methods can be
+				// resolved through the embed chain during projection.
+				structs[key].embeds = append(structs[key].embeds, embeddedTypeNames(st)...)
 				// Project exported struct fields (e.g. RestClient.Calling
 				// *namespaces.CallingNamespace) as zero-arg accessor
 				// methods so the cross-language audit sees them. Matches
@@ -478,6 +490,60 @@ func recvTypeName(expr ast.Expr) string {
 		return recvTypeName(e.X)
 	}
 	return ""
+}
+
+// embeddedTypeNames returns the SHORT type names of a struct's anonymous
+// (embedded) fields — the fields with no explicit name. Only embeds whose type
+// resolves to a bare/pointer identifier in the same package are recorded (e.g.
+// `*CrudResource`, `CrudWithAddresses`); qualified selector embeds (pkg.Type)
+// carry no promoted SDK method surface we project and are skipped.
+func embeddedTypeNames(st *ast.StructType) []string {
+	if st.Fields == nil {
+		return nil
+	}
+	var out []string
+	for _, f := range st.Fields.List {
+		if len(f.Names) != 0 {
+			continue // named field, not an embed
+		}
+		if name := recvTypeName(f.Type); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// resolvePromotedMethod returns the promoted method signature for goMethod if it
+// is declared on one of facts' embedded base structs (transitively), else nil.
+// Go promotes an embedded field's methods onto the embedder, so a StructTable
+// entry that lists e.g. `Create` for a generated REST resource embedding
+// `*CrudResource` is supplied by CrudResource's own `Create` signature. The
+// embed chain is walked in the same package; cycles are guarded by a visited
+// set.
+func resolvePromotedMethod(structs map[string]*goStructFacts, facts *goStructFacts, goMethod string) *goSignature {
+	visited := map[string]struct{}{}
+	var search func(f *goStructFacts) *goSignature
+	search = func(f *goStructFacts) *goSignature {
+		for _, embed := range f.embeds {
+			base, ok := structs[f.pkg+"."+embed]
+			if !ok {
+				continue
+			}
+			key := base.pkg + "." + base.name
+			if _, seen := visited[key]; seen {
+				continue
+			}
+			visited[key] = struct{}{}
+			if sig, present := base.methods[goMethod]; present {
+				return sig
+			}
+			if sig := search(base); sig != nil {
+				return sig
+			}
+		}
+		return nil
+	}
+	return search(facts)
 }
 
 // ---------------------------------------------------------------------------
@@ -995,7 +1061,17 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 					}
 					continue
 				}
-				if mSig, present := facts.methods[goMethod]; present {
+				mSig, present := facts.methods[goMethod]
+				if !present {
+					// Not declared directly — resolve through the embed chain
+					// (promoted method). SCOPED to StructTable-listed methods:
+					// the Methods map is the allowlist of what to project; the
+					// embed resolution only SUPPLIES the promoted method's
+					// signature. Arbitrary promoted methods not listed here are
+					// never projected (no surface flood).
+					mSig = resolvePromotedMethod(structs, facts, goMethod)
+				}
+				if mSig != nil {
 					sig, fails := toCanonicalSignature(mSig, aliases, true, false, fmt.Sprintf("%s.%s.%s", target.Module, target.Class, pyMethod))
 					failures = append(failures, fails...)
 					addClassMethod(target.Module, target.Class, pyMethod, sig)

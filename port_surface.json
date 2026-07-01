@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ e20e8c8c146f2453d8b7f36ebb6237dcfae5162a",
+  "generated_from": "signalwire-go @ 9bcdf1a734064103df3727b6faf6d0c2bfbc0b8e",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -783,8 +783,6 @@
         "CrudResource": [
           "create",
           "delete",
-          "get",
-          "list",
           "update"
         ],
         "HttpClient": [
@@ -794,6 +792,10 @@
           "patch",
           "post",
           "put"
+        ],
+        "ReadResource": [
+          "get",
+          "list"
         ],
         "SignalWireRestError": [
           "__init__"
@@ -900,10 +902,12 @@
       "classes": {
         "DatasphereDocuments": [
           "__init__",
+          "create",
           "delete_chunk",
           "get_chunk",
           "list_chunks",
-          "search"
+          "search",
+          "update"
         ]
       },
       "functions": []
@@ -911,17 +915,23 @@
     "signalwire.rest.namespaces.fabric_resources_generated": {
       "classes": {
         "AiAgents": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ],
         "CallFlows": [
           "__init__",
+          "create",
           "deploy_version",
           "list_addresses",
-          "list_versions"
+          "list_versions",
+          "update"
         ],
         "ConferenceRooms": [
           "__init__",
-          "list_addresses"
+          "create",
+          "list_addresses",
+          "update"
         ],
         "CxmlApplications": [
           "__init__",
@@ -932,15 +942,17 @@
           "update"
         ],
         "CxmlScripts": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ],
         "CxmlWebhooks": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ],
         "FabricAddresses": [
-          "__init__",
-          "get",
-          "list"
+          "__init__"
         ],
         "FabricTokens": [
           "__init__",
@@ -951,7 +963,9 @@
           "refresh_subscriber_token"
         ],
         "FreeswitchConnectors": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ],
         "GenericResources": [
           "__init__",
@@ -963,27 +977,39 @@
           "list_addresses"
         ],
         "RelayApplications": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ],
         "SipEndpoints": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ],
         "SipGateways": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ],
         "Subscribers": [
           "__init__",
+          "create",
           "create_sip_endpoint",
           "delete_sip_endpoint",
           "get_sip_endpoint",
           "list_sip_endpoints",
+          "update",
           "update_sip_endpoint"
         ],
         "SwmlScripts": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ],
         "SwmlWebhooks": [
-          "__init__"
+          "__init__",
+          "create",
+          "update"
         ]
       },
       "functions": []
@@ -991,9 +1017,7 @@
     "signalwire.rest.namespaces.fax_resources_generated": {
       "classes": {
         "FaxLogs": [
-          "__init__",
-          "get",
-          "list"
+          "__init__"
         ]
       },
       "functions": []
@@ -1010,9 +1034,7 @@
     "signalwire.rest.namespaces.message_resources_generated": {
       "classes": {
         "MessageLogs": [
-          "__init__",
-          "get",
-          "list"
+          "__init__"
         ]
       },
       "functions": []
@@ -1063,12 +1085,15 @@
         "NumberGroups": [
           "__init__",
           "add_membership",
+          "create",
           "delete_membership",
           "get_membership",
-          "list_memberships"
+          "list_memberships",
+          "update"
         ],
         "PhoneNumbers": [
           "__init__",
+          "create",
           "search",
           "set_ai_agent",
           "set_call_flow",
@@ -1076,13 +1101,16 @@
           "set_cxml_webhook",
           "set_relay_application",
           "set_relay_topic",
-          "set_swml_webhook"
+          "set_swml_webhook",
+          "update"
         ],
         "Queues": [
           "__init__",
+          "create",
           "get_member",
           "get_next_member",
-          "list_members"
+          "list_members",
+          "update"
         ],
         "Recordings": [
           "__init__",
@@ -1127,8 +1155,10 @@
         ],
         "VerifiedCallers": [
           "__init__",
+          "create",
           "redial_verification",
-          "submit_verification"
+          "submit_verification",
+          "update"
         ]
       },
       "functions": []
@@ -1142,9 +1172,11 @@
         ],
         "VideoConferences": [
           "__init__",
+          "create",
           "create_stream",
           "list_conference_tokens",
-          "list_streams"
+          "list_streams",
+          "update"
         ],
         "VideoRoomRecordings": [
           "__init__",
@@ -1155,8 +1187,6 @@
         ],
         "VideoRoomSessions": [
           "__init__",
-          "get",
-          "list",
           "list_events",
           "list_members",
           "list_recordings"
@@ -1167,8 +1197,10 @@
         ],
         "VideoRooms": [
           "__init__",
+          "create",
           "create_stream",
-          "list_streams"
+          "list_streams",
+          "update"
         ],
         "VideoStreams": [
           "__init__",
@@ -1183,8 +1215,6 @@
       "classes": {
         "VoiceLogs": [
           "__init__",
-          "get",
-          "list",
           "list_events"
         ]
       },

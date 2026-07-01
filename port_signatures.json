@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 2855a178476f18d2d20b05c8d393015b77039406 (go/ast walker)",
+  "generated_from": "signalwire-go @ 9bcdf1a734064103df3727b6faf6d0c2bfbc0b8e (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -10098,34 +10098,6 @@
               ],
               "returns": "dict\u003cstring,any\u003e"
             },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict\u003cstring,string\u003e",
-                  "required": true
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
-            },
             "update": {
               "params": [
                 {
@@ -10263,6 +10235,47 @@
                 {
                   "name": "body",
                   "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            }
+          }
+        },
+        "ReadResource": {
+          "methods": {
+            "client": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.rest._base.HttpClient"
+            },
+            "get": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "list": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict\u003cstring,string\u003e",
                   "required": true
                 }
               ],
@@ -12351,6 +12364,20 @@
               ],
               "returns": "void"
             },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
             "delete_chunk": {
               "params": [
                 {
@@ -12486,6 +12513,25 @@
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         }
@@ -12508,6 +12554,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -12526,6 +12605,20 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             },
             "deploy_version": {
               "params": [
@@ -12587,6 +12680,25 @@
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -12606,6 +12718,20 @@
               ],
               "returns": "void"
             },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
             "list_addresses": {
               "params": [
                 {
@@ -12623,6 +12749,25 @@
                   "type": "any",
                   "required": false,
                   "default": {}
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -12845,6 +12990,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -12863,6 +13041,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -12881,36 +13092,6 @@
                 }
               ],
               "returns": "void"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "kind": "var_keyword",
-                  "type": "any",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -13165,6 +13346,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -13345,6 +13559,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -13363,6 +13610,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -13381,6 +13661,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -13399,6 +13712,20 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             },
             "create_sip_endpoint": {
               "params": [
@@ -13535,6 +13862,25 @@
               ],
               "returns": "dict\u003cstring,any\u003e"
             },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
             "update_sip_endpoint": {
               "params": [
                 {
@@ -13626,6 +13972,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -13644,6 +14023,39 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         }
@@ -13666,36 +14078,6 @@
                 }
               ],
               "returns": "void"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "kind": "var_keyword",
-                  "type": "any",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
             }
           }
         }
@@ -13756,36 +14138,6 @@
                 }
               ],
               "returns": "void"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "kind": "var_keyword",
-                  "type": "any",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
             }
           }
         }
@@ -14458,6 +14810,20 @@
               ],
               "returns": "dict\u003cstring,any\u003e"
             },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
             "delete_membership": {
               "params": [
                 {
@@ -14513,6 +14879,25 @@
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -14531,6 +14916,20 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             },
             "search": {
               "params": [
@@ -14729,6 +15128,25 @@
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         },
@@ -14747,6 +15165,20 @@
                 }
               ],
               "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             },
             "get_member": {
               "params": [
@@ -14812,6 +15244,25 @@
                   "type": "any",
                   "required": false,
                   "default": {}
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -15452,6 +15903,20 @@
               ],
               "returns": "void"
             },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
             "redial_verification": {
               "params": [
                 {
@@ -15495,6 +15960,25 @@
                   "type": "any",
                   "required": false,
                   "default": {}
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -15574,6 +16058,20 @@
               ],
               "returns": "void"
             },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
             "create_stream": {
               "params": [
                 {
@@ -15645,6 +16143,25 @@
                   "type": "any",
                   "required": false,
                   "default": {}
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -15756,36 +16273,6 @@
                 }
               ],
               "returns": "void"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "kind": "var_keyword",
-                  "type": "any",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
             },
             "list_events": {
               "params": [
@@ -16016,6 +16503,20 @@
               ],
               "returns": "void"
             },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
             "create_stream": {
               "params": [
                 {
@@ -16066,6 +16567,25 @@
                   "type": "any",
                   "required": false,
                   "default": {}
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -16177,36 +16697,6 @@
                 }
               ],
               "returns": "void"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "kind": "var_keyword",
-                  "type": "any",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "dict\u003cstring,any\u003e"
             },
             "list_events": {
               "params": [

@@ -549,24 +549,6 @@ func joinPath(a, b string) string {
 	return strings.TrimRight(a, "/") + "/" + strings.TrimLeft(b, "/")
 }
 
-// pathParams returns the ordered {brace} param names in a path.
-func pathParams(p string) []string {
-	var out []string
-	for {
-		i := strings.Index(p, "{")
-		if i < 0 {
-			break
-		}
-		j := strings.Index(p[i:], "}")
-		if j < 0 {
-			break
-		}
-		out = append(out, p[i+1:i+j])
-		p = p[i+j+1:]
-	}
-	return out
-}
-
 // tailBelow returns the op path's segments below the resource collection (the
 // under-collection relative form) as literal segments and {param} markers, OR
 // signals sibling (absolute) placement when the op path does not start with the
@@ -756,12 +738,13 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 
 	// Path expression.
 	var pathCode string
-	if sibling {
+	switch {
+	case sibling:
 		// Absolute server-rooted path (§4 sibling): build the literal + args.
 		pathCode = absolutePath(serverPath, op.path, idArgs)
-	} else if len(pathExpr) == 0 {
+	case len(pathExpr) == 0:
 		pathCode = "r.Base"
-	} else {
+	default:
 		pathCode = "r.Path(" + strings.Join(pathExpr, ", ") + ")"
 	}
 
@@ -1620,8 +1603,8 @@ var clientFieldOrder = []string{
 // handling, the httpAdapter import-cycle breaker).
 func emitClientTree(placed []placedResource) (namespacesFile, restFile string) {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf(genHeader,
-		"The generated REST client-namespace tree (§8): container structs +\n// constructors, wired by calling the per-resource New<Struct> constructors.\n// Placement resolved from x-sdk-namespace.attr + per-resource\n// x-sdk-resource.namespace/attr; base paths per §4. The _GeneratedResourceTree\n// + wireGeneratedTree live in package rest (rest_tree_generated.go) so the hand\n// RestClient can embed the tree (Go forbids embedding a cross-package\n// underscore-unexported type)."))
+	fmt.Fprintf(&b, genHeader,
+		"The generated REST client-namespace tree (§8): container structs +\n// constructors, wired by calling the per-resource New<Struct> constructors.\n// Placement resolved from x-sdk-namespace.attr + per-resource\n// x-sdk-resource.namespace/attr; base paths per §4. The _GeneratedResourceTree\n// + wireGeneratedTree live in package rest (rest_tree_generated.go) so the hand\n// RestClient can embed the tree (Go forbids embedding a cross-package\n// underscore-unexported type).")
 	b.WriteString("\n")
 
 	// Group containered resources by container attr, preserving encounter order
@@ -1698,9 +1681,9 @@ func emitClientTree(placed []placedResource) (namespacesFile, restFile string) {
 	// wireGeneratedTree method, which takes a namespaces.HTTPClient and calls the
 	// per-resource/container constructors (all in package namespaces, so qualified).
 	var r strings.Builder
-	r.WriteString(fmt.Sprintf(genHeaderPkg,
+	fmt.Fprintf(&r, genHeaderPkg,
 		"The generated REST resource tree (§8): the _GeneratedResourceTree the hand\n// RestClient embeds + its wireGeneratedTree method. Lives in package rest (not\n// namespaces) so the hand RestClient can embed the underscore-unexported tree —\n// Go forbids embedding a cross-package underscore-unexported type. The leading\n// underscore keeps it off the enumerated oracle surface.",
-		"rest"))
+		"rest")
 	r.WriteString("\nimport \"github.com/signalwire/signalwire-go/pkg/rest/namespaces\"\n\n")
 
 	// Build lookup: field -> namespaces-qualified Go type expression.
@@ -1798,21 +1781,32 @@ func pyModuleNS(specDir string) string {
 // implicitBaseMethods returns the typed-override method subset a base contributes
 // to a generated Python subclass (the methods the oracle records BEYOND the
 // resource's own declared markup methods). Derived from and verified against the
-// Python oracle (python_signatures.json): a FabricResource subclass overrides
-// create/update; a plain CrudResource overrides create/update/delete; a
-// ReadResource surfaces list/get; a BaseResource contributes nothing implicit.
-// The untyped inherited base methods (CrudResource.list/get,
-// FabricResource.list/get/delete/list_addresses) are intentionally NOT included —
-// the oracle does not record them on the subclass.
+// Python oracle (python_surface.json): both a FabricResource and a plain
+// CrudResource subclass override exactly create/update; a ReadResource
+// contributes NOTHING implicit (its list/get are untyped inherited base
+// methods); a BaseResource contributes nothing implicit.
+// The untyped inherited base methods (ReadResource.list/get, CrudResource.list/
+// get/delete, FabricResource.list/get/delete/list_addresses) are intentionally
+// NOT included — the oracle does not record them on the subclass. (Verified: not
+// one of the 19 CrudResource/CrudWithAddresses-embedding subclasses exposes
+// `delete` in the reference; each records exactly create+update. `delete` in the
+// reference belongs only to resources that DECLARE it in their markup methods,
+// which flow in separately below.)
 func implicitBaseMethods(base string) []string {
 	switch base {
-	case "ReadResource":
-		return []string{"list", "get"}
 	case "CrudResource":
-		return []string{"create", "update", "delete"}
+		return []string{"create", "update"}
 	case "FabricResource":
 		return []string{"create", "update"}
-	default: // BaseResource (and command-dispatch, handled separately)
+	default: // ReadResource, BaseResource (and command-dispatch, handled separately)
+		// ReadResource contributes NOTHING implicit: its list/get are untyped
+		// inherited base methods that the Python oracle records on the ReadResource
+		// BASE (see the internal/surface/tables.go rest.CrudResource->ReadResource
+		// adapter), NOT re-declared on the concrete subclass. Attributing them to
+		// the subclass over-counts vs the reference (which lists only __init__ on a
+		// pure ReadResource subclass) — same reason CrudResource.list/get are
+		// excluded above. A resource that genuinely re-surfaces get/list carries
+		// them in its explicit markup methods:, which flow in separately below.
 		return nil
 	}
 }
@@ -1821,9 +1815,9 @@ func implicitBaseMethods(base string) []string {
 // StructTable entries (a map fragment a later turn folds into tables.go).
 func emitStructTableSlice(specs []*specDoc, bases map[string]*baseSpec) (string, error) {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf(genHeaderPkg,
+	fmt.Fprintf(&b, genHeaderPkg,
 		"Generated REST StructTable entries (the namespaces.* keys) — reproduces\n// the Class-name spelling + goMethod->pyMethod maps for the REST resources\n// currently hand-maintained in tables.go, derived from the x-sdk-* markup.",
-		"surface"))
+		"surface")
 	b.WriteString("\n// GeneratedRESTStructTable holds the REST namespace entries.\n")
 	b.WriteString("var GeneratedRESTStructTable = map[string][]ClassTarget{\n")
 
@@ -1832,7 +1826,6 @@ func emitStructTableSlice(specs []*specDoc, bases map[string]*baseSpec) (string,
 		module  string
 		class   string
 		methods [][2]string // goName, pyName ordered
-		newFn   string      // constructor Go name if flat (-> __init__)
 	}
 	var entries []entry
 	seen := map[string]bool{}
@@ -1987,8 +1980,8 @@ func resolvePortingSDK(repoRoot string) (string, error) {
 // emitSpecFile emits the generated resource file for one spec.
 func emitSpecFile(sd *specDoc, bases map[string]*baseSpec) (string, error) {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf(genHeader,
-		fmt.Sprintf("Generated REST resources for the %q namespace spec.", sd.name)))
+	fmt.Fprintf(&b, genHeader,
+		fmt.Sprintf("Generated REST resources for the %q namespace spec.", sd.name))
 	b.WriteString("\n")
 	emitted := 0
 	for _, pi := range sd.paths {

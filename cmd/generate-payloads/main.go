@@ -573,14 +573,6 @@ func parseSchemaFromMap(m map[string]any) *schema {
 // Declaration emission
 // ---------------------------------------------------------------------------
 
-// isSDKClass reports whether a canonical type carries a class ref — the
-// reference's `_is_sdk_class_type` rule. Only such fields are emitted by the
-// enumerator as members; this generator marks the rest so the field carries a
-// tag but the enumerator (which applies the same rule) skips it.
-func isSDKClass(canon string) bool {
-	return strings.Contains(canon, "class:")
-}
-
 // declaration emits a Go declaration for one named schema: an object-with-props
 // -> a struct; anything else -> a defined-type alias (so a `$ref` to it
 // resolves). Each struct field carries a json tag (wire key + omitempty) and a
@@ -747,7 +739,7 @@ func emitPostPrompt(specPath string) (string, error) {
 		refModule: map[string]string{
 			// SwaigRequest lives in the request module (leaf compare makes this
 			// cosmetic, but keep it faithful to the reference recording).
-			"SwaigRequest": canonModule("swaig_request"),
+			"SwaigRequest":  canonModule("swaig_request"),
 			"SwaigArgument": canonModule("swaig_request"),
 		},
 	}
@@ -1011,15 +1003,21 @@ func run() error {
 	outputs := []outputFile{
 		{
 			path: filepath.Join(repoRoot, "pkg", "swaig", "swaig_request_generated.go"),
-			src:  func(p string) (string, error) { return emitSwaigRequest(filepath.Join(p, "swaig-specs", "swaig-request.yaml")) },
+			src: func(p string) (string, error) {
+				return emitSwaigRequest(filepath.Join(p, "swaig-specs", "swaig-request.yaml"))
+			},
 		},
 		{
 			path: filepath.Join(repoRoot, "pkg", "swaig", "post_prompt_generated.go"),
-			src:  func(p string) (string, error) { return emitPostPrompt(filepath.Join(p, "swaig-specs", "post-prompt.yaml")) },
+			src: func(p string) (string, error) {
+				return emitPostPrompt(filepath.Join(p, "swaig-specs", "post-prompt.yaml"))
+			},
 		},
 		{
 			path: filepath.Join(repoRoot, "pkg", "swaig", "swaig_actions_generated.go"),
-			src:  func(p string) (string, error) { return emitSwaigActions(filepath.Join(p, "swaig-specs", "swaig-response.yaml")) },
+			src: func(p string) (string, error) {
+				return emitSwaigActions(filepath.Join(p, "swaig-specs", "swaig-response.yaml"))
+			},
 		},
 		{
 			path: filepath.Join(repoRoot, "pkg", "swml", "swml_verbs_generated.go"),
