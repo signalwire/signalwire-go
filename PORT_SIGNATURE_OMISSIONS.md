@@ -111,6 +111,7 @@ signalwire.core.skill_base.SkillBase.logger: type-class divergence; Go's Logger 
 
 signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: Go's GetBasicAuthCredentials returns the resolved auth string only (no include_source kwarg); Python supports an include_source flag that causes it to return a (user, pass, source) tuple
 signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: Go takes a typed *http.Request param; Python takes Optional[fastapi.Request] (FastAPI vs net/http binding difference)
+signalwire.core.security.security_utils.filter_sensitive_headers: type-idiom divergence — Python parametrizes the header dict with a generic ``_V`` TypeVar (``dict[str, _V]`` in and out); Go uses a concrete ``map[string]string``. Same wire behavior (headers are string→string); Go has no need for the value-type generic.
 
 ## POM (signalwire.pom.pom) — Go idiom
 

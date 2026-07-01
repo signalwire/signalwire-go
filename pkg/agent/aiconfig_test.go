@@ -94,6 +94,50 @@ func TestSetLanguages_ReplaceAll(t *testing.T) {
 	}
 }
 
+// SetMultilingual mirrors Python AIConfigMixin.set_multilingual: it stores the
+// config and the AI verb renders a top-level "multilingual" object.
+func TestSetMultilingual_Stores(t *testing.T) {
+	a := NewAgentBase()
+	got := a.SetMultilingual(map[string]any{"start_language": "en-US", "min_switch_words": 2})
+	if got != a {
+		t.Error("SetMultilingual should return receiver for chaining")
+	}
+	if a.multilingual["start_language"] != "en-US" || a.multilingual["min_switch_words"] != 2 {
+		t.Errorf("multilingual = %#v", a.multilingual)
+	}
+}
+
+func TestSetMultilingual_EmptyIsNoop(t *testing.T) {
+	a := NewAgentBase()
+	a.SetMultilingual(map[string]any{})
+	if a.multilingual != nil {
+		t.Errorf("empty config should be a no-op; got %#v", a.multilingual)
+	}
+}
+
+func TestSetMultilingual_RendersTopLevelObject(t *testing.T) {
+	a := NewAgentBase()
+	a.SetMultilingual(map[string]any{"start_language": "en-US"})
+
+	doc := a.RenderSWML(nil, nil)
+	sections, _ := doc["sections"].(map[string]any)
+	main, _ := sections["main"].([]any)
+	for _, v := range main {
+		vm, _ := v.(map[string]any)
+		if aiCfg, ok := vm["ai"].(map[string]any); ok {
+			ml, _ := aiCfg["multilingual"].(map[string]any)
+			if ml == nil {
+				t.Fatalf("expected top-level multilingual object on AI verb; got %#v", aiCfg["multilingual"])
+			}
+			if ml["start_language"] != "en-US" {
+				t.Errorf("multilingual.start_language = %v", ml["start_language"])
+			}
+			return
+		}
+	}
+	t.Fatal("no ai verb found in rendered SWML")
+}
+
 // ---------------------------------------------------------------------------
 // Per-language params: AddLanguageTyped(...params), SetLanguageParams,
 // GetLanguageParams. Mirrors Python TestPerLanguageParams (11 cases) — see

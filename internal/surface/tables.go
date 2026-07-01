@@ -150,6 +150,7 @@ var StructTable = map[string][]ClassTarget{
 				"SetLanguageParams":      "set_language_params",
 				"LanguageParams":         "get_language_params",
 				"SetLanguages":           "set_languages",
+				"SetMultilingual":        "set_multilingual",
 				"AddPronunciation":       "add_pronunciation",
 				"SetPronunciations":      "set_pronunciations",
 				"SetParam":               "set_param",

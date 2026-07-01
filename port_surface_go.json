@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 9bcdf1a734064103df3727b6faf6d0c2bfbc0b8e",
+  "generated_from": "signalwire-go (go-native) @ 4e92f1da3d7b7ed6f1bbde5620215baf7d64ad40",
   "modules": {
     "agent": {
       "classes": {
@@ -82,6 +82,7 @@
           "SetInternalFillers",
           "SetLanguageParams",
           "SetLanguages",
+          "SetMultilingual",
           "SetNativeFunctions",
           "SetOnSwmlRequestHook",
           "SetParam",

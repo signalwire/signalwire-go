@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 9bcdf1a734064103df3727b6faf6d0c2bfbc0b8e",
+  "generated_from": "signalwire-go @ 4e92f1da3d7b7ed6f1bbde5620215baf7d64ad40",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -260,6 +260,7 @@
           "set_internal_fillers",
           "set_language_params",
           "set_languages",
+          "set_multilingual",
           "set_native_functions",
           "set_param",
           "set_params",

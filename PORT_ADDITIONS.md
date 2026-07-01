@@ -489,3 +489,15 @@ signalwire.relay.call.StandaloneCollectAction.stop: concrete-action control meth
 signalwire.relay.call.StreamAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
 signalwire.relay.call.TapAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
 signalwire.relay.call.TranscribeAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
+
+## SWML-verbs generated-payload reserved-word fields (port emits what the reference can't name)
+
+The reference's TypedDict generator cannot name a field that is a Python keyword, so it
+drops `else` to a `# non-identifier field 'else'` comment (the wire key still round-trips
+at runtime). Go struct field tags have no such restriction, so the generated SWML-verb
+configs legitimately type the field — the port is MORE faithful to the wire than the
+reference can express. This is the read-side analog of the `from`→`From` reserved-word
+handling. Keyed by the gen-payload fold token.
+
+gen-payload.CondElse.else: generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the Go struct types it
+gen-payload.CondReg.else: generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the Go struct types it

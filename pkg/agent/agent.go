@@ -358,6 +358,7 @@ type AgentBase struct {
 	hints               []string
 	patternHints        []map[string]any
 	languages           []map[string]any
+	multilingual        map[string]any
 	pronunciations      []map[string]any
 	params              map[string]any // AI params like temperature
 	globalData          map[string]any
@@ -1280,6 +1281,29 @@ func (a *AgentBase) SetLanguages(languages []map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.languages = languages
+	return a
+}
+
+// SetMultilingual configures ASR-driven multilingual mode (Mode B).
+//
+// Python equivalent: ai_config_mixin.AIConfigMixin.set_multilingual
+// Python signature: set_multilingual(config) -> AgentBase
+//
+// Emits a top-level multilingual object on the AI verb. The recognizer runs in
+// code-switching mode and the agent answers in whatever language the caller
+// actually spoke - the model does not pick the language. This is mutually
+// exclusive with SetLanguages; if both are set the server uses multilingual and
+// ignores languages.
+//
+// Parameters:
+//   - config: the multilingual config object (languages, allowed,
+//     start_language, min_switch_words, fillers, etc.).
+func (a *AgentBase) SetMultilingual(config map[string]any) *AgentBase {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if len(config) > 0 {
+		a.multilingual = config
+	}
 	return a
 }
 
@@ -2863,6 +2887,11 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		aiConfig["languages"] = a.languages
 	}
 
+	// Multilingual (ASR-driven mode; top-level multilingual object)
+	if len(a.multilingual) > 0 {
+		aiConfig["multilingual"] = a.multilingual
+	}
+
 	// Pronunciations
 	if len(a.pronunciations) > 0 {
 		aiConfig["pronounce"] = a.pronunciations
@@ -3504,6 +3533,13 @@ func (a *AgentBase) clone() *AgentBase {
 
 	c.languages = make([]map[string]any, len(a.languages))
 	copy(c.languages, a.languages)
+
+	if a.multilingual != nil {
+		c.multilingual = make(map[string]any, len(a.multilingual))
+		for k, v := range a.multilingual {
+			c.multilingual[k] = v
+		}
+	}
 
 	c.pronunciations = make([]map[string]any, len(a.pronunciations))
 	copy(c.pronunciations, a.pronunciations)
