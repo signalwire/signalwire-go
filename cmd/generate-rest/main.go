@@ -1279,18 +1279,26 @@ var clientFieldOrder = []string{
 	"Registry", "Datasphere", "Video", "Logs", "Project", "PubSub", "Chat",
 }
 
-// emitClientTree emits the full generated REST client tree (§8): one container
-// struct + New<Container>Namespace constructor per namespace group, wired by
-// calling the per-resource New<Struct> constructors; plus a _GeneratedResourceTree
-// struct (unexported-prefixed so it stays off the oracle surface, mirroring TS's
-// _GeneratedResourceTree) holding every flat resource + container, with a
-// wireGeneratedTree method the hand RestClient composes. The hand RestClient
+// emitClientTree emits the generated REST client tree (§8) as TWO source files.
+//
+// The FIRST return (package namespaces, client_tree_generated.go) holds the
+// per-namespace container structs + their New<Container>Namespace constructors,
+// each wired by calling the per-resource New<Struct> constructors. These
+// reference namespaces.* types directly so they live in package namespaces.
+//
+// The SECOND return (package rest, rest_tree_generated.go) holds the
+// _GeneratedResourceTree struct (fields typed as namespaces.* — qualified via the
+// namespaces import) + its wireGeneratedTree(client namespaces.HTTPClient) method.
+// It lives in package rest so the hand RestClient can EMBED _GeneratedResourceTree
+// (Go cannot embed a cross-package underscore-unexported type, so this cannot stay
+// in package namespaces). The leading underscore keeps it off the enumerated
+// oracle surface (mirroring TS's _GeneratedResourceTree). The hand RestClient
 // keeps only the non-spec-derivable bits (auth, HTTP construction, env-var
 // handling, the httpAdapter import-cycle breaker).
-func emitClientTree(placed []placedResource) string {
+func emitClientTree(placed []placedResource) (namespacesFile, restFile string) {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf(genHeader,
-		"The generated REST client-namespace tree (§8): container structs +\n// constructors + the _GeneratedResourceTree the hand RestClient embeds and\n// wires. Placement resolved from x-sdk-namespace.attr + per-resource\n// x-sdk-resource.namespace/attr; base paths per §4."))
+		"The generated REST client-namespace tree (§8): container structs +\n// constructors, wired by calling the per-resource New<Struct> constructors.\n// Placement resolved from x-sdk-namespace.attr + per-resource\n// x-sdk-resource.namespace/attr; base paths per §4. The _GeneratedResourceTree\n// + wireGeneratedTree live in package rest (rest_tree_generated.go) so the hand\n// RestClient can embed the tree (Go forbids embedding a cross-package\n// underscore-unexported type)."))
 	b.WriteString("\n")
 
 	// Group containered resources by container attr, preserving encounter order
@@ -1358,21 +1366,34 @@ func emitClientTree(placed []placedResource) string {
 		b.WriteString("\t}\n}\n\n")
 	}
 
-	// Emit the _GeneratedResourceTree struct: flat resources + containers, in the
-	// committed rest_client.go field order.
-	b.WriteString("// _GeneratedResourceTree holds every flat REST resource plus the namespace\n")
-	b.WriteString("// containers. The hand RestClient embeds it and calls wireGeneratedTree; the\n")
-	b.WriteString("// leading underscore keeps it off the enumerated oracle surface.\n")
-	b.WriteString("type _GeneratedResourceTree struct {\n")
-	// Build lookup: field -> Go type expression for both flat and containers.
+	namespacesFile = b.String()
+
+	// --- SECOND FILE (package rest): rest_tree_generated.go ---
+	//
+	// The _GeneratedResourceTree struct (fields typed as namespaces.* — the tree
+	// lives in package rest so the hand RestClient can embed it) + its
+	// wireGeneratedTree method, which takes a namespaces.HTTPClient and calls the
+	// per-resource/container constructors (all in package namespaces, so qualified).
+	var r strings.Builder
+	r.WriteString(fmt.Sprintf(genHeaderPkg,
+		"The generated REST resource tree (§8): the _GeneratedResourceTree the hand\n// RestClient embeds + its wireGeneratedTree method. Lives in package rest (not\n// namespaces) so the hand RestClient can embed the underscore-unexported tree —\n// Go forbids embedding a cross-package underscore-unexported type. The leading\n// underscore keeps it off the enumerated oracle surface.",
+		"rest"))
+	r.WriteString("\nimport \"github.com/signalwire/signalwire-go/pkg/rest/namespaces\"\n\n")
+
+	// Build lookup: field -> namespaces-qualified Go type expression.
 	fieldType := map[string]string{}
 	for _, f := range flats {
-		fieldType[f.field] = "*" + f.goStruct
+		fieldType[f.field] = "*namespaces." + f.goStruct
 	}
 	for _, attr := range containerAttrs {
 		ci := containers[attr]
-		fieldType[ci.clientAttr] = "*" + ci.structName
+		fieldType[ci.clientAttr] = "*namespaces." + ci.structName
 	}
+
+	r.WriteString("// _GeneratedResourceTree holds every flat REST resource plus the namespace\n")
+	r.WriteString("// containers. The hand RestClient embeds it and calls wireGeneratedTree; the\n")
+	r.WriteString("// leading underscore keeps it off the enumerated oracle surface.\n")
+	r.WriteString("type _GeneratedResourceTree struct {\n")
 	// Emit in clientFieldOrder; fail loud if any generated field is not ordered
 	// and any ordered field is missing (keeps the two lists in lockstep).
 	ordered := map[string]bool{}
@@ -1382,38 +1403,38 @@ func emitClientTree(placed []placedResource) string {
 		if !ok {
 			panic(fmt.Sprintf("clientFieldOrder lists %q but no generated resource/container produces it", f))
 		}
-		fmt.Fprintf(&b, "\t%s %s\n", f, t)
+		fmt.Fprintf(&r, "\t%s %s\n", f, t)
 	}
 	for f := range fieldType {
 		if !ordered[f] {
 			panic(fmt.Sprintf("generated field %q is not in clientFieldOrder (add it)", f))
 		}
 	}
-	b.WriteString("}\n\n")
+	r.WriteString("}\n\n")
 
-	// Emit the wire method.
-	b.WriteString("// wireGeneratedTree constructs every flat resource + container from the given\n")
-	b.WriteString("// HTTPClient. The hand RestClient calls this after building its HTTP layer.\n")
-	b.WriteString("func (t *_GeneratedResourceTree) wireGeneratedTree(client HTTPClient) {\n")
-	// flat resources
+	// Emit the wire method (constructors are in package namespaces, so qualified).
+	r.WriteString("// wireGeneratedTree constructs every flat resource + container from the given\n")
+	r.WriteString("// HTTPClient. The hand RestClient calls this after building its HTTP layer.\n")
+	r.WriteString("func (t *_GeneratedResourceTree) wireGeneratedTree(client namespaces.HTTPClient) {\n")
 	flatCtor := map[string]string{} // field -> constructor call
 	for _, f := range flats {
-		flatCtor[f.field] = "New" + f.goStruct + "(client)"
+		flatCtor[f.field] = "namespaces.New" + f.goStruct + "(client)"
 	}
 	containerCtor := map[string]string{}
 	for _, attr := range containerAttrs {
 		ci := containers[attr]
-		containerCtor[ci.clientAttr] = "New" + ci.structName + "(client)"
+		containerCtor[ci.clientAttr] = "namespaces.New" + ci.structName + "(client)"
 	}
 	for _, f := range clientFieldOrder {
 		if c, ok := flatCtor[f]; ok {
-			fmt.Fprintf(&b, "\tt.%s = %s\n", f, c)
+			fmt.Fprintf(&r, "\tt.%s = %s\n", f, c)
 		} else if c, ok := containerCtor[f]; ok {
-			fmt.Fprintf(&b, "\tt.%s = %s\n", f, c)
+			fmt.Fprintf(&r, "\tt.%s = %s\n", f, c)
 		}
 	}
-	b.WriteString("}\n")
-	return b.String()
+	r.WriteString("}\n")
+	restFile = r.String()
+	return namespacesFile, restFile
 }
 
 // ---------------------------------------------------------------------------
@@ -1700,13 +1721,26 @@ func run() error {
 	}
 
 	// Build outputs: one file per spec (that has resources) + client tree + table.
+	// Each generated file has a real home in the repo tree:
+	//   pkg/rest/namespaces/<ns>_resources_generated.go   (package namespaces)
+	//   pkg/rest/namespaces/client_tree_generated.go       (package namespaces)
+	//   pkg/rest/rest_tree_generated.go                    (package rest)
+	//   internal/surface/struct_table_generated.go         (package surface)
+	// In scratch mode (--out DIR) every file is written flat into DIR (for the
+	// GEN-FRESH-independent scratch join verify); the base names stay distinct.
 	type outFile struct {
 		path string
 		src  string
 	}
-	outDir := filepath.Join(repoRoot, "pkg", "rest", "namespaces", "generated")
-	if *out != "" {
-		outDir = *out
+	nsDir := filepath.Join(repoRoot, "pkg", "rest", "namespaces")
+	restDir := filepath.Join(repoRoot, "pkg", "rest")
+	surfaceDir := filepath.Join(repoRoot, "internal", "surface")
+	// dir picks the real-tree directory for a base name, or the scratch --out dir.
+	dir := func(realDir string) string {
+		if *out != "" {
+			return *out
+		}
+		return realDir
 	}
 	var outs []outFile
 	for _, sd := range specs {
@@ -1717,23 +1751,20 @@ func run() error {
 		if src == "" {
 			continue
 		}
-		fn := strings.ReplaceAll(sd.name, "-", "_") + "_generated.go"
-		outs = append(outs, outFile{path: filepath.Join(outDir, fn), src: src})
+		fn := strings.ReplaceAll(sd.name, "-", "_") + "_resources_generated.go"
+		outs = append(outs, outFile{path: filepath.Join(dir(nsDir), fn), src: src})
 	}
 	placed := resolvePlacement(specs)
-	outs = append(outs, outFile{path: filepath.Join(outDir, "client_tree_generated.go"), src: emitClientTree(placed)})
+	nsTree, restTree := emitClientTree(placed)
+	outs = append(outs, outFile{path: filepath.Join(dir(nsDir), "client_tree_generated.go"), src: nsTree})
+	outs = append(outs, outFile{path: filepath.Join(dir(restDir), "rest_tree_generated.go"), src: restTree})
 	tbl, err := emitStructTableSlice(specs, bases)
 	if err != nil {
 		return err
 	}
-	outs = append(outs, outFile{path: filepath.Join(outDir, "struct_table_generated.go"), src: tbl})
+	outs = append(outs, outFile{path: filepath.Join(dir(surfaceDir), "struct_table_generated.go"), src: tbl})
 
 	var stale []string
-	if !*check {
-		if err := os.MkdirAll(outDir, 0o755); err != nil {
-			return err
-		}
-	}
 	for _, o := range outs {
 		formatted, err := gofmtSrc(o.src)
 		if err != nil {
@@ -1745,6 +1776,9 @@ func run() error {
 				stale = append(stale, o.path)
 			}
 			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(o.path), 0o755); err != nil {
+			return err
 		}
 		if err := os.WriteFile(o.path, formatted, 0o644); err != nil {
 			return err
