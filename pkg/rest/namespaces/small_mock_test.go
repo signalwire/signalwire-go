@@ -63,7 +63,7 @@ func TestAddresses_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Create(map[string]any{
+	body, err := client.Addresses.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{
 		"address_type": "commercial",
 		"first_name":   "Ada",
 		"last_name":    "Lovelace",

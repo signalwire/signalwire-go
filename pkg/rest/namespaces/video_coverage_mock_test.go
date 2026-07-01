@@ -515,7 +515,7 @@ func TestVideoCov_CreateConferenceStream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Video.Conferences.CreateStream("conf-1", map[string]any{
+	body, err := client.Video.Conferences.CreateStream("conf-1", nil, map[string]any{
 		"url": "rtmp://example.com/live",
 	})
 	if err != nil {
@@ -548,7 +548,7 @@ func TestVideoCov_CreateConferenceStream_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_conference_stream", 422, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.CreateStream("conf-1", map[string]any{"url": "bad"})
+	_, err := client.Video.Conferences.CreateStream("conf-1", nil, map[string]any{"url": "bad"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1037,7 +1037,7 @@ func TestVideoCov_CreateRoomToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Video.RoomTokens.Create(map[string]any{"room_name": "demo"})
+	body, err := client.Video.RoomTokens.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"room_name": "demo"})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -1068,7 +1068,7 @@ func TestVideoCov_CreateRoomToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_room_token", 422, map[string]any{"error": "x"})
-	_, err := client.Video.RoomTokens.Create(map[string]any{"room_name": "bad"})
+	_, err := client.Video.RoomTokens.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"room_name": "bad"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1410,7 +1410,7 @@ func TestVideoCov_CreateRoomStream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Video.Rooms.CreateStream("room-1", map[string]any{
+	body, err := client.Video.Rooms.CreateStream("room-1", nil, map[string]any{
 		"url": "rtmp://example.com/live",
 	})
 	if err != nil {
@@ -1443,7 +1443,7 @@ func TestVideoCov_CreateRoomStream_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_room_stream", 422, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.CreateStream("room-1", map[string]any{"url": "bad"})
+	_, err := client.Video.Rooms.CreateStream("room-1", nil, map[string]any{"url": "bad"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1520,7 +1520,7 @@ func TestVideoCov_UpdateStream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Video.Streams.Update("stream-1", map[string]any{"url": "rtmp://example.com/new"})
+	body, err := client.Video.Streams.Update("stream-1", nil, map[string]any{"url": "rtmp://example.com/new"})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -1551,7 +1551,7 @@ func TestVideoCov_UpdateStream_NotFound(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.update_stream", 404, map[string]any{"error": "not found"})
-	_, err := client.Video.Streams.Update("missing", map[string]any{"url": "x"})
+	_, err := client.Video.Streams.Update("missing", nil, map[string]any{"url": "x"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

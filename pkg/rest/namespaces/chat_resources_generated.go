@@ -17,6 +17,20 @@ func NewChatNamespace(client HTTPClient) *ChatNamespace {
 	return &ChatNamespace{Resource{HTTP: client, Base: "/api/chat/tokens"}}
 }
 
-func (r *ChatNamespace) CreateToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *ChatNamespace) CreateToken(ttl any, channels any, memberId any, state any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if ttl != nil {
+		body["ttl"] = ttl
+	}
+	if channels != nil {
+		body["channels"] = channels
+	}
+	if memberId != nil {
+		body["member_id"] = memberId
+	}
+	if state != nil {
+		body["state"] = state
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Base, body, nil)
 }

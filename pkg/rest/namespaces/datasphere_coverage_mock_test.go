@@ -148,7 +148,7 @@ func TestDatasphereCov_SearchDocuments_Success(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.Search(map[string]any{"query": "hello"})
+	_, err := client.Datasphere.Documents.Search(nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"query": "hello"})
 	if err != nil {
 		t.Fatalf("Search: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestDatasphereCov_SearchDocuments_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.search_documents", 422, map[string]any{"error": "bad query"})
-	_, err := client.Datasphere.Documents.Search(map[string]any{"query": ""})
+	_, err := client.Datasphere.Documents.Search(nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"query": ""})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

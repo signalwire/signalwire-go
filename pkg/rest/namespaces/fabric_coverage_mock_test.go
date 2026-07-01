@@ -166,7 +166,7 @@ func TestFabricCov_Tokens_CreateEmbed(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateEmbedToken(map[string]any{"allowed_addresses": []string{"a"}})
+	_, err := client.Fabric.Tokens.CreateEmbedToken(nil, map[string]any{"allowed_addresses": []string{"a"}})
 	if err != nil {
 		t.Fatalf("CreateEmbedToken: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestFabricCov_Tokens_CreateEmbed_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_embeds_token", 422, map[string]any{"error": "bad"})
-	_, err := client.Fabric.Tokens.CreateEmbedToken(map[string]any{"x": 1})
+	_, err := client.Fabric.Tokens.CreateEmbedToken(nil, map[string]any{"x": 1})
 	e := fabAssertError(t, mock, err, 422, "fabric.create_embeds_token")
 	if e.StatusCode != 422 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -198,7 +198,7 @@ func TestFabricCov_Tokens_CreateGuest(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateGuestToken(map[string]any{"allowed_addresses": []string{"a"}})
+	_, err := client.Fabric.Tokens.CreateGuestToken(nil, nil, map[string]any{"allowed_addresses": []string{"a"}})
 	if err != nil {
 		t.Fatalf("CreateGuestToken: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestFabricCov_Tokens_CreateGuest_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_guest_token", 422, map[string]any{"error": "bad"})
-	_, err := client.Fabric.Tokens.CreateGuestToken(map[string]any{"x": 1})
+	_, err := client.Fabric.Tokens.CreateGuestToken(nil, nil, map[string]any{"x": 1})
 	e := fabAssertError(t, mock, err, 422, "fabric.create_subscriber_guest_token")
 	if e.StatusCode != 422 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -227,7 +227,7 @@ func TestFabricCov_Tokens_CreateInvite(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(map[string]any{"email": "x@example.com"})
+	_, err := client.Fabric.Tokens.CreateInviteToken(nil, nil, map[string]any{"email": "x@example.com"})
 	if err != nil {
 		t.Fatalf("CreateInviteToken: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestFabricCov_Tokens_CreateInvite_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_invite_token", 422, map[string]any{"error": "bad"})
-	_, err := client.Fabric.Tokens.CreateInviteToken(map[string]any{"email": "x"})
+	_, err := client.Fabric.Tokens.CreateInviteToken(nil, nil, map[string]any{"email": "x"})
 	e := fabAssertError(t, mock, err, 422, "fabric.create_subscriber_invite_token")
 	if e.StatusCode != 422 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -259,7 +259,7 @@ func TestFabricCov_Tokens_CreateSubscriber(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateSubscriberToken(map[string]any{"reference": "r1"})
+	_, err := client.Fabric.Tokens.CreateSubscriberToken(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"reference": "r1"})
 	if err != nil {
 		t.Fatalf("CreateSubscriberToken: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestFabricCov_Tokens_CreateSubscriber_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_token", 422, map[string]any{"error": "bad"})
-	_, err := client.Fabric.Tokens.CreateSubscriberToken(map[string]any{"x": 1})
+	_, err := client.Fabric.Tokens.CreateSubscriberToken(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"x": 1})
 	e := fabAssertError(t, mock, err, 422, "fabric.create_subscriber_token")
 	if e.StatusCode != 422 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -288,7 +288,7 @@ func TestFabricCov_Tokens_RefreshSubscriber(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(map[string]any{"refresh_token": "abc"})
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(nil, map[string]any{"refresh_token": "abc"})
 	if err != nil {
 		t.Fatalf("RefreshSubscriberToken: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestFabricCov_Tokens_RefreshSubscriber_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.refresh_subscriber_token", 422, map[string]any{"error": "bad"})
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(map[string]any{"refresh_token": "x"})
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(nil, map[string]any{"refresh_token": "x"})
 	e := fabAssertError(t, mock, err, 422, "fabric.refresh_subscriber_token")
 	if e.StatusCode != 422 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -450,7 +450,7 @@ func TestFabricCov_Resources_AssignDomainApplication(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", map[string]any{"domain_application_id": "da-7"})
+	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", nil, map[string]any{"domain_application_id": "da-7"})
 	if err != nil {
 		t.Fatalf("AssignDomainApplication: %v", err)
 	}
@@ -468,7 +468,7 @@ func TestFabricCov_Resources_AssignDomainApplication_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.assign_resource_domain_application", 422, map[string]any{"error": "bad"})
-	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", map[string]any{"x": 1})
+	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", nil, map[string]any{"x": 1})
 	e := fabAssertError(t, mock, err, 422, "fabric.assign_resource_domain_application")
 	if e.StatusCode != 422 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -482,7 +482,7 @@ func TestFabricCov_Resources_AssignPhoneRoute(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignPhoneRoute("res-5", map[string]any{"phone_number": "+15550001111"})
+	_, err := client.Fabric.Resources.AssignPhoneRoute("res-5", nil, nil, map[string]any{"phone_number": "+15550001111"})
 	if err != nil {
 		t.Fatalf("AssignPhoneRoute: %v", err)
 	}
@@ -500,7 +500,7 @@ func TestFabricCov_Resources_AssignPhoneRoute_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.assign_resource_phone_route", 422, map[string]any{"error": "bad"})
-	_, err := client.Fabric.Resources.AssignPhoneRoute("res-5", map[string]any{"x": 1})
+	_, err := client.Fabric.Resources.AssignPhoneRoute("res-5", nil, nil, map[string]any{"x": 1})
 	e := fabAssertError(t, mock, err, 422, "fabric.assign_resource_phone_route")
 	if e.StatusCode != 422 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -1226,7 +1226,7 @@ func TestFabricCov_CXMLApplications_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.Update("app-1", map[string]any{"name": "renamed"})
+	_, err := client.Fabric.CXMLApplications.Update("app-1", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"name": "renamed"})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -1244,7 +1244,7 @@ func TestFabricCov_CXMLApplications_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_cxml_application", 404, map[string]any{"error": "not found"})
-	_, err := client.Fabric.CXMLApplications.Update("missing", map[string]any{"name": "x"})
+	_, err := client.Fabric.CXMLApplications.Update("missing", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"name": "x"})
 	e := fabAssertError(t, mock, err, 404, "fabric.update_cxml_application")
 	if e.StatusCode != 404 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -2491,7 +2491,7 @@ func TestFabricCov_Subscribers_CreateSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("sub-1", map[string]any{"username": "u"})
+	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("sub-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{"username": "u"})
 	if err != nil {
 		t.Fatalf("CreateSIPEndpoint: %v", err)
 	}
@@ -2509,7 +2509,7 @@ func TestFabricCov_Subscribers_CreateSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_sip_endpoint", 422, map[string]any{"error": "bad"})
-	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("sub-1", map[string]any{"x": 1})
+	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("sub-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{"x": 1})
 	e := fabAssertError(t, mock, err, 422, "fabric.create_subscriber_sip_endpoint")
 	if e.StatusCode != 422 {
 		t.Errorf("StatusCode = %d", e.StatusCode)
@@ -2555,7 +2555,7 @@ func TestFabricCov_Subscribers_UpdateSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", map[string]any{"username": "renamed"})
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{"username": "renamed"})
 	if err != nil {
 		t.Fatalf("UpdateSIPEndpoint: %v", err)
 	}
@@ -2573,7 +2573,7 @@ func TestFabricCov_Subscribers_UpdateSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_subscriber_sip_endpoint", 404, map[string]any{"error": "not found"})
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "missing", map[string]any{"username": "x"})
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "missing", nil, nil, nil, nil, nil, nil, nil, map[string]any{"username": "x"})
 	e := fabAssertError(t, mock, err, 404, "fabric.update_subscriber_sip_endpoint")
 	if e.StatusCode != 404 {
 		t.Errorf("StatusCode = %d", e.StatusCode)

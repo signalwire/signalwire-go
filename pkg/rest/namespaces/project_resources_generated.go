@@ -17,12 +17,31 @@ func NewProjectTokens(client HTTPClient) *ProjectTokens {
 	return &ProjectTokens{Resource{HTTP: client, Base: "/api/project/tokens"}}
 }
 
-func (r *ProjectTokens) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *ProjectTokens) Create(name any, permissions any, subprojectId any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if name != nil {
+		body["name"] = name
+	}
+	if permissions != nil {
+		body["permissions"] = permissions
+	}
+	if subprojectId != nil {
+		body["subproject_id"] = subprojectId
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Base, body, nil)
 }
 
-func (r *ProjectTokens) Update(tokenID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Patch(r.Path(tokenID), data)
+func (r *ProjectTokens) Update(tokenID string, name any, permissions any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if name != nil {
+		body["name"] = name
+	}
+	if permissions != nil {
+		body["permissions"] = permissions
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Patch(r.Path(tokenID), body)
 }
 
 func (r *ProjectTokens) Delete(tokenID string) (map[string]any, error) {

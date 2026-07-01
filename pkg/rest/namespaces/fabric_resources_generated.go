@@ -51,12 +51,25 @@ func (r *GenericResources) ListAddresses(id string, params map[string]string) (m
 	return r.HTTP.Get(r.Path(id, "addresses"), params)
 }
 
-func (r *GenericResources) AssignPhoneRoute(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "phone_routes"), data, nil)
+func (r *GenericResources) AssignPhoneRoute(id string, phoneRouteId any, handler any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if phoneRouteId != nil {
+		body["phone_route_id"] = phoneRouteId
+	}
+	if handler != nil {
+		body["handler"] = handler
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path(id, "phone_routes"), body, nil)
 }
 
-func (r *GenericResources) AssignDomainApplication(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "domain_applications"), data, nil)
+func (r *GenericResources) AssignDomainApplication(id string, domainApplicationId any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if domainApplicationId != nil {
+		body["domain_application_id"] = domainApplicationId
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path(id, "domain_applications"), body, nil)
 }
 
 // AIAgents is generated from x-sdk-resource "AiAgents" in the fabric spec.
@@ -123,8 +136,52 @@ func (r *CxmlApplicationsResource) Get(id string, params map[string]string) (map
 	return r.HTTP.Get(r.Path(id), params)
 }
 
-func (r *CxmlApplicationsResource) Update(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(id), data)
+func (r *CxmlApplicationsResource) Update(id string, displayName any, accountSid any, voiceUrl any, voiceMethod any, voiceFallbackUrl any, voiceFallbackMethod any, statusCallback any, statusCallbackMethod any, smsUrl any, smsMethod any, smsFallbackUrl any, smsFallbackMethod any, smsStatusCallback any, smsStatusCallbackMethod any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if displayName != nil {
+		body["display_name"] = displayName
+	}
+	if accountSid != nil {
+		body["account_sid"] = accountSid
+	}
+	if voiceUrl != nil {
+		body["voice_url"] = voiceUrl
+	}
+	if voiceMethod != nil {
+		body["voice_method"] = voiceMethod
+	}
+	if voiceFallbackUrl != nil {
+		body["voice_fallback_url"] = voiceFallbackUrl
+	}
+	if voiceFallbackMethod != nil {
+		body["voice_fallback_method"] = voiceFallbackMethod
+	}
+	if statusCallback != nil {
+		body["status_callback"] = statusCallback
+	}
+	if statusCallbackMethod != nil {
+		body["status_callback_method"] = statusCallbackMethod
+	}
+	if smsUrl != nil {
+		body["sms_url"] = smsUrl
+	}
+	if smsMethod != nil {
+		body["sms_method"] = smsMethod
+	}
+	if smsFallbackUrl != nil {
+		body["sms_fallback_url"] = smsFallbackUrl
+	}
+	if smsFallbackMethod != nil {
+		body["sms_fallback_method"] = smsFallbackMethod
+	}
+	if smsStatusCallback != nil {
+		body["sms_status_callback"] = smsStatusCallback
+	}
+	if smsStatusCallbackMethod != nil {
+		body["sms_status_callback_method"] = smsStatusCallbackMethod
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Put(r.Path(id), body)
 }
 
 func (r *CxmlApplicationsResource) Delete(id string) (map[string]any, error) {
@@ -209,16 +266,62 @@ func (r *SubscribersResource) ListSIPEndpoints(subscriberID string, params map[s
 	return r.HTTP.Get(r.Path(subscriberID, "sip_endpoints"), params)
 }
 
-func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), data, nil)
+func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, username any, password any, callerId any, sendAs any, ciphers any, codecs any, encryption any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if username != nil {
+		body["username"] = username
+	}
+	if password != nil {
+		body["password"] = password
+	}
+	if callerId != nil {
+		body["caller_id"] = callerId
+	}
+	if sendAs != nil {
+		body["send_as"] = sendAs
+	}
+	if ciphers != nil {
+		body["ciphers"] = ciphers
+	}
+	if codecs != nil {
+		body["codecs"] = codecs
+	}
+	if encryption != nil {
+		body["encryption"] = encryption
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), body, nil)
 }
 
 func (r *SubscribersResource) GetSIPEndpoint(subscriberID string, id string, params map[string]string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(subscriberID, "sip_endpoints", id), params)
 }
 
-func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID string, id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Patch(r.Path(subscriberID, "sip_endpoints", id), data)
+func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID string, id string, username any, password any, callerId any, sendAs any, ciphers any, codecs any, encryption any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if username != nil {
+		body["username"] = username
+	}
+	if password != nil {
+		body["password"] = password
+	}
+	if callerId != nil {
+		body["caller_id"] = callerId
+	}
+	if sendAs != nil {
+		body["send_as"] = sendAs
+	}
+	if ciphers != nil {
+		body["ciphers"] = ciphers
+	}
+	if codecs != nil {
+		body["codecs"] = codecs
+	}
+	if encryption != nil {
+		body["encryption"] = encryption
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Patch(r.Path(subscriberID, "sip_endpoints", id), body)
 }
 
 func (r *SubscribersResource) DeleteSIPEndpoint(subscriberID string, id string) (map[string]any, error) {
@@ -255,22 +358,86 @@ func NewFabricTokens(client HTTPClient) *FabricTokens {
 	return &FabricTokens{Resource{HTTP: client, Base: "/api/fabric"}}
 }
 
-func (r *FabricTokens) CreateSubscriberToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post("/api/fabric/subscribers/tokens", data, nil)
+func (r *FabricTokens) CreateSubscriberToken(reference any, expireAt any, applicationId any, password any, firstName any, lastName any, displayName any, jobTitle any, timeZone any, country any, region any, companyName any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if reference != nil {
+		body["reference"] = reference
+	}
+	if expireAt != nil {
+		body["expire_at"] = expireAt
+	}
+	if applicationId != nil {
+		body["application_id"] = applicationId
+	}
+	if password != nil {
+		body["password"] = password
+	}
+	if firstName != nil {
+		body["first_name"] = firstName
+	}
+	if lastName != nil {
+		body["last_name"] = lastName
+	}
+	if displayName != nil {
+		body["display_name"] = displayName
+	}
+	if jobTitle != nil {
+		body["job_title"] = jobTitle
+	}
+	if timeZone != nil {
+		body["time_zone"] = timeZone
+	}
+	if country != nil {
+		body["country"] = country
+	}
+	if region != nil {
+		body["region"] = region
+	}
+	if companyName != nil {
+		body["company_name"] = companyName
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post("/api/fabric/subscribers/tokens", body, nil)
 }
 
-func (r *FabricTokens) RefreshSubscriberToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post("/api/fabric/subscribers/tokens/refresh", data, nil)
+func (r *FabricTokens) RefreshSubscriberToken(refreshToken any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if refreshToken != nil {
+		body["refresh_token"] = refreshToken
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post("/api/fabric/subscribers/tokens/refresh", body, nil)
 }
 
-func (r *FabricTokens) CreateInviteToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post("/api/fabric/subscriber/invites", data, nil)
+func (r *FabricTokens) CreateInviteToken(addressId any, expiresAt any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if addressId != nil {
+		body["address_id"] = addressId
+	}
+	if expiresAt != nil {
+		body["expires_at"] = expiresAt
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post("/api/fabric/subscriber/invites", body, nil)
 }
 
-func (r *FabricTokens) CreateGuestToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post("/api/fabric/guests/tokens", data, nil)
+func (r *FabricTokens) CreateGuestToken(allowedAddresses any, expireAt any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if allowedAddresses != nil {
+		body["allowed_addresses"] = allowedAddresses
+	}
+	if expireAt != nil {
+		body["expire_at"] = expireAt
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post("/api/fabric/guests/tokens", body, nil)
 }
 
-func (r *FabricTokens) CreateEmbedToken(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post("/api/fabric/embeds/tokens", data, nil)
+func (r *FabricTokens) CreateEmbedToken(token any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if token != nil {
+		body["token"] = token
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post("/api/fabric/embeds/tokens", body, nil)
 }

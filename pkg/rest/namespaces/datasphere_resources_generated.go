@@ -17,8 +17,34 @@ func NewDatasphereDocuments(client HTTPClient) *DatasphereDocuments {
 	return &DatasphereDocuments{NewCrudResource(client, "/api/datasphere/documents")}
 }
 
-func (r *DatasphereDocuments) Search(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("search"), data, nil)
+func (r *DatasphereDocuments) Search(queryString any, tags any, documentId any, distance any, count any, language any, posToExpand any, maxSynonyms any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if queryString != nil {
+		body["query_string"] = queryString
+	}
+	if tags != nil {
+		body["tags"] = tags
+	}
+	if documentId != nil {
+		body["document_id"] = documentId
+	}
+	if distance != nil {
+		body["distance"] = distance
+	}
+	if count != nil {
+		body["count"] = count
+	}
+	if language != nil {
+		body["language"] = language
+	}
+	if posToExpand != nil {
+		body["pos_to_expand"] = posToExpand
+	}
+	if maxSynonyms != nil {
+		body["max_synonyms"] = maxSynonyms
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path("search"), body, nil)
 }
 
 func (r *DatasphereDocuments) ListChunks(documentID string, params map[string]string) (map[string]any, error) {

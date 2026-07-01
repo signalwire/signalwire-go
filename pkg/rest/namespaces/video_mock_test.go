@@ -62,7 +62,7 @@ func TestVideoRooms_CreateStream_PostsKwargsInBody(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Rooms.CreateStream("room-1", map[string]any{
+	body, err := client.Video.Rooms.CreateStream("room-1", nil, map[string]any{
 		"url": "rtmp://example.com/live",
 	})
 	if err != nil {
@@ -475,7 +475,7 @@ func TestVideoStreams_Update_UsesPutWithKwargs(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Streams.Update("stream-2", map[string]any{
+	body, err := client.Video.Streams.Update("stream-2", nil, map[string]any{
 		"url": "rtmp://example.com/new",
 	})
 	if err != nil {

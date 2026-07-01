@@ -177,7 +177,7 @@ func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.Update("camp-2", map[string]any{
+	body, err := client.Registry.Campaigns.Update("camp-2", nil, map[string]any{
 		"description": "Updated",
 	})
 	if err != nil {
@@ -239,7 +239,7 @@ func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.CreateOrder("camp-4", map[string]any{
+	body, err := client.Registry.Campaigns.CreateOrder("camp-4", nil, nil, map[string]any{
 		"numbers": []string{"pn-1", "pn-2"},
 	})
 	if err != nil {

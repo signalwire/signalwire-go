@@ -43,8 +43,13 @@ func (r *VideoConferences) ListStreams(id string, params map[string]string) (map
 	return r.HTTP.Get(r.Path(id, "streams"), params)
 }
 
-func (r *VideoConferences) CreateStream(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "streams"), data, nil)
+func (r *VideoConferences) CreateStream(id string, url any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if url != nil {
+		body["url"] = url
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path(id, "streams"), body, nil)
 }
 
 // VideoRoomRecordings is generated from x-sdk-resource "VideoRoomRecordings" in the video spec.
@@ -113,8 +118,64 @@ func NewVideoRoomTokens(client HTTPClient) *VideoRoomTokens {
 	return &VideoRoomTokens{Resource{HTTP: client, Base: "/api/video/room_tokens"}}
 }
 
-func (r *VideoRoomTokens) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *VideoRoomTokens) Create(roomName any, userName any, permissions any, joinFrom any, joinUntil any, removeAt any, removeAfterSecondsElapsed any, joinAudioMuted any, joinVideoMuted any, autoCreateRoom any, enableRoomPreviews any, roomDisplayName any, endRoomSessionOnLeave any, joinAs any, mediaAllowed any, roomMeta any, meta any, syncAudioVideo any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if roomName != nil {
+		body["room_name"] = roomName
+	}
+	if userName != nil {
+		body["user_name"] = userName
+	}
+	if permissions != nil {
+		body["permissions"] = permissions
+	}
+	if joinFrom != nil {
+		body["join_from"] = joinFrom
+	}
+	if joinUntil != nil {
+		body["join_until"] = joinUntil
+	}
+	if removeAt != nil {
+		body["remove_at"] = removeAt
+	}
+	if removeAfterSecondsElapsed != nil {
+		body["remove_after_seconds_elapsed"] = removeAfterSecondsElapsed
+	}
+	if joinAudioMuted != nil {
+		body["join_audio_muted"] = joinAudioMuted
+	}
+	if joinVideoMuted != nil {
+		body["join_video_muted"] = joinVideoMuted
+	}
+	if autoCreateRoom != nil {
+		body["auto_create_room"] = autoCreateRoom
+	}
+	if enableRoomPreviews != nil {
+		body["enable_room_previews"] = enableRoomPreviews
+	}
+	if roomDisplayName != nil {
+		body["room_display_name"] = roomDisplayName
+	}
+	if endRoomSessionOnLeave != nil {
+		body["end_room_session_on_leave"] = endRoomSessionOnLeave
+	}
+	if joinAs != nil {
+		body["join_as"] = joinAs
+	}
+	if mediaAllowed != nil {
+		body["media_allowed"] = mediaAllowed
+	}
+	if roomMeta != nil {
+		body["room_meta"] = roomMeta
+	}
+	if meta != nil {
+		body["meta"] = meta
+	}
+	if syncAudioVideo != nil {
+		body["sync_audio_video"] = syncAudioVideo
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Base, body, nil)
 }
 
 // VideoRooms is generated from x-sdk-resource "VideoRooms" in the video spec.
@@ -131,8 +192,13 @@ func (r *VideoRooms) ListStreams(id string, params map[string]string) (map[strin
 	return r.HTTP.Get(r.Path(id, "streams"), params)
 }
 
-func (r *VideoRooms) CreateStream(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "streams"), data, nil)
+func (r *VideoRooms) CreateStream(id string, url any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if url != nil {
+		body["url"] = url
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path(id, "streams"), body, nil)
 }
 
 // VideoStreams is generated from x-sdk-resource "VideoStreams" in the video spec.
@@ -149,8 +215,13 @@ func (r *VideoStreams) Get(id string, params map[string]string) (map[string]any,
 	return r.HTTP.Get(r.Path(id), params)
 }
 
-func (r *VideoStreams) Update(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(id), data)
+func (r *VideoStreams) Update(id string, url any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if url != nil {
+		body["url"] = url
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Put(r.Path(id), body)
 }
 
 func (r *VideoStreams) Delete(id string) (map[string]any, error) {

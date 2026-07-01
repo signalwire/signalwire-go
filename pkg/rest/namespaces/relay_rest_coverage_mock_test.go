@@ -344,7 +344,7 @@ func TestRelayRestCov_Addresses_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Create(map[string]any{"display_name": "HQ"})
+	body, err := client.Addresses.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"display_name": "HQ"})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -366,7 +366,7 @@ func TestRelayRestCov_Addresses_Create_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.create_address", 422, func() error {
-		_, err := client.Addresses.Create(map[string]any{})
+		_, err := client.Addresses.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{})
 		return err
 	})
 	if gotStatus != 422 {
@@ -655,7 +655,7 @@ func TestRelayRestCov_VerifiedCallers_SubmitVerification(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.VerifiedCallers.SubmitVerification("vc-1", map[string]any{"code": "123456"})
+	body, err := client.VerifiedCallers.SubmitVerification("vc-1", nil, map[string]any{"code": "123456"})
 	if err != nil {
 		t.Fatalf("SubmitVerification: %v", err)
 	}
@@ -677,7 +677,7 @@ func TestRelayRestCov_VerifiedCallers_SubmitVerification_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.validate_verification_code", 422, func() error {
-		_, err := client.VerifiedCallers.SubmitVerification("vc-1", map[string]any{"code": "bad"})
+		_, err := client.VerifiedCallers.SubmitVerification("vc-1", nil, map[string]any{"code": "bad"})
 		return err
 	})
 	if gotStatus != 422 {
@@ -1310,7 +1310,7 @@ func TestRelayRestCov_NumberGroups_AddMembership(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.NumberGroups.AddMembership("ng-1", map[string]any{"phone_number_id": "pn-1"})
+	body, err := client.NumberGroups.AddMembership("ng-1", nil, map[string]any{"phone_number_id": "pn-1"})
 	if err != nil {
 		t.Fatalf("AddMembership: %v", err)
 	}
@@ -1332,7 +1332,7 @@ func TestRelayRestCov_NumberGroups_AddMembership_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.create_number_group_membership", 422, func() error {
-		_, err := client.NumberGroups.AddMembership("ng-1", map[string]any{})
+		_, err := client.NumberGroups.AddMembership("ng-1", nil, map[string]any{})
 		return err
 	})
 	if gotStatus != 422 {
@@ -1481,7 +1481,7 @@ func TestRelayRestCov_ShortCodes_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.ShortCodes.Update("sc-1", map[string]any{"name": "Promo"})
+	body, err := client.ShortCodes.Update("sc-1", nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"name": "Promo"})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -1503,7 +1503,7 @@ func TestRelayRestCov_ShortCodes_Update_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.update_short_code", 404, func() error {
-		_, err := client.ShortCodes.Update("missing", map[string]any{"name": "X"})
+		_, err := client.ShortCodes.Update("missing", nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"name": "X"})
 		return err
 	})
 	if gotStatus != 404 {
@@ -1520,7 +1520,7 @@ func TestRelayRestCov_ImportedNumbers_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.ImportedNumbers.Create(map[string]any{"number": "+15551234567"})
+	body, err := client.ImportedNumbers.Create(nil, nil, nil, map[string]any{"number": "+15551234567"})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -1542,7 +1542,7 @@ func TestRelayRestCov_ImportedNumbers_Create_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.create_imported_phone_number", 422, func() error {
-		_, err := client.ImportedNumbers.Create(map[string]any{})
+		_, err := client.ImportedNumbers.Create(nil, nil, nil, map[string]any{})
 		return err
 	})
 	if gotStatus != 422 {
@@ -1559,7 +1559,7 @@ func TestRelayRestCov_MFA_Call(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.MFA.Call(map[string]any{"to": "+15551234567"})
+	body, err := client.MFA.Call(nil, nil, nil, nil, nil, nil, nil, map[string]any{"to": "+15551234567"})
 	if err != nil {
 		t.Fatalf("Call: %v", err)
 	}
@@ -1581,7 +1581,7 @@ func TestRelayRestCov_MFA_Call_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.request_mfa_call", 422, func() error {
-		_, err := client.MFA.Call(map[string]any{})
+		_, err := client.MFA.Call(nil, nil, nil, nil, nil, nil, nil, map[string]any{})
 		return err
 	})
 	if gotStatus != 422 {
@@ -1596,7 +1596,7 @@ func TestRelayRestCov_MFA_SMS(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.MFA.SMS(map[string]any{"to": "+15551234567"})
+	body, err := client.MFA.SMS(nil, nil, nil, nil, nil, nil, nil, map[string]any{"to": "+15551234567"})
 	if err != nil {
 		t.Fatalf("SMS: %v", err)
 	}
@@ -1618,7 +1618,7 @@ func TestRelayRestCov_MFA_SMS_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.request_mfa_sms", 422, func() error {
-		_, err := client.MFA.SMS(map[string]any{})
+		_, err := client.MFA.SMS(nil, nil, nil, nil, nil, nil, nil, map[string]any{})
 		return err
 	})
 	if gotStatus != 422 {
@@ -1633,7 +1633,7 @@ func TestRelayRestCov_MFA_Verify(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.MFA.Verify("req-1", map[string]any{"token": "123456"})
+	body, err := client.MFA.Verify("req-1", nil, map[string]any{"token": "123456"})
 	if err != nil {
 		t.Fatalf("Verify: %v", err)
 	}
@@ -1655,7 +1655,7 @@ func TestRelayRestCov_MFA_Verify_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.verify_mfa_token", 422, func() error {
-		_, err := client.MFA.Verify("req-1", map[string]any{"token": "bad"})
+		_, err := client.MFA.Verify("req-1", nil, map[string]any{"token": "bad"})
 		return err
 	})
 	if gotStatus != 422 {
@@ -1705,7 +1705,7 @@ func TestRelayRestCov_SipProfile_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.SIPProfile.Update(map[string]any{"domain": "co.sip.signalwire.com"})
+	body, err := client.SIPProfile.Update(nil, nil, nil, nil, nil, map[string]any{"domain": "co.sip.signalwire.com"})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -1727,7 +1727,7 @@ func TestRelayRestCov_SipProfile_Update_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.update_sip_profile", 422, func() error {
-		_, err := client.SIPProfile.Update(map[string]any{"domain": ""})
+		_, err := client.SIPProfile.Update(nil, nil, nil, nil, nil, map[string]any{"domain": ""})
 		return err
 	})
 	if gotStatus != 422 {
@@ -1950,7 +1950,7 @@ func TestRelayRestCov_RegistryCampaigns_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Registry.Campaigns.Update("camp-1", map[string]any{"description": "upd"})
+	body, err := client.Registry.Campaigns.Update("camp-1", nil, map[string]any{"description": "upd"})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -1972,7 +1972,7 @@ func TestRelayRestCov_RegistryCampaigns_Update_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.update_campaign", 404, func() error {
-		_, err := client.Registry.Campaigns.Update("missing", map[string]any{"description": "x"})
+		_, err := client.Registry.Campaigns.Update("missing", nil, map[string]any{"description": "x"})
 		return err
 	})
 	if gotStatus != 404 {
@@ -2053,7 +2053,7 @@ func TestRelayRestCov_RegistryCampaigns_CreateOrder(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Registry.Campaigns.CreateOrder("camp-1", map[string]any{"numbers": []string{"pn-1"}})
+	body, err := client.Registry.Campaigns.CreateOrder("camp-1", nil, nil, map[string]any{"numbers": []string{"pn-1"}})
 	if err != nil {
 		t.Fatalf("CreateOrder: %v", err)
 	}
@@ -2079,7 +2079,7 @@ func TestRelayRestCov_RegistryCampaigns_CreateOrder_Err(t *testing.T) {
 	}
 	mock.Reset(t)
 	gotStatus := relayRestAssertErr(t, mock, "relay-rest.create_order", 422, func() error {
-		_, err := client.Registry.Campaigns.CreateOrder("camp-1", map[string]any{})
+		_, err := client.Registry.Campaigns.CreateOrder("camp-1", nil, nil, map[string]any{})
 		return err
 	})
 	if gotStatus != 422 {

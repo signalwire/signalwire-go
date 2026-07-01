@@ -25,150 +25,455 @@ func (c *CallingNamespace) execute(command string, callID string, params map[str
 	return c.HTTP.Post(c.Base, body, nil)
 }
 
-func (c *CallingNamespace) Dial(params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Dial(from any, to any, url any, swml any, callerId any, fallbackUrl any, statusUrl any, statusEvents any, urlMethod any, codecs any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if from != nil {
+		params["from"] = from
+	}
+	if to != nil {
+		params["to"] = to
+	}
+	if url != nil {
+		params["url"] = url
+	}
+	if swml != nil {
+		params["swml"] = swml
+	}
+	if callerId != nil {
+		params["caller_id"] = callerId
+	}
+	if fallbackUrl != nil {
+		params["fallback_url"] = fallbackUrl
+	}
+	if statusUrl != nil {
+		params["status_url"] = statusUrl
+	}
+	if statusEvents != nil {
+		params["status_events"] = statusEvents
+	}
+	if urlMethod != nil {
+		params["url_method"] = urlMethod
+	}
+	if codecs != nil {
+		params["codecs"] = codecs
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("dial", "", params)
 }
 
-func (c *CallingNamespace) Update(params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Update(id any, url any, swml any, fallbackUrl any, status any, statusUrl any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if id != nil {
+		params["id"] = id
+	}
+	if url != nil {
+		params["url"] = url
+	}
+	if swml != nil {
+		params["swml"] = swml
+	}
+	if fallbackUrl != nil {
+		params["fallback_url"] = fallbackUrl
+	}
+	if status != nil {
+		params["status"] = status
+	}
+	if statusUrl != nil {
+		params["status_url"] = statusUrl
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("update", "", params)
 }
 
-func (c *CallingNamespace) End(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) End(callID string, reason any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if reason != nil {
+		params["reason"] = reason
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.end", callID, params)
 }
 
-func (c *CallingNamespace) AIHold(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) AIHold(callID string, timeout any, prompt any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if timeout != nil {
+		params["timeout"] = timeout
+	}
+	if prompt != nil {
+		params["prompt"] = prompt
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.ai_hold", callID, params)
 }
 
-func (c *CallingNamespace) AIUnhold(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) AIUnhold(callID string, prompt any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if prompt != nil {
+		params["prompt"] = prompt
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.ai_unhold", callID, params)
 }
 
-func (c *CallingNamespace) AIMessage(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) AIMessage(callID string, role any, messageText any, reset any, globalData any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if role != nil {
+		params["role"] = role
+	}
+	if messageText != nil {
+		params["message_text"] = messageText
+	}
+	if reset != nil {
+		params["reset"] = reset
+	}
+	if globalData != nil {
+		params["global_data"] = globalData
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.ai_message", callID, params)
 }
 
-func (c *CallingNamespace) LiveTranscribe(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) LiveTranscribe(callID string, action any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if action != nil {
+		params["action"] = action
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.live_transcribe", callID, params)
 }
 
-func (c *CallingNamespace) LiveTranslate(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) LiveTranslate(callID string, action any, statusUrl any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if action != nil {
+		params["action"] = action
+	}
+	if statusUrl != nil {
+		params["status_url"] = statusUrl
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.live_translate", callID, params)
 }
 
-func (c *CallingNamespace) Transfer(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Transfer(callID string, dest any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if dest != nil {
+		params["dest"] = dest
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.transfer", callID, params)
 }
 
-func (c *CallingNamespace) UserEvent(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) UserEvent(callID string, event any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if event != nil {
+		params["event"] = event
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.user_event", callID, params)
 }
 
-func (c *CallingNamespace) Disconnect(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Disconnect(callID string, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.disconnect", callID, params)
 }
 
-func (c *CallingNamespace) Play(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Play(callID string, play any, controlId any, volume any, direction any, loop any, statusUrl any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if play != nil {
+		params["play"] = play
+	}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	if volume != nil {
+		params["volume"] = volume
+	}
+	if direction != nil {
+		params["direction"] = direction
+	}
+	if loop != nil {
+		params["loop"] = loop
+	}
+	if statusUrl != nil {
+		params["status_url"] = statusUrl
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.play", callID, params)
 }
 
-func (c *CallingNamespace) PlayPause(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) PlayPause(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.play.pause", callID, params)
 }
 
-func (c *CallingNamespace) PlayResume(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) PlayResume(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.play.resume", callID, params)
 }
 
-func (c *CallingNamespace) PlayStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) PlayStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.play.stop", callID, params)
 }
 
-func (c *CallingNamespace) PlayVolume(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) PlayVolume(callID string, controlId any, volume any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	if volume != nil {
+		params["volume"] = volume
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.play.volume", callID, params)
 }
 
-func (c *CallingNamespace) Record(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Record(callID string, controlId any, audio any, statusUrl any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	if audio != nil {
+		params["audio"] = audio
+	}
+	if statusUrl != nil {
+		params["status_url"] = statusUrl
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.record", callID, params)
 }
 
-func (c *CallingNamespace) RecordPause(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) RecordPause(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.record.pause", callID, params)
 }
 
-func (c *CallingNamespace) RecordResume(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) RecordResume(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.record.resume", callID, params)
 }
 
-func (c *CallingNamespace) RecordStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) RecordStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.record.stop", callID, params)
 }
 
-func (c *CallingNamespace) Collect(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Collect(callID string, controlId any, initialTimeout any, digits any, speech any, continuous any, partialResults any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	if initialTimeout != nil {
+		params["initial_timeout"] = initialTimeout
+	}
+	if digits != nil {
+		params["digits"] = digits
+	}
+	if speech != nil {
+		params["speech"] = speech
+	}
+	if continuous != nil {
+		params["continuous"] = continuous
+	}
+	if partialResults != nil {
+		params["partial_results"] = partialResults
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.collect", callID, params)
 }
 
-func (c *CallingNamespace) CollectStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) CollectStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.collect.stop", callID, params)
 }
 
-func (c *CallingNamespace) CollectStartInputTimers(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) CollectStartInputTimers(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.collect.start_input_timers", callID, params)
 }
 
-func (c *CallingNamespace) Detect(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Detect(callID string, detect any, controlId any, timeout any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if detect != nil {
+		params["detect"] = detect
+	}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	if timeout != nil {
+		params["timeout"] = timeout
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.detect", callID, params)
 }
 
-func (c *CallingNamespace) DetectStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) DetectStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.detect.stop", callID, params)
 }
 
-func (c *CallingNamespace) Tap(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Tap(callID string, tap any, device any, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if tap != nil {
+		params["tap"] = tap
+	}
+	if device != nil {
+		params["device"] = device
+	}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.tap", callID, params)
 }
 
-func (c *CallingNamespace) TapStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) TapStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.tap.stop", callID, params)
 }
 
-func (c *CallingNamespace) Stream(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Stream(callID string, url any, controlId any, codec any, track any, authorizationBearerToken any, customParameters any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if url != nil {
+		params["url"] = url
+	}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	if codec != nil {
+		params["codec"] = codec
+	}
+	if track != nil {
+		params["track"] = track
+	}
+	if authorizationBearerToken != nil {
+		params["authorization_bearer_token"] = authorizationBearerToken
+	}
+	if customParameters != nil {
+		params["custom_parameters"] = customParameters
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.stream", callID, params)
 }
 
-func (c *CallingNamespace) StreamStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) StreamStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.stream.stop", callID, params)
 }
 
-func (c *CallingNamespace) Denoise(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Denoise(callID string, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.denoise", callID, params)
 }
 
-func (c *CallingNamespace) DenoiseStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) DenoiseStop(callID string, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.denoise.stop", callID, params)
 }
 
-func (c *CallingNamespace) Transcribe(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Transcribe(callID string, controlId any, statusUrl any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	if statusUrl != nil {
+		params["status_url"] = statusUrl
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.transcribe", callID, params)
 }
 
-func (c *CallingNamespace) TranscribeStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) TranscribeStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.transcribe.stop", callID, params)
 }
 
-func (c *CallingNamespace) AIStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) AIStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.ai.stop", callID, params)
 }
 
-func (c *CallingNamespace) SendFaxStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) SendFaxStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.send_fax.stop", callID, params)
 }
 
-func (c *CallingNamespace) ReceiveFaxStop(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) ReceiveFaxStop(callID string, controlId any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if controlId != nil {
+		params["control_id"] = controlId
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.receive_fax.stop", callID, params)
 }
 
-func (c *CallingNamespace) Refer(callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) Refer(callID string, device any, statusUrl any, extras map[string]any) (map[string]any, error) {
+	params := map[string]any{}
+	if device != nil {
+		params["device"] = device
+	}
+	if statusUrl != nil {
+		params["status_url"] = statusUrl
+	}
+	mergeExtra(params, []map[string]any{extras})
 	return c.execute("calling.refer", callID, params)
 }

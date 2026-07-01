@@ -21,8 +21,43 @@ func (r *AddressesNamespace) List(params map[string]string) (map[string]any, err
 	return r.HTTP.Get(r.Base, params)
 }
 
-func (r *AddressesNamespace) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *AddressesNamespace) Create(label any, country any, firstName any, lastName any, streetNumber any, streetName any, city any, state any, postalCode any, addressType any, addressNumber any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if label != nil {
+		body["label"] = label
+	}
+	if country != nil {
+		body["country"] = country
+	}
+	if firstName != nil {
+		body["first_name"] = firstName
+	}
+	if lastName != nil {
+		body["last_name"] = lastName
+	}
+	if streetNumber != nil {
+		body["street_number"] = streetNumber
+	}
+	if streetName != nil {
+		body["street_name"] = streetName
+	}
+	if city != nil {
+		body["city"] = city
+	}
+	if state != nil {
+		body["state"] = state
+	}
+	if postalCode != nil {
+		body["postal_code"] = postalCode
+	}
+	if addressType != nil {
+		body["address_type"] = addressType
+	}
+	if addressNumber != nil {
+		body["address_number"] = addressNumber
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Base, body, nil)
 }
 
 func (r *AddressesNamespace) Get(id string, params map[string]string) (map[string]any, error) {
@@ -43,8 +78,19 @@ func NewImportedNumbersNamespace(client HTTPClient) *ImportedNumbersNamespace {
 	return &ImportedNumbersNamespace{Resource{HTTP: client, Base: "/api/relay/rest/imported_phone_numbers"}}
 }
 
-func (r *ImportedNumbersNamespace) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *ImportedNumbersNamespace) Create(number any, numberType any, capabilities any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if number != nil {
+		body["number"] = number
+	}
+	if numberType != nil {
+		body["number_type"] = numberType
+	}
+	if capabilities != nil {
+		body["capabilities"] = capabilities
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Base, body, nil)
 }
 
 // LookupNamespace is generated from x-sdk-resource "Lookup" in the relay-rest spec.
@@ -71,16 +117,67 @@ func NewMFANamespace(client HTTPClient) *MFANamespace {
 	return &MFANamespace{Resource{HTTP: client, Base: "/api/relay/rest/mfa"}}
 }
 
-func (r *MFANamespace) SMS(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("sms"), data, nil)
+func (r *MFANamespace) SMS(to any, from any, message any, tokenLength any, validFor any, maxAttempts any, allowAlphas any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if to != nil {
+		body["to"] = to
+	}
+	if from != nil {
+		body["from"] = from
+	}
+	if message != nil {
+		body["message"] = message
+	}
+	if tokenLength != nil {
+		body["token_length"] = tokenLength
+	}
+	if validFor != nil {
+		body["valid_for"] = validFor
+	}
+	if maxAttempts != nil {
+		body["max_attempts"] = maxAttempts
+	}
+	if allowAlphas != nil {
+		body["allow_alphas"] = allowAlphas
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path("sms"), body, nil)
 }
 
-func (r *MFANamespace) Call(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path("call"), data, nil)
+func (r *MFANamespace) Call(to any, from any, message any, tokenLength any, validFor any, maxAttempts any, allowAlphas any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if to != nil {
+		body["to"] = to
+	}
+	if from != nil {
+		body["from"] = from
+	}
+	if message != nil {
+		body["message"] = message
+	}
+	if tokenLength != nil {
+		body["token_length"] = tokenLength
+	}
+	if validFor != nil {
+		body["valid_for"] = validFor
+	}
+	if maxAttempts != nil {
+		body["max_attempts"] = maxAttempts
+	}
+	if allowAlphas != nil {
+		body["allow_alphas"] = allowAlphas
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path("call"), body, nil)
 }
 
-func (r *MFANamespace) Verify(requestID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(requestID, "verify"), data, nil)
+func (r *MFANamespace) Verify(requestID string, token any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if token != nil {
+		body["token"] = token
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path(requestID, "verify"), body, nil)
 }
 
 // NumberGroupsNamespace is generated from x-sdk-resource "NumberGroups" in the relay-rest spec.
@@ -97,8 +194,13 @@ func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[strin
 	return r.HTTP.Get(r.Path(groupID, "number_group_memberships"), params)
 }
 
-func (r *NumberGroupsNamespace) AddMembership(groupID string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(groupID, "number_group_memberships"), data, nil)
+func (r *NumberGroupsNamespace) AddMembership(groupID string, phoneNumberId any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if phoneNumberId != nil {
+		body["phone_number_id"] = phoneNumberId
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path(groupID, "number_group_memberships"), body, nil)
 }
 
 func (r *NumberGroupsNamespace) GetMembership(id string, params map[string]string) (map[string]any, error) {
@@ -274,8 +376,13 @@ func (r *RegistryCampaigns) Get(id string, params map[string]string) (map[string
 	return r.HTTP.Get(r.Path(id), params)
 }
 
-func (r *RegistryCampaigns) Update(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(id), data)
+func (r *RegistryCampaigns) Update(id string, name any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if name != nil {
+		body["name"] = name
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Put(r.Path(id), body)
 }
 
 func (r *RegistryCampaigns) ListNumbers(id string, params map[string]string) (map[string]any, error) {
@@ -286,8 +393,16 @@ func (r *RegistryCampaigns) ListOrders(id string, params map[string]string) (map
 	return r.HTTP.Get(r.Path(id, "orders"), params)
 }
 
-func (r *RegistryCampaigns) CreateOrder(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "orders"), data, nil)
+func (r *RegistryCampaigns) CreateOrder(id string, phoneNumbers any, statusCallbackUrl any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if phoneNumbers != nil {
+		body["phone_numbers"] = phoneNumbers
+	}
+	if statusCallbackUrl != nil {
+		body["status_callback_url"] = statusCallbackUrl
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Post(r.Path(id, "orders"), body, nil)
 }
 
 // RegistryNumbers is generated from x-sdk-resource "RegistryNumbers" in the relay-rest spec.
@@ -336,8 +451,34 @@ func (r *ShortCodesNamespace) Get(id string, params map[string]string) (map[stri
 	return r.HTTP.Get(r.Path(id), params)
 }
 
-func (r *ShortCodesNamespace) Update(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(id), data)
+func (r *ShortCodesNamespace) Update(id string, name any, messageHandler any, messageRequestUrl any, messageRequestMethod any, messageFallbackUrl any, messageFallbackMethod any, messageLamlApplicationId any, messageRelayContext any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if name != nil {
+		body["name"] = name
+	}
+	if messageHandler != nil {
+		body["message_handler"] = messageHandler
+	}
+	if messageRequestUrl != nil {
+		body["message_request_url"] = messageRequestUrl
+	}
+	if messageRequestMethod != nil {
+		body["message_request_method"] = messageRequestMethod
+	}
+	if messageFallbackUrl != nil {
+		body["message_fallback_url"] = messageFallbackUrl
+	}
+	if messageFallbackMethod != nil {
+		body["message_fallback_method"] = messageFallbackMethod
+	}
+	if messageLamlApplicationId != nil {
+		body["message_laml_application_id"] = messageLamlApplicationId
+	}
+	if messageRelayContext != nil {
+		body["message_relay_context"] = messageRelayContext
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Put(r.Path(id), body)
 }
 
 // SIPProfileNamespace is generated from x-sdk-resource "SipProfile" in the relay-rest spec.
@@ -354,8 +495,25 @@ func (r *SIPProfileNamespace) Get(params map[string]string) (map[string]any, err
 	return r.HTTP.Get(r.Base, params)
 }
 
-func (r *SIPProfileNamespace) Update(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Base, data)
+func (r *SIPProfileNamespace) Update(domainIdentifier any, defaultCodecs any, defaultCiphers any, defaultEncryption any, defaultSendAs any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if domainIdentifier != nil {
+		body["domain_identifier"] = domainIdentifier
+	}
+	if defaultCodecs != nil {
+		body["default_codecs"] = defaultCodecs
+	}
+	if defaultCiphers != nil {
+		body["default_ciphers"] = defaultCiphers
+	}
+	if defaultEncryption != nil {
+		body["default_encryption"] = defaultEncryption
+	}
+	if defaultSendAs != nil {
+		body["default_send_as"] = defaultSendAs
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Put(r.Base, body)
 }
 
 // VerifiedCallersNamespace is generated from x-sdk-resource "VerifiedCallers" in the relay-rest spec.
@@ -372,6 +530,11 @@ func (r *VerifiedCallersNamespace) RedialVerification(id string) (map[string]any
 	return r.HTTP.Post(r.Path(id, "verification"), nil, nil)
 }
 
-func (r *VerifiedCallersNamespace) SubmitVerification(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Put(r.Path(id, "verification"), data)
+func (r *VerifiedCallersNamespace) SubmitVerification(id string, verificationCode any, extras map[string]any) (map[string]any, error) {
+	body := map[string]any{}
+	if verificationCode != nil {
+		body["verification_code"] = verificationCode
+	}
+	mergeExtra(body, []map[string]any{extras})
+	return r.HTTP.Put(r.Path(id, "verification"), body)
 }

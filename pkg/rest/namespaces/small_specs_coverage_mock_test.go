@@ -46,7 +46,7 @@ func TestSmallSpec_ProjectCreateToken_Success(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Project.Tokens.Create(map[string]any{"name": "tok-1"})
+	_, err := client.Project.Tokens.Create(nil, nil, nil, map[string]any{"name": "tok-1"})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestSmallSpec_ProjectCreateToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "project.create_token", 422, map[string]any{"error": "invalid"})
-	_, err := client.Project.Tokens.Create(map[string]any{})
+	_, err := client.Project.Tokens.Create(nil, nil, nil, map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -100,7 +100,7 @@ func TestSmallSpec_ProjectUpdateToken_Success(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Project.Tokens.Update("tok-7", map[string]any{"name": "renamed"})
+	_, err := client.Project.Tokens.Update("tok-7", nil, nil, map[string]any{"name": "renamed"})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestSmallSpec_ProjectUpdateToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "project.update_token", 404, map[string]any{"error": "not found"})
-	_, err := client.Project.Tokens.Update("missing", map[string]any{"name": "x"})
+	_, err := client.Project.Tokens.Update("missing", nil, nil, map[string]any{"name": "x"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -631,7 +631,7 @@ func TestSmallSpec_CallingDial_Success(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Calling.Dial(map[string]any{
+	body, err := client.Calling.Dial(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{
 		"url": "https://example.com/swml",
 		"to":  "+15551234567",
 	})
@@ -665,7 +665,7 @@ func TestSmallSpec_CallingDial_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "calling.call-commands", 422, map[string]any{"error": "invalid"})
-	_, err := client.Calling.Dial(map[string]any{"command": "dial"})
+	_, err := client.Calling.Dial(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"command": "dial"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -691,7 +691,7 @@ func TestSmallSpec_ChatCreateToken_Success(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Chat.CreateToken(map[string]any{
+	_, err := client.Chat.CreateToken(nil, nil, nil, nil, map[string]any{
 		"channels": map[string]any{"room": map[string]any{"read": true}},
 	})
 	if err != nil {
@@ -717,7 +717,7 @@ func TestSmallSpec_ChatCreateToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "chat.create_chat_token", 422, map[string]any{"error": "invalid"})
-	_, err := client.Chat.CreateToken(map[string]any{})
+	_, err := client.Chat.CreateToken(nil, nil, nil, nil, map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -743,7 +743,7 @@ func TestSmallSpec_PubSubCreateToken_Success(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.PubSub.CreateToken(map[string]any{
+	_, err := client.PubSub.CreateToken(nil, nil, nil, nil, map[string]any{
 		"channels": map[string]any{"updates": map[string]any{"read": true}},
 	})
 	if err != nil {
@@ -769,7 +769,7 @@ func TestSmallSpec_PubSubCreateToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "pubsub.create_token", 422, map[string]any{"error": "invalid"})
-	_, err := client.PubSub.CreateToken(map[string]any{})
+	_, err := client.PubSub.CreateToken(nil, nil, nil, nil, map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

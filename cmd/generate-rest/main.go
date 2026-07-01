@@ -697,12 +697,45 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	for _, a := range idArgs {
 		params = append(params, a+" string")
 	}
+	// bodyFields holds (wire field -> Go param ident) for an exploded write body.
+	var bodyOrder []string
+	bodyParam := map[string]string{}
 	var tail string
 	switch {
 	case writeVerb:
 		if op.hasBody {
-			params = append(params, "data map[string]any")
-			tail = "data"
+			// §5: explode the requestBody schema into one typed param per field
+			// (required-first, then optionals), followed by a trailing `extras`
+			// door. The wire body is assembled from the provided fields + merged
+			// extras. Body fields are emitted as `any` (loose surface; the drift
+			// gate compares param count+kind, not the field's static type).
+			fields, oneOfBody, err := operationBodyFields(sd, op)
+			if err != nil {
+				return err
+			}
+			if oneOfBody {
+				// A top-level oneOf-union body is NOT exploded (the reference passes a
+				// single whole-body object) — emit the loose single-`data` form.
+				params = append(params, "data map[string]any")
+				tail = "data"
+				break
+			}
+			used := map[string]bool{"extras": true}
+			for _, a := range idArgs {
+				used[a] = true
+			}
+			for _, f := range fields {
+				pn := goParamName(f)
+				for used[pn] {
+					pn += "_"
+				}
+				used[pn] = true
+				bodyParam[f] = pn
+				bodyOrder = append(bodyOrder, f)
+				params = append(params, pn+" any")
+			}
+			params = append(params, "extras map[string]any")
+			tail = "body"
 		}
 	case verb == "get":
 		// §5.3: a GET has no request body, so every generated GET operation
@@ -733,6 +766,20 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	}
 
 	fmt.Fprintf(b, "func (r *%s) %s(%s) (map[string]any, error) {\n", recv, goName, strings.Join(params, ", "))
+	// Assemble the write body: exploded (only provided fields + merged extras) or
+	// the loose single-`data` object (oneOf-union bodies).
+	dataExpr := "nil"
+	switch tail {
+	case "body":
+		b.WriteString("\tbody := map[string]any{}\n")
+		for _, f := range bodyOrder {
+			fmt.Fprintf(b, "\tif %s != nil {\n\t\tbody[%q] = %s\n\t}\n", bodyParam[f], f, bodyParam[f])
+		}
+		b.WriteString("\tmergeExtra(body, []map[string]any{extras})\n")
+		dataExpr = "body"
+	case "data":
+		dataExpr = "data"
+	}
 	switch verb {
 	case "get":
 		if tail == "params" {
@@ -741,23 +788,11 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 			fmt.Fprintf(b, "\treturn r.HTTP.Get(%s, nil)\n", pathCode)
 		}
 	case "post":
-		if tail == "data" {
-			fmt.Fprintf(b, "\treturn r.HTTP.Post(%s, data, nil)\n", pathCode)
-		} else {
-			fmt.Fprintf(b, "\treturn r.HTTP.Post(%s, nil, nil)\n", pathCode)
-		}
+		fmt.Fprintf(b, "\treturn r.HTTP.Post(%s, %s, nil)\n", pathCode, dataExpr)
 	case "put":
-		if tail == "data" {
-			fmt.Fprintf(b, "\treturn r.HTTP.Put(%s, data)\n", pathCode)
-		} else {
-			fmt.Fprintf(b, "\treturn r.HTTP.Put(%s, nil)\n", pathCode)
-		}
+		fmt.Fprintf(b, "\treturn r.HTTP.Put(%s, %s)\n", pathCode, dataExpr)
 	case "patch":
-		if tail == "data" {
-			fmt.Fprintf(b, "\treturn r.HTTP.Patch(%s, data)\n", pathCode)
-		} else {
-			fmt.Fprintf(b, "\treturn r.HTTP.Patch(%s, nil)\n", pathCode)
-		}
+		fmt.Fprintf(b, "\treturn r.HTTP.Patch(%s, %s)\n", pathCode, dataExpr)
 	case "delete":
 		fmt.Fprintf(b, "\treturn r.HTTP.Delete(%s)\n", pathCode)
 	}
@@ -1068,7 +1103,7 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 	if rm.request == "" {
 		return fmt.Errorf("%s: command-dispatch requires request", rm.name)
 	}
-	mapping, err := loadDiscriminatorMapping(sd, rm.request)
+	mapping, schemaByCmd, err := loadDiscriminatorMappingSchemas(sd, rm.request)
 	if err != nil {
 		return err
 	}
@@ -1093,13 +1128,42 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		if !ok {
 			return fmt.Errorf("command %q has no Go method name (add to callingMethodName)", cmd)
 		}
-		if commandsWithoutID[cmd] {
-			fmt.Fprintf(b, "func (c *%s) %s(params map[string]any) (map[string]any, error) {\n", goName, mName)
-			fmt.Fprintf(b, "\treturn c.execute(%q, \"\", params)\n}\n\n", cmd)
-		} else {
-			fmt.Fprintf(b, "func (c *%s) %s(callID string, params map[string]any) (map[string]any, error) {\n", goName, mName)
-			fmt.Fprintf(b, "\treturn c.execute(%q, callID, params)\n}\n\n", cmd)
+		// §5/§6: emit one typed param per command params-sub-schema field
+		// (union-flattened), a leading callID positional when the command carries
+		// a top-level id, and a trailing `extras` door. The wire body is the
+		// `params` object assembled from the provided fields + merged extras.
+		_, fields, err := commandFields(sd, schemaByCmd[cmd])
+		if err != nil {
+			return err
 		}
+		withID := !commandsWithoutID[cmd]
+		var params []string
+		if withID {
+			params = append(params, "callID string")
+		}
+		fieldParam := map[string]string{} // wire field -> Go param ident
+		used := map[string]bool{"callID": true, "extras": true}
+		for _, f := range fields {
+			pn := goParamName(f)
+			for used[pn] {
+				pn += "_"
+			}
+			used[pn] = true
+			fieldParam[f] = pn
+			params = append(params, pn+" any")
+		}
+		params = append(params, "extras map[string]any")
+		fmt.Fprintf(b, "func (c *%s) %s(%s) (map[string]any, error) {\n", goName, mName, strings.Join(params, ", "))
+		b.WriteString("\tparams := map[string]any{}\n")
+		for _, f := range fields {
+			fmt.Fprintf(b, "\tif %s != nil {\n\t\tparams[%q] = %s\n\t}\n", fieldParam[f], f, fieldParam[f])
+		}
+		b.WriteString("\tmergeExtra(params, []map[string]any{extras})\n")
+		callID := `""`
+		if withID {
+			callID = "callID"
+		}
+		fmt.Fprintf(b, "\treturn c.execute(%q, %s, params)\n}\n\n", cmd, callID)
 	}
 	return nil
 }
@@ -1107,18 +1171,10 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 // loadDiscriminatorMapping returns the ordered command strings from the request
 // schema's discriminator.mapping. Fail loud if absent (§9).
 func loadDiscriminatorMapping(sd *specDoc, schemaName string) ([]string, error) {
-	// Re-read the raw spec doc for components/schemas access.
-	raw, err := os.ReadFile(sd.rawPath)
+	schemas, err := componentsSchemas(sd)
 	if err != nil {
 		return nil, err
 	}
-	var doc yaml.Node
-	if err := yaml.Unmarshal(raw, &doc); err != nil {
-		return nil, err
-	}
-	root := rootOf(&doc)
-	comps := mapChild(root, "components")
-	schemas := mapChild(comps, "schemas")
 	sch := mapChild(schemas, schemaName)
 	if sch == nil {
 		return nil, fmt.Errorf("command-dispatch request %q not in components.schemas", schemaName)
@@ -1133,6 +1189,273 @@ func loadDiscriminatorMapping(sd *specDoc, schemaName string) ([]string, error) 
 		out = append(out, mapping.Content[i].Value)
 	}
 	return out, nil
+}
+
+// loadDiscriminatorMappingSchemas returns the ordered command strings AND a
+// command->request-schema-name map (the discriminator.mapping value, a $ref).
+func loadDiscriminatorMappingSchemas(sd *specDoc, schemaName string) ([]string, map[string]string, error) {
+	schemas, err := componentsSchemas(sd)
+	if err != nil {
+		return nil, nil, err
+	}
+	sch := mapChild(schemas, schemaName)
+	if sch == nil {
+		return nil, nil, fmt.Errorf("command-dispatch request %q not in components.schemas", schemaName)
+	}
+	mapping := mapChild(mapChild(sch, "discriminator"), "mapping")
+	if mapping == nil || mapping.Kind != yaml.MappingNode {
+		return nil, nil, fmt.Errorf("command-dispatch request %q has no discriminator.mapping", schemaName)
+	}
+	var out []string
+	byCmd := map[string]string{}
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		cmd := mapping.Content[i].Value
+		out = append(out, cmd)
+		byCmd[cmd] = refLeaf(mapping.Content[i+1].Value)
+	}
+	return out, byCmd, nil
+}
+
+// ---------------------------------------------------------------------------
+// Typed param extraction (§5 closed params) — read the request/params schema
+// properties from the spec so operation + command methods can emit one Go
+// param per wire field (required-first, then optionals, in property order),
+// with a trailing `extras map[string]any` door. Matches the Python oracle's
+// keyword-only body fields + `extras`/`**kwargs` tail (the port enumerator
+// reclassifies the exploded positionals to keyword/var_keyword — see
+// cmd/enumerate-signatures). Body fields are emitted as `any`: the Go REST port
+// carries the loose surface, and the drift gate compares param COUNT + KIND
+// (not the field's static type), so `any` is both idiom-correct and drift-safe.
+// ---------------------------------------------------------------------------
+
+// schemaCache memoizes the parsed components/schemas node per spec (the raw doc
+// is re-read once and the node tree kept alive).
+var schemaCache = map[string]*yaml.Node{}
+
+// componentsSchemas returns the components.schemas mapping node for a spec.
+func componentsSchemas(sd *specDoc) (*yaml.Node, error) {
+	if n, ok := schemaCache[sd.rawPath]; ok {
+		return n, nil
+	}
+	raw, err := os.ReadFile(sd.rawPath)
+	if err != nil {
+		return nil, err
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(raw, &doc); err != nil {
+		return nil, err
+	}
+	schemas := mapChild(mapChild(rootOf(&doc), "components"), "schemas")
+	if schemas == nil {
+		return nil, fmt.Errorf("%s: missing components.schemas", sd.name)
+	}
+	schemaCache[sd.rawPath] = schemas
+	return schemas, nil
+}
+
+// refLeaf returns the final component name of a "#/components/schemas/Foo" ref.
+func refLeaf(ref string) string {
+	if i := strings.LastIndex(ref, "/"); i >= 0 {
+		return ref[i+1:]
+	}
+	return ref
+}
+
+// resolveSchema follows a $ref (one level, within components.schemas) to the
+// concrete schema node; a non-ref node is returned as-is.
+func resolveSchema(schemas, node *yaml.Node) *yaml.Node {
+	seen := map[string]bool{}
+	for node != nil {
+		if ref := scalarChild(node, "$ref"); ref != "" {
+			leaf := refLeaf(ref)
+			if seen[leaf] {
+				return node
+			}
+			seen[leaf] = true
+			node = mapChild(schemas, leaf)
+			continue
+		}
+		return node
+	}
+	return node
+}
+
+// schemaFields returns the ordered property names of an object schema, flattening
+// allOf/anyOf/oneOf unions (dedup, first-seen order) and following $refs, then
+// hoisting required fields (in property order) ahead of the optionals. Mirrors
+// the reference generator: a closed method signature lists required params first,
+// then optionals, both in schema property order.
+func schemaFields(schemas, node *yaml.Node) []string {
+	node = resolveSchema(schemas, node)
+	if node == nil {
+		return nil
+	}
+	// Collect the required set (across union branches too) and ordered names.
+	required := map[string]bool{}
+	var order []string
+	seen := map[string]bool{}
+	var walk func(n *yaml.Node)
+	walk = func(n *yaml.Node) {
+		n = resolveSchema(schemas, n)
+		if n == nil {
+			return
+		}
+		for _, comb := range []string{"allOf", "anyOf", "oneOf"} {
+			if lst := mapChild(n, comb); lst != nil && lst.Kind == yaml.SequenceNode {
+				for _, br := range lst.Content {
+					walk(br)
+				}
+			}
+		}
+		if req := mapChild(n, "required"); req != nil && req.Kind == yaml.SequenceNode {
+			for _, r := range req.Content {
+				required[r.Value] = true
+			}
+		}
+		if props := mapChild(n, "properties"); props != nil && props.Kind == yaml.MappingNode {
+			for i := 0; i+1 < len(props.Content); i += 2 {
+				name := props.Content[i].Value
+				if !seen[name] {
+					seen[name] = true
+					order = append(order, name)
+				}
+			}
+		}
+	}
+	walk(node)
+	// required-first (in property order), then the rest.
+	var out []string
+	for _, n := range order {
+		if required[n] {
+			out = append(out, n)
+		}
+	}
+	for _, n := range order {
+		if !required[n] {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// operationBodyFields returns the ordered typed-param field names of an operation's
+// requestBody schema (empty if the op declares no body). The second result is true
+// when the body is a top-level oneOf union of DISTINCT request types: the reference
+// generator does NOT explode such a body — it passes a single `body` object — so the
+// caller emits the loose single-`data` form instead of exploded params.
+func operationBodyFields(sd *specDoc, op opInfo) (fields []string, oneOfBody bool, err error) {
+	schemas, err := componentsSchemas(sd)
+	if err != nil {
+		return nil, false, err
+	}
+	// Re-read the op node to reach requestBody.content.*.schema.
+	body := mapChild(sd.rawOp(op), "requestBody")
+	if body == nil {
+		return nil, false, nil
+	}
+	content := mapChild(body, "content")
+	if content == nil || content.Kind != yaml.MappingNode || len(content.Content) < 2 {
+		return nil, false, nil
+	}
+	// first media type
+	sch := mapChild(content.Content[1], "schema")
+	if sch == nil {
+		return nil, false, nil
+	}
+	resolved := resolveSchema(schemas, sch)
+	if isUnionBody(resolved) {
+		return nil, true, nil
+	}
+	return schemaFields(schemas, sch), false, nil
+}
+
+// isUnionBody reports whether an operation's request-body schema is a top-level
+// oneOf/anyOf union of DISTINCT request types (e.g. CreateManagedCampaignRequest |
+// CreatePartnerCampaignRequest, or a CallFlow deploy oneOf). The reference
+// generator does NOT explode such a body — it passes a single whole-body object —
+// so the operation method keeps the loose single-`data` form. (A command's `params`
+// sub-schema union IS flattened+exploded — that path does not go through here.)
+func isUnionBody(node *yaml.Node) bool {
+	if node == nil {
+		return false
+	}
+	for _, comb := range []string{"oneOf", "anyOf"} {
+		u := mapChild(node, comb)
+		if u != nil && u.Kind == yaml.SequenceNode && len(u.Content) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// rawOp returns the raw operation node (verb map) for an opInfo, re-reading the
+// spec doc's paths. Used to reach requestBody schema refs.
+func (sd *specDoc) rawOp(op opInfo) *yaml.Node {
+	raw, err := os.ReadFile(sd.rawPath)
+	if err != nil {
+		return nil
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(raw, &doc); err != nil {
+		return nil
+	}
+	paths := mapChild(rootOf(&doc), "paths")
+	if paths == nil {
+		return nil
+	}
+	pathNode := mapChild(paths, op.path)
+	if pathNode == nil {
+		return nil
+	}
+	return mapChild(pathNode, op.verb)
+}
+
+// commandFields returns, for a command-dispatch command schema, whether the
+// request carries a top-level `id` (the call_id positional) plus the ordered
+// typed field names of its `params` sub-schema (union-flattened).
+func commandFields(sd *specDoc, requestSchema string) (hasID bool, fields []string, err error) {
+	schemas, err := componentsSchemas(sd)
+	if err != nil {
+		return false, nil, err
+	}
+	sch := mapChild(schemas, requestSchema)
+	if sch == nil {
+		return false, nil, fmt.Errorf("command request schema %q not in components.schemas", requestSchema)
+	}
+	sch = resolveSchema(schemas, sch)
+	props := mapChild(sch, "properties")
+	if mapChild(props, "id") != nil {
+		hasID = true
+	}
+	params := mapChild(props, "params")
+	if params != nil {
+		fields = schemaFields(schemas, params)
+	}
+	return hasID, fields, nil
+}
+
+// goParamName maps a wire field name to a Go parameter identifier: snake->camel,
+// with Go-keyword collisions escaped (§5). E.g. "from" -> "from_", "status_url"
+// -> "statusURL"-ish; here we keep it simple (camelCase) since the param name is
+// cosmetic — the enumerator snake_cases it back and the diff ignores names.
+func goParamName(field string) string {
+	parts := strings.Split(field, "_")
+	var b strings.Builder
+	for i, p := range parts {
+		if p == "" {
+			continue
+		}
+		if i == 0 {
+			b.WriteString(p)
+		} else {
+			b.WriteString(strings.ToUpper(p[:1]) + p[1:])
+		}
+	}
+	s := b.String()
+	if s == "" {
+		s = "field"
+	}
+	return escapeIdent(s)
 }
 
 // ---------------------------------------------------------------------------
