@@ -206,7 +206,7 @@ func main() {
 }
 ```
 
-- 21 namespaced API surfaces: Fabric (13 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
+- 20 namespaced API surfaces: Fabric (13 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
 - Shared `http.Client` for connection pooling
 - `map[string]any` returns -- raw JSON, no wrapper objects
 

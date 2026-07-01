@@ -218,6 +218,20 @@ spec_parity_gate() {
 run_gate "SPEC-PARITY" "implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
     spec_parity_gate
 
+# Gate 5d: REST-TESTS-FRESH — the generated full-mock REST wire-test suite
+# (pkg/rest/namespaces/*_generated_test.go, a SUCCESS + an ERROR test per
+# implemented route) must be byte-identical to a fresh regen. The generator
+# (cmd/generate-rest-tests) is the Go realization of REST_TEST_GENERATOR_RULES.md:
+# it joins cmd/route-registry's Set B (captured from the real client) to the spec
+# operationIds and reflects each method's real parameter types to emit type-correct
+# calls, so the suite catches SDK-vs-contract drift, not a generator self-snapshot.
+# GEN-FRESH-style: `--check` compares bytes, lists stale files, exits non-zero,
+# writes nothing. Placed next to SPEC-PARITY since both are route-registry-driven.
+# (The TS port lacks a freshness gate for its generated REST tests; go does it
+# better by gating it here.)
+run_gate "REST-TESTS-FRESH" "generated REST wire tests match the canonical specs" \
+    go run ./cmd/generate-rest-tests --check
+
 # Gate 6: emission — byte-compare the SWAIG FunctionResult serialisation against
 # Python's to_dict() over the shared 81-entry corpus. The drift gate (Gate 3)
 # polices the SURFACE; this one polices the EMISSION (action shape/keys/values +

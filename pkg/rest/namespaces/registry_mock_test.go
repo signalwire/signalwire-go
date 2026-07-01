@@ -59,7 +59,7 @@ func TestRegistryBrands_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Brands.Get("brand-77")
+	body, err := client.Registry.Brands.Get("brand-77", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestRegistryCampaigns_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.Get("camp-1")
+	body, err := client.Registry.Campaigns.Get("camp-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.Update("camp-2", map[string]any{
+	body, err := client.Registry.Campaigns.Update("camp-2", nil, map[string]any{
 		"description": "Updated",
 	})
 	if err != nil {
@@ -239,7 +239,7 @@ func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.CreateOrder("camp-4", map[string]any{
+	body, err := client.Registry.Campaigns.CreateOrder("camp-4", nil, nil, map[string]any{
 		"numbers": []string{"pn-1", "pn-2"},
 	})
 	if err != nil {
@@ -279,7 +279,7 @@ func TestRegistryOrders_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Orders.Get("order-1")
+	body, err := client.Registry.Orders.Get("order-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}

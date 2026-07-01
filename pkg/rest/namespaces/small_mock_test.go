@@ -63,7 +63,7 @@ func TestAddresses_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Create(map[string]any{
+	body, err := client.Addresses.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{
 		"address_type": "commercial",
 		"first_name":   "Ada",
 		"last_name":    "Lovelace",
@@ -104,7 +104,7 @@ func TestAddresses_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Get("addr-123")
+	body, err := client.Addresses.Get("addr-123", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestRecordings_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Recordings.List(map[string]any{"page_size": 5})
+	body, err := client.Recordings.List(map[string]string{"page_size": "5"})
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestRecordings_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Recordings.Get("rec-123")
+	body, err := client.Recordings.Get("rec-123", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}

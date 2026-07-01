@@ -48,6 +48,15 @@ type goStructFacts struct {
 	pkg     string
 	name    string
 	methods map[string]struct{}
+	// embeds holds the SHORT type names of the struct's anonymous (embedded)
+	// fields whose declared methods are promoted onto this struct — e.g. a
+	// generated REST resource embeds `*CrudResource` / `*CrudWithAddresses`,
+	// which promotes their Create/Update/Get/List/Delete. Recorded so that a
+	// StructTable-listed goMethod not declared directly on the struct can be
+	// RESOLVED through the embed chain (see resolvePromotedMethod). Only the
+	// short type name is stored; the embed chain lives in the same package
+	// (namespaces), so the base is looked up by `<pkg>.<embed>`.
+	embeds []string
 }
 
 // walk parses every .go file under root and returns the collected inventory.
@@ -94,7 +103,8 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				if !ok || !ast.IsExported(ts.Name.Name) {
 					continue
 				}
-				if _, isStruct := ts.Type.(*ast.StructType); !isStruct {
+				st, isStruct := ts.Type.(*ast.StructType)
+				if !isStruct {
 					continue
 				}
 				key := pkgName + "." + ts.Name.Name
@@ -105,6 +115,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						methods: map[string]struct{}{},
 					}
 				}
+				// Record anonymous (embedded) fields so promoted methods can be
+				// resolved through the embed chain during projection.
+				structs[key].embeds = append(structs[key].embeds, embeddedTypeNames(st)...)
 			}
 		case *ast.FuncDecl:
 			if !ast.IsExported(d.Name.Name) {
@@ -130,6 +143,27 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 		}
 	}
 	return nil
+}
+
+// embeddedTypeNames returns the SHORT type names of a struct's anonymous
+// (embedded) fields — the fields with no explicit name. Only embeds whose type
+// resolves to a bare/pointer identifier in the same package are recorded (e.g.
+// `*CrudResource`, `CrudWithAddresses`); qualified selector embeds (pkg.Type)
+// carry no promoted SDK method surface we project and are skipped.
+func embeddedTypeNames(st *ast.StructType) []string {
+	if st.Fields == nil {
+		return nil
+	}
+	var out []string
+	for _, f := range st.Fields.List {
+		if len(f.Names) != 0 {
+			continue // named field, not an embed
+		}
+		if name := recvTypeName(f.Type); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // recvTypeName extracts the base type name from a method receiver.
@@ -159,6 +193,39 @@ type surface struct {
 type moduleInventory struct {
 	Classes   map[string][]string `json:"classes"`
 	Functions []string            `json:"functions"`
+}
+
+// promotedMethodExists reports whether goMethod is declared on one of facts'
+// embedded base structs (transitively). Go promotes an embedded field's methods
+// onto the embedder, so a StructTable entry that lists e.g. `Create` for a
+// generated REST resource which embeds `*CrudResource` is satisfied by
+// CrudResource's own `Create`. The embed chain is walked in the same package
+// (the Crud bases live alongside the resources in namespaces); cycles are
+// guarded by a visited set.
+func promotedMethodExists(structs map[string]*goStructFacts, facts *goStructFacts, goMethod string) bool {
+	visited := map[string]struct{}{}
+	var search func(f *goStructFacts) bool
+	search = func(f *goStructFacts) bool {
+		for _, embed := range f.embeds {
+			base, ok := structs[f.pkg+"."+embed]
+			if !ok {
+				continue
+			}
+			key := base.pkg + "." + base.name
+			if _, seen := visited[key]; seen {
+				continue
+			}
+			visited[key] = struct{}{}
+			if _, present := base.methods[goMethod]; present {
+				return true
+			}
+			if search(base) {
+				return true
+			}
+		}
+		return false
+	}
+	return search(facts)
 }
 
 // build turns (goStructs, goFuncs) into a Python-reference surface driven by
@@ -233,6 +300,16 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}) surface
 					continue
 				}
 				if _, present := facts.methods[goMethod]; present {
+					addMethod(target.Module, target.Class, pyMethod)
+					continue
+				}
+				// Not declared directly on the struct — resolve through the
+				// embed chain (promoted method). SCOPED to StructTable-listed
+				// methods: the Methods map is the allowlist of what to project;
+				// the embed resolution only SUPPLIES the fact that a promoted
+				// method exists. Arbitrary promoted methods not listed here are
+				// never projected (no surface flood).
+				if promotedMethodExists(structs, facts, goMethod) {
 					addMethod(target.Module, target.Class, pyMethod)
 				}
 			}

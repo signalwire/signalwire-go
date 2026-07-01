@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 9fe495cb68123abe1b28f6a97617dc32ac84566a",
+  "generated_from": "signalwire-go @ 4e92f1da3d7b7ed6f1bbde5620215baf7d64ad40",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -260,6 +260,7 @@
           "set_internal_fillers",
           "set_language_params",
           "set_languages",
+          "set_multilingual",
           "set_native_functions",
           "set_param",
           "set_params",
@@ -783,8 +784,6 @@
         "CrudResource": [
           "create",
           "delete",
-          "get",
-          "list",
           "update"
         ],
         "HttpClient": [
@@ -794,6 +793,10 @@
           "patch",
           "post",
           "put"
+        ],
+        "ReadResource": [
+          "get",
+          "list"
         ],
         "SignalWireRestError": [
           "__init__"
@@ -819,21 +822,32 @@
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.addresses": {
+    "signalwire.rest.namespaces._client_tree_generated": {
       "classes": {
-        "AddressesResource": [
-          "__init__",
-          "create",
-          "delete",
-          "get",
-          "list"
+        "DatasphereNamespace": [
+          "__init__"
+        ],
+        "FabricNamespace": [
+          "__init__"
+        ],
+        "LogsNamespace": [
+          "__init__"
+        ],
+        "ProjectNamespace": [
+          "__init__"
+        ],
+        "RegistryNamespace": [
+          "__init__"
+        ],
+        "VideoNamespace": [
+          "__init__"
         ]
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.calling": {
+    "signalwire.rest.namespaces.calling_resources_generated": {
       "classes": {
-        "CallingNamespace": [
+        "Calling": [
           "__init__",
           "ai_hold",
           "ai_message",
@@ -876,139 +890,69 @@
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.chat": {
+    "signalwire.rest.namespaces.chat_resources_generated": {
       "classes": {
-        "ChatResource": [
+        "Chat": [
           "__init__",
           "create_token"
         ]
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.compat": {
-      "classes": {
-        "CompatAccounts": [
-          "__init__",
-          "create",
-          "get",
-          "list",
-          "update"
-        ],
-        "CompatApplications": [
-          "update"
-        ],
-        "CompatCalls": [
-          "start_recording",
-          "start_stream",
-          "stop_stream",
-          "update",
-          "update_recording"
-        ],
-        "CompatConferences": [
-          "delete_recording",
-          "get",
-          "get_participant",
-          "get_recording",
-          "list",
-          "list_participants",
-          "list_recordings",
-          "remove_participant",
-          "start_stream",
-          "stop_stream",
-          "update",
-          "update_participant",
-          "update_recording"
-        ],
-        "CompatFaxes": [
-          "delete_media",
-          "get_media",
-          "list_media",
-          "update"
-        ],
-        "CompatLamlBins": [
-          "update"
-        ],
-        "CompatMessages": [
-          "delete_media",
-          "get_media",
-          "list_media",
-          "update"
-        ],
-        "CompatNamespace": [
-          "__init__"
-        ],
-        "CompatPhoneNumbers": [
-          "__init__",
-          "delete",
-          "get",
-          "import_number",
-          "list",
-          "list_available_countries",
-          "purchase",
-          "search_local",
-          "search_toll_free",
-          "update"
-        ],
-        "CompatQueues": [
-          "dequeue_member",
-          "get_member",
-          "list_members",
-          "update"
-        ],
-        "CompatRecordings": [
-          "delete",
-          "get",
-          "list"
-        ],
-        "CompatTokens": [
-          "create",
-          "delete",
-          "update"
-        ],
-        "CompatTranscriptions": [
-          "delete",
-          "get",
-          "list"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.datasphere": {
+    "signalwire.rest.namespaces.datasphere_resources_generated": {
       "classes": {
         "DatasphereDocuments": [
           "__init__",
+          "create",
           "delete_chunk",
           "get_chunk",
           "list_chunks",
-          "search"
-        ],
-        "DatasphereNamespace": [
-          "__init__"
+          "search",
+          "update"
         ]
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.fabric": {
+    "signalwire.rest.namespaces.fabric_resources_generated": {
       "classes": {
-        "AutoMaterializedWebhook": [
-          "create"
+        "AiAgents": [
+          "__init__",
+          "create",
+          "update"
         ],
-        "CallFlowsResource": [
+        "CallFlows": [
+          "__init__",
+          "create",
           "deploy_version",
           "list_addresses",
-          "list_versions"
+          "list_versions",
+          "update"
         ],
-        "ConferenceRoomsResource": [
-          "list_addresses"
+        "ConferenceRooms": [
+          "__init__",
+          "create",
+          "list_addresses",
+          "update"
         ],
-        "CxmlApplicationsResource": [
-          "create"
+        "CxmlApplications": [
+          "__init__",
+          "delete",
+          "get",
+          "list",
+          "list_addresses",
+          "update"
+        ],
+        "CxmlScripts": [
+          "__init__",
+          "create",
+          "update"
+        ],
+        "CxmlWebhooks": [
+          "__init__",
+          "create",
+          "update"
         ],
         "FabricAddresses": [
-          "get",
-          "list"
-        ],
-        "FabricNamespace": [
           "__init__"
         ],
         "FabricTokens": [
@@ -1019,7 +963,13 @@
           "create_subscriber_token",
           "refresh_subscriber_token"
         ],
+        "FreeswitchConnectors": [
+          "__init__",
+          "create",
+          "update"
+        ],
         "GenericResources": [
+          "__init__",
           "assign_domain_application",
           "assign_phone_route",
           "delete",
@@ -1027,102 +977,71 @@
           "list",
           "list_addresses"
         ],
-        "SubscribersResource": [
+        "RelayApplications": [
+          "__init__",
+          "create",
+          "update"
+        ],
+        "SipEndpoints": [
+          "__init__",
+          "create",
+          "update"
+        ],
+        "SipGateways": [
+          "__init__",
+          "create",
+          "update"
+        ],
+        "Subscribers": [
+          "__init__",
+          "create",
           "create_sip_endpoint",
           "delete_sip_endpoint",
           "get_sip_endpoint",
           "list_sip_endpoints",
+          "update",
           "update_sip_endpoint"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.imported_numbers": {
-      "classes": {
-        "ImportedNumbersResource": [
+        ],
+        "SwmlScripts": [
           "__init__",
-          "create"
+          "create",
+          "update"
+        ],
+        "SwmlWebhooks": [
+          "__init__",
+          "create",
+          "update"
         ]
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.logs": {
+    "signalwire.rest.namespaces.fax_resources_generated": {
+      "classes": {
+        "FaxLogs": [
+          "__init__"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.logs_resources_generated": {
       "classes": {
         "ConferenceLogs": [
+          "__init__",
           "list"
-        ],
-        "FaxLogs": [
-          "get",
-          "list"
-        ],
-        "LogsNamespace": [
-          "__init__"
-        ],
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.message_resources_generated": {
+      "classes": {
         "MessageLogs": [
-          "get",
-          "list"
-        ],
-        "VoiceLogs": [
-          "get",
-          "list",
-          "list_events"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.lookup": {
-      "classes": {
-        "LookupResource": [
-          "__init__",
-          "phone_number"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.mfa": {
-      "classes": {
-        "MfaResource": [
-          "__init__",
-          "call",
-          "sms",
-          "verify"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.number_groups": {
-      "classes": {
-        "NumberGroupsResource": [
-          "__init__",
-          "add_membership",
-          "delete_membership",
-          "get_membership",
-          "list_memberships"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.phone_numbers": {
-      "classes": {
-        "PhoneNumbersResource": [
-          "__init__",
-          "search",
-          "set_ai_agent",
-          "set_call_flow",
-          "set_cxml_application",
-          "set_cxml_webhook",
-          "set_relay_application",
-          "set_relay_topic",
-          "set_swml_webhook"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.project": {
-      "classes": {
-        "ProjectNamespace": [
           "__init__"
-        ],
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.project_resources_generated": {
+      "classes": {
         "ProjectTokens": [
           "__init__",
           "create",
@@ -1132,40 +1051,76 @@
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.pubsub": {
+    "signalwire.rest.namespaces.pubsub_resources_generated": {
       "classes": {
-        "PubSubResource": [
+        "PubSub": [
           "__init__",
           "create_token"
         ]
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.queues": {
+    "signalwire.rest.namespaces.relay_rest_resources_generated": {
       "classes": {
-        "QueuesResource": [
+        "Addresses": [
           "__init__",
+          "create",
+          "delete",
+          "get",
+          "list"
+        ],
+        "ImportedNumbers": [
+          "__init__",
+          "create"
+        ],
+        "Lookup": [
+          "__init__",
+          "phone_number"
+        ],
+        "Mfa": [
+          "__init__",
+          "call",
+          "sms",
+          "verify"
+        ],
+        "NumberGroups": [
+          "__init__",
+          "add_membership",
+          "create",
+          "delete_membership",
+          "get_membership",
+          "list_memberships",
+          "update"
+        ],
+        "PhoneNumbers": [
+          "__init__",
+          "create",
+          "search",
+          "set_ai_agent",
+          "set_call_flow",
+          "set_cxml_application",
+          "set_cxml_webhook",
+          "set_relay_application",
+          "set_relay_topic",
+          "set_swml_webhook",
+          "update"
+        ],
+        "Queues": [
+          "__init__",
+          "create",
           "get_member",
           "get_next_member",
-          "list_members"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.recordings": {
-      "classes": {
-        "RecordingsResource": [
+          "list_members",
+          "update"
+        ],
+        "Recordings": [
           "__init__",
           "delete",
           "get",
           "list"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.registry": {
-      "classes": {
+        ],
         "RegistryBrands": [
+          "__init__",
           "create",
           "create_campaign",
           "get",
@@ -1173,93 +1128,95 @@
           "list_campaigns"
         ],
         "RegistryCampaigns": [
+          "__init__",
           "create_order",
           "get",
           "list_numbers",
           "list_orders",
           "update"
         ],
-        "RegistryNamespace": [
-          "__init__"
-        ],
         "RegistryNumbers": [
+          "__init__",
           "delete"
         ],
         "RegistryOrders": [
+          "__init__",
           "get"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.short_codes": {
-      "classes": {
-        "ShortCodesResource": [
+        ],
+        "ShortCodes": [
           "__init__",
           "get",
           "list",
           "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.sip_profile": {
-      "classes": {
-        "SipProfileResource": [
+        ],
+        "SipProfile": [
           "__init__",
           "get",
+          "update"
+        ],
+        "VerifiedCallers": [
+          "__init__",
+          "create",
+          "redial_verification",
+          "submit_verification",
           "update"
         ]
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.verified_callers": {
-      "classes": {
-        "VerifiedCallersResource": [
-          "__init__",
-          "redial_verification",
-          "submit_verification"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.video": {
+    "signalwire.rest.namespaces.video_resources_generated": {
       "classes": {
         "VideoConferenceTokens": [
+          "__init__",
           "get",
           "reset"
         ],
         "VideoConferences": [
+          "__init__",
+          "create",
           "create_stream",
           "list_conference_tokens",
-          "list_streams"
-        ],
-        "VideoNamespace": [
-          "__init__"
+          "list_streams",
+          "update"
         ],
         "VideoRoomRecordings": [
+          "__init__",
           "delete",
           "get",
           "list",
           "list_events"
         ],
         "VideoRoomSessions": [
-          "get",
-          "list",
+          "__init__",
           "list_events",
           "list_members",
           "list_recordings"
         ],
         "VideoRoomTokens": [
+          "__init__",
           "create"
         ],
         "VideoRooms": [
+          "__init__",
+          "create",
           "create_stream",
-          "list_streams"
+          "list_streams",
+          "update"
         ],
         "VideoStreams": [
+          "__init__",
           "delete",
           "get",
           "update"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.voice_resources_generated": {
+      "classes": {
+        "VoiceLogs": [
+          "__init__",
+          "list_events"
         ]
       },
       "functions": []

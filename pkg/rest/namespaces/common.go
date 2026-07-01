@@ -113,3 +113,18 @@ func NewCrudWithAddressesPUT(client HTTPClient, path string) *CrudWithAddresses 
 func (r *CrudWithAddresses) ListAddresses(id string, params map[string]string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id, "addresses"), params)
 }
+
+// mergeExtra merges optional extra-fields maps into body. It is used by the
+// generated Set* wrappers (SetSwmlWebhook, SetCxmlWebhook, …) to funnel their
+// variadic extra-map tail into the update body. Kept here (a hand base file) so
+// the generated resource files can call it without owning it.
+func mergeExtra(body map[string]any, extra []map[string]any) {
+	if len(extra) == 0 {
+		return
+	}
+	for _, m := range extra {
+		for k, v := range m {
+			body[k] = v
+		}
+	}
+}

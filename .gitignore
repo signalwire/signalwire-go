@@ -38,6 +38,17 @@ Thumbs.db
 debug
 *.prof
 
+# Compiled cmd/ binaries built at repo root (extensionless; share names with cmd/ dirs)
+/enumerate-signatures
+/generate-payloads
+/generate-rest
+/generate-rest-tests
+/emit-corpus
+/emit-skills
+/enumerate-surface
+/route-registry
+/swaig-test
+
 # Python audit-script bytecode (scripts/enumerate_*.py invocations)
 __pycache__/
 *.pyc

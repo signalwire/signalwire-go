@@ -16,7 +16,6 @@
 package namespaces_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
@@ -84,29 +83,6 @@ func TestFabricAddresses_Get(t *testing.T) {
 	}
 }
 
-// ---------------- CXMLApplications.Create deliberately fails ----------------
-
-func TestFabricCXMLApplications_CreateRaisesNotImplemented(t *testing.T) {
-	t.Parallel()
-	client, mock := mocktest.New(t)
-	if client == nil {
-		return
-	}
-	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.Create(map[string]any{"name": "never_built"})
-	if err == nil {
-		t.Fatal("Create did not return an error - the SDK must refuse this call")
-	}
-	if !strings.Contains(err.Error(), "cXML applications cannot") {
-		t.Errorf("error message = %q, want substring 'cXML applications cannot'", err.Error())
-	}
-	// Nothing should have hit the wire.
-	j := mock.Journal(t)
-	if len(j) != 0 {
-		t.Errorf("expected no journal entries, got %d: %v", len(j), j)
-	}
-}
-
 // ---------------- CallFlows.ListAddresses uses singular path ----------------
 
 func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
@@ -168,7 +144,7 @@ func TestFabricSubscribers_GetSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1")
+	body, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1", nil)
 	if err != nil {
 		t.Fatalf("GetSIPEndpoint: %v", err)
 	}
@@ -192,7 +168,7 @@ func TestFabricSubscribers_UpdateSIPEndpointUsesPATCH(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", map[string]any{
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{
 		"username": "renamed",
 	})
 	if err != nil {
@@ -248,7 +224,7 @@ func TestFabricTokens_CreateInviteToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(map[string]any{
+	_, err := client.Fabric.Tokens.CreateInviteToken(nil, nil, map[string]any{
 		"email": "invitee@example.com",
 	})
 	if err != nil {
@@ -277,7 +253,7 @@ func TestFabricTokens_CreateEmbedToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateEmbedToken(map[string]any{
+	_, err := client.Fabric.Tokens.CreateEmbedToken(nil, map[string]any{
 		"allowed_addresses": []string{"addr-1", "addr-2"},
 	})
 	if err != nil {
@@ -307,7 +283,7 @@ func TestFabricTokens_RefreshSubscriberToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(map[string]any{
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(nil, map[string]any{
 		"refresh_token": "abc-123",
 	})
 	if err != nil {
@@ -361,7 +337,7 @@ func TestFabricResources_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.Get("res-1")
+	_, err := client.Fabric.Resources.Get("res-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -427,7 +403,7 @@ func TestFabricResources_AssignDomainApplication(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", map[string]any{
+	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", nil, map[string]any{
 		"domain_application_id": "da-7",
 	})
 	if err != nil {

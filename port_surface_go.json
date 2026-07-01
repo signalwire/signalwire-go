@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 9fe495cb68123abe1b28f6a97617dc32ac84566a",
+  "generated_from": "signalwire-go (go-native) @ 4e92f1da3d7b7ed6f1bbde5620215baf7d64ad40",
   "modules": {
     "agent": {
       "classes": {
@@ -30,8 +30,10 @@
           "Contexts",
           "CreateToolToken",
           "DefineContexts",
+          "DefineContextsFromMap",
           "DefineTool",
           "DefineTools",
+          "DetectRunMode",
           "EnableDebugEvents",
           "EnableDebugRoutes",
           "EnableMcpServer",
@@ -72,6 +74,7 @@
           "ResetContexts",
           "Run",
           "RunContext",
+          "RunWithMode",
           "Serve",
           "SetDynamicConfigCallback",
           "SetFunctionIncludes",
@@ -79,6 +82,7 @@
           "SetInternalFillers",
           "SetLanguageParams",
           "SetLanguages",
+          "SetMultilingual",
           "SetNativeFunctions",
           "SetOnSwmlRequestHook",
           "SetParam",
@@ -573,16 +577,15 @@
     },
     "namespaces": {
       "classes": {
+        "AIAgents": [],
         "AddressesNamespace": [
           "Create",
           "Delete",
           "Get",
           "List"
         ],
-        "AutoMaterializedWebhookResource": [
-          "Create"
-        ],
-        "CallFlowOptions": [],
+        "CXMLScripts": [],
+        "CXMLWebhooks": [],
         "CallFlowsResource": [
           "DeployVersion",
           "ListAddresses",
@@ -630,85 +633,6 @@
         "ChatNamespace": [
           "CreateToken"
         ],
-        "CompatAccounts": [
-          "Create",
-          "Get",
-          "List",
-          "Update"
-        ],
-        "CompatApplications": [
-          "Update"
-        ],
-        "CompatCalls": [
-          "StartRecording",
-          "StartStream",
-          "StopStream",
-          "Update",
-          "UpdateRecording"
-        ],
-        "CompatConferences": [
-          "DeleteRecording",
-          "Get",
-          "GetParticipant",
-          "GetRecording",
-          "List",
-          "ListParticipants",
-          "ListRecordings",
-          "RemoveParticipant",
-          "StartStream",
-          "StopStream",
-          "Update",
-          "UpdateParticipant",
-          "UpdateRecording"
-        ],
-        "CompatFaxes": [
-          "DeleteMedia",
-          "GetMedia",
-          "ListMedia",
-          "Update"
-        ],
-        "CompatLamlBins": [
-          "Update"
-        ],
-        "CompatMessages": [
-          "DeleteMedia",
-          "GetMedia",
-          "ListMedia",
-          "Update"
-        ],
-        "CompatNamespace": [],
-        "CompatPhoneNumbers": [
-          "Delete",
-          "Get",
-          "ImportNumber",
-          "List",
-          "ListAvailableCountries",
-          "Purchase",
-          "SearchLocal",
-          "SearchTollFree",
-          "Update"
-        ],
-        "CompatQueues": [
-          "DequeueMember",
-          "GetMember",
-          "ListMembers",
-          "Update"
-        ],
-        "CompatRecordings": [
-          "Delete",
-          "Get",
-          "List"
-        ],
-        "CompatTokens": [
-          "Create",
-          "Delete",
-          "Update"
-        ],
-        "CompatTranscriptions": [
-          "Delete",
-          "Get",
-          "List"
-        ],
         "ConferenceLogs": [
           "List"
         ],
@@ -726,10 +650,12 @@
           "ListAddresses"
         ],
         "CxmlApplicationsResource": [
-          "Create",
-          "ListAddresses"
+          "Delete",
+          "Get",
+          "List",
+          "ListAddresses",
+          "Update"
         ],
-        "CxmlWebhookOptions": [],
         "DatasphereDocuments": [
           "DeleteChunk",
           "GetChunk",
@@ -753,6 +679,7 @@
           "Get",
           "List"
         ],
+        "FreeSwitchConnectors": [],
         "GenericResources": [
           "AssignDomainApplication",
           "AssignPhoneRoute",
@@ -833,14 +760,18 @@
         "RegistryOrders": [
           "Get"
         ],
-        "RelayTopicOptions": [],
+        "RelayApplications": [],
         "Resource": [
           "Path"
         ],
+        "SIPEndpoints": [],
+        "SIPGateways": [],
         "SIPProfileNamespace": [
           "Get",
           "Update"
         ],
+        "SWMLScripts": [],
+        "SWMLWebhooks": [],
         "ShortCodesNamespace": [
           "Get",
           "List",
@@ -900,33 +831,63 @@
       },
       "functions": [
         "AllPhoneCallHandlers",
+        "NewAIAgents",
         "NewAddressesNamespace",
+        "NewCXMLScripts",
+        "NewCXMLWebhooks",
+        "NewCallFlowsResource",
         "NewCallingNamespace",
         "NewChatNamespace",
-        "NewCompatNamespace",
+        "NewConferenceLogs",
+        "NewConferenceRoomsResource",
         "NewCrudResource",
         "NewCrudResourcePUT",
         "NewCrudWithAddresses",
         "NewCrudWithAddressesPUT",
+        "NewCxmlApplicationsResource",
+        "NewDatasphereDocuments",
         "NewDatasphereNamespace",
+        "NewFabricAddresses",
         "NewFabricNamespace",
+        "NewFabricTokens",
+        "NewFaxLogs",
+        "NewFreeSwitchConnectors",
+        "NewGenericResources",
         "NewImportedNumbersNamespace",
         "NewLogsNamespace",
         "NewLookupNamespace",
         "NewMFANamespace",
+        "NewMessageLogs",
         "NewNumberGroupsNamespace",
         "NewPhoneNumbersNamespace",
         "NewProjectNamespace",
+        "NewProjectTokens",
         "NewPubSubNamespace",
         "NewQueuesNamespace",
         "NewRecordingsNamespace",
+        "NewRegistryBrands",
+        "NewRegistryCampaigns",
         "NewRegistryNamespace",
+        "NewRegistryNumbers",
+        "NewRegistryOrders",
+        "NewRelayApplications",
+        "NewSIPEndpoints",
+        "NewSIPGateways",
         "NewSIPProfileNamespace",
+        "NewSWMLScripts",
+        "NewSWMLWebhooks",
         "NewShortCodesNamespace",
+        "NewSubscribersResource",
         "NewVerifiedCallersNamespace",
+        "NewVideoConferenceTokens",
+        "NewVideoConferences",
         "NewVideoNamespace",
-        "ResetDeprecationWarnOnce",
-        "SetDeprecationLogger"
+        "NewVideoRoomRecordings",
+        "NewVideoRoomSessions",
+        "NewVideoRoomTokens",
+        "NewVideoRooms",
+        "NewVideoStreams",
+        "NewVoiceLogs"
       ]
     },
     "pom": {
@@ -1515,6 +1476,7 @@
     },
     "swaig": {
       "classes": {
+        "ContextSwitchAction": [],
         "FunctionResult": [
           "Actions",
           "AddAction",
@@ -1569,6 +1531,7 @@
           "UpdateSettings",
           "WaitForUser"
         ],
+        "HoldAction": [],
         "JoinConferenceOptions": [],
         "Params": [
           "Array",
@@ -1584,8 +1547,26 @@
           "String"
         ],
         "PayOptions": [],
+        "PlaybackBgAction": [],
+        "PostPrompt": [],
+        "PostPromptAssistantEntry": [],
+        "PostPromptData": [],
+        "PostPromptEntity": [],
+        "PostPromptEot": [],
+        "PostPromptStampsUs": [],
+        "PostPromptSwaigLogEntry": [],
+        "PostPromptSystemEntry": [],
+        "PostPromptSystemLogEntry": [],
+        "PostPromptThinkingEntry": [],
+        "PostPromptTimesEntry": [],
+        "PostPromptTiming": [],
+        "PostPromptToolEntry": [],
+        "PostPromptUserEntry": [],
         "Prop": [],
-        "RecordCallOptions": []
+        "RecordCallOptions": [],
+        "SwaigArgument": [],
+        "SwaigRequest": [],
+        "TransferAction": []
       },
       "functions": [
         "CodecValues",
@@ -1612,11 +1593,52 @@
     },
     "swml": {
       "classes": {
+        "AI": [],
+        "AIObject": [],
+        "AIParams": [],
+        "AIPostPromptPom": [],
+        "AIPostPromptText": [],
+        "AIPromptPom": [],
+        "AIPromptText": [],
         "AIVerbHandler": [
           "BuildConfig",
           "GetVerbName",
           "ValidateConfig"
         ],
+        "AllOfProperty": [],
+        "AmazonBedrock": [],
+        "AmazonBedrockObject": [],
+        "Answer": [],
+        "AnyOfProperty": [],
+        "ArrayProperty": [],
+        "BedrockParams": [],
+        "BedrockSWAIG": [],
+        "BooleanProperty": [],
+        "ChangeContextAction": [],
+        "ChangeStepAction": [],
+        "Cond": [],
+        "CondElse": [],
+        "CondReg": [],
+        "Connect": [],
+        "ConnectConfig": [],
+        "ConnectDeviceParallel": [],
+        "ConnectDeviceSerial": [],
+        "ConnectDeviceSerialParallel": [],
+        "ConnectDeviceSingle": [],
+        "ConnectHeaders": [],
+        "ConnectSwitch": [],
+        "ConstProperty": [],
+        "ContextPOMSteps": [],
+        "ContextSwitchAction": [],
+        "ContextTextSteps": [],
+        "Contexts": [],
+        "ContextsPOMObject": [],
+        "ContextsTextObject": [],
+        "ConversationMessage": [],
+        "DataMap": [],
+        "Denoise": [],
+        "DetectMachine": [],
+        "DetectMachineConfig": [],
         "Document": [
           "AddSection",
           "AddVerb",
@@ -1629,6 +1651,80 @@
           "Reset",
           "ToMap"
         ],
+        "EnterQueue": [],
+        "EnterQueueObject": [],
+        "Execute": [],
+        "ExecuteConfig": [],
+        "ExecuteSwitch": [],
+        "Expression": [],
+        "FunctionParameters": [],
+        "Goto": [],
+        "GotoConfig": [],
+        "HangUpHookSWAIGFunction": [],
+        "Hangup": [],
+        "HangupAction": [],
+        "Hint": [],
+        "HoldAction": [],
+        "InjectAction": [],
+        "IntegerProperty": [],
+        "JoinConference": [],
+        "JoinConferenceObject": [],
+        "JoinRoom": [],
+        "JoinRoomConfig": [],
+        "Label": [],
+        "LanguageParams": [],
+        "LanguagesWithFillers": [],
+        "LanguagesWithSoloFillers": [],
+        "LiveTranscribe": [],
+        "LiveTranscribeConfig": [],
+        "LiveTranslate": [],
+        "LiveTranslateConfig": [],
+        "NullProperty": [],
+        "NumberProperty": [],
+        "ObjectProperty": [],
+        "OmitPropertiesBedrockPostPomptTextOmittedPromptProps": [],
+        "OmitPropertiesBedrockPostPromptPomOmittedPromptProps": [],
+        "OmitPropertiesBedrockPromptPomOmittedPromptProps": [],
+        "OmitPropertiesBedrockPromptTextOmittedPromptProps": [],
+        "OneOfProperty": [],
+        "Output": [],
+        "Pay": [],
+        "PayConfig": [],
+        "PayParameters": [],
+        "PayPromptPlayAction": [],
+        "PayPromptSayAction": [],
+        "PayPrompts": [],
+        "PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps": [],
+        "PickPropertiesStartUpHookSWAIGFunctionPickedSWAIGFunctionProps": [],
+        "PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunctionProps": [],
+        "PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps": [],
+        "Play": [],
+        "PlayWithURL": [],
+        "PlayWithURLS": [],
+        "PlaybackBGAction": [],
+        "PomSectionBodyContent": [],
+        "PomSectionBulletsContent": [],
+        "Prompt": [],
+        "PromptConfig": [],
+        "Pronounce": [],
+        "ReceiveFax": [],
+        "ReceiveFaxConfig": [],
+        "Record": [],
+        "RecordCall": [],
+        "RecordCallConfig": [],
+        "RecordConfig": [],
+        "Request": [],
+        "RequestConfig": [],
+        "Return": [],
+        "SIPRefer": [],
+        "SMSWithBody": [],
+        "SMSWithMedia": [],
+        "SWAIG": [],
+        "SWAIGDefaults": [],
+        "SWAIGIncludes": [],
+        "SWAIGInternalFiller": [],
+        "SWMLAction": [],
+        "SayAction": [],
         "Schema": [
           "GetAllVerbNames",
           "GetVerb",
@@ -1650,7 +1746,13 @@
         "SchemaValidationError": [
           "Error"
         ],
+        "Section": [],
         "SecurityConfig": [],
+        "SendDigits": [],
+        "SendDigitsConfig": [],
+        "SendFax": [],
+        "SendFaxConfig": [],
+        "SendSMS": [],
         "Service": [
           "AI",
           "AddSection",
@@ -1703,6 +1805,7 @@
           "Request",
           "ResetDocument",
           "Return",
+          "RoutingCallbackFor",
           "RoutingCallbackPaths",
           "SIPRefer",
           "Say",
@@ -1728,9 +1831,43 @@
           "VerifyBasicAuth",
           "VerifyBearerToken"
         ],
+        "Set": [],
+        "SetGlobalDataAction": [],
+        "SetMetaDataAction": [],
+        "SipReferConfig": [],
+        "Sleep": [],
+        "StartAction": [],
+        "StartUpHookSWAIGFunction": [],
+        "StopAction": [],
+        "StopDenoise": [],
+        "StopPlaybackBGAction": [],
+        "StopRecordCall": [],
+        "StopRecordCallConfig": [],
+        "StopTap": [],
+        "StopTapConfig": [],
+        "StringProperty": [],
+        "SummarizeAction": [],
+        "SummarizeConversationSWAIGFunction": [],
+        "Switch": [],
+        "SwitchConfig": [],
+        "Tap": [],
+        "TapConfig": [],
+        "ToggleFunctionsAction": [],
         "ToolDefinition": [],
+        "TranscribeStartAction": [],
+        "TranscribeSummarizeAction": [],
+        "Transfer": [],
+        "TransferConfig": [],
+        "Unset": [],
+        "UnsetGlobalDataAction": [],
+        "UnsetMetaDataAction": [],
+        "UserEvent": [],
+        "UserEventConfig": [],
+        "UserInputAction": [],
+        "UserSWAIGFunction": [],
         "ValidationResult": [],
-        "VerbInfo": []
+        "VerbInfo": [],
+        "Webhook": []
       },
       "functions": [
         "ExtractSIPUsername",

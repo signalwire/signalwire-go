@@ -65,7 +65,7 @@ func TestCallingNamespace_Dial_WithCodecsArray(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Calling.Dial(map[string]any{
+	body, err := client.Calling.Dial(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{
 		"url":    "https://example.com/swml",
 		"to":     "+15551234567",
 		"codecs": []any{"OPUS", "G729", "VP8", "PCMA"},
@@ -108,7 +108,7 @@ func TestCallingNamespace_Dial_WithCodecsString(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.Dial(map[string]any{
+	_, err := client.Calling.Dial(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{
 		"url":    "https://example.com/swml",
 		"to":     "+15551234567",
 		"codecs": "OPUS,G729,VP8,PCMA",
@@ -135,7 +135,7 @@ func TestCalling_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Calling.Update(map[string]any{"id": "call-1", "state": "hold"})
+	body, err := client.Calling.Update(nil, nil, nil, nil, nil, nil, map[string]any{"id": "call-1", "state": "hold"})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestCalling_Transfer(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Calling.Transfer("call-123", map[string]any{
+	body, err := client.Calling.Transfer("call-123", nil, map[string]any{
 		"destination": "+15551234567",
 		"from_number": "+15559876543",
 	})
@@ -206,7 +206,7 @@ func TestCalling_PlayPause(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.PlayPause("call-1", map[string]any{"control_id": "ctrl-1"})
+	_, err := client.Calling.PlayPause("call-1", nil, map[string]any{"control_id": "ctrl-1"})
 	if err != nil {
 		t.Fatalf("PlayPause: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestCalling_PlayResume(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.PlayResume("call-1", map[string]any{"control_id": "ctrl-1"})
+	_, err := client.Calling.PlayResume("call-1", nil, map[string]any{"control_id": "ctrl-1"})
 	if err != nil {
 		t.Fatalf("PlayResume: %v", err)
 	}
@@ -240,7 +240,7 @@ func TestCalling_PlayStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.PlayStop("call-1", map[string]any{"control_id": "ctrl-1"})
+	_, err := client.Calling.PlayStop("call-1", nil, map[string]any{"control_id": "ctrl-1"})
 	if err != nil {
 		t.Fatalf("PlayStop: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestCalling_PlayVolume(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.PlayVolume("call-1", map[string]any{
+	_, err := client.Calling.PlayVolume("call-1", nil, nil, map[string]any{
 		"control_id": "ctrl-1",
 		"volume":     2.5,
 	})
@@ -279,7 +279,7 @@ func TestCalling_Record(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.Record("call-1", map[string]any{"record": map[string]any{"format": "mp3"}})
+	_, err := client.Calling.Record("call-1", nil, nil, nil, map[string]any{"record": map[string]any{"format": "mp3"}})
 	if err != nil {
 		t.Fatalf("Record: %v", err)
 	}
@@ -297,7 +297,7 @@ func TestCalling_RecordPause(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.RecordPause("call-1", map[string]any{"control_id": "rec-1"})
+	_, err := client.Calling.RecordPause("call-1", nil, map[string]any{"control_id": "rec-1"})
 	if err != nil {
 		t.Fatalf("RecordPause: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestCalling_RecordResume(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.RecordResume("call-1", map[string]any{"control_id": "rec-1"})
+	_, err := client.Calling.RecordResume("call-1", nil, map[string]any{"control_id": "rec-1"})
 	if err != nil {
 		t.Fatalf("RecordResume: %v", err)
 	}
@@ -333,7 +333,7 @@ func TestCalling_Collect(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.Collect("call-1", map[string]any{
+	_, err := client.Calling.Collect("call-1", nil, nil, nil, nil, nil, nil, map[string]any{
 		"initial_timeout": 5,
 		"digits":          map[string]any{"max": 4},
 	})
@@ -354,7 +354,7 @@ func TestCalling_CollectStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.CollectStop("call-1", map[string]any{"control_id": "col-1"})
+	_, err := client.Calling.CollectStop("call-1", nil, map[string]any{"control_id": "col-1"})
 	if err != nil {
 		t.Fatalf("CollectStop: %v", err)
 	}
@@ -371,7 +371,7 @@ func TestCalling_CollectStartInputTimers(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.CollectStartInputTimers("call-1", map[string]any{"control_id": "col-1"})
+	_, err := client.Calling.CollectStartInputTimers("call-1", nil, map[string]any{"control_id": "col-1"})
 	if err != nil {
 		t.Fatalf("CollectStartInputTimers: %v", err)
 	}
@@ -390,7 +390,7 @@ func TestCalling_Detect(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.Detect("call-1", map[string]any{
+	_, err := client.Calling.Detect("call-1", nil, nil, nil, map[string]any{
 		"detect": map[string]any{"type": "machine", "params": map[string]any{}},
 	})
 	if err != nil {
@@ -410,7 +410,7 @@ func TestCalling_DetectStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.DetectStop("call-1", map[string]any{"control_id": "det-1"})
+	_, err := client.Calling.DetectStop("call-1", nil, map[string]any{"control_id": "det-1"})
 	if err != nil {
 		t.Fatalf("DetectStop: %v", err)
 	}
@@ -427,7 +427,7 @@ func TestCalling_Tap(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.Tap("call-1", map[string]any{
+	_, err := client.Calling.Tap("call-1", nil, nil, nil, map[string]any{
 		"tap":    map[string]any{"type": "audio"},
 		"device": map[string]any{"type": "rtp"},
 	})
@@ -448,7 +448,7 @@ func TestCalling_TapStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.TapStop("call-1", map[string]any{"control_id": "tap-1"})
+	_, err := client.Calling.TapStop("call-1", nil, map[string]any{"control_id": "tap-1"})
 	if err != nil {
 		t.Fatalf("TapStop: %v", err)
 	}
@@ -465,7 +465,7 @@ func TestCalling_Stream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.Stream("call-1", map[string]any{"url": "wss://example.com/audio"})
+	_, err := client.Calling.Stream("call-1", nil, nil, nil, nil, nil, nil, map[string]any{"url": "wss://example.com/audio"})
 	if err != nil {
 		t.Fatalf("Stream: %v", err)
 	}
@@ -482,7 +482,7 @@ func TestCalling_StreamStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.StreamStop("call-1", map[string]any{"control_id": "stream-1"})
+	_, err := client.Calling.StreamStop("call-1", nil, map[string]any{"control_id": "stream-1"})
 	if err != nil {
 		t.Fatalf("StreamStop: %v", err)
 	}
@@ -530,7 +530,7 @@ func TestCalling_Transcribe(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.Transcribe("call-1", map[string]any{
+	_, err := client.Calling.Transcribe("call-1", nil, nil, map[string]any{
 		"language":   "en-US",
 		"transcribe": map[string]any{"engine": "google"},
 	})
@@ -550,7 +550,7 @@ func TestCalling_TranscribeStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.TranscribeStop("call-1", map[string]any{"control_id": "tr-1"})
+	_, err := client.Calling.TranscribeStop("call-1", nil, map[string]any{"control_id": "tr-1"})
 	if err != nil {
 		t.Fatalf("TranscribeStop: %v", err)
 	}
@@ -569,7 +569,7 @@ func TestCalling_AIHold(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.AIHold("call-1", nil)
+	_, err := client.Calling.AIHold("call-1", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("AIHold: %v", err)
 	}
@@ -583,7 +583,7 @@ func TestCalling_AIUnhold(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.AIUnhold("call-1", nil)
+	_, err := client.Calling.AIUnhold("call-1", nil, nil)
 	if err != nil {
 		t.Fatalf("AIUnhold: %v", err)
 	}
@@ -597,7 +597,7 @@ func TestCalling_AIStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.AIStop("call-1", nil)
+	_, err := client.Calling.AIStop("call-1", nil, nil)
 	if err != nil {
 		t.Fatalf("AIStop: %v", err)
 	}
@@ -613,7 +613,7 @@ func TestCalling_LiveTranscribe(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.LiveTranscribe("call-1", map[string]any{"language": "en-US"})
+	_, err := client.Calling.LiveTranscribe("call-1", nil, map[string]any{"language": "en-US"})
 	if err != nil {
 		t.Fatalf("LiveTranscribe: %v", err)
 	}
@@ -630,7 +630,7 @@ func TestCalling_LiveTranslate(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.LiveTranslate("call-1", map[string]any{
+	_, err := client.Calling.LiveTranslate("call-1", nil, nil, map[string]any{
 		"source_language": "en",
 		"target_language": "es",
 	})
@@ -655,7 +655,7 @@ func TestCalling_SendFaxStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.SendFaxStop("call-1", nil)
+	_, err := client.Calling.SendFaxStop("call-1", nil, nil)
 	if err != nil {
 		t.Fatalf("SendFaxStop: %v", err)
 	}
@@ -669,7 +669,7 @@ func TestCalling_ReceiveFaxStop(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.ReceiveFaxStop("call-1", nil)
+	_, err := client.Calling.ReceiveFaxStop("call-1", nil, nil)
 	if err != nil {
 		t.Fatalf("ReceiveFaxStop: %v", err)
 	}
@@ -685,7 +685,7 @@ func TestCalling_Refer(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.Refer("call-1", map[string]any{"to": "sip:other@example.com"})
+	_, err := client.Calling.Refer("call-1", nil, nil, map[string]any{"to": "sip:other@example.com"})
 	if err != nil {
 		t.Fatalf("Refer: %v", err)
 	}
@@ -702,7 +702,7 @@ func TestCalling_UserEvent(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.UserEvent("call-1", map[string]any{
+	_, err := client.Calling.UserEvent("call-1", nil, map[string]any{
 		"event_name": "my-event",
 		"payload":    map[string]any{"foo": "bar"},
 	})

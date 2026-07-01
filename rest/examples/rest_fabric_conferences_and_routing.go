@@ -113,7 +113,7 @@ func main() {
 		if data, ok := resources["data"].([]any); ok && len(data) > 0 {
 			if first, ok := data[0].(map[string]any); ok {
 				if id, ok := first["id"].(string); ok {
-					detail, err := client.Fabric.Resources.Get(id)
+					detail, err := client.Fabric.Resources.Get(id, nil)
 					if err == nil {
 						fmt.Printf("  Resource detail: %v (%v)\n", detail["display_name"], detail["type"])
 					}

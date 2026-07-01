@@ -154,7 +154,7 @@ func main() {
 			if len(data) > 0 {
 				if first, ok := data[0].(map[string]any); ok {
 					if recID, ok := first["id"].(string); ok {
-						recDetail, err := client.Video.RoomRecordings.Get(recID)
+						recDetail, err := client.Video.RoomRecordings.Get(recID, nil)
 						if err == nil {
 							fmt.Printf("  Recording detail: %vs\n", recDetail["duration"])
 						}
@@ -226,7 +226,7 @@ func main() {
 	// 10. Get and update stream
 	if streamID != "" {
 		fmt.Printf("\nManaging stream %s...\n", streamID)
-		sDetail, err := client.Video.Streams.Get(streamID)
+		sDetail, err := client.Video.Streams.Get(streamID, nil)
 		if err == nil {
 			fmt.Printf("  Stream URL: %v\n", sDetail["url"])
 		}

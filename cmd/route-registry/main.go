@@ -199,17 +199,14 @@ func run() int {
 		}
 	}
 
-	// Walk the client's exported namespace fields.
-	cv := reflect.ValueOf(client).Elem()
-	ct := cv.Type()
-	for i := range ct.NumField() {
-		f := ct.Field(i)
-		if !f.IsExported() {
-			continue
-		}
-		nsVal := cv.Field(i)
+	// Walk the client's namespace fields. The generated resource tree lives in
+	// an unexported anonymous embed (_GeneratedResourceTree, rest_tree_generated.go)
+	// whose fields promote onto RestClient; descend into that embed so its
+	// namespace fields are enumerated. A plain exported namespace field on the
+	// client itself (hand-wired, if any) is walked directly.
+	handleNamespaceField := func(f reflect.StructField, nsVal reflect.Value) {
 		if !isResourceLike(nsVal) {
-			continue
+			return
 		}
 		nsName := f.Name
 		// A namespace may itself be a flat resource with route methods
@@ -222,6 +219,29 @@ func run() int {
 			handleResource(nsName, sub.name, sub.val)
 		}
 	}
+	var walkNamespaceFields func(sv reflect.Value)
+	walkNamespaceFields = func(sv reflect.Value) {
+		st := sv.Type()
+		for i := range st.NumField() {
+			f := st.Field(i)
+			// Descend into the embedded resource-tree struct (anonymous, may be
+			// unexported) so its promoted namespace fields are reached.
+			if f.Anonymous {
+				fv := sv.Field(i)
+				if fv.Kind() == reflect.Struct {
+					walkNamespaceFields(fv)
+				} else if fv.Kind() == reflect.Pointer && !fv.IsNil() && fv.Elem().Kind() == reflect.Struct {
+					walkNamespaceFields(fv.Elem())
+				}
+				continue
+			}
+			if !f.IsExported() {
+				continue
+			}
+			handleNamespaceField(f, sv.Field(i))
+		}
+	}
+	walkNamespaceFields(reflect.ValueOf(client).Elem())
 
 	// Sort routes deterministically by (path, method).
 	out := make([]*routeRec, 0, len(routes))

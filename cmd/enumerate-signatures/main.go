@@ -41,6 +41,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -70,6 +71,14 @@ type goSignature struct {
 	params  []goParam
 	returns string // source-level type expression of the canonical return; "" → void
 	isField bool   // true when this signature was synthesized from a struct field, not a method
+	// restResource marks a method on a generated REST resource class
+	// (pkg/rest/namespaces/*_resources_generated.go). Its exploded body-field
+	// params are reclassified to the Python reference's kinds (see
+	// reclassifyRestResourceParams). keywordFields is the set of param names that
+	// are exploded wire-body fields (read structurally from the method body's
+	// map[string]any{...} literal), which the reference records as keyword-only.
+	restResource  bool
+	keywordFields map[string]bool
 }
 
 type goFunc = goSignature // free function
@@ -78,11 +87,91 @@ type goStructFacts struct {
 	pkg     string
 	name    string
 	methods map[string]*goSignature
+	// embeds holds the SHORT type names of the struct's anonymous (embedded)
+	// fields whose declared methods are PROMOTED onto this struct — e.g. a
+	// generated REST resource embeds `*CrudResource` / `*CrudWithAddresses`,
+	// promoting their Create/Update/Get/List/Delete. When a StructTable-listed
+	// goMethod is not declared directly on the struct, it is resolved through
+	// this embed chain and the promoted method's SIGNATURE is used for the
+	// projection, attributed to the subclass. Only the short type name is
+	// stored; the embed chain lives in the same package (namespaces).
+	embeds []string
 }
 
-func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, error) {
+// ---------------------------------------------------------------------------
+// Generated-payload (SWAIG + SWML-verb) interface-field emission (D3)
+//
+// The generated READ-side payload structs (cmd/generate-payloads output) are NOT
+// in the StructTable — they carry no ergonomic method surface, only typed wire
+// FIELDS. Without special handling the drift gate can't SEE them and reports
+// every field the Python/TS reference records as `missing-port`. So, SCOPED to
+// the generated-payload files only (by filename), we emit each struct's exported
+// FIELDS as zero-arg members — matching the reference `_is_sdk_class_type` rule:
+// only a CLASS-typed field (a `$ref` to another generated payload struct, a list
+// of one, or a union carrying one) is part of the cross-port surface; a
+// primitive/plain-dict field is Python-internal scaffolding the reference skips.
+//
+// Each generated field carries a `gen:"<canonical-audit-type>"` struct tag (Go
+// has no union type, so a `union<int,class:SWMLVar>` field is `any` at runtime
+// but its exact audit shape lives in the tag). We read that tag verbatim as the
+// member's canonical return type — the tag is the single source of truth, so the
+// (lossy) Go static type never has to be re-derived here.
+//
+// The MODULE names below end in the `_generated` markers the shared diff tool
+// folds to the stable `gen-payload` token (diff_port_signatures.py
+// _GEN_PAYLOAD_MODULE_MARKERS), so a payload class keys as `gen-payload.<Class>.
+// <field>` cross-port regardless of which file/package a port groups it in.
+// ---------------------------------------------------------------------------
+
+// genPayloadModule maps a generated-payload file's base name to the canonical
+// module it is recorded under. Only files listed here are interface-walked (the
+// scope restriction — no other struct leaks into the payload oracle).
+var genPayloadModule = map[string]string{
+	"swaig_request_generated.go": "signalwire.core.swaig_request_generated",
+	"post_prompt_generated.go":   "signalwire.core.post_prompt_generated",
+	"swaig_actions_generated.go": "signalwire.core.swaig_actions_generated",
+	"swml_verbs_generated.go":    "signalwire.core.swml_verbs_generated",
+}
+
+// genPayloadFacts collects the class-typed members of the generated-payload
+// structs, keyed by canonical module -> class -> member -> canonical return.
+type genPayloadFacts struct {
+	// members[module][class][member] = canonical return type (from the gen: tag)
+	members map[string]map[string]map[string]string
+}
+
+func newGenPayloadFacts() *genPayloadFacts {
+	return &genPayloadFacts{members: map[string]map[string]map[string]string{}}
+}
+
+func (g *genPayloadFacts) add(module, class, member, ret string) {
+	if g.members[module] == nil {
+		g.members[module] = map[string]map[string]string{}
+	}
+	if g.members[module][class] == nil {
+		g.members[module][class] = map[string]string{}
+	}
+	g.members[module][class][member] = ret
+}
+
+// genTagRe extracts the `gen:"..."` value from a struct-field tag literal.
+var genTagRe = regexp.MustCompile(`gen:"([^"]*)"`)
+
+// jsonTagRe extracts the wire key from the `json:"key,..."` tag — the member is
+// keyed by the WIRE name (snake_case), matching how the reference records the
+// TypedDict field (its member name IS the wire key).
+var jsonTagRe = regexp.MustCompile(`json:"([^",]*)`)
+
+// isGenClassType applies the reference `_is_sdk_class_type` rule to a canonical
+// type string: emit the field only when it carries a class ref.
+func isGenClassType(canon string) bool {
+	return strings.Contains(canon, "class:")
+}
+
+func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, *genPayloadFacts, error) {
 	structs := map[string]*goStructFacts{}
 	funcs := map[string]*goFunc{}
+	payloads := newGenPayloadFacts()
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -98,18 +187,78 @@ func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, error) {
 		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
-		return parseFile(path, structs, funcs)
+		return parseFile(path, structs, funcs, payloads)
 	})
-	return structs, funcs, err
+	return structs, funcs, payloads, err
 }
 
-func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]*goFunc) error {
+// collectGenPayload walks a generated-payload file's structs and records each
+// exported, class-typed field as a member (keyed by wire name).
+func collectGenPayload(file *ast.File, module string, payloads *genPayloadFacts) {
+	for _, decl := range file.Decls {
+		gd, ok := decl.(*ast.GenDecl)
+		if !ok || gd.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range gd.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok || !ast.IsExported(ts.Name.Name) {
+				continue
+			}
+			st, isStruct := ts.Type.(*ast.StructType)
+			if !isStruct || st.Fields == nil {
+				continue
+			}
+			class := ts.Name.Name
+			for _, f := range st.Fields.List {
+				if len(f.Names) == 0 || f.Tag == nil {
+					continue
+				}
+				tag := f.Tag.Value
+				gm := genTagRe.FindStringSubmatch(tag)
+				if gm == nil {
+					continue
+				}
+				canon := gm[1]
+				// Only class-typed fields are part of the cross-port surface
+				// (the reference _is_sdk_class_type rule).
+				if !isGenClassType(canon) {
+					continue
+				}
+				member := ""
+				if jm := jsonTagRe.FindStringSubmatch(tag); jm != nil {
+					member = jm[1]
+				}
+				if member == "" {
+					continue
+				}
+				payloads.add(module, class, member, canon)
+			}
+		}
+	}
+}
+
+func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts) error {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
 	if err != nil {
 		return fmt.Errorf("parse %s: %w", path, err)
 	}
+	// Generated-payload files are interface-walked separately (D3) and NOT fed
+	// into the StructTable-driven method projection (they carry no method
+	// surface, only typed wire fields).
+	if module, ok := genPayloadModule[filepath.Base(path)]; ok {
+		collectGenPayload(file, module, payloads)
+		return nil
+	}
 	pkgName := file.Name.Name
+	// Generated REST resource files carry the exploded-typed operation +
+	// command-dispatch methods (§5). Their body-field params are keyword-only in
+	// the Python reference; mark them so buildSignature captures which params are
+	// exploded body fields and toCanonicalSignature reclassifies their kinds.
+	base := filepath.Base(path)
+	isRestResource := strings.HasSuffix(base, "_resources_generated.go") &&
+		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/")
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
@@ -133,6 +282,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						methods: map[string]*goSignature{},
 					}
 				}
+				// Record anonymous (embedded) fields so promoted methods can be
+				// resolved through the embed chain during projection.
+				structs[key].embeds = append(structs[key].embeds, embeddedTypeNames(st)...)
 				// Project exported struct fields (e.g. RestClient.Calling
 				// *namespaces.CallingNamespace) as zero-arg accessor
 				// methods so the cross-language audit sees them. Matches
@@ -167,6 +319,10 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				continue
 			}
 			sig := buildSignature(pkgName, d)
+			if isRestResource {
+				sig.restResource = true
+				sig.keywordFields = restBodyFieldParams(d)
+			}
 			if d.Recv == nil || len(d.Recv.List) == 0 {
 				funcs[pkgName+"."+d.Name.Name] = sig
 				continue
@@ -187,6 +343,41 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 		}
 	}
 	return nil
+}
+
+// restBodyFieldParams returns the set of parameter names a generated REST resource
+// method uses as EXPLODED WIRE-BODY FIELDS — the value identifiers assigned into the
+// method's `body`/`params` map[string]any literal (e.g. `body["from"] = from`,
+// `params["reason"] = reason`). These are exactly the params the Python reference
+// enumerates as keyword-only; the leading path-id positionals (callID, requestID,
+// sid, …) and the trailing `extras`/`params` door are NOT among them (they are
+// never assigned as a `map[key] = ident` value). Read structurally from the body so
+// the classification is derived, not guessed from name/position.
+func restBodyFieldParams(fd *ast.FuncDecl) map[string]bool {
+	out := map[string]bool{}
+	if fd.Body == nil {
+		return out
+	}
+	ast.Inspect(fd.Body, func(n ast.Node) bool {
+		as, ok := n.(*ast.AssignStmt)
+		if !ok || len(as.Lhs) != 1 || len(as.Rhs) != 1 {
+			return true
+		}
+		idx, ok := as.Lhs[0].(*ast.IndexExpr)
+		if !ok {
+			return true
+		}
+		target, ok := idx.X.(*ast.Ident)
+		if !ok || (target.Name != "body" && target.Name != "params") {
+			return true
+		}
+		// The value must be a bare parameter identifier (body["k"] = ident).
+		if v, ok := as.Rhs[0].(*ast.Ident); ok {
+			out[v.Name] = true
+		}
+		return true
+	})
+	return out
 }
 
 func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
@@ -299,6 +490,60 @@ func recvTypeName(expr ast.Expr) string {
 		return recvTypeName(e.X)
 	}
 	return ""
+}
+
+// embeddedTypeNames returns the SHORT type names of a struct's anonymous
+// (embedded) fields — the fields with no explicit name. Only embeds whose type
+// resolves to a bare/pointer identifier in the same package are recorded (e.g.
+// `*CrudResource`, `CrudWithAddresses`); qualified selector embeds (pkg.Type)
+// carry no promoted SDK method surface we project and are skipped.
+func embeddedTypeNames(st *ast.StructType) []string {
+	if st.Fields == nil {
+		return nil
+	}
+	var out []string
+	for _, f := range st.Fields.List {
+		if len(f.Names) != 0 {
+			continue // named field, not an embed
+		}
+		if name := recvTypeName(f.Type); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// resolvePromotedMethod returns the promoted method signature for goMethod if it
+// is declared on one of facts' embedded base structs (transitively), else nil.
+// Go promotes an embedded field's methods onto the embedder, so a StructTable
+// entry that lists e.g. `Create` for a generated REST resource embedding
+// `*CrudResource` is supplied by CrudResource's own `Create` signature. The
+// embed chain is walked in the same package; cycles are guarded by a visited
+// set.
+func resolvePromotedMethod(structs map[string]*goStructFacts, facts *goStructFacts, goMethod string) *goSignature {
+	visited := map[string]struct{}{}
+	var search func(f *goStructFacts) *goSignature
+	search = func(f *goStructFacts) *goSignature {
+		for _, embed := range f.embeds {
+			base, ok := structs[f.pkg+"."+embed]
+			if !ok {
+				continue
+			}
+			key := base.pkg + "." + base.name
+			if _, seen := visited[key]; seen {
+				continue
+			}
+			visited[key] = struct{}{}
+			if sig, present := base.methods[goMethod]; present {
+				return sig
+			}
+			if sig := search(base); sig != nil {
+				return sig
+			}
+		}
+		return nil
+	}
+	return search(facts)
 }
 
 // ---------------------------------------------------------------------------
@@ -712,11 +957,41 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			failures = append(failures, *fail)
 			continue
 		}
-		params = append(params, canonicalParam{
+		cp := canonicalParam{
 			Name:     goNameToSnake(p.name),
 			Type:     canon,
 			Required: boolPtr(true), // Go has no defaults; every param is required
-		})
+		}
+		if sig.restResource {
+			// §5: reclassify the exploded generated-REST params to the Python
+			// reference's kinds (mirrors the TS enumerator's
+			// reclassifyGeneratedResourceParams). Leading path-id positionals stay
+			// positional; each exploded wire-body field (read structurally from the
+			// method body) becomes keyword-only; the trailing `extras` door becomes
+			// keyword + a synthetic `**kwargs` (var_keyword) tail; a GET query
+			// `params` / set_methods `extra` object becomes a single `**params` /
+			// `**extra` (var_keyword) tail. This makes the loose Go surface compare
+			// COUNT + KIND clean against the closed Python reference.
+			switch {
+			case p.name == "extras":
+				cp.Kind = "keyword"
+				params = append(params, cp)
+				params = append(params, canonicalParam{
+					Name: "kwargs", Kind: "var_keyword", Type: "any",
+					Required: boolPtr(false), Default: json.RawMessage("{}"),
+				})
+				continue
+			case p.name == "params" || p.name == "extra":
+				params = append(params, canonicalParam{
+					Name: p.name, Kind: "var_keyword", Type: "any",
+					Required: boolPtr(false), Default: json.RawMessage("{}"),
+				})
+				continue
+			case sig.keywordFields[p.name]:
+				cp.Kind = "keyword"
+			}
+		}
+		params = append(params, cp)
 	}
 	returns := "void"
 	if isCtor {
@@ -732,7 +1007,7 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 	return canonicalSignature{Params: params, Returns: returns}, failures
 }
 
-func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases map[string]string) (sigDoc, []translationFailure) {
+func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts, aliases map[string]string) (sigDoc, []translationFailure) {
 	out := sigDoc{
 		Version: "2",
 		Modules: map[string]sigModuleInventory{},
@@ -786,7 +1061,17 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases 
 					}
 					continue
 				}
-				if mSig, present := facts.methods[goMethod]; present {
+				mSig, present := facts.methods[goMethod]
+				if !present {
+					// Not declared directly — resolve through the embed chain
+					// (promoted method). SCOPED to StructTable-listed methods:
+					// the Methods map is the allowlist of what to project; the
+					// embed resolution only SUPPLIES the promoted method's
+					// signature. Arbitrary promoted methods not listed here are
+					// never projected (no surface flood).
+					mSig = resolvePromotedMethod(structs, facts, goMethod)
+				}
+				if mSig != nil {
 					sig, fails := toCanonicalSignature(mSig, aliases, true, false, fmt.Sprintf("%s.%s.%s", target.Module, target.Class, pyMethod))
 					failures = append(failures, fails...)
 					addClassMethod(target.Module, target.Class, pyMethod, sig)
@@ -851,6 +1136,24 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases 
 			sig, fails := toCanonicalSignature(fn, aliases, false, false, fmt.Sprintf("%s.%s", target.Module, target.Name))
 			failures = append(failures, fails...)
 			addFunction(target.Module, target.Name, sig)
+		}
+	}
+
+	// --- 4. Generated-payload interface fields (D3) ---
+	// Each class-typed field of a generated payload struct is a zero-arg member
+	// returning its canonical (gen: tag) type, under a module that folds to
+	// gen-payload in the shared diff tool. This is what makes the SWAIG + SWML
+	// read-side payloads (cmd/generate-payloads) visible to the drift gate.
+	if payloads != nil {
+		for module, classes := range payloads.members {
+			for class, members := range classes {
+				for member, ret := range members {
+					addClassMethod(module, class, member, canonicalSignature{
+						Params:  []canonicalParam{{Name: "self", Kind: "self"}},
+						Returns: ret,
+					})
+				}
+			}
 		}
 	}
 
@@ -951,12 +1254,12 @@ func run() error {
 		return fmt.Errorf("loadAliases: %w", err)
 	}
 
-	structs, funcs, err := walk(pkgRoot)
+	structs, funcs, payloads, err := walk(pkgRoot)
 	if err != nil {
 		return fmt.Errorf("walk: %w", err)
 	}
 
-	doc, failures := build(structs, funcs, aliases)
+	doc, failures := build(structs, funcs, payloads, aliases)
 	doc.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s (go/ast walker)", goSHA(repoRoot))
 
 	if len(failures) > 0 {

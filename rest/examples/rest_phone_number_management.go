@@ -29,9 +29,9 @@ func main() {
 
 	// 1. Search for available phone numbers
 	fmt.Println("Searching available numbers...")
-	available, err := client.PhoneNumbers.Search(map[string]any{
+	available, err := client.PhoneNumbers.Search(map[string]string{
 		"area_code":   "512",
-		"max_results": 3,
+		"max_results": "3",
 	})
 	if err != nil {
 		fmt.Printf("  Search failed: %v\n", err)
@@ -140,7 +140,7 @@ func main() {
 
 	// 8. Get SIP profile
 	fmt.Println("\nGetting SIP profile...")
-	profile, err := client.SIPProfile.Get()
+	profile, err := client.SIPProfile.Get(nil)
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  SIP profile failed (expected in demo): %d\n", restErr.StatusCode)

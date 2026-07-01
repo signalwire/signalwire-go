@@ -37,7 +37,7 @@ func TestShortCodes_List(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.List(map[string]any{"page_size": 20})
+	body, err := client.ShortCodes.List(map[string]string{"page_size": "20"})
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestShortCodes_Get(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.Get("sc-1")
+	body, err := client.ShortCodes.Get("sc-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestShortCodes_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.Update("sc-1", map[string]any{
+	body, err := client.ShortCodes.Update("sc-1", nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{
 		"name": "Marketing SMS",
 	})
 	if err != nil {
@@ -128,7 +128,7 @@ func TestImportedNumbers_Create(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ImportedNumbers.Create(map[string]any{
+	body, err := client.ImportedNumbers.Create(nil, nil, nil, map[string]any{
 		"number":       "+15551234567",
 		"sip_username": "alice",
 		"sip_password": "secret",
@@ -173,7 +173,7 @@ func TestMFA_Call(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.MFA.Call(map[string]any{
+	body, err := client.MFA.Call(nil, nil, nil, nil, nil, nil, nil, map[string]any{
 		"to":      "+15551234567",
 		"from_":   "+15559876543",
 		"message": "Your code is {code}",
@@ -217,7 +217,7 @@ func TestSipProfile_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.SIPProfile.Update(map[string]any{
+	body, err := client.SIPProfile.Update(nil, nil, nil, nil, nil, map[string]any{
 		"domain":         "myco.sip.signalwire.com",
 		"default_codecs": []string{"PCMU", "PCMA"},
 	})
@@ -329,7 +329,7 @@ func TestProjectTokens_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Project.Tokens.Update("tok-1", map[string]any{
+	body, err := client.Project.Tokens.Update("tok-1", nil, nil, map[string]any{
 		"name": "renamed-token",
 	})
 	if err != nil {
@@ -395,7 +395,7 @@ func TestDatasphere_GetChunk(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-99")
+	body, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-99", nil)
 	if err != nil {
 		t.Fatalf("GetChunk: %v", err)
 	}
@@ -422,7 +422,7 @@ func TestQueues_GetMember(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Queues.GetMember("q-1", "mem-7")
+	body, err := client.Queues.GetMember("q-1", "mem-7", nil)
 	if err != nil {
 		t.Fatalf("GetMember: %v", err)
 	}
