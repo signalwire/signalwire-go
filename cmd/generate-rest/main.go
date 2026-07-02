@@ -2179,6 +2179,39 @@ func run() error {
 			outs = append(outs, outFile{path: filepath.Join(dir(nsDir), tfn), src: typesSrc})
 		}
 	}
+	// swml-webhooks: a types-ONLY namespace (its openapi.yaml declares no servers
+	// and paths:{}, so it has no x-sdk-resource resources — but it DOES carry
+	// components/schemas the reference emits as swml_webhooks_types_generated types).
+	// The full loadSpec path requires servers/paths, so emit its types module via a
+	// minimal types-only spec doc (emitTypesFile only needs name + rawPath). Matches
+	// the reference (python swml_webhooks_types_generated.py, TS PlatformContracts).
+	swmlWebhooksSpec := &specDoc{
+		name:    "swml-webhooks",
+		rawPath: filepath.Join(psdk, "rest-apis", "swml-webhooks", "openapi.yaml"),
+	}
+	if _, err := os.Stat(swmlWebhooksSpec.rawPath); err == nil {
+		swSrc, err := emitTypesFile(swmlWebhooksSpec)
+		if err != nil {
+			return err
+		}
+		if swSrc != "" {
+			tfn := strings.ReplaceAll(swmlWebhooksSpec.name, "-", "_") + "_types_generated.go"
+			outs = append(outs, outFile{path: filepath.Join(dir(nsDir), tfn), src: swSrc})
+		}
+	}
+
+	// RELAY WS protocol types (pkg/relay/protocol_types_generated.go, package relay):
+	// one Go type per relay-protocol/*.{params,result}.json schema. Emitted from the
+	// standalone JSON-Schema files (not an openapi.yaml), so it uses its own reader.
+	relayDir := filepath.Join(repoRoot, "pkg", "relay")
+	relaySrc, err := emitRelayProtocolFile(psdk)
+	if err != nil {
+		return err
+	}
+	if relaySrc != "" {
+		outs = append(outs, outFile{path: filepath.Join(dir(relayDir), "protocol_types_generated.go"), src: relaySrc})
+	}
+
 	placed := resolvePlacement(specs)
 	nsTree, restTree := emitClientTree(placed)
 	outs = append(outs, outFile{path: filepath.Join(dir(nsDir), "client_tree_generated.go"), src: nsTree})

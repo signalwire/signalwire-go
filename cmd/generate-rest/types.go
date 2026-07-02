@@ -190,15 +190,22 @@ func goScalar(t string) string {
 // Declarations — one Go type per components/schemas entry.
 // ---------------------------------------------------------------------------
 
-// isObjectSchema mirrors the TS `isObject` test: type:object (or no type but
-// properties present) AND not a oneOf/anyOf/allOf combinator → an interface/struct.
+// isObjectSchema mirrors the reference `is_object`/`isObject` test: type:object
+// (or no type but properties present) AND not a oneOf/anyOf/allOf combinator, AND
+// the properties map is NON-EMPTY → an interface/struct. An object schema with an
+// EMPTY (or absent) properties map is NOT a struct: the reference's declaration()
+// gates on `schema.get("properties")` being truthy, so an empty `properties: {}`
+// (e.g. relay signalwire.disconnect result) falls through to a `map[string]any`
+// alias, exactly like a no-properties schema. (No REST spec today carries an empty
+// object schema, so this tightening is inert for the REST types — verified.)
 func isObjectSchema(node *yaml.Node) bool {
 	if seqChild(node, "oneOf") != nil || seqChild(node, "anyOf") != nil || seqChild(node, "allOf") != nil {
 		return false
 	}
 	t, _ := schemaType(node)
 	props := mapChild(node, "properties")
-	return (t == "object" || (t == "" && props != nil)) && props != nil && props.Kind == yaml.MappingNode
+	return (t == "object" || (t == "" && props != nil)) &&
+		props != nil && props.Kind == yaml.MappingNode && len(props.Content) > 0
 }
 
 // emitTypeDecl emits the Go declaration for one schema. Object schemas become

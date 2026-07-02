@@ -218,6 +218,35 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 		}
 		return nil
 	}
+	// Generated RELAY WS protocol types (pkg/relay/protocol_types_generated.go,
+	// package relay): each OBJECT struct is a surface class under the reference's
+	// `signalwire.relay.protocol_types_generated` module. The empty-object methods
+	// (calling.call, signalwire.disconnect result) are `map[string]any` aliases, NOT
+	// structs, so they are not surfaced — matching the reference (123 structs). Handled
+	// here (and NOT fed into the StructTable projection nor the port-additions
+	// inventory) exactly like the REST `_types_generated` files above.
+	if base == "protocol_types_generated.go" && pkgName == "relay" &&
+		strings.Contains(filepath.ToSlash(path), "pkg/relay/") {
+		const module = "signalwire.relay.protocol_types_generated"
+		for _, decl := range file.Decls {
+			gd, ok := decl.(*ast.GenDecl)
+			if !ok || gd.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gd.Specs {
+				ts, ok := spec.(*ast.TypeSpec)
+				if !ok || !ast.IsExported(ts.Name.Name) {
+					continue
+				}
+				if _, isStruct := ts.Type.(*ast.StructType); !isStruct {
+					continue
+				}
+				genTypeSurface = append(genTypeSurface, genType{module: module, name: ts.Name.Name})
+			}
+		}
+		return nil
+	}
+
 	isRestResource := strings.HasSuffix(base, "_resources_generated.go") &&
 		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/")
 	for _, decl := range file.Decls {
