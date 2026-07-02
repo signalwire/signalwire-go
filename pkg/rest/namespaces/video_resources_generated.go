@@ -43,12 +43,18 @@ func (r *VideoConferences) ListStreams(id string, params map[string]string) (map
 	return r.HTTP.Get(r.Path(id, "streams"), params)
 }
 
-func (r *VideoConferences) CreateStream(id string, url any, extras map[string]any) (map[string]any, error) {
+// VideoConferencesCreateStreamParams holds the named optional parameters for VideoConferences.CreateStream.
+type VideoConferencesCreateStreamParams struct {
+	Url    any
+	Extras map[string]any
+}
+
+func (r *VideoConferences) CreateStream(id string, params VideoConferencesCreateStreamParams) (map[string]any, error) {
 	body := map[string]any{}
-	if url != nil {
-		body["url"] = url
+	if params.Url != nil {
+		body["url"] = params.Url
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path(id, "streams"), body, nil)
 }
 
@@ -118,63 +124,86 @@ func NewVideoRoomTokens(client HTTPClient) *VideoRoomTokens {
 	return &VideoRoomTokens{Resource{HTTP: client, Base: "/api/video/room_tokens"}}
 }
 
-func (r *VideoRoomTokens) Create(roomName any, userName any, permissions any, joinFrom any, joinUntil any, removeAt any, removeAfterSecondsElapsed any, joinAudioMuted any, joinVideoMuted any, autoCreateRoom any, enableRoomPreviews any, roomDisplayName any, endRoomSessionOnLeave any, joinAs any, mediaAllowed any, roomMeta any, meta any, syncAudioVideo any, extras map[string]any) (map[string]any, error) {
+// VideoRoomTokensCreateParams holds the named optional parameters for VideoRoomTokens.Create.
+type VideoRoomTokensCreateParams struct {
+	RoomName                  any
+	UserName                  any
+	Permissions               any
+	JoinFrom                  any
+	JoinUntil                 any
+	RemoveAt                  any
+	RemoveAfterSecondsElapsed any
+	JoinAudioMuted            any
+	JoinVideoMuted            any
+	AutoCreateRoom            any
+	EnableRoomPreviews        any
+	RoomDisplayName           any
+	EndRoomSessionOnLeave     any
+	JoinAs                    any
+	MediaAllowed              any
+	RoomMeta                  any
+	Meta                      any
+	SyncAudioVideo            any
+	Extras                    map[string]any
+}
+
+func (r *VideoRoomTokens) Create(params VideoRoomTokensCreateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if roomName != nil {
-		body["room_name"] = roomName
+	if params.RoomName != nil {
+		body["room_name"] = params.RoomName
 	}
-	if userName != nil {
-		body["user_name"] = userName
+	if params.UserName != nil {
+		body["user_name"] = params.UserName
 	}
-	if permissions != nil {
-		body["permissions"] = permissions
+	if params.Permissions != nil {
+		body["permissions"] = params.Permissions
 	}
-	if joinFrom != nil {
-		body["join_from"] = joinFrom
+	if params.JoinFrom != nil {
+		body["join_from"] = params.JoinFrom
 	}
-	if joinUntil != nil {
-		body["join_until"] = joinUntil
+	if params.JoinUntil != nil {
+		body["join_until"] = params.JoinUntil
 	}
-	if removeAt != nil {
-		body["remove_at"] = removeAt
+	if params.RemoveAt != nil {
+		body["remove_at"] = params.RemoveAt
 	}
-	if removeAfterSecondsElapsed != nil {
-		body["remove_after_seconds_elapsed"] = removeAfterSecondsElapsed
+	if params.RemoveAfterSecondsElapsed != nil {
+		body["remove_after_seconds_elapsed"] = params.RemoveAfterSecondsElapsed
 	}
-	if joinAudioMuted != nil {
-		body["join_audio_muted"] = joinAudioMuted
+	if params.JoinAudioMuted != nil {
+		body["join_audio_muted"] = params.JoinAudioMuted
 	}
-	if joinVideoMuted != nil {
-		body["join_video_muted"] = joinVideoMuted
+	if params.JoinVideoMuted != nil {
+		body["join_video_muted"] = params.JoinVideoMuted
 	}
-	if autoCreateRoom != nil {
-		body["auto_create_room"] = autoCreateRoom
+	if params.AutoCreateRoom != nil {
+		body["auto_create_room"] = params.AutoCreateRoom
 	}
-	if enableRoomPreviews != nil {
-		body["enable_room_previews"] = enableRoomPreviews
+	if params.EnableRoomPreviews != nil {
+		body["enable_room_previews"] = params.EnableRoomPreviews
 	}
-	if roomDisplayName != nil {
-		body["room_display_name"] = roomDisplayName
+	if params.RoomDisplayName != nil {
+		body["room_display_name"] = params.RoomDisplayName
 	}
-	if endRoomSessionOnLeave != nil {
-		body["end_room_session_on_leave"] = endRoomSessionOnLeave
+	if params.EndRoomSessionOnLeave != nil {
+		body["end_room_session_on_leave"] = params.EndRoomSessionOnLeave
 	}
-	if joinAs != nil {
-		body["join_as"] = joinAs
+	if params.JoinAs != nil {
+		body["join_as"] = params.JoinAs
 	}
-	if mediaAllowed != nil {
-		body["media_allowed"] = mediaAllowed
+	if params.MediaAllowed != nil {
+		body["media_allowed"] = params.MediaAllowed
 	}
-	if roomMeta != nil {
-		body["room_meta"] = roomMeta
+	if params.RoomMeta != nil {
+		body["room_meta"] = params.RoomMeta
 	}
-	if meta != nil {
-		body["meta"] = meta
+	if params.Meta != nil {
+		body["meta"] = params.Meta
 	}
-	if syncAudioVideo != nil {
-		body["sync_audio_video"] = syncAudioVideo
+	if params.SyncAudioVideo != nil {
+		body["sync_audio_video"] = params.SyncAudioVideo
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Base, body, nil)
 }
 
@@ -192,12 +221,18 @@ func (r *VideoRooms) ListStreams(id string, params map[string]string) (map[strin
 	return r.HTTP.Get(r.Path(id, "streams"), params)
 }
 
-func (r *VideoRooms) CreateStream(id string, url any, extras map[string]any) (map[string]any, error) {
+// VideoRoomsCreateStreamParams holds the named optional parameters for VideoRooms.CreateStream.
+type VideoRoomsCreateStreamParams struct {
+	Url    any
+	Extras map[string]any
+}
+
+func (r *VideoRooms) CreateStream(id string, params VideoRoomsCreateStreamParams) (map[string]any, error) {
 	body := map[string]any{}
-	if url != nil {
-		body["url"] = url
+	if params.Url != nil {
+		body["url"] = params.Url
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path(id, "streams"), body, nil)
 }
 
@@ -215,12 +250,18 @@ func (r *VideoStreams) Get(id string, params map[string]string) (map[string]any,
 	return r.HTTP.Get(r.Path(id), params)
 }
 
-func (r *VideoStreams) Update(id string, url any, extras map[string]any) (map[string]any, error) {
+// VideoStreamsUpdateParams holds the named optional parameters for VideoStreams.Update.
+type VideoStreamsUpdateParams struct {
+	Url    any
+	Extras map[string]any
+}
+
+func (r *VideoStreams) Update(id string, params VideoStreamsUpdateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if url != nil {
-		body["url"] = url
+	if params.Url != nil {
+		body["url"] = params.Url
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Put(r.Path(id), body)
 }
 

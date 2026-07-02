@@ -679,18 +679,26 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	for _, a := range idArgs {
 		params = append(params, a+" string")
 	}
-	// bodyFields holds (wire field -> Go param ident) for an exploded write body.
+	// bodyFields holds (wire field -> struct field ident) for an exploded write body.
 	var bodyOrder []string
 	bodyParam := map[string]string{}
+	// structDef, when set, is the params-struct type definition emitted before the
+	// method (the idiomatic Go named-options-struct form — §5, §4a). structName is
+	// the parameter variable's type; every optional call-site field lives on it.
+	var structDef string
 	var tail string
 	switch {
 	case writeVerb:
 		if op.hasBody {
-			// §5: explode the requestBody schema into one typed param per field
-			// (required-first, then optionals), followed by a trailing `extras`
-			// door. The wire body is assembled from the provided fields + merged
-			// extras. Body fields are emitted as `any` (loose surface; the drift
-			// gate compares param count+kind, not the field's static type).
+			// §5/§4a: collect the requestBody schema fields (required-first, then
+			// optionals) into a per-method params STRUCT — the idiomatic Go named-
+			// options form (aws-sdk-go-v2 input-struct style), NOT flat positionals.
+			// Each field becomes a struct field; an `Extras map[string]any` door
+			// closes it. The wire body is assembled from the struct's non-nil fields
+			// + merged Extras — SAME wire keys/body as the old flat form. Struct
+			// fields are `any` (loose surface; the drift gate compares param
+			// count+kind, and the enumerator unfolds the struct back into the flat
+			// keyword set).
 			fields, oneOfBody, err := operationBodyFields(sd, op)
 			if err != nil {
 				return err
@@ -702,21 +710,23 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 				tail = "data"
 				break
 			}
-			used := map[string]bool{"extras": true}
-			for _, a := range idArgs {
-				used[a] = true
-			}
+			structName := recv + goName + "Params"
+			used := map[string]bool{"Extras": true}
+			var fieldDefs []string
 			for _, f := range fields {
-				pn := goParamName(f)
-				for used[pn] {
-					pn += "_"
+				fn := structFieldName(f)
+				for used[fn] {
+					fn += "_"
 				}
-				used[pn] = true
-				bodyParam[f] = pn
+				used[fn] = true
+				bodyParam[f] = fn
 				bodyOrder = append(bodyOrder, f)
-				params = append(params, pn+" any")
+				fieldDefs = append(fieldDefs, "\t"+fn+" any")
 			}
-			params = append(params, "extras map[string]any")
+			fieldDefs = append(fieldDefs, "\tExtras map[string]any")
+			structDef = fmt.Sprintf("// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
+				structName, recv, goName, structName, strings.Join(fieldDefs, "\n"))
+			params = append(params, "params "+structName)
 			tail = "body"
 		}
 	case verb == "get":
@@ -748,17 +758,20 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 		pathCode = "r.Path(" + strings.Join(pathExpr, ", ") + ")"
 	}
 
+	if structDef != "" {
+		b.WriteString(structDef)
+	}
 	fmt.Fprintf(b, "func (r *%s) %s(%s) (map[string]any, error) {\n", recv, goName, strings.Join(params, ", "))
-	// Assemble the write body: exploded (only provided fields + merged extras) or
-	// the loose single-`data` object (oneOf-union bodies).
+	// Assemble the write body: exploded from the params struct (only non-nil fields
+	// + merged params.Extras) or the loose single-`data` object (oneOf-union bodies).
 	dataExpr := "nil"
 	switch tail {
 	case "body":
 		b.WriteString("\tbody := map[string]any{}\n")
 		for _, f := range bodyOrder {
-			fmt.Fprintf(b, "\tif %s != nil {\n\t\tbody[%q] = %s\n\t}\n", bodyParam[f], f, bodyParam[f])
+			fmt.Fprintf(b, "\tif params.%s != nil {\n\t\tbody[%q] = params.%s\n\t}\n", bodyParam[f], f, bodyParam[f])
 		}
-		b.WriteString("\tmergeExtra(body, []map[string]any{extras})\n")
+		b.WriteString("\tmergeExtra(body, []map[string]any{params.Extras})\n")
 		dataExpr = "body"
 	case "data":
 		dataExpr = "data"
@@ -1120,33 +1133,44 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 			return err
 		}
 		withID := !commandsWithoutID[cmd]
-		var params []string
-		if withID {
-			params = append(params, "callID string")
-		}
-		fieldParam := map[string]string{} // wire field -> Go param ident
-		used := map[string]bool{"callID": true, "extras": true}
+		// §5/§6/§4a: the command's typed params collapse into a named params STRUCT
+		// (idiomatic Go options struct, not flat positionals); a leading callID stays
+		// positional when the command carries a top-level id. The wire `params` object
+		// is assembled from the struct's non-nil fields + merged Extras — SAME body as
+		// the old flat form. The enumerator unfolds the struct back into the flat
+		// keyword set (drift-neutral).
+		structName := goName + mName + "Params"
+		fieldParam := map[string]string{} // wire field -> struct field ident
+		used := map[string]bool{"Extras": true}
+		var fieldDefs []string
 		for _, f := range fields {
-			pn := goParamName(f)
-			for used[pn] {
-				pn += "_"
+			fn := structFieldName(f)
+			for used[fn] {
+				fn += "_"
 			}
-			used[pn] = true
-			fieldParam[f] = pn
-			params = append(params, pn+" any")
+			used[fn] = true
+			fieldParam[f] = fn
+			fieldDefs = append(fieldDefs, "\t"+fn+" any")
 		}
-		params = append(params, "extras map[string]any")
-		fmt.Fprintf(b, "func (c *%s) %s(%s) (map[string]any, error) {\n", goName, mName, strings.Join(params, ", "))
-		b.WriteString("\tparams := map[string]any{}\n")
+		fieldDefs = append(fieldDefs, "\tExtras map[string]any")
+		fmt.Fprintf(b, "// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
+			structName, goName, mName, structName, strings.Join(fieldDefs, "\n"))
+		var sigParams []string
+		if withID {
+			sigParams = append(sigParams, "callID string")
+		}
+		sigParams = append(sigParams, "params "+structName)
+		fmt.Fprintf(b, "func (c *%s) %s(%s) (map[string]any, error) {\n", goName, mName, strings.Join(sigParams, ", "))
+		b.WriteString("\tbody := map[string]any{}\n")
 		for _, f := range fields {
-			fmt.Fprintf(b, "\tif %s != nil {\n\t\tparams[%q] = %s\n\t}\n", fieldParam[f], f, fieldParam[f])
+			fmt.Fprintf(b, "\tif params.%s != nil {\n\t\tbody[%q] = params.%s\n\t}\n", fieldParam[f], f, fieldParam[f])
 		}
-		b.WriteString("\tmergeExtra(params, []map[string]any{extras})\n")
+		b.WriteString("\tmergeExtra(body, []map[string]any{params.Extras})\n")
 		callID := `""`
 		if withID {
 			callID = "callID"
 		}
-		fmt.Fprintf(b, "\treturn c.execute(%q, %s, params)\n}\n\n", cmd, callID)
+		fmt.Fprintf(b, "\treturn c.execute(%q, %s, body)\n}\n\n", cmd, callID)
 	}
 	return nil
 }
@@ -1439,6 +1463,22 @@ func goParamName(field string) string {
 		s = "field"
 	}
 	return escapeIdent(s)
+}
+
+// structFieldName maps a wire field name to an EXPORTED Go struct-field identifier
+// for a params struct (§5/§4a). It reuses goParamName (snake->camel, keyword-safe)
+// and upper-cases the first rune so the field is exported — e.g. "query_string" ->
+// "QueryString", "from" -> "From_" (goParamName escapes the keyword to "from_",
+// which pascals to "From_"). Crucially the enumerator's goNameToSnake round-trips
+// this back to the SAME wire/snake name the old flat-positional form recorded
+// ("From_" -> "from_"), keeping port_signatures.json byte-identical (drift 0).
+func structFieldName(field string) string {
+	s := goParamName(field)
+	r := []rune(s)
+	if len(r) > 0 && r[0] >= 'a' && r[0] <= 'z' {
+		r[0] -= 32
+	}
+	return string(r)
 }
 
 // ---------------------------------------------------------------------------

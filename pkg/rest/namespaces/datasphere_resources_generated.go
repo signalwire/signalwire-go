@@ -17,33 +17,46 @@ func NewDatasphereDocuments(client HTTPClient) *DatasphereDocuments {
 	return &DatasphereDocuments{NewCrudResource(client, "/api/datasphere/documents")}
 }
 
-func (r *DatasphereDocuments) Search(queryString any, tags any, documentId any, distance any, count any, language any, posToExpand any, maxSynonyms any, extras map[string]any) (map[string]any, error) {
+// DatasphereDocumentsSearchParams holds the named optional parameters for DatasphereDocuments.Search.
+type DatasphereDocumentsSearchParams struct {
+	QueryString any
+	Tags        any
+	DocumentId  any
+	Distance    any
+	Count       any
+	Language    any
+	PosToExpand any
+	MaxSynonyms any
+	Extras      map[string]any
+}
+
+func (r *DatasphereDocuments) Search(params DatasphereDocumentsSearchParams) (map[string]any, error) {
 	body := map[string]any{}
-	if queryString != nil {
-		body["query_string"] = queryString
+	if params.QueryString != nil {
+		body["query_string"] = params.QueryString
 	}
-	if tags != nil {
-		body["tags"] = tags
+	if params.Tags != nil {
+		body["tags"] = params.Tags
 	}
-	if documentId != nil {
-		body["document_id"] = documentId
+	if params.DocumentId != nil {
+		body["document_id"] = params.DocumentId
 	}
-	if distance != nil {
-		body["distance"] = distance
+	if params.Distance != nil {
+		body["distance"] = params.Distance
 	}
-	if count != nil {
-		body["count"] = count
+	if params.Count != nil {
+		body["count"] = params.Count
 	}
-	if language != nil {
-		body["language"] = language
+	if params.Language != nil {
+		body["language"] = params.Language
 	}
-	if posToExpand != nil {
-		body["pos_to_expand"] = posToExpand
+	if params.PosToExpand != nil {
+		body["pos_to_expand"] = params.PosToExpand
 	}
-	if maxSynonyms != nil {
-		body["max_synonyms"] = maxSynonyms
+	if params.MaxSynonyms != nil {
+		body["max_synonyms"] = params.MaxSynonyms
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path("search"), body, nil)
 }
 

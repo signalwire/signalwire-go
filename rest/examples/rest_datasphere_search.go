@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -91,9 +92,9 @@ func main() {
 
 	// 4. Semantic search across all documents
 	fmt.Println("\nSearching Datasphere...")
-	results, err := client.Datasphere.Documents.Search(map[string]any{
-		"query_string": "lorem ipsum dolor sit amet",
-		"count":        3,
+	results, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{
+		QueryString: "lorem ipsum dolor sit amet",
+		Count:       3,
 	})
 	if err != nil {
 		fmt.Printf("  Search failed: %v\n", err)

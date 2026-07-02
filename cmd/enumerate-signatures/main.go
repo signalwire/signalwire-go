@@ -56,6 +56,20 @@ var (
 	factoryInit = surfacepkg.FactoryInit
 )
 
+// paramsStructField is one field of a generated-REST params struct (§5/§4a).
+type paramsStructField struct {
+	name    string // exported Go field name (e.g. "QueryString", "Extras")
+	typeStr string // source-level type expression (e.g. "any", "map[string]any")
+}
+
+// paramsStructFields maps a generated-REST `<...>Params` struct's SHORT type name
+// to its ordered fields. Populated while parsing pkg/rest/namespaces/
+// *_resources_generated.go. The signature enumerator UNFOLDS these fields back
+// into the flat keyword param set the Python oracle records, so collapsing the old
+// flat-positional operation/command params into a named Go options struct is a pure
+// call-site reshape and keeps port_signatures.json byte-identical (drift 0).
+var paramsStructFields = map[string][]paramsStructField{}
+
 // ---------------------------------------------------------------------------
 // AST walking — collects signatures, not just names
 // ---------------------------------------------------------------------------
@@ -72,13 +86,10 @@ type goSignature struct {
 	returns string // source-level type expression of the canonical return; "" → void
 	isField bool   // true when this signature was synthesized from a struct field, not a method
 	// restResource marks a method on a generated REST resource class
-	// (pkg/rest/namespaces/*_resources_generated.go). Its exploded body-field
-	// params are reclassified to the Python reference's kinds (see
-	// reclassifyRestResourceParams). keywordFields is the set of param names that
-	// are exploded wire-body fields (read structurally from the method body's
-	// map[string]any{...} literal), which the reference records as keyword-only.
-	restResource  bool
-	keywordFields map[string]bool
+	// (pkg/rest/namespaces/*_resources_generated.go). Its named params-struct
+	// (`params <Recv><Method>Params`) is UNFOLDED back into the Python reference's
+	// flat keyword set (see toCanonicalSignature + paramsStructFields).
+	restResource bool
 }
 
 type goFunc = goSignature // free function
@@ -274,6 +285,20 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				if !isStruct {
 					continue
 				}
+				// Record generated-REST params structs' fields (§5/§4a) so the
+				// signature enumerator can UNFOLD `params <...>Params` back into the
+				// flat keyword set the oracle records (drift-neutral). Scoped to
+				// `*Params` structs in the generated resource files.
+				if isRestResource && strings.HasSuffix(ts.Name.Name, "Params") && st.Fields != nil {
+					var fields []paramsStructField
+					for _, f := range st.Fields.List {
+						typeStr := exprString(f.Type)
+						for _, n := range f.Names {
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr})
+						}
+					}
+					paramsStructFields[ts.Name.Name] = fields
+				}
 				key := pkgName + "." + ts.Name.Name
 				if _, present := structs[key]; !present {
 					structs[key] = &goStructFacts{
@@ -321,7 +346,6 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 			sig := buildSignature(pkgName, d)
 			if isRestResource {
 				sig.restResource = true
-				sig.keywordFields = restBodyFieldParams(d)
 			}
 			if d.Recv == nil || len(d.Recv.List) == 0 {
 				funcs[pkgName+"."+d.Name.Name] = sig
@@ -343,41 +367,6 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 		}
 	}
 	return nil
-}
-
-// restBodyFieldParams returns the set of parameter names a generated REST resource
-// method uses as EXPLODED WIRE-BODY FIELDS — the value identifiers assigned into the
-// method's `body`/`params` map[string]any literal (e.g. `body["from"] = from`,
-// `params["reason"] = reason`). These are exactly the params the Python reference
-// enumerates as keyword-only; the leading path-id positionals (callID, requestID,
-// sid, …) and the trailing `extras`/`params` door are NOT among them (they are
-// never assigned as a `map[key] = ident` value). Read structurally from the body so
-// the classification is derived, not guessed from name/position.
-func restBodyFieldParams(fd *ast.FuncDecl) map[string]bool {
-	out := map[string]bool{}
-	if fd.Body == nil {
-		return out
-	}
-	ast.Inspect(fd.Body, func(n ast.Node) bool {
-		as, ok := n.(*ast.AssignStmt)
-		if !ok || len(as.Lhs) != 1 || len(as.Rhs) != 1 {
-			return true
-		}
-		idx, ok := as.Lhs[0].(*ast.IndexExpr)
-		if !ok {
-			return true
-		}
-		target, ok := idx.X.(*ast.Ident)
-		if !ok || (target.Name != "body" && target.Name != "params") {
-			return true
-		}
-		// The value must be a bare parameter identifier (body["k"] = ident).
-		if v, ok := as.Rhs[0].(*ast.Ident); ok {
-			out[v.Name] = true
-		}
-		return true
-	})
-	return out
 }
 
 func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
@@ -952,6 +941,42 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 		params = append(params, canonicalParam{Name: "self", Kind: "self"})
 	}
 	for _, p := range sig.params {
+		// §5/§4a: a generated-REST operation/command method takes its wire-body
+		// fields as a named params STRUCT (`params <Recv><Method>Params`) instead of
+		// flat positionals. UNFOLD that struct back into the flat keyword set the
+		// Python oracle records so port_signatures.json is byte-identical to the old
+		// flat form (pure call-site reshape → drift 0). Each non-Extras field →
+		// keyword; the `Extras` field → keyword + a synthetic `**kwargs` var_keyword
+		// tail (the exact shape the flat `extras map[string]any` param produced). A
+		// GET query `params map[string]string` is NOT a params struct — it still
+		// falls through to the `**params` var_keyword handling below.
+		if sig.restResource {
+			if fields, ok := paramsStructFields[p.typeStr]; ok {
+				for _, f := range fields {
+					fCanon, fail := translateType(f.typeStr, aliases, ctx+"["+f.name+"]")
+					if fail != nil {
+						failures = append(failures, *fail)
+						continue
+					}
+					if f.name == "Extras" {
+						params = append(params, canonicalParam{
+							Name: "extras", Kind: "keyword", Type: fCanon,
+							Required: boolPtr(true),
+						})
+						params = append(params, canonicalParam{
+							Name: "kwargs", Kind: "var_keyword", Type: "any",
+							Required: boolPtr(false), Default: json.RawMessage("{}"),
+						})
+						continue
+					}
+					params = append(params, canonicalParam{
+						Name: goNameToSnake(f.name), Kind: "keyword", Type: fCanon,
+						Required: boolPtr(true),
+					})
+				}
+				continue
+			}
+		}
 		canon, fail := translateType(p.typeStr, aliases, ctx+"["+p.name+"]")
 		if fail != nil {
 			failures = append(failures, *fail)
@@ -962,34 +987,17 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			Type:     canon,
 			Required: boolPtr(true), // Go has no defaults; every param is required
 		}
-		if sig.restResource {
-			// §5: reclassify the exploded generated-REST params to the Python
-			// reference's kinds (mirrors the TS enumerator's
-			// reclassifyGeneratedResourceParams). Leading path-id positionals stay
-			// positional; each exploded wire-body field (read structurally from the
-			// method body) becomes keyword-only; the trailing `extras` door becomes
-			// keyword + a synthetic `**kwargs` (var_keyword) tail; a GET query
-			// `params` / set_methods `extra` object becomes a single `**params` /
-			// `**extra` (var_keyword) tail. This makes the loose Go surface compare
-			// COUNT + KIND clean against the closed Python reference.
-			switch {
-			case p.name == "extras":
-				cp.Kind = "keyword"
-				params = append(params, cp)
-				params = append(params, canonicalParam{
-					Name: "kwargs", Kind: "var_keyword", Type: "any",
-					Required: boolPtr(false), Default: json.RawMessage("{}"),
-				})
-				continue
-			case p.name == "params" || p.name == "extra":
-				params = append(params, canonicalParam{
-					Name: p.name, Kind: "var_keyword", Type: "any",
-					Required: boolPtr(false), Default: json.RawMessage("{}"),
-				})
-				continue
-			case sig.keywordFields[p.name]:
-				cp.Kind = "keyword"
-			}
+		// §5: reclassify the remaining generated-REST params to the Python
+		// reference's kinds. Leading path-id positionals stay positional; a GET
+		// query `params` / set_methods `extra` object becomes a single `**params` /
+		// `**extra` (var_keyword) tail. This makes the loose Go surface compare
+		// COUNT + KIND clean against the closed Python reference.
+		if sig.restResource && (p.name == "params" || p.name == "extra") {
+			params = append(params, canonicalParam{
+				Name: p.name, Kind: "var_keyword", Type: "any",
+				Required: boolPtr(false), Default: json.RawMessage("{}"),
+			})
+			continue
 		}
 		params = append(params, cp)
 	}

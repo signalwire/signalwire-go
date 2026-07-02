@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -128,9 +129,9 @@ func main() {
 
 	// 8. Assign a domain application (demo)
 	fmt.Println("\nAssigning domain application (demo)...")
-	_, err = client.Fabric.Resources.AssignDomainApplication(relayID, map[string]any{
+	_, err = client.Fabric.Resources.AssignDomainApplication(relayID, namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{
 		"domain": "app.example.com",
-	})
+	}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Domain assignment failed (expected in demo): %d\n", restErr.StatusCode)
@@ -141,7 +142,7 @@ func main() {
 
 	// 9. Generate tokens
 	fmt.Println("\nGenerating tokens...")
-	guest, err := client.Fabric.Tokens.CreateGuestToken(map[string]any{"resource_id": relayID})
+	guest, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Guest token failed (expected in demo): %d\n", restErr.StatusCode)
@@ -154,7 +155,7 @@ func main() {
 		fmt.Printf("  Guest token: %s...\n", token)
 	}
 
-	invite, err := client.Fabric.Tokens.CreateInviteToken(map[string]any{"resource_id": relayID})
+	invite, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Invite token failed (expected in demo): %d\n", restErr.StatusCode)
@@ -167,7 +168,7 @@ func main() {
 		fmt.Printf("  Invite token: %s...\n", token)
 	}
 
-	embed, err := client.Fabric.Tokens.CreateEmbedToken(map[string]any{"resource_id": relayID})
+	embed, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Embed token failed (expected in demo): %d\n", restErr.StatusCode)

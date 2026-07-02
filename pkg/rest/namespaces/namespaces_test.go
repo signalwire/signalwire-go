@@ -176,7 +176,7 @@ func TestCrudResource_ErrorPropagation(t *testing.T) {
 func TestCallingNamespace_Dial(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Dial(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"to": "+1555"})
+	_, _ = c.Dial(CallingNamespaceDialParams{Extras: map[string]any{"to": "+1555"}})
 	if mock.lastMethod != "POST" {
 		t.Errorf("method = %q, want POST", mock.lastMethod)
 	}
@@ -191,7 +191,7 @@ func TestCallingNamespace_Dial(t *testing.T) {
 func TestCallingNamespace_End(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.End("call-1", nil, map[string]any{})
+	_, _ = c.End("call-1", CallingNamespaceEndParams{})
 	if mock.lastBody["command"] != "calling.end" {
 		t.Errorf("command = %v, want calling.end", mock.lastBody["command"])
 	}
@@ -203,7 +203,7 @@ func TestCallingNamespace_End(t *testing.T) {
 func TestCallingNamespace_Play(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Play("call-1", nil, nil, nil, nil, nil, nil, map[string]any{"url": "audio.mp3"})
+	_, _ = c.Play("call-1", CallingNamespacePlayParams{Extras: map[string]any{"url": "audio.mp3"}})
 	if mock.lastBody["command"] != "calling.play" {
 		t.Errorf("command = %v, want calling.play", mock.lastBody["command"])
 	}
@@ -212,7 +212,7 @@ func TestCallingNamespace_Play(t *testing.T) {
 func TestCallingNamespace_PlayPause(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.PlayPause("call-1", nil, nil)
+	_, _ = c.PlayPause("call-1", CallingNamespacePlayPauseParams{})
 	if mock.lastBody["command"] != "calling.play.pause" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -221,7 +221,7 @@ func TestCallingNamespace_PlayPause(t *testing.T) {
 func TestCallingNamespace_Record(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Record("call-1", nil, nil, nil, map[string]any{"format": "mp3"})
+	_, _ = c.Record("call-1", CallingNamespaceRecordParams{Extras: map[string]any{"format": "mp3"}})
 	if mock.lastBody["command"] != "calling.record" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -230,7 +230,7 @@ func TestCallingNamespace_Record(t *testing.T) {
 func TestCallingNamespace_Transfer(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Transfer("call-1", nil, map[string]any{})
+	_, _ = c.Transfer("call-1", CallingNamespaceTransferParams{})
 	if mock.lastBody["command"] != "calling.transfer" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -239,7 +239,7 @@ func TestCallingNamespace_Transfer(t *testing.T) {
 func TestCallingNamespace_AIMessage(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.AIMessage("call-1", nil, nil, nil, nil, map[string]any{"text": "hello"})
+	_, _ = c.AIMessage("call-1", CallingNamespaceAIMessageParams{Extras: map[string]any{"text": "hello"}})
 	if mock.lastBody["command"] != "calling.ai_message" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -248,7 +248,7 @@ func TestCallingNamespace_AIMessage(t *testing.T) {
 func TestCallingNamespace_Stream(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Stream("call-1", nil, nil, nil, nil, nil, nil, map[string]any{"url": "wss://example.com"})
+	_, _ = c.Stream("call-1", CallingNamespaceStreamParams{Extras: map[string]any{"url": "wss://example.com"}})
 	if mock.lastBody["command"] != "calling.stream" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -257,7 +257,7 @@ func TestCallingNamespace_Stream(t *testing.T) {
 func TestCallingNamespace_Denoise(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Denoise("call-1", nil)
+	_, _ = c.Denoise("call-1", CallingNamespaceDenoiseParams{})
 	if mock.lastBody["command"] != "calling.denoise" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -266,7 +266,7 @@ func TestCallingNamespace_Denoise(t *testing.T) {
 func TestCallingNamespace_Transcribe(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Transcribe("call-1", nil, nil, nil)
+	_, _ = c.Transcribe("call-1", CallingNamespaceTranscribeParams{})
 	if mock.lastBody["command"] != "calling.transcribe" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -275,7 +275,7 @@ func TestCallingNamespace_Transcribe(t *testing.T) {
 func TestCallingNamespace_NoCallID(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Dial(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	_, _ = c.Dial(CallingNamespaceDialParams{})
 	if _, ok := mock.lastBody["id"]; ok {
 		t.Error("Dial should not include id field")
 	}
@@ -352,7 +352,7 @@ func TestSubscribersResource_CRUD_SIPEndpoint(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	f := NewFabricNamespace(mock)
 
-	_, _ = f.Subscribers.CreateSIPEndpoint("sub-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{"name": "ep"})
+	_, _ = f.Subscribers.CreateSIPEndpoint("sub-1", SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"name": "ep"}})
 	if mock.lastMethod != "POST" {
 		t.Errorf("create method = %q, want POST", mock.lastMethod)
 	}
@@ -362,7 +362,7 @@ func TestSubscribersResource_CRUD_SIPEndpoint(t *testing.T) {
 		t.Errorf("get method = %q, want GET", mock.lastMethod)
 	}
 
-	_, _ = f.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{"name": "new"})
+	_, _ = f.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", SubscribersResourceUpdateSIPEndpointParams{Extras: map[string]any{"name": "new"}})
 	if mock.lastMethod != "PATCH" {
 		t.Errorf("update method = %q, want PATCH", mock.lastMethod)
 	}
@@ -376,7 +376,7 @@ func TestSubscribersResource_CRUD_SIPEndpoint(t *testing.T) {
 func TestFabricTokens_CreateSubscriberToken(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"token": "xyz"}}
 	f := NewFabricNamespace(mock)
-	_, _ = f.Tokens.CreateSubscriberToken(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"subscriber_id": "sub-1"})
+	_, _ = f.Tokens.CreateSubscriberToken(FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"subscriber_id": "sub-1"}})
 	if mock.lastMethod != "POST" {
 		t.Errorf("method = %q, want POST", mock.lastMethod)
 	}
@@ -385,7 +385,7 @@ func TestFabricTokens_CreateSubscriberToken(t *testing.T) {
 func TestFabricTokens_CreateGuestToken(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"token": "abc"}}
 	f := NewFabricNamespace(mock)
-	_, _ = f.Tokens.CreateGuestToken(nil, nil, map[string]any{})
+	_, _ = f.Tokens.CreateGuestToken(FabricTokensCreateGuestTokenParams{})
 	if mock.lastMethod != "POST" {
 		t.Errorf("method = %q, want POST", mock.lastMethod)
 	}
@@ -415,7 +415,7 @@ func TestGenericResources_Operations(t *testing.T) {
 		t.Errorf("list addresses method = %q", mock.lastMethod)
 	}
 
-	_, _ = f.Resources.AssignPhoneRoute("res-1", nil, nil, map[string]any{})
+	_, _ = f.Resources.AssignPhoneRoute("res-1", GenericResourcesAssignPhoneRouteParams{})
 	if mock.lastMethod != "POST" {
 		t.Errorf("assign phone route method = %q", mock.lastMethod)
 	}

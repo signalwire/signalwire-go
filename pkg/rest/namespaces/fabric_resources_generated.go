@@ -51,24 +51,37 @@ func (r *GenericResources) ListAddresses(id string, params map[string]string) (m
 	return r.HTTP.Get(r.Path(id, "addresses"), params)
 }
 
-func (r *GenericResources) AssignPhoneRoute(id string, phoneRouteId any, handler any, extras map[string]any) (map[string]any, error) {
+// GenericResourcesAssignPhoneRouteParams holds the named optional parameters for GenericResources.AssignPhoneRoute.
+type GenericResourcesAssignPhoneRouteParams struct {
+	PhoneRouteId any
+	Handler      any
+	Extras       map[string]any
+}
+
+func (r *GenericResources) AssignPhoneRoute(id string, params GenericResourcesAssignPhoneRouteParams) (map[string]any, error) {
 	body := map[string]any{}
-	if phoneRouteId != nil {
-		body["phone_route_id"] = phoneRouteId
+	if params.PhoneRouteId != nil {
+		body["phone_route_id"] = params.PhoneRouteId
 	}
-	if handler != nil {
-		body["handler"] = handler
+	if params.Handler != nil {
+		body["handler"] = params.Handler
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path(id, "phone_routes"), body, nil)
 }
 
-func (r *GenericResources) AssignDomainApplication(id string, domainApplicationId any, extras map[string]any) (map[string]any, error) {
+// GenericResourcesAssignDomainApplicationParams holds the named optional parameters for GenericResources.AssignDomainApplication.
+type GenericResourcesAssignDomainApplicationParams struct {
+	DomainApplicationId any
+	Extras              map[string]any
+}
+
+func (r *GenericResources) AssignDomainApplication(id string, params GenericResourcesAssignDomainApplicationParams) (map[string]any, error) {
 	body := map[string]any{}
-	if domainApplicationId != nil {
-		body["domain_application_id"] = domainApplicationId
+	if params.DomainApplicationId != nil {
+		body["domain_application_id"] = params.DomainApplicationId
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path(id, "domain_applications"), body, nil)
 }
 
@@ -136,51 +149,70 @@ func (r *CxmlApplicationsResource) Get(id string, params map[string]string) (map
 	return r.HTTP.Get(r.Path(id), params)
 }
 
-func (r *CxmlApplicationsResource) Update(id string, displayName any, accountSid any, voiceUrl any, voiceMethod any, voiceFallbackUrl any, voiceFallbackMethod any, statusCallback any, statusCallbackMethod any, smsUrl any, smsMethod any, smsFallbackUrl any, smsFallbackMethod any, smsStatusCallback any, smsStatusCallbackMethod any, extras map[string]any) (map[string]any, error) {
+// CxmlApplicationsResourceUpdateParams holds the named optional parameters for CxmlApplicationsResource.Update.
+type CxmlApplicationsResourceUpdateParams struct {
+	DisplayName             any
+	AccountSid              any
+	VoiceUrl                any
+	VoiceMethod             any
+	VoiceFallbackUrl        any
+	VoiceFallbackMethod     any
+	StatusCallback          any
+	StatusCallbackMethod    any
+	SmsUrl                  any
+	SmsMethod               any
+	SmsFallbackUrl          any
+	SmsFallbackMethod       any
+	SmsStatusCallback       any
+	SmsStatusCallbackMethod any
+	Extras                  map[string]any
+}
+
+func (r *CxmlApplicationsResource) Update(id string, params CxmlApplicationsResourceUpdateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if displayName != nil {
-		body["display_name"] = displayName
+	if params.DisplayName != nil {
+		body["display_name"] = params.DisplayName
 	}
-	if accountSid != nil {
-		body["account_sid"] = accountSid
+	if params.AccountSid != nil {
+		body["account_sid"] = params.AccountSid
 	}
-	if voiceUrl != nil {
-		body["voice_url"] = voiceUrl
+	if params.VoiceUrl != nil {
+		body["voice_url"] = params.VoiceUrl
 	}
-	if voiceMethod != nil {
-		body["voice_method"] = voiceMethod
+	if params.VoiceMethod != nil {
+		body["voice_method"] = params.VoiceMethod
 	}
-	if voiceFallbackUrl != nil {
-		body["voice_fallback_url"] = voiceFallbackUrl
+	if params.VoiceFallbackUrl != nil {
+		body["voice_fallback_url"] = params.VoiceFallbackUrl
 	}
-	if voiceFallbackMethod != nil {
-		body["voice_fallback_method"] = voiceFallbackMethod
+	if params.VoiceFallbackMethod != nil {
+		body["voice_fallback_method"] = params.VoiceFallbackMethod
 	}
-	if statusCallback != nil {
-		body["status_callback"] = statusCallback
+	if params.StatusCallback != nil {
+		body["status_callback"] = params.StatusCallback
 	}
-	if statusCallbackMethod != nil {
-		body["status_callback_method"] = statusCallbackMethod
+	if params.StatusCallbackMethod != nil {
+		body["status_callback_method"] = params.StatusCallbackMethod
 	}
-	if smsUrl != nil {
-		body["sms_url"] = smsUrl
+	if params.SmsUrl != nil {
+		body["sms_url"] = params.SmsUrl
 	}
-	if smsMethod != nil {
-		body["sms_method"] = smsMethod
+	if params.SmsMethod != nil {
+		body["sms_method"] = params.SmsMethod
 	}
-	if smsFallbackUrl != nil {
-		body["sms_fallback_url"] = smsFallbackUrl
+	if params.SmsFallbackUrl != nil {
+		body["sms_fallback_url"] = params.SmsFallbackUrl
 	}
-	if smsFallbackMethod != nil {
-		body["sms_fallback_method"] = smsFallbackMethod
+	if params.SmsFallbackMethod != nil {
+		body["sms_fallback_method"] = params.SmsFallbackMethod
 	}
-	if smsStatusCallback != nil {
-		body["sms_status_callback"] = smsStatusCallback
+	if params.SmsStatusCallback != nil {
+		body["sms_status_callback"] = params.SmsStatusCallback
 	}
-	if smsStatusCallbackMethod != nil {
-		body["sms_status_callback_method"] = smsStatusCallbackMethod
+	if params.SmsStatusCallbackMethod != nil {
+		body["sms_status_callback_method"] = params.SmsStatusCallbackMethod
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Put(r.Path(id), body)
 }
 
@@ -266,30 +298,42 @@ func (r *SubscribersResource) ListSIPEndpoints(subscriberID string, params map[s
 	return r.HTTP.Get(r.Path(subscriberID, "sip_endpoints"), params)
 }
 
-func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, username any, password any, callerId any, sendAs any, ciphers any, codecs any, encryption any, extras map[string]any) (map[string]any, error) {
+// SubscribersResourceCreateSIPEndpointParams holds the named optional parameters for SubscribersResource.CreateSIPEndpoint.
+type SubscribersResourceCreateSIPEndpointParams struct {
+	Username   any
+	Password   any
+	CallerId   any
+	SendAs     any
+	Ciphers    any
+	Codecs     any
+	Encryption any
+	Extras     map[string]any
+}
+
+func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, params SubscribersResourceCreateSIPEndpointParams) (map[string]any, error) {
 	body := map[string]any{}
-	if username != nil {
-		body["username"] = username
+	if params.Username != nil {
+		body["username"] = params.Username
 	}
-	if password != nil {
-		body["password"] = password
+	if params.Password != nil {
+		body["password"] = params.Password
 	}
-	if callerId != nil {
-		body["caller_id"] = callerId
+	if params.CallerId != nil {
+		body["caller_id"] = params.CallerId
 	}
-	if sendAs != nil {
-		body["send_as"] = sendAs
+	if params.SendAs != nil {
+		body["send_as"] = params.SendAs
 	}
-	if ciphers != nil {
-		body["ciphers"] = ciphers
+	if params.Ciphers != nil {
+		body["ciphers"] = params.Ciphers
 	}
-	if codecs != nil {
-		body["codecs"] = codecs
+	if params.Codecs != nil {
+		body["codecs"] = params.Codecs
 	}
-	if encryption != nil {
-		body["encryption"] = encryption
+	if params.Encryption != nil {
+		body["encryption"] = params.Encryption
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), body, nil)
 }
 
@@ -297,30 +341,42 @@ func (r *SubscribersResource) GetSIPEndpoint(subscriberID string, id string, par
 	return r.HTTP.Get(r.Path(subscriberID, "sip_endpoints", id), params)
 }
 
-func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID string, id string, username any, password any, callerId any, sendAs any, ciphers any, codecs any, encryption any, extras map[string]any) (map[string]any, error) {
+// SubscribersResourceUpdateSIPEndpointParams holds the named optional parameters for SubscribersResource.UpdateSIPEndpoint.
+type SubscribersResourceUpdateSIPEndpointParams struct {
+	Username   any
+	Password   any
+	CallerId   any
+	SendAs     any
+	Ciphers    any
+	Codecs     any
+	Encryption any
+	Extras     map[string]any
+}
+
+func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID string, id string, params SubscribersResourceUpdateSIPEndpointParams) (map[string]any, error) {
 	body := map[string]any{}
-	if username != nil {
-		body["username"] = username
+	if params.Username != nil {
+		body["username"] = params.Username
 	}
-	if password != nil {
-		body["password"] = password
+	if params.Password != nil {
+		body["password"] = params.Password
 	}
-	if callerId != nil {
-		body["caller_id"] = callerId
+	if params.CallerId != nil {
+		body["caller_id"] = params.CallerId
 	}
-	if sendAs != nil {
-		body["send_as"] = sendAs
+	if params.SendAs != nil {
+		body["send_as"] = params.SendAs
 	}
-	if ciphers != nil {
-		body["ciphers"] = ciphers
+	if params.Ciphers != nil {
+		body["ciphers"] = params.Ciphers
 	}
-	if codecs != nil {
-		body["codecs"] = codecs
+	if params.Codecs != nil {
+		body["codecs"] = params.Codecs
 	}
-	if encryption != nil {
-		body["encryption"] = encryption
+	if params.Encryption != nil {
+		body["encryption"] = params.Encryption
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Patch(r.Path(subscriberID, "sip_endpoints", id), body)
 }
 
@@ -358,86 +414,129 @@ func NewFabricTokens(client HTTPClient) *FabricTokens {
 	return &FabricTokens{Resource{HTTP: client, Base: "/api/fabric"}}
 }
 
-func (r *FabricTokens) CreateSubscriberToken(reference any, expireAt any, applicationId any, password any, firstName any, lastName any, displayName any, jobTitle any, timeZone any, country any, region any, companyName any, extras map[string]any) (map[string]any, error) {
+// FabricTokensCreateSubscriberTokenParams holds the named optional parameters for FabricTokens.CreateSubscriberToken.
+type FabricTokensCreateSubscriberTokenParams struct {
+	Reference     any
+	ExpireAt      any
+	ApplicationId any
+	Password      any
+	FirstName     any
+	LastName      any
+	DisplayName   any
+	JobTitle      any
+	TimeZone      any
+	Country       any
+	Region        any
+	CompanyName   any
+	Extras        map[string]any
+}
+
+func (r *FabricTokens) CreateSubscriberToken(params FabricTokensCreateSubscriberTokenParams) (map[string]any, error) {
 	body := map[string]any{}
-	if reference != nil {
-		body["reference"] = reference
+	if params.Reference != nil {
+		body["reference"] = params.Reference
 	}
-	if expireAt != nil {
-		body["expire_at"] = expireAt
+	if params.ExpireAt != nil {
+		body["expire_at"] = params.ExpireAt
 	}
-	if applicationId != nil {
-		body["application_id"] = applicationId
+	if params.ApplicationId != nil {
+		body["application_id"] = params.ApplicationId
 	}
-	if password != nil {
-		body["password"] = password
+	if params.Password != nil {
+		body["password"] = params.Password
 	}
-	if firstName != nil {
-		body["first_name"] = firstName
+	if params.FirstName != nil {
+		body["first_name"] = params.FirstName
 	}
-	if lastName != nil {
-		body["last_name"] = lastName
+	if params.LastName != nil {
+		body["last_name"] = params.LastName
 	}
-	if displayName != nil {
-		body["display_name"] = displayName
+	if params.DisplayName != nil {
+		body["display_name"] = params.DisplayName
 	}
-	if jobTitle != nil {
-		body["job_title"] = jobTitle
+	if params.JobTitle != nil {
+		body["job_title"] = params.JobTitle
 	}
-	if timeZone != nil {
-		body["time_zone"] = timeZone
+	if params.TimeZone != nil {
+		body["time_zone"] = params.TimeZone
 	}
-	if country != nil {
-		body["country"] = country
+	if params.Country != nil {
+		body["country"] = params.Country
 	}
-	if region != nil {
-		body["region"] = region
+	if params.Region != nil {
+		body["region"] = params.Region
 	}
-	if companyName != nil {
-		body["company_name"] = companyName
+	if params.CompanyName != nil {
+		body["company_name"] = params.CompanyName
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post("/api/fabric/subscribers/tokens", body, nil)
 }
 
-func (r *FabricTokens) RefreshSubscriberToken(refreshToken any, extras map[string]any) (map[string]any, error) {
+// FabricTokensRefreshSubscriberTokenParams holds the named optional parameters for FabricTokens.RefreshSubscriberToken.
+type FabricTokensRefreshSubscriberTokenParams struct {
+	RefreshToken any
+	Extras       map[string]any
+}
+
+func (r *FabricTokens) RefreshSubscriberToken(params FabricTokensRefreshSubscriberTokenParams) (map[string]any, error) {
 	body := map[string]any{}
-	if refreshToken != nil {
-		body["refresh_token"] = refreshToken
+	if params.RefreshToken != nil {
+		body["refresh_token"] = params.RefreshToken
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post("/api/fabric/subscribers/tokens/refresh", body, nil)
 }
 
-func (r *FabricTokens) CreateInviteToken(addressId any, expiresAt any, extras map[string]any) (map[string]any, error) {
+// FabricTokensCreateInviteTokenParams holds the named optional parameters for FabricTokens.CreateInviteToken.
+type FabricTokensCreateInviteTokenParams struct {
+	AddressId any
+	ExpiresAt any
+	Extras    map[string]any
+}
+
+func (r *FabricTokens) CreateInviteToken(params FabricTokensCreateInviteTokenParams) (map[string]any, error) {
 	body := map[string]any{}
-	if addressId != nil {
-		body["address_id"] = addressId
+	if params.AddressId != nil {
+		body["address_id"] = params.AddressId
 	}
-	if expiresAt != nil {
-		body["expires_at"] = expiresAt
+	if params.ExpiresAt != nil {
+		body["expires_at"] = params.ExpiresAt
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post("/api/fabric/subscriber/invites", body, nil)
 }
 
-func (r *FabricTokens) CreateGuestToken(allowedAddresses any, expireAt any, extras map[string]any) (map[string]any, error) {
+// FabricTokensCreateGuestTokenParams holds the named optional parameters for FabricTokens.CreateGuestToken.
+type FabricTokensCreateGuestTokenParams struct {
+	AllowedAddresses any
+	ExpireAt         any
+	Extras           map[string]any
+}
+
+func (r *FabricTokens) CreateGuestToken(params FabricTokensCreateGuestTokenParams) (map[string]any, error) {
 	body := map[string]any{}
-	if allowedAddresses != nil {
-		body["allowed_addresses"] = allowedAddresses
+	if params.AllowedAddresses != nil {
+		body["allowed_addresses"] = params.AllowedAddresses
 	}
-	if expireAt != nil {
-		body["expire_at"] = expireAt
+	if params.ExpireAt != nil {
+		body["expire_at"] = params.ExpireAt
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post("/api/fabric/guests/tokens", body, nil)
 }
 
-func (r *FabricTokens) CreateEmbedToken(token any, extras map[string]any) (map[string]any, error) {
+// FabricTokensCreateEmbedTokenParams holds the named optional parameters for FabricTokens.CreateEmbedToken.
+type FabricTokensCreateEmbedTokenParams struct {
+	Token  any
+	Extras map[string]any
+}
+
+func (r *FabricTokens) CreateEmbedToken(params FabricTokensCreateEmbedTokenParams) (map[string]any, error) {
 	body := map[string]any{}
-	if token != nil {
-		body["token"] = token
+	if params.Token != nil {
+		body["token"] = params.Token
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post("/api/fabric/embeds/tokens", body, nil)
 }

@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 const regBase = "/api/relay/rest/registry/beta"
@@ -177,9 +178,9 @@ func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.Update("camp-2", nil, map[string]any{
+	body, err := client.Registry.Campaigns.Update("camp-2", namespaces.RegistryCampaignsUpdateParams{Extras: map[string]any{
 		"description": "Updated",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -239,9 +240,9 @@ func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.CreateOrder("camp-4", nil, nil, map[string]any{
+	body, err := client.Registry.Campaigns.CreateOrder("camp-4", namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{
 		"numbers": []string{"pn-1", "pn-2"},
-	})
+	}})
 	if err != nil {
 		t.Fatalf("CreateOrder: %v", err)
 	}

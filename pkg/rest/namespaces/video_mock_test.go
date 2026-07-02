@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 // ---------- Rooms — streams sub-resource ----------
@@ -62,9 +63,9 @@ func TestVideoRooms_CreateStream_PostsKwargsInBody(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Rooms.CreateStream("room-1", nil, map[string]any{
+	body, err := client.Video.Rooms.CreateStream("room-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{
 		"url": "rtmp://example.com/live",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("CreateStream: %v", err)
 	}
@@ -475,9 +476,9 @@ func TestVideoStreams_Update_UsesPutWithKwargs(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Streams.Update("stream-2", nil, map[string]any{
+	body, err := client.Video.Streams.Update("stream-2", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{
 		"url": "rtmp://example.com/new",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}

@@ -17,30 +17,45 @@ func NewProjectTokens(client HTTPClient) *ProjectTokens {
 	return &ProjectTokens{Resource{HTTP: client, Base: "/api/project/tokens"}}
 }
 
-func (r *ProjectTokens) Create(name any, permissions any, subprojectId any, extras map[string]any) (map[string]any, error) {
+// ProjectTokensCreateParams holds the named optional parameters for ProjectTokens.Create.
+type ProjectTokensCreateParams struct {
+	Name         any
+	Permissions  any
+	SubprojectId any
+	Extras       map[string]any
+}
+
+func (r *ProjectTokens) Create(params ProjectTokensCreateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if name != nil {
-		body["name"] = name
+	if params.Name != nil {
+		body["name"] = params.Name
 	}
-	if permissions != nil {
-		body["permissions"] = permissions
+	if params.Permissions != nil {
+		body["permissions"] = params.Permissions
 	}
-	if subprojectId != nil {
-		body["subproject_id"] = subprojectId
+	if params.SubprojectId != nil {
+		body["subproject_id"] = params.SubprojectId
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Base, body, nil)
 }
 
-func (r *ProjectTokens) Update(tokenID string, name any, permissions any, extras map[string]any) (map[string]any, error) {
+// ProjectTokensUpdateParams holds the named optional parameters for ProjectTokens.Update.
+type ProjectTokensUpdateParams struct {
+	Name        any
+	Permissions any
+	Extras      map[string]any
+}
+
+func (r *ProjectTokens) Update(tokenID string, params ProjectTokensUpdateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if name != nil {
-		body["name"] = name
+	if params.Name != nil {
+		body["name"] = params.Name
 	}
-	if permissions != nil {
-		body["permissions"] = permissions
+	if params.Permissions != nil {
+		body["permissions"] = params.Permissions
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Patch(r.Path(tokenID), body)
 }
 

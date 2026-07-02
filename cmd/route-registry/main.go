@@ -386,6 +386,13 @@ func sentinelFor(t reflect.Type) (reflect.Value, bool) {
 		}
 		// Other interfaces: a typed nil interface value.
 		return reflect.Zero(t), true
+	case reflect.Struct:
+		// §5/§4a: a generated-REST operation/command method takes its wire body as
+		// a named params struct (`<Recv><Method>Params`). A zero-valued struct is a
+		// fine sentinel — every field is nil/empty, so the method POSTs an empty
+		// body (only the discriminator for command-dispatch), which is all the route
+		// capture needs (it records method + path, not the body shape).
+		return reflect.Zero(t), true
 	case reflect.Int, reflect.Int64, reflect.Int32:
 		return reflect.Zero(t), true
 	case reflect.Bool:

@@ -18,6 +18,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func TestDatasphereGen_Documents_Create(t *testing.T) {
@@ -293,7 +294,7 @@ func TestDatasphereGen_Documents_Search(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.Search(nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"query_string": "x-1"})
+	_, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{Extras: map[string]any{"query_string": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -314,7 +315,7 @@ func TestDatasphereGen_Documents_Search_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.search_documents", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.Search(nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"query_string": "x-1"})
+	_, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{Extras: map[string]any{"query_string": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

@@ -21,42 +21,58 @@ func (r *AddressesNamespace) List(params map[string]string) (map[string]any, err
 	return r.HTTP.Get(r.Base, params)
 }
 
-func (r *AddressesNamespace) Create(label any, country any, firstName any, lastName any, streetNumber any, streetName any, city any, state any, postalCode any, addressType any, addressNumber any, extras map[string]any) (map[string]any, error) {
+// AddressesNamespaceCreateParams holds the named optional parameters for AddressesNamespace.Create.
+type AddressesNamespaceCreateParams struct {
+	Label         any
+	Country       any
+	FirstName     any
+	LastName      any
+	StreetNumber  any
+	StreetName    any
+	City          any
+	State         any
+	PostalCode    any
+	AddressType   any
+	AddressNumber any
+	Extras        map[string]any
+}
+
+func (r *AddressesNamespace) Create(params AddressesNamespaceCreateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if label != nil {
-		body["label"] = label
+	if params.Label != nil {
+		body["label"] = params.Label
 	}
-	if country != nil {
-		body["country"] = country
+	if params.Country != nil {
+		body["country"] = params.Country
 	}
-	if firstName != nil {
-		body["first_name"] = firstName
+	if params.FirstName != nil {
+		body["first_name"] = params.FirstName
 	}
-	if lastName != nil {
-		body["last_name"] = lastName
+	if params.LastName != nil {
+		body["last_name"] = params.LastName
 	}
-	if streetNumber != nil {
-		body["street_number"] = streetNumber
+	if params.StreetNumber != nil {
+		body["street_number"] = params.StreetNumber
 	}
-	if streetName != nil {
-		body["street_name"] = streetName
+	if params.StreetName != nil {
+		body["street_name"] = params.StreetName
 	}
-	if city != nil {
-		body["city"] = city
+	if params.City != nil {
+		body["city"] = params.City
 	}
-	if state != nil {
-		body["state"] = state
+	if params.State != nil {
+		body["state"] = params.State
 	}
-	if postalCode != nil {
-		body["postal_code"] = postalCode
+	if params.PostalCode != nil {
+		body["postal_code"] = params.PostalCode
 	}
-	if addressType != nil {
-		body["address_type"] = addressType
+	if params.AddressType != nil {
+		body["address_type"] = params.AddressType
 	}
-	if addressNumber != nil {
-		body["address_number"] = addressNumber
+	if params.AddressNumber != nil {
+		body["address_number"] = params.AddressNumber
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Base, body, nil)
 }
 
@@ -78,18 +94,26 @@ func NewImportedNumbersNamespace(client HTTPClient) *ImportedNumbersNamespace {
 	return &ImportedNumbersNamespace{Resource{HTTP: client, Base: "/api/relay/rest/imported_phone_numbers"}}
 }
 
-func (r *ImportedNumbersNamespace) Create(number any, numberType any, capabilities any, extras map[string]any) (map[string]any, error) {
+// ImportedNumbersNamespaceCreateParams holds the named optional parameters for ImportedNumbersNamespace.Create.
+type ImportedNumbersNamespaceCreateParams struct {
+	Number       any
+	NumberType   any
+	Capabilities any
+	Extras       map[string]any
+}
+
+func (r *ImportedNumbersNamespace) Create(params ImportedNumbersNamespaceCreateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if number != nil {
-		body["number"] = number
+	if params.Number != nil {
+		body["number"] = params.Number
 	}
-	if numberType != nil {
-		body["number_type"] = numberType
+	if params.NumberType != nil {
+		body["number_type"] = params.NumberType
 	}
-	if capabilities != nil {
-		body["capabilities"] = capabilities
+	if params.Capabilities != nil {
+		body["capabilities"] = params.Capabilities
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Base, body, nil)
 }
 
@@ -117,66 +141,96 @@ func NewMFANamespace(client HTTPClient) *MFANamespace {
 	return &MFANamespace{Resource{HTTP: client, Base: "/api/relay/rest/mfa"}}
 }
 
-func (r *MFANamespace) SMS(to any, from any, message any, tokenLength any, validFor any, maxAttempts any, allowAlphas any, extras map[string]any) (map[string]any, error) {
+// MFANamespaceSMSParams holds the named optional parameters for MFANamespace.SMS.
+type MFANamespaceSMSParams struct {
+	To          any
+	From        any
+	Message     any
+	TokenLength any
+	ValidFor    any
+	MaxAttempts any
+	AllowAlphas any
+	Extras      map[string]any
+}
+
+func (r *MFANamespace) SMS(params MFANamespaceSMSParams) (map[string]any, error) {
 	body := map[string]any{}
-	if to != nil {
-		body["to"] = to
+	if params.To != nil {
+		body["to"] = params.To
 	}
-	if from != nil {
-		body["from"] = from
+	if params.From != nil {
+		body["from"] = params.From
 	}
-	if message != nil {
-		body["message"] = message
+	if params.Message != nil {
+		body["message"] = params.Message
 	}
-	if tokenLength != nil {
-		body["token_length"] = tokenLength
+	if params.TokenLength != nil {
+		body["token_length"] = params.TokenLength
 	}
-	if validFor != nil {
-		body["valid_for"] = validFor
+	if params.ValidFor != nil {
+		body["valid_for"] = params.ValidFor
 	}
-	if maxAttempts != nil {
-		body["max_attempts"] = maxAttempts
+	if params.MaxAttempts != nil {
+		body["max_attempts"] = params.MaxAttempts
 	}
-	if allowAlphas != nil {
-		body["allow_alphas"] = allowAlphas
+	if params.AllowAlphas != nil {
+		body["allow_alphas"] = params.AllowAlphas
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path("sms"), body, nil)
 }
 
-func (r *MFANamespace) Call(to any, from any, message any, tokenLength any, validFor any, maxAttempts any, allowAlphas any, extras map[string]any) (map[string]any, error) {
+// MFANamespaceCallParams holds the named optional parameters for MFANamespace.Call.
+type MFANamespaceCallParams struct {
+	To          any
+	From        any
+	Message     any
+	TokenLength any
+	ValidFor    any
+	MaxAttempts any
+	AllowAlphas any
+	Extras      map[string]any
+}
+
+func (r *MFANamespace) Call(params MFANamespaceCallParams) (map[string]any, error) {
 	body := map[string]any{}
-	if to != nil {
-		body["to"] = to
+	if params.To != nil {
+		body["to"] = params.To
 	}
-	if from != nil {
-		body["from"] = from
+	if params.From != nil {
+		body["from"] = params.From
 	}
-	if message != nil {
-		body["message"] = message
+	if params.Message != nil {
+		body["message"] = params.Message
 	}
-	if tokenLength != nil {
-		body["token_length"] = tokenLength
+	if params.TokenLength != nil {
+		body["token_length"] = params.TokenLength
 	}
-	if validFor != nil {
-		body["valid_for"] = validFor
+	if params.ValidFor != nil {
+		body["valid_for"] = params.ValidFor
 	}
-	if maxAttempts != nil {
-		body["max_attempts"] = maxAttempts
+	if params.MaxAttempts != nil {
+		body["max_attempts"] = params.MaxAttempts
 	}
-	if allowAlphas != nil {
-		body["allow_alphas"] = allowAlphas
+	if params.AllowAlphas != nil {
+		body["allow_alphas"] = params.AllowAlphas
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path("call"), body, nil)
 }
 
-func (r *MFANamespace) Verify(requestID string, token any, extras map[string]any) (map[string]any, error) {
+// MFANamespaceVerifyParams holds the named optional parameters for MFANamespace.Verify.
+type MFANamespaceVerifyParams struct {
+	Token  any
+	Extras map[string]any
+}
+
+func (r *MFANamespace) Verify(requestID string, params MFANamespaceVerifyParams) (map[string]any, error) {
 	body := map[string]any{}
-	if token != nil {
-		body["token"] = token
+	if params.Token != nil {
+		body["token"] = params.Token
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path(requestID, "verify"), body, nil)
 }
 
@@ -194,12 +248,18 @@ func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[strin
 	return r.HTTP.Get(r.Path(groupID, "number_group_memberships"), params)
 }
 
-func (r *NumberGroupsNamespace) AddMembership(groupID string, phoneNumberId any, extras map[string]any) (map[string]any, error) {
+// NumberGroupsNamespaceAddMembershipParams holds the named optional parameters for NumberGroupsNamespace.AddMembership.
+type NumberGroupsNamespaceAddMembershipParams struct {
+	PhoneNumberId any
+	Extras        map[string]any
+}
+
+func (r *NumberGroupsNamespace) AddMembership(groupID string, params NumberGroupsNamespaceAddMembershipParams) (map[string]any, error) {
 	body := map[string]any{}
-	if phoneNumberId != nil {
-		body["phone_number_id"] = phoneNumberId
+	if params.PhoneNumberId != nil {
+		body["phone_number_id"] = params.PhoneNumberId
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path(groupID, "number_group_memberships"), body, nil)
 }
 
@@ -376,12 +436,18 @@ func (r *RegistryCampaigns) Get(id string, params map[string]string) (map[string
 	return r.HTTP.Get(r.Path(id), params)
 }
 
-func (r *RegistryCampaigns) Update(id string, name any, extras map[string]any) (map[string]any, error) {
+// RegistryCampaignsUpdateParams holds the named optional parameters for RegistryCampaigns.Update.
+type RegistryCampaignsUpdateParams struct {
+	Name   any
+	Extras map[string]any
+}
+
+func (r *RegistryCampaigns) Update(id string, params RegistryCampaignsUpdateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if name != nil {
-		body["name"] = name
+	if params.Name != nil {
+		body["name"] = params.Name
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Put(r.Path(id), body)
 }
 
@@ -393,15 +459,22 @@ func (r *RegistryCampaigns) ListOrders(id string, params map[string]string) (map
 	return r.HTTP.Get(r.Path(id, "orders"), params)
 }
 
-func (r *RegistryCampaigns) CreateOrder(id string, phoneNumbers any, statusCallbackUrl any, extras map[string]any) (map[string]any, error) {
+// RegistryCampaignsCreateOrderParams holds the named optional parameters for RegistryCampaigns.CreateOrder.
+type RegistryCampaignsCreateOrderParams struct {
+	PhoneNumbers      any
+	StatusCallbackUrl any
+	Extras            map[string]any
+}
+
+func (r *RegistryCampaigns) CreateOrder(id string, params RegistryCampaignsCreateOrderParams) (map[string]any, error) {
 	body := map[string]any{}
-	if phoneNumbers != nil {
-		body["phone_numbers"] = phoneNumbers
+	if params.PhoneNumbers != nil {
+		body["phone_numbers"] = params.PhoneNumbers
 	}
-	if statusCallbackUrl != nil {
-		body["status_callback_url"] = statusCallbackUrl
+	if params.StatusCallbackUrl != nil {
+		body["status_callback_url"] = params.StatusCallbackUrl
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Post(r.Path(id, "orders"), body, nil)
 }
 
@@ -451,33 +524,46 @@ func (r *ShortCodesNamespace) Get(id string, params map[string]string) (map[stri
 	return r.HTTP.Get(r.Path(id), params)
 }
 
-func (r *ShortCodesNamespace) Update(id string, name any, messageHandler any, messageRequestUrl any, messageRequestMethod any, messageFallbackUrl any, messageFallbackMethod any, messageLamlApplicationId any, messageRelayContext any, extras map[string]any) (map[string]any, error) {
+// ShortCodesNamespaceUpdateParams holds the named optional parameters for ShortCodesNamespace.Update.
+type ShortCodesNamespaceUpdateParams struct {
+	Name                     any
+	MessageHandler           any
+	MessageRequestUrl        any
+	MessageRequestMethod     any
+	MessageFallbackUrl       any
+	MessageFallbackMethod    any
+	MessageLamlApplicationId any
+	MessageRelayContext      any
+	Extras                   map[string]any
+}
+
+func (r *ShortCodesNamespace) Update(id string, params ShortCodesNamespaceUpdateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if name != nil {
-		body["name"] = name
+	if params.Name != nil {
+		body["name"] = params.Name
 	}
-	if messageHandler != nil {
-		body["message_handler"] = messageHandler
+	if params.MessageHandler != nil {
+		body["message_handler"] = params.MessageHandler
 	}
-	if messageRequestUrl != nil {
-		body["message_request_url"] = messageRequestUrl
+	if params.MessageRequestUrl != nil {
+		body["message_request_url"] = params.MessageRequestUrl
 	}
-	if messageRequestMethod != nil {
-		body["message_request_method"] = messageRequestMethod
+	if params.MessageRequestMethod != nil {
+		body["message_request_method"] = params.MessageRequestMethod
 	}
-	if messageFallbackUrl != nil {
-		body["message_fallback_url"] = messageFallbackUrl
+	if params.MessageFallbackUrl != nil {
+		body["message_fallback_url"] = params.MessageFallbackUrl
 	}
-	if messageFallbackMethod != nil {
-		body["message_fallback_method"] = messageFallbackMethod
+	if params.MessageFallbackMethod != nil {
+		body["message_fallback_method"] = params.MessageFallbackMethod
 	}
-	if messageLamlApplicationId != nil {
-		body["message_laml_application_id"] = messageLamlApplicationId
+	if params.MessageLamlApplicationId != nil {
+		body["message_laml_application_id"] = params.MessageLamlApplicationId
 	}
-	if messageRelayContext != nil {
-		body["message_relay_context"] = messageRelayContext
+	if params.MessageRelayContext != nil {
+		body["message_relay_context"] = params.MessageRelayContext
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Put(r.Path(id), body)
 }
 
@@ -495,24 +581,34 @@ func (r *SIPProfileNamespace) Get(params map[string]string) (map[string]any, err
 	return r.HTTP.Get(r.Base, params)
 }
 
-func (r *SIPProfileNamespace) Update(domainIdentifier any, defaultCodecs any, defaultCiphers any, defaultEncryption any, defaultSendAs any, extras map[string]any) (map[string]any, error) {
+// SIPProfileNamespaceUpdateParams holds the named optional parameters for SIPProfileNamespace.Update.
+type SIPProfileNamespaceUpdateParams struct {
+	DomainIdentifier  any
+	DefaultCodecs     any
+	DefaultCiphers    any
+	DefaultEncryption any
+	DefaultSendAs     any
+	Extras            map[string]any
+}
+
+func (r *SIPProfileNamespace) Update(params SIPProfileNamespaceUpdateParams) (map[string]any, error) {
 	body := map[string]any{}
-	if domainIdentifier != nil {
-		body["domain_identifier"] = domainIdentifier
+	if params.DomainIdentifier != nil {
+		body["domain_identifier"] = params.DomainIdentifier
 	}
-	if defaultCodecs != nil {
-		body["default_codecs"] = defaultCodecs
+	if params.DefaultCodecs != nil {
+		body["default_codecs"] = params.DefaultCodecs
 	}
-	if defaultCiphers != nil {
-		body["default_ciphers"] = defaultCiphers
+	if params.DefaultCiphers != nil {
+		body["default_ciphers"] = params.DefaultCiphers
 	}
-	if defaultEncryption != nil {
-		body["default_encryption"] = defaultEncryption
+	if params.DefaultEncryption != nil {
+		body["default_encryption"] = params.DefaultEncryption
 	}
-	if defaultSendAs != nil {
-		body["default_send_as"] = defaultSendAs
+	if params.DefaultSendAs != nil {
+		body["default_send_as"] = params.DefaultSendAs
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Put(r.Base, body)
 }
 
@@ -530,11 +626,17 @@ func (r *VerifiedCallersNamespace) RedialVerification(id string) (map[string]any
 	return r.HTTP.Post(r.Path(id, "verification"), nil, nil)
 }
 
-func (r *VerifiedCallersNamespace) SubmitVerification(id string, verificationCode any, extras map[string]any) (map[string]any, error) {
+// VerifiedCallersNamespaceSubmitVerificationParams holds the named optional parameters for VerifiedCallersNamespace.SubmitVerification.
+type VerifiedCallersNamespaceSubmitVerificationParams struct {
+	VerificationCode any
+	Extras           map[string]any
+}
+
+func (r *VerifiedCallersNamespace) SubmitVerification(id string, params VerifiedCallersNamespaceSubmitVerificationParams) (map[string]any, error) {
 	body := map[string]any{}
-	if verificationCode != nil {
-		body["verification_code"] = verificationCode
+	if params.VerificationCode != nil {
+		body["verification_code"] = params.VerificationCode
 	}
-	mergeExtra(body, []map[string]any{extras})
+	mergeExtra(body, []map[string]any{params.Extras})
 	return r.HTTP.Put(r.Path(id, "verification"), body)
 }

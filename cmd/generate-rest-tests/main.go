@@ -390,6 +390,20 @@ func sentinelFor(t reflect.Type, bodyFill string) string {
 			return "context.Background()"
 		}
 		return "nil"
+	case reflect.Struct:
+		// §5/§4a: a generated-REST operation/command method takes its wire body as
+		// a named params struct (`<Recv><Method>Params`) with an `Extras` door. Emit
+		// a package-qualified composite literal, funneling the required-body fill
+		// through Extras (same wire body the old flat `extras map[string]any` param
+		// produced — the mock success path stays realistic).
+		lit := t.Name()
+		if t.PkgPath() != "" {
+			lit = t.PkgPath()[strings.LastIndexByte(t.PkgPath(), '/')+1:] + "." + t.Name()
+		}
+		if bodyFill != "" {
+			return lit + "{Extras: " + bodyFill + "}"
+		}
+		return lit + "{}"
 	case reflect.Int, reflect.Int64, reflect.Int32:
 		return "0"
 	case reflect.Bool:
@@ -576,11 +590,15 @@ package namespaces_test
 import (
 	"errors"
 	"testing"
-
+%s
 	"github.com/signalwire/signalwire-go/pkg/rest"
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
 )
 `
+
+// namespacesImport is the extra import line emitted when a spec's generated tests
+// reference a params-struct composite literal (`namespaces.<...>Params{…}`).
+const namespacesImport = "\n\t\"github.com/signalwire/signalwire-go/pkg/rest/namespaces\""
 
 // slug is the resource.method tail of the via, non-alnum→"_", trailing "_"
 // trimmed — for deterministic, stable test names.
@@ -622,36 +640,44 @@ type rowWithCall struct {
 
 // emitSpecFile builds the generated test file source for one spec's rows.
 func emitSpecFile(spec string, rows []rowWithCall) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, fileHeader, spec)
-	b.WriteString("\n")
+	// Emit the test bodies first so we can tell whether any call references a
+	// params-struct literal (`namespaces.<...>Params{…}`) and add the import iff so.
+	var body strings.Builder
 	for _, r := range rows {
 		// SUCCESS
-		fmt.Fprintf(&b, "func %s(t *testing.T) {\n", r.testName)
-		b.WriteString("\tt.Parallel()\n")
-		b.WriteString("\tclient, mock := mocktest.New(t)\n")
-		b.WriteString("\tif client == nil {\n\t\treturn\n\t}\n")
-		b.WriteString("\tmock.Reset(t)\n")
-		fmt.Fprintf(&b, "\t_, err := %s\n", r.call)
-		b.WriteString("\tif err != nil {\n\t\tt.Fatalf(\"call: %v\", err)\n\t}\n")
-		b.WriteString("\tj := mock.Last(t)\n")
-		fmt.Fprintf(&b, "\tif j.Method != %q {\n\t\tt.Errorf(\"method = %%q want %s\", j.Method)\n\t}\n", r.method, r.method)
-		fmt.Fprintf(&b, "\tif j.MatchedRoute == nil || *j.MatchedRoute != %q {\n\t\tt.Errorf(\"matched_route = %%v want %s\", j.MatchedRoute)\n\t}\n", r.opID, r.opID)
-		b.WriteString("}\n\n")
+		fmt.Fprintf(&body, "func %s(t *testing.T) {\n", r.testName)
+		body.WriteString("\tt.Parallel()\n")
+		body.WriteString("\tclient, mock := mocktest.New(t)\n")
+		body.WriteString("\tif client == nil {\n\t\treturn\n\t}\n")
+		body.WriteString("\tmock.Reset(t)\n")
+		fmt.Fprintf(&body, "\t_, err := %s\n", r.call)
+		body.WriteString("\tif err != nil {\n\t\tt.Fatalf(\"call: %v\", err)\n\t}\n")
+		body.WriteString("\tj := mock.Last(t)\n")
+		fmt.Fprintf(&body, "\tif j.Method != %q {\n\t\tt.Errorf(\"method = %%q want %s\", j.Method)\n\t}\n", r.method, r.method)
+		fmt.Fprintf(&body, "\tif j.MatchedRoute == nil || *j.MatchedRoute != %q {\n\t\tt.Errorf(\"matched_route = %%v want %s\", j.MatchedRoute)\n\t}\n", r.opID, r.opID)
+		body.WriteString("}\n\n")
 
 		// ERROR
-		fmt.Fprintf(&b, "func %s_Error(t *testing.T) {\n", r.testName)
-		b.WriteString("\tt.Parallel()\n")
-		b.WriteString("\tclient, mock := mocktest.New(t)\n")
-		b.WriteString("\tif client == nil {\n\t\treturn\n\t}\n")
-		b.WriteString("\tmock.Reset(t)\n")
-		fmt.Fprintf(&b, "\tmock.PushScenario(t, %q, 500, map[string]any{\"error\": \"x\"})\n", r.opID)
-		fmt.Fprintf(&b, "\t_, err := %s\n", r.call)
-		b.WriteString("\tvar restErr *rest.SignalWireRestError\n")
-		b.WriteString("\tif !errors.As(err, &restErr) {\n\t\tt.Fatalf(\"want *SignalWireRestError, got %v\", err)\n\t}\n")
-		b.WriteString("\tif restErr.StatusCode != 500 {\n\t\tt.Errorf(\"status = %d want 500\", restErr.StatusCode)\n\t}\n")
-		b.WriteString("}\n\n")
+		fmt.Fprintf(&body, "func %s_Error(t *testing.T) {\n", r.testName)
+		body.WriteString("\tt.Parallel()\n")
+		body.WriteString("\tclient, mock := mocktest.New(t)\n")
+		body.WriteString("\tif client == nil {\n\t\treturn\n\t}\n")
+		body.WriteString("\tmock.Reset(t)\n")
+		fmt.Fprintf(&body, "\tmock.PushScenario(t, %q, 500, map[string]any{\"error\": \"x\"})\n", r.opID)
+		fmt.Fprintf(&body, "\t_, err := %s\n", r.call)
+		body.WriteString("\tvar restErr *rest.SignalWireRestError\n")
+		body.WriteString("\tif !errors.As(err, &restErr) {\n\t\tt.Fatalf(\"want *SignalWireRestError, got %v\", err)\n\t}\n")
+		body.WriteString("\tif restErr.StatusCode != 500 {\n\t\tt.Errorf(\"status = %d want 500\", restErr.StatusCode)\n\t}\n")
+		body.WriteString("}\n\n")
 	}
+	nsImport := ""
+	if strings.Contains(body.String(), "namespaces.") {
+		nsImport = namespacesImport
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, fileHeader, spec, nsImport)
+	b.WriteString("\n")
+	b.WriteString(body.String())
 	return b.String()
 }
 

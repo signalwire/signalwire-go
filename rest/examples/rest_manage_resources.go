@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -71,10 +72,10 @@ func main() {
 
 	// 4. Place a test call (requires valid numbers)
 	fmt.Println("\nPlacing a test call...")
-	result, err := client.Calling.Dial(map[string]any{
-		"from": "+15559876543",
-		"to":   "+15551234567",
-		"url":  "https://example.com/call-handler",
+	result, err := client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+		From: "+15559876543",
+		To:   "+15551234567",
+		Url:  "https://example.com/call-handler",
 	})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {

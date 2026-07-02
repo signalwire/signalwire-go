@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 // ----------------- Addresses -----------------
@@ -63,12 +64,12 @@ func TestAddresses_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{
+	body, err := client.Addresses.Create(namespaces.AddressesNamespaceCreateParams{Extras: map[string]any{
 		"address_type": "commercial",
 		"first_name":   "Ada",
 		"last_name":    "Lovelace",
 		"country":      "US",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}

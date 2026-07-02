@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 // ---------- Short Codes ----------
@@ -91,9 +92,9 @@ func TestShortCodes_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.Update("sc-1", nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{
+	body, err := client.ShortCodes.Update("sc-1", namespaces.ShortCodesNamespaceUpdateParams{Extras: map[string]any{
 		"name": "Marketing SMS",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -128,12 +129,12 @@ func TestImportedNumbers_Create(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ImportedNumbers.Create(nil, nil, nil, map[string]any{
+	body, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreateParams{Extras: map[string]any{
 		"number":       "+15551234567",
 		"sip_username": "alice",
 		"sip_password": "secret",
 		"sip_proxy":    "sip.example.com",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -173,11 +174,11 @@ func TestMFA_Call(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.MFA.Call(nil, nil, nil, nil, nil, nil, nil, map[string]any{
+	body, err := client.MFA.Call(namespaces.MFANamespaceCallParams{Extras: map[string]any{
 		"to":      "+15551234567",
 		"from_":   "+15559876543",
 		"message": "Your code is {code}",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Call: %v", err)
 	}
@@ -217,10 +218,10 @@ func TestSipProfile_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.SIPProfile.Update(nil, nil, nil, nil, nil, map[string]any{
+	body, err := client.SIPProfile.Update(namespaces.SIPProfileNamespaceUpdateParams{Extras: map[string]any{
 		"domain":         "myco.sip.signalwire.com",
 		"default_codecs": []string{"PCMU", "PCMA"},
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -329,9 +330,9 @@ func TestProjectTokens_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Project.Tokens.Update("tok-1", nil, nil, map[string]any{
+	body, err := client.Project.Tokens.Update("tok-1", namespaces.ProjectTokensUpdateParams{Extras: map[string]any{
 		"name": "renamed-token",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}

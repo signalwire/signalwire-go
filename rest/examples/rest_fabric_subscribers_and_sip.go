@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -48,9 +49,9 @@ func main() {
 
 	// 2. Add a SIP endpoint to the subscriber
 	fmt.Println("\nCreating SIP endpoint on subscriber...")
-	endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(subID, map[string]any{
-		"username": "alice_sip",
-		"password": "SecurePass123!",
+	endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(subID, namespaces.SubscribersResourceCreateSIPEndpointParams{
+		Username: "alice_sip",
+		Password: "SecurePass123!",
 	})
 	if err != nil {
 		fmt.Printf("  Create SIP endpoint failed: %v\n", err)
@@ -128,9 +129,9 @@ func main() {
 
 	// 8. Generate a subscriber token
 	fmt.Println("\nGenerating subscriber token...")
-	token, err := client.Fabric.Tokens.CreateSubscriberToken(map[string]any{
-		"subscriber_id": innerSubID,
-		"reference":     innerSubID,
+	token, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{
+		Reference: innerSubID,
+		Extras:    map[string]any{"subscriber_id": innerSubID},
 	})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {

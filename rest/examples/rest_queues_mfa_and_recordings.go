@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -136,12 +137,12 @@ func main() {
 	// 7. Send MFA via SMS
 	fmt.Println("\nSending MFA SMS code...")
 	var requestID string
-	smsResult, err := client.MFA.SMS(map[string]any{
+	smsResult, err := client.MFA.SMS(namespaces.MFANamespaceSMSParams{Extras: map[string]any{
 		"to":           "+15551234567",
 		"from":         "+15559876543",
 		"message":      "Your code is {{code}}",
 		"token_length": 6,
-	})
+	}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  MFA SMS failed (expected in demo): %d\n", restErr.StatusCode)
@@ -156,12 +157,12 @@ func main() {
 
 	// 8. Send MFA via voice call
 	fmt.Println("\nSending MFA voice code...")
-	voiceResult, err := client.MFA.Call(map[string]any{
+	voiceResult, err := client.MFA.Call(namespaces.MFANamespaceCallParams{Extras: map[string]any{
 		"to":           "+15551234567",
 		"from":         "+15559876543",
 		"message":      "Your verification code is {{code}}",
 		"token_length": 6,
-	})
+	}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  MFA call failed (expected in demo): %d\n", restErr.StatusCode)
@@ -177,7 +178,7 @@ func main() {
 	// 9. Verify MFA token
 	if requestID != "" {
 		fmt.Println("\nVerifying MFA token...")
-		verify, err := client.MFA.Verify(requestID, map[string]any{"token": "123456"})
+		verify, err := client.MFA.Verify(requestID, namespaces.MFANamespaceVerifyParams{Extras: map[string]any{"token": "123456"}})
 		if err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Verify failed (expected in demo): %d\n", restErr.StatusCode)

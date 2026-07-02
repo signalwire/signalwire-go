@@ -18,6 +18,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func TestRelayRestGen_Addresses_Create(t *testing.T) {
@@ -27,7 +28,7 @@ func TestRelayRestGen_Addresses_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Addresses.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"label": "x-1", "country": "x-1", "first_name": "x-1", "last_name": "x-1", "street_number": "x-1", "street_name": "x-1", "city": "x-1", "state": "x-1", "postal_code": "x-1"})
+	_, err := client.Addresses.Create(namespaces.AddressesNamespaceCreateParams{Extras: map[string]any{"label": "x-1", "country": "x-1", "first_name": "x-1", "last_name": "x-1", "street_number": "x-1", "street_name": "x-1", "city": "x-1", "state": "x-1", "postal_code": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestRelayRestGen_Addresses_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.create_address", 500, map[string]any{"error": "x"})
-	_, err := client.Addresses.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"label": "x-1", "country": "x-1", "first_name": "x-1", "last_name": "x-1", "street_number": "x-1", "street_name": "x-1", "city": "x-1", "state": "x-1", "postal_code": "x-1"})
+	_, err := client.Addresses.Create(namespaces.AddressesNamespaceCreateParams{Extras: map[string]any{"label": "x-1", "country": "x-1", "first_name": "x-1", "last_name": "x-1", "street_number": "x-1", "street_name": "x-1", "city": "x-1", "state": "x-1", "postal_code": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -179,7 +180,7 @@ func TestRelayRestGen_ImportedNumbers_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.ImportedNumbers.Create(nil, nil, nil, map[string]any{"number": "x-1", "number_type": "x-1"})
+	_, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreateParams{Extras: map[string]any{"number": "x-1", "number_type": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -200,7 +201,7 @@ func TestRelayRestGen_ImportedNumbers_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.create_imported_phone_number", 500, map[string]any{"error": "x"})
-	_, err := client.ImportedNumbers.Create(nil, nil, nil, map[string]any{"number": "x-1", "number_type": "x-1"})
+	_, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreateParams{Extras: map[string]any{"number": "x-1", "number_type": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -255,7 +256,7 @@ func TestRelayRestGen_MFA_Call(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.MFA.Call(nil, nil, nil, nil, nil, nil, nil, map[string]any{"to": "x-1"})
+	_, err := client.MFA.Call(namespaces.MFANamespaceCallParams{Extras: map[string]any{"to": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -276,7 +277,7 @@ func TestRelayRestGen_MFA_Call_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.request_mfa_call", 500, map[string]any{"error": "x"})
-	_, err := client.MFA.Call(nil, nil, nil, nil, nil, nil, nil, map[string]any{"to": "x-1"})
+	_, err := client.MFA.Call(namespaces.MFANamespaceCallParams{Extras: map[string]any{"to": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -293,7 +294,7 @@ func TestRelayRestGen_MFA_SMS(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.MFA.SMS(nil, nil, nil, nil, nil, nil, nil, map[string]any{"to": "x-1"})
+	_, err := client.MFA.SMS(namespaces.MFANamespaceSMSParams{Extras: map[string]any{"to": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -314,7 +315,7 @@ func TestRelayRestGen_MFA_SMS_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.request_mfa_sms", 500, map[string]any{"error": "x"})
-	_, err := client.MFA.SMS(nil, nil, nil, nil, nil, nil, nil, map[string]any{"to": "x-1"})
+	_, err := client.MFA.SMS(namespaces.MFANamespaceSMSParams{Extras: map[string]any{"to": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -331,7 +332,7 @@ func TestRelayRestGen_MFA_Verify(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.MFA.Verify("x-1", nil, map[string]any{"token": "x-1"})
+	_, err := client.MFA.Verify("x-1", namespaces.MFANamespaceVerifyParams{Extras: map[string]any{"token": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -352,7 +353,7 @@ func TestRelayRestGen_MFA_Verify_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.verify_mfa_token", 500, map[string]any{"error": "x"})
-	_, err := client.MFA.Verify("x-1", nil, map[string]any{"token": "x-1"})
+	_, err := client.MFA.Verify("x-1", namespaces.MFANamespaceVerifyParams{Extras: map[string]any{"token": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -369,7 +370,7 @@ func TestRelayRestGen_NumberGroups_AddMembership(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.NumberGroups.AddMembership("x-1", nil, map[string]any{"phone_number_id": "x-1"})
+	_, err := client.NumberGroups.AddMembership("x-1", namespaces.NumberGroupsNamespaceAddMembershipParams{Extras: map[string]any{"phone_number_id": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -390,7 +391,7 @@ func TestRelayRestGen_NumberGroups_AddMembership_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.create_number_group_membership", 500, map[string]any{"error": "x"})
-	_, err := client.NumberGroups.AddMembership("x-1", nil, map[string]any{"phone_number_id": "x-1"})
+	_, err := client.NumberGroups.AddMembership("x-1", namespaces.NumberGroupsNamespaceAddMembershipParams{Extras: map[string]any{"phone_number_id": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1547,7 +1548,7 @@ func TestRelayRestGen_Campaigns_CreateOrder(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Registry.Campaigns.CreateOrder("x-1", nil, nil, map[string]any{})
+	_, err := client.Registry.Campaigns.CreateOrder("x-1", namespaces.RegistryCampaignsCreateOrderParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1568,7 +1569,7 @@ func TestRelayRestGen_Campaigns_CreateOrder_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.create_order", 500, map[string]any{"error": "x"})
-	_, err := client.Registry.Campaigns.CreateOrder("x-1", nil, nil, map[string]any{})
+	_, err := client.Registry.Campaigns.CreateOrder("x-1", namespaces.RegistryCampaignsCreateOrderParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1699,7 +1700,7 @@ func TestRelayRestGen_Campaigns_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Registry.Campaigns.Update("x-1", nil, map[string]any{})
+	_, err := client.Registry.Campaigns.Update("x-1", namespaces.RegistryCampaignsUpdateParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1720,7 +1721,7 @@ func TestRelayRestGen_Campaigns_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.update_campaign", 500, map[string]any{"error": "x"})
-	_, err := client.Registry.Campaigns.Update("x-1", nil, map[string]any{})
+	_, err := client.Registry.Campaigns.Update("x-1", namespaces.RegistryCampaignsUpdateParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1851,7 +1852,7 @@ func TestRelayRestGen_SIPProfile_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.SIPProfile.Update(nil, nil, nil, nil, nil, map[string]any{})
+	_, err := client.SIPProfile.Update(namespaces.SIPProfileNamespaceUpdateParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1872,7 +1873,7 @@ func TestRelayRestGen_SIPProfile_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.update_sip_profile", 500, map[string]any{"error": "x"})
-	_, err := client.SIPProfile.Update(nil, nil, nil, nil, nil, map[string]any{})
+	_, err := client.SIPProfile.Update(namespaces.SIPProfileNamespaceUpdateParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1965,7 +1966,7 @@ func TestRelayRestGen_ShortCodes_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.ShortCodes.Update("x-1", nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"name": "x-1", "message_handler": "x-1"})
+	_, err := client.ShortCodes.Update("x-1", namespaces.ShortCodesNamespaceUpdateParams{Extras: map[string]any{"name": "x-1", "message_handler": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1986,7 +1987,7 @@ func TestRelayRestGen_ShortCodes_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.update_short_code", 500, map[string]any{"error": "x"})
-	_, err := client.ShortCodes.Update("x-1", nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"name": "x-1", "message_handler": "x-1"})
+	_, err := client.ShortCodes.Update("x-1", namespaces.ShortCodesNamespaceUpdateParams{Extras: map[string]any{"name": "x-1", "message_handler": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2193,7 +2194,7 @@ func TestRelayRestGen_VerifiedCallers_SubmitVerification(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.VerifiedCallers.SubmitVerification("x-1", nil, map[string]any{"verification_code": "x-1"})
+	_, err := client.VerifiedCallers.SubmitVerification("x-1", namespaces.VerifiedCallersNamespaceSubmitVerificationParams{Extras: map[string]any{"verification_code": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2214,7 +2215,7 @@ func TestRelayRestGen_VerifiedCallers_SubmitVerification_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.validate_verification_code", 500, map[string]any{"error": "x"})
-	_, err := client.VerifiedCallers.SubmitVerification("x-1", nil, map[string]any{"verification_code": "x-1"})
+	_, err := client.VerifiedCallers.SubmitVerification("x-1", namespaces.VerifiedCallersNamespaceSubmitVerificationParams{Extras: map[string]any{"verification_code": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

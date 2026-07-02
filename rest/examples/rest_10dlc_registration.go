@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func safe(label string, fn func() (map[string]any, error)) (map[string]any, string) {
@@ -121,9 +122,9 @@ func main() {
 			fmt.Printf("\nCampaign: %v (%v)\n", campDetail["name"], campDetail["state"])
 		}
 
-		_, err = client.Registry.Campaigns.Update(campaignID, map[string]any{
+		_, err = client.Registry.Campaigns.Update(campaignID, namespaces.RegistryCampaignsUpdateParams{Extras: map[string]any{
 			"description": "Updated: customer notifications",
-		})
+		}})
 		if err == nil {
 			fmt.Println("  Campaign description updated")
 		} else if restErr, ok := err.(*rest.SignalWireRestError); ok {
@@ -136,9 +137,9 @@ func main() {
 	if campaignID != "" {
 		fmt.Println("\nCreating number assignment order...")
 		_, orderID = safe("Create order", func() (map[string]any, error) {
-			return client.Registry.Campaigns.CreateOrder(campaignID, map[string]any{
+			return client.Registry.Campaigns.CreateOrder(campaignID, namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{
 				"phone_numbers": []string{"+15125551234"},
-			})
+			}})
 		})
 	}
 

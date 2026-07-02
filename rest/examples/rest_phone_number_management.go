@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -167,14 +168,14 @@ func main() {
 	// 10. Create an address
 	fmt.Println("\nCreating address...")
 	var addrID string
-	addr, err := client.Addresses.Create(map[string]any{
+	addr, err := client.Addresses.Create(namespaces.AddressesNamespaceCreateParams{Extras: map[string]any{
 		"friendly_name": "HQ Address",
 		"street":        "123 Main St",
 		"city":          "Austin",
 		"region":        "TX",
 		"postal_code":   "78701",
 		"iso_country":   "US",
-	})
+	}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Address creation failed (expected in demo): %d\n", restErr.StatusCode)

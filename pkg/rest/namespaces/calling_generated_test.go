@@ -18,6 +18,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func TestCallingGen_Calling_AIHold(t *testing.T) {
@@ -27,7 +28,7 @@ func TestCallingGen_Calling_AIHold(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Calling.AIHold("x-1", nil, nil, map[string]any{})
+	_, err := client.Calling.AIHold("x-1", namespaces.CallingNamespaceAIHoldParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestCallingGen_Calling_AIHold_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "calling.call-commands", 500, map[string]any{"error": "x"})
-	_, err := client.Calling.AIHold("x-1", nil, nil, map[string]any{})
+	_, err := client.Calling.AIHold("x-1", namespaces.CallingNamespaceAIHoldParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

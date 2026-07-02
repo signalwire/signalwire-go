@@ -18,6 +18,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func TestFabricGen_AIAgents_Create(t *testing.T) {
@@ -483,7 +484,7 @@ func TestFabricGen_CXMLApplications_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.Update("x-1", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{})
+	_, err := client.Fabric.CXMLApplications.Update("x-1", namespaces.CxmlApplicationsResourceUpdateParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -504,7 +505,7 @@ func TestFabricGen_CXMLApplications_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_cxml_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLApplications.Update("x-1", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{})
+	_, err := client.Fabric.CXMLApplications.Update("x-1", namespaces.CxmlApplicationsResourceUpdateParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1965,7 +1966,7 @@ func TestFabricGen_Resources_AssignDomainApplication(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignDomainApplication("x-1", nil, map[string]any{"domain_application_id": "x-1"})
+	_, err := client.Fabric.Resources.AssignDomainApplication("x-1", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{"domain_application_id": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1986,7 +1987,7 @@ func TestFabricGen_Resources_AssignDomainApplication_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.assign_resource_domain_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Resources.AssignDomainApplication("x-1", nil, map[string]any{"domain_application_id": "x-1"})
+	_, err := client.Fabric.Resources.AssignDomainApplication("x-1", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{"domain_application_id": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2003,7 +2004,7 @@ func TestFabricGen_Resources_AssignPhoneRoute(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignPhoneRoute("x-1", nil, nil, map[string]any{"phone_route_id": "x-1", "handler": "x-1"})
+	_, err := client.Fabric.Resources.AssignPhoneRoute("x-1", namespaces.GenericResourcesAssignPhoneRouteParams{Extras: map[string]any{"phone_route_id": "x-1", "handler": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2024,7 +2025,7 @@ func TestFabricGen_Resources_AssignPhoneRoute_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.assign_resource_phone_route", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Resources.AssignPhoneRoute("x-1", nil, nil, map[string]any{"phone_route_id": "x-1", "handler": "x-1"})
+	_, err := client.Fabric.Resources.AssignPhoneRoute("x-1", namespaces.GenericResourcesAssignPhoneRouteParams{Extras: map[string]any{"phone_route_id": "x-1", "handler": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3143,7 +3144,7 @@ func TestFabricGen_Subscribers_CreateSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("x-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{"username": "x-1", "password": "x-1"})
+	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("x-1", namespaces.SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"username": "x-1", "password": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3164,7 +3165,7 @@ func TestFabricGen_Subscribers_CreateSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("x-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{"username": "x-1", "password": "x-1"})
+	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("x-1", namespaces.SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"username": "x-1", "password": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3485,7 +3486,7 @@ func TestFabricGen_Subscribers_UpdateSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("x-1", "x-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{})
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("x-1", "x-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3506,7 +3507,7 @@ func TestFabricGen_Subscribers_UpdateSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_subscriber_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("x-1", "x-1", nil, nil, nil, nil, nil, nil, nil, map[string]any{})
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("x-1", "x-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3523,7 +3524,7 @@ func TestFabricGen_Tokens_CreateEmbedToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateEmbedToken(nil, map[string]any{"token": "x-1"})
+	_, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"token": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3544,7 +3545,7 @@ func TestFabricGen_Tokens_CreateEmbedToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_embeds_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateEmbedToken(nil, map[string]any{"token": "x-1"})
+	_, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"token": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3561,7 +3562,7 @@ func TestFabricGen_Tokens_CreateGuestToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateGuestToken(nil, nil, map[string]any{"allowed_addresses": "x-1"})
+	_, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"allowed_addresses": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3582,7 +3583,7 @@ func TestFabricGen_Tokens_CreateGuestToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_guest_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateGuestToken(nil, nil, map[string]any{"allowed_addresses": "x-1"})
+	_, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"allowed_addresses": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3599,7 +3600,7 @@ func TestFabricGen_Tokens_CreateInviteToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(nil, nil, map[string]any{"address_id": "x-1"})
+	_, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"address_id": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3620,7 +3621,7 @@ func TestFabricGen_Tokens_CreateInviteToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_invite_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateInviteToken(nil, nil, map[string]any{"address_id": "x-1"})
+	_, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"address_id": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3637,7 +3638,7 @@ func TestFabricGen_Tokens_CreateSubscriberToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateSubscriberToken(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"reference": "x-1"})
+	_, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"reference": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3658,7 +3659,7 @@ func TestFabricGen_Tokens_CreateSubscriberToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateSubscriberToken(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"reference": "x-1"})
+	_, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"reference": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3675,7 +3676,7 @@ func TestFabricGen_Tokens_RefreshSubscriberToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(nil, map[string]any{"refresh_token": "x-1"})
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{"refresh_token": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3696,7 +3697,7 @@ func TestFabricGen_Tokens_RefreshSubscriberToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.refresh_subscriber_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(nil, map[string]any{"refresh_token": "x-1"})
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{"refresh_token": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

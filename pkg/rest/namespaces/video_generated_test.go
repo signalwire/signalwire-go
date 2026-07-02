@@ -18,6 +18,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func TestVideoGen_ConferenceTokens_Get(t *testing.T) {
@@ -141,7 +142,7 @@ func TestVideoGen_Conferences_CreateStream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.CreateStream("x-1", nil, map[string]any{"url": "x-1"})
+	_, err := client.Video.Conferences.CreateStream("x-1", namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -162,7 +163,7 @@ func TestVideoGen_Conferences_CreateStream_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_conference_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.CreateStream("x-1", nil, map[string]any{"url": "x-1"})
+	_, err := client.Video.Conferences.CreateStream("x-1", namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -749,7 +750,7 @@ func TestVideoGen_RoomTokens_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomTokens.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"room_name": "x-1"})
+	_, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{"room_name": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -770,7 +771,7 @@ func TestVideoGen_RoomTokens_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_room_token", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomTokens.Create(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, map[string]any{"room_name": "x-1"})
+	_, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{"room_name": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -825,7 +826,7 @@ func TestVideoGen_Rooms_CreateStream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Rooms.CreateStream("x-1", nil, map[string]any{"url": "x-1"})
+	_, err := client.Video.Rooms.CreateStream("x-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -846,7 +847,7 @@ func TestVideoGen_Rooms_CreateStream_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_room_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.CreateStream("x-1", nil, map[string]any{"url": "x-1"})
+	_, err := client.Video.Rooms.CreateStream("x-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1129,7 +1130,7 @@ func TestVideoGen_Streams_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Streams.Update("x-1", nil, map[string]any{"url": "x-1"})
+	_, err := client.Video.Streams.Update("x-1", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{"url": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1150,7 +1151,7 @@ func TestVideoGen_Streams_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.update_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Streams.Update("x-1", nil, map[string]any{"url": "x-1"})
+	_, err := client.Video.Streams.Update("x-1", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{"url": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

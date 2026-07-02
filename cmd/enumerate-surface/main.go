@@ -57,6 +57,12 @@ type goStructFacts struct {
 	// short type name is stored; the embed chain lives in the same package
 	// (namespaces), so the base is looked up by `<pkg>.<embed>`.
 	embeds []string
+	// paramsPlumbing marks a generated-REST `<...>Params` options struct (§5/§4a):
+	// call-shape plumbing for the named operation/command params, NOT oracle
+	// surface. Excluded from port_additions_actual.json so it never shows up as a
+	// SURFACE-DIFF addition (it's a pure call-site convenience type, generated
+	// alongside the method, carrying no method surface of its own).
+	paramsPlumbing bool
 }
 
 // walk parses every .go file under root and returns the collected inventory.
@@ -92,6 +98,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 		return fmt.Errorf("parse %s: %w", path, err)
 	}
 	pkgName := file.Name.Name
+	base := filepath.Base(path)
+	isRestResource := strings.HasSuffix(base, "_resources_generated.go") &&
+		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/")
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
@@ -114,6 +123,11 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						name:    ts.Name.Name,
 						methods: map[string]struct{}{},
 					}
+				}
+				// §5/§4a: mark generated-REST params-struct plumbing so it is
+				// excluded from the SURFACE-DIFF additions inventory.
+				if isRestResource && strings.HasSuffix(ts.Name.Name, "Params") {
+					structs[key].paramsPlumbing = true
 				}
 				// Record anonymous (embedded) fields so promoted methods can be
 				// resolved through the embed chain during projection.
@@ -373,10 +387,16 @@ type PortAdditions struct {
 // __init__ and not listed here.
 func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]struct{}, repo string) PortAdditions {
 	var addStructs []string
-	for key := range structs {
-		if _, ok := structTable[key]; !ok {
-			addStructs = append(addStructs, key)
+	for key, facts := range structs {
+		if _, ok := structTable[key]; ok {
+			continue
 		}
+		// §5/§4a: generated-REST params structs are call-shape plumbing, not oracle
+		// surface — never list them as SURFACE-DIFF additions.
+		if facts.paramsPlumbing {
+			continue
+		}
+		addStructs = append(addStructs, key)
 	}
 	sort.Strings(addStructs)
 

@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -63,11 +64,11 @@ func main() {
 
 	// 3. Generate a join token
 	fmt.Println("\nGenerating room token...")
-	token, err := client.Video.RoomTokens.Create(map[string]any{
+	token, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{
 		"room_name":   "daily-standup",
 		"user_name":   "alice",
 		"permissions": []string{"room.self.audio_mute", "room.self.video_mute"},
-	})
+	}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Token failed (expected in demo): %d\n", restErr.StatusCode)
@@ -210,9 +211,9 @@ func main() {
 	var streamID string
 	if confID != "" {
 		fmt.Println("\nCreating stream on conference...")
-		stream, err := client.Video.Conferences.CreateStream(confID, map[string]any{
+		stream, err := client.Video.Conferences.CreateStream(confID, namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{
 			"url": "rtmp://live.example.com/stream-key",
-		})
+		}})
 		if err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Stream creation failed (expected in demo): %d\n", restErr.StatusCode)
@@ -231,9 +232,9 @@ func main() {
 			fmt.Printf("  Stream URL: %v\n", sDetail["url"])
 		}
 
-		_, err = client.Video.Streams.Update(streamID, map[string]any{
+		_, err = client.Video.Streams.Update(streamID, namespaces.VideoStreamsUpdateParams{Extras: map[string]any{
 			"url": "rtmp://backup.example.com/stream-key",
-		})
+		}})
 		if err == nil {
 			fmt.Println("  Stream URL updated")
 		} else if restErr, ok := err.(*rest.SignalWireRestError); ok {

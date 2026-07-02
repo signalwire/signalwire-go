@@ -18,6 +18,7 @@ import (
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func TestPubsubGen_PubSub_CreateToken(t *testing.T) {
@@ -27,7 +28,7 @@ func TestPubsubGen_PubSub_CreateToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.PubSub.CreateToken(nil, nil, nil, nil, map[string]any{"ttl": "x-1", "channels": "x-1"})
+	_, err := client.PubSub.CreateToken(namespaces.PubSubNamespaceCreateTokenParams{Extras: map[string]any{"ttl": "x-1", "channels": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestPubsubGen_PubSub_CreateToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "pubsub.create_token", 500, map[string]any{"error": "x"})
-	_, err := client.PubSub.CreateToken(nil, nil, nil, nil, map[string]any{"ttl": "x-1", "channels": "x-1"})
+	_, err := client.PubSub.CreateToken(namespaces.PubSubNamespaceCreateTokenParams{Extras: map[string]any{"ttl": "x-1", "channels": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
