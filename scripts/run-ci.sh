@@ -259,6 +259,19 @@ run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
         --dump-cmd "go run ./cmd/emit-skills" \
         --port-repo "$PORT_ROOT"
 
+# Gate 6c: SWAIG-COVERAGE — every engine response action in the vendored
+# swaig-specs/swaig-response.yaml must be emittable by this port's FunctionResult
+# (SWAIG_PIPELINE §5). The shared checker reads the action vocabulary from the
+# spec and diffs it against what pkg/swaig/function_result.go can put on the wire
+# (fr.AddAction("key", …) / append(fr.actions, map[string]any{…}), incl. the
+# multi-line { "SWML": …, "transfer": … } swmlAction form); a non-allowlisted gap
+# fails. Signed-off gaps live in porting-sdk/SWAIG_COVERAGE_ALLOWLIST.md
+# (back_to_back_functions, user_event). The SWAIG analogue of REST-COVERAGE; same
+# gate TS runs, pointed at the Go FunctionResult source.
+run_gate "SWAIG-COVERAGE" "every engine SWAIG action emittable (modulo allowlist)" \
+    python3 "$PORTING_SDK_DIR/scripts/swaig_coverage.py" --check \
+        --emission "$PORT_ROOT/pkg/swaig/function_result.go"
+
 # Gate 7: FMT — the language format gate. Canonical gate name is language-neutral
 # (FMT); each port runs its own formatter under it. Here that is gofmt (Go's
 # builtin, canonical formatter — no tool to install, no config to bikeshed,
