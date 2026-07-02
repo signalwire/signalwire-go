@@ -189,6 +189,9 @@ func NewFAQBotAgent(opts FAQBotOptions) *FAQBotAgent {
 	// ---- Tools ----
 	fb.registerTools()
 
+	// ---- Summary callback ----
+	fb.AgentBase.OnSummary(fb.OnSummary)
+
 	return fb
 }
 
@@ -211,84 +214,98 @@ func (fb *FAQBotAgent) registerTools() {
 				"description": "Optional category to filter by",
 			},
 		},
-		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			query := ""
-			if q, ok := args["query"].(string); ok {
-				query = strings.ToLower(strings.TrimSpace(q))
-			}
-			category := ""
-			if c, ok := args["category"].(string); ok {
-				category = strings.ToLower(strings.TrimSpace(c))
-			}
-
-			type scored struct {
-				question string
-				score    int
-			}
-			var results []scored
-
-			for _, faq := range fb.faqs {
-				q := strings.ToLower(faq.Question)
-				score := 0
-
-				if query != "" && strings.Contains(q, query) {
-					if q == query {
-						score += 100
-					} else {
-						score += 50
-					}
-					if strings.HasPrefix(q, query) {
-						score += 25
-					}
-				}
-
-				// Also check individual words for partial matching
-				if score == 0 && query != "" {
-					queryWords := strings.Fields(query)
-					for _, qw := range queryWords {
-						if len(qw) >= 3 && strings.Contains(q, qw) {
-							score += 10
-						}
-					}
-				}
-
-				// Boost score +30 for category match (matches Python SDK behavior).
-				if category != "" {
-					for _, c := range faq.Categories {
-						if strings.EqualFold(c, category) {
-							score += 30
-							break
-						}
-					}
-				}
-
-				if score > 0 {
-					results = append(results, scored{question: faq.Question, score: score})
-				}
-			}
-
-			// Sort descending by score (simple insertion sort for small lists)
-			for i := 1; i < len(results); i++ {
-				for j := i; j > 0 && results[j].score > results[j-1].score; j-- {
-					results[j], results[j-1] = results[j-1], results[j]
-				}
-			}
-
-			// Limit to top 3
-			if len(results) > 3 {
-				results = results[:3]
-			}
-
-			if len(results) > 0 {
-				var sb strings.Builder
-				sb.WriteString("Here are the most relevant FAQs:\n\n")
-				for i, r := range results {
-					fmt.Fprintf(&sb, "%d. %s\n", i+1, r.question)
-				}
-				return swaig.NewFunctionResult(sb.String())
-			}
-
-			return swaig.NewFunctionResult("No matching FAQs found.")
-		},
+		Handler: fb.SearchFaqs,
 	})
+}
+
+// SearchFaqs handles the "search_faqs" tool: it scores the FAQ database against
+// a query (and optional category) and returns the top matches.
+func (fb *FAQBotAgent) SearchFaqs(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+	query := ""
+	if q, ok := args["query"].(string); ok {
+		query = strings.ToLower(strings.TrimSpace(q))
+	}
+	category := ""
+	if c, ok := args["category"].(string); ok {
+		category = strings.ToLower(strings.TrimSpace(c))
+	}
+
+	type scored struct {
+		question string
+		score    int
+	}
+	var results []scored
+
+	for _, faq := range fb.faqs {
+		q := strings.ToLower(faq.Question)
+		score := 0
+
+		if query != "" && strings.Contains(q, query) {
+			if q == query {
+				score += 100
+			} else {
+				score += 50
+			}
+			if strings.HasPrefix(q, query) {
+				score += 25
+			}
+		}
+
+		// Also check individual words for partial matching
+		if score == 0 && query != "" {
+			queryWords := strings.Fields(query)
+			for _, qw := range queryWords {
+				if len(qw) >= 3 && strings.Contains(q, qw) {
+					score += 10
+				}
+			}
+		}
+
+		// Boost score +30 for category match (matches Python SDK behavior).
+		if category != "" {
+			for _, c := range faq.Categories {
+				if strings.EqualFold(c, category) {
+					score += 30
+					break
+				}
+			}
+		}
+
+		if score > 0 {
+			results = append(results, scored{question: faq.Question, score: score})
+		}
+	}
+
+	// Sort descending by score (simple insertion sort for small lists)
+	for i := 1; i < len(results); i++ {
+		for j := i; j > 0 && results[j].score > results[j-1].score; j-- {
+			results[j], results[j-1] = results[j-1], results[j]
+		}
+	}
+
+	// Limit to top 3
+	if len(results) > 3 {
+		results = results[:3]
+	}
+
+	if len(results) > 0 {
+		var sb strings.Builder
+		sb.WriteString("Here are the most relevant FAQs:\n\n")
+		for i, r := range results {
+			fmt.Fprintf(&sb, "%d. %s\n", i+1, r.question)
+		}
+		return swaig.NewFunctionResult(sb.String())
+	}
+
+	return swaig.NewFunctionResult("No matching FAQs found.")
+}
+
+// OnSummary is the summary hook for the FAQ bot agent. It matches the
+// agent.SummaryCallback signature and is registered via fb.AgentBase.OnSummary
+// in the constructor. There is currently no FAQ-specific summary logic (the
+// post-prompt already emits a JSON summary), so this is a no-op placeholder
+// that mirrors Python's on_summary surface.
+func (fb *FAQBotAgent) OnSummary(summary map[string]any, rawData map[string]any) {
+	_ = summary
+	_ = rawData
 }

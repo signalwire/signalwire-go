@@ -249,3 +249,97 @@ signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_cxml_
 signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_relay_application: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
 signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_relay_topic: BACKLOG / param-count-mismatch/ reference has 5 param(s), port has 4/ reference=['self', 'resource_id', 'topic',; return-mismatch/
 signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_swml_webhook: BACKLOG / param-mismatch/ param[1] (resource_id)/ name 'resource_id' vs 'sid'; param-mismatch/ param[3] (extra)/ kind 'var_keyword
+
+## Surface-reconcile signature idiom (2026-07: surface parity → 0)
+
+# Constructors take a Go options struct / functional options, not Python kwargs.
+signalwire.core.security_config.SecurityConfig.__init__: Go NewSecurityConfig() takes no args (loads defaults+env); Python takes config_file/service_name kwargs
+signalwire.web.web_service.WebService.__init__: Go NewWebService(Options{...}) takes an options struct; Python takes a flat kwarg list
+signalwire.core.swml_builder.SWMLBuilder.__init__: Go swml.NewService takes functional ServiceOptions; Python SWMLBuilder(service) takes an SWMLService
+signalwire.core.swml_handler.VerbHandlerRegistry.__init__: Go swml.NewService takes functional options; Python VerbHandlerRegistry() takes none (the registry is an inline map on Service)
+
+# Fluent builders return the receiver (*Self chaining); Python returns None/bool.
+signalwire.core.swml_builder.SWMLBuilder.add_section: Go returns the builder (*PomBuilder/*Service) for chaining; Python returns None
+signalwire.core.swml_builder.SWMLBuilder.reset: Go returns the builder for chaining; Python returns None
+
+# Go accessors/handlers use Go-idiomatic types (structs, error tuples folded to
+# multi-return, RawMessage) that differ from the Python signature shapes.
+signalwire.agent_server.AgentServer.register_global_routing_callback: Go callback is a swml.RoutingCallback func value; Python takes a (request,path)->str callable — idiom differs
+signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: Go callback is a Go RoutingCallback (http.Request-typed); Python callable signature differs
+signalwire.core.security.session_manager.SessionManager.set_session_metadata: Go SetSessionMetadata(sessionID, metadata map) stores a map and returns void; Python set_session_metadata(call_id,key,value) sets one key and returns bool
+signalwire.core.security_config.SecurityConfig.get_basic_auth: Go returns (user, pass) as two values; the canonical tuple<string,string> is expressed via Go multi-return
+signalwire.core.security_config.SecurityConfig.validate_ssl_config: Go returns (bool, string) multi-return; Python returns a tuple<bool,optional<string>>
+signalwire.core.pom_builder.PomBuilder.add_section: Go AddSection omits the nested `subsections` kwarg (subsections are added via AddSubsection); param shape differs
+signalwire.core.pom_builder.PomBuilder.add_to_section: Go AddToSection takes (title, body, bullets); Python also accepts a singular `bullet` — folded into `bullets` in Go
+signalwire.core.swml_handler.AIVerbHandler.build_config: Go BuildConfig(params map) takes the verb params as one map; Python spreads them as explicit kwargs
+signalwire.core.swml_handler.SWMLVerbHandler.validate_config: Go ValidateConfig returns bool; Python returns a (bool, errors[]) tuple — errors surfaced via Go error path
+signalwire.core.swml_handler.VerbHandlerRegistry.get_handler: Go GetVerbHandler returns the VerbHandler interface; Python returns optional<SWMLVerbHandler>
+signalwire.core.swml_handler.VerbHandlerRegistry.register_handler: Go RegisterVerbHandler takes the VerbHandler interface; Python takes an SWMLVerbHandler base
+signalwire.core.swml_service.SWMLService.register_verb_handler: Go RegisterVerbHandler takes the VerbHandler interface; Python takes an SWMLVerbHandler base
+signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: Go OnSwmlRequest matches the DynamicConfigCallback shape (queryParams,bodyParams,headers,agent); Python on_swml_request(request_data,callback_path,request) differs
+signalwire.relay.client.RelayClient.execute: Go Execute returns json.RawMessage (defer-decoded); Python returns a decoded dict<string,any>
+
+# Surface-only skill methods: the reference records these in the signatures oracle
+# but Go expresses them via RegisterTools / a tool handler, so there is no separate
+# Go method with this exact signature (the surface symbol is present via the skill
+# contract projection; the signature has no Go counterpart to compare).
+signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_tools: Go returns the tool list via RegisterTools (no separate get_tools method)
+signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_tools: Go returns the tool list via RegisterTools (no separate get_tools method)
+signalwire.skills.weather_api.skill.WeatherApiSkill.get_tools: Go returns the tool list via RegisterTools (no separate get_tools method)
+signalwire.skills.spider.skill.SpiderSkill.__init__: Go uses NewSpider factory; the reference records a per-skill __init__ signature Go expresses via the factory
+signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.search_wiki: Go registers the wiki search as a tool handler (handleSearch), not a public search_wiki method
+
+## BedrockAgent — reference-oracle gap (surface-present, absent from python_signatures)
+# signalwire.agents.bedrock.BedrockAgent is in python_surface but NOT in
+# python_signatures (a reference-oracle gap). The Go implementation
+# (pkg/agent/bedrock.go) surfaces the methods; they have no reference signature
+# to compare against, so each is excused here (matching the TS port).
+signalwire.agents.bedrock.BedrockAgent.__init__: reference-oracle gap — BedrockAgent absent from python_signatures
+signalwire.agents.bedrock.BedrockAgent.__repr__: reference-oracle gap — BedrockAgent absent from python_signatures
+signalwire.agents.bedrock.BedrockAgent.set_voice: reference-oracle gap — BedrockAgent absent from python_signatures
+signalwire.agents.bedrock.BedrockAgent.set_inference_params: reference-oracle gap — BedrockAgent absent from python_signatures
+signalwire.agents.bedrock.BedrockAgent.set_llm_model: reference-oracle gap — BedrockAgent absent from python_signatures
+signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: reference-oracle gap — BedrockAgent absent from python_signatures
+signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference-oracle gap — BedrockAgent absent from python_signatures
+signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference-oracle gap — BedrockAgent absent from python_signatures
+signalwire.web.web_service.WebService.app: Python @property returning the FastAPI app; Go has no framework app handle (not surfaced)
+signalwire.web.web_service.WebService.security: Go WebService.Security() accessor exists but the reference records it as a @property with a distinct signature; not part of the compared surface
+
+## Surface-reconcile signature lockstep (2026-07 cleanup: removed stale surface omissions)
+signalwire.core.agent.prompt.manager.PromptManager.logger: Go PromptManager exposes a Logger field; the reference records no logger signature
+signalwire.core.agent.tools.registry.ToolRegistry.logger: Go ToolRegistry exposes a Logger field; the reference records no logger signature
+signalwire.core.mixins.auth_mixin.AuthMixin.logger: Go exposes a Logger field; the reference records no logger signature
+signalwire.core.mixins.state_mixin.StateMixin.logger: Go exposes a Logger field; the reference records no logger signature
+signalwire.core.swml_builder.SWMLBuilder.logger: Go swml.Service exposes a Logger field projected onto SWMLBuilder; reference records no logger signature
+signalwire.core.swml_handler.VerbHandlerRegistry.logger: Go swml.Service exposes a Logger field projected onto VerbHandlerRegistry; reference records no logger signature
+signalwire.skills.registry.SkillRegistry.logger: reference records a SkillRegistry.logger the Go instance registry does not expose (package-level registration idiom)
+signalwire.core.function_result.FunctionResult.create_payment_action: Go exposes swaig.CreatePaymentAction as a package helper (staticmethod placement); no instance method signature to compare
+signalwire.core.function_result.FunctionResult.create_payment_parameter: Go exposes swaig.CreatePaymentParameter as a package helper; no instance method signature to compare
+signalwire.core.function_result.FunctionResult.create_payment_prompt: Go exposes swaig.CreatePaymentPrompt as a package helper; no instance method signature to compare
+signalwire.core.pom_builder.PomBuilder.from_sections: Go exposes pom.FromSections as a package helper (classmethod placement); no instance method signature to compare
+signalwire.core.pom_builder.PomBuilder.pom: Go PomBuilder holds an unexported pom field; the reference records no `pom` accessor signature — surfaced only as an internal
+signalwire.core.skill_base.SkillBase.register_tools: abstract contract method surfaced synthetically on SkillBase; concrete skills carry the signature
+signalwire.core.skill_base.SkillBase.setup: abstract contract method surfaced synthetically on SkillBase; concrete skills carry the signature
+signalwire.core.swml_builder.SWMLBuilder.build: build is surfaced synthetically (Go GetDocument/Render serve the build role); no distinct Go method signature
+signalwire.core.swml_handler.AIVerbHandler.validate_config: Go ValidateConfig signature differs from the reference SWMLVerbHandler.validate_config shape
+signalwire.core.swml_service.SWMLService.as_router: Go AsRouter returns http.Handler; the reference records a FastAPI-router signature that differs
+signalwire.core.swml_service.SWMLService.extract_sip_username: extract_sip_username surfaced synthetically (Go swml.ExtractSIPUsername package func); no instance-method signature
+signalwire.livewire.Agent.on_enter: Go livewire.Agent.OnEnter signature differs from the reference on_enter shape
+signalwire.livewire.Agent.on_exit: Go livewire.Agent.OnExit signature differs from the reference on_exit shape
+signalwire.livewire.Agent.on_user_turn_completed: Go OnUserTurnCompleted signature differs from the reference shape
+signalwire.livewire.Agent.session: Go Agent.Session accessor signature differs from the reference property
+signalwire.livewire.Agent.update_tools: Go Agent.UpdateTools signature differs from the reference shape
+signalwire.livewire.AgentSession.update_agent: Go AgentSession.UpdateAgent signature differs from the reference shape
+signalwire.livewire.ChatContext.append: Go ChatContext.Append(role,content) signature differs from the reference append shape
+signalwire.livewire.InferenceLLM.__init__: Go uses NewInferenceLLM factory; the reference records a distinct __init__ signature
+signalwire.livewire.InferenceSTT.__init__: Go uses NewInferenceSTT factory; the reference records a distinct __init__ signature
+signalwire.livewire.InferenceTTS.__init__: Go uses NewInferenceTTS factory; the reference records a distinct __init__ signature
+signalwire.livewire.JobContext.wait_for_participant: Go JobContext.WaitForParticipant signature differs from the reference shape
+signalwire.livewire.function_tool: Go FunctionTool free function returns a FunctionToolSpec; the reference decorator signature differs
+signalwire.prefabs.concierge.ConciergeAgent.on_summary: Go OnSummary matches the SummaryCallback shape (summary,rawData); reference on_summary signature differs
+signalwire.prefabs.faq_bot.FAQBotAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs
+signalwire.prefabs.receptionist.ReceptionistAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs
+signalwire.prefabs.survey.SurveyAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs
+signalwire.rest._base.BaseResource.__init__: Go namespaces.Resource is inline-initialised by namespace constructors; no public NewResource factory signature to compare
+signalwire.utils.schema_utils.SchemaUtils.generate_method_body: Go GenerateMethodBody exists but the reference signatures oracle does not record it under this module
+signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: Go GenerateMethodSignature exists but the reference signatures oracle does not record it under this module

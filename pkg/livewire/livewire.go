@@ -185,6 +185,34 @@ func WithParameters(params map[string]any) ToolOption {
 	return func(t *toolDef) { t.parameters = params }
 }
 
+// FunctionToolSpec is a standalone tool descriptor produced by the package-level
+// FunctionTool helper. It captures a tool's name, handler and options so a tool
+// can be defined outside an Agent and registered later via Agent.AddTool.
+// Mirrors the Python module-level `function_tool` decorator, which turns a bare
+// handler into a reusable tool definition.
+type FunctionToolSpec struct {
+	Name    string
+	Handler any
+	Options []ToolOption
+}
+
+// FunctionTool is the module-level tool-definition helper (Python
+// signalwire.livewire.function_tool). It packages a handler into a
+// FunctionToolSpec without binding it to a specific Agent, so the same tool can
+// be shared across agents. Register it with Agent.AddTool.
+func FunctionTool(name string, handler any, opts ...ToolOption) *FunctionToolSpec {
+	return &FunctionToolSpec{Name: name, Handler: handler, Options: opts}
+}
+
+// AddTool registers a FunctionToolSpec (produced by the package-level
+// FunctionTool helper) on the agent, mirroring the per-agent FunctionTool method.
+func (a *Agent) AddTool(spec *FunctionToolSpec) *Agent {
+	if spec == nil {
+		return a
+	}
+	return a.FunctionTool(spec.Name, spec.Handler, spec.Options...)
+}
+
 // FunctionTool registers a named tool on the agent.  The handler must be
 //
 //	func(args map[string]any, rawData map[string]any) *swaig.FunctionResult

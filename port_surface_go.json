@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 22d320e316effc920b7c9dd574356200122c3c44",
+  "generated_from": "signalwire-go (go-native) @ 74aa9318155897ab2359f9f6ea415c98b64f4774",
   "modules": {
     "agent": {
       "classes": {
@@ -101,13 +101,35 @@
           "ValidateBasicAuth",
           "ValidateToolToken"
         ],
+        "BedrockAgent": [
+          "SetInferenceParams",
+          "SetLLMModel",
+          "SetLLMTemperature",
+          "SetPostPromptLLMParams",
+          "SetPromptLLMParams",
+          "SetVoice",
+          "String"
+        ],
+        "BedrockOptions": [],
+        "ConfigLoader": [
+          "Get",
+          "GetConfig",
+          "GetConfigFile",
+          "GetSection",
+          "HasConfig",
+          "MergeWithEnv",
+          "SubstituteVars"
+        ],
         "MCPServerConfig": [],
         "ToolDefinition": [
           "ValidateArgs"
         ]
       },
       "functions": [
+        "FindConfigFile",
         "NewAgentBase",
+        "NewBedrockAgent",
+        "NewConfigLoader",
         "WithAIVerbName",
         "WithAgentID",
         "WithAutoAnswer",
@@ -419,6 +441,7 @@
     "livewire": {
       "classes": {
         "Agent": [
+          "AddTool",
           "FunctionTool",
           "Instructions",
           "OnEnter",
@@ -447,6 +470,7 @@
         "ChatMessage": [],
         "DeepgramSTT": [],
         "ElevenLabsTTS": [],
+        "FunctionToolSpec": [],
         "GoogleSTT": [],
         "InferenceLLM": [],
         "InferenceSTT": [],
@@ -473,6 +497,7 @@
         ]
       },
       "functions": [
+        "FunctionTool",
         "NewAgent",
         "NewAgentServer",
         "NewAgentSession",
@@ -959,6 +984,17 @@
     },
     "pom": {
       "classes": {
+        "PomBuilder": [
+          "AddSection",
+          "AddSubsection",
+          "AddToSection",
+          "GetSection",
+          "HasSection",
+          "RenderMarkdown",
+          "RenderXML",
+          "ToDict",
+          "ToJSON"
+        ],
         "PromptObjectModel": [
           "AddPomAsSubsection",
           "AddSection",
@@ -982,7 +1018,9 @@
       "functions": [
         "FromJSON",
         "FromList",
+        "FromSections",
         "FromYAML",
+        "NewPomBuilder",
         "NewPromptObjectModel",
         "NewSection",
         "WithBody",
@@ -1003,20 +1041,36 @@
           "SetVoice"
         ],
         "BedrockOptions": [],
-        "ConciergeAgent": [],
+        "ConciergeAgent": [
+          "CheckAvailability",
+          "GetDirections",
+          "OnSummary"
+        ],
         "ConciergeOptions": [],
         "Department": [],
         "FAQ": [],
-        "FAQBotAgent": [],
+        "FAQBotAgent": [
+          "OnSummary",
+          "SearchFaqs"
+        ],
         "FAQBotOptions": [],
         "InfoGathererAgent": [
-          "SetQuestionCallback"
+          "OnSwmlRequest",
+          "SetQuestionCallback",
+          "StartQuestions",
+          "SubmitAnswer"
         ],
         "InfoGathererOptions": [],
         "Question": [],
-        "ReceptionistAgent": [],
+        "ReceptionistAgent": [
+          "OnSummary"
+        ],
         "ReceptionistOptions": [],
-        "SurveyAgent": [],
+        "SurveyAgent": [
+          "LogResponse",
+          "OnSummary",
+          "ValidateResponse"
+        ],
         "SurveyOptions": [],
         "SurveyQuestion": []
       },
@@ -1428,10 +1482,26 @@
     },
     "security": {
       "classes": {
+        "SecurityConfig": [
+          "GetBasicAuth",
+          "GetCORSConfig",
+          "GetSecurityHeaders",
+          "GetURLScheme",
+          "LoadFromEnv",
+          "LogConfig",
+          "ShouldAllowHost",
+          "ValidateSSLConfig"
+        ],
         "SessionManager": [
+          "ActivateSession",
           "CreateSession",
           "CreateToken",
           "DebugToken",
+          "EndSession",
+          "GenerateToken",
+          "GetSessionMetadata",
+          "SetSessionMetadata",
+          "ValidateSessionToken",
           "ValidateToken"
         ],
         "WebhookOpts": []
@@ -1439,6 +1509,7 @@
       "functions": [
         "FilterSensitiveHeaders",
         "IsValidHostname",
+        "NewSecurityConfig",
         "NewSessionManager",
         "RawBodyFromContext",
         "RedactURL",
@@ -1543,7 +1614,6 @@
     },
     "swaig": {
       "classes": {
-        "ContextSwitchAction": [],
         "FunctionResult": [
           "Actions",
           "AddAction",
@@ -1598,7 +1668,6 @@
           "UpdateSettings",
           "WaitForUser"
         ],
-        "HoldAction": [],
         "JoinConferenceOptions": [],
         "Params": [
           "Array",
@@ -1614,26 +1683,8 @@
           "String"
         ],
         "PayOptions": [],
-        "PlaybackBgAction": [],
-        "PostPrompt": [],
-        "PostPromptAssistantEntry": [],
-        "PostPromptData": [],
-        "PostPromptEntity": [],
-        "PostPromptEot": [],
-        "PostPromptStampsUs": [],
-        "PostPromptSwaigLogEntry": [],
-        "PostPromptSystemEntry": [],
-        "PostPromptSystemLogEntry": [],
-        "PostPromptThinkingEntry": [],
-        "PostPromptTimesEntry": [],
-        "PostPromptTiming": [],
-        "PostPromptToolEntry": [],
-        "PostPromptUserEntry": [],
         "Prop": [],
-        "RecordCallOptions": [],
-        "SwaigArgument": [],
-        "SwaigRequest": [],
-        "TransferAction": []
+        "RecordCallOptions": []
       },
       "functions": [
         "CodecValues",
@@ -1660,52 +1711,11 @@
     },
     "swml": {
       "classes": {
-        "AI": [],
-        "AIObject": [],
-        "AIParams": [],
-        "AIPostPromptPom": [],
-        "AIPostPromptText": [],
-        "AIPromptPom": [],
-        "AIPromptText": [],
         "AIVerbHandler": [
           "BuildConfig",
           "GetVerbName",
           "ValidateConfig"
         ],
-        "AllOfProperty": [],
-        "AmazonBedrock": [],
-        "AmazonBedrockObject": [],
-        "Answer": [],
-        "AnyOfProperty": [],
-        "ArrayProperty": [],
-        "BedrockParams": [],
-        "BedrockSWAIG": [],
-        "BooleanProperty": [],
-        "ChangeContextAction": [],
-        "ChangeStepAction": [],
-        "Cond": [],
-        "CondElse": [],
-        "CondReg": [],
-        "Connect": [],
-        "ConnectConfig": [],
-        "ConnectDeviceParallel": [],
-        "ConnectDeviceSerial": [],
-        "ConnectDeviceSerialParallel": [],
-        "ConnectDeviceSingle": [],
-        "ConnectHeaders": [],
-        "ConnectSwitch": [],
-        "ConstProperty": [],
-        "ContextPOMSteps": [],
-        "ContextSwitchAction": [],
-        "ContextTextSteps": [],
-        "Contexts": [],
-        "ContextsPOMObject": [],
-        "ContextsTextObject": [],
-        "ConversationMessage": [],
-        "DataMap": [],
-        "Denoise": [],
-        "DetectMachine": [],
-        "DetectMachineConfig": [],
         "Document": [
           "AddSection",
           "AddVerb",
@@ -1718,80 +1728,6 @@
           "Reset",
           "ToMap"
         ],
-        "EnterQueue": [],
-        "EnterQueueObject": [],
-        "Execute": [],
-        "ExecuteConfig": [],
-        "ExecuteSwitch": [],
-        "Expression": [],
-        "FunctionParameters": [],
-        "Goto": [],
-        "GotoConfig": [],
-        "HangUpHookSWAIGFunction": [],
-        "Hangup": [],
-        "HangupAction": [],
-        "Hint": [],
-        "HoldAction": [],
-        "InjectAction": [],
-        "IntegerProperty": [],
-        "JoinConference": [],
-        "JoinConferenceObject": [],
-        "JoinRoom": [],
-        "JoinRoomConfig": [],
-        "Label": [],
-        "LanguageParams": [],
-        "LanguagesWithFillers": [],
-        "LanguagesWithSoloFillers": [],
-        "LiveTranscribe": [],
-        "LiveTranscribeConfig": [],
-        "LiveTranslate": [],
-        "LiveTranslateConfig": [],
-        "NullProperty": [],
-        "NumberProperty": [],
-        "ObjectProperty": [],
-        "OmitPropertiesBedrockPostPomptTextOmittedPromptProps": [],
-        "OmitPropertiesBedrockPostPromptPomOmittedPromptProps": [],
-        "OmitPropertiesBedrockPromptPomOmittedPromptProps": [],
-        "OmitPropertiesBedrockPromptTextOmittedPromptProps": [],
-        "OneOfProperty": [],
-        "Output": [],
-        "Pay": [],
-        "PayConfig": [],
-        "PayParameters": [],
-        "PayPromptPlayAction": [],
-        "PayPromptSayAction": [],
-        "PayPrompts": [],
-        "PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps": [],
-        "PickPropertiesStartUpHookSWAIGFunctionPickedSWAIGFunctionProps": [],
-        "PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunctionProps": [],
-        "PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps": [],
-        "Play": [],
-        "PlayWithURL": [],
-        "PlayWithURLS": [],
-        "PlaybackBGAction": [],
-        "PomSectionBodyContent": [],
-        "PomSectionBulletsContent": [],
-        "Prompt": [],
-        "PromptConfig": [],
-        "Pronounce": [],
-        "ReceiveFax": [],
-        "ReceiveFaxConfig": [],
-        "Record": [],
-        "RecordCall": [],
-        "RecordCallConfig": [],
-        "RecordConfig": [],
-        "Request": [],
-        "RequestConfig": [],
-        "Return": [],
-        "SIPRefer": [],
-        "SMSWithBody": [],
-        "SMSWithMedia": [],
-        "SWAIG": [],
-        "SWAIGDefaults": [],
-        "SWAIGIncludes": [],
-        "SWAIGInternalFiller": [],
-        "SWMLAction": [],
-        "SayAction": [],
         "Schema": [
           "GetAllVerbNames",
           "GetVerb",
@@ -1813,13 +1749,7 @@
         "SchemaValidationError": [
           "Error"
         ],
-        "Section": [],
         "SecurityConfig": [],
-        "SendDigits": [],
-        "SendDigitsConfig": [],
-        "SendFax": [],
-        "SendFaxConfig": [],
-        "SendSMS": [],
         "Service": [
           "AI",
           "AddSection",
@@ -1898,43 +1828,9 @@
           "VerifyBasicAuth",
           "VerifyBearerToken"
         ],
-        "Set": [],
-        "SetGlobalDataAction": [],
-        "SetMetaDataAction": [],
-        "SipReferConfig": [],
-        "Sleep": [],
-        "StartAction": [],
-        "StartUpHookSWAIGFunction": [],
-        "StopAction": [],
-        "StopDenoise": [],
-        "StopPlaybackBGAction": [],
-        "StopRecordCall": [],
-        "StopRecordCallConfig": [],
-        "StopTap": [],
-        "StopTapConfig": [],
-        "StringProperty": [],
-        "SummarizeAction": [],
-        "SummarizeConversationSWAIGFunction": [],
-        "Switch": [],
-        "SwitchConfig": [],
-        "Tap": [],
-        "TapConfig": [],
-        "ToggleFunctionsAction": [],
         "ToolDefinition": [],
-        "TranscribeStartAction": [],
-        "TranscribeSummarizeAction": [],
-        "Transfer": [],
-        "TransferConfig": [],
-        "Unset": [],
-        "UnsetGlobalDataAction": [],
-        "UnsetMetaDataAction": [],
-        "UserEvent": [],
-        "UserEventConfig": [],
-        "UserInputAction": [],
-        "UserSWAIGFunction": [],
         "ValidationResult": [],
-        "VerbInfo": [],
-        "Webhook": []
+        "VerbInfo": []
       },
       "functions": [
         "ExtractSIPUsername",
@@ -1969,6 +1865,21 @@
         "GetExecutionMode",
         "IsServerlessMode",
         "ValidateURL"
+      ]
+    },
+    "web": {
+      "classes": {
+        "Options": [],
+        "WebService": [
+          "AddDirectory",
+          "RemoveDirectory",
+          "Security",
+          "Start",
+          "Stop"
+        ]
+      },
+      "functions": [
+        "NewWebService"
       ]
     }
   }

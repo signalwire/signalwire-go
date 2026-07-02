@@ -170,6 +170,9 @@ func NewConciergeAgent(opts ConciergeOptions) *ConciergeAgent {
 	// ---- Tools ----
 	ca.registerTools()
 
+	// ---- Summary callback ----
+	ca.AgentBase.OnSummary(ca.OnSummary)
+
 	return ca
 }
 
@@ -196,32 +199,7 @@ func (ca *ConciergeAgent) registerTools() {
 				"description": "The time to check (HH:MM format, 24-hour)",
 			},
 		},
-		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			serviceRaw, _ := args["service"].(string)
-			service := strings.ToLower(strings.TrimSpace(serviceRaw))
-			date, _ := args["date"].(string)
-			time, _ := args["time"].(string)
-
-			// Check if the service is offered
-			found := false
-			for _, s := range ca.services {
-				if strings.ToLower(s) == service {
-					found = true
-					break
-				}
-			}
-
-			if found {
-				return swaig.NewFunctionResult(
-					fmt.Sprintf("Yes, %s is available on %s at %s. Would you like to make a reservation?", service, date, time),
-				)
-			}
-
-			return swaig.NewFunctionResult(
-				fmt.Sprintf("I'm sorry, we don't offer %s at %s. Our available services are: %s.",
-					service, ca.venueName, strings.Join(ca.services, ", ")),
-			)
-		},
+		Handler: ca.CheckAvailability,
 	})
 
 	// get_directions ---------------------------------------------------
@@ -234,22 +212,66 @@ func (ca *ConciergeAgent) registerTools() {
 				"description": "The location or amenity to get directions to",
 			},
 		},
-		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			destRaw, _ := args["location"].(string)
-			dest := strings.ToLower(strings.TrimSpace(destRaw))
-
-			if amenity, ok := ca.amenities[dest]; ok && amenity.Location != "" {
-				return swaig.NewFunctionResult(
-					fmt.Sprintf("The %s is located at %s. From the main entrance, follow the signs to %s.",
-						dest, amenity.Location, amenity.Location),
-				)
-			}
-
-			return swaig.NewFunctionResult(
-				fmt.Sprintf("I don't have specific directions to %s. You can ask our staff at the front desk for assistance.", dest),
-			)
-		},
+		Handler: ca.GetDirections,
 	})
+}
+
+// CheckAvailability handles the "check_availability" tool: it checks whether a
+// requested service is offered by the venue on a given date and time.
+func (ca *ConciergeAgent) CheckAvailability(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+	serviceRaw, _ := args["service"].(string)
+	service := strings.ToLower(strings.TrimSpace(serviceRaw))
+	date, _ := args["date"].(string)
+	time, _ := args["time"].(string)
+
+	// Check if the service is offered
+	found := false
+	for _, s := range ca.services {
+		if strings.ToLower(s) == service {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		return swaig.NewFunctionResult(
+			fmt.Sprintf("Yes, %s is available on %s at %s. Would you like to make a reservation?", service, date, time),
+		)
+	}
+
+	return swaig.NewFunctionResult(
+		fmt.Sprintf("I'm sorry, we don't offer %s at %s. Our available services are: %s.",
+			service, ca.venueName, strings.Join(ca.services, ", ")),
+	)
+}
+
+// GetDirections handles the "get_directions" tool: it returns directions to a
+// named location or amenity within the venue.
+func (ca *ConciergeAgent) GetDirections(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+	destRaw, _ := args["location"].(string)
+	dest := strings.ToLower(strings.TrimSpace(destRaw))
+
+	if amenity, ok := ca.amenities[dest]; ok && amenity.Location != "" {
+		return swaig.NewFunctionResult(
+			fmt.Sprintf("The %s is located at %s. From the main entrance, follow the signs to %s.",
+				dest, amenity.Location, amenity.Location),
+		)
+	}
+
+	return swaig.NewFunctionResult(
+		fmt.Sprintf("I don't have specific directions to %s. You can ask our staff at the front desk for assistance.", dest),
+	)
+}
+
+// OnSummary is the summary hook for the concierge agent. It matches the
+// agent.SummaryCallback signature and is registered via
+// ca.AgentBase.OnSummary in the constructor. There is currently no
+// concierge-specific summary logic (the post-prompt already emits a JSON
+// summary), so this is a no-op placeholder that mirrors Python's on_summary
+// surface.
+func (ca *ConciergeAgent) OnSummary(summary map[string]any, rawData map[string]any) {
+	_ = summary
+	_ = rawData
 }
 
 // titleCase returns s with the first letter of each word capitalised.

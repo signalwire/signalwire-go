@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/signalwire/signalwire-go/pkg/logging"
@@ -24,6 +25,10 @@ type SessionManager struct {
 	tokenExpirySecs int
 	debugMode       bool
 	logger          *logging.Logger
+
+	mu             sync.RWMutex
+	activeSessions map[string]struct{}
+	sessionMeta    map[string]map[string]any
 }
 
 // Option is a functional option for NewSessionManager.
@@ -67,6 +72,8 @@ func NewSessionManager(tokenExpirySecs int, opts ...Option) *SessionManager {
 		tokenExpirySecs: tokenExpirySecs,
 		debugMode:       false,
 		logger:          logging.New("SessionManager"),
+		activeSessions:  map[string]struct{}{},
+		sessionMeta:     map[string]map[string]any{},
 	}
 
 	for _, opt := range opts {
@@ -278,4 +285,73 @@ func (sm *SessionManager) DebugToken(token string) map[string]any {
 			"expires_in_seconds": expiresIn,
 		},
 	}
+}
+
+// GenerateToken is the session-scoped token generator (Python
+// SessionManager.generate_token). It is the underlying HMAC token primitive that
+// CreateToken (create_tool_token) wraps for the SWAIG tool-call use case; the two
+// share the same signing scheme so a tool token IS a session token for the
+// (functionName, callID) pair.
+func (sm *SessionManager) GenerateToken(functionName string, callID string) string {
+	return sm.CreateToken(functionName, callID)
+}
+
+// ValidateSessionToken is the session-scoped token validator (Python
+// SessionManager.validate_token), the counterpart to GenerateToken. It shares the
+// verification path with ValidateToken (validate_tool_token).
+func (sm *SessionManager) ValidateSessionToken(functionName string, token string, callID string) bool {
+	return sm.ValidateToken(functionName, token, callID)
+}
+
+// ActivateSession marks a session id active (Python
+// SessionManager.activate_session), returning false if it was already active.
+func (sm *SessionManager) ActivateSession(sessionID string) bool {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if _, ok := sm.activeSessions[sessionID]; ok {
+		return false
+	}
+	sm.activeSessions[sessionID] = struct{}{}
+	return true
+}
+
+// EndSession removes a session and its metadata (Python
+// SessionManager.end_session), returning false if it was not active.
+func (sm *SessionManager) EndSession(sessionID string) bool {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if _, ok := sm.activeSessions[sessionID]; !ok {
+		return false
+	}
+	delete(sm.activeSessions, sessionID)
+	delete(sm.sessionMeta, sessionID)
+	return true
+}
+
+// GetSessionMetadata returns the metadata map for a session (Python
+// SessionManager.get_session_metadata), or nil if none is stored.
+func (sm *SessionManager) GetSessionMetadata(sessionID string) map[string]any {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	meta, ok := sm.sessionMeta[sessionID]
+	if !ok {
+		return nil
+	}
+	out := make(map[string]any, len(meta))
+	for k, v := range meta {
+		out[k] = v
+	}
+	return out
+}
+
+// SetSessionMetadata stores metadata for a session (Python
+// SessionManager.set_session_metadata).
+func (sm *SessionManager) SetSessionMetadata(sessionID string, metadata map[string]any) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	copied := make(map[string]any, len(metadata))
+	for k, v := range metadata {
+		copied[k] = v
+	}
+	sm.sessionMeta[sessionID] = copied
 }

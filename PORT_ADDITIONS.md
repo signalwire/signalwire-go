@@ -132,7 +132,7 @@ builtin.MathSkill: Go skill implementation; matches the Python skill of the same
 builtin.NativeVectorSearchSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.PlayBackgroundFileSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.SWMLTransferSkill: Go skill implementation; matches the Python skill of the same name structurally
-builtin.SpiderSkill: Go skill implementation; matches the Python skill of the same name structurally
+spider.SpiderSkill: Go skill implementation (own `spider` sub-package); matches the Python skill of the same name structurally, surfaced via the skill-contract projection under signalwire.skills.spider.skill
 builtin.WeatherAPISkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.WebSearchSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.WikipediaSearchSkill: Go skill implementation; matches the Python skill of the same name structurally
@@ -501,3 +501,7 @@ handling. Keyed by the gen-payload fold token.
 
 gen-payload.CondElse.else: generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the Go struct types it
 gen-payload.CondReg.else: generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the Go struct types it
+
+# --- Port-only helper structs (options/results) ---
+web.Options: Go options struct for web.NewWebService — the idiomatic Go constructor-options shape for the WebService static-file server (Python passes a flat kwarg list). Call-shape plumbing, not oracle surface.
+swml.ValidationResult: Go struct returned by swml schema validation — an idiomatic typed result the Python reference expresses as a (bool, errors) tuple. Port-only helper type.
