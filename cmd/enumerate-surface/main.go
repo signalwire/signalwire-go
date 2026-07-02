@@ -41,6 +41,72 @@ var (
 	factoryInit = surfacepkg.FactoryInit
 )
 
+// genType records one generated REST wire-type surface class: the canonical
+// `<ns>_types_generated` module + the (object) type name. The Python/TS
+// references surface every OBJECT schema of a spec's components/schemas as a
+// method-less class under `<ns>_types_generated`; the Go types modules
+// (pkg/rest/namespaces/*_types_generated.go) carry the identical set, so they are
+// emitted into the surface the same way (matched by leaf via the surface diff's
+// `gen-type` fold for cross-module duplicates, or by full module path for a
+// single-module type). Enum / scalar-alias / union-alias types are NOT surface
+// classes (the reference records only interfaces/structs), matching Go: only
+// `type X struct { … }` decls are collected here.
+type genType struct {
+	module string
+	name   string
+}
+
+var genTypeSurface []genType
+
+// sdkEnumSurfaceMarker is the doc-comment sentinel the types generator prepends to
+// an x-sdk-enum-derived public enum type (cmd/generate-rest/types.go sdkEnumMarker).
+// Its presence marks an enum type as surfaced public API (a surface class), while
+// inline schema-enum defined-string types carry no marker and stay referenced-only.
+const sdkEnumSurfaceMarker = "sdk-enum (x-sdk-enum): surfaced public enum type."
+
+// scanMarkedEnumTypes parses a hand-written namespaces file and returns each
+// exported type whose doc comment carries the sdkEnumSurfaceMarker together with
+// an explicit `module=<python-module>` (the hand-owned x-sdk-enum public enum).
+// The module is read from the marker line so the surfaced class lands under the
+// reference's `<ns>_types_generated` module even though the hand file has no ns
+// in its name.
+func scanMarkedEnumTypes(path string) []genType {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, path, nil, parser.ParseComments|parser.SkipObjectResolution)
+	if err != nil {
+		return nil
+	}
+	var out []genType
+	for _, decl := range f.Decls {
+		gd, ok := decl.(*ast.GenDecl)
+		if !ok || gd.Tok != token.TYPE || gd.Doc == nil {
+			continue
+		}
+		doc := gd.Doc.Text()
+		if !strings.Contains(doc, sdkEnumSurfaceMarker) {
+			continue
+		}
+		module := ""
+		for _, field := range strings.Fields(doc) {
+			if strings.HasPrefix(field, "module=") {
+				module = strings.TrimPrefix(field, "module=")
+				break
+			}
+		}
+		if module == "" {
+			continue
+		}
+		for _, spec := range gd.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok || !ast.IsExported(ts.Name.Name) {
+				continue
+			}
+			out = append(out, genType{module: module, name: ts.Name.Name})
+		}
+	}
+	return out
+}
+
 // --- AST walker -------------------------------------------------------------
 
 // goStructFacts is the raw Go inventory for a single struct.
@@ -99,6 +165,59 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 	}
 	pkgName := file.Name.Name
 	base := filepath.Base(path)
+	// Hand-written namespaces types carrying the sdk-enum surface marker with an
+	// explicit `module=...` (the one hand-owned x-sdk-enum public enum,
+	// PhoneCallHandler in call_handler.go): surface the type under the named module.
+	// The generator emits the OTHER x-sdk-enum types into their <ns>_types_generated
+	// file (handled by the types-file branch); this covers the hand-owned one only.
+	if pkgName == "namespaces" &&
+		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/") &&
+		!strings.HasSuffix(base, "_generated.go") && !strings.HasSuffix(base, "_test.go") {
+		if names := scanMarkedEnumTypes(path); len(names) > 0 {
+			genTypeSurface = append(genTypeSurface, names...)
+		}
+	}
+	// Generated REST wire-type files (<ns>_types_generated.go): collect each OBJECT
+	// struct as a surface class under `signalwire.rest.namespaces.<ns>_types_
+	// generated` (see genTypeSurface). These are handled here and NOT fed into the
+	// StructTable-driven projection (they carry no ergonomic method surface) nor the
+	// port-additions inventory (they ARE canonical reference surface, emitted below).
+	if strings.HasSuffix(base, "_types_generated.go") &&
+		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/") {
+		ns := strings.TrimSuffix(base, "_types_generated.go")
+		module := "signalwire.rest.namespaces." + ns + "_types_generated"
+		// Re-parse WITH comments so the x-sdk-enum surface marker (sdkEnumSurfaceMarker,
+		// a doc comment the generator prepends to an exported public enum type) is
+		// visible: those enum types ARE surface classes (the reference exports them as
+		// public API), unlike the inline schema-enum defined-string types.
+		cfset := token.NewFileSet()
+		cfile, cerr := parser.ParseFile(cfset, path, nil, parser.ParseComments|parser.SkipObjectResolution)
+		if cerr != nil {
+			return fmt.Errorf("parse (comments) %s: %w", path, cerr)
+		}
+		for _, decl := range cfile.Decls {
+			gd, ok := decl.(*ast.GenDecl)
+			if !ok || gd.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gd.Specs {
+				ts, ok := spec.(*ast.TypeSpec)
+				if !ok || !ast.IsExported(ts.Name.Name) {
+					continue
+				}
+				_, isStruct := ts.Type.(*ast.StructType)
+				surfacedEnum := gd.Doc != nil && strings.Contains(gd.Doc.Text(), sdkEnumSurfaceMarker)
+				// Surface classes are OBJECT structs and x-sdk-enum public enum types
+				// (the reference surfaces interfaces + its exported enums; inline
+				// schema enums / scalar / union aliases are referenced-only).
+				if !isStruct && !surfacedEnum {
+					continue
+				}
+				genTypeSurface = append(genTypeSurface, genType{module: module, name: ts.Name.Name})
+			}
+		}
+		return nil
+	}
 	isRestResource := strings.HasSuffix(base, "_resources_generated.go") &&
 		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/")
 	for _, decl := range file.Decls {
@@ -353,6 +472,16 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}) surface
 		if target, ok := freeFnTable[key]; ok {
 			addFunction(target.Module, target.Name)
 		}
+	}
+
+	// --- 3b. Generated REST wire types (<ns>_types_generated) -------------
+	// Each collected object struct is a method-less surface class under its
+	// `<ns>_types_generated` module (matching the Python/TS reference, which
+	// surfaces every object schema of a spec). The surface diff folds a leaf the
+	// reference duplicates across modules to `gen-type.<Leaf>` and keeps a single-
+	// module type under its own module — both compare clean against this emission.
+	for _, gt := range genTypeSurface {
+		addClass(gt.module, gt.name)
 	}
 
 	// --- 4. Normalise output ----------------------------------------------

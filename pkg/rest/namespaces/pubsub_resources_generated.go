@@ -19,21 +19,17 @@ func NewPubSubNamespace(client HTTPClient) *PubSubNamespace {
 
 // PubSubNamespaceCreateTokenParams holds the named optional parameters for PubSubNamespace.CreateToken.
 type PubSubNamespaceCreateTokenParams struct {
-	Ttl      any
-	Channels any
-	MemberId any
-	State    any
+	Ttl      int
+	Channels PubSubChannels
+	MemberId *string
+	State    *PubSubState
 	Extras   map[string]any
 }
 
-func (r *PubSubNamespace) CreateToken(params PubSubNamespaceCreateTokenParams) (map[string]any, error) {
+func (r *PubSubNamespace) CreateToken(params PubSubNamespaceCreateTokenParams) (*PubSubToken, error) {
 	body := map[string]any{}
-	if params.Ttl != nil {
-		body["ttl"] = params.Ttl
-	}
-	if params.Channels != nil {
-		body["channels"] = params.Channels
-	}
+	body["ttl"] = params.Ttl
+	body["channels"] = params.Channels
 	if params.MemberId != nil {
 		body["member_id"] = params.MemberId
 	}
@@ -41,5 +37,5 @@ func (r *PubSubNamespace) CreateToken(params PubSubNamespaceCreateTokenParams) (
 		body["state"] = params.State
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Base, body, nil)
+	return decodeResult[PubSubToken](r.HTTP.Post(r.Base, body, nil))
 }

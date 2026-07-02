@@ -17,12 +17,12 @@ func NewVideoConferenceTokens(client HTTPClient) *VideoConferenceTokens {
 	return &VideoConferenceTokens{Resource{HTTP: client, Base: "/api/video/conference_tokens"}}
 }
 
-func (r *VideoConferenceTokens) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *VideoConferenceTokens) Get(id string, params map[string]string) (*ConferenceToken, error) {
+	return decodeResult[ConferenceToken](r.HTTP.Get(r.Path(id), params))
 }
 
-func (r *VideoConferenceTokens) Reset(id string) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "reset"), nil, nil)
+func (r *VideoConferenceTokens) Reset(id string) (*ConferenceToken, error) {
+	return decodeResult[ConferenceToken](r.HTTP.Post(r.Path(id, "reset"), nil, nil))
 }
 
 // VideoConferences is generated from x-sdk-resource "VideoConferences" in the video spec.
@@ -35,27 +35,25 @@ func NewVideoConferences(client HTTPClient) *VideoConferences {
 	return &VideoConferences{NewCrudResourcePUT(client, "/api/video/conferences")}
 }
 
-func (r *VideoConferences) ListConferenceTokens(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "conference_tokens"), params)
+func (r *VideoConferences) ListConferenceTokens(id string, params map[string]string) (*ListConferenceTokensResponse, error) {
+	return decodeResult[ListConferenceTokensResponse](r.HTTP.Get(r.Path(id, "conference_tokens"), params))
 }
 
-func (r *VideoConferences) ListStreams(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "streams"), params)
+func (r *VideoConferences) ListStreams(id string, params map[string]string) (*ListStreamsResponse, error) {
+	return decodeResult[ListStreamsResponse](r.HTTP.Get(r.Path(id, "streams"), params))
 }
 
 // VideoConferencesCreateStreamParams holds the named optional parameters for VideoConferences.CreateStream.
 type VideoConferencesCreateStreamParams struct {
-	Url    any
+	Url    string
 	Extras map[string]any
 }
 
-func (r *VideoConferences) CreateStream(id string, params VideoConferencesCreateStreamParams) (map[string]any, error) {
+func (r *VideoConferences) CreateStream(id string, params VideoConferencesCreateStreamParams) (*Stream, error) {
 	body := map[string]any{}
-	if params.Url != nil {
-		body["url"] = params.Url
-	}
+	body["url"] = params.Url
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path(id, "streams"), body, nil)
+	return decodeResult[Stream](r.HTTP.Post(r.Path(id, "streams"), body, nil))
 }
 
 // VideoRoomRecordings is generated from x-sdk-resource "VideoRoomRecordings" in the video spec.
@@ -68,20 +66,20 @@ func NewVideoRoomRecordings(client HTTPClient) *VideoRoomRecordings {
 	return &VideoRoomRecordings{Resource{HTTP: client, Base: "/api/video/room_recordings"}}
 }
 
-func (r *VideoRoomRecordings) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *VideoRoomRecordings) List(params map[string]string) (*ListRoomRecordingsResponse, error) {
+	return decodeResult[ListRoomRecordingsResponse](r.HTTP.Get(r.Base, params))
 }
 
-func (r *VideoRoomRecordings) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *VideoRoomRecordings) Get(id string, params map[string]string) (*RoomRecording, error) {
+	return decodeResult[RoomRecording](r.HTTP.Get(r.Path(id), params))
 }
 
 func (r *VideoRoomRecordings) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
 
-func (r *VideoRoomRecordings) ListEvents(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "events"), params)
+func (r *VideoRoomRecordings) ListEvents(id string, params map[string]string) (*ListRoomRecordingEventsResponse, error) {
+	return decodeResult[ListRoomRecordingEventsResponse](r.HTTP.Get(r.Path(id, "events"), params))
 }
 
 // VideoRoomSessions is generated from x-sdk-resource "VideoRoomSessions" in the video spec.
@@ -102,16 +100,16 @@ func (r *VideoRoomSessions) Get(id string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id), nil)
 }
 
-func (r *VideoRoomSessions) ListEvents(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "events"), params)
+func (r *VideoRoomSessions) ListEvents(id string, params map[string]string) (*ListRoomSessionEventsResponse, error) {
+	return decodeResult[ListRoomSessionEventsResponse](r.HTTP.Get(r.Path(id, "events"), params))
 }
 
-func (r *VideoRoomSessions) ListMembers(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "members"), params)
+func (r *VideoRoomSessions) ListMembers(id string, params map[string]string) (*ListRoomSessionMembersResponse, error) {
+	return decodeResult[ListRoomSessionMembersResponse](r.HTTP.Get(r.Path(id, "members"), params))
 }
 
-func (r *VideoRoomSessions) ListRecordings(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "recordings"), params)
+func (r *VideoRoomSessions) ListRecordings(id string, params map[string]string) (*ListRoomSessionRecordingsResponse, error) {
+	return decodeResult[ListRoomSessionRecordingsResponse](r.HTTP.Get(r.Path(id, "recordings"), params))
 }
 
 // VideoRoomTokens is generated from x-sdk-resource "VideoRoomTokens" in the video spec.
@@ -126,32 +124,30 @@ func NewVideoRoomTokens(client HTTPClient) *VideoRoomTokens {
 
 // VideoRoomTokensCreateParams holds the named optional parameters for VideoRoomTokens.Create.
 type VideoRoomTokensCreateParams struct {
-	RoomName                  any
-	UserName                  any
-	Permissions               any
-	JoinFrom                  any
-	JoinUntil                 any
-	RemoveAt                  any
-	RemoveAfterSecondsElapsed any
-	JoinAudioMuted            any
-	JoinVideoMuted            any
-	AutoCreateRoom            any
-	EnableRoomPreviews        any
-	RoomDisplayName           any
-	EndRoomSessionOnLeave     any
-	JoinAs                    any
-	MediaAllowed              any
-	RoomMeta                  any
-	Meta                      any
-	SyncAudioVideo            any
+	RoomName                  string
+	UserName                  *string
+	Permissions               []RoomTokenPermission
+	JoinFrom                  *string
+	JoinUntil                 *string
+	RemoveAt                  *string
+	RemoveAfterSecondsElapsed *int
+	JoinAudioMuted            *bool
+	JoinVideoMuted            *bool
+	AutoCreateRoom            *bool
+	EnableRoomPreviews        *bool
+	RoomDisplayName           *string
+	EndRoomSessionOnLeave     *bool
+	JoinAs                    *JoinAsType
+	MediaAllowed              *MediaAllowedType
+	RoomMeta                  map[string]any
+	Meta                      map[string]any
+	SyncAudioVideo            *bool
 	Extras                    map[string]any
 }
 
-func (r *VideoRoomTokens) Create(params VideoRoomTokensCreateParams) (map[string]any, error) {
+func (r *VideoRoomTokens) Create(params VideoRoomTokensCreateParams) (*RoomTokenResponse, error) {
 	body := map[string]any{}
-	if params.RoomName != nil {
-		body["room_name"] = params.RoomName
-	}
+	body["room_name"] = params.RoomName
 	if params.UserName != nil {
 		body["user_name"] = params.UserName
 	}
@@ -204,7 +200,7 @@ func (r *VideoRoomTokens) Create(params VideoRoomTokensCreateParams) (map[string
 		body["sync_audio_video"] = params.SyncAudioVideo
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Base, body, nil)
+	return decodeResult[RoomTokenResponse](r.HTTP.Post(r.Base, body, nil))
 }
 
 // VideoRooms is generated from x-sdk-resource "VideoRooms" in the video spec.
@@ -217,23 +213,21 @@ func NewVideoRooms(client HTTPClient) *VideoRooms {
 	return &VideoRooms{NewCrudResourcePUT(client, "/api/video/rooms")}
 }
 
-func (r *VideoRooms) ListStreams(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "streams"), params)
+func (r *VideoRooms) ListStreams(id string, params map[string]string) (*ListStreamsResponse, error) {
+	return decodeResult[ListStreamsResponse](r.HTTP.Get(r.Path(id, "streams"), params))
 }
 
 // VideoRoomsCreateStreamParams holds the named optional parameters for VideoRooms.CreateStream.
 type VideoRoomsCreateStreamParams struct {
-	Url    any
+	Url    string
 	Extras map[string]any
 }
 
-func (r *VideoRooms) CreateStream(id string, params VideoRoomsCreateStreamParams) (map[string]any, error) {
+func (r *VideoRooms) CreateStream(id string, params VideoRoomsCreateStreamParams) (*Stream, error) {
 	body := map[string]any{}
-	if params.Url != nil {
-		body["url"] = params.Url
-	}
+	body["url"] = params.Url
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path(id, "streams"), body, nil)
+	return decodeResult[Stream](r.HTTP.Post(r.Path(id, "streams"), body, nil))
 }
 
 // VideoStreams is generated from x-sdk-resource "VideoStreams" in the video spec.
@@ -246,23 +240,21 @@ func NewVideoStreams(client HTTPClient) *VideoStreams {
 	return &VideoStreams{Resource{HTTP: client, Base: "/api/video/streams"}}
 }
 
-func (r *VideoStreams) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *VideoStreams) Get(id string, params map[string]string) (*Stream, error) {
+	return decodeResult[Stream](r.HTTP.Get(r.Path(id), params))
 }
 
 // VideoStreamsUpdateParams holds the named optional parameters for VideoStreams.Update.
 type VideoStreamsUpdateParams struct {
-	Url    any
+	Url    string
 	Extras map[string]any
 }
 
-func (r *VideoStreams) Update(id string, params VideoStreamsUpdateParams) (map[string]any, error) {
+func (r *VideoStreams) Update(id string, params VideoStreamsUpdateParams) (*Stream, error) {
 	body := map[string]any{}
-	if params.Url != nil {
-		body["url"] = params.Url
-	}
+	body["url"] = params.Url
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Put(r.Path(id), body)
+	return decodeResult[Stream](r.HTTP.Put(r.Path(id), body))
 }
 
 func (r *VideoStreams) Delete(id string) (map[string]any, error) {

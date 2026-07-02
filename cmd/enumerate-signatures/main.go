@@ -70,6 +70,19 @@ type paramsStructField struct {
 // call-site reshape and keeps port_signatures.json byte-identical (drift 0).
 var paramsStructFields = map[string][]paramsStructField{}
 
+// genTypeModule maps a generated REST wire-type name (declared in a
+// pkg/rest/namespaces/*_types_generated.go file) to its canonical Python module
+// `signalwire.rest.namespaces.<ns>_types_generated`. Populated while parsing
+// those files. translateType consults it so a field/return referencing a
+// generated type (including the LOWERCASE scalar-format aliases docid/uuid/jwt,
+// which the leading-uppercase class-ref fallback would otherwise reject) resolves
+// to `class:signalwire.rest.namespaces.<ns>_types_generated.<Name>`. The shared
+// diff tool folds that to `gen:<Name>` and compares by leaf, matching the
+// reference's per-namespace `<ns>_types_generated.<Name>` exactly. A name shared
+// across specs (deduped to one Go decl) keeps whichever ns declared it — the leaf
+// fold makes the module path immaterial to the comparison.
+var genTypeModule = map[string]string{}
+
 // ---------------------------------------------------------------------------
 // AST walking — collects signatures, not just names
 // ---------------------------------------------------------------------------
@@ -270,6 +283,33 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 	base := filepath.Base(path)
 	isRestResource := strings.HasSuffix(base, "_resources_generated.go") &&
 		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/")
+	// Generated REST wire-type files (<ns>_types_generated.go): record every
+	// declared type name → its canonical <ns>_types_generated module, so a
+	// field/return referencing it resolves to the folded class ref (see
+	// genTypeModule). The <ns> is the file base with the suffix stripped.
+	if strings.HasSuffix(base, "_types_generated.go") &&
+		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/") {
+		ns := strings.TrimSuffix(base, "_types_generated.go")
+		module := "signalwire.rest.namespaces." + ns + "_types_generated"
+		for _, decl := range file.Decls {
+			gd, ok := decl.(*ast.GenDecl)
+			if !ok || gd.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gd.Specs {
+				ts, ok := spec.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+				// Record every generated type name (first-declaring ns wins for a
+				// cross-spec-deduped name; the leaf fold makes the module immaterial).
+				if _, seen := genTypeModule[ts.Name.Name]; !seen {
+					genTypeModule[ts.Name.Name] = module
+				}
+			}
+		}
+		return nil
+	}
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
@@ -604,6 +644,20 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	if canon, ok := closedSetUnions[t]; ok {
 		return canon, nil
 	}
+	// context.Context is Go's idiomatic deadline/cancellation carrier — the
+	// idiomatic Go expression of "this call may take an optional timeout" (the
+	// PORT_PHILOSOPHY_GO ctx-cancelled-loop idiom). Where the Python reference
+	// expresses the same capability it uses a `timeout: float = None` param, so
+	// record a `ctx context.Context` param as the reference's canonical
+	// `optional<float>` timeout slot — the idiom is reconciled in the recorded
+	// surface (the param analog of the StructTable method-name mapping), not left
+	// as an untyped `any` or papered over with an omission. Emitted OPTIONAL (a Go
+	// ctx is always cancellable but never obligates a deadline, matching Python's
+	// `timeout=None`), so on methods whose reference has no timeout it is absorbed
+	// as an optional extra param (functional-parity tolerance), not a mismatch.
+	if t == "context.Context" {
+		return "optional<float>", nil
+	}
 	// Pointer: canonical interpretation is optional<T> for value types,
 	// class:<T> for struct types. Without go/types we can't tell; default
 	// to optional<...> and rely on alias table to resolve known names.
@@ -687,6 +741,15 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	if v, ok := aliases[t]; ok {
 		return v, nil
 	}
+	// Lowercase generated REST scalar-format alias (docid/uuid/jwt): resolve to the
+	// folded gen-type class ref. Done BEFORE the generic/selector/uppercase paths
+	// (those all require an uppercase leading rune, so a lowercase alias would
+	// otherwise fall through to the unknown-type failure). A real SDK class never has
+	// a lowercase leading rune, so this cannot hijack one; uppercase generated names
+	// are resolved LAST (after StructTable) so a real SDK class of the same name wins.
+	if module, ok := genTypeModule[t]; ok && !(len(t) > 0 && t[0] >= 'A' && t[0] <= 'Z') {
+		return "class:" + module + "." + t, nil
+	}
 	// Generic instantiation: Foo[T,U] → translate Foo, drop type args
 	// (Python reference doesn't carry generic instantiations in signatures)
 	if i := strings.Index(t, "["); i > 0 && strings.HasSuffix(t, "]") {
@@ -713,10 +776,23 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 			return "class:" + t, nil
 		}
 	}
-	// Bare identifier — could be a struct in the same package
+	// Bare identifier — could be a struct in the same package.
 	if len(t) > 0 && t[0] >= 'A' && t[0] <= 'Z' {
+		// A real SDK class (StructTable) wins — a generated REST type name that
+		// COLLIDES with an SDK class (e.g. the SWML-schema types AI/Cond/DataMap/
+		// Section that the fabric/calling specs embed AND that the hand SWML/agent
+		// surface also declares) must keep the SDK class ref when referenced from a
+		// hand method; the generated struct is a distinct same-named wire type only
+		// referenced from the (non-signature-enumerated) types module.
 		if classRef := lookupClassRefByShort(t); classRef != "" {
 			return classRef, nil
+		}
+		// Uppercase generated REST wire type not shadowed by any SDK class (e.g.
+		// SearchResponse, CallResponse, SWMLObject, ChunkListResponse): fold to its
+		// gen-type class ref so a resource method's typed return/param records the
+		// real complex type (→ gen:<Name>), matching the oracle.
+		if module, ok := genTypeModule[t]; ok {
+			return "class:" + module + "." + t, nil
 		}
 		return "class:" + t, nil
 	}

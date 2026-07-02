@@ -19,22 +19,20 @@ func NewDatasphereDocuments(client HTTPClient) *DatasphereDocuments {
 
 // DatasphereDocumentsSearchParams holds the named optional parameters for DatasphereDocuments.Search.
 type DatasphereDocumentsSearchParams struct {
-	QueryString any
-	Tags        any
-	DocumentId  any
-	Distance    any
-	Count       any
-	Language    any
-	PosToExpand any
-	MaxSynonyms any
+	QueryString string
+	Tags        []string
+	DocumentId  *docid
+	Distance    *float64
+	Count       *int
+	Language    *string
+	PosToExpand []string
+	MaxSynonyms *int
 	Extras      map[string]any
 }
 
-func (r *DatasphereDocuments) Search(params DatasphereDocumentsSearchParams) (map[string]any, error) {
+func (r *DatasphereDocuments) Search(params DatasphereDocumentsSearchParams) (*SearchResponse, error) {
 	body := map[string]any{}
-	if params.QueryString != nil {
-		body["query_string"] = params.QueryString
-	}
+	body["query_string"] = params.QueryString
 	if params.Tags != nil {
 		body["tags"] = params.Tags
 	}
@@ -57,15 +55,15 @@ func (r *DatasphereDocuments) Search(params DatasphereDocumentsSearchParams) (ma
 		body["max_synonyms"] = params.MaxSynonyms
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path("search"), body, nil)
+	return decodeResult[SearchResponse](r.HTTP.Post(r.Path("search"), body, nil))
 }
 
-func (r *DatasphereDocuments) ListChunks(documentID string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(documentID, "chunks"), params)
+func (r *DatasphereDocuments) ListChunks(documentID string, params map[string]string) (*ChunkListResponse, error) {
+	return decodeResult[ChunkListResponse](r.HTTP.Get(r.Path(documentID, "chunks"), params))
 }
 
-func (r *DatasphereDocuments) GetChunk(documentID string, chunkID string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(documentID, "chunks", chunkID), params)
+func (r *DatasphereDocuments) GetChunk(documentID string, chunkID string, params map[string]string) (*ChunkResponse, error) {
+	return decodeResult[ChunkResponse](r.HTTP.Get(r.Path(documentID, "chunks", chunkID), params))
 }
 
 func (r *DatasphereDocuments) DeleteChunk(documentID string, chunkID string) (map[string]any, error) {

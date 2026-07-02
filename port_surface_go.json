@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 4e92f1da3d7b7ed6f1bbde5620215baf7d64ad40",
+  "generated_from": "signalwire-go (go-native) @ 7c71bf6f9663de4542382d0632b2d014b7c4d90b",
   "modules": {
     "agent": {
       "classes": {
@@ -584,6 +584,7 @@
           "Get",
           "List"
         ],
+        "AddressesNamespaceCreateParams": [],
         "CXMLScripts": [],
         "CXMLWebhooks": [],
         "CallFlowsResource": [
@@ -630,9 +631,47 @@
           "Update",
           "UserEvent"
         ],
+        "CallingNamespaceAIHoldParams": [],
+        "CallingNamespaceAIMessageParams": [],
+        "CallingNamespaceAIStopParams": [],
+        "CallingNamespaceAIUnholdParams": [],
+        "CallingNamespaceCollectParams": [],
+        "CallingNamespaceCollectStartInputTimersParams": [],
+        "CallingNamespaceCollectStopParams": [],
+        "CallingNamespaceDenoiseParams": [],
+        "CallingNamespaceDenoiseStopParams": [],
+        "CallingNamespaceDetectParams": [],
+        "CallingNamespaceDetectStopParams": [],
+        "CallingNamespaceDialParams": [],
+        "CallingNamespaceDisconnectParams": [],
+        "CallingNamespaceEndParams": [],
+        "CallingNamespaceLiveTranscribeParams": [],
+        "CallingNamespaceLiveTranslateParams": [],
+        "CallingNamespacePlayParams": [],
+        "CallingNamespacePlayPauseParams": [],
+        "CallingNamespacePlayResumeParams": [],
+        "CallingNamespacePlayStopParams": [],
+        "CallingNamespacePlayVolumeParams": [],
+        "CallingNamespaceReceiveFaxStopParams": [],
+        "CallingNamespaceRecordParams": [],
+        "CallingNamespaceRecordPauseParams": [],
+        "CallingNamespaceRecordResumeParams": [],
+        "CallingNamespaceRecordStopParams": [],
+        "CallingNamespaceReferParams": [],
+        "CallingNamespaceSendFaxStopParams": [],
+        "CallingNamespaceStreamParams": [],
+        "CallingNamespaceStreamStopParams": [],
+        "CallingNamespaceTapParams": [],
+        "CallingNamespaceTapStopParams": [],
+        "CallingNamespaceTranscribeParams": [],
+        "CallingNamespaceTranscribeStopParams": [],
+        "CallingNamespaceTransferParams": [],
+        "CallingNamespaceUpdateParams": [],
+        "CallingNamespaceUserEventParams": [],
         "ChatNamespace": [
           "CreateToken"
         ],
+        "ChatNamespaceCreateTokenParams": [],
         "ConferenceLogs": [
           "List"
         ],
@@ -656,12 +695,14 @@
           "ListAddresses",
           "Update"
         ],
+        "CxmlApplicationsResourceUpdateParams": [],
         "DatasphereDocuments": [
           "DeleteChunk",
           "GetChunk",
           "ListChunks",
           "Search"
         ],
+        "DatasphereDocumentsSearchParams": [],
         "DatasphereNamespace": [],
         "FabricAddresses": [
           "Get",
@@ -675,6 +716,11 @@
           "CreateSubscriberToken",
           "RefreshSubscriberToken"
         ],
+        "FabricTokensCreateEmbedTokenParams": [],
+        "FabricTokensCreateGuestTokenParams": [],
+        "FabricTokensCreateInviteTokenParams": [],
+        "FabricTokensCreateSubscriberTokenParams": [],
+        "FabricTokensRefreshSubscriberTokenParams": [],
         "FaxLogs": [
           "Get",
           "List"
@@ -688,9 +734,12 @@
           "List",
           "ListAddresses"
         ],
+        "GenericResourcesAssignDomainApplicationParams": [],
+        "GenericResourcesAssignPhoneRouteParams": [],
         "ImportedNumbersNamespace": [
           "Create"
         ],
+        "ImportedNumbersNamespaceCreateParams": [],
         "LogsNamespace": [],
         "LookupNamespace": [
           "PhoneNumber"
@@ -700,6 +749,9 @@
           "SMS",
           "Verify"
         ],
+        "MFANamespaceCallParams": [],
+        "MFANamespaceSMSParams": [],
+        "MFANamespaceVerifyParams": [],
         "MessageLogs": [
           "Get",
           "List"
@@ -710,6 +762,7 @@
           "GetMembership",
           "ListMemberships"
         ],
+        "NumberGroupsNamespaceAddMembershipParams": [],
         "PhoneNumbersNamespace": [
           "Search",
           "SetAiAgent",
@@ -726,9 +779,12 @@
           "Delete",
           "Update"
         ],
+        "ProjectTokensCreateParams": [],
+        "ProjectTokensUpdateParams": [],
         "PubSubNamespace": [
           "CreateToken"
         ],
+        "PubSubNamespaceCreateTokenParams": [],
         "QueuesNamespace": [
           "GetMember",
           "GetNextMember",
@@ -753,6 +809,8 @@
           "ListOrders",
           "Update"
         ],
+        "RegistryCampaignsCreateOrderParams": [],
+        "RegistryCampaignsUpdateParams": [],
         "RegistryNamespace": [],
         "RegistryNumbers": [
           "Delete"
@@ -770,6 +828,7 @@
           "Get",
           "Update"
         ],
+        "SIPProfileNamespaceUpdateParams": [],
         "SWMLScripts": [],
         "SWMLWebhooks": [],
         "ShortCodesNamespace": [
@@ -777,6 +836,7 @@
           "List",
           "Update"
         ],
+        "ShortCodesNamespaceUpdateParams": [],
         "SubscribersResource": [
           "CreateSIPEndpoint",
           "DeleteSIPEndpoint",
@@ -784,10 +844,13 @@
           "ListSIPEndpoints",
           "UpdateSIPEndpoint"
         ],
+        "SubscribersResourceCreateSIPEndpointParams": [],
+        "SubscribersResourceUpdateSIPEndpointParams": [],
         "VerifiedCallersNamespace": [
           "RedialVerification",
           "SubmitVerification"
         ],
+        "VerifiedCallersNamespaceSubmitVerificationParams": [],
         "VideoConferenceTokens": [
           "Get",
           "Reset"
@@ -797,6 +860,7 @@
           "ListConferenceTokens",
           "ListStreams"
         ],
+        "VideoConferencesCreateStreamParams": [],
         "VideoNamespace": [],
         "VideoRoomRecordings": [
           "Delete",
@@ -814,15 +878,18 @@
         "VideoRoomTokens": [
           "Create"
         ],
+        "VideoRoomTokensCreateParams": [],
         "VideoRooms": [
           "CreateStream",
           "ListStreams"
         ],
+        "VideoRoomsCreateStreamParams": [],
         "VideoStreams": [
           "Delete",
           "Get",
           "Update"
         ],
+        "VideoStreamsUpdateParams": [],
         "VoiceLogs": [
           "Get",
           "List",

@@ -35,54 +35,48 @@ func NewGenericResources(client HTTPClient) *GenericResources {
 	return &GenericResources{Resource{HTTP: client, Base: "/api/fabric/resources"}}
 }
 
-func (r *GenericResources) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *GenericResources) List(params map[string]string) (*ResourceListResponse, error) {
+	return decodeResult[ResourceListResponse](r.HTTP.Get(r.Base, params))
 }
 
-func (r *GenericResources) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *GenericResources) Get(id string, params map[string]string) (*ResourceResponse, error) {
+	return decodeResult[ResourceResponse](r.HTTP.Get(r.Path(id), params))
 }
 
 func (r *GenericResources) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
 
-func (r *GenericResources) ListAddresses(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "addresses"), params)
+func (r *GenericResources) ListAddresses(id string, params map[string]string) (*ResourceAddressListResponse, error) {
+	return decodeResult[ResourceAddressListResponse](r.HTTP.Get(r.Path(id, "addresses"), params))
 }
 
 // GenericResourcesAssignPhoneRouteParams holds the named optional parameters for GenericResources.AssignPhoneRoute.
 type GenericResourcesAssignPhoneRouteParams struct {
-	PhoneRouteId any
-	Handler      any
+	PhoneRouteId uuid
+	Handler      UsedForType
 	Extras       map[string]any
 }
 
-func (r *GenericResources) AssignPhoneRoute(id string, params GenericResourcesAssignPhoneRouteParams) (map[string]any, error) {
+func (r *GenericResources) AssignPhoneRoute(id string, params GenericResourcesAssignPhoneRouteParams) (*PhoneRouteResponse, error) {
 	body := map[string]any{}
-	if params.PhoneRouteId != nil {
-		body["phone_route_id"] = params.PhoneRouteId
-	}
-	if params.Handler != nil {
-		body["handler"] = params.Handler
-	}
+	body["phone_route_id"] = params.PhoneRouteId
+	body["handler"] = params.Handler
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path(id, "phone_routes"), body, nil)
+	return decodeResult[PhoneRouteResponse](r.HTTP.Post(r.Path(id, "phone_routes"), body, nil))
 }
 
 // GenericResourcesAssignDomainApplicationParams holds the named optional parameters for GenericResources.AssignDomainApplication.
 type GenericResourcesAssignDomainApplicationParams struct {
-	DomainApplicationId any
+	DomainApplicationId uuid
 	Extras              map[string]any
 }
 
-func (r *GenericResources) AssignDomainApplication(id string, params GenericResourcesAssignDomainApplicationParams) (map[string]any, error) {
+func (r *GenericResources) AssignDomainApplication(id string, params GenericResourcesAssignDomainApplicationParams) (*DomainApplicationResponse, error) {
 	body := map[string]any{}
-	if params.DomainApplicationId != nil {
-		body["domain_application_id"] = params.DomainApplicationId
-	}
+	body["domain_application_id"] = params.DomainApplicationId
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path(id, "domain_applications"), body, nil)
+	return decodeResult[DomainApplicationResponse](r.HTTP.Post(r.Path(id, "domain_applications"), body, nil))
 }
 
 // AIAgents is generated from x-sdk-resource "AiAgents" in the fabric spec.
@@ -105,16 +99,16 @@ func NewCallFlowsResource(client HTTPClient) *CallFlowsResource {
 	return &CallFlowsResource{NewCrudWithAddressesPUT(client, "/api/fabric/resources/call_flows")}
 }
 
-func (r *CallFlowsResource) ListAddresses(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get("/api/fabric/resources/call_flow/"+id+"/addresses", params)
+func (r *CallFlowsResource) ListAddresses(id string, params map[string]string) (*CallFlowAddressListResponse, error) {
+	return decodeResult[CallFlowAddressListResponse](r.HTTP.Get("/api/fabric/resources/call_flow/"+id+"/addresses", params))
 }
 
-func (r *CallFlowsResource) ListVersions(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get("/api/fabric/resources/call_flow/"+id+"/versions", params)
+func (r *CallFlowsResource) ListVersions(id string, params map[string]string) (*CallFlowVersionListResponse, error) {
+	return decodeResult[CallFlowVersionListResponse](r.HTTP.Get("/api/fabric/resources/call_flow/"+id+"/versions", params))
 }
 
-func (r *CallFlowsResource) DeployVersion(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post("/api/fabric/resources/call_flow/"+id+"/versions", data, nil)
+func (r *CallFlowsResource) DeployVersion(id string, data map[string]any) (*CallFlowVersionDeployResponse, error) {
+	return decodeResult[CallFlowVersionDeployResponse](r.HTTP.Post("/api/fabric/resources/call_flow/"+id+"/versions", data, nil))
 }
 
 // ConferenceRoomsResource is generated from x-sdk-resource "ConferenceRooms" in the fabric spec.
@@ -127,8 +121,8 @@ func NewConferenceRoomsResource(client HTTPClient) *ConferenceRoomsResource {
 	return &ConferenceRoomsResource{NewCrudWithAddressesPUT(client, "/api/fabric/resources/conference_rooms")}
 }
 
-func (r *ConferenceRoomsResource) ListAddresses(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get("/api/fabric/resources/conference_room/"+id+"/addresses", params)
+func (r *ConferenceRoomsResource) ListAddresses(id string, params map[string]string) (*ConferenceRoomAddressListResponse, error) {
+	return decodeResult[ConferenceRoomAddressListResponse](r.HTTP.Get("/api/fabric/resources/conference_room/"+id+"/addresses", params))
 }
 
 // CxmlApplicationsResource is generated from x-sdk-resource "CxmlApplications" in the fabric spec.
@@ -141,34 +135,34 @@ func NewCxmlApplicationsResource(client HTTPClient) *CxmlApplicationsResource {
 	return &CxmlApplicationsResource{Resource{HTTP: client, Base: "/api/fabric/resources/cxml_applications"}}
 }
 
-func (r *CxmlApplicationsResource) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *CxmlApplicationsResource) List(params map[string]string) (*CxmlApplicationListResponse, error) {
+	return decodeResult[CxmlApplicationListResponse](r.HTTP.Get(r.Base, params))
 }
 
-func (r *CxmlApplicationsResource) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *CxmlApplicationsResource) Get(id string, params map[string]string) (*CxmlApplicationResponse, error) {
+	return decodeResult[CxmlApplicationResponse](r.HTTP.Get(r.Path(id), params))
 }
 
 // CxmlApplicationsResourceUpdateParams holds the named optional parameters for CxmlApplicationsResource.Update.
 type CxmlApplicationsResourceUpdateParams struct {
-	DisplayName             any
-	AccountSid              any
-	VoiceUrl                any
+	DisplayName             *string
+	AccountSid              *uuid
+	VoiceUrl                *string
 	VoiceMethod             any
-	VoiceFallbackUrl        any
+	VoiceFallbackUrl        *string
 	VoiceFallbackMethod     any
-	StatusCallback          any
+	StatusCallback          *string
 	StatusCallbackMethod    any
-	SmsUrl                  any
+	SmsUrl                  *string
 	SmsMethod               any
-	SmsFallbackUrl          any
+	SmsFallbackUrl          *string
 	SmsFallbackMethod       any
-	SmsStatusCallback       any
+	SmsStatusCallback       *string
 	SmsStatusCallbackMethod any
 	Extras                  map[string]any
 }
 
-func (r *CxmlApplicationsResource) Update(id string, params CxmlApplicationsResourceUpdateParams) (map[string]any, error) {
+func (r *CxmlApplicationsResource) Update(id string, params CxmlApplicationsResourceUpdateParams) (*CxmlApplicationResponse, error) {
 	body := map[string]any{}
 	if params.DisplayName != nil {
 		body["display_name"] = params.DisplayName
@@ -213,15 +207,15 @@ func (r *CxmlApplicationsResource) Update(id string, params CxmlApplicationsReso
 		body["sms_status_callback_method"] = params.SmsStatusCallbackMethod
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Put(r.Path(id), body)
+	return decodeResult[CxmlApplicationResponse](r.HTTP.Put(r.Path(id), body))
 }
 
 func (r *CxmlApplicationsResource) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
 
-func (r *CxmlApplicationsResource) ListAddresses(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "addresses"), params)
+func (r *CxmlApplicationsResource) ListAddresses(id string, params map[string]string) (*CxmlApplicationAddressListResponse, error) {
+	return decodeResult[CxmlApplicationAddressListResponse](r.HTTP.Get(r.Path(id, "addresses"), params))
 }
 
 // CXMLScripts is generated from x-sdk-resource "CxmlScripts" in the fabric spec.
@@ -294,30 +288,26 @@ func NewSubscribersResource(client HTTPClient) *SubscribersResource {
 	return &SubscribersResource{NewCrudWithAddressesPUT(client, "/api/fabric/resources/subscribers")}
 }
 
-func (r *SubscribersResource) ListSIPEndpoints(subscriberID string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(subscriberID, "sip_endpoints"), params)
+func (r *SubscribersResource) ListSIPEndpoints(subscriberID string, params map[string]string) (*SubscriberSipEndpointListResponse, error) {
+	return decodeResult[SubscriberSipEndpointListResponse](r.HTTP.Get(r.Path(subscriberID, "sip_endpoints"), params))
 }
 
 // SubscribersResourceCreateSIPEndpointParams holds the named optional parameters for SubscribersResource.CreateSIPEndpoint.
 type SubscribersResourceCreateSIPEndpointParams struct {
-	Username   any
-	Password   any
-	CallerId   any
-	SendAs     any
-	Ciphers    any
-	Codecs     any
-	Encryption any
+	Username   string
+	Password   string
+	CallerId   *string
+	SendAs     *string
+	Ciphers    []Ciphers
+	Codecs     []Codecs
+	Encryption *Encryption
 	Extras     map[string]any
 }
 
-func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, params SubscribersResourceCreateSIPEndpointParams) (map[string]any, error) {
+func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, params SubscribersResourceCreateSIPEndpointParams) (*SubscriberSIPEndpoint, error) {
 	body := map[string]any{}
-	if params.Username != nil {
-		body["username"] = params.Username
-	}
-	if params.Password != nil {
-		body["password"] = params.Password
-	}
+	body["username"] = params.Username
+	body["password"] = params.Password
 	if params.CallerId != nil {
 		body["caller_id"] = params.CallerId
 	}
@@ -334,26 +324,26 @@ func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, params Subs
 		body["encryption"] = params.Encryption
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), body, nil)
+	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Post(r.Path(subscriberID, "sip_endpoints"), body, nil))
 }
 
-func (r *SubscribersResource) GetSIPEndpoint(subscriberID string, id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(subscriberID, "sip_endpoints", id), params)
+func (r *SubscribersResource) GetSIPEndpoint(subscriberID string, id string, params map[string]string) (*SubscriberSIPEndpoint, error) {
+	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Get(r.Path(subscriberID, "sip_endpoints", id), params))
 }
 
 // SubscribersResourceUpdateSIPEndpointParams holds the named optional parameters for SubscribersResource.UpdateSIPEndpoint.
 type SubscribersResourceUpdateSIPEndpointParams struct {
-	Username   any
-	Password   any
-	CallerId   any
-	SendAs     any
-	Ciphers    any
-	Codecs     any
-	Encryption any
+	Username   *string
+	Password   *string
+	CallerId   *string
+	SendAs     *string
+	Ciphers    []Ciphers
+	Codecs     []Codecs
+	Encryption *Encryption
 	Extras     map[string]any
 }
 
-func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID string, id string, params SubscribersResourceUpdateSIPEndpointParams) (map[string]any, error) {
+func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID string, id string, params SubscribersResourceUpdateSIPEndpointParams) (*SubscriberSIPEndpoint, error) {
 	body := map[string]any{}
 	if params.Username != nil {
 		body["username"] = params.Username
@@ -377,7 +367,7 @@ func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID string, id string, 
 		body["encryption"] = params.Encryption
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Patch(r.Path(subscriberID, "sip_endpoints", id), body)
+	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Patch(r.Path(subscriberID, "sip_endpoints", id), body))
 }
 
 func (r *SubscribersResource) DeleteSIPEndpoint(subscriberID string, id string) (map[string]any, error) {
@@ -416,26 +406,24 @@ func NewFabricTokens(client HTTPClient) *FabricTokens {
 
 // FabricTokensCreateSubscriberTokenParams holds the named optional parameters for FabricTokens.CreateSubscriberToken.
 type FabricTokensCreateSubscriberTokenParams struct {
-	Reference     any
-	ExpireAt      any
-	ApplicationId any
-	Password      any
-	FirstName     any
-	LastName      any
-	DisplayName   any
-	JobTitle      any
-	TimeZone      any
-	Country       any
-	Region        any
-	CompanyName   any
+	Reference     string
+	ExpireAt      *int
+	ApplicationId *uuid
+	Password      *string
+	FirstName     *string
+	LastName      *string
+	DisplayName   *string
+	JobTitle      *string
+	TimeZone      *string
+	Country       *string
+	Region        *string
+	CompanyName   *string
 	Extras        map[string]any
 }
 
-func (r *FabricTokens) CreateSubscriberToken(params FabricTokensCreateSubscriberTokenParams) (map[string]any, error) {
+func (r *FabricTokens) CreateSubscriberToken(params FabricTokensCreateSubscriberTokenParams) (*SubscriberTokenResponse, error) {
 	body := map[string]any{}
-	if params.Reference != nil {
-		body["reference"] = params.Reference
-	}
+	body["reference"] = params.Reference
 	if params.ExpireAt != nil {
 		body["expire_at"] = params.ExpireAt
 	}
@@ -470,51 +458,47 @@ func (r *FabricTokens) CreateSubscriberToken(params FabricTokensCreateSubscriber
 		body["company_name"] = params.CompanyName
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post("/api/fabric/subscribers/tokens", body, nil)
+	return decodeResult[SubscriberTokenResponse](r.HTTP.Post("/api/fabric/subscribers/tokens", body, nil))
 }
 
 // FabricTokensRefreshSubscriberTokenParams holds the named optional parameters for FabricTokens.RefreshSubscriberToken.
 type FabricTokensRefreshSubscriberTokenParams struct {
-	RefreshToken any
+	RefreshToken jwt
 	Extras       map[string]any
 }
 
-func (r *FabricTokens) RefreshSubscriberToken(params FabricTokensRefreshSubscriberTokenParams) (map[string]any, error) {
+func (r *FabricTokens) RefreshSubscriberToken(params FabricTokensRefreshSubscriberTokenParams) (*SubscriberRefreshTokenResponse, error) {
 	body := map[string]any{}
-	if params.RefreshToken != nil {
-		body["refresh_token"] = params.RefreshToken
-	}
+	body["refresh_token"] = params.RefreshToken
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post("/api/fabric/subscribers/tokens/refresh", body, nil)
+	return decodeResult[SubscriberRefreshTokenResponse](r.HTTP.Post("/api/fabric/subscribers/tokens/refresh", body, nil))
 }
 
 // FabricTokensCreateInviteTokenParams holds the named optional parameters for FabricTokens.CreateInviteToken.
 type FabricTokensCreateInviteTokenParams struct {
-	AddressId any
-	ExpiresAt any
+	AddressId uuid
+	ExpiresAt *int
 	Extras    map[string]any
 }
 
-func (r *FabricTokens) CreateInviteToken(params FabricTokensCreateInviteTokenParams) (map[string]any, error) {
+func (r *FabricTokens) CreateInviteToken(params FabricTokensCreateInviteTokenParams) (*SubscriberInviteTokenCreateResponse, error) {
 	body := map[string]any{}
-	if params.AddressId != nil {
-		body["address_id"] = params.AddressId
-	}
+	body["address_id"] = params.AddressId
 	if params.ExpiresAt != nil {
 		body["expires_at"] = params.ExpiresAt
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post("/api/fabric/subscriber/invites", body, nil)
+	return decodeResult[SubscriberInviteTokenCreateResponse](r.HTTP.Post("/api/fabric/subscriber/invites", body, nil))
 }
 
 // FabricTokensCreateGuestTokenParams holds the named optional parameters for FabricTokens.CreateGuestToken.
 type FabricTokensCreateGuestTokenParams struct {
-	AllowedAddresses any
-	ExpireAt         any
+	AllowedAddresses []uuid
+	ExpireAt         *int
 	Extras           map[string]any
 }
 
-func (r *FabricTokens) CreateGuestToken(params FabricTokensCreateGuestTokenParams) (map[string]any, error) {
+func (r *FabricTokens) CreateGuestToken(params FabricTokensCreateGuestTokenParams) (*SubscriberGuestTokenCreateResponse, error) {
 	body := map[string]any{}
 	if params.AllowedAddresses != nil {
 		body["allowed_addresses"] = params.AllowedAddresses
@@ -523,20 +507,18 @@ func (r *FabricTokens) CreateGuestToken(params FabricTokensCreateGuestTokenParam
 		body["expire_at"] = params.ExpireAt
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post("/api/fabric/guests/tokens", body, nil)
+	return decodeResult[SubscriberGuestTokenCreateResponse](r.HTTP.Post("/api/fabric/guests/tokens", body, nil))
 }
 
 // FabricTokensCreateEmbedTokenParams holds the named optional parameters for FabricTokens.CreateEmbedToken.
 type FabricTokensCreateEmbedTokenParams struct {
-	Token  any
+	Token  string
 	Extras map[string]any
 }
 
-func (r *FabricTokens) CreateEmbedToken(params FabricTokensCreateEmbedTokenParams) (map[string]any, error) {
+func (r *FabricTokens) CreateEmbedToken(params FabricTokensCreateEmbedTokenParams) (*EmbedsTokensResponse, error) {
 	body := map[string]any{}
-	if params.Token != nil {
-		body["token"] = params.Token
-	}
+	body["token"] = params.Token
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post("/api/fabric/embeds/tokens", body, nil)
+	return decodeResult[EmbedsTokensResponse](r.HTTP.Post("/api/fabric/embeds/tokens", body, nil))
 }

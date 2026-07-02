@@ -682,6 +682,10 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	// bodyFields holds (wire field -> struct field ident) for an exploded write body.
 	var bodyOrder []string
 	bodyParam := map[string]string{}
+	// bodyFieldPtr marks a body field whose Go type is nilable (pointer/slice/map/
+	// any) — assembled with an `if != nil` guard; a value-typed (required) field is
+	// assigned unconditionally.
+	bodyFieldPtr := map[string]bool{}
 	// structDef, when set, is the params-struct type definition emitted before the
 	// method (the idiomatic Go named-options-struct form — §5, §4a). structName is
 	// the parameter variable's type; every optional call-site field lives on it.
@@ -710,6 +714,17 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 				tail = "data"
 				break
 			}
+			// Field types from the requestBody schema (§4 strict typing): a
+			// required field is a value type, an optional field a pointer *T (nil =
+			// unset). The enumerator maps *T→optional<T>, []T→list<T>, a generated
+			// type name→class:<...>, keeping the field-level types real against the
+			// oracle (count: optional<int>, distance: optional<float>, …) instead of
+			// the old `any`. Falls back to `any` for a field the type walk can't
+			// resolve (none today).
+			fieldTypes, fieldReq, ftErr := operationBodyFieldTypes(sd, op)
+			if ftErr != nil {
+				return ftErr
+			}
 			structName := recv + goName + "Params"
 			used := map[string]bool{"Extras": true}
 			var fieldDefs []string
@@ -721,7 +736,9 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 				used[fn] = true
 				bodyParam[f] = fn
 				bodyOrder = append(bodyOrder, f)
-				fieldDefs = append(fieldDefs, "\t"+fn+" any")
+				ftype := paramFieldType(fieldTypes[f], fieldReq[f])
+				bodyFieldPtr[f] = isNilableGoType(ftype)
+				fieldDefs = append(fieldDefs, "\t"+fn+" "+ftype)
 			}
 			fieldDefs = append(fieldDefs, "\tExtras map[string]any")
 			structDef = fmt.Sprintf("// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
@@ -758,10 +775,22 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 		pathCode = "r.Path(" + strings.Join(pathExpr, ", ") + ")"
 	}
 
+	// Return type (§4 typed output): the op's 200/201 $ref response type, else the
+	// open map when the spec has no typed response (inline/array/absent). A typed
+	// response wraps the base map result in decodeResult[Resp].
+	respType, rtErr := operationResponseType(sd, op)
+	if rtErr != nil {
+		return rtErr
+	}
+	retSig := "(map[string]any, error)"
+	if respType != "" {
+		retSig = "(*" + respType + ", error)"
+	}
+
 	if structDef != "" {
 		b.WriteString(structDef)
 	}
-	fmt.Fprintf(b, "func (r *%s) %s(%s) (map[string]any, error) {\n", recv, goName, strings.Join(params, ", "))
+	fmt.Fprintf(b, "func (r *%s) %s(%s) %s {\n", recv, goName, strings.Join(params, ", "), retSig)
 	// Assemble the write body: exploded from the params struct (only non-nil fields
 	// + merged params.Extras) or the loose single-`data` object (oneOf-union bodies).
 	dataExpr := "nil"
@@ -769,28 +798,43 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	case "body":
 		b.WriteString("\tbody := map[string]any{}\n")
 		for _, f := range bodyOrder {
-			fmt.Fprintf(b, "\tif params.%s != nil {\n\t\tbody[%q] = params.%s\n\t}\n", bodyParam[f], f, bodyParam[f])
+			// A required field is a value type (always sent); an optional field is a
+			// pointer / reference type sent only when non-nil (matches the reference,
+			// which omits an unset optional so the server applies its default). Value
+			// types have no nil to test, so they are assigned unconditionally.
+			if bodyFieldPtr[f] {
+				fmt.Fprintf(b, "\tif params.%s != nil {\n\t\tbody[%q] = params.%s\n\t}\n", bodyParam[f], f, bodyParam[f])
+			} else {
+				fmt.Fprintf(b, "\tbody[%q] = params.%s\n", f, bodyParam[f])
+			}
 		}
 		b.WriteString("\tmergeExtra(body, []map[string]any{params.Extras})\n")
 		dataExpr = "body"
 	case "data":
 		dataExpr = "data"
 	}
+	// wrap emits the HTTP call, wrapping it in decodeResult[Resp] for a typed return.
+	wrap := func(call string) string {
+		if respType != "" {
+			return "decodeResult[" + respType + "](" + call + ")"
+		}
+		return call
+	}
 	switch verb {
 	case "get":
 		if tail == "params" {
-			fmt.Fprintf(b, "\treturn r.HTTP.Get(%s, params)\n", pathCode)
+			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(%s, params)", pathCode)))
 		} else {
-			fmt.Fprintf(b, "\treturn r.HTTP.Get(%s, nil)\n", pathCode)
+			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(%s, nil)", pathCode)))
 		}
 	case "post":
-		fmt.Fprintf(b, "\treturn r.HTTP.Post(%s, %s, nil)\n", pathCode, dataExpr)
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Post(%s, %s, nil)", pathCode, dataExpr)))
 	case "put":
-		fmt.Fprintf(b, "\treturn r.HTTP.Put(%s, %s)\n", pathCode, dataExpr)
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Put(%s, %s)", pathCode, dataExpr)))
 	case "patch":
-		fmt.Fprintf(b, "\treturn r.HTTP.Patch(%s, %s)\n", pathCode, dataExpr)
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Patch(%s, %s)", pathCode, dataExpr)))
 	case "delete":
-		fmt.Fprintf(b, "\treturn r.HTTP.Delete(%s)\n", pathCode)
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Delete(%s)", pathCode)))
 	}
 	b.WriteString("}\n\n")
 	return nil
@@ -1132,6 +1176,10 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		if err != nil {
 			return err
 		}
+		cmdFieldTypes, cmdFieldReq, ctErr := commandFieldTypes(sd, schemaByCmd[cmd])
+		if ctErr != nil {
+			return ctErr
+		}
 		withID := !commandsWithoutID[cmd]
 		// §5/§6/§4a: the command's typed params collapse into a named params STRUCT
 		// (idiomatic Go options struct, not flat positionals); a leading callID stays
@@ -1141,6 +1189,7 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		// keyword set (drift-neutral).
 		structName := goName + mName + "Params"
 		fieldParam := map[string]string{} // wire field -> struct field ident
+		fieldPtr := map[string]bool{}     // wire field -> nilable Go type
 		used := map[string]bool{"Extras": true}
 		var fieldDefs []string
 		for _, f := range fields {
@@ -1150,7 +1199,12 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 			}
 			used[fn] = true
 			fieldParam[f] = fn
-			fieldDefs = append(fieldDefs, "\t"+fn+" any")
+			// §4 strict typing: type each command param from its params-sub-schema
+			// field (required → value, optional → *T); a $ref field → the generated
+			// type (e.g. swml → *SWMLObject), a union → any, an array → []T.
+			ftype := paramFieldType(cmdFieldTypes[f], cmdFieldReq[f])
+			fieldPtr[f] = isNilableGoType(ftype)
+			fieldDefs = append(fieldDefs, "\t"+fn+" "+ftype)
 		}
 		fieldDefs = append(fieldDefs, "\tExtras map[string]any")
 		fmt.Fprintf(b, "// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
@@ -1160,17 +1214,23 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 			sigParams = append(sigParams, "callID string")
 		}
 		sigParams = append(sigParams, "params "+structName)
-		fmt.Fprintf(b, "func (c *%s) %s(%s) (map[string]any, error) {\n", goName, mName, strings.Join(sigParams, ", "))
+		// Command methods return the typed CallResponse (the call-commands op's
+		// 200 response is a $ref to CallResponse for every command).
+		fmt.Fprintf(b, "func (c *%s) %s(%s) (*CallResponse, error) {\n", goName, mName, strings.Join(sigParams, ", "))
 		b.WriteString("\tbody := map[string]any{}\n")
 		for _, f := range fields {
-			fmt.Fprintf(b, "\tif params.%s != nil {\n\t\tbody[%q] = params.%s\n\t}\n", fieldParam[f], f, fieldParam[f])
+			if fieldPtr[f] {
+				fmt.Fprintf(b, "\tif params.%s != nil {\n\t\tbody[%q] = params.%s\n\t}\n", fieldParam[f], f, fieldParam[f])
+			} else {
+				fmt.Fprintf(b, "\tbody[%q] = params.%s\n", f, fieldParam[f])
+			}
 		}
 		b.WriteString("\tmergeExtra(body, []map[string]any{params.Extras})\n")
 		callID := `""`
 		if withID {
 			callID = "callID"
 		}
-		fmt.Fprintf(b, "\treturn c.execute(%q, %s, body)\n}\n\n", cmd, callID)
+		fmt.Fprintf(b, "\treturn decodeResult[CallResponse](c.execute(%q, %s, body))\n}\n\n", cmd, callID)
 	}
 	return nil
 }
@@ -1297,8 +1357,13 @@ func schemaFields(schemas, node *yaml.Node) []string {
 	if node == nil {
 		return nil
 	}
-	// Collect the required set (across union branches too) and ordered names.
-	required := map[string]bool{}
+	// The required set uses the SAME semantics as schemaFieldTypes (allOf merges,
+	// anyOf/oneOf INTERSECT — a field required only if EVERY variant requires it),
+	// so the required-first ORDER agrees with the field TYPES (a field typed as
+	// optional *T is never hoisted ahead as if required). This matches the oracle's
+	// order (calling.dial: from/to required first, then caller_id…url…swml in
+	// property order). Names are collected in property order (dedup, first-seen).
+	_, required, _ := schemaFieldTypes(schemas, node)
 	var order []string
 	seen := map[string]bool{}
 	var walk func(n *yaml.Node)
@@ -1312,11 +1377,6 @@ func schemaFields(schemas, node *yaml.Node) []string {
 				for _, br := range lst.Content {
 					walk(br)
 				}
-			}
-		}
-		if req := mapChild(n, "required"); req != nil && req.Kind == yaml.SequenceNode {
-			for _, r := range req.Content {
-				required[r.Value] = true
 			}
 		}
 		if props := mapChild(n, "properties"); props != nil && props.Kind == yaml.MappingNode {
@@ -2104,11 +2164,20 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		if src == "" {
-			continue
+		if src != "" {
+			fn := strings.ReplaceAll(sd.name, "-", "_") + "_resources_generated.go"
+			outs = append(outs, outFile{path: filepath.Join(dir(nsDir), fn), src: src})
 		}
-		fn := strings.ReplaceAll(sd.name, "-", "_") + "_resources_generated.go"
-		outs = append(outs, outFile{path: filepath.Join(dir(nsDir), fn), src: src})
+		// Per-spec typed wire types module (<ns>_types_generated.go): one Go type
+		// per components/schemas entry. Emitted for every spec that has schemas.
+		typesSrc, err := emitTypesFile(sd)
+		if err != nil {
+			return err
+		}
+		if typesSrc != "" {
+			tfn := strings.ReplaceAll(sd.name, "-", "_") + "_types_generated.go"
+			outs = append(outs, outFile{path: filepath.Join(dir(nsDir), tfn), src: typesSrc})
+		}
 	}
 	placed := resolvePlacement(specs)
 	nsTree, restTree := emitClientTree(placed)

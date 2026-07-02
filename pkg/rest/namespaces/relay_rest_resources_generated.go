@@ -17,55 +17,37 @@ func NewAddressesNamespace(client HTTPClient) *AddressesNamespace {
 	return &AddressesNamespace{Resource{HTTP: client, Base: "/api/relay/rest/addresses"}}
 }
 
-func (r *AddressesNamespace) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *AddressesNamespace) List(params map[string]string) (*AddressListResponse, error) {
+	return decodeResult[AddressListResponse](r.HTTP.Get(r.Base, params))
 }
 
 // AddressesNamespaceCreateParams holds the named optional parameters for AddressesNamespace.Create.
 type AddressesNamespaceCreateParams struct {
-	Label         any
-	Country       any
-	FirstName     any
-	LastName      any
-	StreetNumber  any
-	StreetName    any
-	City          any
-	State         any
-	PostalCode    any
-	AddressType   any
-	AddressNumber any
+	Label         string
+	Country       string
+	FirstName     string
+	LastName      string
+	StreetNumber  string
+	StreetName    string
+	City          string
+	State         string
+	PostalCode    string
+	AddressType   *AddressType
+	AddressNumber *string
 	Extras        map[string]any
 }
 
-func (r *AddressesNamespace) Create(params AddressesNamespaceCreateParams) (map[string]any, error) {
+func (r *AddressesNamespace) Create(params AddressesNamespaceCreateParams) (*AddressResponse, error) {
 	body := map[string]any{}
-	if params.Label != nil {
-		body["label"] = params.Label
-	}
-	if params.Country != nil {
-		body["country"] = params.Country
-	}
-	if params.FirstName != nil {
-		body["first_name"] = params.FirstName
-	}
-	if params.LastName != nil {
-		body["last_name"] = params.LastName
-	}
-	if params.StreetNumber != nil {
-		body["street_number"] = params.StreetNumber
-	}
-	if params.StreetName != nil {
-		body["street_name"] = params.StreetName
-	}
-	if params.City != nil {
-		body["city"] = params.City
-	}
-	if params.State != nil {
-		body["state"] = params.State
-	}
-	if params.PostalCode != nil {
-		body["postal_code"] = params.PostalCode
-	}
+	body["label"] = params.Label
+	body["country"] = params.Country
+	body["first_name"] = params.FirstName
+	body["last_name"] = params.LastName
+	body["street_number"] = params.StreetNumber
+	body["street_name"] = params.StreetName
+	body["city"] = params.City
+	body["state"] = params.State
+	body["postal_code"] = params.PostalCode
 	if params.AddressType != nil {
 		body["address_type"] = params.AddressType
 	}
@@ -73,11 +55,11 @@ func (r *AddressesNamespace) Create(params AddressesNamespaceCreateParams) (map[
 		body["address_number"] = params.AddressNumber
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Base, body, nil)
+	return decodeResult[AddressResponse](r.HTTP.Post(r.Base, body, nil))
 }
 
-func (r *AddressesNamespace) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *AddressesNamespace) Get(id string, params map[string]string) (*AddressResponse, error) {
+	return decodeResult[AddressResponse](r.HTTP.Get(r.Path(id), params))
 }
 
 func (r *AddressesNamespace) Delete(id string) (map[string]any, error) {
@@ -96,25 +78,21 @@ func NewImportedNumbersNamespace(client HTTPClient) *ImportedNumbersNamespace {
 
 // ImportedNumbersNamespaceCreateParams holds the named optional parameters for ImportedNumbersNamespace.Create.
 type ImportedNumbersNamespaceCreateParams struct {
-	Number       any
-	NumberType   any
-	Capabilities any
+	Number       string
+	NumberType   string
+	Capabilities []string
 	Extras       map[string]any
 }
 
-func (r *ImportedNumbersNamespace) Create(params ImportedNumbersNamespaceCreateParams) (map[string]any, error) {
+func (r *ImportedNumbersNamespace) Create(params ImportedNumbersNamespaceCreateParams) (*PhoneNumberResponse, error) {
 	body := map[string]any{}
-	if params.Number != nil {
-		body["number"] = params.Number
-	}
-	if params.NumberType != nil {
-		body["number_type"] = params.NumberType
-	}
+	body["number"] = params.Number
+	body["number_type"] = params.NumberType
 	if params.Capabilities != nil {
 		body["capabilities"] = params.Capabilities
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Base, body, nil)
+	return decodeResult[PhoneNumberResponse](r.HTTP.Post(r.Base, body, nil))
 }
 
 // LookupNamespace is generated from x-sdk-resource "Lookup" in the relay-rest spec.
@@ -127,8 +105,8 @@ func NewLookupNamespace(client HTTPClient) *LookupNamespace {
 	return &LookupNamespace{Resource{HTTP: client, Base: "/api/relay/rest/lookup"}}
 }
 
-func (r *LookupNamespace) PhoneNumber(e164 string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path("phone_number", e164), params)
+func (r *LookupNamespace) PhoneNumber(e164 string, params map[string]string) (*PhoneNumberLookupResponse, error) {
+	return decodeResult[PhoneNumberLookupResponse](r.HTTP.Get(r.Path("phone_number", e164), params))
 }
 
 // MFANamespace is generated from x-sdk-resource "Mfa" in the relay-rest spec.
@@ -143,21 +121,19 @@ func NewMFANamespace(client HTTPClient) *MFANamespace {
 
 // MFANamespaceSMSParams holds the named optional parameters for MFANamespace.SMS.
 type MFANamespaceSMSParams struct {
-	To          any
-	From        any
-	Message     any
-	TokenLength any
-	ValidFor    any
-	MaxAttempts any
-	AllowAlphas any
+	To          string
+	From        *string
+	Message     *string
+	TokenLength *int
+	ValidFor    *int
+	MaxAttempts *int
+	AllowAlphas *bool
 	Extras      map[string]any
 }
 
-func (r *MFANamespace) SMS(params MFANamespaceSMSParams) (map[string]any, error) {
+func (r *MFANamespace) SMS(params MFANamespaceSMSParams) (*MfaResponse, error) {
 	body := map[string]any{}
-	if params.To != nil {
-		body["to"] = params.To
-	}
+	body["to"] = params.To
 	if params.From != nil {
 		body["from"] = params.From
 	}
@@ -177,26 +153,24 @@ func (r *MFANamespace) SMS(params MFANamespaceSMSParams) (map[string]any, error)
 		body["allow_alphas"] = params.AllowAlphas
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path("sms"), body, nil)
+	return decodeResult[MfaResponse](r.HTTP.Post(r.Path("sms"), body, nil))
 }
 
 // MFANamespaceCallParams holds the named optional parameters for MFANamespace.Call.
 type MFANamespaceCallParams struct {
-	To          any
-	From        any
-	Message     any
-	TokenLength any
-	ValidFor    any
-	MaxAttempts any
-	AllowAlphas any
+	To          string
+	From        *string
+	Message     *string
+	TokenLength *int
+	ValidFor    *int
+	MaxAttempts *int
+	AllowAlphas *bool
 	Extras      map[string]any
 }
 
-func (r *MFANamespace) Call(params MFANamespaceCallParams) (map[string]any, error) {
+func (r *MFANamespace) Call(params MFANamespaceCallParams) (*MfaResponse, error) {
 	body := map[string]any{}
-	if params.To != nil {
-		body["to"] = params.To
-	}
+	body["to"] = params.To
 	if params.From != nil {
 		body["from"] = params.From
 	}
@@ -216,22 +190,20 @@ func (r *MFANamespace) Call(params MFANamespaceCallParams) (map[string]any, erro
 		body["allow_alphas"] = params.AllowAlphas
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path("call"), body, nil)
+	return decodeResult[MfaResponse](r.HTTP.Post(r.Path("call"), body, nil))
 }
 
 // MFANamespaceVerifyParams holds the named optional parameters for MFANamespace.Verify.
 type MFANamespaceVerifyParams struct {
-	Token  any
+	Token  string
 	Extras map[string]any
 }
 
-func (r *MFANamespace) Verify(requestID string, params MFANamespaceVerifyParams) (map[string]any, error) {
+func (r *MFANamespace) Verify(requestID string, params MFANamespaceVerifyParams) (*MfaVerifyResponse, error) {
 	body := map[string]any{}
-	if params.Token != nil {
-		body["token"] = params.Token
-	}
+	body["token"] = params.Token
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path(requestID, "verify"), body, nil)
+	return decodeResult[MfaVerifyResponse](r.HTTP.Post(r.Path(requestID, "verify"), body, nil))
 }
 
 // NumberGroupsNamespace is generated from x-sdk-resource "NumberGroups" in the relay-rest spec.
@@ -244,27 +216,25 @@ func NewNumberGroupsNamespace(client HTTPClient) *NumberGroupsNamespace {
 	return &NumberGroupsNamespace{NewCrudResourcePUT(client, "/api/relay/rest/number_groups")}
 }
 
-func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(groupID, "number_group_memberships"), params)
+func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[string]string) (*NumberGroupMembershipListResponse, error) {
+	return decodeResult[NumberGroupMembershipListResponse](r.HTTP.Get(r.Path(groupID, "number_group_memberships"), params))
 }
 
 // NumberGroupsNamespaceAddMembershipParams holds the named optional parameters for NumberGroupsNamespace.AddMembership.
 type NumberGroupsNamespaceAddMembershipParams struct {
-	PhoneNumberId any
+	PhoneNumberId uuid
 	Extras        map[string]any
 }
 
-func (r *NumberGroupsNamespace) AddMembership(groupID string, params NumberGroupsNamespaceAddMembershipParams) (map[string]any, error) {
+func (r *NumberGroupsNamespace) AddMembership(groupID string, params NumberGroupsNamespaceAddMembershipParams) (*NumberGroupMembershipResponse, error) {
 	body := map[string]any{}
-	if params.PhoneNumberId != nil {
-		body["phone_number_id"] = params.PhoneNumberId
-	}
+	body["phone_number_id"] = params.PhoneNumberId
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path(groupID, "number_group_memberships"), body, nil)
+	return decodeResult[NumberGroupMembershipResponse](r.HTTP.Post(r.Path(groupID, "number_group_memberships"), body, nil))
 }
 
-func (r *NumberGroupsNamespace) GetMembership(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get("/api/relay/rest/number_group_memberships/"+id, params)
+func (r *NumberGroupsNamespace) GetMembership(id string, params map[string]string) (*NumberGroupMembershipResponse, error) {
+	return decodeResult[NumberGroupMembershipResponse](r.HTTP.Get("/api/relay/rest/number_group_memberships/"+id, params))
 }
 
 func (r *NumberGroupsNamespace) DeleteMembership(id string) (map[string]any, error) {
@@ -281,8 +251,8 @@ func NewPhoneNumbersNamespace(client HTTPClient) *PhoneNumbersNamespace {
 	return &PhoneNumbersNamespace{NewCrudResourcePUT(client, "/api/relay/rest/phone_numbers")}
 }
 
-func (r *PhoneNumbersNamespace) Search(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path("search"), params)
+func (r *PhoneNumbersNamespace) Search(params map[string]string) (*AvailablePhoneNumbersResponse, error) {
+	return decodeResult[AvailablePhoneNumbersResponse](r.HTTP.Get(r.Path("search"), params))
 }
 
 func (r *PhoneNumbersNamespace) SetSwmlWebhook(sid string, url string, extra ...map[string]any) (map[string]any, error) {
@@ -358,16 +328,16 @@ func NewQueuesNamespace(client HTTPClient) *QueuesNamespace {
 	return &QueuesNamespace{NewCrudResourcePUT(client, "/api/relay/rest/queues")}
 }
 
-func (r *QueuesNamespace) ListMembers(queueID string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(queueID, "members"), params)
+func (r *QueuesNamespace) ListMembers(queueID string, params map[string]string) (*QueueMemberListResponse, error) {
+	return decodeResult[QueueMemberListResponse](r.HTTP.Get(r.Path(queueID, "members"), params))
 }
 
-func (r *QueuesNamespace) GetNextMember(queueID string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(queueID, "members", "next"), params)
+func (r *QueuesNamespace) GetNextMember(queueID string, params map[string]string) (*QueueMemberResponse, error) {
+	return decodeResult[QueueMemberResponse](r.HTTP.Get(r.Path(queueID, "members", "next"), params))
 }
 
-func (r *QueuesNamespace) GetMember(queueID string, id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(queueID, "members", id), params)
+func (r *QueuesNamespace) GetMember(queueID string, id string, params map[string]string) (*QueueMemberResponse, error) {
+	return decodeResult[QueueMemberResponse](r.HTTP.Get(r.Path(queueID, "members", id), params))
 }
 
 // RecordingsNamespace is generated from x-sdk-resource "Recordings" in the relay-rest spec.
@@ -380,8 +350,8 @@ func NewRecordingsNamespace(client HTTPClient) *RecordingsNamespace {
 	return &RecordingsNamespace{Resource{HTTP: client, Base: "/api/relay/rest/recordings"}}
 }
 
-func (r *RecordingsNamespace) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *RecordingsNamespace) List(params map[string]string) (*RecordingListResponse, error) {
+	return decodeResult[RecordingListResponse](r.HTTP.Get(r.Base, params))
 }
 
 func (r *RecordingsNamespace) Get(id string, params map[string]string) (map[string]any, error) {
@@ -402,24 +372,24 @@ func NewRegistryBrands(client HTTPClient) *RegistryBrands {
 	return &RegistryBrands{Resource{HTTP: client, Base: "/api/relay/rest/registry/beta/brands"}}
 }
 
-func (r *RegistryBrands) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *RegistryBrands) List(params map[string]string) (*BrandListResponse, error) {
+	return decodeResult[BrandListResponse](r.HTTP.Get(r.Base, params))
 }
 
-func (r *RegistryBrands) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *RegistryBrands) Create(data map[string]any) (*BrandResponse, error) {
+	return decodeResult[BrandResponse](r.HTTP.Post(r.Base, data, nil))
 }
 
-func (r *RegistryBrands) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *RegistryBrands) Get(id string, params map[string]string) (*BrandResponse, error) {
+	return decodeResult[BrandResponse](r.HTTP.Get(r.Path(id), params))
 }
 
-func (r *RegistryBrands) ListCampaigns(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "campaigns"), params)
+func (r *RegistryBrands) ListCampaigns(id string, params map[string]string) (*CampaignListResponse, error) {
+	return decodeResult[CampaignListResponse](r.HTTP.Get(r.Path(id, "campaigns"), params))
 }
 
-func (r *RegistryBrands) CreateCampaign(id string, data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "campaigns"), data, nil)
+func (r *RegistryBrands) CreateCampaign(id string, data map[string]any) (*CampaignResponse, error) {
+	return decodeResult[CampaignResponse](r.HTTP.Post(r.Path(id, "campaigns"), data, nil))
 }
 
 // RegistryCampaigns is generated from x-sdk-resource "RegistryCampaigns" in the relay-rest spec.
@@ -432,41 +402,41 @@ func NewRegistryCampaigns(client HTTPClient) *RegistryCampaigns {
 	return &RegistryCampaigns{Resource{HTTP: client, Base: "/api/relay/rest/registry/beta/campaigns"}}
 }
 
-func (r *RegistryCampaigns) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *RegistryCampaigns) Get(id string, params map[string]string) (*CampaignResponse, error) {
+	return decodeResult[CampaignResponse](r.HTTP.Get(r.Path(id), params))
 }
 
 // RegistryCampaignsUpdateParams holds the named optional parameters for RegistryCampaigns.Update.
 type RegistryCampaignsUpdateParams struct {
-	Name   any
+	Name   *string
 	Extras map[string]any
 }
 
-func (r *RegistryCampaigns) Update(id string, params RegistryCampaignsUpdateParams) (map[string]any, error) {
+func (r *RegistryCampaigns) Update(id string, params RegistryCampaignsUpdateParams) (*CampaignResponse, error) {
 	body := map[string]any{}
 	if params.Name != nil {
 		body["name"] = params.Name
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Put(r.Path(id), body)
+	return decodeResult[CampaignResponse](r.HTTP.Put(r.Path(id), body))
 }
 
-func (r *RegistryCampaigns) ListNumbers(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "numbers"), params)
+func (r *RegistryCampaigns) ListNumbers(id string, params map[string]string) (*AssignedNumberListResponse, error) {
+	return decodeResult[AssignedNumberListResponse](r.HTTP.Get(r.Path(id, "numbers"), params))
 }
 
-func (r *RegistryCampaigns) ListOrders(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "orders"), params)
+func (r *RegistryCampaigns) ListOrders(id string, params map[string]string) (*OrderListResponse, error) {
+	return decodeResult[OrderListResponse](r.HTTP.Get(r.Path(id, "orders"), params))
 }
 
 // RegistryCampaignsCreateOrderParams holds the named optional parameters for RegistryCampaigns.CreateOrder.
 type RegistryCampaignsCreateOrderParams struct {
-	PhoneNumbers      any
-	StatusCallbackUrl any
+	PhoneNumbers      []string
+	StatusCallbackUrl *string
 	Extras            map[string]any
 }
 
-func (r *RegistryCampaigns) CreateOrder(id string, params RegistryCampaignsCreateOrderParams) (map[string]any, error) {
+func (r *RegistryCampaigns) CreateOrder(id string, params RegistryCampaignsCreateOrderParams) (*OrderResponse, error) {
 	body := map[string]any{}
 	if params.PhoneNumbers != nil {
 		body["phone_numbers"] = params.PhoneNumbers
@@ -475,7 +445,7 @@ func (r *RegistryCampaigns) CreateOrder(id string, params RegistryCampaignsCreat
 		body["status_callback_url"] = params.StatusCallbackUrl
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Path(id, "orders"), body, nil)
+	return decodeResult[OrderResponse](r.HTTP.Post(r.Path(id, "orders"), body, nil))
 }
 
 // RegistryNumbers is generated from x-sdk-resource "RegistryNumbers" in the relay-rest spec.
@@ -502,8 +472,8 @@ func NewRegistryOrders(client HTTPClient) *RegistryOrders {
 	return &RegistryOrders{Resource{HTTP: client, Base: "/api/relay/rest/registry/beta/orders"}}
 }
 
-func (r *RegistryOrders) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *RegistryOrders) Get(id string, params map[string]string) (*OrderResponse, error) {
+	return decodeResult[OrderResponse](r.HTTP.Get(r.Path(id), params))
 }
 
 // ShortCodesNamespace is generated from x-sdk-resource "ShortCodes" in the relay-rest spec.
@@ -516,35 +486,31 @@ func NewShortCodesNamespace(client HTTPClient) *ShortCodesNamespace {
 	return &ShortCodesNamespace{Resource{HTTP: client, Base: "/api/relay/rest/short_codes"}}
 }
 
-func (r *ShortCodesNamespace) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *ShortCodesNamespace) List(params map[string]string) (*ShortCodeListResponse, error) {
+	return decodeResult[ShortCodeListResponse](r.HTTP.Get(r.Base, params))
 }
 
-func (r *ShortCodesNamespace) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *ShortCodesNamespace) Get(id string, params map[string]string) (*ShortCodeResponse, error) {
+	return decodeResult[ShortCodeResponse](r.HTTP.Get(r.Path(id), params))
 }
 
 // ShortCodesNamespaceUpdateParams holds the named optional parameters for ShortCodesNamespace.Update.
 type ShortCodesNamespaceUpdateParams struct {
-	Name                     any
-	MessageHandler           any
-	MessageRequestUrl        any
-	MessageRequestMethod     any
-	MessageFallbackUrl       any
-	MessageFallbackMethod    any
-	MessageLamlApplicationId any
-	MessageRelayContext      any
+	Name                     string
+	MessageHandler           ShortCodeMessageHandler
+	MessageRequestUrl        *string
+	MessageRequestMethod     *HttpMethod
+	MessageFallbackUrl       *string
+	MessageFallbackMethod    *HttpMethod
+	MessageLamlApplicationId *uuid
+	MessageRelayContext      *string
 	Extras                   map[string]any
 }
 
-func (r *ShortCodesNamespace) Update(id string, params ShortCodesNamespaceUpdateParams) (map[string]any, error) {
+func (r *ShortCodesNamespace) Update(id string, params ShortCodesNamespaceUpdateParams) (*ShortCodeResponse, error) {
 	body := map[string]any{}
-	if params.Name != nil {
-		body["name"] = params.Name
-	}
-	if params.MessageHandler != nil {
-		body["message_handler"] = params.MessageHandler
-	}
+	body["name"] = params.Name
+	body["message_handler"] = params.MessageHandler
 	if params.MessageRequestUrl != nil {
 		body["message_request_url"] = params.MessageRequestUrl
 	}
@@ -564,7 +530,7 @@ func (r *ShortCodesNamespace) Update(id string, params ShortCodesNamespaceUpdate
 		body["message_relay_context"] = params.MessageRelayContext
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Put(r.Path(id), body)
+	return decodeResult[ShortCodeResponse](r.HTTP.Put(r.Path(id), body))
 }
 
 // SIPProfileNamespace is generated from x-sdk-resource "SipProfile" in the relay-rest spec.
@@ -577,21 +543,21 @@ func NewSIPProfileNamespace(client HTTPClient) *SIPProfileNamespace {
 	return &SIPProfileNamespace{Resource{HTTP: client, Base: "/api/relay/rest/sip_profile"}}
 }
 
-func (r *SIPProfileNamespace) Get(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *SIPProfileNamespace) Get(params map[string]string) (*SipProfileResponse, error) {
+	return decodeResult[SipProfileResponse](r.HTTP.Get(r.Base, params))
 }
 
 // SIPProfileNamespaceUpdateParams holds the named optional parameters for SIPProfileNamespace.Update.
 type SIPProfileNamespaceUpdateParams struct {
-	DomainIdentifier  any
-	DefaultCodecs     any
-	DefaultCiphers    any
-	DefaultEncryption any
-	DefaultSendAs     any
+	DomainIdentifier  *string
+	DefaultCodecs     []string
+	DefaultCiphers    []string
+	DefaultEncryption *string
+	DefaultSendAs     *string
 	Extras            map[string]any
 }
 
-func (r *SIPProfileNamespace) Update(params SIPProfileNamespaceUpdateParams) (map[string]any, error) {
+func (r *SIPProfileNamespace) Update(params SIPProfileNamespaceUpdateParams) (*SipProfileResponse, error) {
 	body := map[string]any{}
 	if params.DomainIdentifier != nil {
 		body["domain_identifier"] = params.DomainIdentifier
@@ -609,7 +575,7 @@ func (r *SIPProfileNamespace) Update(params SIPProfileNamespaceUpdateParams) (ma
 		body["default_send_as"] = params.DefaultSendAs
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Put(r.Base, body)
+	return decodeResult[SipProfileResponse](r.HTTP.Put(r.Base, body))
 }
 
 // VerifiedCallersNamespace is generated from x-sdk-resource "VerifiedCallers" in the relay-rest spec.
@@ -622,21 +588,19 @@ func NewVerifiedCallersNamespace(client HTTPClient) *VerifiedCallersNamespace {
 	return &VerifiedCallersNamespace{NewCrudResourcePUT(client, "/api/relay/rest/verified_caller_ids")}
 }
 
-func (r *VerifiedCallersNamespace) RedialVerification(id string) (map[string]any, error) {
-	return r.HTTP.Post(r.Path(id, "verification"), nil, nil)
+func (r *VerifiedCallersNamespace) RedialVerification(id string) (*VerifiedCallerIDResponse, error) {
+	return decodeResult[VerifiedCallerIDResponse](r.HTTP.Post(r.Path(id, "verification"), nil, nil))
 }
 
 // VerifiedCallersNamespaceSubmitVerificationParams holds the named optional parameters for VerifiedCallersNamespace.SubmitVerification.
 type VerifiedCallersNamespaceSubmitVerificationParams struct {
-	VerificationCode any
+	VerificationCode string
 	Extras           map[string]any
 }
 
-func (r *VerifiedCallersNamespace) SubmitVerification(id string, params VerifiedCallersNamespaceSubmitVerificationParams) (map[string]any, error) {
+func (r *VerifiedCallersNamespace) SubmitVerification(id string, params VerifiedCallersNamespaceSubmitVerificationParams) (*VerifiedCallerIDResponse, error) {
 	body := map[string]any{}
-	if params.VerificationCode != nil {
-		body["verification_code"] = params.VerificationCode
-	}
+	body["verification_code"] = params.VerificationCode
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Put(r.Path(id, "verification"), body)
+	return decodeResult[VerifiedCallerIDResponse](r.HTTP.Put(r.Path(id, "verification"), body))
 }

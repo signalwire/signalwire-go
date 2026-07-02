@@ -35,6 +35,14 @@ package namespaces
 //
 // Note: LamlWebhooks (wire value "laml_webhooks") produces a cXML handler,
 // not a generic webhook. For SWML, use RelayScript.
+//
+// sdk-enum (x-sdk-enum): surfaced public enum type. module=signalwire.rest.namespaces.relay_rest_types_generated
+// This hand-written enum is the Go realization of the relay-rest spec's
+// x-sdk-enum: PhoneCallHandler markup — the reference surfaces it as
+// relay_rest_types_generated.PhoneCallHandler, so the marker tells
+// enumerate-surface to record it there (the REST types generator skips it via
+// handOwnedTypeNames, since this hand version carries richer ergonomics: the doc
+// table above + AllPhoneCallHandlers()).
 type PhoneCallHandler string
 
 // PhoneCallHandler wire values accepted by phone_numbers.Update.

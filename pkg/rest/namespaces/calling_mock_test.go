@@ -74,8 +74,9 @@ func TestCallingNamespace_Dial_WithCodecsArray(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
-	if _, ok := body["id"]; !ok {
-		t.Errorf("response missing 'id', got keys %v", keys(body))
+	resp := respMap(t, body)
+	if _, ok := resp["id"]; !ok {
+		t.Errorf("response missing 'id', got keys %v", keys(resp))
 	}
 	params := commandAssert(t, mock.Last(t), "dial", "")
 	codecs, ok := params["codecs"].([]any)
@@ -140,8 +141,9 @@ func TestCalling_Update(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
-	if _, ok := body["id"]; !ok {
-		t.Errorf("response missing 'id', got keys %v", keys(body))
+	resp := respMap(t, body)
+	if _, ok := resp["id"]; !ok {
+		t.Errorf("response missing 'id', got keys %v", keys(resp))
 	}
 	params := commandAssert(t, mock.Last(t), "update", "")
 	if params["id"] != "call-1" {
@@ -166,7 +168,7 @@ func TestCalling_Transfer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Transfer: %v", err)
 	}
-	if _, ok := body["id"]; !ok {
+	if _, ok := respMap(t, body)["id"]; !ok {
 		t.Errorf("response missing 'id'")
 	}
 	params := commandAssert(t, mock.Last(t), "calling.transfer", "call-123")
@@ -189,7 +191,7 @@ func TestCalling_Disconnect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Disconnect: %v", err)
 	}
-	if _, ok := body["id"]; !ok {
+	if _, ok := respMap(t, body)["id"]; !ok {
 		t.Errorf("response missing 'id'")
 	}
 	params := commandAssert(t, mock.Last(t), "calling.disconnect", "call-456")

@@ -31,10 +31,11 @@ func TestFabricAddresses_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Addresses.List(nil)
+	bodyResp, err := client.Fabric.Addresses.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data', got keys %v", keys(body))
@@ -65,10 +66,11 @@ func TestFabricAddresses_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Addresses.Get("addr-9001")
+	bodyResp, err := client.Fabric.Addresses.Get("addr-9001")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -93,10 +95,11 @@ func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.CallFlows.ListAddresses("cf-1", nil)
+	bodyResp, err := client.Fabric.CallFlows.ListAddresses("cf-1", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data' in body")
 	}
@@ -119,10 +122,11 @@ func TestFabricConferenceRooms_ListAddressesUsesSingularPath(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.ConferenceRooms.ListAddresses("cr-1", nil)
+	bodyResp, err := client.Fabric.ConferenceRooms.ListAddresses("cr-1", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data' in body")
 	}
@@ -145,10 +149,11 @@ func TestFabricSubscribers_GetSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1", nil)
+	bodyResp, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1", nil)
 	if err != nil {
 		t.Fatalf("GetSIPEndpoint: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map")
 	}
@@ -199,10 +204,11 @@ func TestFabricSubscribers_DeleteSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Subscribers.DeleteSIPEndpoint("sub-1", "ep-1")
+	bodyResp, err := client.Fabric.Subscribers.DeleteSIPEndpoint("sub-1", "ep-1")
 	if err != nil {
 		t.Fatalf("DeleteSIPEndpoint: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map (204 normalized to {})")
 	}
@@ -315,10 +321,11 @@ func TestFabricResources_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Resources.List(nil)
+	bodyResp, err := client.Fabric.Resources.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data', got keys %v", keys(body))
 	}
@@ -358,10 +365,11 @@ func TestFabricResources_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Resources.Delete("res-2")
+	bodyResp, err := client.Fabric.Resources.Delete("res-2")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map")
 	}
@@ -381,10 +389,11 @@ func TestFabricResources_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Resources.ListAddresses("res-3", nil)
+	bodyResp, err := client.Fabric.Resources.ListAddresses("res-3", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data'")
 	}

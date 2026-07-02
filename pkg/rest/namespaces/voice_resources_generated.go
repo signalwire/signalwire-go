@@ -25,6 +25,6 @@ func (r *VoiceLogs) Get(id string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id), nil)
 }
 
-func (r *VoiceLogs) ListEvents(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "events"), params)
+func (r *VoiceLogs) ListEvents(id string, params map[string]string) (*LogEventsListResponse, error) {
+	return decodeResult[LogEventsListResponse](r.HTTP.Get(r.Path(id, "events"), params))
 }

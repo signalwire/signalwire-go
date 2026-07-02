@@ -19,21 +19,17 @@ func NewChatNamespace(client HTTPClient) *ChatNamespace {
 
 // ChatNamespaceCreateTokenParams holds the named optional parameters for ChatNamespace.CreateToken.
 type ChatNamespaceCreateTokenParams struct {
-	Ttl      any
-	Channels any
-	MemberId any
-	State    any
+	Ttl      int
+	Channels ChatChannel
+	MemberId *string
+	State    *ChatState
 	Extras   map[string]any
 }
 
-func (r *ChatNamespace) CreateToken(params ChatNamespaceCreateTokenParams) (map[string]any, error) {
+func (r *ChatNamespace) CreateToken(params ChatNamespaceCreateTokenParams) (*ChatToken, error) {
 	body := map[string]any{}
-	if params.Ttl != nil {
-		body["ttl"] = params.Ttl
-	}
-	if params.Channels != nil {
-		body["channels"] = params.Channels
-	}
+	body["ttl"] = params.Ttl
+	body["channels"] = params.Channels
 	if params.MemberId != nil {
 		body["member_id"] = params.MemberId
 	}
@@ -41,5 +37,5 @@ func (r *ChatNamespace) CreateToken(params ChatNamespaceCreateTokenParams) (map[
 		body["state"] = params.State
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return r.HTTP.Post(r.Base, body, nil)
+	return decodeResult[ChatToken](r.HTTP.Post(r.Base, body, nil))
 }

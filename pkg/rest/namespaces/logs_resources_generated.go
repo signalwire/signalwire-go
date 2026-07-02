@@ -17,6 +17,6 @@ func NewConferenceLogs(client HTTPClient) *ConferenceLogs {
 	return &ConferenceLogs{Resource{HTTP: client, Base: "/api/logs/conferences"}}
 }
 
-func (r *ConferenceLogs) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *ConferenceLogs) List(params map[string]string) (*ConferencesResponse, error) {
+	return decodeResult[ConferencesResponse](r.HTTP.Get(r.Base, params))
 }
