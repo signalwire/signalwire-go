@@ -325,8 +325,6 @@ signalwire.relay.message.Message.__repr__: impossible: Python __repr__ object-pr
 
 # --- REST namespace omissions ---
 signalwire.rest.call_handler.PhoneCallHandler: Python PhoneCallHandler is a typing helper alias; Go port uses pkg/rest/namespaces/call_handler.go (string type)
-signalwire.rest.namespaces.fabric.CxmlApplicationsResource: not_yet_implemented: CxmlApplicationsResource not yet wired in FabricNamespace
-signalwire.rest.namespaces.fabric.CxmlApplicationsResource.create: not_yet_implemented: CxmlApplicationsResource not yet wired in FabricNamespace
 signalwire.rest.namespaces.fabric.CxmlWebhooksResource: deprecated legacy resource; Go port omits per phone-binding.md (use phone_numbers.SetCxmlWebhook)
 signalwire.rest.namespaces.fabric.FabricResource: internal base class for fabric resources; Go port aliases it to namespaces.CrudWithAddresses (List/Create/Get/Update/Delete + ListAddresses)
 signalwire.rest.namespaces.fabric.FabricResourcePUT: internal base-class variant (PUT updates); Go port aliases it to namespaces.CrudWithAddresses constructed via NewCrudWithAddressesPUT, so it exposes CRUD + ListAddresses
