@@ -331,7 +331,6 @@ relay.NewAIEvent: Go factory constructor for a port-only struct; Python equivale
 relay.NewDevice: Go factory constructor for the port-only relay.Device struct; Python uses a raw {type, params} dict
 relay.NewRelayClient: Go factory constructor for a port-only struct; Python equivalent does not exist
 relay.NewRelayError: Go factory constructor for a port-only struct; Python equivalent does not exist
-relay.WithAIEngine: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithAIParams: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithAIPostPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithAIPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
@@ -344,7 +343,6 @@ relay.WithAMDMachineWordsThreshold: Go functional-options helper; encodes a Pyth
 relay.WithAMDTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithAudioVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithConferenceBeep: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithConferenceDeaf: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithConferenceMuted: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithConnectRingback: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithContexts: Go functional-options helper; encodes a Python kwarg for the matching constructor
@@ -394,7 +392,6 @@ relay.WithRingtoneDuration: Go functional-options helper; encodes a Python kwarg
 relay.WithRingtoneVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithSpace: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithStreamCodec: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithStreamDirection: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithTTSGender: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithTTSLanguage: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithTTSVoice: Go functional-options helper; encodes a Python kwarg for the matching constructor

@@ -1026,11 +1026,18 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 		return fmt.Errorf("%s.%s: set_method missing handler", rm.name, sm.name)
 	}
 	goName := setMethodGoName(sm.name)
-	// required args become positional string params; optional args are noted.
+	// Required args become positional string params (folded into body
+	// unconditionally); optional args become trailing *string params (nil ->
+	// omit the wire field), matching the Python reference's
+	// ``<arg>: str`` (required) / ``<arg>: Optional[str] = None`` (optional)
+	// keyword shape. Both go before the ``extra ...map[string]any`` **kwargs
+	// door. Ordering: all required, then all optional, then extra.
 	var params []string
 	params = append(params, "sid string")
-	var bodyLines []string
+	var bodyLines []string      // unconditional (required) body assignments
+	var optionalLines []string  // conditional (optional) body assignments
 	bodyLines = append(bodyLines, fmt.Sprintf("\t\t%q: %q,", "call_handler", sm.handler))
+	var optParams []string
 	for _, a := range sm.args {
 		if a.field == "" {
 			return fmt.Errorf("%s.%s: arg %q missing field", rm.name, sm.name, a.name)
@@ -1038,8 +1045,13 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 		if a.required {
 			params = append(params, escapeIdent(a.name)+" string")
 			bodyLines = append(bodyLines, fmt.Sprintf("\t\t%q: %s,", a.field, escapeIdent(a.name)))
+		} else {
+			id := escapeIdent(a.name)
+			optParams = append(optParams, id+" *string")
+			optionalLines = append(optionalLines, fmt.Sprintf("\tif %s != nil {\n\t\tbody[%q] = *%s\n\t}\n", id, a.field, id))
 		}
 	}
+	params = append(params, optParams...)
 	params = append(params, "extra ...map[string]any")
 	fmt.Fprintf(b, "func (r *%s) %s(%s) (map[string]any, error) {\n", recv, goName, strings.Join(params, ", "))
 	b.WriteString("\tbody := map[string]any{\n")
@@ -1047,6 +1059,9 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 		b.WriteString(l + "\n")
 	}
 	b.WriteString("\t}\n")
+	for _, l := range optionalLines {
+		b.WriteString(l)
+	}
 	b.WriteString("\tmergeExtra(body, extra)\n")
 	b.WriteString("\treturn r.Update(sid, body)\n}\n\n")
 	return nil

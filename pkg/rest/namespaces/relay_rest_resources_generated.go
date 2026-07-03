@@ -264,10 +264,16 @@ func (r *PhoneNumbersNamespace) SetSwmlWebhook(sid string, url string, extra ...
 	return r.Update(sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetCxmlWebhook(sid string, url string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetCxmlWebhook(sid string, url string, fallback_url *string, status_callback_url *string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":     "laml_webhooks",
 		"call_request_url": url,
+	}
+	if fallback_url != nil {
+		body["call_fallback_url"] = *fallback_url
+	}
+	if status_callback_url != nil {
+		body["call_status_callback_url"] = *status_callback_url
 	}
 	mergeExtra(body, extra)
 	return r.Update(sid, body)
@@ -291,10 +297,13 @@ func (r *PhoneNumbersNamespace) SetAiAgent(sid string, agent_id string, extra ..
 	return r.Update(sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetCallFlow(sid string, flow_id string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetCallFlow(sid string, flow_id string, version *string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler": "call_flow",
 		"call_flow_id": flow_id,
+	}
+	if version != nil {
+		body["call_flow_version"] = *version
 	}
 	mergeExtra(body, extra)
 	return r.Update(sid, body)
@@ -309,10 +318,13 @@ func (r *PhoneNumbersNamespace) SetRelayApplication(sid string, name string, ext
 	return r.Update(sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetRelayTopic(sid string, topic string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetRelayTopic(sid string, topic string, status_callback_url *string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":     "relay_topic",
 		"call_relay_topic": topic,
+	}
+	if status_callback_url != nil {
+		body["call_relay_topic_status_callback_url"] = *status_callback_url
 	}
 	mergeExtra(body, extra)
 	return r.Update(sid, body)

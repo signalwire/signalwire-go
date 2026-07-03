@@ -281,6 +281,38 @@ func WithConnectRingback(media []map[string]any) ConnectOption {
 	}
 }
 
+// WithConnectTag sets an explicit tag for the connect operation
+// (Python connect(tag=...)).
+func WithConnectTag(tag string) ConnectOption {
+	return func(m map[string]any) {
+		m["tag"] = tag
+	}
+}
+
+// WithConnectMaxDuration sets the maximum connect duration in seconds
+// (Python connect(max_duration=...)).
+func WithConnectMaxDuration(seconds int) ConnectOption {
+	return func(m map[string]any) {
+		m["max_duration"] = seconds
+	}
+}
+
+// WithConnectMaxPricePerMinute sets the max price per minute
+// (Python connect(max_price_per_minute=...)).
+func WithConnectMaxPricePerMinute(price float64) ConnectOption {
+	return func(m map[string]any) {
+		m["max_price_per_minute"] = price
+	}
+}
+
+// WithConnectStatusURL sets the status callback URL for the connect operation
+// (Python connect(status_url=...)).
+func WithConnectStatusURL(url string) ConnectOption {
+	return func(m map[string]any) {
+		m["status_url"] = url
+	}
+}
+
 // StreamOption configures a Stream call.
 type StreamOption func(m map[string]any)
 
@@ -290,11 +322,9 @@ func WithStreamControlID(id string) StreamOption {
 	return func(m map[string]any) { m["_control_id"] = id }
 }
 
-// WithStreamDirection sets the stream direction.
-func WithStreamDirection(dir string) StreamOption {
-	return func(m map[string]any) {
-		m["direction"] = dir
-	}
+// WithStreamName sets the stream name (Python stream(name=...)).
+func WithStreamName(name string) StreamOption {
+	return func(m map[string]any) { m["name"] = name }
 }
 
 // WithStreamCodec sets the stream audio codec.
@@ -302,6 +332,35 @@ func WithStreamCodec(codec string) StreamOption {
 	return func(m map[string]any) {
 		m["codec"] = codec
 	}
+}
+
+// WithStreamTrack sets the stream track (Python stream(track=...)).
+func WithStreamTrack(track string) StreamOption {
+	return func(m map[string]any) { m["track"] = track }
+}
+
+// WithStreamStatusURL sets the stream status callback URL
+// (Python stream(status_url=...)).
+func WithStreamStatusURL(url string) StreamOption {
+	return func(m map[string]any) { m["status_url"] = url }
+}
+
+// WithStreamStatusURLMethod sets the HTTP method for the status callback
+// (Python stream(status_url_method=...)).
+func WithStreamStatusURLMethod(method string) StreamOption {
+	return func(m map[string]any) { m["status_url_method"] = method }
+}
+
+// WithStreamAuthorizationBearerToken sets the bearer token sent with the
+// stream (Python stream(authorization_bearer_token=...)).
+func WithStreamAuthorizationBearerToken(token string) StreamOption {
+	return func(m map[string]any) { m["authorization_bearer_token"] = token }
+}
+
+// WithStreamCustomParameters sets custom parameters forwarded with the stream
+// (Python stream(custom_parameters=...)).
+func WithStreamCustomParameters(params map[string]any) StreamOption {
+	return func(m map[string]any) { m["custom_parameters"] = params }
 }
 
 // ConferenceOption configures a JoinConference call.
@@ -321,11 +380,90 @@ func WithConferenceMuted(muted bool) ConferenceOption {
 	}
 }
 
-// WithConferenceDeaf joins deaf (cannot hear others).
-func WithConferenceDeaf(deaf bool) ConferenceOption {
-	return func(m map[string]any) {
-		m["deaf"] = deaf
-	}
+// WithConferenceStartOnEnter sets start_on_enter (Python join_conference).
+func WithConferenceStartOnEnter(v bool) ConferenceOption {
+	return func(m map[string]any) { m["start_on_enter"] = v }
+}
+
+// WithConferenceEndOnExit sets end_on_exit (Python join_conference).
+func WithConferenceEndOnExit(v bool) ConferenceOption {
+	return func(m map[string]any) { m["end_on_exit"] = v }
+}
+
+// WithConferenceWaitURL sets wait_url (Python join_conference).
+func WithConferenceWaitURL(url string) ConferenceOption {
+	return func(m map[string]any) { m["wait_url"] = url }
+}
+
+// WithConferenceMaxParticipants sets max_participants (Python join_conference).
+func WithConferenceMaxParticipants(n int) ConferenceOption {
+	return func(m map[string]any) { m["max_participants"] = n }
+}
+
+// WithConferenceRecord sets record (Python join_conference).
+func WithConferenceRecord(v string) ConferenceOption {
+	return func(m map[string]any) { m["record"] = v }
+}
+
+// WithConferenceRegion sets region (Python join_conference).
+func WithConferenceRegion(v string) ConferenceOption {
+	return func(m map[string]any) { m["region"] = v }
+}
+
+// WithConferenceTrim sets trim (Python join_conference).
+func WithConferenceTrim(v string) ConferenceOption {
+	return func(m map[string]any) { m["trim"] = v }
+}
+
+// WithConferenceCoach sets coach (Python join_conference).
+func WithConferenceCoach(v string) ConferenceOption {
+	return func(m map[string]any) { m["coach"] = v }
+}
+
+// WithConferenceStatusCallback sets status_callback (Python join_conference).
+func WithConferenceStatusCallback(v string) ConferenceOption {
+	return func(m map[string]any) { m["status_callback"] = v }
+}
+
+// WithConferenceStatusCallbackEvent sets status_callback_event (Python join_conference).
+func WithConferenceStatusCallbackEvent(v string) ConferenceOption {
+	return func(m map[string]any) { m["status_callback_event"] = v }
+}
+
+// WithConferenceStatusCallbackEventType sets status_callback_event_type (Python join_conference).
+func WithConferenceStatusCallbackEventType(v string) ConferenceOption {
+	return func(m map[string]any) { m["status_callback_event_type"] = v }
+}
+
+// WithConferenceStatusCallbackMethod sets status_callback_method (Python join_conference).
+func WithConferenceStatusCallbackMethod(v string) ConferenceOption {
+	return func(m map[string]any) { m["status_callback_method"] = v }
+}
+
+// WithConferenceRecordingStatusCallback sets recording_status_callback (Python join_conference).
+func WithConferenceRecordingStatusCallback(v string) ConferenceOption {
+	return func(m map[string]any) { m["recording_status_callback"] = v }
+}
+
+// WithConferenceRecordingStatusCallbackEvent sets recording_status_callback_event (Python join_conference).
+func WithConferenceRecordingStatusCallbackEvent(v string) ConferenceOption {
+	return func(m map[string]any) { m["recording_status_callback_event"] = v }
+}
+
+// WithConferenceRecordingStatusCallbackEventType sets recording_status_callback_event_type (Python join_conference).
+func WithConferenceRecordingStatusCallbackEventType(v string) ConferenceOption {
+	return func(m map[string]any) { m["recording_status_callback_event_type"] = v }
+}
+
+// WithConferenceRecordingStatusCallbackMethod sets recording_status_callback_method (Python join_conference).
+func WithConferenceRecordingStatusCallbackMethod(v string) ConferenceOption {
+	return func(m map[string]any) { m["recording_status_callback_method"] = v }
+}
+
+// WithConferenceStream sets the stream object (Python join_conference stream_obj,
+// emitted under the "stream" wire key).
+func WithConferenceStream(streamObj map[string]any) ConferenceOption {
+	return func(m map[string]any) { m["stream"] = streamObj }
 }
 
 // FaxOption configures a SendFax call.
@@ -449,13 +587,6 @@ func WithAIControlID(id string) AIOption {
 	return func(m map[string]any) { m["_control_id"] = id }
 }
 
-// WithAIEngine sets the AI engine to use.
-func WithAIEngine(engine string) AIOption {
-	return func(m map[string]any) {
-		m["engine"] = engine
-	}
-}
-
 // WithAIPrompt sets the AI prompt text.
 func WithAIPrompt(prompt map[string]any) AIOption {
 	return func(m map[string]any) {
@@ -470,12 +601,60 @@ func WithAIPostPrompt(pp map[string]any) AIOption {
 	}
 }
 
-// WithAIParams sets arbitrary AI parameters.
+// WithAIAgent sets the AI agent config (Python ai(agent=...)).
+func WithAIAgent(agent map[string]any) AIOption {
+	return func(m map[string]any) { m["agent"] = agent }
+}
+
+// WithAIPostPromptURL sets the post-prompt URL (Python ai(post_prompt_url=...)).
+func WithAIPostPromptURL(url string) AIOption {
+	return func(m map[string]any) { m["post_prompt_url"] = url }
+}
+
+// WithAIPostPromptAuthUser sets the post-prompt basic-auth user
+// (Python ai(post_prompt_auth_user=...)).
+func WithAIPostPromptAuthUser(user string) AIOption {
+	return func(m map[string]any) { m["post_prompt_auth_user"] = user }
+}
+
+// WithAIPostPromptAuthPassword sets the post-prompt basic-auth password
+// (Python ai(post_prompt_auth_password=...)).
+func WithAIPostPromptAuthPassword(password string) AIOption {
+	return func(m map[string]any) { m["post_prompt_auth_password"] = password }
+}
+
+// WithAIGlobalData sets the AI global data (Python ai(global_data=...)).
+func WithAIGlobalData(data map[string]any) AIOption {
+	return func(m map[string]any) { m["global_data"] = data }
+}
+
+// WithAIPronounce sets the AI pronounce rules (Python ai(pronounce=...)).
+func WithAIPronounce(pronounce []map[string]any) AIOption {
+	return func(m map[string]any) { m["pronounce"] = pronounce }
+}
+
+// WithAIHints sets the AI hints (Python ai(hints=...)).
+func WithAIHints(hints []string) AIOption {
+	return func(m map[string]any) { m["hints"] = hints }
+}
+
+// WithAILanguages sets the AI languages (Python ai(languages=...)).
+func WithAILanguages(languages []map[string]any) AIOption {
+	return func(m map[string]any) { m["languages"] = languages }
+}
+
+// WithAISWAIG sets the AI SWAIG config (Python ai(SWAIG=...)).
+func WithAISWAIG(swaig map[string]any) AIOption {
+	return func(m map[string]any) { m["SWAIG"] = swaig }
+}
+
+// WithAIParams sets the AI parameters. Mirrors Python's ai(ai_params=...) /
+// amazon_bedrock(ai_params=...), which emit the map nested under the "params"
+// wire key (call.py: params["params"] = ai_params) — NOT spread onto the top
+// level of the frame.
 func WithAIParams(params map[string]any) AIOption {
 	return func(m map[string]any) {
-		for k, v := range params {
-			m[k] = v
-		}
+		m["params"] = params
 	}
 }
 

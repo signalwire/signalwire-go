@@ -182,7 +182,7 @@ func TestSetSwmlWebhook_Extra(t *testing.T) {
 
 func TestSetCxmlWebhook_Minimal(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", nil)
+	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", nil, nil)
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "laml_webhooks" {
 		t.Errorf("call_handler = %v, want laml_webhooks", body["call_handler"])
@@ -200,10 +200,9 @@ func TestSetCxmlWebhook_Minimal(t *testing.T) {
 
 func TestSetCxmlWebhook_WithFallbackAndStatus(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", map[string]any{
-		"call_fallback_url":        "https://example.com/fallback.xml",
-		"call_status_callback_url": "https://example.com/status",
-	})
+	fallback := "https://example.com/fallback.xml"
+	status := "https://example.com/status"
+	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", &fallback, &status)
 	body := mock.Calls()[0].Body
 	want := map[string]any{
 		"call_handler":             "laml_webhooks",
@@ -247,7 +246,7 @@ func TestSetAiAgent_HappyPath(t *testing.T) {
 
 func TestSetCallFlow_Minimal(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCallFlow("pn-1", "cf-1")
+	_, _ = pn.SetCallFlow("pn-1", "cf-1", nil)
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "call_flow" {
 		t.Errorf("call_handler = %v, want call_flow", body["call_handler"])
@@ -262,7 +261,8 @@ func TestSetCallFlow_Minimal(t *testing.T) {
 
 func TestSetCallFlow_WithVersion(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCallFlow("pn-1", "cf-1", map[string]any{"call_flow_version": "current_deployed"})
+	version := "current_deployed"
+	_, _ = pn.SetCallFlow("pn-1", "cf-1", &version)
 	body := mock.Calls()[0].Body
 	if body["call_flow_version"] != "current_deployed" {
 		t.Errorf("call_flow_version = %v, want current_deployed", body["call_flow_version"])
@@ -283,7 +283,7 @@ func TestSetRelayApplication_HappyPath(t *testing.T) {
 
 func TestSetRelayTopic_Minimal(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetRelayTopic("pn-1", "office")
+	_, _ = pn.SetRelayTopic("pn-1", "office", nil)
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "relay_topic" {
 		t.Errorf("call_handler = %v, want relay_topic", body["call_handler"])
@@ -295,9 +295,8 @@ func TestSetRelayTopic_Minimal(t *testing.T) {
 
 func TestSetRelayTopic_WithStatusCallback(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetRelayTopic("pn-1", "office", map[string]any{
-		"call_relay_topic_status_callback_url": "https://example.com/status",
-	})
+	statusCB := "https://example.com/status"
+	_, _ = pn.SetRelayTopic("pn-1", "office", &statusCB)
 	body := mock.Calls()[0].Body
 	if body["call_relay_topic_status_callback_url"] != "https://example.com/status" {
 		t.Errorf("call_relay_topic_status_callback_url = %v",

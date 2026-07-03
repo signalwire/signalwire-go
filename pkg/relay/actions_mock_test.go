@@ -937,6 +937,88 @@ func TestRelay_ConcurrentPlayAndRecordRouteIndependently(t *testing.T) {
 	}
 }
 
+// TestRelay_BindDigitEmitsBindMethodWireKey is a wire-parity regression test:
+// Python's bind_digit writes the RELAY param under the key "bind_method"
+// (call.py: params["bind_method"] = bind_method). A prior Go bug emitted
+// "method" instead, which the server would not recognize.
+func TestRelay_BindDigitEmitsBindMethodWireKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-bind")
+	_ = call.BindDigit("123", "my.method", nil, "", 0)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.bind_digit")
+	params, _ := entry.FrameParams()
+	if params["bind_method"] != "my.method" {
+		t.Errorf("bind_method = %v, want my.method (Python wire key)", params["bind_method"])
+	}
+	if _, has := params["method"]; has {
+		t.Error("must not emit 'method' key — Python uses 'bind_method'")
+	}
+	if params["digits"] != "123" {
+		t.Errorf("digits = %v, want 123", params["digits"])
+	}
+}
+
+// TestRelay_AmazonBedrockDispatchesOwnMethod is a wire-parity regression test:
+// Python's amazon_bedrock() calls _execute("amazon_bedrock", params) — the
+// dedicated RELAY method — with NO "engine" field. A prior Go bug routed it to
+// calling.ai with params["engine"]="amazon_bedrock".
+func TestRelay_AmazonBedrockDispatchesOwnMethod(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-bedrock")
+	_ = call.AmazonBedrock(
+		relay.WithAIPrompt(map[string]any{"text": "hi"}),
+		relay.WithAIControlID("bedrock-ctl"),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.amazon_bedrock")
+	params, _ := entry.FrameParams()
+	if params["control_id"] != "bedrock-ctl" {
+		t.Errorf("control_id = %v, want bedrock-ctl", params["control_id"])
+	}
+	if _, has := params["engine"]; has {
+		t.Error("amazon_bedrock must not emit an 'engine' key (Python never sends one)")
+	}
+	// It must NOT have been routed to calling.ai.
+	if len(h.JournalRecv(t, "calling.ai")) != 0 {
+		t.Error("amazon_bedrock must not dispatch calling.ai")
+	}
+}
+
+// TestRelay_AIParamsNestedUnderParamsKey is a wire-parity regression test:
+// Python's ai(ai_params=...) writes the map nested under the "params" wire key
+// (call.py: params["params"] = ai_params), NOT spread onto the top level.
+func TestRelay_AIParamsNestedUnderParamsKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-aiparams")
+	_ = call.AI(
+		relay.WithAIParams(map[string]any{"temperature": 0.7}),
+		relay.WithAIControlID("aip-ctl"),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.ai")
+	params, _ := entry.FrameParams()
+	nested, ok := params["params"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai_params must be nested under 'params' key; got params=%v", params)
+	}
+	if nested["temperature"] != 0.7 {
+		t.Errorf("params.temperature = %v, want 0.7", nested["temperature"])
+	}
+	if _, spilled := params["temperature"]; spilled {
+		t.Error("ai_params keys must not spill onto the top-level frame")
+	}
+}
+
 // Sentinel (avoid unused import warnings on partial builds).
 var _ atomic.Bool
 var _ sync.Mutex

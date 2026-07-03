@@ -1161,6 +1161,33 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 					addClassMethod(target.Module, target.Class, pyMethod, sig)
 				}
 			}
+			// Synthetic methods: Python members the port expresses through a
+			// package-level factory rather than a same-named Go method. The
+			// ``from_payload`` classmethod on every relay event is the canonical
+			// case — Go's ``New<Event>(params map[string]any)`` factory IS the
+			// from_payload constructor (build the typed event from the raw
+			// payload dict). We emit the reference-shaped classmethod signature
+			// ``(cls, payload: dict<string,any>) -> class:<Module>.<Class>`` so
+			// the signature audit sees the member the surface audit already
+			// projects via ClassTarget.SyntheticMethods. Other synthetics
+			// (``__init__``, ``from_json``, …) are covered by factoryInit /
+			// FreeFnTable or documented in PORT_SIGNATURE_OMISSIONS.md.
+			for _, syn := range target.SyntheticMethods {
+				if syn != "from_payload" {
+					continue
+				}
+				if _, already := target.Methods[syn]; already {
+					continue
+				}
+				addClassMethod(target.Module, target.Class, "from_payload", canonicalSignature{
+					Params: []canonicalParam{
+						{Name: "cls", Kind: "cls"},
+						{Name: "payload", Type: "dict<string,any>", Required: boolPtr(true)},
+					},
+					Returns: "class:" + target.Module + "." + target.Class,
+				})
+			}
+
 			// Auto-emit exported fields whose type is an SDK class
 			// (``*namespaces.FabricNamespace``, ``*FooClient``, etc.)
 			// as zero-arg accessor methods. Mirrors the Python reference

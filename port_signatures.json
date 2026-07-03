@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 74aa9318155897ab2359f9f6ea415c98b64f4774 (go/ast walker)",
+  "generated_from": "signalwire-go @ bbd8462851a16c440659958a9c1147e620e86d8e (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -11614,6 +11614,440 @@
       }
     },
     "signalwire.relay.event": {
+      "classes": {
+        "CallReceiveEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.CallReceiveEvent"
+            }
+          }
+        },
+        "CallStateEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.CallStateEvent"
+            }
+          }
+        },
+        "CallingErrorEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.CallingErrorEvent"
+            }
+          }
+        },
+        "CollectEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.CollectEvent"
+            }
+          }
+        },
+        "ConferenceEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.ConferenceEvent"
+            }
+          }
+        },
+        "ConnectEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.ConnectEvent"
+            }
+          }
+        },
+        "DenoiseEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.DenoiseEvent"
+            }
+          }
+        },
+        "DetectEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.DetectEvent"
+            }
+          }
+        },
+        "DialEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.DialEvent"
+            }
+          }
+        },
+        "EchoEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.EchoEvent"
+            }
+          }
+        },
+        "FaxEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.FaxEvent"
+            }
+          }
+        },
+        "HoldEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.HoldEvent"
+            }
+          }
+        },
+        "MessageReceiveEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.MessageReceiveEvent"
+            }
+          }
+        },
+        "MessageStateEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.MessageStateEvent"
+            }
+          }
+        },
+        "PayEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.PayEvent"
+            }
+          }
+        },
+        "PlayEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.PlayEvent"
+            }
+          }
+        },
+        "QueueEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.QueueEvent"
+            }
+          }
+        },
+        "RecordEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.RecordEvent"
+            }
+          }
+        },
+        "ReferEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.ReferEvent"
+            }
+          }
+        },
+        "RelayEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.RelayEvent"
+            }
+          }
+        },
+        "SendDigitsEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.SendDigitsEvent"
+            }
+          }
+        },
+        "StreamEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.StreamEvent"
+            }
+          }
+        },
+        "TapEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.TapEvent"
+            }
+          }
+        },
+        "TranscribeEvent": {
+          "methods": {
+            "from_payload": {
+              "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
+                  "name": "payload",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.relay.event.TranscribeEvent"
+            }
+          }
+        }
+      },
       "functions": {
         "parse_event": {
           "params": [
@@ -16650,6 +17084,11 @@
                   "required": true
                 },
                 {
+                  "name": "version",
+                  "type": "optional\u003cstring\u003e",
+                  "required": true
+                },
+                {
                   "name": "extra",
                   "kind": "var_keyword",
                   "type": "any",
@@ -16702,6 +17141,16 @@
                   "required": true
                 },
                 {
+                  "name": "fallback_url",
+                  "type": "optional\u003cstring\u003e",
+                  "required": true
+                },
+                {
+                  "name": "status_callback_url",
+                  "type": "optional\u003cstring\u003e",
+                  "required": true
+                },
+                {
                   "name": "extra",
                   "kind": "var_keyword",
                   "type": "any",
@@ -16751,6 +17200,11 @@
                 {
                   "name": "topic",
                   "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "status_callback_url",
+                  "type": "optional\u003cstring\u003e",
                   "required": true
                 },
                 {
