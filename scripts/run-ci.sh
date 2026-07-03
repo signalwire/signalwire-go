@@ -4,15 +4,20 @@
 # Same script is invoked locally (`bash scripts/run-ci.sh`) AND by the
 # GitHub Actions workflow. No drift between local and CI behavior.
 #
+# FMT / LINT / TEST are the CANONICAL scripts (self-bootstrapping, CWD-independent):
+#   scripts/run-format.sh · scripts/run-lint.sh · scripts/run-tests.sh
+# (shared env in scripts/_env.sh). Do not invoke gofmt / go vet / golangci-lint /
+# go test directly — go through those three scripts (porting-sdk/RUN_LINT_FORMAT_SPEC.md).
+#
 # Gates (in order, fail-fast):
-#   1. go test ./...                      — language test runner
+#   1. go test ./...                      — language test runner (scripts/run-tests.sh)
 #   2. signature regen                    — go run ./cmd/enumerate-signatures
 #   3. drift gate                         — porting-sdk diff_port_signatures.py
 #   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
 #   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 #   6. emission gate                      — porting-sdk diff_port_emission.py
-#   7. fmt gate                           — gofmt (local: auto-fix; CI: -l check)
-#   8. lint gate                          — go vet + golangci-lint (.golangci.yml)
+#   7. fmt gate                           — scripts/run-format.sh (gofmt; local auto-fix / CI --check)
+#   8. lint gate                          — scripts/run-lint.sh (go vet + golangci-lint, .golangci.yml)
 #   9. doc-audit gate                     — porting-sdk audit_docs.py
 #  10. surface-diff gate                  — porting-sdk diff_port_surface.py
 #
@@ -84,9 +89,10 @@ cd "$PORT_ROOT"
 
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
 
-# Gate 1: language test runner
-run_gate "TEST" "go test ./..." \
-    go test ./...
+# Gate 1: language test runner — via the canonical scripts/run-tests.sh
+# (self-bootstraps its tool env + runs from the module root regardless of CWD).
+run_gate "TEST" "go test ./... (scripts/run-tests.sh)" \
+    bash "$PORT_ROOT/scripts/run-tests.sh"
 
 # Gate 2: signature regen
 run_gate "SIGNATURES" "regenerate port_signatures.json" \
@@ -284,25 +290,11 @@ run_gate "SWAIG-COVERAGE" "every engine SWAIG action emittable (modulo allowlist
 #     that FAILS if unformatted code reached CI (a committer who skipped run-ci).
 # (goimports/golangci-lint are the deferred ADVISORY tier — they need a tool
 # install + carry a backlog; gofmt + go vet are the zero-backlog day-1 floor.)
-fmt_gate() {
-    if [ -n "${CI:-}" ]; then
-        local unformatted
-        unformatted="$(gofmt -l .)"
-        if [ -n "$unformatted" ]; then
-            echo "unformatted files (run \`gofmt -w .\`):"
-            echo "$unformatted"
-            return 1
-        fi
-        return 0
-    else
-        gofmt -w .
-        if ! git diff --quiet 2>/dev/null; then
-            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
-        fi
-        return 0
-    fi
-}
-run_gate "FMT" "gofmt (local: auto-fix; CI: -l check)" fmt_gate
+# The FMT body now lives in scripts/run-format.sh (the canonical, CWD-independent
+# formatter entry point). CI passes --check (verify-only, read-only); local run
+# gets APPLY. Same dual-mode gate, just relocated so it works from any CWD.
+run_gate "FMT" "gofmt via scripts/run-format.sh (local: auto-fix; CI: --check)" \
+    bash "$PORT_ROOT/scripts/run-format.sh" ${CI:+--check}
 
 # Gate 8: LINT — the language lint gate (go). Two layers:
 #   1. `go vet ./...` — the builtin static-analysis floor (always available).
@@ -319,31 +311,11 @@ run_gate "FMT" "gofmt (local: auto-fix; CI: -l check)" fmt_gate
 # ensure_dev_tools: if it's missing locally, `go install` the pinned version into
 # GOPATH/bin and put that on PATH. In CI the workflow installs it; if it's still
 # absent there, fail loudly rather than skip.
-GOLANGCI_VERSION="v2.12.2"
-ensure_golangci() {
-    command -v golangci-lint >/dev/null 2>&1 && return 0
-    local gobin
-    gobin="$(go env GOPATH)/bin"
-    export PATH="$gobin:$PATH"
-    command -v golangci-lint >/dev/null 2>&1 && return 0
-    if [ -n "${CI:-}" ]; then
-        echo "golangci-lint not found in CI — the workflow must install it (golangci-lint-action)" >&2
-        return 1
-    fi
-    echo "    (golangci-lint $GOLANGCI_VERSION missing — installing the pinned dev dependency...)"
-    go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$GOLANGCI_VERSION" || {
-        echo "    golangci-lint install failed — install it manually (go install …@$GOLANGCI_VERSION)" >&2
-        return 1
-    }
-    command -v golangci-lint >/dev/null 2>&1
-}
-lint_gate() {
-    go vet ./... || return 1
-    ensure_golangci || return 1
-    golangci-lint run --config "$PORT_ROOT/.golangci.yml" \
-        --max-same-issues 0 --max-issues-per-linter 0 ./... || return 1
-}
-run_gate "LINT" "go vet + golangci-lint (lint gate)" lint_gate
+# The LINT body (go vet + golangci-lint, with the pinned-version self-bootstrap)
+# now lives in scripts/run-lint.sh — the canonical, CWD-independent lint entry
+# point. run-ci just calls it.
+run_gate "LINT" "go vet + golangci-lint via scripts/run-lint.sh" \
+    bash "$PORT_ROOT/scripts/run-lint.sh"
 
 # Gate 9: DOC-AUDIT — every method/class referenced in docs/ + examples/ fenced
 # code blocks must resolve to a real symbol in the port surface (catches

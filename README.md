@@ -277,23 +277,28 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
 
-## Testing
+## Testing, linting, formatting
+
+Format, lint, and test go through three canonical scripts under `scripts/`. They
+self-bootstrap their tool environment and run from the module root regardless of
+your current directory.
 
 ```bash
-# Run the test suite
-go test ./...
+# Test — go test ./... (optional filter/package passthrough)
+bash scripts/run-tests.sh
+bash scripts/run-tests.sh ./pkg/agent/...
+bash scripts/run-tests.sh -run TestFoo ./pkg/relay/...
+bash scripts/run-tests.sh -coverprofile=coverage.out ./...   # raw go test flags pass through
 
-# Run with verbose output
-go test -v ./...
+# Lint — go vet + golangci-lint
+bash scripts/run-lint.sh
 
-# Run by package
-go test ./pkg/agent/...
-go test ./pkg/relay/...
-go test ./pkg/rest/...
+# Format — gofmt (apply) / --check (verify-only)
+bash scripts/run-format.sh
+bash scripts/run-format.sh --check
 
-# Coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
+# Everything (full gate set)
+bash scripts/run-ci.sh
 ```
 
 ## License

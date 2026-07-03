@@ -1034,8 +1034,8 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 	// door. Ordering: all required, then all optional, then extra.
 	var params []string
 	params = append(params, "sid string")
-	var bodyLines []string      // unconditional (required) body assignments
-	var optionalLines []string  // conditional (optional) body assignments
+	var bodyLines []string     // unconditional (required) body assignments
+	var optionalLines []string // conditional (optional) body assignments
 	bodyLines = append(bodyLines, fmt.Sprintf("\t\t%q: %q,", "call_handler", sm.handler))
 	var optParams []string
 	for _, a := range sm.args {
