@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ bbd8462851a16c440659958a9c1147e620e86d8e",
+  "generated_from": "signalwire-go (go-native) @ 4126e6e49748380f9ae9923b0ccab87b363dec64",
   "modules": {
     "agent": {
       "classes": {
@@ -436,112 +436,6 @@
       },
       "functions": [
         "NewHandler"
-      ]
-    },
-    "livewire": {
-      "classes": {
-        "Agent": [
-          "AddTool",
-          "FunctionTool",
-          "Instructions",
-          "OnEnter",
-          "OnExit",
-          "OnUserTurnCompleted",
-          "Session",
-          "UpdateTools"
-        ],
-        "AgentHandoff": [],
-        "AgentSession": [
-          "GenerateReply",
-          "GetSwAgent",
-          "History",
-          "Interrupt",
-          "Say",
-          "SetUserdata",
-          "Start",
-          "UpdateAgent",
-          "UpdateInstructions",
-          "Userdata"
-        ],
-        "CartesiaTTS": [],
-        "ChatContext": [
-          "Append"
-        ],
-        "ChatMessage": [],
-        "DeepgramSTT": [],
-        "ElevenLabsTTS": [],
-        "FunctionToolSpec": [],
-        "GoogleSTT": [],
-        "InferenceLLM": [],
-        "InferenceSTT": [],
-        "InferenceTTS": [],
-        "JobContext": [
-          "Connect",
-          "WaitForParticipant"
-        ],
-        "JobProcess": [],
-        "LiveServer": [
-          "RTCSession",
-          "SetSetupFunc"
-        ],
-        "OpenAILLM": [],
-        "OpenAITTS": [],
-        "Room": [],
-        "RunContext": [],
-        "SileroVAD": [
-          "Load"
-        ],
-        "StopResponse": [],
-        "ToolError": [
-          "Error"
-        ]
-      },
-      "functions": [
-        "FunctionTool",
-        "NewAgent",
-        "NewAgentServer",
-        "NewAgentSession",
-        "NewCartesiaTTS",
-        "NewChatContext",
-        "NewDeepgramSTT",
-        "NewElevenLabsTTS",
-        "NewGoogleSTT",
-        "NewInferenceLLM",
-        "NewInferenceSTT",
-        "NewInferenceTTS",
-        "NewOpenAILLM",
-        "NewOpenAITTS",
-        "NewSileroVAD",
-        "NewToolError",
-        "RunApp",
-        "WithAgentName",
-        "WithAllowInterruptions",
-        "WithDescription",
-        "WithInferenceLLMModel",
-        "WithInferenceSTTModel",
-        "WithLLM",
-        "WithMCPServers",
-        "WithMaxEndpointingDelay",
-        "WithMaxToolSteps",
-        "WithMinEndpointingDelay",
-        "WithMinInterruptionDuration",
-        "WithOnRequest",
-        "WithOnSessionEnd",
-        "WithParameters",
-        "WithPreemptiveGeneration",
-        "WithRecord",
-        "WithReplyInstructions",
-        "WithRoom",
-        "WithSTT",
-        "WithServerType",
-        "WithSessionMCPServers",
-        "WithSessionTools",
-        "WithSessionUserdata",
-        "WithTTS",
-        "WithTools",
-        "WithTurnDetection",
-        "WithUserdata",
-        "WithVAD"
       ]
     },
     "logging": {

@@ -332,12 +332,6 @@ signalwire.rest.namespaces.fabric.SwmlWebhooksResource: deprecated legacy resour
 
 # --- Prefab internal handlers ---
 
-# --- Livewire shim gaps ---
-signalwire.livewire.Agent.llm_node: approved: 2026-07 user sign-off — LiveKit-specific pipeline node override; Go livewire shim delegates to the SWML AI verb
-signalwire.livewire.Agent.stt_node: approved: 2026-07 user sign-off — LiveKit-specific pipeline node override; Go livewire shim delegates to the SWML AI verb
-signalwire.livewire.Agent.tts_node: approved: 2026-07 user sign-off — LiveKit-specific pipeline node override; Go livewire shim delegates to the SWML AI verb
-signalwire.livewire.Agent.update_instructions: approved: 2026-07 user sign-off — LiveKit runtime instruction mutation; Go exposes AgentSession.UpdateInstructions instead of on Agent
-signalwire.livewire.RunContext.userdata: impossible: Go exposes RunContext.Userdata as an exported struct field (idiomatic direct access); a same-named accessor method cannot coexist with the field
 
 # --- Misc not-yet-implemented items ---
 
@@ -385,3 +379,64 @@ signalwire.rest._base.FabricResourcePUT: impossible: Python empty base-class var
 # ---------------------------------------------------------------------
 # (d) Deferred NON-REST generated types (SWML verbs / SWAIG read-side payloads):
 # SWML/SWAIG core *_generated typed-payload modules (D workstream):
+
+# --- LiveWire (LiveKit-agents compat shim) — Go is not a LiveKit agents SDK language ---
+signalwire.livewire.Agent: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.on_enter: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.on_exit: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.on_user_turn_completed: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.session: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.update_tools: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentHandoff: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentHandoff.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentServer: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentServer.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentServer.rtc_session: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession.generate_reply: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession.history: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession.interrupt: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession.say: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession.start: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession.update_agent: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.AgentSession.userdata: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.ChatContext: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.ChatContext.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.ChatContext.append: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.function_tool: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.InferenceLLM: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.InferenceLLM.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.InferenceSTT: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.InferenceSTT.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.InferenceTTS: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.InferenceTTS.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.JobContext: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.JobContext.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.JobContext.connect: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.JobContext.wait_for_participant: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.JobProcess: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.JobProcess.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.CartesiaTTS: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.CartesiaTTS.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.DeepgramSTT: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.DeepgramSTT.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.ElevenLabsTTS: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.ElevenLabsTTS.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.OpenAILLM: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.OpenAILLM.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.SileroVAD: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.SileroVAD.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.plugins.SileroVAD.load: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Room: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.run_app: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.RunContext: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.RunContext.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.StopResponse: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.ToolError: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.llm_node: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.stt_node: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.tts_node: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.Agent.update_instructions: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+signalwire.livewire.RunContext.userdata: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)

@@ -10,8 +10,6 @@
 
 # --- Existing curated entries (preserved) ---
 signalwire.relay.event.AIEvent: Go-only typed wrapper around AI action events; Python uses RelayEvent directly
-signalwire.livewire.plugins.GoogleSTT: Go-only plugin stub; matches WithSTT("google") at AgentSession construction
-signalwire.livewire.plugins.OpenAITTS: Go-only plugin stub; matches WithTTS("openai") at AgentSession construction
 
 # --- Tier-2 idiom additions: context.Context-aware entry points (IDIOM_PASS_JOURNAL §4) ---
 # Additive *Context variants of the blocking/async entry points that honor ctx
@@ -138,14 +136,6 @@ builtin.WebSearchSkill: Go skill implementation; matches the Python skill of the
 builtin.WikipediaSearchSkill: Go skill implementation; matches the Python skill of the same name structurally
 datamap.ExpressionPattern: Go-only struct; no direct Python counterpart
 lambda.Handler: Go-only struct; no direct Python counterpart
-livewire.ChatContext: Go-only struct; no direct Python counterpart
-livewire.ChatMessage: Go-only struct; no direct Python counterpart
-livewire.GoogleSTT: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
-livewire.InferenceLLM: Go-only struct; no direct Python counterpart
-livewire.InferenceSTT: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
-livewire.InferenceTTS: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
-livewire.OpenAITTS: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
-livewire.ToolError: Go-only struct; no direct Python counterpart
 logging.Logger: Go-only struct; no direct Python counterpart
 logging.LogLevel: Go-only defined-string type (closed set of log-level names: debug/info/warn/warning/error/off) + LevelName* typed constants; server.WithLogLevel takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "debug" string compiling — parity with the reference's plain str log_level. ParseLevel(string(LogLevel)) resolves it to the internal Level, so it adds zero signature drift (it appears on no oracle method param). Distinct from the internal Level severity int.
 namespaces.CrudResource: Go REST resource type; Python uses dynamic resource accessors via __getattr__
@@ -269,42 +259,6 @@ contexts.WithFunctions: Go functional-options helper; encodes a Python kwarg for
 contexts.WithPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
 contexts.WithType: Go functional-options helper; encodes a Python kwarg for the matching constructor
 lambda.NewHandler: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewAgentServer: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewChatContext: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewGoogleSTT: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewInferenceLLM: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewInferenceSTT: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewInferenceTTS: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewOpenAITTS: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewToolError: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.WithAgentName: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithAllowInterruptions: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithDescription: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithInferenceLLMModel: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithInferenceSTTModel: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithLLM: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMCPServers: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMaxEndpointingDelay: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMaxToolSteps: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMinEndpointingDelay: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMinInterruptionDuration: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithOnRequest: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithOnSessionEnd: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithParameters: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithPreemptiveGeneration: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithRecord: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithReplyInstructions: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithRoom: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithSTT: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithServerType: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithSessionMCPServers: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithSessionTools: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithSessionUserdata: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithTTS: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithTools: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithTurnDetection: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithUserdata: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithVAD: Go functional-options helper; encodes a Python kwarg for the matching constructor
 logging.GetGlobalLevel: Go-only public function; no direct Python counterpart
 logging.IsSuppressed: Go-only public function; no direct Python counterpart
 logging.New: Go factory constructor for a port-only struct; Python equivalent does not exist
@@ -440,12 +394,6 @@ signalwire.core.mixins.tool_mixin.ToolMixin.logger: ToolMixin methods are projec
 signalwire.core.mixins.web_mixin.WebMixin.logger: WebMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
 signalwire.core.swml_service.SWMLService.logger: Go's swml.Service exposes a public ``Logger *logging.Logger`` field; auto-projected as ``logger`` accessor on the Python-canonical class
 
-# --- Go-only fields on livewire context structs (LiveKit-style typed handles) ---
-signalwire.livewire.AgentHandoff.agent: Go's AgentHandoff embeds a typed ``Agent *Agent`` reference; Python's AgentHandoff is an empty stub class
-signalwire.livewire.JobContext.proc: Go's JobContext embeds a typed ``Proc *JobProcess`` reference; Python's JobContext is an empty stub class
-signalwire.livewire.JobContext.room: Go's JobContext embeds a typed ``Room *Room`` reference; Python's JobContext is an empty stub class
-signalwire.livewire.RunContext.agent: Go's RunContext embeds a typed ``Agent *Agent`` reference; Python's RunContext is an empty stub class
-signalwire.livewire.RunContext.session: Go's RunContext embeds a typed ``Session *AgentSession`` reference; Python's RunContext is an empty stub class
 
 # --- Go-only fields on REST base resources (Python uses dynamic attribute lookup) ---
 signalwire.rest._base.BaseResource.http: Go's namespaces.Resource exposes a public ``http`` HTTPClient field; Python uses dynamic attribute lookup via __init__

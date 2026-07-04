@@ -51,8 +51,6 @@ signalwire.core.security.session_manager.SessionManager.__init__: Go uses NewX f
 signalwire.core.skill_base.SkillBase.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.core.skill_manager.SkillManager.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.core.swml_service.SWMLService.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.livewire.Agent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.livewire.AgentSession.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.prefabs.concierge.ConciergeAgent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.prefabs.faq_bot.FAQBotAgent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.prefabs.info_gatherer.InfoGathererAgent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
@@ -258,23 +256,6 @@ signalwire.RestClient: go-typed-factory — Go RestClient(project, token, space 
 signalwire.register_skill: go-typed-registration — Go RegisterSkill(name string, factory ...) registers a skill by name + factory where Python register_skill(skill_class) registers a class; Go's package-level registration idiom (no class objects); same registry effect
 signalwire.agent_server.AgentServer.run: go-idiom-options-collapse — Go AgentServer.Run(opts ...RunOption) collapses Python's event/context/host/port serving args into functional options; same server run
 
-## LiveWire: reference-oracle gap (source-present, absent from python_signatures)
-#
-# The Python reference DEFINES these members in signalwire/livewire/__init__.py
-# and signalwire/livewire/plugins.py, but the signature oracle (python_signatures.json)
-# records ZERO signalwire.livewire members — a griffe blindspot on the livewire
-# package (the same class of gap as the BedrockAgent oracle gap below). The Go port
-# genuinely implements them, so they surface as `in port, not in reference`. Excused
-# as an oracle gap, NOT a port defect. (Flagged to porting-sdk: the oracle should
-# enumerate signalwire.livewire.) Verified: methods exist at __init__.py:520 (start),
-# :528 (say), :532 (generate_reply), :715 (rtc_session), :826 (run_app); plugins.py:124 (SileroVAD.load).
-signalwire.livewire.AgentSession.say: reference-oracle gap — signalwire.livewire absent from python_signatures (griffe blindspot; say defined at livewire/__init__.py:528)
-signalwire.livewire.AgentSession.start: reference-oracle gap — signalwire.livewire absent from python_signatures (griffe blindspot; start defined at livewire/__init__.py:520)
-signalwire.livewire.AgentSession.generate_reply: reference-oracle gap — signalwire.livewire absent from python_signatures (griffe blindspot; generate_reply at livewire/__init__.py:532)
-signalwire.livewire.AgentServer.rtc_session: reference-oracle gap — signalwire.livewire absent from python_signatures (griffe blindspot; rtc_session at livewire/__init__.py:715)
-signalwire.livewire.run_app: reference-oracle gap — signalwire.livewire absent from python_signatures (griffe blindspot; run_app at livewire/__init__.py:826)
-signalwire.livewire.plugins.SileroVAD.load: reference-oracle gap — signalwire.livewire.plugins absent from python_signatures (griffe blindspot; SileroVAD.load at livewire/plugins.py:124)
-
 ## Top-level list_skills: reference-oracle gap
 # signalwire/__init__.py defines BOTH list_skills() and list_skills_with_params(),
 # but python_signatures records only list_skills_with_params — a dropped-symbol
@@ -365,18 +346,6 @@ signalwire.core.swml_builder.SWMLBuilder.build: build is surfaced synthetically 
 signalwire.core.swml_handler.AIVerbHandler.validate_config: Go ValidateConfig signature differs from the reference SWMLVerbHandler.validate_config shape
 signalwire.core.swml_service.SWMLService.as_router: Go AsRouter returns http.Handler; the reference records a FastAPI-router signature that differs
 signalwire.core.swml_service.SWMLService.extract_sip_username: extract_sip_username surfaced synthetically (Go swml.ExtractSIPUsername package func); no instance-method signature
-signalwire.livewire.Agent.on_enter: Go livewire.Agent.OnEnter signature differs from the reference on_enter shape
-signalwire.livewire.Agent.on_exit: Go livewire.Agent.OnExit signature differs from the reference on_exit shape
-signalwire.livewire.Agent.on_user_turn_completed: Go OnUserTurnCompleted signature differs from the reference shape
-signalwire.livewire.Agent.session: Go Agent.Session accessor signature differs from the reference property
-signalwire.livewire.Agent.update_tools: Go Agent.UpdateTools signature differs from the reference shape
-signalwire.livewire.AgentSession.update_agent: Go AgentSession.UpdateAgent signature differs from the reference shape
-signalwire.livewire.ChatContext.append: Go ChatContext.Append(role,content) signature differs from the reference append shape
-signalwire.livewire.InferenceLLM.__init__: Go uses NewInferenceLLM factory; the reference records a distinct __init__ signature
-signalwire.livewire.InferenceSTT.__init__: Go uses NewInferenceSTT factory; the reference records a distinct __init__ signature
-signalwire.livewire.InferenceTTS.__init__: Go uses NewInferenceTTS factory; the reference records a distinct __init__ signature
-signalwire.livewire.JobContext.wait_for_participant: Go JobContext.WaitForParticipant signature differs from the reference shape
-signalwire.livewire.function_tool: Go FunctionTool free function returns a FunctionToolSpec; the reference decorator signature differs
 signalwire.prefabs.concierge.ConciergeAgent.on_summary: Go OnSummary matches the SummaryCallback shape (summary,rawData); reference on_summary signature differs
 signalwire.prefabs.faq_bot.FAQBotAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs
 signalwire.prefabs.receptionist.ReceptionistAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs

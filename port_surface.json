@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ bbd8462851a16c440659958a9c1147e620e86d8e",
+  "generated_from": "signalwire-go @ 4126e6e49748380f9ae9923b0ccab87b363dec64",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -738,87 +738,6 @@
         "UserInputAction": [],
         "UserSWAIGFunction": [],
         "Webhook": []
-      },
-      "functions": []
-    },
-    "signalwire.livewire": {
-      "classes": {
-        "Agent": [
-          "__init__",
-          "on_enter",
-          "on_exit",
-          "on_user_turn_completed",
-          "session",
-          "update_tools"
-        ],
-        "AgentHandoff": [
-          "__init__"
-        ],
-        "AgentServer": [
-          "__init__",
-          "rtc_session"
-        ],
-        "AgentSession": [
-          "__init__",
-          "generate_reply",
-          "history",
-          "interrupt",
-          "say",
-          "start",
-          "update_agent",
-          "userdata"
-        ],
-        "ChatContext": [
-          "__init__",
-          "append"
-        ],
-        "InferenceLLM": [
-          "__init__"
-        ],
-        "InferenceSTT": [
-          "__init__"
-        ],
-        "InferenceTTS": [
-          "__init__"
-        ],
-        "JobContext": [
-          "__init__",
-          "connect",
-          "wait_for_participant"
-        ],
-        "JobProcess": [
-          "__init__"
-        ],
-        "Room": [],
-        "RunContext": [
-          "__init__"
-        ],
-        "StopResponse": [],
-        "ToolError": []
-      },
-      "functions": [
-        "function_tool",
-        "run_app"
-      ]
-    },
-    "signalwire.livewire.plugins": {
-      "classes": {
-        "CartesiaTTS": [
-          "__init__"
-        ],
-        "DeepgramSTT": [
-          "__init__"
-        ],
-        "ElevenLabsTTS": [
-          "__init__"
-        ],
-        "OpenAILLM": [
-          "__init__"
-        ],
-        "SileroVAD": [
-          "__init__",
-          "load"
-        ]
       },
       "functions": []
     },
