@@ -179,6 +179,24 @@ func (c *SecurityConfig) GetCORSConfig() map[string]any {
 	}
 }
 
+// GetSSLContextKwargs returns the SSL parameters (primitive path strings) used
+// to configure the HTTPS listener, mirroring Python's get_ssl_context_kwargs.
+// The returned map is the primitive-dict form of the SSLCertPath/SSLKeyPath
+// fields — the Go server feeds these into crypto/tls via swml.WithTLS. Returns
+// an empty map when SSL is disabled or the SSL config fails validation.
+func (c *SecurityConfig) GetSSLContextKwargs() map[string]any {
+	if !c.SSLEnabled {
+		return map[string]any{}
+	}
+	if ok, _ := c.ValidateSSLConfig(); !ok {
+		return map[string]any{}
+	}
+	return map[string]any{
+		"ssl_certfile": c.SSLCertPath,
+		"ssl_keyfile":  c.SSLKeyPath,
+	}
+}
+
 // GetURLScheme returns "https" when SSL is enabled, otherwise "http".
 func (c *SecurityConfig) GetURLScheme() string {
 	if c.SSLEnabled {

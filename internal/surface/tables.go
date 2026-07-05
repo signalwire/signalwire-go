@@ -980,20 +980,23 @@ var StructTable = map[string][]ClassTarget{
 
 	// IMPLEMENTED: pkg/security/security_config.go — HTTP security settings
 	// (SSL/hosts/CORS/headers/HSTS/basic-auth) from SWML_* env, mirroring
-	// signalwire.core.security_config.SecurityConfig. get_ssl_context_kwargs is
-	// impossible-tagged (Python ssl.SSLContext kwargs — no Go equivalent).
+	// signalwire.core.security_config.SecurityConfig. get_ssl_context_kwargs
+	// returns a primitive path-string dict ({ssl_certfile, ssl_keyfile}), which
+	// Go exposes as GetSSLContextKwargs -> map[string]any (fed into crypto/tls
+	// via swml.WithTLS).
 	"security.SecurityConfig": {{
 		Module: "signalwire.core.security_config", Class: "SecurityConfig",
 		Methods: map[string]string{
-			"NewSecurityConfig":  "__init__",
-			"LoadFromEnv":        "load_from_env",
-			"ValidateSSLConfig":  "validate_ssl_config",
-			"GetBasicAuth":       "get_basic_auth",
-			"GetSecurityHeaders": "get_security_headers",
-			"ShouldAllowHost":    "should_allow_host",
-			"GetCORSConfig":      "get_cors_config",
-			"GetURLScheme":       "get_url_scheme",
-			"LogConfig":          "log_config",
+			"NewSecurityConfig":   "__init__",
+			"LoadFromEnv":         "load_from_env",
+			"ValidateSSLConfig":   "validate_ssl_config",
+			"GetBasicAuth":        "get_basic_auth",
+			"GetSecurityHeaders":  "get_security_headers",
+			"GetSSLContextKwargs": "get_ssl_context_kwargs",
+			"ShouldAllowHost":     "should_allow_host",
+			"GetCORSConfig":       "get_cors_config",
+			"GetURLScheme":        "get_url_scheme",
+			"LogConfig":           "log_config",
 		},
 	}},
 

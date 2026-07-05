@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ c33774b07478496ae66fe4781528ba2611a812ae",
+  "generated_from": "signalwire-go (go-native) @ 02a2b80a418fa936853a8ff16f4e744cf090c762",
   "modules": {
     "agent": {
       "classes": {
@@ -1414,6 +1414,7 @@
         "SecurityConfig": [
           "GetBasicAuth",
           "GetCORSConfig",
+          "GetSSLContextKwargs",
           "GetSecurityHeaders",
           "GetURLScheme",
           "LoadFromEnv",

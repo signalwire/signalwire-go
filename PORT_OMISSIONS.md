@@ -253,7 +253,6 @@ signalwire.core.logging_config.configure_logging: impossible: wraps the Python l
 signalwire.core.logging_config.get_logger: impossible: returns a Python logging.Logger; Go uses pkg/logging.New — no stdlib-logger accessor
 signalwire.core.logging_config.reset_logging_configuration: impossible: resets Python logging-library global state; Go pkg/logging has no equivalent global reset
 signalwire.core.logging_config.strip_control_chars: impossible: Python logging-formatter helper; Go pkg/logging sanitises inline with no exported free function
-signalwire.core.security_config.SecurityConfig.get_ssl_context_kwargs: impossible: returns Python ssl.SSLContext kwargs; Go configures TLS via crypto/tls.Config, no kwargs-dict equivalent
 
 # --- Bedrock prefab agent ---
 

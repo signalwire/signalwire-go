@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ c33774b07478496ae66fe4781528ba2611a812ae",
+  "generated_from": "signalwire-go @ 02a2b80a418fa936853a8ff16f4e744cf090c762",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -468,6 +468,7 @@
           "get_basic_auth",
           "get_cors_config",
           "get_security_headers",
+          "get_ssl_context_kwargs",
           "get_url_scheme",
           "load_from_env",
           "log_config",
