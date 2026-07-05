@@ -182,6 +182,12 @@ sched_gate REST-COVERAGE defer=1 desc="every implemented REST route covered succ
 sched_gate SPEC-PARITY defer=1 desc="implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
     --fn spec_parity_gate
 
+sched_gate GEN-FRESH desc="generated REST layer matches the canonical specs" \
+    -- go run ./cmd/generate-rest --check
+
+sched_gate GEN-FRESH-PAYLOADS desc="generated SWAIG/SWML/RELAY read-side payloads match the canonical specs" \
+    -- go run ./cmd/generate-payloads --check
+
 sched_gate REST-TESTS-FRESH desc="generated REST wire tests match the canonical specs" \
     -- go run ./cmd/generate-rest-tests --check
 
