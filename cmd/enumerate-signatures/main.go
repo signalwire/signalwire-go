@@ -82,6 +82,26 @@ var kwargsTailMethods = map[string]bool{
 	"signalwire.rest._base.CrudWithAddresses.list_addresses":                          true, // def list_addresses(self, resource_id, **params: Any)
 }
 
+// optionalTailVariadicMethods lists the fully-qualified Python reference methods
+// whose FINAL parameter is a single OPTIONAL scalar (`behavior: str | None = None`)
+// that Go idiomatically models as a trailing variadic `...string`. The RELAY
+// pause controls (PlayAction/RecordAction/CollectAction, projected from the
+// PausableAction mixin — porting-sdk @5744580) take `pause(behavior: str | None =
+// None)`; Go spells "an optional single behavior" as `Pause(behavior ...string)`
+// (call with 0 or 1 arg). The raw enumerator would translate `...string` to
+// `list<string>` required:true, which mismatches the reference's `optional<string>`
+// required:false. For THESE — and only these — methods, reclassify the trailing
+// variadic to `optional<string>` required:false so the port compares EQUAL. This
+// is an idiom reconciliation table (the optional-scalar analog of the var_keyword
+// tail table above), keyed by reference QN; a genuine required `[]string` /
+// multi-arg variadic elsewhere is untouched. Verified against the reference:
+// signalwire/relay/call.py PausableAction.pause(self, behavior: str | None = None).
+var optionalTailVariadicMethods = map[string]bool{
+	"signalwire.relay.call.PlayAction.pause":    true,
+	"signalwire.relay.call.RecordAction.pause":  true,
+	"signalwire.relay.call.CollectAction.pause": true,
+}
+
 // paramsStructField is one field of a generated-REST params struct (§5/§4a).
 type paramsStructField struct {
 	name    string // exported Go field name (e.g. "QueryString", "Extras")
@@ -1055,6 +1075,18 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			params = append(params, canonicalParam{
 				Name: p.name, Kind: "var_keyword", Type: "any",
 				Required: boolPtr(false), Default: json.RawMessage("{}"),
+			})
+			continue
+		}
+		// A pause control's trailing variadic `...string` is the Go idiom for the
+		// reference's optional scalar `behavior: str | None = None`. Reclassify it
+		// to `optional<string>` required:false so it compares EQUAL (see
+		// optionalTailVariadicMethods). Scoped to the LAST param and to a `...string`.
+		if pi == len(sig.params)-1 && optionalTailVariadicMethods[ctx] &&
+			p.typeStr == "...string" {
+			params = append(params, canonicalParam{
+				Name: goNameToSnake(p.name), Type: "optional<string>",
+				Required: boolPtr(false),
 			})
 			continue
 		}

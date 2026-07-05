@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ cdb34f8f52b601b4c10b858ec399c907ed77a469",
+  "generated_from": "signalwire-go @ c33774b07478496ae66fe4781528ba2611a812ae",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -900,6 +900,8 @@
         ],
         "CollectAction": [
           "__init__",
+          "pause",
+          "resume",
           "start_input_timers",
           "stop",
           "volume"

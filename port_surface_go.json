@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ cdb34f8f52b601b4c10b858ec399c907ed77a469",
+  "generated_from": "signalwire-go (go-native) @ c33774b07478496ae66fe4781528ba2611a812ae",
   "modules": {
     "agent": {
       "classes": {
@@ -1101,6 +1101,8 @@
           "Unreceive"
         ],
         "CollectAction": [
+          "Pause",
+          "Resume",
           "StartInputTimers",
           "Stop",
           "Volume"

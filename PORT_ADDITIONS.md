@@ -407,34 +407,6 @@ signalwire.core.agent_base.AgentBase.pom: Go's Pom() method projects to Python's
 signalwire.core.swml_service.SWMLService.schema_utils: Go's SchemaUtils field projects to Python's schema_utils property; Python's signatures index includes it but the surface index drops it as an instance attribute
 signalwire.relay.call.Action.result: Go's Result() method projects to Python's result property; Python's signatures index includes it but the surface index drops it as an instance attribute
 
-# --- Changeset item H: concrete RELAY action-control methods (Go flattens the abstract mixin chain) ---
-# Python factors the call-action controls into an abstract mixin chain
-# (StoppableAction -> PausableAction -> VolumeAction -> concrete PlayAction/RecordAction/...),
-# so the reference surface emits each control method on the BASE only. Go gives each
-# concrete action its own stop/pause/resume/volume method (pkg/relay/action.go), where the
-# caller actually invokes them, and does not model the abstract bases as Go types (the bases
-# are documented as omissions in PORT_OMISSIONS.md). Same idiom the TS port documented. The
-# signature gate excuses most of these structurally (port-side state accessor); the ones that
-# take an argument (volume) and the surface gate (no structural skip) are documented here.
-# Verified: every method below exists on the named struct in pkg/relay/action.go (real surface).
-signalwire.relay.call.AIAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.CollectAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.CollectAction.volume: concrete-action control method; Python emits volume on the VolumeAction mixin base it inherits
-signalwire.relay.call.DetectAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.FaxAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.PayAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.PlayAction.pause: concrete-action control method; Python emits pause on the PausableAction mixin base it inherits
-signalwire.relay.call.PlayAction.resume: concrete-action control method; Python emits resume on the PausableAction mixin base it inherits
-signalwire.relay.call.PlayAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.PlayAction.volume: concrete-action control method; Python emits volume on the VolumeAction mixin base it inherits
-signalwire.relay.call.RecordAction.pause: concrete-action control method; Python emits pause on the PausableAction mixin base it inherits
-signalwire.relay.call.RecordAction.resume: concrete-action control method; Python emits resume on the PausableAction mixin base it inherits
-signalwire.relay.call.RecordAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.StandaloneCollectAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.StreamAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.TapAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.TranscribeAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-
 ## SWML-verbs generated-payload reserved-word fields (port emits what the reference can't name)
 
 The reference's TypedDict generator cannot name a field that is a Python keyword, so it

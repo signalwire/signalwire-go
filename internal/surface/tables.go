@@ -648,6 +648,8 @@ var StructTable = map[string][]ClassTarget{
 		Module: "signalwire.relay.call", Class: "CollectAction",
 		Methods: map[string]string{
 			"Stop":             "stop",
+			"Pause":            "pause",
+			"Resume":           "resume",
 			"StartInputTimers": "start_input_timers",
 			"Volume":           "volume",
 		},

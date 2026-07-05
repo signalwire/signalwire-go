@@ -299,24 +299,6 @@ signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: imposs
 signalwire.core.swml_renderer.SwmlRenderer.render_swml: impossible: Go folds SWML rendering into swml.Service.Render — no separate renderer
 signalwire.core.swml_service.SWMLService.__getattr__: impossible: Python dynamic attribute dispatch (__getattr__) has no Go equivalent; verbs are explicit methods on swml.Service
 
-# --- RELAY abstract action mixin bases (Go flattens the hierarchy) ---
-# Python factors the call-action controls into an abstract mixin chain
-# (StoppableAction -> PausableAction -> VolumeAction -> concrete PlayAction/...),
-# so the control methods live on the abstract bases. Go gives each concrete action its
-# own stop/pause/resume/volume method (pkg/relay/action.go) and does NOT model the
-# abstract bases as Go types — but the CONTRACT (each control method on each concrete
-# action) IS present and surfaced (recorded in PORT_ADDITIONS.md as changeset item H).
-# The signature gate excuses the abstract-base methods structurally
-# (_is_abstract_action_base_method); the surface gate excuses the bare base classes +
-# their methods here. Mirrors the TS port precedent.
-signalwire.relay.call.StoppableAction: impossible: Go has no abstract-base type; the stop contract is flattened onto each concrete *Action (pkg/relay/action.go) — see PORT_ADDITIONS
-signalwire.relay.call.StoppableAction.stop: impossible: Go has no abstract-base type; stop is present on each concrete *Action (see PORT_ADDITIONS)
-signalwire.relay.call.PausableAction: impossible: Go has no abstract-base type; the pause/resume contract is flattened onto each concrete *Action (see PORT_ADDITIONS)
-signalwire.relay.call.PausableAction.pause: impossible: Go has no abstract-base type; pause is present on each concrete *Action (see PORT_ADDITIONS)
-signalwire.relay.call.PausableAction.resume: impossible: Go has no abstract-base type; resume is present on each concrete *Action (see PORT_ADDITIONS)
-signalwire.relay.call.VolumeAction: impossible: Go has no abstract-base type; the volume contract is flattened onto each concrete *Action (see PORT_ADDITIONS)
-signalwire.relay.call.VolumeAction.volume: impossible: Go has no abstract-base type; volume is present on each concrete *Action (see PORT_ADDITIONS)
-
 # --- Relay Call / Client / Message ---
 signalwire.relay.client.RelayClient.__aenter__: impossible: Python async context-manager protocol (__aenter__) has no Go equivalent; Go uses explicit Connect()/Stop()
 signalwire.relay.client.RelayClient.__aexit__: impossible: Python async context-manager protocol (__aexit__) has no Go equivalent; Go uses explicit Connect()/Stop()

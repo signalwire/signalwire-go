@@ -481,6 +481,83 @@ func TestRelay_PlayAndCollectStopJournalsPACStop(t *testing.T) {
 	}
 }
 
+// TestRelay_PlayAndCollectPauseResumeJournal exercises CollectAction's
+// pause/resume control surface (projected from Python's PausableAction mixin
+// onto CollectAction). Pause posts calling.play_and_collect.pause with the
+// optional behavior; Resume posts calling.play_and_collect.resume.
+func TestRelay_PlayAndCollectPauseResumeJournal(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-pac-pr")
+	action := call.PlayAndCollect(
+		[]map[string]any{{"type": "silence", "params": map[string]any{"duration": 1}}},
+		map[string]any{"digits": map[string]any{"max": 1}},
+		relay.WithPlayControlID("pac-pr"),
+	)
+	time.Sleep(50 * time.Millisecond)
+	if err := action.Pause("skip"); err != nil {
+		t.Fatalf("Pause: %v", err)
+	}
+	if err := action.Resume(); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	pauses := h.JournalRecv(t, "calling.play_and_collect.pause")
+	if len(pauses) == 0 {
+		t.Fatal("no calling.play_and_collect.pause frame")
+	}
+	pp, _ := pauses[len(pauses)-1].FrameParams()
+	if pp["control_id"] != "pac-pr" {
+		t.Errorf("pause control_id = %v, want pac-pr", pp["control_id"])
+	}
+	if pp["behavior"] != "skip" {
+		t.Errorf("pause behavior = %v, want skip", pp["behavior"])
+	}
+	resumes := h.JournalRecv(t, "calling.play_and_collect.resume")
+	if len(resumes) == 0 {
+		t.Fatal("no calling.play_and_collect.resume frame")
+	}
+	rp, _ := resumes[len(resumes)-1].FrameParams()
+	if rp["control_id"] != "pac-pr" {
+		t.Errorf("resume control_id = %v, want pac-pr", rp["control_id"])
+	}
+}
+
+// TestRelay_PlayPauseBehaviorJournal asserts PlayAction.Pause forwards the
+// optional behavior string (matching Python's pause(behavior: str | None)),
+// and that a no-arg Pause omits the behavior key.
+func TestRelay_PlayPauseBehaviorJournal(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-play-beh")
+	action := call.Play(
+		[]map[string]any{{"type": "silence", "params": map[string]any{"duration": 1}}},
+		relay.WithPlayControlID("play-beh"),
+	)
+	time.Sleep(50 * time.Millisecond)
+	if err := action.Pause("silence"); err != nil {
+		t.Fatalf("Pause(silence): %v", err)
+	}
+	if err := action.Pause(); err != nil {
+		t.Fatalf("Pause(): %v", err)
+	}
+	pauses := h.JournalRecv(t, "calling.play.pause")
+	if len(pauses) < 2 {
+		t.Fatalf("want >=2 calling.play.pause frames, got %d", len(pauses))
+	}
+	withBeh, _ := pauses[0].FrameParams()
+	if withBeh["behavior"] != "silence" {
+		t.Errorf("first pause behavior = %v, want silence", withBeh["behavior"])
+	}
+	noBeh, _ := pauses[len(pauses)-1].FrameParams()
+	if _, ok := noBeh["behavior"]; ok {
+		t.Errorf("no-arg pause should omit behavior, got %v", noBeh["behavior"])
+	}
+}
+
 // ---------------------------------------------------------------------------
 // StandaloneCollectAction
 // ---------------------------------------------------------------------------

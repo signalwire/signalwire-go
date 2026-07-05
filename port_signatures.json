@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ cdb34f8f52b601b4c10b858ec399c907ed77a469 (go/ast walker)",
+  "generated_from": "signalwire-go @ c33774b07478496ae66fe4781528ba2611a812ae (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -10784,6 +10784,29 @@
         },
         "CollectAction": {
           "methods": {
+            "pause": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "behavior",
+                  "type": "optional\u003cstring\u003e",
+                  "required": false
+                }
+              ],
+              "returns": "any"
+            },
+            "resume": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "start_input_timers": {
               "params": [
                 {
@@ -10864,6 +10887,11 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "behavior",
+                  "type": "optional\u003cstring\u003e",
+                  "required": false
                 }
               ],
               "returns": "any"
@@ -10912,8 +10940,8 @@
                 },
                 {
                   "name": "behavior",
-                  "type": "list\u003cstring\u003e",
-                  "required": true
+                  "type": "optional\u003cstring\u003e",
+                  "required": false
                 }
               ],
               "returns": "any"
