@@ -315,6 +315,7 @@ HasPrefix: strings.HasPrefix
 Handler: http.Handler interface or net/http.Handler type
 Index: strings.Index
 IndexByte: strings.IndexByte
+Load: sync/atomic.Bool.Load / atomic.Value.Load
 New: errors.New / time.New / generic stdlib constructor
 NewEncoder: encoding/json.NewEncoder
 NewHandler: lambda.NewHandler / generic stdlib New constructors

@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 4126e6e49748380f9ae9923b0ccab87b363dec64 (go/ast walker)",
+  "generated_from": "signalwire-go @ a791c5e94b5185b85e2f8455ef94ed5e16ff3353 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3343,8 +3343,10 @@
                 },
                 {
                   "name": "params",
-                  "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -3357,8 +3359,10 @@
                 },
                 {
                   "name": "params",
-                  "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -4924,8 +4928,10 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5125,8 +5131,10 @@
                 },
                 {
                   "name": "params",
-                  "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -11755,8 +11763,10 @@
                 },
                 {
                   "name": "params",
-                  "type": "dict\u003cstring,string\u003e",
-                  "required": true
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"

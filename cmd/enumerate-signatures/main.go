@@ -56,6 +56,32 @@ var (
 	factoryInit = surfacepkg.FactoryInit
 )
 
+// kwargsTailMethods lists the fully-qualified Python reference methods whose
+// FINAL parameter is a `**kwargs`/`**params` var_keyword tail rather than a
+// concrete positional argument. Go models such a tail as a trailing
+// `params map[string]any` / `extra map[string]any` bag; the Python oracle now
+// (porting-sdk #58) STRIPS the var_keyword tail from the extracted signature,
+// and the cross-port signature checker only excuses a trailing tail the port
+// still carries when it is `required: false`. So for these — and ONLY these —
+// methods the enumerator reclassifies the trailing bag param to a var_keyword
+// tail (required:false), matching the reference's `**kwargs` idiom. This is a
+// reconciliation table (the var_keyword-tail analog of a rename table), keyed by
+// the reference QN so a genuine positional `params: dict` argument (e.g.
+// AIConfigMixin.set_language_params(self, code, params: dict) — a REAL required
+// positional, NOT **kwargs) is left untouched and keeps comparing EQUAL. The
+// generated-REST resource methods carry their own `sig.restResource` var_keyword
+// handling below and are not listed here.
+//
+// Each entry was verified against the reference source: the Python def ends in
+// `**params: Any` / `**kwargs: Any`.
+var kwargsTailMethods = map[string]bool{
+	"signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_prompt_llm_params":      true, // def set_prompt_llm_params(self, **params: Any)
+	"signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_post_prompt_llm_params": true, // def set_post_prompt_llm_params(self, **params: Any)
+	"signalwire.core.swml_handler.SWMLVerbHandler.build_config":                       true, // def build_config(self, **kwargs: Any)
+	"signalwire.core.swml_builder.SWMLBuilder.ai":                                     true, // def ai(self, ..., swaig=None, **kwargs)
+	"signalwire.rest._base.CrudWithAddresses.list_addresses":                          true, // def list_addresses(self, resource_id, **params: Any)
+}
+
 // paramsStructField is one field of a generated-REST params struct (§5/§4a).
 type paramsStructField struct {
 	name    string // exported Go field name (e.g. "QueryString", "Extras")
@@ -1016,7 +1042,22 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 	if isMethod || isCtor {
 		params = append(params, canonicalParam{Name: "self", Kind: "self"})
 	}
-	for _, p := range sig.params {
+	for pi, p := range sig.params {
+		// A reconciliation-table method's FINAL bag param is the Python
+		// reference's `**kwargs`/`**params` var_keyword tail (stripped from the
+		// oracle by porting-sdk #58). Emit it as var_keyword required:false so the
+		// checker's drop-tail excusal applies — the Go trailing `params`/`extra`
+		// map is the idiomatic spelling of the reference `**kwargs`. Scoped to the
+		// LAST param and to a dict bag, so a leading positional dict is untouched.
+		if pi == len(sig.params)-1 && kwargsTailMethods[ctx] &&
+			(p.name == "params" || p.name == "extra" || p.name == "kwargs") &&
+			strings.HasPrefix(p.typeStr, "map[string]") {
+			params = append(params, canonicalParam{
+				Name: p.name, Kind: "var_keyword", Type: "any",
+				Required: boolPtr(false), Default: json.RawMessage("{}"),
+			})
+			continue
+		}
 		// §5/§4a: a generated-REST operation/command method takes its wire-body
 		// fields as a named params STRUCT (`params <Recv><Method>Params`) instead of
 		// flat positionals. UNFOLD that struct back into the flat keyword set the
