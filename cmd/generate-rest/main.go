@@ -2215,17 +2215,10 @@ func run() error {
 		}
 	}
 
-	// RELAY WS protocol types (pkg/relay/protocol_types_generated.go, package relay):
-	// one Go type per relay-protocol/*.{params,result}.json schema. Emitted from the
-	// standalone JSON-Schema files (not an openapi.yaml), so it uses its own reader.
-	relayDir := filepath.Join(repoRoot, "pkg", "relay")
-	relaySrc, err := emitRelayProtocolFile(psdk)
-	if err != nil {
-		return err
-	}
-	if relaySrc != "" {
-		outs = append(outs, outFile{path: filepath.Join(dir(relayDir), "protocol_types_generated.go"), src: relaySrc})
-	}
+	// NOTE: the RELAY WS protocol types (pkg/relay/protocol_types_generated.go) are
+	// no longer emitted here — they moved to the standalone cmd/generate-relay-protocol
+	// command (one of the fixed 5 cross-port generators). This generator emits only
+	// the REST resource/types/client-tree/struct-table surface.
 
 	placed := resolvePlacement(specs)
 	nsTree, restTree := emitClientTree(placed)

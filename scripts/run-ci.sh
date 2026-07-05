@@ -191,11 +191,17 @@ sched_gate SPEC-PARITY defer=1 desc="implemented routes == canonical spec (modul
 sched_gate GEN-FRESH desc="generated REST layer matches the canonical specs" \
     -- go run ./cmd/generate-rest --check
 
-sched_gate GEN-FRESH-PAYLOADS desc="generated SWAIG/SWML/RELAY read-side payloads match the canonical specs" \
-    -- go run ./cmd/generate-payloads --check
-
 sched_gate GEN-FRESH-TESTS desc="generated REST wire tests match the canonical specs" \
     -- go run ./cmd/generate-rest-tests --check
+
+sched_gate GEN-FRESH-RELAY desc="generated RELAY protocol types match the canonical specs" \
+    -- go run ./cmd/generate-relay-protocol --check
+
+sched_gate GEN-FRESH-SWAIG desc="generated SWAIG read-side payloads match the canonical specs" \
+    -- go run ./cmd/generate-swaig-payloads --check
+
+sched_gate GEN-FRESH-SWML desc="generated SWML verb config types match the canonical specs" \
+    -- go run ./cmd/generate-swml-verbs --check
 
 sched_gate EMISSION desc="diff_port_emission vs python to_dict() oracle" \
     -- python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
