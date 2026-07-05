@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 8f050a100ce8fbd1248e701558f8e7cfb5c34eb5 (go/ast walker)",
+  "generated_from": "signalwire-go @ cdb34f8f52b601b4c10b858ec399c907ed77a469 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -4499,6 +4499,40 @@
               "returns": "bool"
             }
           }
+        }
+      }
+    },
+    "signalwire.core.security.webhook_middleware": {
+      "functions": {
+        "validate": {
+          "params": [
+            {
+              "name": "method",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "headers",
+              "type": "dict\u003cstring,string\u003e",
+              "required": true
+            },
+            {
+              "name": "body",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "signing_key",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "optional\u003ctuple\u003cint,dict\u003cstring,string\u003e,string\u003e\u003e"
         }
       }
     },

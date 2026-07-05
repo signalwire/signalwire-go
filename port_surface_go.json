@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 4126e6e49748380f9ae9923b0ccab87b363dec64",
+  "generated_from": "signalwire-go (go-native) @ cdb34f8f52b601b4c10b858ec399c907ed77a469",
   "modules": {
     "agent": {
       "classes": {
@@ -1431,7 +1431,8 @@
           "ValidateSessionToken",
           "ValidateToken"
         ],
-        "WebhookOpts": []
+        "WebhookOpts": [],
+        "WebhookRejection": []
       },
       "functions": [
         "FilterSensitiveHeaders",
@@ -1440,6 +1441,7 @@
         "NewSessionManager",
         "RawBodyFromContext",
         "RedactURL",
+        "Validate",
         "ValidateRequest",
         "ValidateRequestE",
         "ValidateWebhookSignature",

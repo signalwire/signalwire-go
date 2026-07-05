@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 4126e6e49748380f9ae9923b0ccab87b363dec64",
+  "generated_from": "signalwire-go @ cdb34f8f52b601b4c10b858ec399c907ed77a469",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
@@ -50,6 +50,7 @@
     "relay.DialState",
     "relay.MessageState",
     "security.WebhookOpts",
+    "security.WebhookRejection",
     "server.AgentEntry",
     "skills.ToolRegistration",
     "spider.SpiderSkill",

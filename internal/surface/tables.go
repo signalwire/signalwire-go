@@ -1250,6 +1250,18 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"security.ValidateWebhookSignature": {Module: "signalwire.core.security.webhook_validator", Name: "validate_webhook_signature"},
 	"security.ValidateRequest":          {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
 
+	// Decomposed webhook-validation core — the framework-free decision unit
+	// signalwire.core.security.webhook_middleware.validate(method,url,headers,
+	// body) -> optional<(status,headers,body)>. Go exposes it as
+	// security.Validate returning *WebhookRejection (nil = pass, a
+	// {Status,Headers,Body} triple = reject); the *WebhookRejection type is
+	// aliased to the canonical tuple<int,dict<string,string>,string> in
+	// type_aliases.yaml, so the pointer enumerates to the oracle's
+	// optional<tuple<int,dict<string,string>,string>> return. The http.Handler
+	// WebhookMiddleware STAYS a PORT_ADDITION framework-wrapper idiom over this
+	// core; only the decomposed decision core is the required cross-port symbol.
+	"security.Validate": {Module: "signalwire.core.security.webhook_middleware", Name: "validate"},
+
 	// Standalone security hygiene utilities — Python ships these as
 	// module-level free functions in signalwire.core.security.security_utils.
 	// Go exposes them as package-level functions in pkg/security

@@ -287,3 +287,88 @@ func TestMiddleware_MaxBodyBytesEnforced(t *testing.T) {
 		t.Errorf("handler unexpectedly called when body exceeds MaxBodyBytes")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Decomposed validate-core tests — security.Validate(method,url,headers,body,
+// signingKey) -> *WebhookRejection (nil=pass, triple=reject). This is the
+// framework-free cross-port contract (signalwire.core.security.
+// webhook_middleware.validate); the http.Handler middleware above is Go's
+// framework wrapper over it.
+// ---------------------------------------------------------------------------
+
+// TestValidate_ValidSignaturePasses proves a valid Scheme-A signature makes the
+// decomposed core return nil ("pass") — the canonical webhooks.md vector.
+func TestValidate_ValidSignaturePasses(t *testing.T) {
+	headers := map[string]string{"X-SignalWire-Signature": vectorAExpect}
+	rej := Validate(http.MethodPost, vectorAURL, headers, vectorABody, vectorAKey)
+	if rej != nil {
+		t.Fatalf("Validate returned rejection %+v for a valid signature; want nil (pass)", rej)
+	}
+}
+
+// TestValidate_BadSignatureRejects proves a tampered/wrong signature yields the
+// 403 rejection triple (status, headers, body) rather than nil.
+func TestValidate_BadSignatureRejects(t *testing.T) {
+	headers := map[string]string{"X-SignalWire-Signature": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"}
+	rej := Validate(http.MethodPost, vectorAURL, headers, vectorABody, vectorAKey)
+	if rej == nil {
+		t.Fatal("Validate returned nil (pass) for a bad signature; want a 403 rejection")
+	}
+	if rej.Status != http.StatusForbidden {
+		t.Errorf("rejection status = %d, want 403", rej.Status)
+	}
+	if rej.Body == "" {
+		t.Error("rejection body is empty; want a non-empty (detail-free) body")
+	}
+	// The rejection must never leak the expected signature or key.
+	if strings.Contains(rej.Body, vectorAKey) || strings.Contains(rej.Body, vectorAExpect) {
+		t.Errorf("rejection body leaks secret/expected signature: %q", rej.Body)
+	}
+}
+
+// TestValidate_MissingSignatureRejects proves an absent signature header is a
+// 403 rejection (never a panic, never a pass).
+func TestValidate_MissingSignatureRejects(t *testing.T) {
+	rej := Validate(http.MethodPost, vectorAURL, map[string]string{}, vectorABody, vectorAKey)
+	if rej == nil {
+		t.Fatal("Validate returned nil for a missing signature header; want a 403 rejection")
+	}
+	if rej.Status != http.StatusForbidden {
+		t.Errorf("rejection status = %d, want 403", rej.Status)
+	}
+}
+
+// TestValidate_TwilioSignatureAliasHonored proves the legacy X-Twilio-Signature
+// header alias is accepted by the decomposed core (cXML compatibility,
+// webhooks.md §"The Header").
+func TestValidate_TwilioSignatureAliasHonored(t *testing.T) {
+	headers := map[string]string{"X-Twilio-Signature": vectorAExpect}
+	rej := Validate(http.MethodPost, vectorAURL, headers, vectorABody, vectorAKey)
+	if rej != nil {
+		t.Fatalf("Validate rejected a valid X-Twilio-Signature alias: %+v; want nil (pass)", rej)
+	}
+}
+
+// TestValidate_HeaderLookupCaseInsensitive proves the primitive string-map
+// header lookup is case-insensitive (HTTP header names are), so a lowercased
+// signature key still validates.
+func TestValidate_HeaderLookupCaseInsensitive(t *testing.T) {
+	headers := map[string]string{"x-signalwire-signature": vectorAExpect}
+	rej := Validate(http.MethodPost, vectorAURL, headers, vectorABody, vectorAKey)
+	if rej != nil {
+		t.Fatalf("Validate rejected a case-variant header key: %+v; want nil (pass)", rej)
+	}
+}
+
+// TestValidate_MissingSigningKeyPanics proves a missing signing key is treated
+// as a programmer error (panic), matching the bool-returning validators — a
+// missing key is never a silent pass.
+func TestValidate_MissingSigningKeyPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("Validate did not panic on an empty signing key; want a panic")
+		}
+	}()
+	headers := map[string]string{"X-SignalWire-Signature": vectorAExpect}
+	Validate(http.MethodPost, vectorAURL, headers, vectorABody, "")
+}

@@ -200,6 +200,7 @@ signalwire.relay.call.Call.bind_digit: go-kwargs-catchall — Python bind_digit(
 signalwire.relay.call.Call.send_digits: go-no-keyword-only — Go SendDigits(digits string) omits Python's optional control_id (Go auto-generates the control_id); same calling.send_digits digits
 signalwire.relay.call.Call.queue_enter: go-no-keyword-only — Go QueueEnter(name, statusURL string) omits Python's optional caller-supplied control_id (auto-generated); same calling.queue.enter params
 signalwire.relay.call.Call.queue_leave: go-no-keyword-only — Go QueueLeave(name, queueID, statusURL string) omits Python's optional caller-supplied control_id (auto-generated); same calling.queue.leave params
+signalwire.core.security.webhook_middleware.validate: go-no-keyword-only — Go security.Validate(method, url string, headers map[string]string, body, signingKey string) takes Python's keyword-only signing_key as a trailing positional (Go has no keyword-only params); returns *WebhookRejection (nil=pass, {Status,Headers,Body}=reject) aliased to the oracle's optional<tuple<int,dict<string,string>,string>>; identical decomposed webhook-validation contract
 
 ## RELAY Call: typed handler / event-loop idioms (go-typed-handler)
 signalwire.relay.call.Call.on: go-typed-handler — Go On(eventType string, handler func(*RelayEvent)) takes a concrete Go func value where Python's EventHandler is a class-typed callback; equivalent contract
