@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ a791c5e94b5185b85e2f8455ef94ed5e16ff3353 (go/ast walker)",
+  "generated_from": "signalwire-go @ 8f050a100ce8fbd1248e701558f8e7cfb5c34eb5 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3847,7 +3847,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:http.Handler"
+              "returns": "class:signalwire.core.web.HostAppRouter"
             },
             "enable_debug_routes": {
               "params": [
@@ -5317,7 +5317,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:http.Handler"
+              "returns": "class:signalwire.core.web.HostAppRouter"
             },
             "full_validation_enabled": {
               "params": [

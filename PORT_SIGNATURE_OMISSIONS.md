@@ -103,7 +103,6 @@ signalwire.rest.namespaces.project_resources_generated.ProjectTokens.__init__: G
 
 signalwire.agent_server.AgentServer.get_agents: Go fluent API returns *Self for chaining
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tools: Go fluent API returns *Self for chaining
-signalwire.core.mixins.web_mixin.WebMixin.as_router: Go fluent API returns *Self for chaining
 signalwire.core.swml_service.SWMLService.get_document: Go fluent API returns *Self for chaining
 
 ## Idiom: PromptManager projects from AgentBase (fluent *AgentBase return)
@@ -344,7 +343,6 @@ signalwire.core.skill_base.SkillBase.register_tools: abstract contract method su
 signalwire.core.skill_base.SkillBase.setup: abstract contract method surfaced synthetically on SkillBase; concrete skills carry the signature
 signalwire.core.swml_builder.SWMLBuilder.build: build is surfaced synthetically (Go GetDocument/Render serve the build role); no distinct Go method signature
 signalwire.core.swml_handler.AIVerbHandler.validate_config: Go ValidateConfig signature differs from the reference SWMLVerbHandler.validate_config shape
-signalwire.core.swml_service.SWMLService.as_router: Go AsRouter returns http.Handler; the reference records a FastAPI-router signature that differs
 signalwire.core.swml_service.SWMLService.extract_sip_username: extract_sip_username surfaced synthetically (Go swml.ExtractSIPUsername package func); no instance-method signature
 signalwire.prefabs.concierge.ConciergeAgent.on_summary: Go OnSummary matches the SummaryCallback shape (summary,rawData); reference on_summary signature differs
 signalwire.prefabs.faq_bot.FAQBotAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs
