@@ -14,7 +14,7 @@
 #   their DATA dependencies:
 #     * S2 concurrent wave: the pure-Python side-effect-free gates (DRIFT, NO-CHEAT,
 #       EMISSION, SKILL-CONTRACT, SWAIG-COVERAGE, SURFACE-DIFF, DOC-AUDIT, SWAIG-CLI,
-#       REST-TESTS-FRESH) overlap — they share no mutable state.
+#       GEN-FRESH-TESTS) overlap — they share no mutable state.
 #     * S1 fail-fast: heavy gates (TEST, LINT, FMT, REST-COVERAGE, SPEC-PARITY) are
 #       deferred behind the cheap wave, so a trivial cheap-gate failure surfaces in
 #       seconds; --fail-fast aborts the run before TEST starts.
@@ -83,11 +83,14 @@ pick_free_port() {
 # restore all three on any exit path so the gate is side-effect-free.
 surface_fresh_gate() {
     trap "git checkout -- port_surface.json port_surface_go.json port_additions_actual.json 2>/dev/null" RETURN
-    git show HEAD:port_surface.json > /tmp/committed_surface.json 2>/dev/null \
-        || cp port_surface.json /tmp/committed_surface.json
+    # Scratch under the repo-local, gitignored .sw-tmp/ (never machine-wide /tmp).
+    mkdir -p "$PORT_ROOT/.sw-tmp"
+    local committed="$PORT_ROOT/.sw-tmp/committed_surface.json"
+    git show HEAD:port_surface.json > "$committed" 2>/dev/null \
+        || cp port_surface.json "$committed"
     go run ./cmd/enumerate-surface || return $?
     python3 "$PORTING_SDK_DIR/scripts/check_surface_freshness.py" \
-        --committed /tmp/committed_surface.json \
+        --committed "$committed" \
         --fresh port_surface.json
 }
 
@@ -99,8 +102,11 @@ rest_coverage_gate() {
     port="$(pick_free_port)" || { echo "could not allocate a free port" >&2; return 1; }
     local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
     export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
+    # Mock log under the repo-local, gitignored .sw-tmp/ (never machine-wide /tmp).
+    mkdir -p "$PORT_ROOT/.sw-tmp"
+    local mock_log="$PORT_ROOT/.sw-tmp/rest_cov_mock_go.$$.log"
     python3 -m mock_signalwire --host 127.0.0.1 --port "$port" --log-level error \
-        >/tmp/rest_cov_mock_go.$$.log 2>&1 &
+        >"$mock_log" 2>&1 &
     local mock_pid=$!
     # shellcheck disable=SC2064
     trap "kill $mock_pid 2>/dev/null" RETURN
@@ -109,7 +115,7 @@ rest_coverage_gate() {
     for i in $(seq 1 60); do
         if ! kill -0 "$mock_pid" 2>/dev/null; then
             echo "mock_signalwire died on port $port — log:" >&2
-            cat "/tmp/rest_cov_mock_go.$$.log" >&2
+            cat "$mock_log" >&2
             return 1
         fi
         if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$port/__mock__/health',timeout=1)" 2>/dev/null; then
@@ -188,7 +194,7 @@ sched_gate GEN-FRESH desc="generated REST layer matches the canonical specs" \
 sched_gate GEN-FRESH-PAYLOADS desc="generated SWAIG/SWML/RELAY read-side payloads match the canonical specs" \
     -- go run ./cmd/generate-payloads --check
 
-sched_gate REST-TESTS-FRESH desc="generated REST wire tests match the canonical specs" \
+sched_gate GEN-FRESH-TESTS desc="generated REST wire tests match the canonical specs" \
     -- go run ./cmd/generate-rest-tests --check
 
 sched_gate EMISSION desc="diff_port_emission vs python to_dict() oracle" \
