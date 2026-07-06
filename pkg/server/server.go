@@ -538,13 +538,12 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(map[string]string{
-				"action": "redirect",
-				"route":  agentRoute,
-			}); err != nil {
-				s.logger.Warn("failed to write SIP redirect response: %s", err)
-			}
+			// Cross-agent SIP match: redirect to the mapped agent's route.
+			// Matches Python's routing-callback semantics (swml_service:
+			// a route-string return => (307, {"Location": route}, "")).
+			// 307 (not 302) preserves the POST method + body on the redirect.
+			w.Header().Set("Location", agentRoute)
+			w.WriteHeader(http.StatusTemporaryRedirect)
 		})
 	}
 

@@ -303,20 +303,16 @@ func TestSIPRouting_ServedPathExtractsAndRoutes(t *testing.T) {
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("served /sip: status = %d, want 200 (routed); body=%s", rr.Code, rr.Body.String())
+	// A cross-agent SIP match is an HTTP 307 redirect to the mapped agent
+	// route (Location: <route>), NOT a 200 JSON blob. This mirrors Python's
+	// routing-callback semantics (swml_service: a route-string return yields
+	// (307, {"Location": route}, "")); 307 preserves the POST method + body.
+	if rr.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("served /sip: status = %d, want 307 (cross-agent redirect); body=%s", rr.Code, rr.Body.String())
 	}
-
-	var resp map[string]any
-	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
-		t.Fatalf("SIP response not JSON: %v; body=%s", err, rr.Body.String())
-	}
-	// (c) routed to the mapped agent route.
-	if resp["route"] != "/support" {
-		t.Errorf("routed route = %v, want /support (username 'support' extracted from call.to and consulted)", resp["route"])
-	}
-	if resp["action"] != "redirect" {
-		t.Errorf("action = %v, want redirect", resp["action"])
+	// (c) routed to the mapped agent route via the Location header.
+	if loc := rr.Header().Get("Location"); loc != "/support" {
+		t.Errorf("Location = %q, want /support (username 'support' extracted from call.to and consulted)", loc)
 	}
 }
 
@@ -523,16 +519,14 @@ func TestHTTP_SipRouting(t *testing.T) {
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rr.Code)
+	// A cross-agent SIP match issues an HTTP 307 redirect to the mapped agent
+	// route (Location: <route>), matching Python's routing-callback semantics
+	// (swml_service: route-string return => (307, {"Location": route}, "")).
+	if rr.Code != http.StatusTemporaryRedirect {
+		t.Errorf("expected 307, got %d; body=%s", rr.Code, rr.Body.String())
 	}
-
-	var body map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if body["route"] != "/sales" {
-		t.Errorf("expected route=/sales, got %q", body["route"])
+	if loc := rr.Header().Get("Location"); loc != "/sales" {
+		t.Errorf("expected Location=/sales, got %q", loc)
 	}
 }
 
