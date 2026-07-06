@@ -74,7 +74,11 @@ func TestRenderSWML_HasVersionAndSections(t *testing.T) {
 
 func TestRenderSWML_EmptyPrompt(t *testing.T) {
 	a := NewAgentBase()
-	// No prompt set, POM mode with empty sections
+	// No prompt set, POM mode with empty sections. Python's get_prompt() returns
+	// the POM list (here empty) and build_config always emits a prompt block, so
+	// the rendered ai.prompt is {"pom": []} — matching the python oracle. (Go
+	// previously omitted the prompt key entirely; that dropped prompt LLM params
+	// set via SetPromptLlmParams — a real cross-port divergence, now fixed.)
 	doc := a.RenderSWML(nil, nil)
 
 	sections, _ := doc["sections"].(map[string]any)
@@ -83,8 +87,13 @@ func TestRenderSWML_EmptyPrompt(t *testing.T) {
 	for _, v := range main {
 		vm, _ := v.(map[string]any)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			if _, ok := aiCfg["prompt"]; ok {
-				t.Error("empty POM should not produce a prompt key")
+			prompt, ok := aiCfg["prompt"].(map[string]any)
+			if !ok {
+				t.Fatal("usePom agent should always render a prompt block (matching Python)")
+			}
+			pom, ok := prompt["pom"].([]map[string]any)
+			if !ok || len(pom) != 0 {
+				t.Errorf("empty POM should render prompt:{pom:[]}, got %v", prompt)
 			}
 			return
 		}

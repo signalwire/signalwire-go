@@ -235,7 +235,7 @@ func (s *AgentServer) SetupSIPRouting(route string, autoMap bool) {
 			if len(username) > 1 && username[0] == '/' {
 				username = username[1:]
 			}
-			s.sipUsernames[username] = r
+			s.sipUsernames[strings.ToLower(username)] = r
 		}
 	}
 
@@ -243,12 +243,36 @@ func (s *AgentServer) SetupSIPRouting(route string, autoMap bool) {
 }
 
 // RegisterSIPUsername maps a SIP username to an agent route so that
-// inbound SIP calls for that username are routed to the correct agent.
+// inbound SIP calls for that username are routed to the correct agent. The
+// username is stored case-folded (lowercased) — matching Python's
+// register_sip_username, which stores self._sip_username_mapping[username.lower()]
+// — so lookups are case-insensitive.
 func (s *AgentServer) RegisterSIPUsername(username, route string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.sipUsernames[username] = route
+	s.sipUsernames[strings.ToLower(username)] = route
 	s.logger.Info("SIP username %q mapped to route %s", username, route)
+}
+
+// LookupSIPRoute returns the agent route mapped to the given SIP username, or
+// ("", false) if unmapped. Lookup is case-insensitive (mirrors Python's
+// _lookup_sip_route, which returns self._sip_username_mapping.get(username.lower())).
+func (s *AgentServer) LookupSIPRoute(username string) (string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	route, ok := s.sipUsernames[strings.ToLower(username)]
+	return route, ok
+}
+
+// SIPUsernameMapping returns a copy of the sip-username -> route mapping.
+func (s *AgentServer) SIPUsernameMapping() map[string]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make(map[string]string, len(s.sipUsernames))
+	for k, v := range s.sipUsernames {
+		out[k] = v
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------
@@ -532,7 +556,8 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 				return
 			}
 
-			agentRoute, ok := sipUsernames[username]
+			// Case-insensitive lookup (usernames are stored lowercased).
+			agentRoute, ok := sipUsernames[strings.ToLower(username)]
 			if !ok {
 				http.Error(w, fmt.Sprintf("no agent for SIP username %q", username), http.StatusNotFound)
 				return

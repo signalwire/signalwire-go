@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ d2c83ab2856aae95b463670f9b311a148b089451 (go/ast walker)",
+  "generated_from": "signalwire-go @ 82544a067cbf4efffdd93cf50450052cd36c9e92 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {

@@ -325,12 +325,14 @@ func TestSetParams_ReplaceAll(t *testing.T) {
 // Global data
 // ---------------------------------------------------------------------------
 
-func TestSetGlobalData_ReplaceAll(t *testing.T) {
+func TestSetGlobalData_Merge(t *testing.T) {
 	a := NewAgentBase()
 	a.UpdateGlobalData(map[string]any{"old": "data"})
+	// SetGlobalData MERGES (Python parity: set_global_data is a .update()), so
+	// the prior "old" key survives alongside the newly added "new" key.
 	a.SetGlobalData(map[string]any{"new": "data"})
-	if _, ok := a.globalData["old"]; ok {
-		t.Error("SetGlobalData should replace old data")
+	if a.globalData["old"] != "data" {
+		t.Error("SetGlobalData should merge (keep existing keys)")
 	}
 	if a.globalData["new"] != "data" {
 		t.Errorf("globalData[new] = %v", a.globalData["new"])

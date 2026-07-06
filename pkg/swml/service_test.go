@@ -255,9 +255,21 @@ func TestExtractSIPUsername(t *testing.T) {
 			"alice",
 		},
 		{
+			// A non-sip/non-tel 'to' is returned WHOLE (Python parity: only the
+			// "sip:" branch splits on "@"; plain fields are passed through).
 			"no sip prefix",
 			map[string]any{"call": map[string]any{"to": "bob@example.com"}},
-			"bob",
+			"bob@example.com",
+		},
+		{
+			"tel URI strips tel: prefix",
+			map[string]any{"call": map[string]any{"to": "tel:+15551234567"}},
+			"+15551234567",
+		},
+		{
+			"plain username returned whole",
+			map[string]any{"call": map[string]any{"to": "support"}},
+			"support",
 		},
 		{
 			"no call data",

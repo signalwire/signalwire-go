@@ -994,11 +994,24 @@ func platformBaseURL(mode ExecutionMode) string {
 	}
 }
 
-// RegisterRoutingCallback registers a callback for a specific path.
+// RegisterRoutingCallback registers a callback for a specific path. The path is
+// normalized for consistent lookup — trailing slash stripped, leading slash
+// added — matching Python's register_routing_callback (swml_service.py:919):
+// normalized = path.rstrip("/"); if not startswith("/"): "/" + normalized.
+// So "/sip/" and "voice" both normalize to "/sip" and "/voice".
 func (s *Service) RegisterRoutingCallback(path string, cb RoutingCallback) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.routingCallbacks[path] = cb
+	s.routingCallbacks[normalizeCallbackPath(path)] = cb
+}
+
+// normalizeCallbackPath strips a trailing slash and ensures a leading slash.
+func normalizeCallbackPath(path string) string {
+	normalized := strings.TrimRight(path, "/")
+	if !strings.HasPrefix(normalized, "/") {
+		normalized = "/" + normalized
+	}
+	return normalized
 }
 
 // RoutingCallbackFor returns the routing callback registered for path, and
@@ -1008,7 +1021,9 @@ func (s *Service) RegisterRoutingCallback(path string, cb RoutingCallback) {
 func (s *Service) RoutingCallbackFor(path string) (RoutingCallback, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	cb, ok := s.routingCallbacks[path]
+	// Look up under the same normalization used at registration so "/sip/" and
+	// "/sip" resolve to the same callback.
+	cb, ok := s.routingCallbacks[normalizeCallbackPath(path)]
 	return cb, ok
 }
 
@@ -1109,7 +1124,11 @@ func (s *Service) HandleRequest(method string, url string, headers map[string]st
 	if err != nil {
 		return 500, map[string]string{}, `{"error":"render failed"}`
 	}
-	return 200, map[string]string{"Content-Type": "application/json"}, string(out)
+	// Empty headers on 200 — matching Python's framework-free _handle_request_core,
+	// which returns (200, {}, body). The Content-Type is a concern of the HTTP
+	// wrapper layer (the net/http handler sets it when marshaling the response),
+	// not the shared primitive-dispatch contract the ports byte-compare.
+	return 200, map[string]string{}, string(out)
 }
 
 // CallbackPathForURL derives the registered routing-callback path (if any) that
@@ -1242,12 +1261,22 @@ func ExtractSIPUsername(body map[string]any) string {
 	if !ok {
 		return ""
 	}
-	// Parse SIP URI: sip:username@domain
-	to = strings.TrimPrefix(to, "sip:")
-	if idx := strings.Index(to, "@"); idx > 0 {
-		return to[:idx]
+	// Mirror Python's extract_sip_username (swml_service.py:948) branches:
+	//   sip:username@domain -> the username part (between "sip:" and "@")
+	//   tel:+1234567890     -> the phone number part (after "tel:")
+	//   otherwise           -> the whole 'to' field.
+	switch {
+	case strings.HasPrefix(to, "sip:"):
+		rest := to[len("sip:"):]
+		if idx := strings.Index(rest, "@"); idx >= 0 {
+			return rest[:idx]
+		}
+		return rest
+	case strings.HasPrefix(to, "tel:"):
+		return to[len("tel:"):]
+	default:
+		return to
 	}
-	return to
 }
 
 // --- Helpers ---

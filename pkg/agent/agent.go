@@ -1362,11 +1362,22 @@ func (a *AgentBase) SetParams(params map[string]any) *AgentBase {
 	return a
 }
 
-// SetGlobalData replaces all global data.
+// SetGlobalData merges data into the global data (later keys win, siblings
+// survive) — matching Python's set_global_data, which is a .update() not a
+// replace. Use ClearGlobalData first if a full replace is intended.
 func (a *AgentBase) SetGlobalData(data map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.globalData = data
+	// MERGE, not replace — Python's set_global_data does self._global_data.update(data)
+	// (ai_config_mixin.py:327) so skills and other callers each contribute keys
+	// without clobbering siblings. A later key with the same name wins; other
+	// keys survive. (This is identical to UpdateGlobalData by design.)
+	if a.globalData == nil {
+		a.globalData = make(map[string]any, len(data))
+	}
+	for k, v := range data {
+		a.globalData[k] = v
+	}
 	return a
 }
 
@@ -1378,6 +1389,29 @@ func (a *AgentBase) UpdateGlobalData(data map[string]any) *AgentBase {
 		a.globalData[k] = v
 	}
 	return a
+}
+
+// GetGlobalData returns a copy of the accumulated global data.
+func (a *AgentBase) GetGlobalData() map[string]any {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	out := make(map[string]any, len(a.globalData))
+	for k, v := range a.globalData {
+		out[k] = v
+	}
+	return out
+}
+
+// GetSIPUsernames returns the registered SIP usernames (lowercased, sorted).
+func (a *AgentBase) GetSIPUsernames() []string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	out := make([]string, 0, len(a.sipUsernames))
+	for u := range a.sipUsernames {
+		out = append(out, u)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // SetNativeFunctions sets the list of native function names.
@@ -2867,10 +2901,18 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 	// 5. Build AI verb config
 	aiConfig := make(map[string]any)
 
-	// Prompt
-	if a.usePom && len(a.pomSections) > 0 {
+	// Prompt. Python's get_prompt() returns the POM list (possibly empty) when
+	// usePom is active, else the prompt text; build_config ALWAYS emits a
+	// "prompt" block from that base — so an agent with usePom but no sections
+	// still renders prompt:{pom:[]}. Mirroring this is what lets prompt LLM
+	// params (below) merge into ai.prompt even when no base text/section is set.
+	if a.usePom {
+		pom := a.pomSections
+		if pom == nil {
+			pom = []map[string]any{}
+		}
 		aiConfig["prompt"] = map[string]any{
-			"pom": a.pomSections,
+			"pom": pom,
 		}
 	} else if a.promptText != "" {
 		aiConfig["prompt"] = map[string]any{
@@ -3995,8 +4037,17 @@ func (a *AgentBase) withAuth(next http.HandlerFunc) http.HandlerFunc {
 		userMatch := subtle.ConstantTimeCompare([]byte(reqUser), []byte(user)) == 1
 		passMatch := subtle.ConstantTimeCompare([]byte(reqPass), []byte(pass)) == 1
 		if !ok || !userMatch || !passMatch {
+			// JSON error body {"error":"Unauthorized"} — matches Python's 401
+			// challenge (auth_mixin._send_lambda_auth_challenge and the FastAPI
+			// path both return json {"error":"Unauthorized"}) and Go's own
+			// framework-free SWMLService.HandleRequest 401. http.Error would emit
+			// a plain-text "Unauthorized\n" body, diverging from every other port.
 			w.Header().Set("WWW-Authenticate", `Basic realm="Agent"`)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			if _, err := w.Write([]byte(`{"error":"Unauthorized"}`)); err != nil {
+				a.Logger.Warn("failed to write 401 body: %s", err)
+			}
 			return
 		}
 
