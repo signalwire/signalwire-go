@@ -281,6 +281,68 @@ func TestRegisterSipUsername(t *testing.T) {
 	}
 }
 
+// TestSIPRouting_ServedPathExtractsAndRoutes is Tier-2 behavioral contract #6:
+// a registered SIP username, POSTed to the SERVED /sip endpoint, must (a) fire
+// the SIP handler, (b) have its username EXTRACTED from the SIP body (call.to =
+// "sip:<user>@domain"), and (c) be ROUTED to the mapped agent route. A
+// stored-but-unconsulted mapping would never route — the endpoint would 404 or
+// ignore the mapping. This exercises the mapping through the served mux, not
+// just the in-memory map assertion the other SIP tests make.
+func TestSIPRouting_ServedPathExtractsAndRoutes(t *testing.T) {
+	s := NewAgentServer()
+	s.Register(agent.NewAgentBase(agent.WithName("Support"), agent.WithRoute("/support")), "/support")
+	s.SetupSIPRouting("/sip", false)
+	s.RegisterSIPUsername("support", "/support")
+
+	mux := s.buildMux()
+
+	// SIP-shaped body: the username lives in call.to as a SIP URI.
+	body := `{"call":{"to":"sip:support@example.sip.signalwire.com","from":"sip:caller@x"}}`
+	req := httptest.NewRequest("POST", "/sip", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("served /sip: status = %d, want 200 (routed); body=%s", rr.Code, rr.Body.String())
+	}
+
+	var resp map[string]any
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("SIP response not JSON: %v; body=%s", err, rr.Body.String())
+	}
+	// (c) routed to the mapped agent route.
+	if resp["route"] != "/support" {
+		t.Errorf("routed route = %v, want /support (username 'support' extracted from call.to and consulted)", resp["route"])
+	}
+	if resp["action"] != "redirect" {
+		t.Errorf("action = %v, want redirect", resp["action"])
+	}
+}
+
+// TestSIPRouting_ServedPathUnregisteredUsername confirms the served /sip
+// endpoint actually consults the mapping: an unregistered extracted username
+// yields 404, not a route. A stored-but-unconsulted implementation could not
+// distinguish registered from unregistered.
+func TestSIPRouting_ServedPathUnregisteredUsername(t *testing.T) {
+	s := NewAgentServer()
+	s.Register(agent.NewAgentBase(agent.WithName("Support"), agent.WithRoute("/support")), "/support")
+	s.SetupSIPRouting("/sip", false)
+	s.RegisterSIPUsername("support", "/support")
+
+	mux := s.buildMux()
+
+	body := `{"call":{"to":"sip:nobody@example.sip.signalwire.com"}}`
+	req := httptest.NewRequest("POST", "/sip", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("unregistered username: status = %d, want 404 (mapping consulted, no match)", rr.Code)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Static file serving tests
 // ---------------------------------------------------------------------------

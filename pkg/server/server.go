@@ -602,22 +602,39 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 // ---------------------------------------------------------------------------
 
 // extractSIPUsername extracts the SIP username from an inbound SIP routing
-// request body.  It checks common field paths used by SignalWire.
+// request body. It checks common field paths used by SignalWire and, crucially,
+// parses SIP/TEL URIs down to the bare username so a body like
+// {"call":{"to":"sip:support@host"}} yields "support" — matching the username
+// form that RegisterSIPUsername stores (and the reference
+// swml.ExtractSIPUsername / Python extract_sip_username). Returning the raw URI
+// here would make every real SIP body miss the mapping (stored-but-unmatchable).
 func extractSIPUsername(body map[string]any) string {
-	// Try top-level "sip_username"
+	// Try top-level "sip_username" (already a bare username by contract).
 	if u, ok := body["sip_username"].(string); ok && u != "" {
 		return u
 	}
-	// Try nested "call.to" or "to"
-	if to, ok := body["to"].(string); ok && to != "" {
-		return to
+	// Nested "call.to" is the canonical SignalWire SIP field; parse its URI via
+	// the shared reference implementation.
+	if u := swml.ExtractSIPUsername(body); u != "" {
+		return u
 	}
-	if call, ok := body["call"].(map[string]any); ok {
-		if to, ok := call["to"].(string); ok && to != "" {
-			return to
-		}
+	// Fall back to a top-level "to", parsing a SIP/TEL URI if present.
+	if to, ok := body["to"].(string); ok && to != "" {
+		return parseSIPURIUsername(to)
 	}
 	return ""
+}
+
+// parseSIPURIUsername extracts the username portion of a SIP/TEL URI, or
+// returns the value unchanged when it is already a bare username. Mirrors
+// swml.ExtractSIPUsername's URI handling for the top-level "to" field.
+func parseSIPURIUsername(to string) string {
+	to = strings.TrimPrefix(to, "sip:")
+	to = strings.TrimPrefix(to, "tel:")
+	if idx := strings.Index(to, "@"); idx > 0 {
+		return to[:idx]
+	}
+	return to
 }
 
 // addSecurityHeaders wraps an http.Handler to include standard security

@@ -29,11 +29,13 @@ agent.AgentBase.RunContext: Go ctx-aware form of AgentBase.Run; on ctx cancel/de
 # Run() is now the universal entry point: it computes the execution mode via
 # swml.GetExecutionMode() (the cross-language detection contract — CGI/Lambda/
 # GCF/Azure/server) and dispatches, mirroring Python web_mixin.run() +
-# serverless_mixin. Server mode serves HTTP (existing behavior, preserved);
-# a detected serverless platform returns ErrServerlessUnsupported rather than
-# silently binding a TCP listener that never receives traffic — Go's serverless
-# request handling lives in the dedicated adapter pkg/lambda (wraps AsRouter(),
-# driven from main() by aws-lambda-go), not inline in Run(). DetectRunMode and
+# serverless_mixin. Server mode serves HTTP (existing behavior, preserved); CGI
+# dispatches the single request inline through pkg/serverless (env+stdin→stdout);
+# the platform-runtime-driven modes (Lambda/GCF/Azure) return ErrServerlessUnsupported
+# rather than silently binding a TCP listener that never receives traffic — those
+# are served via the adapters (pkg/lambda wraps AsRouter(), driven from main() by
+# aws-lambda-go; pkg/serverless provides the GCF/CGI handlers), not inline in Run().
+# DetectRunMode and
 # RunWithMode are the Go-idiomatic shape for Python run()'s implicit
 # get_execution_mode() call and its force_mode= override arg respectively;
 # Python folds both into run()'s param list, Go exposes them as methods on the
@@ -41,8 +43,8 @@ agent.AgentBase.RunContext: Go ctx-aware form of AgentBase.Run; on ctx cancel/de
 # Tested in pkg/agent/run_serverless_test.go (detection fixtures, force-mode
 # dispatch, server-mode still serves HTTP).
 agent.AgentBase.DetectRunMode: Go accessor returning the swml.ExecutionMode Run() would dispatch on (from swml.GetExecutionMode()). Mirrors Python run()'s internal get_execution_mode() call; lets callers branch (e.g. wire a pkg/lambda adapter) before invoking Run. Method-on-mapped-struct: invisible to both diff gates
-agent.AgentBase.RunWithMode: Go force-mode form of Run — dispatches on the supplied swml.ExecutionMode rather than auto-detecting. Mirrors Python run(force_mode=...). Server mode serves HTTP; a serverless mode returns ErrServerlessUnsupported. Method-on-mapped-struct: invisible to both diff gates
-agent.ErrServerlessUnsupported: Go sentinel — Run/RunWithMode detected a serverless execution mode (Lambda/GCF/Azure/CGI); the agent must be served via its http.Handler (AsRouter) using the platform adapter (e.g. pkg/lambda), not Run(). errors.Is-able. No Python counterpart (Python's run() handles each platform inline; Go's serverless handling is the AsRouter+adapter path)
+agent.AgentBase.RunWithMode: Go force-mode form of Run — dispatches on the supplied swml.ExecutionMode rather than auto-detecting. Mirrors Python run(force_mode=...). Server mode serves HTTP; CGI dispatches the request inline via pkg/serverless; Lambda/GCF/Azure return ErrServerlessUnsupported (served via the adapters). Method-on-mapped-struct: invisible to both diff gates
+agent.ErrServerlessUnsupported: Go sentinel — Run/RunWithMode detected a platform-runtime-driven serverless mode (Lambda/GCF/Azure); the agent must be served via its http.Handler (AsRouter) using the platform adapter (pkg/lambda for Lambda, pkg/serverless for GCF; CGI dispatches inline and does not return this), not Run(). errors.Is-able. No Python counterpart (Python's run() handles each platform inline; Go's serverless handling is the AsRouter+adapter path)
 # REST client ctx-aware variants (cloud-product #19436). doRequest now delegates to
 # doRequestContext via http.NewRequestWithContext; the non-ctx verbs are PRESERVED and
 # delegate with context.Background(). Python's REST client has no caller-supplied
@@ -136,6 +138,8 @@ builtin.WebSearchSkill: Go skill implementation; matches the Python skill of the
 builtin.WikipediaSearchSkill: Go skill implementation; matches the Python skill of the same name structurally
 datamap.ExpressionPattern: Go-only struct; no direct Python counterpart
 lambda.Handler: Go-only struct; no direct Python counterpart
+serverless.Handler: Go-only struct; the CGI / Google Cloud Functions dispatch adapter (analog of pkg/lambda for the non-Lambda serverless platforms), wrapping the agent's http.Handler. Python's ServerlessMixin dispatches these inline; Go's serverless request handling is the AsRouter+adapter path
+serverless.CGIResult: Go-only struct; the CGI dispatch outcome (status/headers/body) that WriteCGI serializes. No Python counterpart (Python writes the CGI response inline via stdout)
 logging.Logger: Go-only struct; no direct Python counterpart
 logging.LogLevel: Go-only defined-string type (closed set of log-level names: debug/info/warn/warning/error/off) + LevelName* typed constants; server.WithLogLevel takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "debug" string compiling — parity with the reference's plain str log_level. ParseLevel(string(LogLevel)) resolves it to the internal Level, so it adds zero signature drift (it appears on no oracle method param). Distinct from the internal Level severity int.
 namespaces.CrudResource: Go REST resource type; Python uses dynamic resource accessors via __getattr__
@@ -259,6 +263,8 @@ contexts.WithFunctions: Go functional-options helper; encodes a Python kwarg for
 contexts.WithPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
 contexts.WithType: Go functional-options helper; encodes a Python kwarg for the matching constructor
 lambda.NewHandler: Go factory constructor for a port-only struct; Python equivalent does not exist
+serverless.NewHandler: Go factory constructor for the port-only serverless.Handler (CGI/GCF adapter); Python equivalent does not exist
+serverless.WriteCGI: Go-only public function serializing a CGIResult to the CGI response wire format (Status line + headers + body); Python writes the CGI response inline
 logging.GetGlobalLevel: Go-only public function; no direct Python counterpart
 logging.IsSuppressed: Go-only public function; no direct Python counterpart
 logging.New: Go factory constructor for a port-only struct; Python equivalent does not exist

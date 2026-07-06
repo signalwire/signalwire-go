@@ -535,6 +535,72 @@ func TestPromptLlmParams_RenderInSWML(t *testing.T) {
 	t.Fatal("AI verb not found")
 }
 
+// TestSetPromptLlmParams_MergesAcrossCalls is Tier-2 behavioral contract #2:
+// set_prompt_llm_params MERGES (Python ai_config_mixin.py:669 does
+// self._prompt_llm_params.update(params)). Two calls with distinct keys must
+// BOTH survive into the rendered SWML — a replace stub (the old
+// `a.promptLlmParams = params`) would drop temperature, keeping only top_p.
+func TestSetPromptLlmParams_MergesAcrossCalls(t *testing.T) {
+	a := NewAgentBase()
+	a.SetPromptText("test prompt")
+	a.SetPromptLlmParams(map[string]any{"temperature": 0.5})
+	a.SetPromptLlmParams(map[string]any{"top_p": 0.9})
+
+	doc := a.RenderSWML(nil, nil)
+	prompt := findAIVerbSubMap(t, doc, "prompt")
+
+	if got, ok := prompt["temperature"].(float64); !ok || got != 0.5 {
+		t.Errorf("temperature = %v (ok=%v), want 0.5 — first call was dropped (replace, not merge)", prompt["temperature"], ok)
+	}
+	if got, ok := prompt["top_p"].(float64); !ok || got != 0.9 {
+		t.Errorf("top_p = %v (ok=%v), want 0.9", prompt["top_p"], ok)
+	}
+}
+
+// TestSetPostPromptLlmParams_MergesAcrossCalls is the post_prompt half of
+// contract #2 (Python ai_config_mixin.py:703).
+func TestSetPostPromptLlmParams_MergesAcrossCalls(t *testing.T) {
+	a := NewAgentBase()
+	a.SetPostPrompt("summarize")
+	a.SetPostPromptLlmParams(map[string]any{"temperature": 0.2})
+	a.SetPostPromptLlmParams(map[string]any{"max_tokens": 150})
+
+	doc := a.RenderSWML(nil, nil)
+	pp := findAIVerbSubMap(t, doc, "post_prompt")
+
+	if got, ok := pp["temperature"].(float64); !ok || got != 0.2 {
+		t.Errorf("post_prompt temperature = %v (ok=%v), want 0.2 — first call dropped (replace, not merge)", pp["temperature"], ok)
+	}
+	// max_tokens was passed as an int literal; the render copies params
+	// verbatim (no JSON round-trip), so assert on the original int type.
+	if got, ok := pp["max_tokens"].(int); !ok || got != 150 {
+		t.Errorf("post_prompt max_tokens = %v (ok=%v), want 150", pp["max_tokens"], ok)
+	}
+}
+
+// findAIVerbSubMap locates the AI verb in a rendered SWML doc and returns the
+// named sub-config map (e.g. "prompt" or "post_prompt"), failing the test if
+// the verb or sub-map is absent.
+func findAIVerbSubMap(t *testing.T, doc map[string]any, key string) map[string]any {
+	t.Helper()
+	sections, _ := doc["sections"].(map[string]any)
+	main, _ := sections["main"].([]any)
+	for _, v := range main {
+		vm, _ := v.(map[string]any)
+		aiCfg, ok := vm["ai"].(map[string]any)
+		if !ok {
+			continue
+		}
+		sub, ok := aiCfg[key].(map[string]any)
+		if !ok {
+			t.Fatalf("AI verb has no %q sub-config; ai keys: %v", key, keysOf(aiCfg))
+		}
+		return sub
+	}
+	t.Fatalf("AI verb not found in rendered SWML")
+	return nil
+}
+
 func TestPostPromptLlmParams_RenderInSWML(t *testing.T) {
 	a := NewAgentBase()
 	a.SetPostPrompt("summarize")

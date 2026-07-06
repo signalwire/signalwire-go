@@ -25,6 +25,7 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/logging"
 	"github.com/signalwire/signalwire-go/pkg/pom"
 	"github.com/signalwire/signalwire-go/pkg/security"
+	"github.com/signalwire/signalwire-go/pkg/serverless"
 	"github.com/signalwire/signalwire-go/pkg/skills"
 	"github.com/signalwire/signalwire-go/pkg/swaig"
 	"github.com/signalwire/signalwire-go/pkg/swml"
@@ -1522,19 +1523,33 @@ func (a *AgentBase) SetFunctionIncludes(includes []map[string]any) *AgentBase {
 	return a
 }
 
-// SetPromptLlmParams sets LLM parameters for the main prompt.
+// SetPromptLlmParams merges LLM parameters into the main prompt's params.
+// Python (ai_config_mixin.py:669) does self._prompt_llm_params.update(params) —
+// a MERGE, so repeated calls with distinct keys accumulate rather than replace.
 func (a *AgentBase) SetPromptLlmParams(params map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.promptLlmParams = params
+	if a.promptLlmParams == nil {
+		a.promptLlmParams = make(map[string]any)
+	}
+	for k, v := range params {
+		a.promptLlmParams[k] = v
+	}
 	return a
 }
 
-// SetPostPromptLlmParams sets LLM parameters for the post-prompt.
+// SetPostPromptLlmParams merges LLM parameters into the post-prompt's params.
+// Python (ai_config_mixin.py:703) does self._post_prompt_llm_params.update(params) —
+// a MERGE, so repeated calls with distinct keys accumulate rather than replace.
 func (a *AgentBase) SetPostPromptLlmParams(params map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.postPromptLlmParams = params
+	if a.postPromptLlmParams == nil {
+		a.postPromptLlmParams = make(map[string]any)
+	}
+	for k, v := range params {
+		a.postPromptLlmParams[k] = v
+	}
 	return a
 }
 
@@ -3016,9 +3031,11 @@ var ErrServerlessUnsupported = errors.New("agent: serverless execution mode dete
 // mirroring Python's run() (web_mixin.py:341 + serverless_mixin.py):
 //
 //   - server                → start the long-running HTTP server (blocking)
+//   - cgi                   → dispatch the single CGI request through the
+//     agent handler (pkg/serverless ServeCGI: env + stdin → stdout), then return
 //   - lambda / gcf / azure  → return ErrServerlessUnsupported (these are
-//     served via the platform adapter, see ErrServerlessUnsupported)
-//   - cgi                   → return ErrServerlessUnsupported (no CGI bridge)
+//     served via the platform adapter — pkg/lambda, pkg/serverless — wired from
+//     main() because the platform runtime owns the event loop)
 //
 // Detection order matches the cross-language SDK contract (see
 // swml.GetExecutionMode). To override the detected mode (e.g. in tests or an
@@ -3048,7 +3065,20 @@ func (a *AgentBase) RunWithMode(mode swml.ExecutionMode) error {
 	switch mode {
 	case swml.ModeServer:
 		return a.RunContext(context.Background())
-	case swml.ModeLambda, swml.ModeGoogleCloudFunction, swml.ModeAzureFunction, swml.ModeCGI:
+	case swml.ModeCGI:
+		// CGI is invoked once per request by the CGI host, which hands the
+		// request off via the process environment + stdin and expects the
+		// response on stdout, then the process exits. This is a real dispatch
+		// (mirrors Python's serverless_mixin CGI branch), not an unsupported
+		// mode: serve the request through the agent's http.Handler.
+		return serverless.NewHandler(a.AsRouter()).ServeCGI(context.Background())
+	case swml.ModeLambda, swml.ModeGoogleCloudFunction, swml.ModeAzureFunction:
+		// Lambda / GCF / Azure are driven by the platform runtime's own event
+		// loop (lambda.Start / functions.HTTP / the Azure worker), which calls
+		// the adapter from main() — Run() cannot host that loop itself. The
+		// dispatch happens in the adapter (pkg/lambda, pkg/serverless), wired
+		// from main(); Run() returns the descriptive error directing the caller
+		// there rather than binding a dead TCP listener.
 		return fmt.Errorf("%w (detected mode: %q)", ErrServerlessUnsupported, mode)
 	default:
 		// Unknown mode: be conservative and serve HTTP (matches Python's
