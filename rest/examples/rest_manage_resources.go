@@ -62,20 +62,19 @@ func main() {
 	})
 	if err != nil {
 		fmt.Printf("  Search failed: %v\n", err)
-	} else if data, ok := available["data"].([]any); ok {
-		for _, n := range data {
-			if m, ok := n.(map[string]any); ok {
-				fmt.Printf("  - %v\n", m["e164"])
-			}
+	} else {
+		for _, n := range available.Data {
+			fmt.Printf("  - %v\n", n.Number)
 		}
 	}
 
 	// 4. Place a test call (requires valid numbers)
 	fmt.Println("\nPlacing a test call...")
+	callURL := "https://example.com/call-handler"
 	result, err := client.Calling.Dial(namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
 		To:   "+15551234567",
-		Url:  "https://example.com/call-handler",
+		Url:  &callURL,
 	})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {

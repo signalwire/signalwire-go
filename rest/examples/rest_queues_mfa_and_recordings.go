@@ -85,11 +85,9 @@ func main() {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Member ops failed (expected if queue empty): %d\n", restErr.StatusCode)
 			}
-		} else if data, ok := members["data"].([]any); ok {
-			for _, m := range data {
-				if member, ok := m.(map[string]any); ok {
-					fmt.Printf("  - Member: %v\n", member["call_id"])
-				}
+		} else {
+			for _, member := range members.Data {
+				fmt.Printf("  - Member: %v\n", member.CallId)
 			}
 		}
 
@@ -105,28 +103,25 @@ func main() {
 	fmt.Println("\nListing recordings...")
 	recordings, err := client.Recordings.List(nil)
 	if err == nil {
-		if data, ok := recordings["data"].([]any); ok {
-			limit := 5
-			if len(data) < limit {
-				limit = len(data)
-			}
-			for _, r := range data[:limit] {
-				if m, ok := r.(map[string]any); ok {
-					fmt.Printf("  - %s: %vs\n", m["id"], m["duration"])
-				}
+		data := recordings.Data
+		limit := 5
+		if len(data) < limit {
+			limit = len(data)
+		}
+		for _, r := range data[:limit] {
+			if m, ok := r.(map[string]any); ok {
+				fmt.Printf("  - %s: %vs\n", m["id"], m["duration"])
 			}
 		}
 	}
 
 	// 6. Get recording details
-	if recordings != nil {
-		if data, ok := recordings["data"].([]any); ok && len(data) > 0 {
-			if first, ok := data[0].(map[string]any); ok {
-				if id, ok := first["id"].(string); ok {
-					recDetail, err := client.Recordings.Get(id, nil)
-					if err == nil {
-						fmt.Printf("  Recording: %vs, %v\n", recDetail["duration"], recDetail["format"])
-					}
+	if recordings != nil && len(recordings.Data) > 0 {
+		if first, ok := recordings.Data[0].(map[string]any); ok {
+			if id, ok := first["id"].(string); ok {
+				recDetail, err := client.Recordings.Get(id, nil)
+				if err == nil {
+					fmt.Printf("  Recording: %vs, %v\n", recDetail["duration"], recDetail["format"])
 				}
 			}
 		}
@@ -148,10 +143,7 @@ func main() {
 			fmt.Printf("  MFA SMS failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		requestID, _ = smsResult["id"].(string)
-		if requestID == "" {
-			requestID, _ = smsResult["request_id"].(string)
-		}
+		requestID = string(smsResult.Id)
 		fmt.Printf("  MFA SMS sent: %s\n", requestID)
 	}
 
@@ -168,11 +160,7 @@ func main() {
 			fmt.Printf("  MFA call failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		vID, _ := voiceResult["id"].(string)
-		if vID == "" {
-			vID, _ = voiceResult["request_id"].(string)
-		}
-		fmt.Printf("  MFA call sent: %s\n", vID)
+		fmt.Printf("  MFA call sent: %s\n", string(voiceResult.Id))
 	}
 
 	// 9. Verify MFA token

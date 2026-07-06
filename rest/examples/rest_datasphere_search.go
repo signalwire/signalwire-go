@@ -74,39 +74,37 @@ func main() {
 	chunks, err := client.Datasphere.Documents.ListChunks(docID, nil)
 	if err != nil {
 		fmt.Printf("  List chunks failed: %v\n", err)
-	} else if data, ok := chunks["data"].([]any); ok {
+	} else {
+		data := chunks.Data
 		limit := 5
 		if len(data) < limit {
 			limit = len(data)
 		}
 		for _, c := range data[:limit] {
-			if m, ok := c.(map[string]any); ok {
-				content, _ := m["content"].(string)
-				if len(content) > 80 {
-					content = content[:80]
-				}
-				fmt.Printf("  - Chunk %v: %s...\n", m["id"], content)
+			content := c.Content
+			if len(content) > 80 {
+				content = content[:80]
 			}
+			fmt.Printf("  - Chunk %v: %s...\n", c.Id, content)
 		}
 	}
 
 	// 4. Semantic search across all documents
 	fmt.Println("\nSearching Datasphere...")
+	count := 3
 	results, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{
 		QueryString: "lorem ipsum dolor sit amet",
-		Count:       3,
+		Count:       &count,
 	})
 	if err != nil {
 		fmt.Printf("  Search failed: %v\n", err)
-	} else if chunkList, ok := results["chunks"].([]any); ok {
-		for _, c := range chunkList {
-			if m, ok := c.(map[string]any); ok {
-				text, _ := m["text"].(string)
-				if len(text) > 100 {
-					text = text[:100]
-				}
-				fmt.Printf("  - %s...\n", text)
+	} else {
+		for _, c := range results.Chunks {
+			text := c.Text
+			if len(text) > 100 {
+				text = text[:100]
 			}
+			fmt.Printf("  - %s...\n", text)
 		}
 	}
 

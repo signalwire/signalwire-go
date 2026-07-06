@@ -35,10 +35,11 @@ func main() {
 	// 1. Dial an outbound call
 	fmt.Println("Dialing outbound call...")
 	callID := "demo-call-id"
+	callURL := "https://example.com/call-handler"
 	call, err := client.Calling.Dial(namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
 		To:   "+15551234567",
-		Url:  "https://example.com/call-handler",
+		Url:  &callURL,
 	})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
@@ -47,8 +48,10 @@ func main() {
 			fmt.Printf("  Dial failed: %v\n", err)
 		}
 	} else {
-		if id, ok := call["id"].(string); ok {
-			callID = id
+		if m, ok := (*call).(map[string]any); ok {
+			if id, ok := m["id"].(string); ok {
+				callID = id
+			}
 		}
 		fmt.Printf("  Call initiated: %s\n", callID)
 	}
@@ -70,18 +73,18 @@ func main() {
 	fmt.Println("\nControlling playback...")
 	for _, op := range []struct {
 		label string
-		fn    func() (map[string]any, error)
+		fn    func() (*namespaces.CallResponse, error)
 	}{
-		{"Pause", func() (map[string]any, error) {
+		{"Pause", func() (*namespaces.CallResponse, error) {
 			return client.Calling.PlayPause(callID, namespaces.CallingNamespacePlayPauseParams{})
 		}},
-		{"Resume", func() (map[string]any, error) {
+		{"Resume", func() (*namespaces.CallResponse, error) {
 			return client.Calling.PlayResume(callID, namespaces.CallingNamespacePlayResumeParams{})
 		}},
-		{"Volume +2dB", func() (map[string]any, error) {
+		{"Volume +2dB", func() (*namespaces.CallResponse, error) {
 			return client.Calling.PlayVolume(callID, namespaces.CallingNamespacePlayVolumeParams{Volume: 2.0})
 		}},
-		{"Stop", func() (map[string]any, error) {
+		{"Stop", func() (*namespaces.CallResponse, error) {
 			return client.Calling.PlayStop(callID, namespaces.CallingNamespacePlayStopParams{})
 		}},
 	} {
@@ -110,15 +113,15 @@ func main() {
 	fmt.Println("\nControlling recording...")
 	for _, op := range []struct {
 		label string
-		fn    func() (map[string]any, error)
+		fn    func() (*namespaces.CallResponse, error)
 	}{
-		{"Pause", func() (map[string]any, error) {
+		{"Pause", func() (*namespaces.CallResponse, error) {
 			return client.Calling.RecordPause(callID, namespaces.CallingNamespaceRecordPauseParams{})
 		}},
-		{"Resume", func() (map[string]any, error) {
+		{"Resume", func() (*namespaces.CallResponse, error) {
 			return client.Calling.RecordResume(callID, namespaces.CallingNamespaceRecordResumeParams{})
 		}},
-		{"Stop", func() (map[string]any, error) {
+		{"Stop", func() (*namespaces.CallResponse, error) {
 			return client.Calling.RecordStop(callID, namespaces.CallingNamespaceRecordStopParams{})
 		}},
 	} {
@@ -160,7 +163,8 @@ func main() {
 
 	// 8. End the call
 	fmt.Println("\nEnding call...")
-	_, err = client.Calling.End(callID, namespaces.CallingNamespaceEndParams{Reason: "hangup"})
+	hangupReason := namespaces.HangupReasonHangup
+	_, err = client.Calling.End(callID, namespaces.CallingNamespaceEndParams{Reason: &hangupReason})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  End call failed (expected in demo): %d\n", restErr.StatusCode)

@@ -74,7 +74,7 @@ func main() {
 			fmt.Printf("  Token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		tokenStr, _ := token["token"].(string)
+		tokenStr := token.Token
 		if len(tokenStr) > 40 {
 			tokenStr = tokenStr[:40]
 		}
@@ -112,23 +112,17 @@ func main() {
 
 					members, err := client.Video.RoomSessions.ListMembers(sid, nil)
 					if err == nil {
-						if d, ok := members["data"].([]any); ok {
-							fmt.Printf("  Members: %d\n", len(d))
-						}
+						fmt.Printf("  Members: %d\n", len(members.Data))
 					}
 
 					events, err := client.Video.RoomSessions.ListEvents(sid, nil)
 					if err == nil {
-						if d, ok := events["data"].([]any); ok {
-							fmt.Printf("  Events: %d\n", len(d))
-						}
+						fmt.Printf("  Events: %d\n", len(events.Data))
 					}
 
 					recs, err := client.Video.RoomSessions.ListRecordings(sid, nil)
 					if err == nil {
-						if d, ok := recs["data"].([]any); ok {
-							fmt.Printf("  Recordings: %d\n", len(d))
-						}
+						fmt.Printf("  Recordings: %d\n", len(recs.Data))
 					}
 				}
 			}
@@ -141,33 +135,25 @@ func main() {
 	fmt.Println("\nListing room recordings...")
 	roomRecs, err := client.Video.RoomRecordings.List(nil)
 	if err == nil {
-		if data, ok := roomRecs["data"].([]any); ok {
-			limit := 3
-			if len(data) < limit {
-				limit = len(data)
-			}
-			for _, rr := range data[:limit] {
-				if m, ok := rr.(map[string]any); ok {
-					fmt.Printf("  - Recording %s: %vs\n", m["id"], m["duration"])
-				}
+		data := roomRecs.Data
+		limit := 3
+		if len(data) < limit {
+			limit = len(data)
+		}
+		for _, rr := range data[:limit] {
+			fmt.Printf("  - Recording %s: %vs\n", rr.Id, rr.Duration)
+		}
+
+		if len(data) > 0 {
+			recID := data[0].Id
+			recDetail, err := client.Video.RoomRecordings.Get(recID, nil)
+			if err == nil {
+				fmt.Printf("  Recording detail: %vs\n", recDetail.Duration)
 			}
 
-			if len(data) > 0 {
-				if first, ok := data[0].(map[string]any); ok {
-					if recID, ok := first["id"].(string); ok {
-						recDetail, err := client.Video.RoomRecordings.Get(recID, nil)
-						if err == nil {
-							fmt.Printf("  Recording detail: %vs\n", recDetail["duration"])
-						}
-
-						recEvents, err := client.Video.RoomRecordings.ListEvents(recID, nil)
-						if err == nil {
-							if d, ok := recEvents["data"].([]any); ok {
-								fmt.Printf("  Recording events: %d\n", len(d))
-							}
-						}
-					}
-				}
+			recEvents, err := client.Video.RoomRecordings.ListEvents(recID, nil)
+			if err == nil {
+				fmt.Printf("  Recording events: %d\n", len(recEvents.Data))
 			}
 		}
 	}
@@ -198,11 +184,9 @@ func main() {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Conference tokens failed: %d\n", restErr.StatusCode)
 			}
-		} else if data, ok := tokens["data"].([]any); ok {
-			for _, t := range data {
-				if m, ok := t.(map[string]any); ok {
-					fmt.Printf("  - Token: %v\n", m["id"])
-				}
+		} else {
+			for _, t := range tokens.Data {
+				fmt.Printf("  - Token: %v\n", t.Id)
 			}
 		}
 	}
@@ -219,7 +203,7 @@ func main() {
 				fmt.Printf("  Stream creation failed (expected in demo): %d\n", restErr.StatusCode)
 			}
 		} else {
-			streamID = stream["id"].(string)
+			streamID = stream.Id
 			fmt.Printf("  Created stream: %s\n", streamID)
 		}
 	}
@@ -229,7 +213,7 @@ func main() {
 		fmt.Printf("\nManaging stream %s...\n", streamID)
 		sDetail, err := client.Video.Streams.Get(streamID, nil)
 		if err == nil {
-			fmt.Printf("  Stream URL: %v\n", sDetail["url"])
+			fmt.Printf("  Stream URL: %v\n", sDetail.Url)
 		}
 
 		_, err = client.Video.Streams.Update(streamID, namespaces.VideoStreamsUpdateParams{Extras: map[string]any{

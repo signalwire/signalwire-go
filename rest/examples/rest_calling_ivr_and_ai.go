@@ -27,7 +27,7 @@ import (
 
 const callID = "demo-call-id"
 
-func safeCall(label string, fn func() (map[string]any, error)) map[string]any {
+func safeCall(label string, fn func() (*namespaces.CallResponse, error)) *namespaces.CallResponse {
 	result, err := fn()
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
@@ -50,78 +50,78 @@ func main() {
 
 	// 1. Collect DTMF input
 	fmt.Println("Collecting DTMF input...")
-	safeCall("Collect", func() (map[string]any, error) {
+	safeCall("Collect", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Collect(callID, namespaces.CallingNamespaceCollectParams{Extras: map[string]any{
 			"digits": map[string]any{"max": 4, "terminators": "#"},
 			"play":   []map[string]any{{"type": "tts", "text": "Enter your PIN followed by pound."}},
 		}})
 	})
-	safeCall("Start input timers", func() (map[string]any, error) {
+	safeCall("Start input timers", func() (*namespaces.CallResponse, error) {
 		return client.Calling.CollectStartInputTimers(callID, namespaces.CallingNamespaceCollectStartInputTimersParams{})
 	})
-	safeCall("Stop collect", func() (map[string]any, error) {
+	safeCall("Stop collect", func() (*namespaces.CallResponse, error) {
 		return client.Calling.CollectStop(callID, namespaces.CallingNamespaceCollectStopParams{})
 	})
 
 	// 2. Answering machine detection
 	fmt.Println("\nDetecting answering machine...")
-	safeCall("Detect", func() (map[string]any, error) {
+	safeCall("Detect", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Detect(callID, namespaces.CallingNamespaceDetectParams{Extras: map[string]any{"type": "machine"}})
 	})
-	safeCall("Stop detect", func() (map[string]any, error) {
+	safeCall("Stop detect", func() (*namespaces.CallResponse, error) {
 		return client.Calling.DetectStop(callID, namespaces.CallingNamespaceDetectStopParams{})
 	})
 
 	// 3. AI operations
 	fmt.Println("\nAI agent operations...")
-	safeCall("AI message", func() (map[string]any, error) {
+	safeCall("AI message", func() (*namespaces.CallResponse, error) {
 		return client.Calling.AIMessage(callID, namespaces.CallingNamespaceAIMessageParams{Extras: map[string]any{
 			"message": "The customer wants to check their balance.",
 		}})
 	})
-	safeCall("AI hold", func() (map[string]any, error) {
+	safeCall("AI hold", func() (*namespaces.CallResponse, error) {
 		return client.Calling.AIHold(callID, namespaces.CallingNamespaceAIHoldParams{})
 	})
-	safeCall("AI unhold", func() (map[string]any, error) {
+	safeCall("AI unhold", func() (*namespaces.CallResponse, error) {
 		return client.Calling.AIUnhold(callID, namespaces.CallingNamespaceAIUnholdParams{})
 	})
-	safeCall("AI stop", func() (map[string]any, error) {
+	safeCall("AI stop", func() (*namespaces.CallResponse, error) {
 		return client.Calling.AIStop(callID, namespaces.CallingNamespaceAIStopParams{})
 	})
 
 	// 4. Live transcription and translation
 	fmt.Println("\nLive transcription and translation...")
-	safeCall("Live transcribe", func() (map[string]any, error) {
+	safeCall("Live transcribe", func() (*namespaces.CallResponse, error) {
 		return client.Calling.LiveTranscribe(callID, namespaces.CallingNamespaceLiveTranscribeParams{Extras: map[string]any{"language": "en-US"}})
 	})
-	safeCall("Live translate", func() (map[string]any, error) {
+	safeCall("Live translate", func() (*namespaces.CallResponse, error) {
 		return client.Calling.LiveTranslate(callID, namespaces.CallingNamespaceLiveTranslateParams{Extras: map[string]any{"language": "es"}})
 	})
 
 	// 5. Tap (media fork)
 	fmt.Println("\nTap (media fork)...")
-	safeCall("Tap start", func() (map[string]any, error) {
+	safeCall("Tap start", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Tap(callID, namespaces.CallingNamespaceTapParams{Extras: map[string]any{
 			"tap":    map[string]any{"type": "audio", "direction": "both"},
 			"device": map[string]any{"type": "rtp", "addr": "192.168.1.100", "port": 9000},
 		}})
 	})
-	safeCall("Tap stop", func() (map[string]any, error) {
+	safeCall("Tap stop", func() (*namespaces.CallResponse, error) {
 		return client.Calling.TapStop(callID, namespaces.CallingNamespaceTapStopParams{})
 	})
 
 	// 6. Stream (WebSocket)
 	fmt.Println("\nStream (WebSocket)...")
-	safeCall("Stream start", func() (map[string]any, error) {
+	safeCall("Stream start", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Stream(callID, namespaces.CallingNamespaceStreamParams{Extras: map[string]any{"url": "wss://example.com/audio-stream"}})
 	})
-	safeCall("Stream stop", func() (map[string]any, error) {
+	safeCall("Stream stop", func() (*namespaces.CallResponse, error) {
 		return client.Calling.StreamStop(callID, namespaces.CallingNamespaceStreamStopParams{})
 	})
 
 	// 7. User event
 	fmt.Println("\nSending user event...")
-	safeCall("User event", func() (map[string]any, error) {
+	safeCall("User event", func() (*namespaces.CallResponse, error) {
 		return client.Calling.UserEvent(callID, namespaces.CallingNamespaceUserEventParams{Extras: map[string]any{
 			"event_name": "agent_note",
 			"data":       map[string]any{"note": "VIP caller"},
@@ -130,31 +130,31 @@ func main() {
 
 	// 8. SIP refer
 	fmt.Println("\nSIP refer...")
-	safeCall("SIP refer", func() (map[string]any, error) {
+	safeCall("SIP refer", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Refer(callID, namespaces.CallingNamespaceReferParams{Extras: map[string]any{"sip_uri": "sip:support@example.com"}})
 	})
 
 	// 9. Fax stop commands
 	fmt.Println("\nFax stop commands...")
-	safeCall("Send fax stop", func() (map[string]any, error) {
+	safeCall("Send fax stop", func() (*namespaces.CallResponse, error) {
 		return client.Calling.SendFaxStop(callID, namespaces.CallingNamespaceSendFaxStopParams{})
 	})
-	safeCall("Receive fax stop", func() (map[string]any, error) {
+	safeCall("Receive fax stop", func() (*namespaces.CallResponse, error) {
 		return client.Calling.ReceiveFaxStop(callID, namespaces.CallingNamespaceReceiveFaxStopParams{})
 	})
 
 	// 10. Transfer and disconnect
 	fmt.Println("\nTransfer and disconnect...")
-	safeCall("Transfer", func() (map[string]any, error) {
+	safeCall("Transfer", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Transfer(callID, namespaces.CallingNamespaceTransferParams{Extras: map[string]any{"dest": "+15559999999"}})
 	})
-	safeCall("Update call", func() (map[string]any, error) {
+	safeCall("Update call", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Update(namespaces.CallingNamespaceUpdateParams{Extras: map[string]any{
 			"id":       callID,
 			"metadata": map[string]any{"priority": "high"},
 		}})
 	})
-	safeCall("Disconnect", func() (map[string]any, error) {
+	safeCall("Disconnect", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Disconnect(callID, namespaces.CallingNamespaceDisconnectParams{})
 	})
 }

@@ -87,11 +87,9 @@ func main() {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  List versions failed: %d\n", restErr.StatusCode)
 		}
-	} else if data, ok := versions["data"].([]any); ok {
-		for _, v := range data {
-			if m, ok := v.(map[string]any); ok {
-				fmt.Printf("  - Version: %v\n", m["label"])
-			}
+	} else {
+		for _, v := range versions.Data {
+			fmt.Printf("  - Version: %v\n", v.Version)
 		}
 	}
 
@@ -102,11 +100,9 @@ func main() {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  List addresses failed: %d\n", restErr.StatusCode)
 		}
-	} else if data, ok := cfAddrs["data"].([]any); ok {
-		for _, a := range data {
-			if m, ok := a.(map[string]any); ok {
-				fmt.Printf("  - %v\n", m["display_name"])
-			}
+	} else {
+		for _, a := range cfAddrs.Data {
+			fmt.Printf("  - %v\n", a.DisplayName)
 		}
 	}
 

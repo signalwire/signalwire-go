@@ -36,11 +36,9 @@ func main() {
 	})
 	if err != nil {
 		fmt.Printf("  Search failed: %v\n", err)
-	} else if data, ok := available["data"].([]any); ok {
-		for _, num := range data {
-			if m, ok := num.(map[string]any); ok {
-				fmt.Printf("  - %v\n", m["e164"])
-			}
+	} else {
+		for _, num := range available.Data {
+			fmt.Printf("  - %v\n", num.Number)
 		}
 	}
 
@@ -48,14 +46,8 @@ func main() {
 	fmt.Println("\nPurchasing a phone number...")
 	var numID string
 	numberE164 := "+15125551234"
-	if available != nil {
-		if data, ok := available["data"].([]any); ok && len(data) > 0 {
-			if first, ok := data[0].(map[string]any); ok {
-				if e164, ok := first["e164"].(string); ok {
-					numberE164 = e164
-				}
-			}
-		}
+	if available != nil && len(available.Data) > 0 {
+		numberE164 = available.Data[0].Number
 	}
 	number, err := client.PhoneNumbers.Create(map[string]any{"number": numberE164})
 	if err != nil {
@@ -120,10 +112,8 @@ func main() {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Lookup failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		if carrier, ok := info["carrier"].(map[string]any); ok {
-			fmt.Printf("  Carrier: %v\n", carrier["name"])
-		}
+	} else if info.Carrier != nil {
+		fmt.Printf("  Carrier: %+v\n", *info.Carrier)
 	}
 
 	// 7. Create a verified caller
@@ -157,11 +147,9 @@ func main() {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Short codes failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else if data, ok := codes["data"].([]any); ok {
-		for _, sc := range data {
-			if m, ok := sc.(map[string]any); ok {
-				fmt.Printf("  - %v\n", m["short_code"])
-			}
+	} else {
+		for _, sc := range codes.Data {
+			fmt.Printf("  - %v\n", sc.Number)
 		}
 	}
 
@@ -181,7 +169,7 @@ func main() {
 			fmt.Printf("  Address creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		addrID = addr["id"].(string)
+		addrID = string(addr.Id)
 		fmt.Printf("  Created address: %s\n", addrID)
 	}
 
