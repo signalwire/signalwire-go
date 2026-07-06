@@ -99,19 +99,33 @@ func (sm *SessionManager) CreateSession(callID string) string {
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
+// newNonce returns 16 hex characters of cryptographic randomness, matching
+// Python's secrets.token_hex(8) (8 random bytes → 16 hex chars).
+func newNonce() string {
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		panic("security: failed to generate token nonce: " + err.Error())
+	}
+	return hex.EncodeToString(b)
+}
+
 // CreateToken generates an HMAC-SHA256 signed token for the given function
-// name and call ID. The token embeds an expiry timestamp and is returned as a
-// base64url-encoded string.
+// name and call ID. The token embeds an expiry timestamp and a per-mint nonce
+// and is returned as a base64url-encoded string. The DECODED token is the
+// 5-field dot-joined form matching the Python oracle:
+// {call_id}.{function_name}.{expiry}.{nonce}.{signature}, where the signed
+// message is {call_id}:{function_name}:{expiry}:{nonce}.
 func (sm *SessionManager) CreateToken(functionName string, callID string) string {
 	expiry := time.Now().Unix() + int64(sm.tokenExpirySecs)
-	message := functionName + ":" + callID + ":" + strconv.FormatInt(expiry, 10)
+	nonce := newNonce()
+	message := callID + ":" + functionName + ":" + strconv.FormatInt(expiry, 10) + ":" + nonce
 
 	mac := hmac.New(sha256.New, sm.secret)
 	mac.Write([]byte(message))
-	signature := mac.Sum(nil)
+	signature := hex.EncodeToString(mac.Sum(nil))
 
-	payload := message + "." + hex.EncodeToString(signature)
-	return base64.URLEncoding.EncodeToString([]byte(payload))
+	token := callID + "." + functionName + "." + strconv.FormatInt(expiry, 10) + "." + nonce + "." + signature
+	return base64.URLEncoding.EncodeToString([]byte(token))
 }
 
 // ValidateToken verifies that a token is authentic, unexpired, and matches
@@ -130,41 +144,32 @@ func (sm *SessionManager) ValidateToken(functionName string, token string, callI
 		return false
 	}
 
-	parts := strings.SplitN(string(decoded), ".", 2)
-	if len(parts) != 2 {
-		sm.logger.Debug("token validation failed: invalid token format (missing separator)")
+	// Decoded token: "{call_id}.{function_name}.{expiry}.{nonce}.{signature}"
+	parts := strings.Split(string(decoded), ".")
+	if len(parts) != 5 {
+		sm.logger.Debug("token validation failed: invalid token format (expected 5 dot-fields, got %d)", len(parts))
 		return false
 	}
 
-	message := parts[0]
-	sigHex := parts[1]
+	tokenCallID := parts[0]
+	tokenFunctionName := parts[1]
+	tokenExpiryStr := parts[2]
+	tokenNonce := parts[3]
+	sigHex := parts[4]
 
 	// Verify HMAC-SHA256 signature using constant-time comparison.
-	providedSig, err := hex.DecodeString(sigHex)
-	if err != nil {
-		sm.logger.Debug("token validation failed: hex decode error: %v", err)
-		return false
-	}
-
+	// Signed message: "{call_id}:{function_name}:{expiry}:{nonce}".
+	message := tokenCallID + ":" + tokenFunctionName + ":" + tokenExpiryStr + ":" + tokenNonce
 	mac := hmac.New(sha256.New, sm.secret)
 	mac.Write([]byte(message))
-	expectedSig := mac.Sum(nil)
+	expectedSigHex := hex.EncodeToString(mac.Sum(nil))
 
-	if subtle.ConstantTimeCompare(providedSig, expectedSig) != 1 {
+	// Constant-time compare over the hex-encoded signatures (matches Python's
+	// hmac.compare_digest on the hexdigest strings; no first-mismatch early return).
+	if subtle.ConstantTimeCompare([]byte(sigHex), []byte(expectedSigHex)) != 1 {
 		sm.logger.Debug("token validation failed: signature mismatch")
 		return false
 	}
-
-	// Parse the message: "functionName:callID:expiryTimestamp"
-	msgParts := strings.SplitN(message, ":", 3)
-	if len(msgParts) != 3 {
-		sm.logger.Debug("token validation failed: invalid message format")
-		return false
-	}
-
-	tokenFunctionName := msgParts[0]
-	tokenCallID := msgParts[1]
-	tokenExpiryStr := msgParts[2]
 
 	// Check function name matches.
 	if subtle.ConstantTimeCompare([]byte(tokenFunctionName), []byte(functionName)) != 1 {
@@ -211,33 +216,21 @@ func (sm *SessionManager) DebugToken(token string) map[string]any {
 		}
 	}
 
-	// Go token format: "functionName:callID:expiry.hexsig"
-	// Split on the single dot separator between message and signature.
-	dotParts := strings.SplitN(string(decoded), ".", 2)
-	if len(dotParts) != 2 {
+	// Decoded token: "{call_id}.{function_name}.{expiry}.{nonce}.{signature}".
+	parts := strings.Split(string(decoded), ".")
+	if len(parts) != 5 {
 		return map[string]any{
 			"valid_format": false,
-			"parts_count":  len(dotParts),
+			"parts_count":  len(parts),
 			"token_length": len(token),
 		}
 	}
 
-	message := dotParts[0]
-	tokenSignature := dotParts[1]
-
-	// Parse "functionName:callID:expiry"
-	msgParts := strings.SplitN(message, ":", 3)
-	if len(msgParts) != 3 {
-		return map[string]any{
-			"valid_format": false,
-			"parts_count":  len(msgParts),
-			"token_length": len(token),
-		}
-	}
-
-	tokenFunction := msgParts[0]
-	tokenCallID := msgParts[1]
-	tokenExpiryStr := msgParts[2]
+	tokenCallID := parts[0]
+	tokenFunction := parts[1]
+	tokenExpiryStr := parts[2]
+	tokenNonce := parts[3]
+	tokenSignature := parts[4]
 
 	currentTime := time.Now().Unix()
 
@@ -276,7 +269,7 @@ func (sm *SessionManager) DebugToken(token string) map[string]any {
 			"function":    tokenFunction,
 			"expiry":      expiryRaw,
 			"expiry_date": expiryDate,
-			"nonce":       nil, // Go token format has no nonce field
+			"nonce":       tokenNonce,
 			"signature":   sigDisplay,
 		},
 		"status": map[string]any{

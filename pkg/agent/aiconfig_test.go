@@ -47,11 +47,16 @@ func TestAddPatternHint_WithLanguage(t *testing.T) {
 
 func TestAddPatternHint_WithoutLanguage(t *testing.T) {
 	a := NewAgentBase()
-	// Python-aligned: ignoreCase not set, so no ignore_case field
+	// Python-aligned: add_pattern_hint always stores ignore_case (default False),
+	// so the structured hint carries ignore_case=false when not explicitly set.
 	a.AddPatternHint("letters", "[A-Z]+", "WORD")
 	ph := a.patternHints[0]
-	if _, ok := ph["ignore_case"]; ok {
-		t.Error("ignore_case should not be stored when not set")
+	v, ok := ph["ignore_case"]
+	if !ok {
+		t.Error("ignore_case should always be stored (Python parity)")
+	}
+	if v != false {
+		t.Errorf("expected ignore_case=false, got %v", v)
 	}
 }
 
@@ -691,6 +696,100 @@ func TestAIConfigMethods_ReturnSelf(t *testing.T) {
 	}
 	if a.SetPostPromptLlmParams(nil) != a {
 		t.Error("SetPostPromptLlmParams should return self")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Contract 8 — AI/LLM structured fillers
+// ---------------------------------------------------------------------------
+
+// aiConfigFrom extracts the rendered ai verb config from a SWML document.
+func aiConfigFrom(t *testing.T, doc map[string]any) map[string]any {
+	t.Helper()
+	sections, _ := doc["sections"].(map[string]any)
+	main, _ := sections["main"].([]any)
+	for _, v := range main {
+		vm, _ := v.(map[string]any)
+		if aiCfg, ok := vm["ai"].(map[string]any); ok {
+			return aiCfg
+		}
+	}
+	t.Fatal("no ai verb found in rendered SWML")
+	return nil
+}
+
+// TestContract8_StructuredFillersAndPatternHint is the contract-8 lock-in:
+// (a) add_pattern_hint attaches a STRUCTURED hint (pattern + replacements) that
+// survives into the rendered SWML ai.hints array (NOT a bare string, and NOT a
+// separate pattern_hints key); (b) add_language carries engine + model +
+// fillers into the rendered ai.languages entry.
+func TestContract8_StructuredFillersAndPatternHint(t *testing.T) {
+	a := NewAgentBase(WithBasicAuth("u", "p"))
+	a.SetPromptText("You are a bot")
+
+	// A structured pattern hint (hint + pattern + replace + ignore_case).
+	a.AddPatternHint("SignalWire", "(?i)signal ?wire", "SignalWire", true)
+
+	// A language carrying engine + model + BOTH filler lists.
+	a.AddLanguageTyped(
+		"English", "en-US", "josh",
+		[]string{"um", "uh"},          // speech_fillers
+		[]string{"one moment", "hmm"}, // function_fillers
+		"elevenlabs",                  // engine
+		"eleven_turbo_v2_5",           // model
+	)
+
+	aiCfg := aiConfigFrom(t, a.RenderSWML(nil, nil))
+
+	// (a) The structured pattern hint survives into ai.hints.
+	if aiCfg["pattern_hints"] != nil {
+		t.Errorf("pattern_hints must not be a separate key (Python parity); got %v", aiCfg["pattern_hints"])
+	}
+	hints, ok := aiCfg["hints"].([]any)
+	if !ok {
+		t.Fatalf("ai.hints should be a mixed []any array, got %T", aiCfg["hints"])
+	}
+	var structured map[string]any
+	for _, h := range hints {
+		if hm, ok := h.(map[string]any); ok && hm["hint"] == "SignalWire" {
+			structured = hm
+		}
+	}
+	if structured == nil {
+		t.Fatal("structured pattern hint did not survive into ai.hints")
+	}
+	if structured["pattern"] != "(?i)signal ?wire" {
+		t.Errorf("pattern field lost: %v", structured["pattern"])
+	}
+	if structured["replace"] != "SignalWire" {
+		t.Errorf("replace field lost: %v", structured["replace"])
+	}
+	if structured["ignore_case"] != true {
+		t.Errorf("ignore_case field lost: %v", structured["ignore_case"])
+	}
+
+	// (b) The language carries engine + model + fillers into ai.languages.
+	langs, ok := aiCfg["languages"].([]map[string]any)
+	if !ok {
+		t.Fatalf("ai.languages should be []map[string]any, got %T", aiCfg["languages"])
+	}
+	if len(langs) != 1 {
+		t.Fatalf("expected 1 language, got %d", len(langs))
+	}
+	lang := langs[0]
+	if lang["engine"] != "elevenlabs" {
+		t.Errorf("engine lost: %v", lang["engine"])
+	}
+	if lang["model"] != "eleven_turbo_v2_5" {
+		t.Errorf("model lost: %v", lang["model"])
+	}
+	sf, _ := lang["speech_fillers"].([]string)
+	if len(sf) != 2 || sf[0] != "um" {
+		t.Errorf("speech_fillers lost: %v", lang["speech_fillers"])
+	}
+	ff, _ := lang["function_fillers"].([]string)
+	if len(ff) != 2 || ff[0] != "one moment" {
+		t.Errorf("function_fillers lost: %v", lang["function_fillers"])
 	}
 }
 

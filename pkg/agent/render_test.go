@@ -106,7 +106,7 @@ func TestRenderSWML_AllAIConfigOptions(t *testing.T) {
 	a.AddPronunciation("API", "A P I")
 	a.SetGlobalData(map[string]any{"company": "SignalWire"})
 	a.SetNativeFunctions([]string{"stop"})
-	a.AddPatternHint("numbers", "\\d+", "")
+	a.AddPatternHint("numbers", "\\d+", "NUM")
 	a.EnableDebugEvents(1)
 	a.SetPromptLlmParams(map[string]any{"top_p": 0.9})
 	a.SetPostPromptLlmParams(map[string]any{"max_tokens": 200})
@@ -143,10 +143,22 @@ func TestRenderSWML_AllAIConfigOptions(t *testing.T) {
 			if params["temperature"] != 0.5 {
 				t.Errorf("temperature = %v", params["temperature"])
 			}
-			// Check hints
-			hints, _ := aiCfg["hints"].([]string)
-			if len(hints) != 2 {
-				t.Errorf("expected 2 hints, got %d", len(hints))
+			// Check hints — a single mixed array: 2 plain-string hints plus the
+			// 1 structured pattern hint (Python appends pattern hints into hints).
+			hints, _ := aiCfg["hints"].([]any)
+			if len(hints) != 3 {
+				t.Errorf("expected 3 hints (2 string + 1 pattern), got %d", len(hints))
+			}
+			var patternFound bool
+			for _, h := range hints {
+				if hm, ok := h.(map[string]any); ok {
+					if hm["hint"] == "numbers" && hm["pattern"] == "\\d+" && hm["replace"] == "NUM" {
+						patternFound = true
+					}
+				}
+			}
+			if !patternFound {
+				t.Error("expected the structured pattern hint to be merged into hints")
 			}
 			// Check languages
 			langs, _ := aiCfg["languages"].([]map[string]any)
@@ -166,9 +178,10 @@ func TestRenderSWML_AllAIConfigOptions(t *testing.T) {
 			if len(nf) != 1 || nf[0] != "stop" {
 				t.Errorf("native_functions = %v", nf)
 			}
-			// Check pattern_hints
-			if aiCfg["pattern_hints"] == nil {
-				t.Error("expected pattern_hints")
+			// Pattern hints render inside the hints array (checked above), not
+			// under a separate pattern_hints key (Python parity).
+			if aiCfg["pattern_hints"] != nil {
+				t.Errorf("unexpected pattern_hints key: %v", aiCfg["pattern_hints"])
 			}
 			// Check debug events wiring (Python parity: params.debug_webhook_url
 			// + params.debug_webhook_level; no separate ai.debug_events key).
@@ -302,8 +315,8 @@ func TestRenderSWML_WithSkill(t *testing.T) {
 			if len(fns) == 0 {
 				t.Error("expected at least 1 function from datetime skill")
 			}
-			// Should also have hints
-			hints, _ := aiCfg["hints"].([]string)
+			// Should also have hints (rendered as a mixed []any array).
+			hints, _ := aiCfg["hints"].([]any)
 			if len(hints) == 0 {
 				t.Error("expected hints from datetime skill")
 			}

@@ -1111,10 +1111,13 @@ func (a *AgentBase) AddHints(hints []string) *AgentBase {
 // Python equivalent: ai_config_mixin.AIConfigMixin.add_pattern_hint
 // Python signature: add_pattern_hint(hint, pattern, replace, ignore_case=False)
 //
-// The Python implementation appends to self._hints (not a separate patternHints
-// list) as a dict with keys "hint", "pattern", "replace", "ignore_case".
-// The Go implementation stores in patternHints and merges into the rendered
-// "hints" array at render time.
+// The Python implementation appends to self._hints (not a separate list) as a
+// dict with keys "hint", "pattern", "replace", "ignore_case", so the structured
+// hint renders inside the SWML ai.hints array alongside plain-string hints. The
+// Go implementation stores in patternHints and merges into that same rendered
+// "hints" array at render time. Matching Python, a call with any of hint,
+// pattern, or replace empty is a no-op (the hint is only attached when all three
+// are non-empty).
 //
 // Parameters:
 //   - hint:       the hint text the model receives
@@ -1122,15 +1125,18 @@ func (a *AgentBase) AddHints(hints []string) *AgentBase {
 //   - replace:    replacement string for the matched pattern
 //   - ignoreCase: when true, matching is case-insensitive
 func (a *AgentBase) AddPatternHint(hint string, pattern string, replace string, ignoreCase ...bool) *AgentBase {
+	// Python guards: `if hint and pattern and replace`. Attach only when all
+	// three are non-empty; otherwise this is a no-op (still chainable).
+	if hint == "" || pattern == "" || replace == "" {
+		return a
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	ph := map[string]any{
-		"hint":    hint,
-		"pattern": pattern,
-		"replace": replace,
-	}
-	if len(ignoreCase) > 0 && ignoreCase[0] {
-		ph["ignore_case"] = true
+		"hint":        hint,
+		"pattern":     pattern,
+		"replace":     replace,
+		"ignore_case": len(ignoreCase) > 0 && ignoreCase[0],
 	}
 	a.patternHints = append(a.patternHints, ph)
 	return a
@@ -2890,9 +2896,19 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		aiConfig["params"] = a.params
 	}
 
-	// Hints
-	if len(a.hints) > 0 {
-		aiConfig["hints"] = a.hints
+	// Hints — a single mixed array of plain-string hints (AddHint/AddHints) and
+	// structured pattern hints (AddPatternHint), matching Python, whose
+	// add_pattern_hint appends structured dicts into the same self._hints list
+	// that renders under ai.hints. (Python has NO separate pattern_hints key.)
+	if len(a.hints) > 0 || len(a.patternHints) > 0 {
+		merged := make([]any, 0, len(a.hints)+len(a.patternHints))
+		for _, h := range a.hints {
+			merged = append(merged, h)
+		}
+		for _, ph := range a.patternHints {
+			merged = append(merged, ph)
+		}
+		aiConfig["hints"] = merged
 	}
 
 	// Languages
@@ -2934,10 +2950,8 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		aiConfig["native_functions"] = a.nativeFunctions
 	}
 
-	// Pattern hints
-	if len(a.patternHints) > 0 {
-		aiConfig["pattern_hints"] = a.patternHints
-	}
+	// (Pattern hints are merged into the "hints" array above, matching Python;
+	// there is no separate pattern_hints key in the SWML ai block.)
 
 	// Contexts
 	if a.contextBuilder != nil {

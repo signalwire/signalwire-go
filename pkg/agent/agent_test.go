@@ -826,8 +826,8 @@ func TestRenderSWML_WithParams(t *testing.T) {
 				t.Errorf("expected temperature=0.5, got %v", params["temperature"])
 			}
 
-			// Check hints
-			hints, ok := aiCfg["hints"].([]string)
+			// Check hints (rendered as a mixed []any array).
+			hints, ok := aiCfg["hints"].([]any)
 			if !ok {
 				t.Fatal("expected hints")
 			}
