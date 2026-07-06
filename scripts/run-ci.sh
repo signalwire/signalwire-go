@@ -62,6 +62,34 @@ PORTING_SDK_DIR="$(resolve_porting_sdk)" || {
     exit 2
 }
 
+# ---- locate signalwire-python (Layer-D behavioral oracle) -------------------
+# The Layer-D differs (diff_port_<surface>.py) build their golden oracle by
+# importing signalwire-python; they put "<dir>/signalwire" on sys.path, and the
+# importable package lives at signalwire-python/signalwire/signalwire/, so the
+# path we hand to --python-sdk is <workspace>/signalwire-python/signalwire.
+# Mirror diff_port_emission.py's adjacency resolution (CI checks it out as a
+# sibling of porting-sdk; do NOT hardcode ~/src — CI clones elsewhere).
+resolve_python_sdk() {
+    local c
+    for c in \
+        "${PYTHON_SDK:-}" \
+        "$PORTING_SDK_DIR/../signalwire-python/signalwire" \
+        "$PORT_ROOT/../signalwire-python/signalwire" \
+        "$HOME/src/signalwire-python/signalwire"; do
+        if [ -n "$c" ] && [ -d "$c/signalwire" ]; then
+            (cd "$c" && pwd)
+            return 0
+        fi
+    done
+    return 1
+}
+
+PYTHON_SDK_DIR="$(resolve_python_sdk)" || {
+    echo "FATAL: signalwire-python not found for Layer-D behavioral gates" >&2
+    echo "       (expected signalwire-python adjacent to porting-sdk or \$PYTHON_SDK env var)" >&2
+    exit 2
+}
+
 # ---- gate plumbing (shared scheduler) ---------------------------------------
 
 # shellcheck source=/dev/null
@@ -207,6 +235,32 @@ sched_gate EMISSION desc="diff_port_emission vs python to_dict() oracle" \
     -- python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --port go \
         --port-repo "$PORT_ROOT"
+
+# ---- Layer-D behavioral coverage (per-surface differs vs python oracle) ------
+sched_gate BEHAVIORAL-WIRE desc="diff_port_wire vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/wire-dump"
+
+sched_gate BEHAVIORAL-SWML desc="diff_port_swml vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_swml.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/swml-dump"
+
+sched_gate BEHAVIORAL-STATE desc="diff_port_state vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_state.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/state-dump"
+
+sched_gate BEHAVIORAL-HTTP desc="diff_port_http vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_http.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/http-dump"
+
+sched_gate BEHAVIORAL-WIRE_RELAY desc="diff_port_wire_relay vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire_relay.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/wire-relay-dump"
 
 sched_gate SKILL-CONTRACT desc="diff_skill_contracts vs python reference" \
     -- python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
