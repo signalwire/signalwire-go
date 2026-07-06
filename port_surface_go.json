@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 02a2b80a418fa936853a8ff16f4e744cf090c762",
+  "generated_from": "signalwire-go (go-native) @ 65503e892e23fa49e25ab84bfa55adbcf4919124",
   "modules": {
     "agent": {
       "classes": {
@@ -46,6 +46,7 @@
           "GetName",
           "GetPrompt",
           "GetRoute",
+          "HandleRequest",
           "HasFunction",
           "HasSkill",
           "LanguageParams",
@@ -1605,6 +1606,7 @@
           "Array",
           "Boolean",
           "Build",
+          "Describe",
           "Enum",
           "Integer",
           "Number",
@@ -1612,7 +1614,8 @@
           "Properties",
           "Required",
           "RequiredNames",
-          "String"
+          "String",
+          "WithRawData"
         ],
         "PayOptions": [],
         "Prop": [],
@@ -1623,8 +1626,10 @@
         "CreatePaymentAction",
         "CreatePaymentParameter",
         "CreatePaymentPrompt",
+        "CreateTypedHandlerWrapper",
         "Default",
         "Format",
+        "InferSchema",
         "NewFunctionResult",
         "NewParams",
         "PropArray",
@@ -1689,11 +1694,14 @@
           "Answer",
           "AsRouter",
           "BuildSwaigListToolsPayload",
+          "CallbackPathForURL",
+          "CheckBasicAuthHeaders",
           "Cond",
           "Connect",
           "DefineTool",
           "Denoise",
           "DetectMachine",
+          "DetectProxyFromPrimitives",
           "EnterQueue",
           "Execute",
           "ExecuteVerb",
@@ -1706,6 +1714,7 @@
           "GetFullURL",
           "GetVerbHandler",
           "Goto",
+          "HandleRequest",
           "Hangup",
           "HasTool",
           "HasVerbHandler",

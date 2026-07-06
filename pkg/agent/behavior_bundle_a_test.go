@@ -287,41 +287,41 @@ func TestFindSummary_ExtractionOrder(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// #186 — RegisterRoutingCallback receives the live *http.Request.
+// #186 — RegisterRoutingCallback receives the parsed body and request headers.
 // ---------------------------------------------------------------------------
 
-func TestRoutingCallbackReceivesLiveRequest(t *testing.T) {
+func TestRoutingCallbackReceivesBodyAndHeaders(t *testing.T) {
 	a := NewAgentBase(WithName("t"), WithRoute("/svc"), WithBasicAuth("u", "p"))
 
-	var gotReq *http.Request
-	var gotHeader, gotQuery string
-	a.RegisterRoutingCallback(func(r *http.Request, body map[string]any) map[string]any {
-		gotReq = r
-		if r != nil {
-			gotHeader = r.Header.Get("X-Test-Header")
-			gotQuery = r.URL.Query().Get("flavor")
+	var gotBody map[string]any
+	var gotHeader string
+	a.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
+		gotBody = body
+		if v, ok := headers["X-Test-Header"].(string); ok {
+			gotHeader = v
 		}
-		return swmlResponseWithMarker()
+		route := "/routed"
+		return &route
 	}, "/agents")
 
-	req := httptest.NewRequest(http.MethodPost, "/agents?flavor=vanilla", strings.NewReader("{}"))
+	req := httptest.NewRequest(http.MethodPost, "/agents", strings.NewReader(`{"caller":"a"}`))
 	req.SetBasicAuth("u", "p")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Test-Header", "present")
 	rec := httptest.NewRecorder()
 	a.AsRouter().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
+	if rec.Code != http.StatusTemporaryRedirect {
 		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
 	}
-	if gotReq == nil {
-		t.Fatal("routing callback received a nil *http.Request")
+	if rec.Header().Get("Location") != "/routed" {
+		t.Errorf("Location = %q, want /routed", rec.Header().Get("Location"))
+	}
+	if gotBody["caller"] != "a" {
+		t.Errorf("body not threaded through: %v", gotBody)
 	}
 	if gotHeader != "present" {
 		t.Errorf("request header not threaded through: %q", gotHeader)
-	}
-	if gotQuery != "vanilla" {
-		t.Errorf("request query not threaded through: %q", gotQuery)
 	}
 }
 
@@ -333,14 +333,15 @@ func TestRoutingCallbackPathNormalization(t *testing.T) {
 	a := NewAgentBase(WithName("t"), WithRoute("/svc"), WithBasicAuth("u", "p"))
 	// Registered without a leading slash and with a trailing slash; must
 	// normalize to "/agents" and still match.
-	a.RegisterRoutingCallback(func(r *http.Request, body map[string]any) map[string]any {
-		return swmlResponseWithMarker()
+	a.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
+		route := "/routed"
+		return &route
 	}, "agents/")
 
-	if !dispatchMarkerAt(t, a, "/agents") {
+	if code, _ := dispatchRedirectAt(t, a, "/agents"); code != http.StatusTemporaryRedirect {
 		t.Fatal(`callback registered as "agents/" should match /agents`)
 	}
-	if !dispatchMarkerAt(t, a, "/agents/") {
+	if code, _ := dispatchRedirectAt(t, a, "/agents/"); code != http.StatusTemporaryRedirect {
 		t.Fatal(`callback registered as "agents/" should also match /agents/`)
 	}
 }

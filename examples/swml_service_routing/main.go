@@ -2,14 +2,14 @@
 
 // Example: swml_service_routing
 //
-// SWML service with routing callbacks. Demonstrates registering multiple
-// routing callbacks on a single SWMLService to serve different SWML
-// content based on the request path (/main, /customer, /product).
+// SWML service with routing callbacks. A routing callback inspects the POST
+// body and headers and returns a route string to redirect the request (HTTP
+// 307), or nil to serve the default document. This mirrors the reference
+// SWMLService.register_routing_callback (body, headers) -> route | None.
 package main
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/signalwire/signalwire-go/pkg/swml"
 )
@@ -27,30 +27,25 @@ func main() {
 	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
 	svc.Hangup(nil)
 
-	// Register a customer routing callback
-	svc.RegisterRoutingCallback("/customer", func(r *http.Request, body map[string]any) map[string]any {
-		fmt.Println("Serving customer route")
-		doc := swml.NewDocument()
-		doc.AddVerb("answer", map[string]any{})
-		doc.AddVerb("play", map[string]any{"url": "say:Hello from the customer service!"})
-		doc.AddVerb("hangup", map[string]any{})
-		return doc.ToMap()
-	})
-
-	// Register a product routing callback
-	svc.RegisterRoutingCallback("/product", func(r *http.Request, body map[string]any) map[string]any {
-		fmt.Println("Serving product route")
-		doc := swml.NewDocument()
-		doc.AddVerb("answer", map[string]any{})
-		doc.AddVerb("play", map[string]any{"url": "say:Hello from the product service!"})
-		doc.AddVerb("hangup", map[string]any{})
-		return doc.ToMap()
+	// Register a routing callback at /dispatch: inspect the body and redirect
+	// callers to a dedicated endpoint based on the "department" field.
+	svc.RegisterRoutingCallback("/dispatch", func(body map[string]any, headers map[string]any) *string {
+		dept, _ := body["department"].(string)
+		switch dept {
+		case "customer":
+			route := "/customer"
+			return &route
+		case "product":
+			route := "/product"
+			return &route
+		default:
+			return nil // no redirect — serve the default document
+		}
 	})
 
 	fmt.Println("Starting RoutingExample on :3026 ...")
 	fmt.Println("  Main:     /main")
-	fmt.Println("  Customer: /customer")
-	fmt.Println("  Product:  /product")
+	fmt.Println("  Dispatch: POST /dispatch {\"department\":\"customer\"|\"product\"} -> 307 redirect")
 
 	if err := svc.Serve(); err != nil {
 		fmt.Printf("Service error: %v\n", err)

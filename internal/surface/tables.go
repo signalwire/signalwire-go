@@ -75,6 +75,15 @@ var StructTable = map[string][]ClassTarget{
 				"AutoMapSIPUsernames": "auto_map_sip_usernames",
 				"GetFullURL":          "get_full_url",
 			},
+			// handle_request: the reference emits it as an AgentBase SURFACE
+			// symbol (an override of SWMLService.handle_request) but records the
+			// SIGNATURE only on the defining SWMLService class. Go likewise
+			// defines AgentBase.HandleRequest (pkg/agent/agent.go) overriding the
+			// promoted swml.Service.HandleRequest. Emit it as a surface-only
+			// synthetic (SyntheticMethods is consumed by enumerate-surface only),
+			// so SURFACE-DIFF sees AgentBase.handle_request while the signature is
+			// carried once on SWMLService — matching the oracle exactly.
+			SyntheticMethods: []string{"handle_request"},
 		},
 		ClassTarget{
 			Module: "signalwire.core.mixins.prompt_mixin", Class: "PromptMixin",
@@ -344,6 +353,7 @@ var StructTable = map[string][]ClassTarget{
 				"ExecuteVerbToSection":    "add_verb_to_section",
 				"RegisterRoutingCallback": "register_routing_callback",
 				"OnRequest":               "on_request",
+				"HandleRequest":           "handle_request",
 				"Render":                  "render_document",
 				"Serve":                   "serve",
 				// schema_utils accessor — exposes the SchemaUtils helper as a
@@ -1222,6 +1232,13 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"skills.ListSkills":           {Module: "signalwire", Name: "list_skills"},
 	"skills.ListSkillsWithParams": {Module: "signalwire", Name: "list_skills_with_params"},
 	"rest.NewRestClient":          {Module: "signalwire", Name: "RestClient"},
+
+	// Typed-handler schema inference. Python's signalwire.core.agent.tools.
+	// type_inference reflects a handler's signature at runtime; Go builds the
+	// same JSON-Schema from the typed Params declaration (pkg/swaig/type_inference.go).
+	// Projected onto the reference module-level free functions.
+	"swaig.InferSchema":               {Module: "signalwire.core.agent.tools.type_inference", Name: "infer_schema"},
+	"swaig.CreateTypedHandlerWrapper": {Module: "signalwire.core.agent.tools.type_inference", Name: "create_typed_handler_wrapper"},
 
 	// config_loader.find_config_file is a Python @staticmethod; Go exposes it as
 	// the package-level agent.FindConfigFile. The surface diff records it under

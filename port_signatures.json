@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 02a2b80a418fa936853a8ff16f4e744cf090c762 (go/ast walker)",
+  "generated_from": "signalwire-go @ 65503e892e23fa49e25ab84bfa55adbcf4919124 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -132,7 +132,7 @@
                 },
                 {
                   "name": "cb",
-                  "type": "class:swml.RoutingCallback",
+                  "type": "callable\u003clist\u003cdict\u003cstring,any\u003e,dict\u003cstring,any\u003e\u003e,optional\u003cstring\u003e\u003e",
                   "required": true
                 }
               ],
@@ -635,6 +635,35 @@
               "returns": "bool"
             }
           }
+        }
+      }
+    },
+    "signalwire.core.agent.tools.type_inference": {
+      "functions": {
+        "create_typed_handler_wrapper": {
+          "params": [
+            {
+              "name": "fn",
+              "type": "callable\u003clist\u003cany\u003e,any\u003e",
+              "required": true
+            },
+            {
+              "name": "has_raw_data",
+              "type": "bool",
+              "required": true
+            }
+          ],
+          "returns": "callable\u003clist\u003cany\u003e,any\u003e"
+        },
+        "infer_schema": {
+          "params": [
+            {
+              "name": "p",
+              "type": "class:Params",
+              "required": true
+            }
+          ],
+          "returns": "tuple\u003cdict\u003cstring,dict\u003cstring,any\u003e\u003e,list\u003cstring\u003e,optional\u003cstring\u003e,bool,bool\u003e"
         }
       }
     },
@@ -3410,7 +3439,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "string"
+              "returns": "tuple\u003cstring,string\u003e"
             },
             "logger": {
               "params": [
@@ -3932,7 +3961,7 @@
                 },
                 {
                   "name": "callback_fn",
-                  "type": "callable\u003clist\u003cclass:http.Request,dict\u003cstring,any\u003e\u003e,dict\u003cstring,any\u003e\u003e",
+                  "type": "callable\u003clist\u003cdict\u003cstring,any\u003e,dict\u003cstring,any\u003e\u003e,optional\u003cstring\u003e\u003e",
                   "required": true
                 },
                 {
@@ -4610,7 +4639,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "string"
+              "returns": "tuple\u003cstring,string\u003e"
             },
             "get_cors_config": {
               "params": [
@@ -4697,7 +4726,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "bool"
+              "returns": "tuple\u003cbool,string\u003e"
             }
           }
         }
@@ -4869,7 +4898,7 @@
                   "required": true
                 }
               ],
-              "returns": "bool"
+              "returns": "tuple\u003cbool,string\u003e"
             },
             "unload_skill": {
               "params": [
@@ -5160,7 +5189,7 @@
                   "required": true
                 }
               ],
-              "returns": "bool"
+              "returns": "tuple\u003cbool,list\u003cstring\u003e\u003e"
             }
           }
         },
@@ -5203,7 +5232,7 @@
                   "required": true
                 }
               ],
-              "returns": "bool"
+              "returns": "tuple\u003cbool,list\u003cstring\u003e\u003e"
             }
           }
         },
@@ -5378,7 +5407,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "string"
+              "returns": "tuple\u003cstring,string\u003e"
             },
             "get_document": {
               "params": [
@@ -5388,6 +5417,35 @@
                 }
               ],
               "returns": "class:signalwire.rest.namespaces.datasphere_types_generated.Document"
+            },
+            "handle_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "method",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "headers",
+                  "type": "dict\u003cstring,string\u003e",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "tuple\u003cint,dict\u003cstring,string\u003e,string\u003e"
             },
             "logger": {
               "params": [
@@ -5444,7 +5502,7 @@
                 },
                 {
                   "name": "cb",
-                  "type": "class:RoutingCallback",
+                  "type": "callable\u003clist\u003cdict\u003cstring,any\u003e,dict\u003cstring,any\u003e\u003e,optional\u003cstring\u003e\u003e",
                   "required": true
                 }
               ],

@@ -2347,19 +2347,17 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 // routing continue. It then calls register_routing_callback to register the
 // callback, and optionally calls auto_map_sip_usernames.
 func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
-	// Build SIP routing callback that matches Python behavior
-	cb := func(r *http.Request, body map[string]any) map[string]any {
+	// Build SIP routing callback that matches Python behavior: it extracts the
+	// SIP username and returns nil (no redirect) in both the matched and
+	// unmatched case, letting normal processing continue.
+	cb := func(body map[string]any, _ map[string]any) *string {
 		sipUsername := swml.ExtractSIPUsername(body)
 		if sipUsername != "" {
 			username := strings.ToLower(sipUsername)
 			a.mu.RLock()
 			_, matched := a.sipUsernames[username]
 			a.mu.RUnlock()
-			if matched {
-				// Username matched this agent — let normal processing continue
-				return nil
-			}
-			// Not matched — let routing continue
+			_ = matched // matched or not, routing continues (returns nil)
 		}
 		return nil
 	}
@@ -2383,18 +2381,17 @@ func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
 }
 
 // RegisterRoutingCallback registers a callback function that is invoked for
-// incoming requests at the given path to determine routing.
+// incoming POST requests at the given path to determine routing.
 //
 // Python equivalent: web_mixin.WebMixin.register_routing_callback
 // Python signature: register_routing_callback(callback_fn, path="/sip")
 //
-// The callback receives the HTTP request and the parsed body. It should return
-// a non-nil map to override the response, or nil to let normal processing continue.
-// This method delegates to swml.Service.RegisterRoutingCallback.
-//
-// For Python-aligned redirect semantics (callback returns a route string and
-// the framework issues an HTTP 307 redirect), use RegisterSIPRoutingCallback.
-func (a *AgentBase) RegisterRoutingCallback(callbackFn func(r *http.Request, body map[string]any) map[string]any, path string) {
+// The callback receives the parsed request body and the request headers —
+// callback_fn(body, headers) — and returns a non-nil route string to redirect
+// the request (the framework issues an HTTP 307 Temporary Redirect preserving
+// method + body) or nil to let normal SWML processing continue. This method
+// delegates to swml.Service.RegisterRoutingCallback.
+func (a *AgentBase) RegisterRoutingCallback(callbackFn swml.RoutingCallback, path string) {
 	a.Service.RegisterRoutingCallback(normalizeCallbackPath(path), callbackFn)
 }
 
@@ -3375,22 +3372,21 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	// passes the request).
 	modifications := a.OnSwmlRequest(body, callbackPath, r)
 
-	var doc map[string]any
-	switch {
-	case callbackPath != "":
-		// Dispatch to the registered routing callback with the LIVE request so
-		// the callback can read headers, query params, etc. (Python passes the
-		// request: web_mixin.py:704 `callback_fn(request, body)`). When the
-		// callback returns nil — or no callback is registered for the path —
-		// fall back to the default rendered document.
+	// Routing-callback dispatch. Python web_mixin._handle_request checks whether
+	// the request URL matches a registered routing callback and, if so, calls it
+	// as callback_fn(body, headers) -> route|None; on a non-None route it issues
+	// an HTTP 307 redirect (web_mixin.py:628-635). Mirror that here.
+	if callbackPath != "" && r.Method == http.MethodPost && body != nil {
 		if cb, ok := a.Service.RoutingCallbackFor(callbackPath); ok {
-			if result := cb(r, body); result != nil {
-				doc = result
+			if route := cb(body, headerStringMapAny(r.Header)); route != nil {
+				http.Redirect(w, r, *route, http.StatusTemporaryRedirect)
+				return
 			}
 		}
-		if doc == nil {
-			doc = a.RenderSWML(body, r)
-		}
+	}
+
+	var doc map[string]any
+	switch {
 	case hasDynamic:
 		doc = a.handleDynamicConfig(body, r)
 	default:
@@ -3405,6 +3401,74 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(doc); err != nil {
 		a.Logger.Warn("failed to write SWML response: %s", err)
 	}
+}
+
+// headerStringMapAny collapses an http.Header into a map[string]any keeping the
+// first value per key, for the RoutingCallback headers argument (which mirrors
+// the reference's dict[str, str] header dict).
+func headerStringMapAny(h http.Header) map[string]any {
+	out := make(map[string]any, len(h))
+	for k, v := range h {
+		if len(v) > 0 {
+			out[k] = v[0]
+		}
+	}
+	return out
+}
+
+// HandleRequest is the framework-free request-dispatch core for an agent,
+// overriding swml.Service.HandleRequest so the agent's full SWML render (prompt,
+// tools, dynamic config, on_swml_request modifications) is produced over plain
+// primitives instead of *http.Request objects.
+//
+// It mirrors the Python signalwire.core.agent_base.AgentBase.handle_request
+// override: proxy detection, basic-auth, routing-callback (307 redirect), then
+// the agent's rendered SWML document with any on_request modifications applied.
+//
+// Parameters and return follow swml.Service.HandleRequest:
+// (method, url, headers, body) -> (status, responseHeaders, bodyString).
+func (a *AgentBase) HandleRequest(method string, url string, headers map[string]string, body map[string]any) (int, map[string]string, string) {
+	a.Service.DetectProxyFromPrimitives(url, headers)
+
+	if !a.Service.CheckBasicAuthHeaders(headers) {
+		return 401,
+			map[string]string{"WWW-Authenticate": "Basic"},
+			`{"error":"Unauthorized"}`
+	}
+
+	callbackPath := a.Service.CallbackPathForURL(url)
+
+	// Routing-callback dispatch → 307 redirect.
+	if method == http.MethodPost && len(body) > 0 && callbackPath != "" {
+		if cb, ok := a.Service.RoutingCallbackFor(callbackPath); ok {
+			if route := cb(body, headerStringMapAnyFromMap(headers)); route != nil {
+				return 307, map[string]string{"Location": *route}, ""
+			}
+		}
+	}
+
+	// on_swml_request modifications (request-free variant: pass nil *http.Request).
+	modifications := a.OnSwmlRequest(body, callbackPath, nil)
+
+	doc := a.RenderSWML(body, nil)
+	if len(modifications) > 0 {
+		applySwmlModifications(doc, modifications)
+	}
+	out, err := json.Marshal(doc)
+	if err != nil {
+		return 500, map[string]string{}, `{"error":"render failed"}`
+	}
+	return 200, map[string]string{"Content-Type": "application/json"}, string(out)
+}
+
+// headerStringMapAnyFromMap converts a plain string headers map to map[string]any
+// for the RoutingCallback headers argument.
+func headerStringMapAnyFromMap(h map[string]string) map[string]any {
+	out := make(map[string]any, len(h))
+	for k, v := range h {
+		out[k] = v
+	}
+	return out
 }
 
 // applySwmlModifications merges on_swml_request modifications into the AI

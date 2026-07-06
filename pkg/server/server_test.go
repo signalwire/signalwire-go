@@ -615,39 +615,31 @@ func TestRegisterGlobalSipRoutingCallback_NormalizesPath(t *testing.T) {
 	}
 }
 
-// Ensure response-document override (RegisterGlobalRoutingCallback) and
-// redirect-string (RegisterGlobalSIPRoutingCallback) variants do not collide
-// when registered on different paths.
-func TestRegisterGlobalSipRoutingCallback_CoexistsWithDocumentVariant(t *testing.T) {
+// Ensure the routing-callback (RegisterGlobalRoutingCallback, (body,headers)->
+// route|nil) and the SIP-redirect (RegisterGlobalSIPRoutingCallback) variants
+// coexist when registered on different paths — both issue a 307 redirect.
+func TestRegisterGlobalRoutingCallbacks_Coexist(t *testing.T) {
 	s := NewAgentServer()
 	a := agent.NewAgentBase(agent.WithName("a"), agent.WithBasicAuth("u", "p"))
 	s.Register(a, "/a")
 
-	const docMarker = "__doc_override__"
-	s.RegisterGlobalRoutingCallback("/override", func(r *http.Request, body map[string]any) map[string]any {
-		return map[string]any{
-			"version":  docMarker,
-			"sections": map[string]any{"main": []any{}},
-		}
+	s.RegisterGlobalRoutingCallback("/override", func(body map[string]any, headers map[string]any) *string {
+		route := "/routed"
+		return &route
 	})
 	s.RegisterGlobalSIPRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
 		return "https://elsewhere.example"
 	})
 
-	// Document-override path returns SWML doc.
-	req := httptest.NewRequest(http.MethodPost, "/a/override", strings.NewReader("{}"))
+	// Routing-callback path returns a 307 redirect to the route.
+	req := httptest.NewRequest(http.MethodPost, "/a/override", strings.NewReader(`{"x":1}`))
 	req.SetBasicAuth("u", "p")
 	rec := httptest.NewRecorder()
 	s.buildMux().ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Errorf("override path: status=%d, want 200", rec.Code)
-	} else {
-		var doc map[string]any
-		if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
-			t.Errorf("override path: body not JSON: %v", err)
-		} else if doc["version"] != docMarker {
-			t.Errorf("override path: version=%v, want %q", doc["version"], docMarker)
-		}
+	if rec.Code != http.StatusTemporaryRedirect {
+		t.Errorf("routing path: status=%d, want 307", rec.Code)
+	} else if loc := rec.Header().Get("Location"); loc != "/routed" {
+		t.Errorf("routing path: Location=%q, want /routed", loc)
 	}
 
 	// SIP path returns 307.

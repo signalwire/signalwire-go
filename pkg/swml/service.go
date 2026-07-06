@@ -4,10 +4,12 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -32,10 +34,19 @@ type ToolDefinition struct {
 	Secure      bool
 }
 
-// RoutingCallback is a function called on incoming requests to customize responses.
-// It receives the request and request body, and returns an optional SWML JSON override.
-// If it returns nil, the default document is used.
-type RoutingCallback func(r *http.Request, body map[string]any) map[string]any
+// RoutingCallback is a function called on incoming POST requests to decide
+// routing. It receives the parsed request body and the request headers —
+// callback_fn(body, headers) — and returns:
+//
+//   - a non-nil route string if the request should be redirected to a different
+//     endpoint (the framework issues an HTTP 307 Temporary Redirect, preserving
+//     the POST method and body);
+//   - nil if normal processing should continue (the default document is served).
+//
+// This framework-free (body, headers) -> *string shape matches the reference
+// signalwire.core.swml_service.SWMLService.register_routing_callback and the
+// decomposed HandleRequest dispatch core, and is uniform across the SDK ports.
+type RoutingCallback func(body map[string]any, headers map[string]any) *string
 
 // (VerbHandler interface is defined in verb_handler.go.)
 
@@ -1023,28 +1034,191 @@ func (s *Service) RoutingCallbackPaths() []string {
 	return paths
 }
 
-// OnRequest generates the SWML response for an incoming request.
-// It checks routing callbacks first, then returns the default document.
+// OnRequest is called when SWML is requested, with the parsed request data when
+// available, and returns the SWML document to serve. Subclasses (AgentBase) may
+// override it to inspect or modify SWML based on the request; a nil return means
+// "use the default document unchanged" (matching Python's Optional[dict] return
+// for on_request).
 //
-// The return value is a pointer to allow subclasses (AgentBase) to signal
-// "no override" by returning nil — matching Python's Optional[dict] return
-// type for on_request. Callers should treat a nil return as "use the default
-// document unchanged".
+// Routing callbacks are no longer consulted here: the reference decomposed the
+// routing-callback role into HandleRequest, where a registered callback returns
+// a route string that triggers a 307 redirect (see RoutingCallback and
+// HandleRequest). OnRequest's role is now purely document generation / override.
 func (s *Service) OnRequest(requestData map[string]any, callbackPath string) map[string]any {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Check routing callbacks
-	if callbackPath != "" {
-		if cb, ok := s.routingCallbacks[callbackPath]; ok {
-			result := cb(nil, requestData)
-			if result != nil {
-				return result
+	return s.document.ToMap()
+}
+
+// HandleRequest is the framework-free request-dispatch core.
+//
+// This is the primitive dispatch surface the SDK ports share (mirrors, e.g., the
+// Python signalwire.core.swml_service.SWMLService.handle_request and the .NET
+// (int, Dictionary, string) HandleRequest(method, path, headers, body)). It
+// performs proxy detection, basic-auth, the routing-callback check, and the
+// on_request document override exactly as the net/http serve path does, but over
+// plain primitives instead of *http.Request / http.ResponseWriter objects.
+//
+// The net/http handlers (handleSWML) delegate here so both paths produce
+// identical responses (same status codes, headers, and body).
+//
+// Parameters:
+//   - method:  HTTP method, e.g. "GET" or "POST".
+//   - url:     the full request URL as a string (used for proxy detection and to
+//     derive the routing-callback path).
+//   - headers: request headers as a plain map.
+//   - body:    the already-parsed JSON body for POST requests, or nil.
+//
+// Returns a (status, responseHeaders, bodyString) triple: a JSON SWML document
+// with status 200 for the normal path; an empty body with status 307 and a
+// Location header for a routing redirect; a JSON error with status 401 and a
+// WWW-Authenticate: Basic header for an auth failure.
+func (s *Service) HandleRequest(method string, url string, headers map[string]string, body map[string]any) (int, map[string]string, string) {
+	// Always detect proxy from the current request — allows mixing direct and
+	// proxied access.
+	s.DetectProxyFromPrimitives(url, headers)
+
+	// Auth check (only when basic-auth credentials are configured, matching the
+	// net/http middleware which enforces basic auth once WithBasicAuth is set).
+	if !s.CheckBasicAuthHeaders(headers) {
+		return 401,
+			map[string]string{"WWW-Authenticate": "Basic"},
+			`{"error":"Unauthorized"}`
+	}
+
+	callbackPath := s.CallbackPathForURL(url)
+
+	// Routing-callback dispatch: only for a POST with a non-empty parsed body on
+	// a path that has a callback registered. The callback returns a route string
+	// (307 redirect preserving method + body) or nil (continue normally).
+	if method == http.MethodPost && len(body) > 0 && callbackPath != "" {
+		if cb, ok := s.RoutingCallbackFor(callbackPath); ok {
+			if route := cb(body, headerStringMap(headers)); route != nil {
+				return 307, map[string]string{"Location": *route}, ""
 			}
 		}
 	}
 
-	return s.document.ToMap()
+	// Allow customized handling in subclasses via the on_request document hook.
+	doc := s.OnRequest(body, callbackPath)
+	if len(doc) == 0 {
+		doc = s.document.ToMap()
+	}
+	out, err := json.Marshal(doc)
+	if err != nil {
+		return 500, map[string]string{}, `{"error":"render failed"}`
+	}
+	return 200, map[string]string{"Content-Type": "application/json"}, string(out)
+}
+
+// CallbackPathForURL derives the registered routing-callback path (if any) that
+// a given URL targets, by matching the URL's normalized path against the
+// registered callback paths (the net/http path gets this from the mux route).
+func (s *Service) CallbackPathForURL(rawURL string) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(s.routingCallbacks) == 0 {
+		return ""
+	}
+	path := rawURL
+	if strings.Contains(rawURL, "://") || strings.HasPrefix(rawURL, "/") {
+		if u, err := url.Parse(rawURL); err == nil {
+			path = u.Path
+		}
+	}
+	trimmed := strings.Trim(path, "/")
+	var normalized string
+	if trimmed != "" {
+		normalized = "/" + trimmed
+	} else {
+		normalized = strings.TrimRight(path, "/")
+	}
+	for cbPath := range s.routingCallbacks {
+		if normalized == cbPath || strings.HasSuffix(normalized, cbPath) {
+			return cbPath
+		}
+	}
+	return ""
+}
+
+// CheckBasicAuthHeaders is the framework-free basic-auth check driven by a plain
+// headers map, mirroring Python's _check_basic_auth_headers. It returns true when
+// no basic-auth credentials are configured (nothing to enforce) or when the
+// Authorization header carries matching credentials.
+func (s *Service) CheckBasicAuthHeaders(headers map[string]string) bool {
+	s.mu.RLock()
+	user, pass := s.basicAuthUser, s.basicAuthPassword
+	s.mu.RUnlock()
+	if user == "" && pass == "" {
+		return true
+	}
+	authHeader := headers["Authorization"]
+	if authHeader == "" {
+		authHeader = headers["authorization"]
+	}
+	if authHeader == "" {
+		authHeader = headers["AUTHORIZATION"]
+	}
+	if authHeader == "" {
+		return false
+	}
+	fields := strings.Fields(authHeader)
+	if len(fields) != 2 || strings.ToLower(fields[0]) != "basic" {
+		return false
+	}
+	decoded, err := base64.StdEncoding.DecodeString(fields[1])
+	if err != nil {
+		return false
+	}
+	creds := string(decoded)
+	idx := strings.Index(creds, ":")
+	if idx < 0 {
+		return false
+	}
+	return s.VerifyBasicAuth(creds[:idx], creds[idx+1:])
+}
+
+// DetectProxyFromPrimitives auto-configures proxyURLBase from X-Forwarded-*
+// headers (the common ngrok / reverse-proxy case), mirroring the primary path of
+// Python's _detect_proxy_from_primitives. It never overrides an already-set base.
+func (s *Service) DetectProxyFromPrimitives(_ string, headers map[string]string) {
+	s.mu.RLock()
+	already := s.proxyURLBase != ""
+	s.mu.RUnlock()
+	if already {
+		return
+	}
+	hget := func(name string) string {
+		if v, ok := headers[name]; ok {
+			return v
+		}
+		return headers[strings.ToLower(name)]
+	}
+	forwardedHost := hget("X-Forwarded-Host")
+	if forwardedHost == "" {
+		return
+	}
+	proto := hget("X-Forwarded-Proto")
+	if proto == "" {
+		proto = "http"
+	}
+	s.mu.Lock()
+	if s.proxyURLBase == "" {
+		s.proxyURLBase = proto + "://" + forwardedHost
+	}
+	s.mu.Unlock()
+}
+
+// headerStringMap copies a map[string]string into a map[string]any so it can be
+// passed to a RoutingCallback (which takes headers as map[string]any to mirror
+// the reference's dict[str, str] header argument).
+func headerStringMap(h map[string]string) map[string]any {
+	out := make(map[string]any, len(h))
+	for k, v := range h {
+		out[k] = v
+	}
+	return out
 }
 
 // Render returns the SWML document as a JSON string.
@@ -1467,10 +1641,22 @@ func (s *Service) handleSWML(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Routing-callback hook keeps its existing semantics; if no callback
-	// matched, fall through to the renderable document via the extension
-	// point (AgentBase overrides RenderMainSwml).
-	doc := s.OnRequest(body, r.URL.Path)
+	// Routing-callback dispatch: a callback registered for this path returns a
+	// route string (307 redirect preserving method + body) or nil (continue to
+	// the document). This mirrors the decomposed HandleRequest core.
+	callbackPath := s.CallbackPathForURL(r.URL.Path)
+	if r.Method == http.MethodPost && len(body) > 0 && callbackPath != "" {
+		if cb, ok := s.RoutingCallbackFor(callbackPath); ok {
+			if route := cb(body, headerStringMap(flattenHeaders(r.Header))); route != nil {
+				http.Redirect(w, r, *route, http.StatusTemporaryRedirect)
+				return
+			}
+		}
+	}
+
+	// No routing redirect — render the document via the extension point
+	// (AgentBase overrides RenderMainSwml). OnRequest may override the document.
+	doc := s.OnRequest(body, callbackPath)
 	if len(doc) == 0 {
 		doc = s.RenderMainSwml(r)
 	}
@@ -1479,6 +1665,19 @@ func (s *Service) handleSWML(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(doc); err != nil {
 		s.Logger.Warn("failed to write SWML response: %s", err)
 	}
+}
+
+// flattenHeaders collapses an http.Header (map[string][]string) into a plain
+// map[string]string keeping the first value per key, for the primitive
+// headers-map contract HandleRequest / routing callbacks consume.
+func flattenHeaders(h http.Header) map[string]string {
+	out := make(map[string]string, len(h))
+	for k, v := range h {
+		if len(v) > 0 {
+			out[k] = v[0]
+		}
+	}
+	return out
 }
 
 // withSecurity wraps a handler with auth and security headers.

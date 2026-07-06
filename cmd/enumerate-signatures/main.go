@@ -471,13 +471,30 @@ func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
 		}
 	}
 	if fd.Type.Results != nil && len(fd.Type.Results.List) > 0 {
-		// Take the first result. Multi-return Go funcs collapse to the
-		// first result for canonical shape; the second result is usually
-		// an `error`, which is mapped to `any` and not part of the
-		// Python signature. Methods that legitimately return tuples will
-		// surface as drift and need PORT_SIGNATURE_OMISSIONS.md entries.
-		first := fd.Type.Results.List[0]
-		sig.returns = exprString(first.Type)
+		// Flatten the result list to individual source-level type strings
+		// (a single `f.Names` entry may still name one type).
+		var rets []string
+		for _, f := range fd.Type.Results.List {
+			ts := exprString(f.Type)
+			n := 1
+			if len(f.Names) > 0 {
+				n = len(f.Names)
+			}
+			for range n {
+				rets = append(rets, ts)
+			}
+		}
+		// A genuine multi-value return whose values are ALL non-error is a real
+		// tuple (e.g. HandleRequest's (int, map[string]string, string) →
+		// tuple<int,dict<string,string>,string>); emit it as a tuple so it
+		// compares EQUAL to the reference's tuple return. Otherwise take the
+		// first result — multi-return Go funcs typically pair a value with an
+		// `error` (mapped to `any`, not part of the Python signature).
+		if len(rets) > 1 && rets[len(rets)-1] != "error" {
+			sig.returns = "tuple(" + strings.Join(rets, ",") + ")"
+		} else {
+			sig.returns = rets[0]
+		}
 	}
 	return sig
 }
@@ -646,6 +663,22 @@ func loadAliases(path string) (map[string]string, error) {
 	return doc.Aliases.Go, nil
 }
 
+// goLocalAliases holds Go-specific named-type → canonical-type expansions that
+// the shared porting-sdk/type_aliases.yaml does not carry (they name Go-only
+// SDK types). Applied on top of the loaded aliases (loaded entries win).
+var goLocalAliases = map[string]string{
+	// swml.RoutingCallback = func(body, headers map[string]any) *string.
+	"RoutingCallback":      "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
+	"swml.RoutingCallback": "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
+	// swaig.ToolHandler / swaig.TypedHandler are SWAIG tool-handler func types;
+	// the reference types the create_typed_handler_wrapper func + return as a
+	// bare callable. Expand to the canonical callable so they compare EQUAL.
+	"ToolHandler":        "callable<list<any>,any>",
+	"swaig.ToolHandler":  "callable<list<any>,any>",
+	"TypedHandler":       "callable<list<any>,any>",
+	"swaig.TypedHandler": "callable<list<any>,any>",
+}
+
 // closedSetUnions maps the Go defined-string closed-set types (and their
 // bare/qualified spellings) to the canonical union<class:...,string> the
 // audit vocabulary expects. The string member absorbs against the reference's
@@ -778,6 +811,22 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	}
 	if strings.HasPrefix(t, "interface{") {
 		return "any", nil
+	}
+	// Multi-value return marker tuple(a,b,c) → tuple<a,b,c>. Emitted by
+	// extractSignature for a genuine all-non-error multi-return (e.g.
+	// HandleRequest's (int, dict<string,string>, string)).
+	if strings.HasPrefix(t, "tuple(") && strings.HasSuffix(t, ")") {
+		inner := t[len("tuple(") : len(t)-1]
+		parts := splitTopLevelCommas(inner)
+		canonParts := make([]string, 0, len(parts))
+		for _, p := range parts {
+			c, fail := translateType(strings.TrimSpace(p), aliases, ctx)
+			if fail != nil {
+				return "", fail
+			}
+			canonParts = append(canonParts, c)
+		}
+		return "tuple<" + strings.Join(canonParts, ",") + ">", nil
 	}
 	// Function type → callable<list<args>,ret>
 	if strings.HasPrefix(t, "func(") {
@@ -1436,6 +1485,18 @@ func run() error {
 	aliases, err := loadAliases(aliasFile)
 	if err != nil {
 		return fmt.Errorf("loadAliases: %w", err)
+	}
+	// Go-local named-type expansions the shared type_aliases.yaml doesn't carry.
+	// swml.RoutingCallback is `func(body, headers map[string]any) *string`; the
+	// reference types the routing callback_fn as
+	// callable<list<dict<string,any>,dict<string,any>>,optional<string>>. Expand
+	// the named type to that canonical callable so RegisterRoutingCallback's
+	// callback_fn param compares EQUAL to the reference (idiom reconciled in the
+	// alias table, not via an omission).
+	for k, v := range goLocalAliases {
+		if _, exists := aliases[k]; !exists {
+			aliases[k] = v
+		}
 	}
 
 	structs, funcs, payloads, err := walk(pkgRoot)

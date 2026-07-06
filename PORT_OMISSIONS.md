@@ -279,8 +279,6 @@ signalwire.core.agent.tools.decorator.ToolDecorator.create_class_decorator: impo
 signalwire.core.agent.tools.decorator.ToolDecorator.create_instance_decorator: impossible: Python decorator-factory relies on the decorator protocol; Go uses DefineTool struct-literals
 signalwire.core.agent.tools.registry.ToolRegistry.__init__: impossible: Python internal submodule constructor; Go consolidates the tool registry into AgentBase (no separately-constructed registry)
 signalwire.core.agent.tools.registry.ToolRegistry.register_class_decorated_tools: impossible: registers @tool-decorated class methods discovered via the decorator protocol; Go has no decorator-discovery equivalent
-signalwire.core.agent.tools.type_inference.create_typed_handler_wrapper: impossible: Python runtime type-inference wraps handlers via signature introspection; Go has no runtime reflection-based schema inference in this path
-signalwire.core.agent.tools.type_inference.infer_schema: impossible: Python runtime type-inference derives a JSON schema from a function signature at runtime; Go tool schemas are declared explicitly
 signalwire.core.skill_base.SkillBase.define_tool: impossible: Python skill tool registration uses a decorator; Go uses BaseSkill.RegisterTools returning []ToolRegistration
 signalwire.core.skill_base.SkillBase.validate_env_vars: impossible: Python validates required env vars via runtime introspection of a declared list; Go skills read os.Getenv directly in Setup (RequiredEnvVars declares the list)
 signalwire.core.skill_base.SkillBase.validate_packages: impossible: Python validate_packages checks pip dependencies at runtime; Go dependencies are resolved at build time — no runtime package check

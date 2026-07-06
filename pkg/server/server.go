@@ -268,9 +268,10 @@ func (s *AgentServer) ServeStaticFiles(directory, route string) {
 // ---------------------------------------------------------------------------
 
 // RegisterGlobalRoutingCallback registers a routing callback across all
-// currently-registered agents at the given path.  The callback fires on every
-// incoming request to that path and can return an SWML document override (or
-// nil to fall through to the agent's default response).
+// currently-registered agents at the given path. The callback fires on every
+// incoming POST request to that path as callback_fn(body, headers) and returns a
+// non-nil route string to redirect (HTTP 307) or nil to fall through to the
+// agent's default response.
 //
 // This is the Go equivalent of Python's
 // AgentServer.register_global_routing_callback(callback_fn, path).

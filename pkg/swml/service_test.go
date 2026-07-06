@@ -2,7 +2,7 @@ package swml
 
 import (
 	"encoding/json"
-	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -201,26 +201,45 @@ func TestServiceOnRequest(t *testing.T) {
 }
 
 func TestServiceRoutingCallback(t *testing.T) {
-	svc := NewService(WithName("test"))
+	svc := NewService(WithName("test"), WithBasicAuth("u", "p"))
 	if err := svc.Answer(nil, nil); err != nil {
 		t.Fatalf("Answer: %v", err)
 	}
 
-	customDoc := map[string]any{"version": "custom", "sections": map[string]any{"main": []any{}}}
-	svc.RegisterRoutingCallback("/custom", func(r *http.Request, body map[string]any) map[string]any {
-		return customDoc
+	// A routing callback returns a route string to redirect (307), or nil to
+	// continue to the default document, per (body, headers) -> *string.
+	svc.RegisterRoutingCallback("/custom", func(body map[string]any, headers map[string]any) *string {
+		if dept, _ := body["department"].(string); dept == "sales" {
+			route := "/sales"
+			return &route
+		}
+		return nil
 	})
 
-	// Default path returns normal document
-	result := svc.OnRequest(nil, "/other")
-	if result["version"] != "1.0.0" {
-		t.Error("non-matching path should return default document")
+	authHdr := map[string]string{"Authorization": "Basic dTpw"} // base64("u:p")
+
+	// Non-matching path: HandleRequest serves the default document (200).
+	status, _, bodyStr := svc.HandleRequest("POST", "/other", authHdr, map[string]any{"x": 1})
+	if status != 200 {
+		t.Errorf("non-matching path: want 200, got %d", status)
+	}
+	if !strings.Contains(bodyStr, "\"version\":\"1.0.0\"") {
+		t.Errorf("non-matching path should return default document, got %s", bodyStr)
 	}
 
-	// Matching path returns custom document
-	result = svc.OnRequest(nil, "/custom")
-	if result["version"] != "custom" {
-		t.Errorf("matching path should return custom document, got version=%v", result["version"])
+	// Matching path with a route-triggering body: 307 redirect to the route.
+	status, hdrs, _ := svc.HandleRequest("POST", "/custom", authHdr, map[string]any{"department": "sales"})
+	if status != 307 {
+		t.Errorf("matching path with route body: want 307, got %d", status)
+	}
+	if hdrs["Location"] != "/sales" {
+		t.Errorf("want Location=/sales, got %q", hdrs["Location"])
+	}
+
+	// Matching path but callback returns nil: fall through to default document.
+	status, _, _ = svc.HandleRequest("POST", "/custom", authHdr, map[string]any{"department": "other"})
+	if status != 200 {
+		t.Errorf("matching path, nil route: want 200, got %d", status)
 	}
 }
 
