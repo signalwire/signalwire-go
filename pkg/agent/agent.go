@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"os/signal"
 	"regexp"
@@ -3301,6 +3302,18 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 const maxAgentRequestBody = 1 << 20
 
 // handleSWML serves the SWML document for the agent.
+//
+// This is the thin framework adapter: it captures the raw body, method, URL, and
+// headers from the *http.Request, then delegates the auth / SIP-307 /
+// routing-callback-307 / dynamic-config / render DECISION to the shared
+// handleRequestWithContext core — the SAME core the framework-free HandleRequest
+// entry point uses. It marshals the returned (status, headers, body) triple back
+// into the http.ResponseWriter, including the 307 redirect (Location) and 401
+// (WWW-Authenticate). Keeping a single decision core is what guarantees the
+// served path (serve() / AsRouter()) behaves identically to HandleRequest —
+// notably that a routing callback returning a redirect yields a real 307, not a
+// stray 200. rust (swml/router.rs) and php (SWML/Service::dispatchFromGlobals)
+// mirror this shape.
 func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
 	if r.Method == http.MethodPost {
@@ -3312,102 +3325,29 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// SIP redirect-routing dispatch. Python web_mixin._handle_request
-	// (web_mixin.py:621-635) checks _routing_callbacks; on a non-None string
-	// return, responds with HTTP 307 Temporary Redirect. Mirror that here
-	// using sipRoutingCallbacks (the parallel string-return registration).
-	// On an empty string return, fall through to the normal SWML pipeline so
-	// the same endpoint can serve as both a redirector and a document source.
-	sipMatchPath := strings.TrimRight(r.URL.Path, "/")
-	if sipMatchPath == "" {
-		sipMatchPath = "/"
+	headers := headerStringMap(r.Header)
+	status, respHeaders, respBody := a.handleRequestWithContext(r.Method, r.URL.String(), headers, body, r)
+
+	for k, v := range respHeaders {
+		w.Header().Set(k, v)
 	}
-	a.mu.RLock()
-	sipCb, sipMatched := a.sipRoutingCallbacks[sipMatchPath]
-	a.mu.RUnlock()
-	if sipMatched && r.Method == http.MethodPost && body != nil {
-		if route := sipCb(r, body); route != "" {
-			http.Redirect(w, r, route, http.StatusTemporaryRedirect)
-			return
+	w.WriteHeader(status)
+	if respBody != "" {
+		// respBody is a JSON document produced by json.Marshal in
+		// handleRequestWithContext (Content-Type application/json) or an empty
+		// redirect body — never attacker-controlled markup, so the gosec G705
+		// XSS-taint flag is a false positive here.
+		if _, err := w.Write([]byte(respBody)); err != nil { //nolint:gosec // G705: JSON body, not HTML; Content-Type is application/json
+			a.Logger.Warn("failed to write SWML response: %s", err)
 		}
-	}
-
-	// Routing-callback dispatch. Python web_mixin._handle_request (line 620)
-	// checks whether the request URL matches a registered routing callback
-	// and, if so, delegates document generation to that callback. Match the
-	// URL path against both the exact registered key and the trim-right form
-	// (so /agents/ matches /agents).
-	urlPath := r.URL.Path
-	swmlRoute := strings.TrimRight(a.Service.Route, "/")
-	if swmlRoute == "" {
-		swmlRoute = "/"
-	}
-	isSwmlRoute := urlPath == swmlRoute || urlPath == swmlRoute+"/"
-	var callbackPath string
-	if !isSwmlRoute {
-		for _, p := range a.Service.RoutingCallbackPaths() {
-			trim := strings.TrimRight(p, "/")
-			if trim == "" {
-				continue
-			}
-			if urlPath == trim || urlPath == trim+"/" {
-				callbackPath = p
-				break
-			}
-		}
-	}
-
-	a.mu.RLock()
-	hasDynamic := a.dynamicConfigCallback != nil
-	a.mu.RUnlock()
-
-	// Python web_mixin._handle_request (line 642) calls on_swml_request before
-	// rendering and passes modifications into _render_swml, which merges them
-	// into the AI verb config. Mirror that here: collect modifications first,
-	// then apply to the rendered doc.
-	//
-	// OnRequest is the public hook documented in SWMLService.on_request;
-	// AgentBase.OnRequest delegates to OnSwmlRequest. Call OnSwmlRequest
-	// directly so the *http.Request reaches subclasses (matching Python, which
-	// passes the request).
-	modifications := a.OnSwmlRequest(body, callbackPath, r)
-
-	// Routing-callback dispatch. Python web_mixin._handle_request checks whether
-	// the request URL matches a registered routing callback and, if so, calls it
-	// as callback_fn(body, headers) -> route|None; on a non-None route it issues
-	// an HTTP 307 redirect (web_mixin.py:628-635). Mirror that here.
-	if callbackPath != "" && r.Method == http.MethodPost && body != nil {
-		if cb, ok := a.Service.RoutingCallbackFor(callbackPath); ok {
-			if route := cb(body, headerStringMapAny(r.Header)); route != nil {
-				http.Redirect(w, r, *route, http.StatusTemporaryRedirect)
-				return
-			}
-		}
-	}
-
-	var doc map[string]any
-	switch {
-	case hasDynamic:
-		doc = a.handleDynamicConfig(body, r)
-	default:
-		doc = a.RenderSWML(body, r)
-	}
-
-	if len(modifications) > 0 {
-		applySwmlModifications(doc, modifications)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(doc); err != nil {
-		a.Logger.Warn("failed to write SWML response: %s", err)
 	}
 }
 
-// headerStringMapAny collapses an http.Header into a map[string]any keeping the
-// first value per key, for the RoutingCallback headers argument (which mirrors
-// the reference's dict[str, str] header dict).
-func headerStringMapAny(h http.Header) map[string]any {
-	out := make(map[string]any, len(h))
+// headerStringMap collapses an http.Header into a plain map[string]string keeping
+// the first value per key, matching the (method, url, headers, body) primitive
+// surface of handleRequestWithContext / HandleRequest.
+func headerStringMap(h http.Header) map[string]string {
+	out := make(map[string]string, len(h))
 	for k, v := range h {
 		if len(v) > 0 {
 			out[k] = v[0]
@@ -3428,6 +3368,30 @@ func headerStringMapAny(h http.Header) map[string]any {
 // Parameters and return follow swml.Service.HandleRequest:
 // (method, url, headers, body) -> (status, responseHeaders, bodyString).
 func (a *AgentBase) HandleRequest(method string, url string, headers map[string]string, body map[string]any) (int, map[string]string, string) {
+	return a.handleRequestWithContext(method, url, headers, body, nil)
+}
+
+// handleRequestWithContext is the single decision core behind BOTH the
+// framework-free HandleRequest entry point and the served handleSWML handler. It
+// performs proxy detection, basic-auth (401), SIP redirect-routing (307),
+// routing-callback dispatch (307), dynamic-config rendering, and on_swml_request
+// modifications over plain primitives, returning a (status, headers, body_string)
+// triple.
+//
+// The optional r may be nil. When non-nil (the served path) it is threaded into
+// the SIP-routing callback, the dynamic-config callback, and on_swml_request so
+// those subclass hooks still receive the raw request; when nil (the primitive
+// path) SIP routing is skipped (its callbacks are *http.Request-typed) and
+// dynamic config / on_swml_request run request-free. Routing-callback 307
+// redirect and 401 auth behave identically on both paths — that parity is the
+// point of routing the served path through here.
+func (a *AgentBase) handleRequestWithContext(
+	method string,
+	url string,
+	headers map[string]string,
+	body map[string]any,
+	r *http.Request,
+) (int, map[string]string, string) {
 	a.Service.DetectProxyFromPrimitives(url, headers)
 
 	if !a.Service.CheckBasicAuthHeaders(headers) {
@@ -3436,9 +3400,31 @@ func (a *AgentBase) HandleRequest(method string, url string, headers map[string]
 			`{"error":"Unauthorized"}`
 	}
 
+	// SIP redirect-routing dispatch. Python web_mixin._handle_request
+	// (web_mixin.py:621-635) checks _routing_callbacks; on a non-empty string
+	// return, responds with HTTP 307 Temporary Redirect. Go registers SIP
+	// callbacks separately (they return a string and carry the raw request), so
+	// they only run on the served path where r is available.
+	if r != nil && method == http.MethodPost && body != nil {
+		sipMatchPath := strings.TrimRight(pathFromURL(url), "/")
+		if sipMatchPath == "" {
+			sipMatchPath = "/"
+		}
+		a.mu.RLock()
+		sipCb, sipMatched := a.sipRoutingCallbacks[sipMatchPath]
+		a.mu.RUnlock()
+		if sipMatched {
+			if route := sipCb(r, body); route != "" {
+				return 307, map[string]string{"Location": route}, ""
+			}
+		}
+	}
+
 	callbackPath := a.Service.CallbackPathForURL(url)
 
-	// Routing-callback dispatch → 307 redirect.
+	// Routing-callback dispatch → 307 redirect. Python web_mixin._handle_request
+	// (web_mixin.py:628-635): callback_fn(body, headers) -> route|None; on a
+	// non-None route, issue an HTTP 307.
 	if method == http.MethodPost && len(body) > 0 && callbackPath != "" {
 		if cb, ok := a.Service.RoutingCallbackFor(callbackPath); ok {
 			if route := cb(body, headerStringMapAnyFromMap(headers)); route != nil {
@@ -3447,10 +3433,22 @@ func (a *AgentBase) HandleRequest(method string, url string, headers map[string]
 		}
 	}
 
-	// on_swml_request modifications (request-free variant: pass nil *http.Request).
-	modifications := a.OnSwmlRequest(body, callbackPath, nil)
+	// on_swml_request modifications. Thread the raw request when present so
+	// subclasses that override OnSwmlRequest still receive it (served path);
+	// the primitive path passes nil.
+	modifications := a.OnSwmlRequest(body, callbackPath, r)
 
-	doc := a.RenderSWML(body, nil)
+	a.mu.RLock()
+	hasDynamic := a.dynamicConfigCallback != nil
+	a.mu.RUnlock()
+
+	var doc map[string]any
+	switch {
+	case hasDynamic && r != nil:
+		doc = a.handleDynamicConfig(body, r)
+	default:
+		doc = a.RenderSWML(body, r)
+	}
 	if len(modifications) > 0 {
 		applySwmlModifications(doc, modifications)
 	}
@@ -3459,6 +3457,21 @@ func (a *AgentBase) HandleRequest(method string, url string, headers map[string]
 		return 500, map[string]string{}, `{"error":"render failed"}`
 	}
 	return 200, map[string]string{"Content-Type": "application/json"}, string(out)
+}
+
+// pathFromURL extracts the path component from a raw URL string, tolerating a
+// bare path (no scheme/host). Used to match SIP-routing callbacks registered by
+// path.
+func pathFromURL(rawURL string) string {
+	if u, err := neturl.Parse(rawURL); err == nil && u.Path != "" {
+		return u.Path
+	}
+	// Fall back to the substring before any query/fragment.
+	p := rawURL
+	if i := strings.IndexAny(p, "?#"); i >= 0 {
+		p = p[:i]
+	}
+	return p
 }
 
 // headerStringMapAnyFromMap converts a plain string headers map to map[string]any

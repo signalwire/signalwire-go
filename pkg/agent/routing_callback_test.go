@@ -113,6 +113,71 @@ func TestRoutingCallbackPathsExposedFromSwmlService(t *testing.T) {
 	}
 }
 
+// TestServedPathRoutingRedirectsThroughHandleRequest proves the served endpoint
+// (AsRouter / serve) routes through the SAME decision core as HandleRequest —
+// #61. Before the fix, handleSWML re-implemented dispatch inline and invoked the
+// on_swml_request hook BEFORE deciding to redirect, so a 307-redirected request
+// still ran the request-modifier hook (wrong: a redirected request never renders
+// SWML, matching Python handle_request which checks the routing callback first).
+// After the fix the served path delegates to handleRequestWithContext, so the
+// 307 fires first and the hook is NOT invoked on a redirect.
+func TestServedPathRoutingRedirectsThroughHandleRequest(t *testing.T) {
+	a := NewAgentBase(WithName("t"), WithRoute("/svc"), WithBasicAuth("u", "p"))
+	hookCalled := false
+	a.SetOnSwmlRequestHook(func(_ map[string]any, _ string, _ *http.Request) map[string]any {
+		hookCalled = true
+		return nil
+	})
+	a.RegisterRoutingCallback(func(_ map[string]any, _ map[string]any) *string {
+		return strptr("/redirected")
+	}, "/agents")
+
+	code, loc := dispatchRedirectAt(t, a, "/agents")
+	if code != http.StatusTemporaryRedirect {
+		t.Fatalf("served path must 307-redirect through handle_request, got %d", code)
+	}
+	if loc != "/redirected" {
+		t.Fatalf("want Location=/redirected, got %q", loc)
+	}
+	if hookCalled {
+		t.Fatal("on_swml_request hook must NOT run when the request is 307-redirected " +
+			"(served path must funnel through handle_request, which checks routing before the hook)")
+	}
+}
+
+// TestServedPathAuthAndHappyPathThroughHandleRequest asserts the served endpoint
+// returns 401 on bad auth and 200 SWML on the happy path — both now flowing
+// through the shared handle_request core.
+func TestServedPathAuthAndHappyPathThroughHandleRequest(t *testing.T) {
+	a := NewAgentBase(WithName("t"), WithRoute("/svc"), WithBasicAuth("u", "p"))
+	a.SetPromptText("hi")
+
+	// Bad auth → 401.
+	badReq := httptest.NewRequest(http.MethodPost, "/svc", strings.NewReader(`{}`))
+	badReq.SetBasicAuth("u", "wrong")
+	badRec := httptest.NewRecorder()
+	a.AsRouter().ServeHTTP(badRec, badReq)
+	if badRec.Code != http.StatusUnauthorized {
+		t.Fatalf("served path bad auth: want 401, got %d", badRec.Code)
+	}
+
+	// Happy path → 200 SWML.
+	okReq := httptest.NewRequest(http.MethodPost, "/svc", strings.NewReader(`{}`))
+	okReq.SetBasicAuth("u", "p")
+	okReq.Header.Set("Content-Type", "application/json")
+	okRec := httptest.NewRecorder()
+	a.AsRouter().ServeHTTP(okRec, okReq)
+	if okRec.Code != http.StatusOK {
+		t.Fatalf("served path happy path: want 200, got %d", okRec.Code)
+	}
+	if ct := okRec.Header().Get("Content-Type"); ct != "application/json" {
+		t.Fatalf("served path happy path: want Content-Type application/json, got %q", ct)
+	}
+	if !strings.Contains(okRec.Body.String(), "sections") {
+		t.Fatalf("served path happy path: expected an SWML document body, got %q", okRec.Body.String())
+	}
+}
+
 // TestHandleRequestPrimitiveDispatch exercises the framework-free HandleRequest
 // core: auth failure, routing redirect, and default document rendering.
 func TestHandleRequestPrimitiveDispatch(t *testing.T) {
