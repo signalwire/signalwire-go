@@ -1118,7 +1118,7 @@ The SDK supports multiple deployment models:
 
 2. **Multi-Agent Mode**
    - Multiple agents on same server with different routes
-   - `srv := server.NewAgentServer(...); srv.Register(a, a.Route()); srv.Run()`
+   - `srv := server.NewAgentServer(...); srv.Register(a, a.GetRoute()); srv.Run()`
 
 3. **Reverse Proxy Integration**
    - Set `SWML_PROXY_URL_BASE` for proper webhook URL generation
