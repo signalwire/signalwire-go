@@ -79,14 +79,6 @@ The top-level `docs/*.md` files carry over Python code blocks from the
 upstream Python SDK while the Go-native rewrite is in progress. These
 references are Python stdlib methods that appear inside those blocks.
 
-## Python SDK dunder / protected helpers in legacy Python code blocks
-
-Names starting with `__` or `_` that appear in Python code blocks in the
-top-level `docs/*.md` files. These are internal Python-SDK conventions
-(dunder constructors, private helpers) and never surface in the Go port.
-
-__init__: python class constructor shown in Python code blocks
-
 ## Python-SDK method names in legacy Python code blocks (top-level `docs/`)
 
 These are Python-SDK method names referenced in ```python``` fences inside
