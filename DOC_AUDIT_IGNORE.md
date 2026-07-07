@@ -65,6 +65,7 @@ Done: sync.WaitGroup.Done counter decrement
 ## Go standard library — `errors`
 
 As: errors.As typed unwrap
+Is: errors.Is sentinel comparison (docs/client-reference.md: errors.Is(err, relay.ErrDialTimeout)) — Go stdlib, sibling of errors.As
 
 ## Port-only illustrative references
 
@@ -308,7 +309,9 @@ Since: time.Since — Go stdlib
 Setenv: os.Setenv — Go stdlib
 Stat: os.Stat — Go stdlib
 go: Go `go` keyword highlighted in a code block — false-positive, not an identifier
+init: Go language built-in package-init function referenced in a comment ("// Each imported package registers its skill via init().") in docs/third_party_skills.md — not an SDK symbol
 SkillName: skills.SkillName typed-string conversion (e.g. skills.SkillName("weather")) — real port type used in AddSkill examples
 NewCustomerSupportAgent: user-defined example agent constructor in docs/agent_guide.md
+newMyAgent: doc-local example constructor defined and called within the same snippet (func newMyAgent() ... / func main() { _, _ = newMyAgent() }) in docs/skills_parameter_schema.md — not an SDK symbol
 registerTools: user-defined method on an illustrative custom-prefab example in docs/architecture.md
 testAPIConnection: user-defined helper method on an illustrative skill example in docs/third_party_skills.md
