@@ -299,6 +299,29 @@ sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-rej
         --has-serverless \
         --serverless-argv='--url|http://user:pass@127.0.0.1:1/|--simulate-serverless|bogus-platform-xyz|--dump-swml'
 
+# ---- Day-one deterministic gates --------------------------------------------
+# ARTIFACT-DENY uses the git ls-files PROXY (not --listing): go publishes no
+# package artifact with an include/exclude manifest, so there is no authoritative
+# package listing to feed. The proxy + ARTIFACT_DENY_ALLOW.md is the check.
+
+sched_gate DOC-LANG-PURITY res=dayone desc="no python-verbatim docs in a non-python port" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_lang_purity.py" --port go --repo "$PORT_ROOT"
+
+sched_gate DOC-LINKS res=dayone desc="every relative markdown link resolves to a tracked file" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_links.py" --port go --repo "$PORT_ROOT"
+
+sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port go --repo "$PORT_ROOT"
+
+sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md" \
+    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port go --repo "$PORT_ROOT"
+
+sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
+    -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port go --repo "$PORT_ROOT"
+
+sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the published package (git ls-files proxy + ARTIFACT_DENY_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/artifact_deny.py" --port go --repo "$PORT_ROOT"
+
 # ---- summary ----------------------------------------------------------------
 
 sched_run
