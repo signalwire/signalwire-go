@@ -42,4 +42,5 @@ func main() {
 
 // ptr returns a pointer to v, for setting optional pointer-typed params.
 func ptr[T any](v T) *T { return &v }
+
 // endregion: quickstart
