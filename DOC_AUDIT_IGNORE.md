@@ -72,6 +72,7 @@ Publish: illustrative PubSub.Publish reference inside a comment in examples/rest
 NewSignalWireClient: legacy pre-2.0 constructor kept as a "Before" example in docs/MIGRATION-2.0.md
 ToolHandler: swaig.ToolHandler and agent.ToolHandler type references inside a comment in examples/skills_demo/main.go
 fn: anonymous-struct field name (op.fn()) used to iterate a table-driven operation list in rest/examples/rest_calling_play_and_record.go
+Uuid: real generated public type `type Uuid string` (pkg/rest/namespaces/relay_rest_types_generated.go); it is the declared type of id fields such as CallingNamespaceUpdateParams.Id, so docs must write namespaces.Uuid(callID) to convert a string variable. The surface enumerator records structs/marked-enums/methods/functions only, not scalar named-type aliases, so this real type is invisible to audit_docs — not a doc bug or an absent symbol.
 
 ## Python standard library referenced from legacy Python code blocks
 
@@ -238,7 +239,6 @@ WithRoute: swml.WithRoute option
 WithServerPort: server.WithServerPort option
 WithSpace: relay.WithSpace / rest.WithSpace option
 WithStreamCodec: rest WithStreamCodec option
-WithStreamDirection: rest WithStreamDirection option
 WithToken: relay.WithToken / rest.WithToken option
 WithType: rest WithType option
 
