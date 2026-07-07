@@ -39,7 +39,7 @@ func main() {
 	_, err = client.Calling.Dial(namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
 		To:   "+15551234567",
-		Url:  strPtr("https://example.com/call-handler"),
+		Url:  ptr("https://example.com/call-handler"),
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -47,9 +47,7 @@ func main() {
 }
 
 // ptr returns a pointer to v, for setting optional pointer-typed params.
-func strPtr(s string) *string { return &s }
-func intPtr(i int) *int       { return &i }
-func floatPtr(f float64) *float64 { return &f }
+func ptr[T any](v T) *T { return &v }
 ```
 
 ## Features

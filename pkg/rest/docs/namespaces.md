@@ -7,9 +7,7 @@ The examples below import the resource-parameter structs from
 to set optional pointer fields:
 
 ```go
-func strPtr(s string) *string { return &s }
-func intPtr(i int) *int       { return &i }
-func floatPtr(f float64) *float64 { return &f }
+func ptr[T any](v T) *T { return &v }
 ```
 
 ## Phone Numbers
@@ -151,15 +149,15 @@ _, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreat
 // Request a verification code via SMS
 result, err := client.MFA.SMS(namespaces.MFANamespaceSMSParams{
 	To:      "+15551234567",
-	From:    strPtr("+15559876543"),
-	Message: strPtr("Your code is {code}"),
+	From:    ptr("+15559876543"),
+	Message: ptr("Your code is {code}"),
 })
 requestID := string(result.Id)
 
 // Or via phone call
 result, err = client.MFA.Call(namespaces.MFANamespaceCallParams{
 	To:   "+15551234567",
-	From: strPtr("+15559876543"),
+	From: ptr("+15559876543"),
 })
 
 // Verify the code
@@ -211,7 +209,7 @@ _, err = client.Datasphere.Documents.Delete("doc-uuid")
 results, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{
 	QueryString: "How do I reset my password?",
 	Tags:        []string{"support"},
-	Count:       intPtr(5),
+	Count:       ptr(5),
 })
 
 // Chunks
@@ -235,7 +233,7 @@ _, err = client.Video.Rooms.CreateStream("room-uuid", namespaces.VideoRoomsCreat
 // Room tokens
 token, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{
 	RoomName: "standup",
-	UserName: strPtr("alice"),
+	UserName: ptr("alice"),
 })
 
 // Room sessions
@@ -302,7 +300,7 @@ token, err := client.Project.Tokens.Create(namespaces.ProjectTokensCreateParams{
 	Name:        "ci-token",
 	Permissions: []namespaces.TokenPermission{"calling", "messaging", "numbers"},
 })
-_, err = client.Project.Tokens.Update("token-uuid", namespaces.ProjectTokensUpdateParams{Name: strPtr("renamed-token")})
+_, err = client.Project.Tokens.Update("token-uuid", namespaces.ProjectTokensUpdateParams{Name: ptr("renamed-token")})
 _, err = client.Project.Tokens.Delete("token-uuid")
 ```
 
@@ -314,7 +312,7 @@ token, err := client.PubSub.CreateToken(namespaces.PubSubNamespaceCreateTokenPar
 	Channels: namespaces.PubSubChannels{
 		"updates": map[string]any{"read": true, "write": false},
 	},
-	MemberId: strPtr("user-123"),
+	MemberId: ptr("user-123"),
 })
 ```
 
@@ -326,6 +324,6 @@ token, err := client.Chat.CreateToken(namespaces.ChatNamespaceCreateTokenParams{
 	Channels: namespaces.ChatChannel{
 		"support": map[string]any{"read": true, "write": true},
 	},
-	MemberId: strPtr("user-123"),
+	MemberId: ptr("user-123"),
 })
 ```

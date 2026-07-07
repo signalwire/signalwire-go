@@ -7,9 +7,7 @@ The examples below import the resource-parameter structs from
 to set optional pointer fields:
 
 ```go
-func strPtr(s string) *string { return &s }
-func intPtr(i int) *int       { return &i }
-func floatPtr(f float64) *float64 { return &f }
+func ptr[T any](v T) *T { return &v }
 ```
 
 ## Standard CRUD Pattern
@@ -95,7 +93,7 @@ endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(
 	namespaces.SubscribersResourceCreateSIPEndpointParams{
 		Username: "user1",
 		Password: "secret",
-		CallerId: strPtr("+15551234567"),
+		CallerId: ptr("+15551234567"),
 	},
 )
 
@@ -106,7 +104,7 @@ endpoint, err = client.Fabric.Subscribers.GetSIPEndpoint("subscriber-uuid", "end
 _, err = client.Fabric.Subscribers.UpdateSIPEndpoint(
 	"subscriber-uuid", "endpoint-uuid",
 	namespaces.SubscribersResourceUpdateSIPEndpointParams{
-		CallerId: strPtr("+15559876543"),
+		CallerId: ptr("+15559876543"),
 	},
 )
 
@@ -122,7 +120,7 @@ cXML applications support list/get/update/delete but not create:
 apps, err := client.Fabric.CXMLApplications.List(nil)
 app, err := client.Fabric.CXMLApplications.Get("app-uuid", nil)
 _, err = client.Fabric.CXMLApplications.Update("app-uuid", namespaces.CxmlApplicationsResourceUpdateParams{
-	VoiceUrl: strPtr("https://example.com/voice"),
+	VoiceUrl: ptr("https://example.com/voice"),
 })
 _, err = client.Fabric.CXMLApplications.Delete("app-uuid")
 
@@ -182,7 +180,7 @@ through the `Extras` map:
 // Subscriber token
 token, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{
 	Reference: "user@example.com",
-	Password:  strPtr("secret"),
+	Password:  ptr("secret"),
 })
 
 // Refresh a subscriber token

@@ -20,9 +20,7 @@ Each method takes a typed `namespaces.CallingNamespace<Op>Params` struct. Option
 fields are pointers; use a small helper to take their address:
 
 ```go
-func strPtr(s string) *string { return &s }
-func intPtr(i int) *int       { return &i }
-func floatPtr(f float64) *float64 { return &f }
+func ptr[T any](v T) *T { return &v }
 ```
 
 Any parameter not modeled as a typed field can be passed through the
@@ -38,7 +36,7 @@ Initiate an outbound call.
 result, err := client.Calling.Dial(namespaces.CallingNamespaceDialParams{
 	From: "+15559876543",
 	To:   "+15551234567",
-	Url:  strPtr("https://example.com/call-handler"),
+	Url:  ptr("https://example.com/call-handler"),
 })
 // CallResponse is decoded JSON; assert to a map to read fields.
 call, _ := (*result).(map[string]any)
@@ -52,7 +50,7 @@ Update an active call's dialplan mid-call.
 ```go
 _, err := client.Calling.Update(namespaces.CallingNamespaceUpdateParams{
 	Id:  callID,
-	Url: strPtr("https://example.com/new-handler"),
+	Url: ptr("https://example.com/new-handler"),
 })
 ```
 
@@ -93,7 +91,7 @@ Play audio, TTS, silence, or ringtone.
 ```go
 _, err := client.Calling.Play(callID, namespaces.CallingNamespacePlayParams{
 	Play:   []map[string]any{{"type": "tts", "text": "Hello!"}},
-	Volume: floatPtr(5.0),
+	Volume: ptr(5.0),
 })
 ```
 
@@ -131,7 +129,7 @@ _, err := client.Calling.PlayVolume(callID, namespaces.CallingNamespacePlayVolum
 
 ```go
 _, err := client.Calling.Record(callID, namespaces.CallingNamespaceRecordParams{
-	ControlId: strPtr("rec-1"),
+	ControlId: ptr("rec-1"),
 	Audio:     map[string]any{"beep": true, "format": "wav", "stereo": true},
 })
 _, err = client.Calling.RecordPause(callID, namespaces.CallingNamespaceRecordPauseParams{ControlId: "rec-1"})
@@ -145,7 +143,7 @@ _, err = client.Calling.RecordStop(callID, namespaces.CallingNamespaceRecordStop
 
 ```go
 _, err := client.Calling.Collect(callID, namespaces.CallingNamespaceCollectParams{
-	ControlId: strPtr("coll-1"),
+	ControlId: ptr("coll-1"),
 	Digits:    map[string]any{"max": 4, "terminators": "#"},
 	Speech:    map[string]any{"end_silence_timeout": 2.0},
 })
@@ -159,7 +157,7 @@ _, err = client.Calling.CollectStartInputTimers(callID, namespaces.CallingNamesp
 
 ```go
 _, err := client.Calling.Detect(callID, namespaces.CallingNamespaceDetectParams{
-	ControlId: strPtr("det-1"),
+	ControlId: ptr("det-1"),
 	Detect:    map[string]any{"type": "machine", "params": map[string]any{"initial_timeout": 4.5}},
 })
 _, err = client.Calling.DetectStop(callID, namespaces.CallingNamespaceDetectStopParams{ControlId: "det-1"})
@@ -171,7 +169,7 @@ _, err = client.Calling.DetectStop(callID, namespaces.CallingNamespaceDetectStop
 
 ```go
 _, err := client.Calling.Tap(callID, namespaces.CallingNamespaceTapParams{
-	ControlId: strPtr("tap-1"),
+	ControlId: ptr("tap-1"),
 	Tap:       map[string]any{"type": "audio", "params": map[string]any{"direction": "both"}},
 	Device:    map[string]any{"type": "rtp", "params": map[string]any{"addr": "192.168.1.1", "port": 1234}},
 })
@@ -183,8 +181,8 @@ _, err = client.Calling.TapStop(callID, namespaces.CallingNamespaceTapStopParams
 ```go
 _, err := client.Calling.Stream(callID, namespaces.CallingNamespaceStreamParams{
 	Url:       "wss://example.com/audio-stream",
-	ControlId: strPtr("str-1"),
-	Codec:     strPtr("PCMU"),
+	ControlId: ptr("str-1"),
+	Codec:     ptr("PCMU"),
 })
 _, err = client.Calling.StreamStop(callID, namespaces.CallingNamespaceStreamStopParams{ControlId: "str-1"})
 ```
@@ -204,8 +202,8 @@ _, err = client.Calling.DenoiseStop(callID, namespaces.CallingNamespaceDenoiseSt
 
 ```go
 _, err := client.Calling.Transcribe(callID, namespaces.CallingNamespaceTranscribeParams{
-	ControlId: strPtr("tx-1"),
-	StatusUrl: strPtr("https://example.com/hook"),
+	ControlId: ptr("tx-1"),
+	StatusUrl: ptr("https://example.com/hook"),
 })
 _, err = client.Calling.TranscribeStop(callID, namespaces.CallingNamespaceTranscribeStopParams{ControlId: "tx-1"})
 ```
@@ -218,8 +216,8 @@ Inject a message into an active AI session.
 
 ```go
 _, err := client.Calling.AIMessage(callID, namespaces.CallingNamespaceAIMessageParams{
-	Role:        strPtr("user"),
-	MessageText: strPtr("Transfer me to billing"),
+	Role:        ptr("user"),
+	MessageText: ptr("Transfer me to billing"),
 })
 ```
 
@@ -227,11 +225,11 @@ _, err := client.Calling.AIMessage(callID, namespaces.CallingNamespaceAIMessageP
 
 ```go
 _, err := client.Calling.AIHold(callID, namespaces.CallingNamespaceAIHoldParams{
-	Timeout: intPtr(60),
-	Prompt:  strPtr("Please wait while I transfer you."),
+	Timeout: ptr(60),
+	Prompt:  ptr("Please wait while I transfer you."),
 })
 _, err = client.Calling.AIUnhold(callID, namespaces.CallingNamespaceAIUnholdParams{
-	Prompt: strPtr("I'm back, how can I help?"),
+	Prompt: ptr("I'm back, how can I help?"),
 })
 ```
 
