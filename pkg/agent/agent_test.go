@@ -95,7 +95,7 @@ func TestNewAgentBase_WithBasicAuth(t *testing.T) {
 	}
 }
 
-// AuthMixin parity tests — Python parity:
+// AuthMixin compatibility tests — Matches Python:
 // tests/unit/core/mixins/test_auth_mixin.py::TestValidateBasicAuth
 func TestValidateBasicAuth_AcceptsMatch(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("admin", "secret"))
@@ -118,7 +118,7 @@ func TestValidateBasicAuth_RejectsBadPass(t *testing.T) {
 	}
 }
 
-// Python parity:
+// Matches Python:
 // tests/unit/core/mixins/test_auth_mixin.py::TestGetBasicAuthCredentials
 func TestGetBasicAuthCredentialsWithSource_Provided(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("alice", "shortpw"))

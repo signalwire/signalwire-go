@@ -58,6 +58,18 @@ func typeGoName(raw string) string {
 	if s[0] >= '0' && s[0] <= '9' {
 		s = "Schema_" + s
 	}
+	// EXPORT every generated type. A components/schemas key with a lowercase
+	// leading rune (the scalar-format aliases uuid/docid/jwt/play_url) would emit
+	// an UNEXPORTED Go type — and those are referenced by EXPORTED struct fields
+	// (e.g. `Id uuid`), leaking a private type into the public API. Capitalize the
+	// leading rune so the alias is a proper exported type (Uuid/Docid/Jwt/Play_url).
+	// This is done for ALL names (idempotent for the already-capitalized majority),
+	// and the enumerators fold the exported leaf back to the reference's lowercase
+	// canonical name (uuid/docid/jwt/play_url) so surface/signature drift stays
+	// parity-clean against the Python oracle (see genTypeModule + scalarAliasLeaf).
+	if s[0] >= 'a' && s[0] <= 'z' {
+		s = strings.ToUpper(s[:1]) + s[1:]
+	}
 	return s
 }
 
@@ -288,7 +300,7 @@ func optionalGoType(typ string) string {
 // named enum type. enumerate-surface recognizes it to surface the enum as a
 // public class (the reference exports these enums as public API, unlike the
 // inline schema enums which are referenced-only defined-string types).
-const sdkEnumMarker = "// sdk-enum (x-sdk-enum): surfaced public enum type."
+const sdkEnumMarker = "// sdk-enum: surfaced public enum type."
 
 // emitEnumDecl emits `type X string` + a typed const block (aws-sdk-go-v2 style).
 // When surfaced is true (an x-sdk-enum-derived public enum), it prepends the

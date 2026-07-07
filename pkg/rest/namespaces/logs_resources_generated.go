@@ -7,7 +7,7 @@
 
 package namespaces
 
-// ConferenceLogs is generated from x-sdk-resource "ConferenceLogs" in the logs spec.
+// ConferenceLogs is a client for the "ConferenceLogs" resource of the SignalWire logs API.
 type ConferenceLogs struct {
 	Resource
 }

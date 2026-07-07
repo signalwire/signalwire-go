@@ -2,8 +2,8 @@
 // sections that can be rendered to Markdown, XML, JSON, or YAML.  The
 // rendered output matches the Python reference at
 // signalwire/signalwire/pom/pom.py byte-for-byte for the canonical
-// scenarios covered by the cross-port parity tests in
-// tests/unit/pom/test_pom_render_parity.py.
+// scenarios covered by the cross-language behavior tests under
+// tests/unit/pom/ in the Python reference.
 //
 // Two types make up the API:
 //
@@ -500,7 +500,7 @@ func writeJSONStringList(buf *bytes.Buffer, items []string, indent int) error {
 // PyYAML uses block-sequence-with-indent-0 by default (the leading "-"
 // of each list item aligns with the parent's mapping key, not after
 // it); gopkg.in/yaml.v3 cannot be configured to do the same, so this
-// renderer writes the YAML structure manually for byte-for-byte parity.
+// renderer writes the YAML structure manually for byte-for-byte fidelity.
 //
 // Python equivalent: PromptObjectModel.to_yaml
 func (p *PromptObjectModel) ToYAML() string {

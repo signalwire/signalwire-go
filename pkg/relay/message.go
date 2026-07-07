@@ -73,7 +73,7 @@ func (m *Message) State() string {
 }
 
 // MessageState returns the current message state as a typed MessageState
-// ALONGSIDE the bare-string State() accessor (kept for parity with the Python
+// ALONGSIDE the bare-string State() accessor (kept for compatibility with the Python
 // reference). The typed kind gives callers IsTerminal()/IsKnown() predicates
 // and compile-time distinctness from CallState/DialState; its underlying string
 // equals State() exactly. Additive port idiom — see states.go and

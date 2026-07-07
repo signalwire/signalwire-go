@@ -54,11 +54,6 @@ rest.HTTPClient.PostContext: Go ctx-aware form of HTTPClient.Post. Non-ctx Post 
 rest.HTTPClient.PutContext: Go ctx-aware form of HTTPClient.Put. Non-ctx Put preserved
 rest.HTTPClient.PatchContext: Go ctx-aware form of HTTPClient.Patch. Non-ctx Patch preserved
 rest.HTTPClient.DeleteContext: Go ctx-aware form of HTTPClient.Delete. Non-ctx Delete preserved
-rest.CrudResource.ListContext: Go ctx-aware form of CrudResource.List; delegates to HTTPClient.GetContext. Non-ctx List preserved
-rest.CrudResource.CreateContext: Go ctx-aware form of CrudResource.Create. Non-ctx Create preserved
-rest.CrudResource.GetContext: Go ctx-aware form of CrudResource.Get. Non-ctx Get preserved
-rest.CrudResource.UpdateContext: Go ctx-aware form of CrudResource.Update (honors UpdateMethod PATCH/PUT). Non-ctx Update preserved
-rest.CrudResource.DeleteContext: Go ctx-aware form of CrudResource.Delete. Non-ctx Delete preserved
 rest.PaginatedIterator.NextContext: Go ctx-aware form of PaginatedIterator.Next; page fetch cancelled on ctx cancel/deadline. Non-ctx Next preserved, delegates with context.Background()
 rest.PaginatedIterator.ForEachContext: Go ctx-aware form of PaginatedIterator.ForEach; page fetches cancelled on ctx cancel/deadline. Non-ctx ForEach preserved
 
@@ -357,7 +352,6 @@ relay.WithTTSLanguage: Go functional-options helper; encodes a Python kwarg for 
 relay.WithTTSVoice: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithTTSVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithToken: Go functional-options helper; encodes a Python kwarg for the matching constructor
-rest.NewCrudResourcePUT: Go factory constructor for a port-only struct; Python equivalent does not exist
 security.WithDebugMode: Go functional-options helper; encodes a Python kwarg for the matching constructor
 security.WithSecret: Go functional-options helper; encodes a Python kwarg for the matching constructor
 server.WithLogLevel: Go functional-options helper; encodes a Python kwarg for the matching constructor

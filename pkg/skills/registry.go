@@ -14,13 +14,13 @@ var (
 	registryMu sync.RWMutex
 )
 
-// SkillRegistry is the per-instance Python-parity surface mirroring
+// SkillRegistry is the per-instance Python-equivalent surface mirroring
 // `signalwire.skills.registry.SkillRegistry`. Each instance owns its
 // own list of external skill directories, validated and de-duplicated
 // on insert. The package-level `RegisterSkill` / `GetSkillFactory` /
 // `ListSkills` functions remain the canonical Go API for static
 // compile-time skill registration; `SkillRegistry` exists so the
-// `add_skill_directory` parity case has a real owning object the
+// `add_skill_directory` compatibility case has a real owning object the
 // audit and downstream callers can hold.
 type SkillRegistry struct {
 	mu            sync.Mutex
@@ -63,7 +63,7 @@ func (r *SkillRegistry) RegisterSkill(name string, factory func(params map[strin
 }
 
 // RegisteredNames returns the sorted names of skills registered on this
-// instance via RegisterSkill — the parity accessor for Python's
+// instance via RegisterSkill — the compatibility accessor for Python's
 // sorted(SkillRegistry._skills.keys()).
 func (r *SkillRegistry) RegisteredNames() []string {
 	r.mu.Lock()
@@ -116,7 +116,7 @@ func (r *SkillRegistry) AddSkillDirectory(path string) error {
 }
 
 // ExternalPaths returns a copy of the registered external skill
-// directories. Parity surface for Python's `_external_paths`.
+// directories. Compatibility surface for Python's `_external_paths`.
 func (r *SkillRegistry) ExternalPaths() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()

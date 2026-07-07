@@ -36,7 +36,7 @@ type AIAgent struct {
 	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
 	Prompt        AIPrompt       `json:"prompt,omitempty"`
 	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
-	AgentId       uuid           `json:"agent_id,omitempty"`
+	AgentId       Uuid           `json:"agent_id,omitempty"`
 	Name          string         `json:"name,omitempty"`
 }
 
@@ -55,7 +55,7 @@ type AIAgentCreateRequest struct {
 	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
 	Prompt        AIPrompt       `json:"prompt,omitempty"`
 	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
-	AgentId       *uuid          `json:"agent_id,omitempty"`
+	AgentId       *Uuid          `json:"agent_id,omitempty"`
 	Name          string         `json:"name,omitempty"`
 }
 
@@ -76,8 +76,8 @@ type AIAgentPaginationResponse struct {
 }
 
 type AIAgentResponse struct {
-	Id          uuid    `json:"id,omitempty"`
-	ProjectId   uuid    `json:"project_id,omitempty"`
+	Id          Uuid    `json:"id,omitempty"`
+	ProjectId   Uuid    `json:"project_id,omitempty"`
 	DisplayName string  `json:"display_name,omitempty"`
 	Type_       string  `json:"type,omitempty"`
 	CreatedAt   string  `json:"created_at,omitempty"`
@@ -95,7 +95,7 @@ type AIAgentUpdateRequest struct {
 	Pronounce     []Pronounce         `json:"pronounce,omitempty"`
 	Prompt        *AIPromptUpdate     `json:"prompt,omitempty"`
 	SWAIG         *SWAIGUpdate        `json:"SWAIG,omitempty"`
-	AgentId       *uuid               `json:"agent_id,omitempty"`
+	AgentId       *Uuid               `json:"agent_id,omitempty"`
 	Name          *string             `json:"name,omitempty"`
 }
 
@@ -376,7 +376,7 @@ type BooleanProperty struct {
 }
 
 type CXMLScript struct {
-	Id                   uuid   `json:"id,omitempty"`
+	Id                   Uuid   `json:"id,omitempty"`
 	Contents             string `json:"contents,omitempty"`
 	RequestCount         int    `json:"request_count,omitempty"`
 	LastAccessedAt       any    `json:"last_accessed_at,omitempty"`
@@ -416,8 +416,8 @@ type CXMLScriptListResponse struct {
 }
 
 type CXMLScriptResponse struct {
-	Id         uuid       `json:"id,omitempty"`
-	ProjectId  uuid       `json:"project_id,omitempty"`
+	Id         Uuid       `json:"id,omitempty"`
+	ProjectId  Uuid       `json:"project_id,omitempty"`
 	Name       string     `json:"name,omitempty"`
 	Type_      string     `json:"type,omitempty"`
 	CreatedAt  string     `json:"created_at,omitempty"`
@@ -437,7 +437,7 @@ type CXMLScriptUpdateStatusCode422 struct {
 }
 
 type CXMLWebhook struct {
-	Id                    uuid        `json:"id,omitempty"`
+	Id                    Uuid        `json:"id,omitempty"`
 	Name                  string      `json:"name,omitempty"`
 	UsedFor               UsedForType `json:"used_for,omitempty"`
 	PrimaryRequestUrl     string      `json:"primary_request_url,omitempty"`
@@ -488,8 +488,8 @@ type CXMLWebhookPaginationResponse struct {
 }
 
 type CXMLWebhookResponse struct {
-	Id          uuid        `json:"id,omitempty"`
-	ProjectId   uuid        `json:"project_id,omitempty"`
+	Id          Uuid        `json:"id,omitempty"`
+	ProjectId   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
 	Type_       string      `json:"type,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
@@ -513,7 +513,7 @@ type CXMLWebhookUpdateStatusCode422 struct {
 }
 
 type CallFlow struct {
-	Id              uuid    `json:"id,omitempty"`
+	Id              Uuid    `json:"id,omitempty"`
 	Title           string  `json:"title,omitempty"`
 	FlowData        *string `json:"flow_data,omitempty"`
 	Relayml         *string `json:"relayml,omitempty"`
@@ -546,8 +546,8 @@ type CallFlowListResponse struct {
 }
 
 type CallFlowResponse struct {
-	Id          uuid     `json:"id,omitempty"`
-	ProjectId   uuid     `json:"project_id,omitempty"`
+	Id          Uuid     `json:"id,omitempty"`
+	ProjectId   Uuid     `json:"project_id,omitempty"`
 	DisplayName string   `json:"display_name,omitempty"`
 	Type_       string   `json:"type,omitempty"`
 	CreatedAt   string   `json:"created_at,omitempty"`
@@ -565,7 +565,7 @@ type CallFlowUpdateStatusCode422 struct {
 }
 
 type CallFlowVersion struct {
-	Id        uuid    `json:"id,omitempty"`
+	Id        Uuid    `json:"id,omitempty"`
 	Version   string  `json:"version,omitempty"`
 	CreatedAt string  `json:"created_at,omitempty"`
 	UpdatedAt string  `json:"updated_at,omitempty"`
@@ -578,13 +578,13 @@ type CallFlowVersionDeployByDocumentVersion struct {
 }
 
 type CallFlowVersionDeployByVersionId struct {
-	CallFlowVersionId uuid `json:"call_flow_version_id,omitempty"`
+	CallFlowVersionId Uuid `json:"call_flow_version_id,omitempty"`
 }
 
 type CallFlowVersionDeployRequest any
 
 type CallFlowVersionDeployResponse struct {
-	Id              uuid    `json:"id,omitempty"`
+	Id              Uuid    `json:"id,omitempty"`
 	CreatedAt       string  `json:"created_at,omitempty"`
 	UpdatedAt       string  `json:"updated_at,omitempty"`
 	DocumentVersion int     `json:"document_version,omitempty"`
@@ -669,7 +669,7 @@ type CondReg struct {
 }
 
 type ConferenceRoom struct {
-	Id                        uuid           `json:"id,omitempty"`
+	Id                        Uuid           `json:"id,omitempty"`
 	Name                      string         `json:"name,omitempty"`
 	Description               string         `json:"description,omitempty"`
 	DisplayName               string         `json:"display_name,omitempty"`
@@ -733,8 +733,8 @@ type ConferenceRoomListResponse struct {
 }
 
 type ConferenceRoomResponse struct {
-	Id             uuid           `json:"id,omitempty"`
-	ProjectId      uuid           `json:"project_id,omitempty"`
+	Id             Uuid           `json:"id,omitempty"`
+	ProjectId      Uuid           `json:"project_id,omitempty"`
 	DisplayName    string         `json:"display_name,omitempty"`
 	Type_          string         `json:"type,omitempty"`
 	CreatedAt      string         `json:"created_at,omitempty"`
@@ -972,8 +972,8 @@ const (
 type CustomTranslationFilter string
 
 type CxmlApplication struct {
-	Id                      uuid   `json:"id,omitempty"`
-	ProjectId               uuid   `json:"project_id,omitempty"`
+	Id                      Uuid   `json:"id,omitempty"`
+	ProjectId               Uuid   `json:"project_id,omitempty"`
 	FriendlyName            string `json:"friendly_name,omitempty"`
 	VoiceUrl                any    `json:"voice_url,omitempty"`
 	VoiceMethod             any    `json:"voice_method,omitempty"`
@@ -1014,8 +1014,8 @@ type CxmlApplicationPaginationResponse struct {
 }
 
 type CxmlApplicationResponse struct {
-	Id              uuid            `json:"id,omitempty"`
-	ProjectId       uuid            `json:"project_id,omitempty"`
+	Id              Uuid            `json:"id,omitempty"`
+	ProjectId       Uuid            `json:"project_id,omitempty"`
 	DisplayName     string          `json:"display_name,omitempty"`
 	Type_           string          `json:"type,omitempty"`
 	CreatedAt       string          `json:"created_at,omitempty"`
@@ -1025,7 +1025,7 @@ type CxmlApplicationResponse struct {
 
 type CxmlApplicationUpdateRequest struct {
 	DisplayName             *string `json:"display_name,omitempty"`
-	AccountSid              *uuid   `json:"account_sid,omitempty"`
+	AccountSid              *Uuid   `json:"account_sid,omitempty"`
 	VoiceUrl                *string `json:"voice_url,omitempty"`
 	VoiceMethod             any     `json:"voice_method,omitempty"`
 	VoiceFallbackUrl        *string `json:"voice_fallback_url,omitempty"`
@@ -1066,12 +1066,12 @@ type DialogFlowPaginationResponse struct {
 }
 
 type DialogflowAgent struct {
-	Id                      uuid    `json:"id,omitempty"`
+	Id                      Uuid    `json:"id,omitempty"`
 	SayEnabled              *bool   `json:"say_enabled,omitempty"`
 	Say                     *string `json:"say,omitempty"`
 	Voice                   *string `json:"voice,omitempty"`
 	DisplayName             *string `json:"display_name,omitempty"`
-	DialogflowReferenceId   *uuid   `json:"dialogflow_reference_id,omitempty"`
+	DialogflowReferenceId   *Uuid   `json:"dialogflow_reference_id,omitempty"`
 	DialogflowReferenceName *string `json:"dialogflow_reference_name,omitempty"`
 }
 
@@ -1093,8 +1093,8 @@ type DialogflowAgentListResponse struct {
 }
 
 type DialogflowAgentResponse struct {
-	Id              uuid            `json:"id,omitempty"`
-	ProjectId       uuid            `json:"project_id,omitempty"`
+	Id              Uuid            `json:"id,omitempty"`
+	ProjectId       Uuid            `json:"project_id,omitempty"`
 	DisplayName     string          `json:"display_name,omitempty"`
 	Type_           string          `json:"type,omitempty"`
 	CreatedAt       string          `json:"created_at,omitempty"`
@@ -1130,7 +1130,7 @@ const (
 )
 
 type DomainApplicationAssignRequest struct {
-	DomainApplicationId uuid `json:"domain_application_id,omitempty"`
+	DomainApplicationId Uuid `json:"domain_application_id,omitempty"`
 }
 
 type DomainApplicationCreateStatusCode422 struct {
@@ -1186,7 +1186,7 @@ type Expression struct {
 }
 
 type FabricAddress struct {
-	Id          uuid           `json:"id,omitempty"`
+	Id          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
 	CoverUrl    string         `json:"cover_url,omitempty"`
@@ -1198,7 +1198,7 @@ type FabricAddress struct {
 }
 
 type FabricAddressApp struct {
-	Id          uuid           `json:"id,omitempty"`
+	Id          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
 	CoverUrl    string         `json:"cover_url,omitempty"`
@@ -1210,7 +1210,7 @@ type FabricAddressApp struct {
 }
 
 type FabricAddressCall struct {
-	Id          uuid           `json:"id,omitempty"`
+	Id          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
 	CoverUrl    string         `json:"cover_url,omitempty"`
@@ -1229,7 +1229,7 @@ type FabricAddressPaginationResponse struct {
 }
 
 type FabricAddressRoom struct {
-	Id          uuid           `json:"id,omitempty"`
+	Id          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
 	CoverUrl    string         `json:"cover_url,omitempty"`
@@ -1241,7 +1241,7 @@ type FabricAddressRoom struct {
 }
 
 type FabricAddressSubscriber struct {
-	Id          uuid           `json:"id,omitempty"`
+	Id          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
 	CoverUrl    string         `json:"cover_url,omitempty"`
@@ -1265,7 +1265,7 @@ type FreeswitchConectorPaginationResponse struct {
 }
 
 type FreeswitchConnector struct {
-	Id       uuid    `json:"id,omitempty"`
+	Id       Uuid    `json:"id,omitempty"`
 	Name     *string `json:"name,omitempty"`
 	CallerId any     `json:"caller_id,omitempty"`
 	SendAs   any     `json:"send_as,omitempty"`
@@ -1285,7 +1285,7 @@ type FreeswitchConnectorAddressPaginationResponse struct {
 
 type FreeswitchConnectorCreateRequest struct {
 	Name  string `json:"name,omitempty"`
-	Token uuid   `json:"token,omitempty"`
+	Token Uuid   `json:"token,omitempty"`
 }
 
 type FreeswitchConnectorCreateStatusCode422 struct {
@@ -1298,8 +1298,8 @@ type FreeswitchConnectorListResponse struct {
 }
 
 type FreeswitchConnectorResponse struct {
-	Id                  uuid                `json:"id,omitempty"`
-	ProjectId           uuid                `json:"project_id,omitempty"`
+	Id                  Uuid                `json:"id,omitempty"`
+	ProjectId           Uuid                `json:"project_id,omitempty"`
 	DisplayName         string              `json:"display_name,omitempty"`
 	Type_               string              `json:"type,omitempty"`
 	CreatedAt           string              `json:"created_at,omitempty"`
@@ -1546,7 +1546,7 @@ type PayPrompts struct {
 }
 
 type PhoneRouteAssignRequest struct {
-	PhoneRouteId uuid        `json:"phone_route_id,omitempty"`
+	PhoneRouteId Uuid        `json:"phone_route_id,omitempty"`
 	Handler      UsedForType `json:"handler,omitempty"`
 }
 
@@ -1555,7 +1555,7 @@ type PhoneRouteCreateStatusCode422 struct {
 }
 
 type PhoneRouteResponse struct {
-	Id          uuid           `json:"id,omitempty"`
+	Id          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
 	CoverUrl    string         `json:"cover_url,omitempty"`
@@ -1639,7 +1639,7 @@ type RefreshTokenStatusCode422 struct {
 }
 
 type RelayApplication struct {
-	Id                    uuid   `json:"id,omitempty"`
+	Id                    Uuid   `json:"id,omitempty"`
 	Name                  string `json:"name,omitempty"`
 	Topic                 string `json:"topic,omitempty"`
 	CallStatusCallbackUrl any    `json:"call_status_callback_url,omitempty"`
@@ -1673,8 +1673,8 @@ type RelayApplicationListResponse struct {
 }
 
 type RelayApplicationResponse struct {
-	Id               uuid             `json:"id,omitempty"`
-	ProjectId        uuid             `json:"project_id,omitempty"`
+	Id               Uuid             `json:"id,omitempty"`
+	ProjectId        Uuid             `json:"project_id,omitempty"`
 	DisplayName      string           `json:"display_name,omitempty"`
 	Type_            string           `json:"type,omitempty"`
 	CreatedAt        string           `json:"created_at,omitempty"`
@@ -1723,8 +1723,8 @@ type ResourcePaginationResponse struct {
 type ResourceResponse any
 
 type ResourceResponseAI struct {
-	Id          uuid    `json:"id,omitempty"`
-	ProjectId   uuid    `json:"project_id,omitempty"`
+	Id          Uuid    `json:"id,omitempty"`
+	ProjectId   Uuid    `json:"project_id,omitempty"`
 	DisplayName string  `json:"display_name,omitempty"`
 	CreatedAt   string  `json:"created_at,omitempty"`
 	UpdatedAt   string  `json:"updated_at,omitempty"`
@@ -1733,8 +1733,8 @@ type ResourceResponseAI struct {
 }
 
 type ResourceResponseCXMLApplication struct {
-	Id              uuid            `json:"id,omitempty"`
-	ProjectId       uuid            `json:"project_id,omitempty"`
+	Id              Uuid            `json:"id,omitempty"`
+	ProjectId       Uuid            `json:"project_id,omitempty"`
 	DisplayName     string          `json:"display_name,omitempty"`
 	CreatedAt       string          `json:"created_at,omitempty"`
 	UpdatedAt       string          `json:"updated_at,omitempty"`
@@ -1743,8 +1743,8 @@ type ResourceResponseCXMLApplication struct {
 }
 
 type ResourceResponseCXMLScript struct {
-	Id          uuid       `json:"id,omitempty"`
-	ProjectId   uuid       `json:"project_id,omitempty"`
+	Id          Uuid       `json:"id,omitempty"`
+	ProjectId   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
@@ -1753,8 +1753,8 @@ type ResourceResponseCXMLScript struct {
 }
 
 type ResourceResponseCXMLWebhook struct {
-	Id          uuid        `json:"id,omitempty"`
-	ProjectId   uuid        `json:"project_id,omitempty"`
+	Id          Uuid        `json:"id,omitempty"`
+	ProjectId   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
 	UpdatedAt   string      `json:"updated_at,omitempty"`
@@ -1763,8 +1763,8 @@ type ResourceResponseCXMLWebhook struct {
 }
 
 type ResourceResponseCallFlow struct {
-	Id          uuid     `json:"id,omitempty"`
-	ProjectId   uuid     `json:"project_id,omitempty"`
+	Id          Uuid     `json:"id,omitempty"`
+	ProjectId   Uuid     `json:"project_id,omitempty"`
 	DisplayName string   `json:"display_name,omitempty"`
 	CreatedAt   string   `json:"created_at,omitempty"`
 	UpdatedAt   string   `json:"updated_at,omitempty"`
@@ -1773,8 +1773,8 @@ type ResourceResponseCallFlow struct {
 }
 
 type ResourceResponseConferenceRoom struct {
-	Id             uuid           `json:"id,omitempty"`
-	ProjectId      uuid           `json:"project_id,omitempty"`
+	Id             Uuid           `json:"id,omitempty"`
+	ProjectId      Uuid           `json:"project_id,omitempty"`
 	DisplayName    string         `json:"display_name,omitempty"`
 	CreatedAt      string         `json:"created_at,omitempty"`
 	UpdatedAt      string         `json:"updated_at,omitempty"`
@@ -1783,8 +1783,8 @@ type ResourceResponseConferenceRoom struct {
 }
 
 type ResourceResponseDialogFlowAgent struct {
-	Id              uuid            `json:"id,omitempty"`
-	ProjectId       uuid            `json:"project_id,omitempty"`
+	Id              Uuid            `json:"id,omitempty"`
+	ProjectId       Uuid            `json:"project_id,omitempty"`
 	DisplayName     string          `json:"display_name,omitempty"`
 	CreatedAt       string          `json:"created_at,omitempty"`
 	UpdatedAt       string          `json:"updated_at,omitempty"`
@@ -1793,8 +1793,8 @@ type ResourceResponseDialogFlowAgent struct {
 }
 
 type ResourceResponseFSConnector struct {
-	Id                  uuid                `json:"id,omitempty"`
-	ProjectId           uuid                `json:"project_id,omitempty"`
+	Id                  Uuid                `json:"id,omitempty"`
+	ProjectId           Uuid                `json:"project_id,omitempty"`
 	DisplayName         string              `json:"display_name,omitempty"`
 	CreatedAt           string              `json:"created_at,omitempty"`
 	UpdatedAt           string              `json:"updated_at,omitempty"`
@@ -1803,8 +1803,8 @@ type ResourceResponseFSConnector struct {
 }
 
 type ResourceResponseRelayApp struct {
-	Id               uuid             `json:"id,omitempty"`
-	ProjectId        uuid             `json:"project_id,omitempty"`
+	Id               Uuid             `json:"id,omitempty"`
+	ProjectId        Uuid             `json:"project_id,omitempty"`
 	DisplayName      string           `json:"display_name,omitempty"`
 	CreatedAt        string           `json:"created_at,omitempty"`
 	UpdatedAt        string           `json:"updated_at,omitempty"`
@@ -1813,8 +1813,8 @@ type ResourceResponseRelayApp struct {
 }
 
 type ResourceResponseSWMLScript struct {
-	Id          uuid       `json:"id,omitempty"`
-	ProjectId   uuid       `json:"project_id,omitempty"`
+	Id          Uuid       `json:"id,omitempty"`
+	ProjectId   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
@@ -1823,8 +1823,8 @@ type ResourceResponseSWMLScript struct {
 }
 
 type ResourceResponseSWMLWebhook struct {
-	Id          uuid        `json:"id,omitempty"`
-	ProjectId   uuid        `json:"project_id,omitempty"`
+	Id          Uuid        `json:"id,omitempty"`
+	ProjectId   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
 	UpdatedAt   string      `json:"updated_at,omitempty"`
@@ -1833,8 +1833,8 @@ type ResourceResponseSWMLWebhook struct {
 }
 
 type ResourceResponseSipEndpoint struct {
-	Id          uuid        `json:"id,omitempty"`
-	ProjectId   uuid        `json:"project_id,omitempty"`
+	Id          Uuid        `json:"id,omitempty"`
+	ProjectId   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
 	UpdatedAt   string      `json:"updated_at,omitempty"`
@@ -1843,8 +1843,8 @@ type ResourceResponseSipEndpoint struct {
 }
 
 type ResourceResponseSipGateway struct {
-	Id          uuid       `json:"id,omitempty"`
-	ProjectId   uuid       `json:"project_id,omitempty"`
+	Id          Uuid       `json:"id,omitempty"`
+	ProjectId   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
@@ -1853,8 +1853,8 @@ type ResourceResponseSipGateway struct {
 }
 
 type ResourceResponseSubscriber struct {
-	Id          uuid       `json:"id,omitempty"`
-	ProjectId   uuid       `json:"project_id,omitempty"`
+	Id          Uuid       `json:"id,omitempty"`
+	ProjectId   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
@@ -1863,7 +1863,7 @@ type ResourceResponseSubscriber struct {
 }
 
 type ResourceSipEndpointAssignRequest struct {
-	SipEndpointId uuid `json:"sip_endpoint_id,omitempty"`
+	SipEndpointId Uuid `json:"sip_endpoint_id,omitempty"`
 }
 
 type ResourceSipEndpointCreateStatusCode422 struct {
@@ -1871,7 +1871,7 @@ type ResourceSipEndpointCreateStatusCode422 struct {
 }
 
 type ResourceSipEndpointResponse struct {
-	Id         uuid           `json:"id,omitempty"`
+	Id         Uuid           `json:"id,omitempty"`
 	Name       string         `json:"name,omitempty"`
 	Type_      string         `json:"type,omitempty"`
 	CoverUrl   any            `json:"cover_url,omitempty"`
@@ -1999,7 +1999,7 @@ type SWMLScriptAddressPaginationResponse struct {
 type SWMLVar string
 
 type SWMLWebhook struct {
-	Id                    uuid   `json:"id,omitempty"`
+	Id                    Uuid   `json:"id,omitempty"`
 	Name                  string `json:"name,omitempty"`
 	UsedFor               string `json:"used_for,omitempty"`
 	PrimaryRequestUrl     string `json:"primary_request_url,omitempty"`
@@ -2046,8 +2046,8 @@ type SWMLWebhookPaginationResponse struct {
 }
 
 type SWMLWebhookResponse struct {
-	Id          uuid        `json:"id,omitempty"`
-	ProjectId   uuid        `json:"project_id,omitempty"`
+	Id          Uuid        `json:"id,omitempty"`
+	ProjectId   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
 	Type_       string      `json:"type,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
@@ -2113,7 +2113,7 @@ type SipEndpointAddressPaginationResponse struct {
 }
 
 type SipEndpointCreateRequest struct {
-	Id                       *uuid           `json:"id,omitempty"`
+	Id                       *Uuid           `json:"id,omitempty"`
 	Username                 string          `json:"username,omitempty"`
 	CallerId                 string          `json:"caller_id,omitempty"`
 	SendAs                   string          `json:"send_as,omitempty"`
@@ -2292,7 +2292,7 @@ type StringProperty struct {
 }
 
 type Subscriber struct {
-	Id          uuid   `json:"id,omitempty"`
+	Id          Uuid   `json:"id,omitempty"`
 	Email       string `json:"email,omitempty"`
 	FirstName   string `json:"first_name,omitempty"`
 	LastName    string `json:"last_name,omitempty"`
@@ -2321,22 +2321,22 @@ type SubscriberCreateStatusCode422 struct {
 }
 
 type SubscriberGuestTokenCreateRequest struct {
-	AllowedAddresses []uuid `json:"allowed_addresses,omitempty"`
+	AllowedAddresses []Uuid `json:"allowed_addresses,omitempty"`
 	ExpireAt         *int   `json:"expire_at,omitempty"`
 }
 
 type SubscriberGuestTokenCreateResponse struct {
-	Token        jwt `json:"token,omitempty"`
-	RefreshToken jwt `json:"refresh_token,omitempty"`
+	Token        Jwt `json:"token,omitempty"`
+	RefreshToken Jwt `json:"refresh_token,omitempty"`
 }
 
 type SubscriberInviteTokenCreateRequest struct {
-	AddressId uuid `json:"address_id,omitempty"`
+	AddressId Uuid `json:"address_id,omitempty"`
 	ExpiresAt *int `json:"expires_at,omitempty"`
 }
 
 type SubscriberInviteTokenCreateResponse struct {
-	Token jwt `json:"token,omitempty"`
+	Token Jwt `json:"token,omitempty"`
 }
 
 type SubscriberListResponse struct {
@@ -2352,12 +2352,12 @@ type SubscriberPaginationResponse struct {
 }
 
 type SubscriberRefreshTokenRequest struct {
-	RefreshToken jwt `json:"refresh_token,omitempty"`
+	RefreshToken Jwt `json:"refresh_token,omitempty"`
 }
 
 type SubscriberRefreshTokenResponse struct {
-	Token        jwt `json:"token,omitempty"`
-	RefreshToken jwt `json:"refresh_token,omitempty"`
+	Token        Jwt `json:"token,omitempty"`
+	RefreshToken Jwt `json:"refresh_token,omitempty"`
 }
 
 type SubscriberRequest struct {
@@ -2384,7 +2384,7 @@ type SubscriberResponse struct {
 }
 
 type SubscriberSIPEndpoint struct {
-	Id         uuid       `json:"id,omitempty"`
+	Id         Uuid       `json:"id,omitempty"`
 	Username   string     `json:"username,omitempty"`
 	CallerId   string     `json:"caller_id,omitempty"`
 	SendAs     string     `json:"send_as,omitempty"`
@@ -2428,7 +2428,7 @@ type SubscriberSipEndpointRequestUpdate struct {
 type SubscriberTokenRequest struct {
 	Reference     string  `json:"reference,omitempty"`
 	ExpireAt      *int    `json:"expire_at,omitempty"`
-	ApplicationId *uuid   `json:"application_id,omitempty"`
+	ApplicationId *Uuid   `json:"application_id,omitempty"`
 	Password      *string `json:"password,omitempty"`
 	FirstName     *string `json:"first_name,omitempty"`
 	LastName      *string `json:"last_name,omitempty"`
@@ -2441,9 +2441,9 @@ type SubscriberTokenRequest struct {
 }
 
 type SubscriberTokenResponse struct {
-	SubscriberId uuid `json:"subscriber_id,omitempty"`
-	Token        jwt  `json:"token,omitempty"`
-	RefreshToken jwt  `json:"refresh_token,omitempty"`
+	SubscriberId Uuid `json:"subscriber_id,omitempty"`
+	Token        Jwt  `json:"token,omitempty"`
+	RefreshToken Jwt  `json:"refresh_token,omitempty"`
 }
 
 type SubscriberTokenStatusCode422 struct {
@@ -2483,7 +2483,7 @@ type Switch struct {
 }
 
 type SwmlScript struct {
-	Id                   uuid    `json:"id,omitempty"`
+	Id                   Uuid    `json:"id,omitempty"`
 	Contents             string  `json:"contents,omitempty"`
 	RequestUrl           string  `json:"request_url,omitempty"`
 	DisplayName          string  `json:"display_name,omitempty"`
@@ -2514,8 +2514,8 @@ type SwmlScriptPaginationresponse struct {
 }
 
 type SwmlScriptResponse struct {
-	Id          uuid       `json:"id,omitempty"`
-	ProjectId   uuid       `json:"project_id,omitempty"`
+	Id          Uuid       `json:"id,omitempty"`
+	ProjectId   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	Type_       string     `json:"type,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
@@ -2671,6 +2671,6 @@ type Webhook struct {
 	Output            *Output        `json:"output,omitempty"`
 }
 
-type jwt string
+type Jwt string
 
-type play_url string
+type Play_url string

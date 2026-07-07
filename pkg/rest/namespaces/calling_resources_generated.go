@@ -7,7 +7,7 @@
 
 package namespaces
 
-// CallingNamespace is generated from the command-dispatch x-sdk-resource "Calling" (calling spec).
+// CallingNamespace is a client for the "Calling" resource of the SignalWire calling API (command-dispatch endpoint).
 type CallingNamespace struct {
 	Resource
 }
@@ -74,7 +74,7 @@ func (c *CallingNamespace) Dial(params CallingNamespaceDialParams) (*CallRespons
 
 // CallingNamespaceUpdateParams holds the named optional parameters for CallingNamespace.Update.
 type CallingNamespaceUpdateParams struct {
-	Id          uuid
+	Id          Uuid
 	FallbackUrl *string
 	Status      *string
 	StatusUrl   *string

@@ -564,7 +564,7 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 //
 // When the host env var is set it takes precedence over the configured
 // space; when scheme is set it overrides "wss". This mirrors the
-// per-port harness contract documented in the porting-sdk
+// per-port harness contract documented in the shared test harness
 // SUBAGENT_PLAYBOOK.
 func (c *Client) connect() error {
 	host := os.Getenv("SIGNALWIRE_RELAY_HOST")

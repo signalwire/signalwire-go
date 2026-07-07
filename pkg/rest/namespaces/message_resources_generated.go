@@ -7,7 +7,7 @@
 
 package namespaces
 
-// MessageLogs is generated from x-sdk-resource "MessageLogs" in the message spec.
+// MessageLogs is a client for the "MessageLogs" resource of the SignalWire message API.
 type MessageLogs struct {
 	Resource
 }

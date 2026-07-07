@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/signalwire/signalwire-go/pkg/logging"
@@ -71,7 +70,7 @@ type HTTPClient struct {
 // NewHTTPClient creates a new HTTPClient configured for the given SignalWire
 // space. The baseURL is normally constructed as "https://<space>", but the
 // SIGNALWIRE_REST_BASE_URL environment variable overrides it when set —
-// pointing the client at a loopback fixture for the porting-sdk
+// pointing the client at a loopback fixture for the the shared test harness
 // audit_rest_transport.py harness, or at any non-default endpoint.
 func NewHTTPClient(projectID, token, space string) *HTTPClient {
 	baseURL := os.Getenv("SIGNALWIRE_REST_BASE_URL")
@@ -276,102 +275,6 @@ func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, 
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil
-}
-
-// ---------- CrudResource ----------
-
-// CrudResource provides standard List, Create, Get, Update, Delete operations
-// against a REST collection endpoint. Update defaults to PATCH; set
-// UpdateMethod to "PUT" to override.
-type CrudResource struct {
-	Client       *HTTPClient
-	Path         string
-	UpdateMethod string // "PATCH" (default) or "PUT"
-}
-
-// NewCrudResource creates a CrudResource for the given path. The default
-// update method is PATCH.
-func NewCrudResource(client *HTTPClient, path string) *CrudResource {
-	return &CrudResource{
-		Client:       client,
-		Path:         path,
-		UpdateMethod: "PATCH",
-	}
-}
-
-// NewCrudResourcePUT creates a CrudResource that uses PUT for updates.
-func NewCrudResourcePUT(client *HTTPClient, path string) *CrudResource {
-	return &CrudResource{
-		Client:       client,
-		Path:         path,
-		UpdateMethod: "PUT",
-	}
-}
-
-// subPath joins additional path segments onto the resource base path.
-func (r *CrudResource) subPath(parts ...string) string {
-	return r.Path + "/" + strings.Join(parts, "/")
-}
-
-// List retrieves all items from the collection. Optional query parameters can
-// be provided. The raw JSON response map is returned.
-func (r *CrudResource) List(params map[string]string) (map[string]any, error) {
-	return r.Client.Get(r.Path, params)
-}
-
-// Create sends a POST request to create a new resource.
-func (r *CrudResource) Create(data map[string]any) (map[string]any, error) {
-	return r.Client.Post(r.Path, data, nil)
-}
-
-// Get retrieves a single resource by ID.
-func (r *CrudResource) Get(id string) (map[string]any, error) {
-	return r.Client.Get(r.subPath(id), nil)
-}
-
-// Update modifies an existing resource by ID using the configured update
-// method (PATCH or PUT).
-func (r *CrudResource) Update(id string, data map[string]any) (map[string]any, error) {
-	path := r.subPath(id)
-	if r.UpdateMethod == "PUT" {
-		return r.Client.Put(path, data)
-	}
-	return r.Client.Patch(path, data)
-}
-
-// Delete removes a resource by ID. It returns the parsed response body
-// (or an empty map for 204 No Content) and any error.
-func (r *CrudResource) Delete(id string) (map[string]any, error) {
-	return r.Client.Delete(r.subPath(id))
-}
-
-// ListContext is the context-aware variant of List.
-func (r *CrudResource) ListContext(ctx context.Context, params map[string]string) (map[string]any, error) {
-	return r.Client.GetContext(ctx, r.Path, params)
-}
-
-// CreateContext is the context-aware variant of Create.
-func (r *CrudResource) CreateContext(ctx context.Context, data map[string]any) (map[string]any, error) {
-	return r.Client.PostContext(ctx, r.Path, data, nil)
-}
-
-// GetContext is the context-aware variant of Get.
-func (r *CrudResource) GetContext(ctx context.Context, id string) (map[string]any, error) {
-	return r.Client.GetContext(ctx, r.subPath(id), nil)
-}
-
-// UpdateContext is the context-aware variant of Update.
-func (r *CrudResource) UpdateContext(ctx context.Context, id string, data map[string]any) (map[string]any, error) {
-	path := r.subPath(id)
-	if r.UpdateMethod == "PUT" {
-		return r.Client.PutContext(ctx, path, data)
-	}
-	return r.Client.PatchContext(ctx, path, data)
-}
-
-// DeleteContext is the context-aware variant of Delete.
-func (r *CrudResource) DeleteContext(ctx context.Context, id string) (map[string]any, error) {
-	return r.Client.DeleteContext(ctx, r.subPath(id))
 }
 
 // ---------- PaginatedIterator ----------

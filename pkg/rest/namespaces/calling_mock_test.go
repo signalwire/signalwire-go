@@ -55,7 +55,7 @@ func commandAssert(t *testing.T, j mocktest.JournalEntry, command, expectedID st
 // ----------------- Lifecycle -----------------
 
 // TestCallingNamespace_Dial_WithCodecsArray confirms that the optional codecs
-// param (added in porting-sdk PR #1 to the calling/calls OpenAPI spec) flows
+// param (added in a prior update to the calling/calls OpenAPI spec) flows
 // through Dial's free-form params map and reaches the wire as an array.
 // Dial(map[string]any{...}) already forwards arbitrary keys, so no source
 // change is needed — this is a behavioral assertion only.

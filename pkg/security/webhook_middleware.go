@@ -163,7 +163,7 @@ type WebhookOpts struct {
 // override consulted).
 //
 // The middleware never logs the signing key, the expected signature, or
-// which validation branch matched — per porting-sdk/webhooks.md §"Required
+// which validation branch matched — per the SignalWire webhooks specification §"Required
 // SDK Behaviors / Error modes".
 func WebhookMiddleware(signingKey string, opts *WebhookOpts) func(http.Handler) http.Handler {
 	if signingKey == "" {
@@ -241,7 +241,7 @@ func flattenHeaders(h http.Header) map[string]string {
 
 // reconstructURL rebuilds the public URL the platform saw, honoring proxy
 // headers when opts.TrustProxy is set. Mirrors the URL-reconstruction rules
-// in porting-sdk/webhooks.md §"URL reconstruction behind proxies".
+// in the SignalWire webhooks specification §"URL reconstruction behind proxies".
 func reconstructURL(r *http.Request, opts *WebhookOpts) string {
 	// Explicit override wins over everything.
 	if opts != nil && opts.ProxyURLBase != "" {

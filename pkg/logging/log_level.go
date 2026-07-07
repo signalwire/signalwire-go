@@ -17,7 +17,7 @@ package logging
 //
 // LogLevel is a string subtype, so its value is byte-identical to the bare
 // string the reference uses — ParseLevel("debug") and ParseLevel(LevelNameDebug)
-// resolve to the same Level, preserving parity with the Python reference whose
+// resolve to the same Level, preserving compatibility with the Python reference whose
 // log_level is a plain str (signalwire/core/logging_config.py).
 type LogLevel string
 

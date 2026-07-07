@@ -7,7 +7,7 @@
 // RestClient embeds + its wireGeneratedTree method. Lives in package rest (not
 // namespaces) so the hand RestClient can embed the underscore-unexported tree —
 // Go forbids embedding a cross-package underscore-unexported type. The leading
-// underscore keeps it off the enumerated oracle surface.
+// underscore keeps it off the client's public API surface.
 
 package rest
 
@@ -15,7 +15,7 @@ import "github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 
 // _GeneratedResourceTree holds every flat REST resource plus the namespace
 // containers. The hand RestClient embeds it and calls wireGeneratedTree; the
-// leading underscore keeps it off the enumerated oracle surface.
+// leading underscore keeps it off the client's public API surface.
 type _GeneratedResourceTree struct {
 	Fabric          *namespaces.FabricNamespace
 	Calling         *namespaces.CallingNamespace

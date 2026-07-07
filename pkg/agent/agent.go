@@ -54,7 +54,7 @@ type DebugEventHandler func(event map[string]any)
 // non-nil map applies modifications to the rendered SWML; returning nil
 // uses the default rendering unchanged.
 //
-// Python parity: web_mixin.WebMixin.on_swml_request — Go has no method
+// Matches Python: web_mixin.WebMixin.on_swml_request — Go has no method
 // inheritance, so we expose the override as a settable function field.
 type OnSwmlRequestHook func(requestData map[string]any, callbackPath string, r *http.Request) map[string]any
 
@@ -299,7 +299,7 @@ func WithSchemaValidation(validate bool) AgentOption {
 // When this option is unset, AgentBase falls back to the
 // SIGNALWIRE_SIGNING_KEY environment variable. When neither is set, the
 // agent accepts unsigned requests and emits a one-time WARN log on
-// startup, per porting-sdk/webhooks.md §"AgentBase integration".
+// startup, per the SignalWire webhooks specification §"AgentBase integration".
 //
 // Python equivalent: AgentBase(signing_key="...") parameter.
 func WithSigningKey(key string) AgentOption {
@@ -312,7 +312,7 @@ func WithSigningKey(key string) AgentOption {
 // without it the validator sees the internal scheme/host and the signature
 // will mismatch.
 //
-// No Python parity flag — Python's web_mixin reads X-Forwarded-* headers
+// No Python-equivalent flag — Python's web_mixin reads X-Forwarded-* headers
 // unconditionally; in Go we make it explicit because forging these headers
 // is a real attack on naive deployments.
 func WithSigningKeyTrustProxy(trust bool) AgentOption {
@@ -790,7 +790,7 @@ func (a *AgentBase) GetPrompt() any {
 }
 
 // Pom returns a typed PromptObjectModel built from the agent's current
-// POM sections. Returns nil when use_pom is false (Python parity:
+// POM sections. Returns nil when use_pom is false (Matches Python:
 // “self.pom“ is “None“ when “use_pom=False“). The returned value
 // is a deep copy / fresh build — mutations don't affect the agent's
 // internal state.
@@ -999,7 +999,7 @@ func (a *AgentBase) RegisterSwaigFunction(funcDef map[string]any) *AgentBase {
 }
 
 // HasFunction reports whether a SWAIG function with the given name is
-// registered. (Python parity: “ToolRegistry.has_function“.)
+// registered. (Matches Python: “ToolRegistry.has_function“.)
 func (a *AgentBase) HasFunction(name string) bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1008,7 +1008,7 @@ func (a *AgentBase) HasFunction(name string) bool {
 }
 
 // Function returns the registered tool definition for the given
-// name, or nil when no such function is registered. (Python parity:
+// name, or nil when no such function is registered. (Matches Python:
 // “ToolRegistry.get_function“.)
 func (a *AgentBase) Function(name string) *ToolDefinition {
 	a.mu.RLock()
@@ -1021,7 +1021,7 @@ func (a *AgentBase) Function(name string) *ToolDefinition {
 
 // AllFunctions returns a snapshot of all registered SWAIG functions
 // keyed by name. The returned map is a copy — subsequent registrations
-// do not mutate it. (Python parity: “ToolRegistry.get_all_functions“.)
+// do not mutate it. (Matches Python: “ToolRegistry.get_all_functions“.)
 func (a *AgentBase) AllFunctions() map[string]*ToolDefinition {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1034,7 +1034,7 @@ func (a *AgentBase) AllFunctions() map[string]*ToolDefinition {
 
 // RemoveFunction removes a registered SWAIG function. Returns true when
 // the function was found and removed; false when it wasn't registered.
-// (Python parity: “ToolRegistry.remove_function“.)
+// (Matches Python: “ToolRegistry.remove_function“.)
 func (a *AgentBase) RemoveFunction(name string) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -2003,7 +2003,7 @@ func (a *AgentBase) ClearSwaigQueryParams() *AgentBase {
 // is a backward-compatibility no-op returning self because the debug routes
 // are registered unconditionally in _register_routes. The Go port mirrors that:
 // AsRouter always registers /debug and /debug_events, so this method exists for
-// API parity and chaining and simply returns the agent.
+// API compatibility and chaining and simply returns the agent.
 func (a *AgentBase) EnableDebugRoutes() *AgentBase {
 	return a
 }
@@ -2052,7 +2052,7 @@ func (a *AgentBase) OnSwmlRequest(requestData map[string]any, callbackPath strin
 // applies modifications to the rendered SWML; returning nil falls
 // through to the default rendering.
 //
-// Python parity: this is the Go-idiomatic way of "overriding"
+// Matches Python: this is the Go-idiomatic way of "overriding"
 // on_swml_request — Go has no method inheritance.
 func (a *AgentBase) SetOnSwmlRequestHook(hook OnSwmlRequestHook) *AgentBase {
 	a.mu.Lock()
@@ -2139,7 +2139,7 @@ func (a *AgentBase) GetBasicAuthCredentialsWithSource() (user, pass, source stri
 // when the function is not registered, the SessionManager rejects the token,
 // or the validation panics for any reason.
 //
-// Python parity: state_mixin.StateMixin.validate_tool_token. Python rejects
+// Matches Python: state_mixin.StateMixin.validate_tool_token. Python rejects
 // unknown function names up-front and swallows exceptions, returning false.
 func (a *AgentBase) ValidateToolToken(functionName, token, callID string) (ok bool) {
 	if !a.HasFunction(functionName) {
@@ -2154,7 +2154,7 @@ func (a *AgentBase) ValidateToolToken(functionName, token, callID string) (ok bo
 }
 
 // CreateToolToken mints a per-call SWAIG-function token via the agent's
-// SessionManager. Returns an empty string when minting fails (Python parity:
+// SessionManager. Returns an empty string when minting fails (Matches Python:
 // state_mixin.StateMixin._create_tool_token, which catches all exceptions and
 // returns "" on error).
 func (a *AgentBase) CreateToolToken(toolName, callID string) (token string) {
@@ -2572,7 +2572,7 @@ func (a *AgentBase) RegisterSIPUsername(username string) *AgentBase {
 // skills.Skill* constants give autocomplete + call-site typo checking; because
 // Go auto-converts untyped string-constant literals, a bare "datetime" literal
 // or skills.SkillName("custom") for a third-party skill compiles identically —
-// parity with the Python reference's str parameter.
+// compatibility with the Python reference's str parameter.
 func (a *AgentBase) AddSkill(skillName skills.SkillName, params map[string]any) *AgentBase {
 	if params == nil {
 		params = map[string]any{}
@@ -3486,7 +3486,7 @@ func (a *AgentBase) HandleRequest(method string, url string, headers map[string]
 // those subclass hooks still receive the raw request; when nil (the primitive
 // path) SIP routing is skipped (its callbacks are *http.Request-typed) and
 // dynamic config / on_swml_request run request-free. Routing-callback 307
-// redirect and 401 auth behave identically on both paths — that parity is the
+// redirect and 401 auth behave identically on both paths — that equivalence is the
 // point of routing the served path through here.
 func (a *AgentBase) handleRequestWithContext(
 	method string,

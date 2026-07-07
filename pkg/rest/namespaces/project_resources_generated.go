@@ -7,7 +7,7 @@
 
 package namespaces
 
-// ProjectTokens is generated from x-sdk-resource "ProjectTokens" in the project spec.
+// ProjectTokens is a client for the "ProjectTokens" resource of the SignalWire project API.
 type ProjectTokens struct {
 	Resource
 }

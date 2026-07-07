@@ -7,7 +7,7 @@
 
 package namespaces
 
-// FaxLogs is generated from x-sdk-resource "FaxLogs" in the fax spec.
+// FaxLogs is a client for the "FaxLogs" resource of the SignalWire fax API.
 type FaxLogs struct {
 	Resource
 }

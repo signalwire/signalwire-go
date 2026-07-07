@@ -28,7 +28,7 @@ type LogPaginationResponse struct {
 }
 
 type LogRetrieveResponse struct {
-	Id               uuid           `json:"id,omitempty"`
+	Id               Uuid           `json:"id,omitempty"`
 	From             string         `json:"from,omitempty"`
 	To               string         `json:"to,omitempty"`
 	Status           string         `json:"status,omitempty"`
@@ -44,7 +44,7 @@ type LogRetrieveResponse struct {
 }
 
 type MessageLog struct {
-	Id               uuid           `json:"id,omitempty"`
+	Id               Uuid           `json:"id,omitempty"`
 	From             string         `json:"from,omitempty"`
 	To               string         `json:"to,omitempty"`
 	Status           string         `json:"status,omitempty"`

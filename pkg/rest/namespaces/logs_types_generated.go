@@ -34,7 +34,7 @@ type ConferencesResponse struct {
 type CxmlConference struct {
 	Id                  string `json:"id,omitempty"`
 	CreatedAt           string `json:"created_at,omitempty"`
-	ProjectId           uuid   `json:"project_id,omitempty"`
+	ProjectId           Uuid   `json:"project_id,omitempty"`
 	Region              string `json:"region,omitempty"`
 	Name                any    `json:"name,omitempty"`
 	Status              any    `json:"status,omitempty"`
@@ -47,7 +47,7 @@ type CxmlConference struct {
 type RelayConference struct {
 	Id                  string `json:"id,omitempty"`
 	CreatedAt           string `json:"created_at,omitempty"`
-	ProjectId           uuid   `json:"project_id,omitempty"`
+	ProjectId           Uuid   `json:"project_id,omitempty"`
 	Region              string `json:"region,omitempty"`
 	Name                any    `json:"name,omitempty"`
 	Status              any    `json:"status,omitempty"`

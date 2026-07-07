@@ -16,7 +16,7 @@
 package namespaces
 
 type CallAIMessageRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
@@ -68,19 +68,19 @@ const (
 )
 
 type CallHangupRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallHoldRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallLeg struct {
-	Id            uuid            `json:"id,omitempty"`
+	Id            Uuid            `json:"id,omitempty"`
 	From          string          `json:"from,omitempty"`
 	To            string          `json:"to,omitempty"`
 	Direction     CallDirection   `json:"direction,omitempty"`
@@ -98,13 +98,13 @@ type CallLeg struct {
 }
 
 type CallLiveTranscribeRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallLiveTranslateRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
@@ -112,163 +112,163 @@ type CallLiveTranslateRequest struct {
 type CallRequest any
 
 type CallDisconnectRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallPlayRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallPlayPauseRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallPlayResumeRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallPlayStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallPlayVolumeRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallRecordRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallRecordPauseRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallRecordResumeRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallRecordStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallCollectRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallCollectStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallCollectStartInputTimersRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallDetectRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallDetectStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallTapRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallTapStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallStreamRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallStreamStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallDenoiseRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallDenoiseStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallTranscribeRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallTranscribeStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallAIStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallSendFaxStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallReceiveFaxStopRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallReferRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
@@ -291,13 +291,13 @@ const (
 )
 
 type CallTransferRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
 
 type CallUnholdRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
@@ -308,7 +308,7 @@ type CallUpdateCurrentCallRequest struct {
 }
 
 type CallUpdateParamsSWML struct {
-	Id          uuid       `json:"id,omitempty"`
+	Id          Uuid       `json:"id,omitempty"`
 	FallbackUrl *string    `json:"fallback_url,omitempty"`
 	Status      *string    `json:"status,omitempty"`
 	StatusUrl   *string    `json:"status_url,omitempty"`
@@ -316,7 +316,7 @@ type CallUpdateParamsSWML struct {
 }
 
 type CallUpdateParamsURL struct {
-	Id          uuid    `json:"id,omitempty"`
+	Id          Uuid    `json:"id,omitempty"`
 	FallbackUrl *string `json:"fallback_url,omitempty"`
 	Status      *string `json:"status,omitempty"`
 	StatusUrl   *string `json:"status_url,omitempty"`
@@ -324,7 +324,7 @@ type CallUpdateParamsURL struct {
 }
 
 type CallUserEventRequest struct {
-	Id      uuid           `json:"id,omitempty"`
+	Id      Uuid           `json:"id,omitempty"`
 	Command string         `json:"command,omitempty"`
 	Params  map[string]any `json:"params,omitempty"`
 }
@@ -335,7 +335,7 @@ type ChargeDetails struct {
 }
 
 type FabricDeviceLeg struct {
-	Id            uuid            `json:"id,omitempty"`
+	Id            Uuid            `json:"id,omitempty"`
 	From          string          `json:"from,omitempty"`
 	To            string          `json:"to,omitempty"`
 	Direction     CallDirection   `json:"direction,omitempty"`

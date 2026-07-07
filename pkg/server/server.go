@@ -81,7 +81,7 @@ func WithServerPort(port int) ServerOption {
 // The parameter is the defined string type logging.LogLevel: the typed
 // constants give autocomplete + a compile-time typo check, while Go's
 // untyped-constant auto-conversion keeps a bare "debug" literal compiling —
-// parity with the Python reference's plain str log_level.
+// compatibility with the Python reference's plain str log_level.
 func WithLogLevel(level logging.LogLevel) ServerOption {
 	return func(s *AgentServer) {
 		logging.SetGlobalLevel(logging.ParseLevel(string(level)))

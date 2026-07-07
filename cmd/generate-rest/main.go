@@ -895,7 +895,30 @@ type embedInfo struct {
 	crud  bool   // whether the base provides CRUD (for set_methods validation)
 }
 
-func embedFor(rm *resourceMarkup) (embedInfo, error) {
+// hasSiblingAddressOverride reports whether the resource RE-DECLARES list_addresses
+// on a SINGULAR sibling sub-path (the fabric call_flow/conference_room platform
+// quirk — a real wire quirk documented in the fabric spec). When it does, the
+// resource must NOT also inherit the base CrudWithAddresses.ListAddresses (which
+// routes to the PLURAL collection path), or the class would expose TWO routes for
+// one canonical op (the embedded plural + the singular override) — a route split.
+// The reference (Python) has no such split: an overriding method fully REPLACES the
+// inherited one. So when the override is present we embed the plain *CrudResource
+// (no addresses) and let the singular override be the class's ONLY list_addresses.
+func hasSiblingAddressOverride(rm *resourceMarkup, sd *specDoc) bool {
+	for _, mm := range rm.methods {
+		if mm.name != "list_addresses" {
+			continue
+		}
+		if op, ok := sd.opIndex[mm.op]; ok {
+			if _, sibling := rm.relativeTail(sd.serverPath, op.path); sibling {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func embedFor(rm *resourceMarkup, sd *specDoc) (embedInfo, error) {
 	switch rm.base {
 	case "BaseResource", "ReadResource":
 		return embedInfo{field: "Resource", ctor: "Resource{HTTP: client, Base: %s}"}, nil
@@ -908,6 +931,15 @@ func embedFor(rm *resourceMarkup) (embedInfo, error) {
 		}
 		return embedInfo{field: "*CrudResource", ctor: "NewCrudResource(client, %s)", crud: true}, nil
 	case "FabricResource":
+		// A resource that overrides list_addresses onto a singular sibling path
+		// embeds the plain *CrudResource (no base ListAddresses) so its ONLY
+		// list_addresses route is the singular override — no plural/singular split.
+		if hasSiblingAddressOverride(rm, sd) {
+			if rm.updateMethod == "PUT" {
+				return embedInfo{field: "*CrudResource", ctor: "NewCrudResourcePUT(client, %s)", crud: true}, nil
+			}
+			return embedInfo{field: "*CrudResource", ctor: "NewCrudResource(client, %s)", crud: true}, nil
+		}
 		if rm.updateMethod == "PUT" {
 			return embedInfo{field: "*CrudWithAddresses", ctor: "NewCrudWithAddressesPUT(client, %s)", crud: true}, nil
 		}
@@ -970,11 +1002,11 @@ func emitResource(b *strings.Builder, rm *resourceMarkup, sd *specDoc, bases map
 	if rm.kind == "command-dispatch" {
 		return emitCommandDispatch(b, rm, sd, goName)
 	}
-	emb, err := embedFor(rm)
+	emb, err := embedFor(rm, sd)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(b, "// %s is generated from x-sdk-resource %q in the %s spec.\n", goName, rm.name, sd.name)
+	fmt.Fprintf(b, "// %s is a client for the %q resource of the SignalWire %s API.\n", goName, rm.name, sd.name)
 	fmt.Fprintf(b, "type %s struct {\n\t%s\n}\n\n", goName, emb.field)
 
 	// Per-resource constructor (§4): bakes the resource's base path into the
@@ -1167,7 +1199,7 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 	if ok {
 		base = joinPath(sd.serverPath, strings.TrimPrefix(op.path, "/"))
 	}
-	fmt.Fprintf(b, "// %s is generated from the command-dispatch x-sdk-resource %q (%s spec).\n", goName, rm.name, sd.name)
+	fmt.Fprintf(b, "// %s is a client for the %q resource of the SignalWire %s API (command-dispatch endpoint).\n", goName, rm.name, sd.name)
 	fmt.Fprintf(b, "type %s struct {\n\tResource\n}\n\n", goName)
 	// Constructor bakes the command endpoint base path (§4).
 	fmt.Fprintf(b, "// New%s constructs a %s bound to base path %q.\n", goName, goName, base)
@@ -1797,7 +1829,7 @@ func emitClientTree(placed []placedResource) (namespacesFile, restFile string) {
 	// per-resource/container constructors (all in package namespaces, so qualified).
 	var r strings.Builder
 	fmt.Fprintf(&r, genHeaderPkg,
-		"The generated REST resource tree (§8): the _GeneratedResourceTree the hand\n// RestClient embeds + its wireGeneratedTree method. Lives in package rest (not\n// namespaces) so the hand RestClient can embed the underscore-unexported tree —\n// Go forbids embedding a cross-package underscore-unexported type. The leading\n// underscore keeps it off the enumerated oracle surface.",
+		"The generated REST resource tree (§8): the _GeneratedResourceTree the hand\n// RestClient embeds + its wireGeneratedTree method. Lives in package rest (not\n// namespaces) so the hand RestClient can embed the underscore-unexported tree —\n// Go forbids embedding a cross-package underscore-unexported type. The leading\n// underscore keeps it off the client's public API surface.",
 		"rest")
 	r.WriteString("\nimport \"github.com/signalwire/signalwire-go/pkg/rest/namespaces\"\n\n")
 
@@ -1813,7 +1845,7 @@ func emitClientTree(placed []placedResource) (namespacesFile, restFile string) {
 
 	r.WriteString("// _GeneratedResourceTree holds every flat REST resource plus the namespace\n")
 	r.WriteString("// containers. The hand RestClient embeds it and calls wireGeneratedTree; the\n")
-	r.WriteString("// leading underscore keeps it off the enumerated oracle surface.\n")
+	r.WriteString("// leading underscore keeps it off the client's public API surface.\n")
 	r.WriteString("type _GeneratedResourceTree struct {\n")
 	// Emit in clientFieldOrder; fail loud if any generated field is not ordered
 	// and any ordered field is missing (keeps the two lists in lockstep).

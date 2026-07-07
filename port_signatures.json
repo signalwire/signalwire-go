@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ d039fa522523e5a8a2ee81aa247c7107d3cba7fd (go/ast walker)",
+  "generated_from": "signalwire-go @ abb11a8394bdb7bfce067b588b8faf8f62232d79 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -11819,15 +11819,6 @@
         },
         "CrudResource": {
           "methods": {
-            "client": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest._base.HttpClient"
-            },
             "create": {
               "params": [
                 {
@@ -12027,15 +12018,6 @@
         },
         "ReadResource": {
           "methods": {
-            "client": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest._base.HttpClient"
-            },
             "get": {
               "params": [
                 {

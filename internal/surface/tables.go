@@ -770,16 +770,18 @@ var StructTable = map[string][]ClassTarget{
 			"NewSignalWireRestError": "__init__",
 		},
 	}},
-	// ADAPTER (base-placement rename): the Go `CrudResource` struct provides all
-	// five CRUD verbs on one base, but the Python reference SPLITS them across two
-	// bases — `ReadResource` carries get/list, `CrudResource(ReadResource)` adds
-	// create/update/delete. To compare on the reference's placement (rename-not-
-	// omission: keep the methods comparing, don't blind-spot them), map the Go
-	// struct's Get/List onto `_base.ReadResource` and Create/Update/Delete onto
-	// `_base.CrudResource`. This closes BOTH the SURFACE-DIFF `CrudResource.get/list`
-	// addition AND the `_base.ReadResource[.get/.list]` missing-port (surface + the
-	// two ReadResource.get/list DRIFT items) in one mapping.
-	"rest.CrudResource": {
+	// ADAPTER (base-placement rename): the Go `namespaces.CrudResource` struct (the
+	// single CRUD base every generated REST resource embeds — pkg/rest/namespaces/
+	// common.go) provides all five CRUD verbs on one base, but the Python reference
+	// SPLITS them across two bases — `ReadResource` carries get/list,
+	// `CrudResource(ReadResource)` adds create/update/delete. To compare on the
+	// reference's placement (rename-not-omission: keep the methods comparing, don't
+	// blind-spot them), map the Go struct's Get/List onto `_base.ReadResource` and
+	// Create/Update/Delete onto `_base.CrudResource`. This closes BOTH the
+	// SURFACE-DIFF `CrudResource.get/list` addition AND the
+	// `_base.ReadResource[.get/.list]` missing-port (surface + the two
+	// ReadResource.get/list DRIFT items) in one mapping.
+	"namespaces.CrudResource": {
 		{
 			Module: "signalwire.rest._base", Class: "ReadResource",
 			Methods: map[string]string{

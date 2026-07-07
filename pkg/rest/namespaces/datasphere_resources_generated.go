@@ -7,7 +7,7 @@
 
 package namespaces
 
-// DatasphereDocuments is generated from x-sdk-resource "DatasphereDocuments" in the datasphere spec.
+// DatasphereDocuments is a client for the "DatasphereDocuments" resource of the SignalWire datasphere API.
 type DatasphereDocuments struct {
 	*CrudResource
 }
@@ -21,7 +21,7 @@ func NewDatasphereDocuments(client HTTPClient) *DatasphereDocuments {
 type DatasphereDocumentsSearchParams struct {
 	QueryString string
 	Tags        []string
-	DocumentId  *docid
+	DocumentId  *Docid
 	Distance    *float64
 	Count       *int
 	Language    *string

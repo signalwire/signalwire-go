@@ -13,7 +13,7 @@ package swaig
 //	fr.Tap("rtp://h:1", "id", "both", "PCMA", 0, "")                          // bare string still compiles
 //
 // Codec is a string subtype, so the value written into the SWML tap params is
-// byte-identical to the bare string the reference uses — parity with Python's
+// byte-identical to the bare string the reference uses — compatibility with Python's
 // tap(codec=...) keyword (a plain str). The enumerator emits the codec param as
 // union<Codec,string>, so signature drift stays 0 against the reference's str
 // (the string member absorbs).

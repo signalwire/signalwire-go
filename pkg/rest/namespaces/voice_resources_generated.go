@@ -7,7 +7,7 @@
 
 package namespaces
 
-// VoiceLogs is generated from x-sdk-resource "VoiceLogs" in the voice spec.
+// VoiceLogs is a client for the "VoiceLogs" resource of the SignalWire voice API.
 type VoiceLogs struct {
 	Resource
 }

@@ -8,7 +8,7 @@ import (
 
 // TestGetSSLContextKwargsPrimitives asserts that the TLS config surfaces the
 // cert/key paths as primitive path strings under the same keys the Python
-// oracle's get_ssl_context_kwargs returns ({ssl_certfile, ssl_keyfile}).
+// reference's get_ssl_context_kwargs returns ({ssl_certfile, ssl_keyfile}).
 func TestGetSSLContextKwargsPrimitives(t *testing.T) {
 	dir := t.TempDir()
 	certPath := filepath.Join(dir, "server.crt")

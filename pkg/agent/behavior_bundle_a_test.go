@@ -150,7 +150,7 @@ func stripQuery(u string) string {
 	return u
 }
 
-// EnableDebugRoutes is a chaining no-op (Python parity); the routes it
+// EnableDebugRoutes is a chaining no-op (matches Python); the routes it
 // documents are registered unconditionally by AsRouter.
 func TestEnableDebugRoutes_RegistersDebugRoute(t *testing.T) {
 	a := NewAgentBase(WithName("t"), WithBasicAuth("u", "p")).EnableDebugRoutes()

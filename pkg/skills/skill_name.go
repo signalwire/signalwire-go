@@ -16,7 +16,7 @@ package skills
 //	    map[string]any{...})
 //
 // SkillName is a string subtype, so its wire/JSON value is identical to the
-// reference's bare `str` parameter — parity with the Python reference (which
+// reference's bare `str` parameter — compatibility with the Python reference (which
 // uses `str`) and with custom skills that aren't built in.
 type SkillName string
 

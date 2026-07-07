@@ -14,7 +14,7 @@ package swaig
 //
 // RecordDirection is a string subtype, so the value written into the SWML
 // record_call params is byte-identical to the bare string the reference uses —
-// parity with Python's record_call(direction=...) keyword (a plain str). The
+// compatibility with Python's record_call(direction=...) keyword (a plain str). The
 // enumerator emits the direction param as union<RecordDirection,string>, so
 // signature drift stays 0 against the reference's str (the string member
 // absorbs).

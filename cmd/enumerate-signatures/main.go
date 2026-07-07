@@ -129,6 +129,30 @@ var paramsStructFields = map[string][]paramsStructField{}
 // fold makes the module path immaterial to the comparison.
 var genTypeModule = map[string]string{}
 
+// scalarAliasLeaf folds an EXPORTED generated scalar-format alias type name back to
+// the reference's lowercase canonical leaf. The REST generator exports every type
+// (uuid→Uuid, docid→Docid, jwt→Jwt, play_url→Play_url) so a public struct field
+// doesn't leak a private type; the Python oracle records these scalar-format aliases
+// under their lowercase names (relay_rest_types_generated.uuid, datasphere…docid,
+// fabric…jwt). Folding the leaf here keeps the class ref parity-identical to the
+// oracle while the Go source stays idiomatic (exported). A name not in this map is
+// returned unchanged.
+var scalarAliasLeaf = map[string]string{
+	"Uuid":     "uuid",
+	"Docid":    "docid",
+	"Jwt":      "jwt",
+	"Play_url": "play_url",
+}
+
+// genLeaf returns the canonical leaf name for a generated type name (folding the
+// exported scalar-format aliases back to their lowercase oracle leaf).
+func genLeaf(t string) string {
+	if leaf, ok := scalarAliasLeaf[t]; ok {
+		return leaf
+	}
+	return t
+}
+
 // ---------------------------------------------------------------------------
 // AST walking — collects signatures, not just names
 // ---------------------------------------------------------------------------
@@ -843,7 +867,7 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	// a lowercase leading rune, so this cannot hijack one; uppercase generated names
 	// are resolved LAST (after StructTable) so a real SDK class of the same name wins.
 	if module, ok := genTypeModule[t]; ok && !(len(t) > 0 && t[0] >= 'A' && t[0] <= 'Z') {
-		return "class:" + module + "." + t, nil
+		return "class:" + module + "." + genLeaf(t), nil
 	}
 	// Generic instantiation: Foo[T,U] → translate Foo, drop type args
 	// (Python reference doesn't carry generic instantiations in signatures)
@@ -887,7 +911,7 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 		// gen-type class ref so a resource method's typed return/param records the
 		// real complex type (→ gen:<Name>), matching the oracle.
 		if module, ok := genTypeModule[t]; ok {
-			return "class:" + module + "." + t, nil
+			return "class:" + module + "." + genLeaf(t), nil
 		}
 		return "class:" + t, nil
 	}

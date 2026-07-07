@@ -7,7 +7,7 @@
 
 package namespaces
 
-// AddressesNamespace is generated from x-sdk-resource "Addresses" in the relay-rest spec.
+// AddressesNamespace is a client for the "Addresses" resource of the SignalWire relay-rest API.
 type AddressesNamespace struct {
 	Resource
 }
@@ -66,7 +66,7 @@ func (r *AddressesNamespace) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
 
-// ImportedNumbersNamespace is generated from x-sdk-resource "ImportedNumbers" in the relay-rest spec.
+// ImportedNumbersNamespace is a client for the "ImportedNumbers" resource of the SignalWire relay-rest API.
 type ImportedNumbersNamespace struct {
 	Resource
 }
@@ -95,7 +95,7 @@ func (r *ImportedNumbersNamespace) Create(params ImportedNumbersNamespaceCreateP
 	return decodeResult[PhoneNumberResponse](r.HTTP.Post(r.Base, body, nil))
 }
 
-// LookupNamespace is generated from x-sdk-resource "Lookup" in the relay-rest spec.
+// LookupNamespace is a client for the "Lookup" resource of the SignalWire relay-rest API.
 type LookupNamespace struct {
 	Resource
 }
@@ -109,7 +109,7 @@ func (r *LookupNamespace) PhoneNumber(e164 string, params map[string]string) (*P
 	return decodeResult[PhoneNumberLookupResponse](r.HTTP.Get(r.Path("phone_number", e164), params))
 }
 
-// MFANamespace is generated from x-sdk-resource "Mfa" in the relay-rest spec.
+// MFANamespace is a client for the "Mfa" resource of the SignalWire relay-rest API.
 type MFANamespace struct {
 	Resource
 }
@@ -206,7 +206,7 @@ func (r *MFANamespace) Verify(requestID string, params MFANamespaceVerifyParams)
 	return decodeResult[MfaVerifyResponse](r.HTTP.Post(r.Path(requestID, "verify"), body, nil))
 }
 
-// NumberGroupsNamespace is generated from x-sdk-resource "NumberGroups" in the relay-rest spec.
+// NumberGroupsNamespace is a client for the "NumberGroups" resource of the SignalWire relay-rest API.
 type NumberGroupsNamespace struct {
 	*CrudResource
 }
@@ -222,7 +222,7 @@ func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[strin
 
 // NumberGroupsNamespaceAddMembershipParams holds the named optional parameters for NumberGroupsNamespace.AddMembership.
 type NumberGroupsNamespaceAddMembershipParams struct {
-	PhoneNumberId uuid
+	PhoneNumberId Uuid
 	Extras        map[string]any
 }
 
@@ -241,7 +241,7 @@ func (r *NumberGroupsNamespace) DeleteMembership(id string) (map[string]any, err
 	return r.HTTP.Delete("/api/relay/rest/number_group_memberships/" + id)
 }
 
-// PhoneNumbersNamespace is generated from x-sdk-resource "PhoneNumbers" in the relay-rest spec.
+// PhoneNumbersNamespace is a client for the "PhoneNumbers" resource of the SignalWire relay-rest API.
 type PhoneNumbersNamespace struct {
 	*CrudResource
 }
@@ -330,7 +330,7 @@ func (r *PhoneNumbersNamespace) SetRelayTopic(sid string, topic string, status_c
 	return r.Update(sid, body)
 }
 
-// QueuesNamespace is generated from x-sdk-resource "Queues" in the relay-rest spec.
+// QueuesNamespace is a client for the "Queues" resource of the SignalWire relay-rest API.
 type QueuesNamespace struct {
 	*CrudResource
 }
@@ -352,7 +352,7 @@ func (r *QueuesNamespace) GetMember(queueID string, id string, params map[string
 	return decodeResult[QueueMemberResponse](r.HTTP.Get(r.Path(queueID, "members", id), params))
 }
 
-// RecordingsNamespace is generated from x-sdk-resource "Recordings" in the relay-rest spec.
+// RecordingsNamespace is a client for the "Recordings" resource of the SignalWire relay-rest API.
 type RecordingsNamespace struct {
 	Resource
 }
@@ -374,7 +374,7 @@ func (r *RecordingsNamespace) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
 
-// RegistryBrands is generated from x-sdk-resource "RegistryBrands" in the relay-rest spec.
+// RegistryBrands is a client for the "RegistryBrands" resource of the SignalWire relay-rest API.
 type RegistryBrands struct {
 	Resource
 }
@@ -404,7 +404,7 @@ func (r *RegistryBrands) CreateCampaign(id string, data map[string]any) (*Campai
 	return decodeResult[CampaignResponse](r.HTTP.Post(r.Path(id, "campaigns"), data, nil))
 }
 
-// RegistryCampaigns is generated from x-sdk-resource "RegistryCampaigns" in the relay-rest spec.
+// RegistryCampaigns is a client for the "RegistryCampaigns" resource of the SignalWire relay-rest API.
 type RegistryCampaigns struct {
 	Resource
 }
@@ -460,7 +460,7 @@ func (r *RegistryCampaigns) CreateOrder(id string, params RegistryCampaignsCreat
 	return decodeResult[OrderResponse](r.HTTP.Post(r.Path(id, "orders"), body, nil))
 }
 
-// RegistryNumbers is generated from x-sdk-resource "RegistryNumbers" in the relay-rest spec.
+// RegistryNumbers is a client for the "RegistryNumbers" resource of the SignalWire relay-rest API.
 type RegistryNumbers struct {
 	Resource
 }
@@ -474,7 +474,7 @@ func (r *RegistryNumbers) Delete(id string) (map[string]any, error) {
 	return r.HTTP.Delete(r.Path(id))
 }
 
-// RegistryOrders is generated from x-sdk-resource "RegistryOrders" in the relay-rest spec.
+// RegistryOrders is a client for the "RegistryOrders" resource of the SignalWire relay-rest API.
 type RegistryOrders struct {
 	Resource
 }
@@ -488,7 +488,7 @@ func (r *RegistryOrders) Get(id string, params map[string]string) (*OrderRespons
 	return decodeResult[OrderResponse](r.HTTP.Get(r.Path(id), params))
 }
 
-// ShortCodesNamespace is generated from x-sdk-resource "ShortCodes" in the relay-rest spec.
+// ShortCodesNamespace is a client for the "ShortCodes" resource of the SignalWire relay-rest API.
 type ShortCodesNamespace struct {
 	Resource
 }
@@ -514,7 +514,7 @@ type ShortCodesNamespaceUpdateParams struct {
 	MessageRequestMethod     *HttpMethod
 	MessageFallbackUrl       *string
 	MessageFallbackMethod    *HttpMethod
-	MessageLamlApplicationId *uuid
+	MessageLamlApplicationId *Uuid
 	MessageRelayContext      *string
 	Extras                   map[string]any
 }
@@ -545,7 +545,7 @@ func (r *ShortCodesNamespace) Update(id string, params ShortCodesNamespaceUpdate
 	return decodeResult[ShortCodeResponse](r.HTTP.Put(r.Path(id), body))
 }
 
-// SIPProfileNamespace is generated from x-sdk-resource "SipProfile" in the relay-rest spec.
+// SIPProfileNamespace is a client for the "SipProfile" resource of the SignalWire relay-rest API.
 type SIPProfileNamespace struct {
 	Resource
 }
@@ -590,7 +590,7 @@ func (r *SIPProfileNamespace) Update(params SIPProfileNamespaceUpdateParams) (*S
 	return decodeResult[SipProfileResponse](r.HTTP.Put(r.Base, body))
 }
 
-// VerifiedCallersNamespace is generated from x-sdk-resource "VerifiedCallers" in the relay-rest spec.
+// VerifiedCallersNamespace is a client for the "VerifiedCallers" resource of the SignalWire relay-rest API.
 type VerifiedCallersNamespace struct {
 	*CrudResource
 }

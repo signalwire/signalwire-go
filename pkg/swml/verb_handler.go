@@ -72,7 +72,7 @@ func (s *Service) HasVerbHandler(verbName string) bool {
 }
 
 // VerbHandlerNames returns the sorted names of the registered verb handlers —
-// the parity accessor for Python's sorted(VerbHandlerRegistry._handlers.keys()).
+// the compatibility accessor for Python's sorted(VerbHandlerRegistry._handlers.keys()).
 func (s *Service) VerbHandlerNames() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

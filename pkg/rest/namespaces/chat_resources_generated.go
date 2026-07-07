@@ -7,7 +7,7 @@
 
 package namespaces
 
-// ChatNamespace is generated from x-sdk-resource "Chat" in the chat spec.
+// ChatNamespace is a client for the "Chat" resource of the SignalWire chat API.
 type ChatNamespace struct {
 	Resource
 }

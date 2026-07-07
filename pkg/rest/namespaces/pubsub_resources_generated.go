@@ -7,7 +7,7 @@
 
 package namespaces
 
-// PubSubNamespace is generated from x-sdk-resource "PubSub" in the pubsub spec.
+// PubSubNamespace is a client for the "PubSub" resource of the SignalWire pubsub API.
 type PubSubNamespace struct {
 	Resource
 }

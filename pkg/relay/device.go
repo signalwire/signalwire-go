@@ -6,7 +6,7 @@ import "encoding/json"
 // across connect / refer / dial / tap. It types the SHAPE only — the
 // discriminant `type` stays a string because the set of device types is NOT
 // schema-enumerated (the wire schema declares `type` as a free string;
-// grounding: porting-sdk/relay-protocol/calling.{connect,dial,refer,tap}.
+// grounding: the RELAY protocol schemas for calling.{connect,dial,refer,tap}.
 // params.json, where each device is {required:["type"], properties:{type:
 // {type:string}, params:{}}}).
 //

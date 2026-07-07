@@ -491,7 +491,7 @@ func NewDialEvent(params map[string]any) *DialEvent {
 }
 
 // DialStateTyped returns the dial outcome as a typed DialState ALONGSIDE the
-// bare-string DialState field (kept for parity with the Python reference). The
+// bare-string DialState field (kept for compatibility with the Python reference). The
 // typed kind gives callers IsTerminal()/IsKnown() predicates and compile-time
 // distinctness from CallState/MessageState; its underlying string equals the
 // DialState field exactly. Additive port idiom — see states.go and

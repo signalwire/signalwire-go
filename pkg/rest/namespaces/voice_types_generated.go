@@ -16,7 +16,7 @@
 package namespaces
 
 type DialogflowVoiceLog struct {
-	Id            uuid           `json:"id,omitempty"`
+	Id            Uuid           `json:"id,omitempty"`
 	From          string         `json:"from,omitempty"`
 	To            string         `json:"to,omitempty"`
 	Source        VoiceSources   `json:"source,omitempty"`
@@ -30,13 +30,13 @@ type DialogflowVoiceLog struct {
 }
 
 type DiscardedVoiceLog struct {
-	Id          uuid   `json:"id,omitempty"`
+	Id          Uuid   `json:"id,omitempty"`
 	DiscardedAt string `json:"discarded_at,omitempty"`
 	CreatedAt   string `json:"created_at,omitempty"`
 }
 
 type FabricVoiceLog struct {
-	Id            uuid           `json:"id,omitempty"`
+	Id            Uuid           `json:"id,omitempty"`
 	From          string         `json:"from,omitempty"`
 	To            string         `json:"to,omitempty"`
 	Source        VoiceSources   `json:"source,omitempty"`
@@ -54,8 +54,8 @@ type LogEvent struct {
 	Level     string         `json:"level,omitempty"`
 	Name      string         `json:"name,omitempty"`
 	Details   map[string]any `json:"details,omitempty"`
-	ProjectId uuid           `json:"project_id,omitempty"`
-	LogId     uuid           `json:"log_id,omitempty"`
+	ProjectId Uuid           `json:"project_id,omitempty"`
+	LogId     Uuid           `json:"log_id,omitempty"`
 }
 
 type LogEventsListResponse struct {
@@ -63,7 +63,7 @@ type LogEventsListResponse struct {
 }
 
 type RelayVoiceLog struct {
-	Id            uuid           `json:"id,omitempty"`
+	Id            Uuid           `json:"id,omitempty"`
 	From          string         `json:"from,omitempty"`
 	To            string         `json:"to,omitempty"`
 	Source        VoiceSources   `json:"source,omitempty"`
@@ -90,7 +90,7 @@ const (
 )
 
 type VideoRoomVoiceLog struct {
-	Id            uuid               `json:"id,omitempty"`
+	Id            Uuid               `json:"id,omitempty"`
 	From          string             `json:"from,omitempty"`
 	To            string             `json:"to,omitempty"`
 	Source        VoiceSources       `json:"source,omitempty"`

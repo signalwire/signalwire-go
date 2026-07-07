@@ -7,7 +7,7 @@
 
 package namespaces
 
-// VideoConferenceTokens is generated from x-sdk-resource "VideoConferenceTokens" in the video spec.
+// VideoConferenceTokens is a client for the "VideoConferenceTokens" resource of the SignalWire video API.
 type VideoConferenceTokens struct {
 	Resource
 }
@@ -25,7 +25,7 @@ func (r *VideoConferenceTokens) Reset(id string) (*ConferenceToken, error) {
 	return decodeResult[ConferenceToken](r.HTTP.Post(r.Path(id, "reset"), nil, nil))
 }
 
-// VideoConferences is generated from x-sdk-resource "VideoConferences" in the video spec.
+// VideoConferences is a client for the "VideoConferences" resource of the SignalWire video API.
 type VideoConferences struct {
 	*CrudResource
 }
@@ -56,7 +56,7 @@ func (r *VideoConferences) CreateStream(id string, params VideoConferencesCreate
 	return decodeResult[Stream](r.HTTP.Post(r.Path(id, "streams"), body, nil))
 }
 
-// VideoRoomRecordings is generated from x-sdk-resource "VideoRoomRecordings" in the video spec.
+// VideoRoomRecordings is a client for the "VideoRoomRecordings" resource of the SignalWire video API.
 type VideoRoomRecordings struct {
 	Resource
 }
@@ -82,7 +82,7 @@ func (r *VideoRoomRecordings) ListEvents(id string, params map[string]string) (*
 	return decodeResult[ListRoomRecordingEventsResponse](r.HTTP.Get(r.Path(id, "events"), params))
 }
 
-// VideoRoomSessions is generated from x-sdk-resource "VideoRoomSessions" in the video spec.
+// VideoRoomSessions is a client for the "VideoRoomSessions" resource of the SignalWire video API.
 type VideoRoomSessions struct {
 	Resource
 }
@@ -112,7 +112,7 @@ func (r *VideoRoomSessions) ListRecordings(id string, params map[string]string) 
 	return decodeResult[ListRoomSessionRecordingsResponse](r.HTTP.Get(r.Path(id, "recordings"), params))
 }
 
-// VideoRoomTokens is generated from x-sdk-resource "VideoRoomTokens" in the video spec.
+// VideoRoomTokens is a client for the "VideoRoomTokens" resource of the SignalWire video API.
 type VideoRoomTokens struct {
 	Resource
 }
@@ -203,7 +203,7 @@ func (r *VideoRoomTokens) Create(params VideoRoomTokensCreateParams) (*RoomToken
 	return decodeResult[RoomTokenResponse](r.HTTP.Post(r.Base, body, nil))
 }
 
-// VideoRooms is generated from x-sdk-resource "VideoRooms" in the video spec.
+// VideoRooms is a client for the "VideoRooms" resource of the SignalWire video API.
 type VideoRooms struct {
 	*CrudResource
 }
@@ -230,7 +230,7 @@ func (r *VideoRooms) CreateStream(id string, params VideoRoomsCreateStreamParams
 	return decodeResult[Stream](r.HTTP.Post(r.Path(id, "streams"), body, nil))
 }
 
-// VideoStreams is generated from x-sdk-resource "VideoStreams" in the video spec.
+// VideoStreams is a client for the "VideoStreams" resource of the SignalWire video API.
 type VideoStreams struct {
 	Resource
 }

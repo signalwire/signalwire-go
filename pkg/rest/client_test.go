@@ -283,34 +283,6 @@ func TestSignalWireRestError_ImplementsError(t *testing.T) {
 	}
 }
 
-func TestCrudResource_PathConstruction(t *testing.T) {
-	// Use the top-level CrudResource from client.go
-	r := NewCrudResource(nil, "/api/test/resources")
-	if r.Path != "/api/test/resources" {
-		t.Errorf("Path = %q, want %q", r.Path, "/api/test/resources")
-	}
-
-	sub := r.subPath("abc-123")
-	expected := "/api/test/resources/abc-123"
-	if sub != expected {
-		t.Errorf("subPath = %q, want %q", sub, expected)
-	}
-}
-
-func TestCrudResource_DefaultUpdateMethod(t *testing.T) {
-	r := NewCrudResource(nil, "/api/test")
-	if r.UpdateMethod != "PATCH" {
-		t.Errorf("UpdateMethod = %q, want %q", r.UpdateMethod, "PATCH")
-	}
-}
-
-func TestCrudResourcePUT_UpdateMethod(t *testing.T) {
-	r := NewCrudResourcePUT(nil, "/api/test")
-	if r.UpdateMethod != "PUT" {
-		t.Errorf("UpdateMethod = %q, want %q", r.UpdateMethod, "PUT")
-	}
-}
-
 func TestHttpClient_URLConstruction(t *testing.T) {
 	c := NewHTTPClient("proj-id", "token", "my-space.signalwire.com")
 	expected := "https://my-space.signalwire.com"

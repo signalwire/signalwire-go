@@ -62,7 +62,7 @@ var genTypeSurface []genType
 // an x-sdk-enum-derived public enum type (cmd/generate-rest/types.go sdkEnumMarker).
 // Its presence marks an enum type as surfaced public API (a surface class), while
 // inline schema-enum defined-string types carry no marker and stay referenced-only.
-const sdkEnumSurfaceMarker = "sdk-enum (x-sdk-enum): surfaced public enum type."
+const sdkEnumSurfaceMarker = "sdk-enum: surfaced public enum type."
 
 // scanMarkedEnumTypes parses a hand-written namespaces file and returns each
 // exported type whose doc comment carries the sdkEnumSurfaceMarker together with

@@ -68,7 +68,7 @@ func (c *Call) State() string {
 }
 
 // CallState returns the current call state as a typed CallState ALONGSIDE the
-// bare-string State() accessor (kept for parity with the Python reference).
+// bare-string State() accessor (kept for compatibility with the Python reference).
 // The typed kind gives callers IsTerminal()/IsKnown() predicates and
 // compile-time distinctness from DialState/MessageState; its underlying string
 // equals State() exactly. Additive port idiom — see states.go and
@@ -1217,7 +1217,7 @@ func (c *Call) aiDispatch(method string, opts ...AIOption) *AIAction {
 
 // AmazonBedrock starts an AI session using Amazon Bedrock. It dispatches the
 // dedicated "calling.amazon_bedrock" RELAY method (NOT calling.ai with an
-// engine key — that was a wire-parity bug; Python's amazon_bedrock() calls
+// engine key — that was a wire-fidelity bug; Python's amazon_bedrock() calls
 // _execute("amazon_bedrock", params) with no engine field, call.py).
 func (c *Call) AmazonBedrock(opts ...AIOption) *AIAction {
 	return c.aiDispatch("calling.amazon_bedrock", opts...)

@@ -112,7 +112,7 @@ func newNonce() string {
 // CreateToken generates an HMAC-SHA256 signed token for the given function
 // name and call ID. The token embeds an expiry timestamp and a per-mint nonce
 // and is returned as a base64url-encoded string. The DECODED token is the
-// 5-field dot-joined form matching the Python oracle:
+// 5-field dot-joined form matching the Python reference:
 // {call_id}.{function_name}.{expiry}.{nonce}.{signature}, where the signed
 // message is {call_id}:{function_name}:{expiry}:{nonce}.
 func (sm *SessionManager) CreateToken(functionName string, callID string) string {

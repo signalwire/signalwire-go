@@ -16,7 +16,7 @@
 package namespaces
 
 type FaxLog struct {
-	Id            uuid           `json:"id,omitempty"`
+	Id            Uuid           `json:"id,omitempty"`
 	From          any            `json:"from,omitempty"`
 	To            any            `json:"to,omitempty"`
 	Status        string         `json:"status,omitempty"`
@@ -43,7 +43,7 @@ type FaxLogsListStatusCode422 struct {
 }
 
 type LogResponse struct {
-	Id            uuid           `json:"id,omitempty"`
+	Id            Uuid           `json:"id,omitempty"`
 	From          any            `json:"from,omitempty"`
 	To            any            `json:"to,omitempty"`
 	Status        string         `json:"status,omitempty"`

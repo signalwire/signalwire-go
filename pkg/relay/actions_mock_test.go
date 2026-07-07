@@ -1014,7 +1014,7 @@ func TestRelay_ConcurrentPlayAndRecordRouteIndependently(t *testing.T) {
 	}
 }
 
-// TestRelay_BindDigitEmitsBindMethodWireKey is a wire-parity regression test:
+// TestRelay_BindDigitEmitsBindMethodWireKey is a wire-fidelity regression test:
 // Python's bind_digit writes the RELAY param under the key "bind_method"
 // (call.py: params["bind_method"] = bind_method). A prior Go bug emitted
 // "method" instead, which the server would not recognize.
@@ -1039,7 +1039,7 @@ func TestRelay_BindDigitEmitsBindMethodWireKey(t *testing.T) {
 	}
 }
 
-// TestRelay_AmazonBedrockDispatchesOwnMethod is a wire-parity regression test:
+// TestRelay_AmazonBedrockDispatchesOwnMethod is a wire-fidelity regression test:
 // Python's amazon_bedrock() calls _execute("amazon_bedrock", params) — the
 // dedicated RELAY method — with NO "engine" field. A prior Go bug routed it to
 // calling.ai with params["engine"]="amazon_bedrock".
@@ -1068,7 +1068,7 @@ func TestRelay_AmazonBedrockDispatchesOwnMethod(t *testing.T) {
 	}
 }
 
-// TestRelay_AIParamsNestedUnderParamsKey is a wire-parity regression test:
+// TestRelay_AIParamsNestedUnderParamsKey is a wire-fidelity regression test:
 // Python's ai(ai_params=...) writes the map nested under the "params" wire key
 // (call.py: params["params"] = ai_params), NOT spread onto the top level.
 func TestRelay_AIParamsNestedUnderParamsKey(t *testing.T) {

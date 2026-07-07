@@ -7,7 +7,7 @@
 
 package namespaces
 
-// FabricAddresses is generated from x-sdk-resource "FabricAddresses" in the fabric spec.
+// FabricAddresses is a client for the "FabricAddresses" resource of the SignalWire fabric API.
 type FabricAddresses struct {
 	Resource
 }
@@ -25,7 +25,7 @@ func (r *FabricAddresses) Get(id string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id), nil)
 }
 
-// GenericResources is generated from x-sdk-resource "GenericResources" in the fabric spec.
+// GenericResources is a client for the "GenericResources" resource of the SignalWire fabric API.
 type GenericResources struct {
 	Resource
 }
@@ -53,7 +53,7 @@ func (r *GenericResources) ListAddresses(id string, params map[string]string) (*
 
 // GenericResourcesAssignPhoneRouteParams holds the named optional parameters for GenericResources.AssignPhoneRoute.
 type GenericResourcesAssignPhoneRouteParams struct {
-	PhoneRouteId uuid
+	PhoneRouteId Uuid
 	Handler      UsedForType
 	Extras       map[string]any
 }
@@ -68,7 +68,7 @@ func (r *GenericResources) AssignPhoneRoute(id string, params GenericResourcesAs
 
 // GenericResourcesAssignDomainApplicationParams holds the named optional parameters for GenericResources.AssignDomainApplication.
 type GenericResourcesAssignDomainApplicationParams struct {
-	DomainApplicationId uuid
+	DomainApplicationId Uuid
 	Extras              map[string]any
 }
 
@@ -79,7 +79,7 @@ func (r *GenericResources) AssignDomainApplication(id string, params GenericReso
 	return decodeResult[DomainApplicationResponse](r.HTTP.Post(r.Path(id, "domain_applications"), body, nil))
 }
 
-// AIAgents is generated from x-sdk-resource "AiAgents" in the fabric spec.
+// AIAgents is a client for the "AiAgents" resource of the SignalWire fabric API.
 type AIAgents struct {
 	*CrudWithAddresses
 }
@@ -89,14 +89,14 @@ func NewAIAgents(client HTTPClient) *AIAgents {
 	return &AIAgents{NewCrudWithAddresses(client, "/api/fabric/resources/ai_agents")}
 }
 
-// CallFlowsResource is generated from x-sdk-resource "CallFlows" in the fabric spec.
+// CallFlowsResource is a client for the "CallFlows" resource of the SignalWire fabric API.
 type CallFlowsResource struct {
-	*CrudWithAddresses
+	*CrudResource
 }
 
 // NewCallFlowsResource constructs a CallFlowsResource bound to base path "/api/fabric/resources/call_flows".
 func NewCallFlowsResource(client HTTPClient) *CallFlowsResource {
-	return &CallFlowsResource{NewCrudWithAddressesPUT(client, "/api/fabric/resources/call_flows")}
+	return &CallFlowsResource{NewCrudResourcePUT(client, "/api/fabric/resources/call_flows")}
 }
 
 func (r *CallFlowsResource) ListAddresses(id string, params map[string]string) (*CallFlowAddressListResponse, error) {
@@ -111,21 +111,21 @@ func (r *CallFlowsResource) DeployVersion(id string, data map[string]any) (*Call
 	return decodeResult[CallFlowVersionDeployResponse](r.HTTP.Post("/api/fabric/resources/call_flow/"+id+"/versions", data, nil))
 }
 
-// ConferenceRoomsResource is generated from x-sdk-resource "ConferenceRooms" in the fabric spec.
+// ConferenceRoomsResource is a client for the "ConferenceRooms" resource of the SignalWire fabric API.
 type ConferenceRoomsResource struct {
-	*CrudWithAddresses
+	*CrudResource
 }
 
 // NewConferenceRoomsResource constructs a ConferenceRoomsResource bound to base path "/api/fabric/resources/conference_rooms".
 func NewConferenceRoomsResource(client HTTPClient) *ConferenceRoomsResource {
-	return &ConferenceRoomsResource{NewCrudWithAddressesPUT(client, "/api/fabric/resources/conference_rooms")}
+	return &ConferenceRoomsResource{NewCrudResourcePUT(client, "/api/fabric/resources/conference_rooms")}
 }
 
 func (r *ConferenceRoomsResource) ListAddresses(id string, params map[string]string) (*ConferenceRoomAddressListResponse, error) {
 	return decodeResult[ConferenceRoomAddressListResponse](r.HTTP.Get("/api/fabric/resources/conference_room/"+id+"/addresses", params))
 }
 
-// CxmlApplicationsResource is generated from x-sdk-resource "CxmlApplications" in the fabric spec.
+// CxmlApplicationsResource is a client for the "CxmlApplications" resource of the SignalWire fabric API.
 type CxmlApplicationsResource struct {
 	Resource
 }
@@ -146,7 +146,7 @@ func (r *CxmlApplicationsResource) Get(id string, params map[string]string) (*Cx
 // CxmlApplicationsResourceUpdateParams holds the named optional parameters for CxmlApplicationsResource.Update.
 type CxmlApplicationsResourceUpdateParams struct {
 	DisplayName             *string
-	AccountSid              *uuid
+	AccountSid              *Uuid
 	VoiceUrl                *string
 	VoiceMethod             any
 	VoiceFallbackUrl        *string
@@ -218,7 +218,7 @@ func (r *CxmlApplicationsResource) ListAddresses(id string, params map[string]st
 	return decodeResult[CxmlApplicationAddressListResponse](r.HTTP.Get(r.Path(id, "addresses"), params))
 }
 
-// CXMLScripts is generated from x-sdk-resource "CxmlScripts" in the fabric spec.
+// CXMLScripts is a client for the "CxmlScripts" resource of the SignalWire fabric API.
 type CXMLScripts struct {
 	*CrudWithAddresses
 }
@@ -228,7 +228,7 @@ func NewCXMLScripts(client HTTPClient) *CXMLScripts {
 	return &CXMLScripts{NewCrudWithAddressesPUT(client, "/api/fabric/resources/cxml_scripts")}
 }
 
-// CXMLWebhooks is generated from x-sdk-resource "CxmlWebhooks" in the fabric spec.
+// CXMLWebhooks is a client for the "CxmlWebhooks" resource of the SignalWire fabric API.
 type CXMLWebhooks struct {
 	*CrudWithAddresses
 }
@@ -238,7 +238,7 @@ func NewCXMLWebhooks(client HTTPClient) *CXMLWebhooks {
 	return &CXMLWebhooks{NewCrudWithAddresses(client, "/api/fabric/resources/cxml_webhooks")}
 }
 
-// FreeSwitchConnectors is generated from x-sdk-resource "FreeswitchConnectors" in the fabric spec.
+// FreeSwitchConnectors is a client for the "FreeswitchConnectors" resource of the SignalWire fabric API.
 type FreeSwitchConnectors struct {
 	*CrudWithAddresses
 }
@@ -248,7 +248,7 @@ func NewFreeSwitchConnectors(client HTTPClient) *FreeSwitchConnectors {
 	return &FreeSwitchConnectors{NewCrudWithAddressesPUT(client, "/api/fabric/resources/freeswitch_connectors")}
 }
 
-// RelayApplications is generated from x-sdk-resource "RelayApplications" in the fabric spec.
+// RelayApplications is a client for the "RelayApplications" resource of the SignalWire fabric API.
 type RelayApplications struct {
 	*CrudWithAddresses
 }
@@ -258,7 +258,7 @@ func NewRelayApplications(client HTTPClient) *RelayApplications {
 	return &RelayApplications{NewCrudWithAddressesPUT(client, "/api/fabric/resources/relay_applications")}
 }
 
-// SIPEndpoints is generated from x-sdk-resource "SipEndpoints" in the fabric spec.
+// SIPEndpoints is a client for the "SipEndpoints" resource of the SignalWire fabric API.
 type SIPEndpoints struct {
 	*CrudWithAddresses
 }
@@ -268,7 +268,7 @@ func NewSIPEndpoints(client HTTPClient) *SIPEndpoints {
 	return &SIPEndpoints{NewCrudWithAddressesPUT(client, "/api/fabric/resources/sip_endpoints")}
 }
 
-// SIPGateways is generated from x-sdk-resource "SipGateways" in the fabric spec.
+// SIPGateways is a client for the "SipGateways" resource of the SignalWire fabric API.
 type SIPGateways struct {
 	*CrudWithAddresses
 }
@@ -278,7 +278,7 @@ func NewSIPGateways(client HTTPClient) *SIPGateways {
 	return &SIPGateways{NewCrudWithAddresses(client, "/api/fabric/resources/sip_gateways")}
 }
 
-// SubscribersResource is generated from x-sdk-resource "Subscribers" in the fabric spec.
+// SubscribersResource is a client for the "Subscribers" resource of the SignalWire fabric API.
 type SubscribersResource struct {
 	*CrudWithAddresses
 }
@@ -374,7 +374,7 @@ func (r *SubscribersResource) DeleteSIPEndpoint(subscriberID string, id string) 
 	return r.HTTP.Delete(r.Path(subscriberID, "sip_endpoints", id))
 }
 
-// SWMLScripts is generated from x-sdk-resource "SwmlScripts" in the fabric spec.
+// SWMLScripts is a client for the "SwmlScripts" resource of the SignalWire fabric API.
 type SWMLScripts struct {
 	*CrudWithAddresses
 }
@@ -384,7 +384,7 @@ func NewSWMLScripts(client HTTPClient) *SWMLScripts {
 	return &SWMLScripts{NewCrudWithAddressesPUT(client, "/api/fabric/resources/swml_scripts")}
 }
 
-// SWMLWebhooks is generated from x-sdk-resource "SwmlWebhooks" in the fabric spec.
+// SWMLWebhooks is a client for the "SwmlWebhooks" resource of the SignalWire fabric API.
 type SWMLWebhooks struct {
 	*CrudWithAddresses
 }
@@ -394,7 +394,7 @@ func NewSWMLWebhooks(client HTTPClient) *SWMLWebhooks {
 	return &SWMLWebhooks{NewCrudWithAddresses(client, "/api/fabric/resources/swml_webhooks")}
 }
 
-// FabricTokens is generated from x-sdk-resource "FabricTokens" in the fabric spec.
+// FabricTokens is a client for the "FabricTokens" resource of the SignalWire fabric API.
 type FabricTokens struct {
 	Resource
 }
@@ -408,7 +408,7 @@ func NewFabricTokens(client HTTPClient) *FabricTokens {
 type FabricTokensCreateSubscriberTokenParams struct {
 	Reference     string
 	ExpireAt      *int
-	ApplicationId *uuid
+	ApplicationId *Uuid
 	Password      *string
 	FirstName     *string
 	LastName      *string
@@ -463,7 +463,7 @@ func (r *FabricTokens) CreateSubscriberToken(params FabricTokensCreateSubscriber
 
 // FabricTokensRefreshSubscriberTokenParams holds the named optional parameters for FabricTokens.RefreshSubscriberToken.
 type FabricTokensRefreshSubscriberTokenParams struct {
-	RefreshToken jwt
+	RefreshToken Jwt
 	Extras       map[string]any
 }
 
@@ -476,7 +476,7 @@ func (r *FabricTokens) RefreshSubscriberToken(params FabricTokensRefreshSubscrib
 
 // FabricTokensCreateInviteTokenParams holds the named optional parameters for FabricTokens.CreateInviteToken.
 type FabricTokensCreateInviteTokenParams struct {
-	AddressId uuid
+	AddressId Uuid
 	ExpiresAt *int
 	Extras    map[string]any
 }
@@ -493,7 +493,7 @@ func (r *FabricTokens) CreateInviteToken(params FabricTokensCreateInviteTokenPar
 
 // FabricTokensCreateGuestTokenParams holds the named optional parameters for FabricTokens.CreateGuestToken.
 type FabricTokensCreateGuestTokenParams struct {
-	AllowedAddresses []uuid
+	AllowedAddresses []Uuid
 	ExpireAt         *int
 	Extras           map[string]any
 }

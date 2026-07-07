@@ -17,7 +17,7 @@ package namespaces
 
 type Chunk struct {
 	Text       string `json:"text,omitempty"`
-	DocumentId docid  `json:"document_id,omitempty"`
+	DocumentId Docid  `json:"document_id,omitempty"`
 }
 
 type ChunkListResponse struct {
@@ -33,9 +33,9 @@ type ChunkPaginationResponse struct {
 }
 
 type ChunkResponse struct {
-	Id                   uuid        `json:"id,omitempty"`
-	DatasphereDocumentId uuid        `json:"datasphere_document_id,omitempty"`
-	ProjectId            uuid        `json:"project_id,omitempty"`
+	Id                   Uuid        `json:"id,omitempty"`
+	DatasphereDocumentId Uuid        `json:"datasphere_document_id,omitempty"`
+	ProjectId            Uuid        `json:"project_id,omitempty"`
 	Status               ChunkStatus `json:"status,omitempty"`
 	Tags                 []string    `json:"tags,omitempty"`
 	Content              string      `json:"content,omitempty"`
@@ -66,7 +66,7 @@ type CreateStatusCode422 struct {
 }
 
 type Document struct {
-	Id                   docid            `json:"id,omitempty"`
+	Id                   Docid            `json:"id,omitempty"`
 	Filename             string           `json:"filename,omitempty"`
 	Status               DocumentStatus   `json:"status,omitempty"`
 	Tags                 []string         `json:"tags,omitempty"`
@@ -103,7 +103,7 @@ type DocumentListResponse struct {
 
 type DocumentSearchRequest struct {
 	Tags        []string `json:"tags,omitempty"`
-	DocumentId  *docid   `json:"document_id,omitempty"`
+	DocumentId  *Docid   `json:"document_id,omitempty"`
 	QueryString string   `json:"query_string,omitempty"`
 	Distance    *float64 `json:"distance,omitempty"`
 	Count       *int     `json:"count,omitempty"`
@@ -148,4 +148,4 @@ type UpdateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type docid string
+type Docid string

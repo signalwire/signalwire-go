@@ -345,7 +345,7 @@ type RecordCallOptions struct {
 //
 // format is the defined string type RecordFormat: the Format* constants give
 // autocomplete + a compile-time typo check, while Go's untyped-constant
-// auto-conversion keeps a bare "wav" literal compiling — parity with the Python
+// auto-conversion keeps a bare "wav" literal compiling — compatibility with the Python
 // reference's str format. It is written to the wire as a plain string.
 //
 // direction is the defined string type RecordDirection ({speak, listen, both} —

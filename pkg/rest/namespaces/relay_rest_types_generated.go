@@ -16,11 +16,11 @@
 package namespaces
 
 type AddNumberGroupMembershipRequest struct {
-	PhoneNumberId uuid `json:"phone_number_id,omitempty"`
+	PhoneNumberId Uuid `json:"phone_number_id,omitempty"`
 }
 
 type Address struct {
-	Id            uuid   `json:"id,omitempty"`
+	Id            Uuid   `json:"id,omitempty"`
 	Label         string `json:"label,omitempty"`
 	Country       string `json:"country,omitempty"`
 	FirstName     string `json:"first_name,omitempty"`
@@ -41,7 +41,7 @@ type AddressListResponse struct {
 }
 
 type AddressResponse struct {
-	Id            uuid   `json:"id,omitempty"`
+	Id            Uuid   `json:"id,omitempty"`
 	Label         string `json:"label,omitempty"`
 	Country       string `json:"country,omitempty"`
 	FirstName     string `json:"first_name,omitempty"`
@@ -72,9 +72,9 @@ const (
 )
 
 type AssignedNumber struct {
-	Id          uuid                 `json:"id,omitempty"`
+	Id          Uuid                 `json:"id,omitempty"`
 	State       *string              `json:"state,omitempty"`
-	CampaignId  *uuid                `json:"campaign_id,omitempty"`
+	CampaignId  *Uuid                `json:"campaign_id,omitempty"`
 	PhoneNumber *AssignedPhoneNumber `json:"phone_number,omitempty"`
 	CreatedAt   *string              `json:"created_at,omitempty"`
 	UpdatedAt   *string              `json:"updated_at,omitempty"`
@@ -86,7 +86,7 @@ type AssignedNumberListResponse struct {
 }
 
 type AssignedPhoneNumber struct {
-	Id                *uuid   `json:"id,omitempty"`
+	Id                *Uuid   `json:"id,omitempty"`
 	Name              *string `json:"name,omitempty"`
 	Number            *string `json:"number,omitempty"`
 	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
@@ -107,7 +107,7 @@ type AvailablePhoneNumbersResponse struct {
 }
 
 type Brand struct {
-	Id                uuid    `json:"id,omitempty"`
+	Id                Uuid    `json:"id,omitempty"`
 	State             *string `json:"state,omitempty"`
 	Name              *string `json:"name,omitempty"`
 	CompanyName       *string `json:"company_name,omitempty"`
@@ -132,7 +132,7 @@ type BrandListResponse struct {
 }
 
 type BrandResponse struct {
-	Id                uuid    `json:"id,omitempty"`
+	Id                Uuid    `json:"id,omitempty"`
 	State             *string `json:"state,omitempty"`
 	Name              *string `json:"name,omitempty"`
 	CompanyName       *string `json:"company_name,omitempty"`
@@ -159,7 +159,7 @@ const (
 )
 
 type Campaign struct {
-	Id                       uuid     `json:"id,omitempty"`
+	Id                       Uuid     `json:"id,omitempty"`
 	Name                     *string  `json:"name,omitempty"`
 	State                    *string  `json:"state,omitempty"`
 	SmsUseCase               *string  `json:"sms_use_case,omitempty"`
@@ -198,7 +198,7 @@ type CampaignListResponse struct {
 }
 
 type CampaignResponse struct {
-	Id                       uuid     `json:"id,omitempty"`
+	Id                       Uuid     `json:"id,omitempty"`
 	Name                     *string  `json:"name,omitempty"`
 	State                    *string  `json:"state,omitempty"`
 	SmsUseCase               *string  `json:"sms_use_case,omitempty"`
@@ -316,11 +316,11 @@ type CreateDomainApplicationRequest struct {
 	CallStatusCallbackUrl             *string                      `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          *string                      `json:"call_status_callback_method,omitempty"`
 	CallLamlApplicationId             *string                      `json:"call_laml_application_id,omitempty"`
-	CallVideoRoomId                   *uuid                        `json:"call_video_room_id,omitempty"`
+	CallVideoRoomId                   *Uuid                        `json:"call_video_room_id,omitempty"`
 	CallRelayScriptUrl                *string                      `json:"call_relay_script_url,omitempty"`
-	CallDialogflowAgentId             *uuid                        `json:"call_dialogflow_agent_id,omitempty"`
-	CallAiAgentId                     *uuid                        `json:"call_ai_agent_id,omitempty"`
-	CallFlowId                        *uuid                        `json:"call_flow_id,omitempty"`
+	CallDialogflowAgentId             *Uuid                        `json:"call_dialogflow_agent_id,omitempty"`
+	CallAiAgentId                     *Uuid                        `json:"call_ai_agent_id,omitempty"`
+	CallFlowId                        *Uuid                        `json:"call_flow_id,omitempty"`
 	CallFlowVersion                   *string                      `json:"call_flow_version,omitempty"`
 	CallRelayContext                  *string                      `json:"call_relay_context,omitempty"`
 	CallRelayContextStatusCallbackUrl *string                      `json:"call_relay_context_status_callback_url,omitempty"`
@@ -342,7 +342,7 @@ type CreateManagedBrandRequest struct {
 
 type CreateManagedCampaignRequest struct {
 	Name                     string   `json:"name,omitempty"`
-	BrandId                  uuid     `json:"brand_id,omitempty"`
+	BrandId                  Uuid     `json:"brand_id,omitempty"`
 	SmsUseCase               string   `json:"sms_use_case,omitempty"`
 	SubUseCases              []string `json:"sub_use_cases,omitempty"`
 	CampaignVerifyToken      *string  `json:"campaign_verify_token,omitempty"`
@@ -383,7 +383,7 @@ type CreateOrderRequest struct {
 
 type CreatePartnerCampaignRequest struct {
 	Name                 string  `json:"name,omitempty"`
-	BrandId              uuid    `json:"brand_id,omitempty"`
+	BrandId              Uuid    `json:"brand_id,omitempty"`
 	CspCampaignReference string  `json:"csp_campaign_reference,omitempty"`
 	StatusCallbackUrl    *string `json:"status_callback_url,omitempty"`
 }
@@ -463,7 +463,7 @@ const (
 )
 
 type DomainApplication struct {
-	Id                                uuid     `json:"id,omitempty"`
+	Id                                Uuid     `json:"id,omitempty"`
 	Type_                             string   `json:"type,omitempty"`
 	Domain                            string   `json:"domain,omitempty"`
 	Name                              any      `json:"name,omitempty"`
@@ -497,7 +497,7 @@ type DomainApplicationListResponse struct {
 }
 
 type DomainApplicationResponse struct {
-	Id                                uuid     `json:"id,omitempty"`
+	Id                                Uuid     `json:"id,omitempty"`
 	Type_                             string   `json:"type,omitempty"`
 	Domain                            string   `json:"domain,omitempty"`
 	Name                              any      `json:"name,omitempty"`
@@ -548,7 +548,7 @@ const (
 )
 
 type MembershipPhoneNumber struct {
-	Id           *uuid    `json:"id,omitempty"`
+	Id           *Uuid    `json:"id,omitempty"`
 	Name         *string  `json:"name,omitempty"`
 	Number       *string  `json:"number,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
@@ -565,7 +565,7 @@ type MfaRequest struct {
 }
 
 type MfaResponse struct {
-	Id      uuid   `json:"id,omitempty"`
+	Id      Uuid   `json:"id,omitempty"`
 	Success bool   `json:"success,omitempty"`
 	To      string `json:"to,omitempty"`
 	Channel string `json:"channel,omitempty"`
@@ -580,7 +580,7 @@ type MfaVerifyResponse struct {
 }
 
 type NumberGroup struct {
-	Id               uuid   `json:"id,omitempty"`
+	Id               Uuid   `json:"id,omitempty"`
 	Name             string `json:"name,omitempty"`
 	StickySender     bool   `json:"sticky_sender,omitempty"`
 	PhoneNumberCount int    `json:"phone_number_count,omitempty"`
@@ -592,8 +592,8 @@ type NumberGroupListResponse struct {
 }
 
 type NumberGroupMembership struct {
-	Id            uuid                  `json:"id,omitempty"`
-	NumberGroupId uuid                  `json:"number_group_id,omitempty"`
+	Id            Uuid                  `json:"id,omitempty"`
+	NumberGroupId Uuid                  `json:"number_group_id,omitempty"`
 	PhoneNumber   MembershipPhoneNumber `json:"phone_number,omitempty"`
 	CreatedAt     string                `json:"created_at,omitempty"`
 	UpdatedAt     string                `json:"updated_at,omitempty"`
@@ -605,22 +605,22 @@ type NumberGroupMembershipListResponse struct {
 }
 
 type NumberGroupMembershipResponse struct {
-	Id            uuid                  `json:"id,omitempty"`
-	NumberGroupId uuid                  `json:"number_group_id,omitempty"`
+	Id            Uuid                  `json:"id,omitempty"`
+	NumberGroupId Uuid                  `json:"number_group_id,omitempty"`
 	PhoneNumber   MembershipPhoneNumber `json:"phone_number,omitempty"`
 	CreatedAt     string                `json:"created_at,omitempty"`
 	UpdatedAt     string                `json:"updated_at,omitempty"`
 }
 
 type NumberGroupResponse struct {
-	Id               uuid   `json:"id,omitempty"`
+	Id               Uuid   `json:"id,omitempty"`
 	Name             string `json:"name,omitempty"`
 	StickySender     bool   `json:"sticky_sender,omitempty"`
 	PhoneNumberCount int    `json:"phone_number_count,omitempty"`
 }
 
 type Order struct {
-	Id                uuid    `json:"id,omitempty"`
+	Id                Uuid    `json:"id,omitempty"`
 	State             *string `json:"state,omitempty"`
 	ProcessedAt       *string `json:"processed_at,omitempty"`
 	CreatedAt         *string `json:"created_at,omitempty"`
@@ -634,7 +634,7 @@ type OrderListResponse struct {
 }
 
 type OrderResponse struct {
-	Id                uuid    `json:"id,omitempty"`
+	Id                Uuid    `json:"id,omitempty"`
 	State             *string `json:"state,omitempty"`
 	ProcessedAt       *string `json:"processed_at,omitempty"`
 	CreatedAt         *string `json:"created_at,omitempty"`
@@ -650,7 +650,7 @@ type PaginationLinks struct {
 }
 
 type PhoneNumber struct {
-	Id                                uuid                    `json:"id,omitempty"`
+	Id                                Uuid                    `json:"id,omitempty"`
 	Number                            string                  `json:"number,omitempty"`
 	Name                              any                     `json:"name,omitempty"`
 	Capabilities                      []PhoneNumberCapability `json:"capabilities,omitempty"`
@@ -779,7 +779,7 @@ const (
 )
 
 type PhoneNumberResponse struct {
-	Id                                uuid                    `json:"id,omitempty"`
+	Id                                Uuid                    `json:"id,omitempty"`
 	Number                            string                  `json:"number,omitempty"`
 	Name                              any                     `json:"name,omitempty"`
 	Capabilities                      []PhoneNumberCapability `json:"capabilities,omitempty"`
@@ -829,8 +829,8 @@ const (
 )
 
 type PstnRecording struct {
-	Id                uuid    `json:"id,omitempty"`
-	ProjectId         uuid    `json:"project_id,omitempty"`
+	Id                Uuid    `json:"id,omitempty"`
+	ProjectId         Uuid    `json:"project_id,omitempty"`
 	CreatedAt         string  `json:"created_at,omitempty"`
 	UpdatedAt         string  `json:"updated_at,omitempty"`
 	DurationInSeconds int     `json:"duration_in_seconds,omitempty"`
@@ -842,7 +842,7 @@ type PstnRecording struct {
 	Stereo            bool    `json:"stereo,omitempty"`
 	ByteSize          *int    `json:"byte_size,omitempty"`
 	Track             string  `json:"track,omitempty"`
-	RelayPstnLegId    uuid    `json:"relay_pstn_leg_id,omitempty"`
+	RelayPstnLegId    Uuid    `json:"relay_pstn_leg_id,omitempty"`
 }
 
 type PurchasePhoneNumberRequest struct {
@@ -850,8 +850,8 @@ type PurchasePhoneNumberRequest struct {
 }
 
 type Queue struct {
-	Id              uuid    `json:"id,omitempty"`
-	ProjectId       uuid    `json:"project_id,omitempty"`
+	Id              Uuid    `json:"id,omitempty"`
+	ProjectId       Uuid    `json:"project_id,omitempty"`
 	FriendlyName    string  `json:"friendly_name,omitempty"`
 	MaxSize         *int    `json:"max_size,omitempty"`
 	CurrentSize     *int    `json:"current_size,omitempty"`
@@ -867,7 +867,7 @@ type QueueListResponse struct {
 }
 
 type QueueMember struct {
-	CallId       uuid    `json:"call_id,omitempty"`
+	CallId       Uuid    `json:"call_id,omitempty"`
 	ProjectId    string  `json:"project_id,omitempty"`
 	QueueId      string  `json:"queue_id,omitempty"`
 	Position     int     `json:"position,omitempty"`
@@ -882,7 +882,7 @@ type QueueMemberListResponse struct {
 }
 
 type QueueMemberResponse struct {
-	CallId       uuid    `json:"call_id,omitempty"`
+	CallId       Uuid    `json:"call_id,omitempty"`
 	ProjectId    string  `json:"project_id,omitempty"`
 	QueueId      string  `json:"queue_id,omitempty"`
 	Position     int     `json:"position,omitempty"`
@@ -892,8 +892,8 @@ type QueueMemberResponse struct {
 }
 
 type QueueResponse struct {
-	Id              uuid    `json:"id,omitempty"`
-	ProjectId       uuid    `json:"project_id,omitempty"`
+	Id              Uuid    `json:"id,omitempty"`
+	ProjectId       Uuid    `json:"project_id,omitempty"`
 	FriendlyName    string  `json:"friendly_name,omitempty"`
 	MaxSize         *int    `json:"max_size,omitempty"`
 	CurrentSize     *int    `json:"current_size,omitempty"`
@@ -911,7 +911,7 @@ type RecordingListResponse struct {
 }
 
 type ShortCode struct {
-	Id                       uuid                  `json:"id,omitempty"`
+	Id                       Uuid                  `json:"id,omitempty"`
 	Name                     any                   `json:"name,omitempty"`
 	Number                   string                `json:"number,omitempty"`
 	Capabilities             []ShortCodeCapability `json:"capabilities,omitempty"`
@@ -952,7 +952,7 @@ const (
 )
 
 type ShortCodeResponse struct {
-	Id                       uuid                  `json:"id,omitempty"`
+	Id                       Uuid                  `json:"id,omitempty"`
 	Name                     any                   `json:"name,omitempty"`
 	Number                   string                `json:"number,omitempty"`
 	Capabilities             []ShortCodeCapability `json:"capabilities,omitempty"`
@@ -981,7 +981,7 @@ const (
 
 type SipEndpoint struct {
 	Type_                             string   `json:"type,omitempty"`
-	Id                                uuid     `json:"id,omitempty"`
+	Id                                Uuid     `json:"id,omitempty"`
 	Username                          string   `json:"username,omitempty"`
 	CallerId                          any      `json:"caller_id,omitempty"`
 	SendAs                            string   `json:"send_as,omitempty"`
@@ -1030,7 +1030,7 @@ type SipEndpointListResponse struct {
 
 type SipEndpointResponse struct {
 	Type_                             string   `json:"type,omitempty"`
-	Id                                uuid     `json:"id,omitempty"`
+	Id                                Uuid     `json:"id,omitempty"`
 	Username                          string   `json:"username,omitempty"`
 	CallerId                          any      `json:"caller_id,omitempty"`
 	SendAs                            string   `json:"send_as,omitempty"`
@@ -1066,8 +1066,8 @@ type SipProfileResponse struct {
 }
 
 type SipRecording struct {
-	Id                uuid    `json:"id,omitempty"`
-	ProjectId         uuid    `json:"project_id,omitempty"`
+	Id                Uuid    `json:"id,omitempty"`
+	ProjectId         Uuid    `json:"project_id,omitempty"`
 	CreatedAt         string  `json:"created_at,omitempty"`
 	UpdatedAt         string  `json:"updated_at,omitempty"`
 	DurationInSeconds int     `json:"duration_in_seconds,omitempty"`
@@ -1079,7 +1079,7 @@ type SipRecording struct {
 	Stereo            bool    `json:"stereo,omitempty"`
 	ByteSize          *int    `json:"byte_size,omitempty"`
 	Track             string  `json:"track,omitempty"`
-	RelaySipLegId     uuid    `json:"relay_sip_leg_id,omitempty"`
+	RelaySipLegId     Uuid    `json:"relay_sip_leg_id,omitempty"`
 }
 
 type Types_StatusCodes_SpaceApiErrorItem struct {
@@ -1133,11 +1133,11 @@ type UpdateDomainApplicationRequest struct {
 	CallStatusCallbackUrl             *string                      `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          *string                      `json:"call_status_callback_method,omitempty"`
 	CallLamlApplicationId             *string                      `json:"call_laml_application_id,omitempty"`
-	CallVideoRoomId                   *uuid                        `json:"call_video_room_id,omitempty"`
+	CallVideoRoomId                   *Uuid                        `json:"call_video_room_id,omitempty"`
 	CallRelayScriptUrl                *string                      `json:"call_relay_script_url,omitempty"`
-	CallDialogflowAgentId             *uuid                        `json:"call_dialogflow_agent_id,omitempty"`
-	CallAiAgentId                     *uuid                        `json:"call_ai_agent_id,omitempty"`
-	CallFlowId                        *uuid                        `json:"call_flow_id,omitempty"`
+	CallDialogflowAgentId             *Uuid                        `json:"call_dialogflow_agent_id,omitempty"`
+	CallAiAgentId                     *Uuid                        `json:"call_ai_agent_id,omitempty"`
+	CallFlowId                        *Uuid                        `json:"call_flow_id,omitempty"`
 	CallFlowVersion                   *string                      `json:"call_flow_version,omitempty"`
 	CallRelayContext                  *string                      `json:"call_relay_context,omitempty"`
 	CallRelayContextStatusCallbackUrl *string                      `json:"call_relay_context_status_callback_url,omitempty"`
@@ -1169,9 +1169,9 @@ type UpdatePhoneNumberRequest struct {
 	CallRelayConnectorId              *string                        `json:"call_relay_connector_id,omitempty"`
 	CallSipEndpointId                 *string                        `json:"call_sip_endpoint_id,omitempty"`
 	CallVertoResource                 *string                        `json:"call_verto_resource,omitempty"`
-	CallVideoRoomId                   *uuid                          `json:"call_video_room_id,omitempty"`
-	CallAiAgentId                     *uuid                          `json:"call_ai_agent_id,omitempty"`
-	CallFlowId                        *uuid                          `json:"call_flow_id,omitempty"`
+	CallVideoRoomId                   *Uuid                          `json:"call_video_room_id,omitempty"`
+	CallAiAgentId                     *Uuid                          `json:"call_ai_agent_id,omitempty"`
+	CallFlowId                        *Uuid                          `json:"call_flow_id,omitempty"`
 	CallFlowVersion                   *string                        `json:"call_flow_version,omitempty"`
 	MessageHandler                    *PhoneNumberMessageHandler     `json:"message_handler,omitempty"`
 	MessageRequestUrl                 *string                        `json:"message_request_url,omitempty"`
@@ -1196,7 +1196,7 @@ type UpdateShortCodeRequest struct {
 	MessageRequestMethod     *HttpMethod             `json:"message_request_method,omitempty"`
 	MessageFallbackUrl       *string                 `json:"message_fallback_url,omitempty"`
 	MessageFallbackMethod    *HttpMethod             `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationId *uuid                   `json:"message_laml_application_id,omitempty"`
+	MessageLamlApplicationId *Uuid                   `json:"message_laml_application_id,omitempty"`
 	MessageRelayContext      *string                 `json:"message_relay_context,omitempty"`
 }
 
@@ -1243,7 +1243,7 @@ type UpdateVerifiedCallerIDRequest struct {
 
 type VerifiedCallerID struct {
 	Type_      *string `json:"type,omitempty"`
-	Id         uuid    `json:"id,omitempty"`
+	Id         Uuid    `json:"id,omitempty"`
 	Number     string  `json:"number,omitempty"`
 	Name       *string `json:"name,omitempty"`
 	Extension  *string `json:"extension,omitempty"`
@@ -1259,7 +1259,7 @@ type VerifiedCallerIDListResponse struct {
 
 type VerifiedCallerIDResponse struct {
 	Type_      *string `json:"type,omitempty"`
-	Id         uuid    `json:"id,omitempty"`
+	Id         Uuid    `json:"id,omitempty"`
 	Number     string  `json:"number,omitempty"`
 	Name       *string `json:"name,omitempty"`
 	Extension  *string `json:"extension,omitempty"`
@@ -1273,8 +1273,8 @@ type VerifyCallerIDRequest struct {
 }
 
 type WebRtcRecording struct {
-	Id                uuid    `json:"id,omitempty"`
-	ProjectId         uuid    `json:"project_id,omitempty"`
+	Id                Uuid    `json:"id,omitempty"`
+	ProjectId         Uuid    `json:"project_id,omitempty"`
 	CreatedAt         string  `json:"created_at,omitempty"`
 	UpdatedAt         string  `json:"updated_at,omitempty"`
 	DurationInSeconds int     `json:"duration_in_seconds,omitempty"`
@@ -1286,7 +1286,7 @@ type WebRtcRecording struct {
 	Stereo            bool    `json:"stereo,omitempty"`
 	ByteSize          *int    `json:"byte_size,omitempty"`
 	Track             string  `json:"track,omitempty"`
-	RelayWebrtcLegId  uuid    `json:"relay_webrtc_leg_id,omitempty"`
+	RelayWebrtcLegId  Uuid    `json:"relay_webrtc_leg_id,omitempty"`
 }
 
-type uuid string
+type Uuid string

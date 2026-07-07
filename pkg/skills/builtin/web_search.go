@@ -155,7 +155,7 @@ type processedResult struct {
 
 // searchGoogle calls the Google Custom Search API and returns raw results.
 //
-// Base URL is normally googleapis.com; the porting-sdk's
+// Base URL is normally googleapis.com; the shared test harness's
 // audit_skills_dispatch.py overrides via WEB_SEARCH_BASE_URL so a
 // loopback fixture can stand in for Google CSE.
 func (s *WebSearchSkill) searchGoogle(query string, numResults int) ([]searchResult, error) {

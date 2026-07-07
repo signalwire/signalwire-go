@@ -279,9 +279,9 @@ func TestCreateToken_Format(t *testing.T) {
 	}
 }
 
-// TestContract7_TokenWireFormat is the contract-7 lock-in: python-parity 5-field
+// TestContract7_TokenWireFormat is the contract-7 lock-in: python-equivalent 5-field
 // wire format, non-empty per-mint nonce, nonce uniqueness across mints, and
-// python-oracle-format interop.
+// python-reference-format interop.
 func TestContract7_TokenWireFormat(t *testing.T) {
 	sm := NewSessionManager(3600)
 
