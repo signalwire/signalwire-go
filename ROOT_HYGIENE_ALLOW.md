@@ -21,3 +21,5 @@ load-bearing, not clutter.
 - port_surface_go.json — regenerated + read at root by scripts/run-ci.sh DOC-AUDIT (orchestrator, 2026-07-06)
 - ROOT_HYGIENE_ALLOW.md — this allowlist itself, required at root by porting-sdk root_hygiene.py (orchestrator, 2026-07-06)
 - ARTIFACT_DENY_ALLOW.md — required at root by porting-sdk artifact_deny.py (orchestrator, 2026-07-06)
+- GEN_TYPE_DEGENERACY_ALLOW.md — required at root by porting-sdk gen_type_degeneracy.py (user-approved 2026-07-07)
+- ROUTE_COLLISION_ALLOW.md — required at root by porting-sdk route_collision.py (user-approved 2026-07-07)

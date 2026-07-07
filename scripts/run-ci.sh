@@ -322,6 +322,29 @@ sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
 sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the published package (git ls-files proxy + ARTIFACT_DENY_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/artifact_deny.py" --port go --repo "$PORT_ROOT"
 
+# ---- expansion gates (GATE_EXPANSION_PLAN Tiers 5+) --------------------------
+# Blocking; backlog burned to zero and the GEN-TYPE-DEGENERACY / ROUTE-COLLISION
+# allowlists are user-approved (stamped 9cd5624). ROUTE-COLLISION builds go's
+# route-registry itself (`go run ./cmd/route-registry`, its built-in REGISTRY_CMD
+# — the same source the SPEC-PARITY gate uses). RELEASE-FRESH is report-only: go
+# has no publish/release workflow, so there is no publish path to gate (a gap to
+# flag, not a RED).
+
+sched_gate GEN-TYPE-DEGENERACY res=dayone desc="generated types aren't degenerate (modulo GEN_TYPE_DEGENERACY_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_type_degeneracy.py" --port go --repo "$PORT_ROOT"
+
+sched_gate PUBLIC-JARGON res=dayone desc="no porting/internal jargon in the public API surface" \
+    -- python3 "$PORTING_SDK_DIR/scripts/public_jargon.py" --port go --repo "$PORT_ROOT"
+
+sched_gate ROUTE-COLLISION res=dayone desc="no route-split/crud-dup latent defects (modulo ROUTE_COLLISION_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/route_collision.py" --port go --repo "$PORT_ROOT"
+
+sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (idiomatic, gate-clean)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port go --repo "$PORT_ROOT"
+
+sched_gate RELEASE-FRESH res=dayone desc="release hygiene (report-only: go has no publish workflow to gate)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port go --repo "$PORT_ROOT" --report-only
+
 # ---- summary ----------------------------------------------------------------
 
 sched_run
