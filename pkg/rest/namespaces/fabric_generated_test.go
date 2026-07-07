@@ -28,7 +28,7 @@ func TestFabricGen_AIAgents_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.AIAgents.Create(map[string]any{"prompt": "x-1", "agent_id": "x-1", "name": "x-1"})
+	_, err := client.Fabric.AIAgents.Create(map[string]any{"prompt": "x-1", "name": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestFabricGen_AIAgents_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_ai_agent", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.AIAgents.Create(map[string]any{"prompt": "x-1", "agent_id": "x-1", "name": "x-1"})
+	_, err := client.Fabric.AIAgents.Create(map[string]any{"prompt": "x-1", "name": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2194,7 +2194,7 @@ func TestFabricGen_SIPEndpoints_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.Create(map[string]any{"id": "x-1", "username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Create(map[string]any{"username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2215,7 +2215,7 @@ func TestFabricGen_SIPEndpoints_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.Create(map[string]any{"id": "x-1", "username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Create(map[string]any{"username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

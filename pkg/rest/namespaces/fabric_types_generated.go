@@ -55,7 +55,7 @@ type AIAgentCreateRequest struct {
 	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
 	Prompt        AIPrompt       `json:"prompt,omitempty"`
 	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
-	AgentId       uuid           `json:"agent_id,omitempty"`
+	AgentId       *uuid          `json:"agent_id,omitempty"`
 	Name          string         `json:"name,omitempty"`
 }
 
@@ -2113,7 +2113,7 @@ type SipEndpointAddressPaginationResponse struct {
 }
 
 type SipEndpointCreateRequest struct {
-	Id                       uuid            `json:"id,omitempty"`
+	Id                       *uuid           `json:"id,omitempty"`
 	Username                 string          `json:"username,omitempty"`
 	CallerId                 string          `json:"caller_id,omitempty"`
 	SendAs                   string          `json:"send_as,omitempty"`
