@@ -40,6 +40,7 @@ go get github.com/signalwire/signalwire-go
 
 Each agent is a self-contained microservice that generates [SWML](docs/swml_service_guide.md) (SignalWire Markup Language) and handles [SWAIG](docs/swaig_reference.md) (SignalWire AI Gateway) tool calls. The SignalWire platform runs the entire AI pipeline (STT, LLM, TTS) -- your agent just defines the behavior.
 
+<!-- include: examples/quickstart_agent/main.go#quickstart -->
 ```go
 package main
 
@@ -123,6 +124,7 @@ See [examples/README.md](examples/README.md) for the full list organized by cate
 
 Real-time call control and messaging over WebSocket. The RELAY client connects to SignalWire via the Blade protocol and gives you goroutine-safe, imperative control over live phone calls and SMS/MMS.
 
+<!-- include: examples/quickstart_relay/main.go#quickstart -->
 ```go
 package main
 
@@ -172,6 +174,7 @@ See the **[RELAY documentation](relay/README.md)** for the full guide, API refer
 
 Synchronous REST client for managing SignalWire resources and controlling calls over HTTP. No WebSocket required.
 
+<!-- include: examples/quickstart_rest/main.go#quickstart -->
 ```go
 package main
 
@@ -180,6 +183,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -195,15 +199,18 @@ func main() {
 		"prompt": map[string]any{"text": "You are helpful."},
 	})
 
-	client.Calling.Dial(map[string]any{
-		"from": "+15559876543",
-		"to":   "+15551234567",
-		"url":  "https://example.com/call-handler",
+	client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+		From: "+15559876543",
+		To:   "+15551234567",
+		Url:  ptr("https://example.com/call-handler"),
 	})
 
-	results, _ := client.PhoneNumbers.Search(map[string]any{"area_code": "512"})
+	results, _ := client.PhoneNumbers.Search(map[string]string{"area_code": "512"})
 	fmt.Println(results)
 }
+
+// ptr returns a pointer to v, for setting optional pointer-typed params.
+func ptr[T any](v T) *T { return &v }
 ```
 
 - 20 namespaced API surfaces: Fabric (13 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
