@@ -2222,10 +2222,7 @@ func (a *AgentBase) buildMcpToolList() []map[string]any {
 			"description": td.Description,
 		}
 		if td.Parameters != nil {
-			tool["inputSchema"] = map[string]any{
-				"type":       "object",
-				"properties": td.Parameters,
-			}
+			tool["inputSchema"] = ensureParameterStructure(td.Parameters, td.Required)
 		} else {
 			tool["inputSchema"] = map[string]any{
 				"type":       "object",
@@ -2782,6 +2779,33 @@ func (a *AgentBase) buildEndpointURL(endpoint string) string {
 	return url
 }
 
+// ensureParameterStructure normalizes a tool's declared parameters into the
+// SWML/JSON-Schema envelope, mirroring the Python reference
+// SWAIGFunction._ensure_parameter_structure:
+//
+//   - a COMPLETE schema (already has both "type" and "properties") is passed
+//     through unchanged — NOT re-wrapped. This is the pass-through path a caller
+//     hits when they hand DefineTool a full {type,properties,required} schema;
+//     double-wrapping it would bury the real schema under a spurious outer
+//     {type:object, properties:{...the schema...}}.
+//   - otherwise, params is treated as a bare properties map and wrapped in
+//     {type:object, properties:params}, with required appended when non-empty.
+func ensureParameterStructure(params map[string]any, required []string) map[string]any {
+	if len(params) == 0 {
+		return map[string]any{"type": "object", "properties": map[string]any{}}
+	}
+	_, hasType := params["type"]
+	_, hasProps := params["properties"]
+	if hasType && hasProps {
+		return params
+	}
+	out := map[string]any{"type": "object", "properties": params}
+	if len(required) > 0 {
+		out["required"] = required
+	}
+	return out
+}
+
 // buildSwaigFunctions returns the SWAIG functions array for the AI verb.
 func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 	functions := make([]map[string]any, 0, len(a.toolOrder)+len(a.functionIncludes))
@@ -2811,14 +2835,7 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 		}
 
 		if tool.Parameters != nil {
-			params := map[string]any{
-				"type":       "object",
-				"properties": tool.Parameters,
-			}
-			if len(tool.Required) > 0 {
-				params["required"] = tool.Required
-			}
-			fn["parameters"] = params
+			fn["parameters"] = ensureParameterStructure(tool.Parameters, tool.Required)
 		}
 
 		if tool.Secure {

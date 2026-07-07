@@ -12,11 +12,17 @@
 // canonicalizes both sides (normalizing the random control_id to a sentinel) and
 // byte-compares against the python oracle. Only stdout carries JSON.
 //
-// Frame capture: verb/client verbs send over a real *websocket.Conn, so this
-// program stands up a tiny in-process mock RELAY WS server on a loopback port
-// (pointed to via SIGNALWIRE_RELAY_HOST/SCHEME), completes the connect
-// handshake, records each calling.*/messaging.* frame, and replies with a canned
-// success. Event decoding is pure (no wire).
+// Frame capture (CLIENT-SEND boundary): verb/client verbs send over a real
+// *websocket.Conn, so this program stands up a tiny in-process mock RELAY WS
+// server on a loopback port (pointed to via SIGNALWIRE_RELAY_HOST/SCHEME),
+// completes the connect handshake, records each calling.*/messaging.* frame, and
+// replies with a canned success. Because every Call verb transmits via
+// c.client.execute -> the RelayClient's websocket, a frame is recorded ONLY when
+// the verb actually reaches the client and transmits: this mock IS the
+// client-send observation point (matching the oracle's _RecordingClient.execute
+// interception). A verb that built a frame but never transmitted would record
+// nothing here and fail the differ — which is the intended transmission check.
+// Event decoding is pure (no wire).
 //
 // Run from the signalwire-go repo root:
 //

@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // newAgent constructs a demo AgentBase (name "demo", route "/demo") with POM
@@ -77,6 +78,36 @@ func pick(frag any, keys []string) any {
 		out[k] = m[k]
 	}
 	return out
+}
+
+// swaigFnField picks one SWAIG function by name from a functions list, then
+// returns the given field of it — the Go mirror of the oracle's swaig_fn/field
+// post-processing in diff_port_swml.build_oracle.
+func swaigFnField(frag any, fnName, field string) any {
+	// The rendered functions value may be typed as []map[string]any (the builder's
+	// return type) or []any (after a JSON round-trip); handle both.
+	var items []map[string]any
+	switch v := frag.(type) {
+	case []map[string]any:
+		items = v
+	case []any:
+		for _, x := range v {
+			if m, ok := x.(map[string]any); ok {
+				items = append(items, m)
+			}
+		}
+	default:
+		return nil
+	}
+	for _, m := range items {
+		if m["function"] == fnName {
+			if field != "" {
+				return m[field]
+			}
+			return m
+		}
+	}
+	return nil
 }
 
 func splitDots(s string) []string {
@@ -153,6 +184,25 @@ func main() {
 		a := newAgent()
 		a.AddPronunciation("SW", "SignalWire", true)
 		out["swml_add_pronunciation"] = extract(render(a), "ai.pronounce")
+	}
+
+	// swml_define_tool_complete_schema: define_tool given a COMPLETE
+	// {type,properties,required} schema must render ai.SWAIG.functions[lookup]
+	// .parameters as that schema FLAT (pass-through), NOT double-wrapped.
+	{
+		a := newAgent()
+		a.DefineTool(agent.ToolDefinition{
+			Name:        "lookup",
+			Description: "Look up a thing",
+			Parameters: map[string]any{
+				"type":       "object",
+				"properties": map[string]any{"q": map[string]any{"type": "string"}},
+				"required":   []any{"q"},
+			},
+			Handler: func(map[string]any, map[string]any) *swaig.FunctionResult { return nil },
+		})
+		frag := extract(render(a), "ai.SWAIG.functions")
+		out["swml_define_tool_complete_schema"] = swaigFnField(frag, "lookup", "parameters")
 	}
 
 	enc := json.NewEncoder(os.Stdout)
