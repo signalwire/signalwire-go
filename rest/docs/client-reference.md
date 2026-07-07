@@ -4,7 +4,10 @@
 
 <!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
-func rest.NewRestClient(project, token, host string) (*rest.RestClient, error)
+func rest.NewRestClient(project, token, space string) (*rest.RestClient, error)
+//   project -> SIGNALWIRE_PROJECT_ID
+//   token   -> SIGNALWIRE_API_TOKEN
+//   space   -> SIGNALWIRE_SPACE
 ```
 
 <!-- snippet-setup -->

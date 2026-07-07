@@ -115,6 +115,7 @@ message, err = client.SendMessage(
 	"+15551111111",                                       // from (required -- E.164)
 	"Message text",                                       // body (required if no media)
 	relay.WithMessageMedia([]string{"https://..."}),      // required if no body
+	relay.WithMessageContext("my_context"),               // context for state events (default: relay protocol)
 	relay.WithMessageTags([]string{"vip", "support"}),    // optional tags
 	relay.WithMessageRegion("us"),                        // optional origination region
 )

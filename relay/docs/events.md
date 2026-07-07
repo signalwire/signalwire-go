@@ -112,6 +112,21 @@ if event.EventType == relay.EventCallingCallState {
 }
 ```
 
+Alternatively, `relay.ParseEvent(rawPayload)` inspects a raw payload map and
+returns the concrete typed struct (as `any`), which you can dispatch on with a
+type switch:
+
+```go
+var rawPayload map[string]any
+switch e := relay.ParseEvent(rawPayload).(type) {
+case *relay.CallStateEvent:
+	fmt.Println(e.CallState) // "answered"
+	fmt.Println(e.EndReason) // "hangup" (only on ended)
+case *relay.PlayEvent:
+	fmt.Println(e.State)
+}
+```
+
 ### Available Typed Events
 
 | Struct | Key Fields |

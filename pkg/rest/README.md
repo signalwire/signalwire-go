@@ -63,11 +63,11 @@ func ptr[T any](v T) *T { return &v }
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.md) -- installation, configuration, first API call
-- [Client Reference](docs/client-reference.md) -- RestClient constructor, namespaces, error handling
-- [Fabric Resources](docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
-- [Calling Commands](docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
-- [All Namespaces](docs/namespaces.md) -- phone numbers, video, datasphere, logs, registry, and more
+- [Getting Started](../../rest/docs/getting-started.md) -- installation, configuration, first API call
+- [Client Reference](../../rest/docs/client-reference.md) -- RestClient constructor, namespaces, error handling
+- [Fabric Resources](../../rest/docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
+- [Calling Commands](../../rest/docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
+- [All Namespaces](../../rest/docs/namespaces.md) -- phone numbers, video, datasphere, logs, registry, and more
 
 ## Examples
 

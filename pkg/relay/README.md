@@ -53,11 +53,11 @@ func main() {
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.md) -- installation, configuration, first call
-- [Call Methods Reference](docs/call-methods.md) -- every method available on a Call object
-- [Events](docs/events.md) -- event types, typed event classes, call states
-- [Messaging](docs/messaging.md) -- sending and receiving SMS/MMS messages
-- [Client Reference](docs/client-reference.md) -- RelayClient configuration, methods, connection behavior
+- [Getting Started](../../relay/docs/getting-started.md) -- installation, configuration, first call
+- [Call Methods Reference](../../relay/docs/call-methods.md) -- every method available on a Call object
+- [Events](../../relay/docs/events.md) -- event types, typed event classes, call states
+- [Messaging](../../relay/docs/messaging.md) -- sending and receiving SMS/MMS messages
+- [Client Reference](../../relay/docs/client-reference.md) -- RelayClient configuration, methods, connection behavior
 
 ## Examples
 

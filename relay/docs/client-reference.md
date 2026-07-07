@@ -86,6 +86,10 @@ client.OnCall(func(call *relay.Call) {
 Place an outbound call. Returns a `*Call` once the remote party answers.
 
 - `devices` -- nested slice of device objects (serial/parallel dial)
+- `relay.WithDialFromNumber(from)` -- caller ID
+- `relay.WithDialTag(tag)` -- optional correlation tag (auto-generated if omitted)
+- `relay.WithDialMaxDuration(minutes)` -- max call duration in minutes
+- `relay.WithDialClientTimeout(d)` -- how long to wait before returning `ErrDialTimeout` (default: 120s)
 
 ```go
 call, err = client.Dial(
@@ -103,6 +107,9 @@ if err != nil {
 }
 _ = call
 ```
+
+`DialContext(ctx, devices, opts...)` adds caller cancellation via a
+`context.Context`.
 
 ### `OnMessage(handler func(*relay.Message))`
 
@@ -136,12 +143,56 @@ _ = event
 
 See [Messaging](messaging.md) for full details.
 
+### `Connect() error` / `Stop()`
+
+Manual lifecycle control. `Connect()` connects and authenticates without
+blocking (unlike `Run()`), returning an error if the client fails to start;
+`Stop()` tears the connection down. Use these when you drive the client from
+your own loop instead of `Run()`.
+
+```go
+import "log"
+
+if err := client.Connect(); err != nil {
+	log.Fatal(err)
+}
+// ... use client ...
+client.Stop()
+```
+
+### `RunContext(ctx context.Context) error`
+
+Cancellable form of `Run()`: it runs the event loop until `ctx` is cancelled
+(or the client is stopped), then returns.
+
+### `Execute(method string, params map[string]any) (json.RawMessage, error)`
+
+Send a raw JSON-RPC request. Used internally by the `Call` methods, but
+exposed for custom RELAY commands.
+
 ## Context Subscriptions
 
-The RELAY contexts the client listens on are fixed at construction time via
-`WithContexts(...)`. Dynamic subscribe/unsubscribe is not currently exposed
-in the Go port — recreate the client with the desired contexts if they need
-to change.
+The client subscribes to the RELAY contexts (topics) passed at construction
+time via `WithContexts(...)`. You can also change the subscription set
+dynamically after connecting:
+
+### `Receive(contexts ...string) error` / `Unreceive(contexts ...string) error`
+
+Dynamically subscribe to or unsubscribe from contexts on a live client.
+
+```go
+client.Receive("new-context")
+client.Unreceive("old-context")
+```
+
+## Accessors
+
+| Method | Type | Description |
+|--------|------|-------------|
+| `RelayProtocol()` | `string` | Server-assigned protocol string from the connect response |
+| `ProjectID()` | `string` | Project ID |
+| `Space()` | `string` | Relay host |
+| `Contexts()` | `[]string` | Initial contexts passed at construction |
 
 ## Connection Behavior
 

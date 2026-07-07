@@ -178,7 +178,7 @@ fmt.Printf("Recording URL: %v\n", event.Params["url"])
 
 ## Input Collection
 
-### `PlayAndCollect(media []map[string]any, collect map[string]any, opts ...CollectOption) *CollectAction`
+### `PlayAndCollect(media []map[string]any, collect map[string]any, opts ...PlayOption) *CollectAction`
 
 Play audio and collect DTMF or speech input. Returns a `*CollectAction`.
 
@@ -315,7 +315,7 @@ _ = event
 
 ## Tap (Media Interception)
 
-### `Tap(tap, device map[string]any) *TapAction`
+### `Tap(tap, device map[string]any, controlID ...string) *TapAction`
 
 Intercept call media and stream to an RTP endpoint.
 
@@ -398,7 +398,7 @@ call.DenoiseStop()
 
 ## Transcription
 
-### `Transcribe(statusURL string) *TranscribeAction`
+### `Transcribe(statusURL string, controlID ...string) *TranscribeAction`
 
 ```go
 action := call.Transcribe("https://example.com/transcription")
@@ -443,6 +443,7 @@ Start an AI agent session on the call.
 action := call.AI(
 	relay.WithAIPrompt(map[string]any{"text": "You are a helpful support agent."}),
 	relay.WithAIParams(map[string]any{"end_of_speech_timeout": 3000}),
+	relay.WithAISWAIG(map[string]any{"functions": []any{}}),
 )
 event, _ := action.Wait(context.Background())
 _ = event

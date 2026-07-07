@@ -18,7 +18,7 @@ You need three things to connect:
 |-----------|---------|-------------|
 | `project` | `SIGNALWIRE_PROJECT_ID` | Your SignalWire project ID |
 | `token` | `SIGNALWIRE_API_TOKEN` | Your SignalWire API token |
-| `host` | `SIGNALWIRE_SPACE` | Your space hostname (e.g. `example.signalwire.com`) |
+| `space` | `SIGNALWIRE_SPACE` | Your space hostname (e.g. `example.signalwire.com`) |
 
 <!-- snippet-setup -->
 ```go

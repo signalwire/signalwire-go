@@ -113,10 +113,14 @@ Contexts are topics your client subscribes to for receiving inbound calls. When 
 client = relay.NewRelayClient(
 	relay.WithContexts("sales", "support"),
 )
+
+// Or change the subscription set dynamically after connecting
+client.Receive("billing")
+client.Unreceive("sales")
 ```
 
-Contexts are fixed at client construction time in the Go port; to change the
-subscription set, construct a new `RelayClient`.
+Pass the initial set at construction with `WithContexts(...)`, and adjust it on
+a live client with `client.Receive(...)` / `client.Unreceive(...)`.
 
 ## Making Outbound Calls
 
