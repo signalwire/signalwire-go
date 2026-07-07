@@ -6,24 +6,29 @@ The SignalWire Agents SDK now includes a modular skills system that lets you add
 
 Instead of manually implementing every agent capability, you can now:
 
-```python
-from signalwire_agents import AgentBase
+```go
+import (
+    "github.com/signalwire/signalwire-go/pkg/agent"
 
-# Create an agent
-agent = AgentBase("My Assistant")
+    // Blank-import the built-in skills so their init() functions register them.
+    _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+)
 
-# Add skills with one-liners!
-agent.add_skill("web_search")   # Web search capability with default settings
-agent.add_skill("datetime")     # Current date/time info  
-agent.add_skill("math")         # Mathematical calculations
+// Create an agent
+a := agent.NewAgentBase(agent.WithName("My Assistant"))
 
-# Add skills with custom parameters!
-agent.add_skill("web_search", {
-    "num_results": 3,  # Get 3 search results instead of default 1
-    "delay": 0.5       # Add 0.5s delay between requests instead of default 0
+// Add skills with one-liners!
+a.AddSkill("web_search", nil) // Web search capability with default settings
+a.AddSkill("datetime", nil)   // Current date/time info
+a.AddSkill("math", nil)       // Mathematical calculations
+
+// Add skills with custom parameters!
+a.AddSkill("web_search", map[string]any{
+    "num_results": 3,   // Get 3 search results instead of default 1
+    "delay":       0.5, // Add 0.5s delay between requests instead of default 0
 })
 
-# Your agent now has all these capabilities automatically
+// Your agent now has all these capabilities automatically
 ```
 
 ## Architecture
@@ -31,14 +36,14 @@ agent.add_skill("web_search", {
 The skills system consists of:
 
 ### Core Infrastructure
-- **`SkillBase`** - Abstract base class for all skills with parameter support
-- **`SkillManager`** - Handles loading/unloading and lifecycle management with parameters
-- **`AgentBase.add_skill()`** - Simple method to add skills to agents with optional parameters
+- **`skills.SkillBase`** - The interface every skill implements (embed `skills.BaseSkill` for the defaults) with parameter support
+- **`skills.SkillManager`** - Handles loading/unloading and lifecycle management with parameters
+- **`AgentBase.AddSkill()`** - Simple method to add skills to agents with optional parameters
 
-### Discovery & Registry  
-- **`SkillRegistry`** - Auto-discovers skills from the `skills/` directory
-- **Auto-discovery** - Skills are found automatically on import
-- **Validation** - Checks dependencies and environment variables
+### Discovery & Registry
+- **Skill registry** - Built-in and third-party skills register themselves via `skills.RegisterSkill` from their package `init()`
+- **Blank-import registration** - Skills become available when their package is blank-imported (e.g. `_ "github.com/signalwire/signalwire-go/pkg/skills/all"` for the built-ins)
+- **Validation** - Checks required environment variables
 
 ### Built-in Skills
 - **`web_search`** - Google Custom Search API integration with web scraping
@@ -52,7 +57,6 @@ Search the internet and extract content from web pages.
 
 **Requirements:**
 - Environment variables: `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_ENGINE_ID`
-- Packages: `beautifulsoup4`, `requests`
 
 **Parameters:**
 - `num_results` (default: 1) - Number of search results to retrieve (1-10)
@@ -62,28 +66,27 @@ Search the internet and extract content from web pages.
 - `web_search(query, num_results)` - Search and scrape web content
 
 **Usage examples:**
-```python
-# Default: fast single result
-agent.add_skill("web_search")
+```go
+// Default: fast single result
+a.AddSkill("web_search", nil)
 
-# Custom: multiple results with delay
-agent.add_skill("web_search", {
+// Custom: multiple results with delay
+a.AddSkill("web_search", map[string]any{
     "num_results": 3,
-    "delay": 0.5
+    "delay":       0.5,
 })
 
-# Speed optimized: single result, no delay
-agent.add_skill("web_search", {
+// Speed optimized: single result, no delay
+a.AddSkill("web_search", map[string]any{
     "num_results": 1,
-    "delay": 0
+    "delay":       0,
 })
 ```
 
 ### Date/Time (`datetime`)  
 Get current date and time information.
 
-**Requirements:**
-- Packages: `pytz`
+**Requirements:** None (built-in; timezone handling uses the Go standard library)
 
 **Parameters:** None (no configurable parameters)
 
@@ -184,215 +187,252 @@ Transfer calls between agents using pattern matching.
 - `transfer_call(transfer_type, ...required_fields)` (or custom tool_name) - Transfer based on pattern matching with optional required fields
 
 **Usage examples:**
-```python
-# Simple transfer between departments
-agent.add_skill("swml_transfer", {
+```go
+// Simple transfer between departments
+a.AddSkill("swml_transfer", map[string]any{
     "tool_name": "transfer_to_department",
-    "transfers": {
-        "/sales/i": {
-            "url": "https://example.com/sales",
-            "message": "Transferring to sales...",
-            "return_message": "Sales transfer complete."
+    "transfers": map[string]any{
+        "/sales/i": map[string]any{
+            "url":            "https://example.com/sales",
+            "message":        "Transferring to sales...",
+            "return_message": "Sales transfer complete.",
         },
-        "/support/i": {
-            "url": "https://example.com/support",
-            "message": "Transferring to support...",
-            "return_message": "Support transfer complete."
-        }
-    }
+        "/support/i": map[string]any{
+            "url":            "https://example.com/support",
+            "message":        "Transferring to support...",
+            "return_message": "Support transfer complete.",
+        },
+    },
 })
 
-# Multiple instances for different transfer types
-agent.add_skill("swml_transfer", {
-    "tool_name": "route_call",
+// Multiple instances for different transfer types
+a.AddSkill("swml_transfer", map[string]any{
+    "tool_name":      "route_call",
     "parameter_name": "department",
-    "transfers": {
-        "/sales|billing/i": {
-            "url": "https://api.company.com/sales",
-            "message": "Connecting to sales team...",
-            "post_process": True
+    "transfers": map[string]any{
+        "/sales|billing/i": map[string]any{
+            "url":          "https://api.company.com/sales",
+            "message":      "Connecting to sales team...",
+            "post_process": true,
         },
-        "/technical|support/i": {
-            "url": "https://api.company.com/support",
-            "message": "Connecting to support team...",
-            "post_process": True
-        }
+        "/technical|support/i": map[string]any{
+            "url":          "https://api.company.com/support",
+            "message":      "Connecting to support team...",
+            "post_process": true,
+        },
     },
-    "default_message": "Would you like sales or support?"
+    "default_message": "Would you like sales or support?",
 })
 ```
 
 ## Usage Examples
 
 ### Basic Usage
-```python
-from signalwire_agents import AgentBase
+```go
+import (
+    "github.com/signalwire/signalwire-go/pkg/agent"
 
-# Create agent and add skills
-agent = AgentBase("Assistant", route="/assistant")
-agent.add_skill("datetime")
-agent.add_skill("math") 
-agent.add_skill("web_search")  # Uses defaults: 1 result, no delay
+    // Blank-import the built-in skills so their init() functions register them.
+    _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+)
 
-# Start the agent
-agent.run()
+// Create agent and add skills
+a := agent.NewAgentBase(agent.WithName("Assistant"), agent.WithRoute("/assistant"))
+a.AddSkill("datetime", nil)
+a.AddSkill("math", nil)
+a.AddSkill("web_search", nil) // Uses defaults: 1 result, no delay
+
+// Start the agent
+a.Run()
 ```
 
 ### Skills with Custom Parameters
-```python
-from signalwire_agents import AgentBase
+```go
+// Create agent
+a := agent.NewAgentBase(agent.WithName("Research Assistant"), agent.WithRoute("/research"))
 
-# Create agent
-agent = AgentBase("Research Assistant", route="/research")
-
-# Add web search optimized for research (more results)
-agent.add_skill("web_search", {
-    "num_results": 5,   # Get more comprehensive results
-    "delay": 1.0        # Be respectful to websites
+// Add web search optimized for research (more results)
+a.AddSkill("web_search", map[string]any{
+    "num_results": 5,   // Get more comprehensive results
+    "delay":       1.0, // Be respectful to websites
 })
 
-# Add other skills without parameters
-agent.add_skill("datetime")
-agent.add_skill("math")
+// Add other skills without parameters
+a.AddSkill("datetime", nil)
+a.AddSkill("math", nil)
 
-# Start the agent
-agent.run()
+// Start the agent
+a.Run()
 ```
 
 ### Different Parameter Configurations
-```python
-# Speed-optimized for quick responses
-agent.add_skill("web_search", {
+```go
+// Speed-optimized for quick responses
+a.AddSkill("web_search", map[string]any{
     "num_results": 1,
-    "delay": 0
+    "delay":       0,
 })
 
-# Comprehensive research mode
-agent.add_skill("web_search", {
+// Comprehensive research mode
+a.AddSkill("web_search", map[string]any{
     "num_results": 5,
-    "delay": 1.0
+    "delay":       1.0,
 })
 
-# Balanced approach
-agent.add_skill("web_search", {
+// Balanced approach
+a.AddSkill("web_search", map[string]any{
     "num_results": 3,
-    "delay": 0.5
+    "delay":       0.5,
 })
 ```
 
 ### Check Available Skills
-```python
-from signalwire_agents.skills.registry import skill_registry
+```go
+import (
+    "fmt"
 
-# List all discovered skills
-for skill in skill_registry.list_skills():
-    print(f"- {skill['name']}: {skill['description']}")
-    if skill['required_env_vars']:
-        print(f"  Requires: {', '.join(skill['required_env_vars'])}")
+    "github.com/signalwire/signalwire-go/pkg/skills"
+)
+
+// List all discovered skills with their parameter schemas
+for name, schema := range skills.ListSkillsWithParams() {
+    fmt.Printf("- %s: %v\n", name, schema["description"])
+    if envVars, ok := schema["required_env_vars"].([]string); ok && len(envVars) > 0 {
+        fmt.Printf("  Requires: %v\n", envVars)
+    }
+}
 ```
 
 ### Runtime Skill Management
-```python
-agent = AgentBase("Dynamic Agent")
+```go
+a := agent.NewAgentBase(agent.WithName("Dynamic Agent"))
 
-# Add skills with different configurations
-agent.add_skill("math")
-agent.add_skill("datetime")
-agent.add_skill("web_search", {"num_results": 2, "delay": 0.3})
+// Add skills with different configurations
+a.AddSkill("math", nil)
+a.AddSkill("datetime", nil)
+a.AddSkill("web_search", map[string]any{"num_results": 2, "delay": 0.3})
 
-# Check what's loaded
-print("Loaded skills:", agent.list_skills())
+// Check what's loaded
+fmt.Println("Loaded skills:", a.ListSkills())
 
-# Remove a skill
-agent.remove_skill("math")
+// Remove a skill
+a.RemoveSkill("math")
 
-# Check if specific skill is loaded
-if agent.has_skill("datetime"):
-    print("Date/time capabilities available")
+// Check if specific skill is loaded
+if a.HasSkill("datetime") {
+    fmt.Println("Date/time capabilities available")
+}
 ```
 
 ## Creating Custom Skills
 
-Create a new skill by extending `SkillBase` with parameter support:
+Create a new skill by defining a struct that embeds `skills.BaseSkill` and
+implements the `SkillBase` interface. Register it from the package's `init()` so a
+blank-import makes it available:
 
-```python
-# signalwire_agents/skills/my_skill/skill.py
-from signalwire_agents.core.skill_base import SkillBase
-from signalwire_agents.core.function_result import SwaigFunctionResult
+```go
+// mymodule/myskill/skill.go
+package myskill
 
-class MyCustomSkill(SkillBase):
-    SKILL_NAME = "my_skill"
-    SKILL_DESCRIPTION = "Does something awesome with configurable parameters"
-    SKILL_VERSION = "1.0.0"
-    REQUIRED_PACKAGES = ["requests"]  # Optional
-    REQUIRED_ENV_VARS = ["API_KEY"]   # Optional
-    
-    def setup(self) -> bool:
-        """Initialize the skill with parameters"""
-        if not self.validate_env_vars() or not self.validate_packages():
-            return False
-            
-        # Use parameters with defaults
-        self.max_items = self.params.get('max_items', 10)
-        self.timeout = self.params.get('timeout', 30)
-        self.retry_count = self.params.get('retry_count', 3)
-        
-        return True
-        
-    def register_tools(self) -> None:
-        """Register SWAIG tools with the agent"""
-        self.define_tool(
-            name="my_function",
-            description=f"Does something cool (max {self.max_items} items)",
-            parameters={
-                "input": {
-                    "type": "string",
-                    "description": "Input parameter"
-                }
+import (
+    "fmt"
+
+    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+type MyCustomSkill struct {
+    skills.BaseSkill
+    maxItems   int
+    timeout    int
+    retryCount int
+}
+
+func NewMyCustomSkill(params map[string]any) skills.SkillBase {
+    return &MyCustomSkill{
+        BaseSkill: skills.BaseSkill{
+            SkillName: "my_skill",
+            SkillDesc: "Does something awesome with configurable parameters",
+            SkillVer:  "1.0.0",
+            Params:    params,
+        },
+    }
+}
+
+// Env vars validated by the SkillManager before Setup runs. (Go compiles its
+// dependencies in, so there is no runtime package validation.)
+func (s *MyCustomSkill) RequiredEnvVars() []string { return []string{"API_KEY"} }
+
+func (s *MyCustomSkill) Setup() bool {
+    // Use parameters with defaults
+    s.maxItems = s.GetParamInt("max_items", 10)
+    s.timeout = s.GetParamInt("timeout", 30)
+    s.retryCount = s.GetParamInt("retry_count", 3)
+    return true
+}
+
+func (s *MyCustomSkill) RegisterTools() []skills.ToolRegistration {
+    return []skills.ToolRegistration{{
+        Name:        "my_function",
+        Description: fmt.Sprintf("Does something cool (max %d items)", s.maxItems),
+        Parameters: map[string]any{
+            "type": "object",
+            "properties": map[string]any{
+                "input": map[string]any{
+                    "type":        "string",
+                    "description": "Input parameter",
+                },
             },
-            handler=self._my_handler
-        )
-    
-    def _my_handler(self, args, raw_data):
-        """Handle the tool call using configured parameters"""
-        # Use self.max_items, self.timeout, self.retry_count in your logic
-        return SwaigFunctionResult(f"Processed with max_items={self.max_items}")
-        
-    def get_hints(self):
-        """Speech recognition hints"""
-        return ["custom", "skill", "awesome"]
-        
-    def get_prompt_sections(self):
-        """Prompt sections to add to agent"""
-        return [{
-            "title": "Custom Capability",
-            "body": f"You can do custom things with my_skill (configured for {self.max_items} items)."
-        }]
+        },
+        Handler: s.handleMyFunction,
+    }}
+}
+
+func (s *MyCustomSkill) handleMyFunction(args, rawData map[string]any) *swaig.FunctionResult {
+    // Use s.maxItems, s.timeout, s.retryCount in your logic
+    return swaig.NewFunctionResult(fmt.Sprintf("Processed with max_items=%d", s.maxItems))
+}
+
+// Speech-recognition hints
+func (s *MyCustomSkill) GetHints() []string { return []string{"custom", "skill", "awesome"} }
+
+// Prompt sections to add to the agent
+func (s *MyCustomSkill) GetPromptSections() []map[string]any {
+    return []map[string]any{{
+        "title": "Custom Capability",
+        "body":  fmt.Sprintf("You can do custom things with my_skill (configured for %d items).", s.maxItems),
+    }}
+}
+
+func init() { skills.RegisterSkill("my_skill", NewMyCustomSkill) }
 ```
 
-The skill will be automatically discovered and available as:
-```python
-# Use defaults
-agent.add_skill("my_skill")
+Blank-import the package once so its `init()` registers the skill, then use it like
+any built-in:
+```go
+import _ "github.com/you/mymodule/myskill"
 
-# Use custom parameters
-agent.add_skill("my_skill", {
-    "max_items": 20,
-    "timeout": 60,
-    "retry_count": 5
+// Use defaults
+a.AddSkill("my_skill", nil)
+
+// Use custom parameters
+a.AddSkill("my_skill", map[string]any{
+    "max_items":   20,
+    "timeout":     60,
+    "retry_count": 5,
 })
 ```
 
 ## Quick Start
 
-1. **Install dependencies:**
+1. **Add the SDK to your module:**
    ```bash
-   pip install pytz beautifulsoup4 requests
+   go get github.com/signalwire/signalwire-go
    ```
 
 2. **Run the demo:**
    ```bash
-   python examples/skills_demo.py
+   go run examples/skills_demo/main.go
    ```
 
 3. **For web search, set environment variables:**
@@ -403,31 +443,40 @@ agent.add_skill("my_skill", {
 
 ## Testing
 
-Test the skills system with parameters:
+Test the skills system with parameters. The demo agent under
+`examples/skills_demo/main.go` loads several skills and prints the registered set:
 
-```bash
-python3 -c "
-from signalwire_agents import AgentBase
-from signalwire_agents.skills.registry import skill_registry
+```go
+package main
 
-# Show discovered skills
-print('Available skills:', [s['name'] for s in skill_registry.list_skills()])
+import (
+    "fmt"
 
-# Create agent and load skills with parameters
-agent = AgentBase('Test', route='/test')
-agent.add_skill('datetime')
-agent.add_skill('math')
-agent.add_skill('web_search', {'num_results': 2, 'delay': 0.5})
+    "github.com/signalwire/signalwire-go/pkg/agent"
+    "github.com/signalwire/signalwire-go/pkg/skills"
 
-print('Loaded skills:', agent.list_skills())
-print('Skills system with parameters working!')
-"
+    _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+)
+
+func main() {
+    // Show discovered skills
+    fmt.Println("Available skills:", skills.ListSkills())
+
+    // Create agent and load skills with parameters
+    a := agent.NewAgentBase(agent.WithName("Test"), agent.WithRoute("/test"))
+    a.AddSkill("datetime", nil)
+    a.AddSkill("math", nil)
+    a.AddSkill("web_search", map[string]any{"num_results": 2, "delay": 0.5})
+
+    fmt.Println("Loaded skills:", a.ListSkills())
+    fmt.Println("Skills system with parameters working!")
+}
 ```
 
 ## Benefits
 
-- **One-liner integration** - `agent.add_skill("skill_name")`
-- **Configurable parameters** - `agent.add_skill("skill_name", {"param": "value"})`
+- **One-liner integration** - `a.AddSkill("skill_name", nil)`
+- **Configurable parameters** - `a.AddSkill("skill_name", map[string]any{"param": "value"})`
 - **Automatic discovery** - Drop skills in the directory and they're available
 - **Dependency validation** - Checks packages and environment variables
 - **Modular architecture** - Skills are self-contained and reusable
@@ -438,25 +487,26 @@ print('Skills system with parameters working!')
 ## Migration Guide
 
 **Before (manual implementation):**
-```python
-# Had to manually implement every capability
-class WebSearchAgent(AgentBase):
-    def __init__(self):
-        super().__init__("WebSearchAgent")
-        self.setup_google_search()
-        self.define_tool("web_search", ...)
-        # Lots of manual code...
+```go
+// Had to manually implement every capability
+a := agent.NewAgentBase(agent.WithName("WebSearchAgent"))
+setupGoogleSearch(a)
+a.DefineTool(agent.ToolDefinition{
+    Name:    "web_search",
+    Handler: webSearchHandler,
+    // Lots of manual code...
+})
 ```
 
 **After (skills system with parameters):**
-```python
-# Simple one-liner with custom configuration
-agent = AgentBase("WebSearchAgent")
-agent.add_skill("web_search", {
-    "num_results": 3,  # Get more results
-    "delay": 0.5       # Be respectful to servers
+```go
+// Simple one-liner with custom configuration
+a := agent.NewAgentBase(agent.WithName("WebSearchAgent"))
+a.AddSkill("web_search", map[string]any{
+    "num_results": 3,   // Get more results
+    "delay":       0.5, // Be respectful to servers
 })
-# Done! Full web search capability with custom settings.
+// Done! Full web search capability with custom settings.
 ```
 
 The skills system makes SignalWire agents more modular, maintainable, and configurable. 

@@ -1,474 +1,509 @@
 # Call Methods Reference
 
-A `Call` object represents a live phone call. You get one from `@client.on_call` (inbound) or `client.dial()` (outbound).
+A `*relay.Call` represents a live phone call. You get one from `client.OnCall` (inbound) or `client.Dial()` (outbound).
 
 ## Properties
 
-| Property | Type | Description |
+Call properties are exposed via accessor methods:
+
+| Accessor | Type | Description |
 |----------|------|-------------|
-| `call_id` | `str` | Unique call identifier |
-| `node_id` | `str` | Server node handling the call |
-| `state` | `str` | Current state: `created`, `ringing`, `answered`, `ending`, `ended` |
-| `direction` | `str` | `inbound` or `outbound` |
-| `tag` | `str` | Correlation tag |
-| `device` | `dict` | Device info (type, params) |
-| `segment_id` | `str` | Segment identifier |
+| `CallID()` | `string` | Unique call identifier |
+| `NodeID()` | `string` | Server node handling the call |
+| `State()` | `string` | Current state: `created`, `ringing`, `answered`, `ending`, `ended` |
+| `Direction()` | `string` | `inbound` or `outbound` |
+| `Tag()` | `string` | Correlation tag |
+| `Device()` | `map[string]any` | Device info (type, params) |
+| `SegmentID()` | `string` | Segment identifier |
 
 ## Actions: Blocking vs Fire-and-Forget
 
-Methods like `play()`, `record()`, `detect()`, etc. return **Action** objects. The `await call.play(...)` itself only waits for the server to accept the command — the actual operation runs asynchronously on the server. You choose how to handle completion:
+Methods like `Play()`, `Record()`, `Detect()`, etc. return **Action** objects. The call itself only dispatches the command — the actual operation runs asynchronously on the server. You choose how to handle completion:
 
 ### Wait inline (blocking)
 
-```python
-action = await call.play([{"type": "tts", "params": {"text": "Hello"}}])
-await action.wait()  # blocks until playback finishes
-# execution continues only after play is done
+```go
+action := call.Play([]map[string]any{{"type": "tts", "params": map[string]any{"text": "Hello"}}})
+action.Wait(context.Background()) // blocks until playback finishes
+// execution continues only after play is done
 ```
+
+`Wait` takes a `context.Context`; use `context.WithTimeout` to bound how long you block.
 
 ### Fire and forget (background)
 
-```python
-action = await call.play([{"type": "tts", "params": {"text": "Hello"}}])
-# don't call action.wait() — continue immediately while audio plays
-await call.send_digits("1234")
+```go
+action := call.Play([]map[string]any{{"type": "tts", "params": map[string]any{"text": "Hello"}}})
+// don't call action.Wait() — continue immediately while audio plays
+call.SendDigits("1234")
 
-# check later if needed
-if action.is_done:
-    print(f"Play result: {action.result}")
+// check later if needed
+if action.IsDone() {
+	fmt.Printf("Play result: %v\n", action.Result())
+}
 ```
 
 ### Fire with callback
 
-```python
-# Sync callback
-action = await call.play(
-    [{"type": "tts", "params": {"text": "Hello"}}],
-    on_completed=lambda event: print(f"Done: {event.params}"),
+```go
+// Via the option
+action := call.Play(
+	[]map[string]any{{"type": "tts", "params": map[string]any{"text": "Hello"}}},
+	relay.WithPlayOnCompleted(func(event *relay.RelayEvent) {
+		fmt.Printf("Done: %v\n", event.Params)
+	}),
 )
-# continues immediately; callback fires when playback finishes
+_ = action
 
-# Async callback
-async def on_recording_done(event):
-    print(f"Recording URL: {event.params.get('url')}")
-    await call.hangup()
-
-action = await call.record(on_completed=on_recording_done)
+// Or register after creation
+rec := call.Record(relay.WithRecordOnCompleted(func(event *relay.RelayEvent) {
+	fmt.Printf("Recording URL: %s\n", event.GetString("url"))
+	call.Hangup("")
+}))
+_ = rec
 ```
 
-The `on_completed` callback is available on all action-based methods: `play`, `record`, `play_and_collect`, `collect`, `detect`, `pay`, `send_fax`, `receive_fax`, `tap`, `stream`, `transcribe`, and `ai`. It accepts both sync and async functions. Errors in callbacks are caught and logged, never crash the event loop. The callback also fires when the call is gone (404/410).
+The completion callback is available on all action-based methods via their `With<Verb>OnCompleted` option (`Play`, `Record`, `Collect`, etc.). Errors in callbacks are caught and logged, never crash the client. The callback also fires when the call is gone (404/410).
 
 ### Action methods summary
 
 | Method | Returns |
 |--------|---------|
-| `action.wait(timeout=None)` | Blocks until the action completes, returns the terminal `RelayEvent` |
-| `action.is_done` | `True` if the action has completed |
-| `action.result` | The terminal `RelayEvent` (or `None` if not done) |
-| `action.completed` | `True` if the action reached a terminal state |
-| `action.stop()` | Stop the operation on the server |
+| `action.Wait(ctx)` | Blocks until the action completes, returns the terminal `*RelayEvent` |
+| `action.IsDone()` | `true` if the action has completed |
+| `action.Result()` | The terminal `*RelayEvent` (or `nil` if not done) |
+| `action.Completed()` | `true` if the action reached a terminal state |
+| `action.Stop()` | Stop the operation on the server |
 
-Some actions also have `pause()`, `resume()`, and `volume()`.
+Some actions also have `Pause()`, `Resume()`, and `Volume()`.
 
 ## Lifecycle
 
-### `answer(**kwargs) -> dict`
+### `Answer() error`
 
 Answer an inbound call.
 
-```python
-await call.answer()
+```go
+call.Answer()
 ```
 
-### `hangup(reason="hangup") -> dict`
+### `Hangup(reason string) error`
 
-End the call.
+End the call. Pass `""` for the default reason.
 
-```python
-await call.hangup()
-await call.hangup(reason="busy")
+```go
+call.Hangup("")
+call.Hangup("busy")
 ```
 
-### `pass_() -> dict`
+### `Pass() error`
 
 Decline control, returning the call to routing.
 
-```python
-await call.pass_()
+```go
+call.Pass()
 ```
 
 ## Audio Playback
 
-### `play(media, *, volume=None, direction=None, loop=None, control_id=None) -> PlayAction`
+### `Play(media []map[string]any, opts ...PlayOption) *PlayAction`
 
-Play audio. Returns a `PlayAction` with `stop()`, `pause()`, `resume()`, `volume()`, and `wait()`.
+Play audio. Returns a `*PlayAction` with `Stop()`, `Pause()`, `Resume()`, `Volume()`, and `Wait()`.
 
-```python
-# TTS
-action = await call.play([{"type": "tts", "params": {"text": "Hello!"}}])
-await action.wait()
+```go
+// TTS
+action := call.Play([]map[string]any{{"type": "tts", "params": map[string]any{"text": "Hello!"}}})
+action.Wait(context.Background())
 
-# Audio file
-action = await call.play([{"type": "audio", "params": {"url": "https://example.com/sound.mp3"}}])
+// Audio file
+action = call.Play([]map[string]any{{"type": "audio", "params": map[string]any{"url": "https://example.com/sound.mp3"}}})
 
-# Silence
-action = await call.play([{"type": "silence", "params": {"duration": 2}}])
+// Silence
+action = call.Play([]map[string]any{{"type": "silence", "params": map[string]any{"duration": 2}}})
 
-# Ringtone
-action = await call.play([{"type": "ringtone", "params": {"name": "us"}}])
+// Ringtone
+action = call.Play([]map[string]any{{"type": "ringtone", "params": map[string]any{"name": "us"}}})
 
-# Control playback
-await action.pause()
-await action.resume()
-await action.volume(-3.0)
-await action.stop()
+// Control playback
+action.Pause()
+action.Resume()
+action.Volume(-3.0)
+action.Stop()
 ```
+
+Convenience helpers avoid building the media slice by hand: `call.PlayTTS(text, opts...)`, `call.PlayAudio(url, opts...)`, `call.PlaySilence(duration)`, and `call.PlayRingtone(name, opts...)`.
 
 ## Recording
 
-### `record(audio=None, *, control_id=None) -> RecordAction`
+### `Record(opts ...RecordOption) *RecordAction`
 
-Record the call. Returns a `RecordAction` with `stop()`, `pause()`, `resume()`, and `wait()`.
+Record the call. Returns a `*RecordAction` with `Stop()`, `Pause()`, `Resume()`, and `Wait()`.
 
-```python
-action = await call.record(audio={"format": "wav", "stereo": True, "direction": "both"})
-# ... later ...
-await action.stop()
-event = await action.wait()
-print(f"Recording URL: {event.params.get('url')}")
+```go
+action := call.Record(
+	relay.WithRecordFormat("wav"),
+	relay.WithRecordStereo(true),
+	relay.WithRecordDirection("both"),
+)
+// ... later ...
+action.Stop()
+event, _ := action.Wait(context.Background())
+fmt.Printf("Recording URL: %s\n", event.GetString("url"))
 ```
 
 ## Input Collection
 
-### `play_and_collect(media, collect, *, volume=None, control_id=None) -> CollectAction`
+### `PlayAndCollect(media []map[string]any, collect map[string]any, opts ...PlayOption) *CollectAction`
 
-Play audio and collect DTMF or speech input. Returns a `CollectAction`.
+Play audio and collect DTMF or speech input. Returns a `*CollectAction`.
 
-```python
-action = await call.play_and_collect(
-    [{"type": "tts", "params": {"text": "Press 1 for sales, 2 for support."}}],
-    {"digits": {"max": 1, "digit_timeout": 5.0}},
+```go
+action := call.PlayAndCollect(
+	[]map[string]any{{"type": "tts", "params": map[string]any{"text": "Press 1 for sales, 2 for support."}}},
+	map[string]any{"digits": map[string]any{"max": 1, "digit_timeout": 5.0}},
 )
-event = await action.wait()
-digit = event.params.get("result", {}).get("params", {}).get("digits", "")
+event, _ := action.Wait(context.Background())
+_ = event
 ```
 
-### `collect(*, digits=None, speech=None, ..., control_id=None) -> StandaloneCollectAction`
+### `Collect(params *CollectParams) *StandaloneCollectAction`
 
-Collect input without playing audio.
+Collect input without playing audio. `CollectParams` exposes the named fields (`Digits`, `Speech`, `PartialResults`, etc.); pass `nil` for an empty collect body.
 
-```python
-action = await call.collect(
-    digits={"max": 4, "terminators": "#"},
-    speech={"language": "en-US"},
-    partial_results=True,
-)
-event = await action.wait()
+```go
+partial := true
+action := call.Collect(&relay.CollectParams{
+	Digits:         map[string]any{"max": 4, "terminators": "#"},
+	Speech:         map[string]any{"language": "en-US"},
+	PartialResults: &partial,
+})
+event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 ## Bridging
 
-### `connect(devices, *, ringback=None, tag=None, max_duration=None, max_price_per_minute=None, status_url=None) -> dict`
+### `Connect(devices [][]map[string]any, opts ...ConnectOption) error`
 
 Bridge the call to another destination.
 
-```python
-await call.connect(
-    [[{"type": "phone", "params": {"to_number": "+15551234567", "from_number": "+15559876543"}}]],
-    ringback=[{"type": "ringtone", "params": {"name": "us"}}],
+```go
+call.Connect(
+	[][]map[string]any{
+		{{"type": "phone", "params": map[string]any{"to_number": "+15551234567", "from_number": "+15559876543"}}},
+	},
+	relay.WithConnectRingback([]map[string]any{{"type": "ringtone", "params": map[string]any{"name": "us"}}}),
 )
 ```
 
-### `disconnect() -> dict`
+### `Disconnect() error`
 
 Unbridge a connected call.
 
-```python
-await call.disconnect()
+```go
+call.Disconnect()
 ```
 
 ## DTMF
 
-### `send_digits(digits, *, control_id=None) -> dict`
+### `SendDigits(digits string) error`
 
 Send DTMF tones.
 
-```python
-await call.send_digits("1234#")
+```go
+call.SendDigits("1234#")
 ```
 
 ## Detection
 
-### `detect(detect, *, timeout=None, control_id=None) -> DetectAction`
+### `Detect(detect map[string]any, timeout *float64, controlID ...string) *DetectAction`
 
 Detect machine, fax, or digits.
 
-```python
-action = await call.detect({"type": "machine"}, timeout=30.0)
-event = await action.wait()
+```go
+timeout := 30.0
+action := call.Detect(map[string]any{"type": "machine"}, &timeout)
+event, _ := action.Wait(context.Background())
+_ = event
 ```
+
+Typed convenience helpers: `call.DetectDigit(opts...)`, `call.DetectAnsweringMachine(opts...)`, and `call.DetectFax(opts...)`.
 
 ## SIP Refer
 
-### `refer(device, *, status_url=None) -> dict`
+### `Refer(device map[string]any, statusURL string) error`
 
 Transfer via SIP REFER.
 
-```python
-await call.refer({"type": "sip", "params": {"to": "sip:user@example.com"}})
+```go
+call.Refer(map[string]any{"type": "sip", "params": map[string]any{"to": "sip:user@example.com"}}, "")
 ```
 
 ## Transfer
 
-### `transfer(dest) -> dict`
+### `Transfer(dest string) error`
 
 Transfer call control to another RELAY app or SWML script.
 
-```python
-await call.transfer("https://example.com/swml-endpoint")
+```go
+call.Transfer("https://example.com/swml-endpoint")
 ```
 
 ## Fax
 
-### `send_fax(document, *, identity=None, header_info=None, control_id=None) -> FaxAction`
+### `SendFax(document, identity string, opts ...FaxOption) *FaxAction`
 
-```python
-action = await call.send_fax("https://example.com/document.pdf", identity="+15551234567")
-event = await action.wait()
+```go
+action := call.SendFax("https://example.com/document.pdf", "+15551234567")
+event, _ := action.Wait(context.Background())
+_ = event
 ```
 
-### `receive_fax(*, control_id=None) -> FaxAction`
+### `ReceiveFax(opts ...FaxOption) *FaxAction`
 
-```python
-action = await call.receive_fax()
-event = await action.wait()
+```go
+action := call.ReceiveFax()
+event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 ## Tap (Media Interception)
 
-### `tap(tap, device, *, control_id=None) -> TapAction`
+### `Tap(tap, device map[string]any, controlID ...string) *TapAction`
 
 Intercept call media and stream to an RTP endpoint.
 
-```python
-action = await call.tap(
-    {"type": "audio", "params": {"direction": "both"}},
-    {"type": "rtp", "params": {"addr": "192.168.1.100", "port": 5000}},
+```go
+action := call.Tap(
+	map[string]any{"type": "audio", "params": map[string]any{"direction": "both"}},
+	map[string]any{"type": "rtp", "params": map[string]any{"addr": "192.168.1.100", "port": 5000}},
 )
+_ = action
 ```
 
 ## Streaming
 
-### `stream(url, *, name=None, codec=None, track=None, control_id=None, ...) -> StreamAction`
+### `Stream(url string, opts ...StreamOption) *StreamAction`
 
 Stream call audio to a WebSocket endpoint.
 
-```python
-action = await call.stream(
-    "wss://example.com/audio",
-    name="my_stream",
-    codec="PCMU",
-    track="inbound_track",
+```go
+action := call.Stream(
+	"wss://example.com/audio",
+	relay.WithStreamName("my_stream"),
+	relay.WithStreamCodec("PCMU"),
+	relay.WithStreamTrack("inbound_track"),
 )
-# Stop streaming
-await action.stop()
+// Stop streaming
+action.Stop()
 ```
 
 ## Payment
 
-### `pay(payment_connector_url, *, control_id=None, charge_amount=None, currency=None, ...) -> PayAction`
+### `Pay(connectorURL string, opts ...PayOption) *PayAction`
 
 Collect a payment via DTMF.
 
-```python
-action = await call.pay(
-    "https://pay.example.com",
-    charge_amount="25.99",
-    currency="usd",
-    input_method="dtmf",
+```go
+action := call.Pay(
+	"https://pay.example.com",
+	relay.WithPayChargeAmount("25.99"),
+	relay.WithPayCurrency("usd"),
+	relay.WithPayInputMethod("dtmf"),
 )
-event = await action.wait()
+event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 ## Conference
 
-### `join_conference(name, *, muted=None, beep=None, max_participants=None, record=None, ...) -> dict`
+### `JoinConference(name string, opts ...ConferenceOption) error`
 
-```python
-await call.join_conference("my_conference", muted=False, beep="onEnter")
+```go
+call.JoinConference("my_conference",
+	relay.WithConferenceMuted(false),
+	relay.WithConferenceBeep("onEnter"),
+)
 ```
 
-### `leave_conference(conference_id) -> dict`
+### `LeaveConference(confID string) error`
 
-```python
-await call.leave_conference("conf-123")
+```go
+call.LeaveConference("conf-123")
 ```
 
 ## Hold
 
-### `hold() -> dict` / `unhold() -> dict`
+### `Hold() error` / `Unhold() error`
 
-```python
-await call.hold()
-# ... later ...
-await call.unhold()
+```go
+call.Hold()
+// ... later ...
+call.Unhold()
 ```
 
 ## Denoise
 
-### `denoise() -> dict` / `denoise_stop() -> dict`
+### `Denoise() error` / `DenoiseStop() error`
 
-```python
-await call.denoise()
-# ... later ...
-await call.denoise_stop()
+```go
+call.Denoise()
+// ... later ...
+call.DenoiseStop()
 ```
 
 ## Transcription
 
-### `transcribe(*, control_id=None, status_url=None) -> TranscribeAction`
+### `Transcribe(statusURL string, controlID ...string) *TranscribeAction`
 
-```python
-action = await call.transcribe(status_url="https://example.com/transcription")
-# ... later ...
-await action.stop()
+```go
+action := call.Transcribe("https://example.com/transcription")
+// ... later ...
+action.Stop()
 ```
 
 ## Live Transcribe / Translate
 
-### `live_transcribe(action_obj) -> dict`
+### `LiveTranscribe(action map[string]any) error`
 
-```python
-await call.live_transcribe({"start": {"language": "en-US"}})
+```go
+call.LiveTranscribe(map[string]any{"start": map[string]any{"language": "en-US"}})
 ```
 
-### `live_translate(action_obj, *, status_url=None) -> dict`
+### `LiveTranslate(action map[string]any, statusURL string) error`
 
-```python
-await call.live_translate({"start": {"source": "en-US", "target": "es"}})
+```go
+call.LiveTranslate(map[string]any{"start": map[string]any{"source": "en-US", "target": "es"}}, "")
 ```
 
 ## Echo
 
-### `echo(*, timeout=None, status_url=None) -> dict`
+### `Echo(timeout *float64, statusURL string) error`
 
 Echo audio back to the caller (useful for testing).
 
-```python
-await call.echo(timeout=30.0)
+```go
+timeout := 30.0
+call.Echo(&timeout, "")
 ```
 
 ## AI Agent
 
-### `ai(*, control_id=None, prompt=None, SWAIG=None, ai_params=None, ...) -> AIAction`
+### `AI(opts ...AIOption) *AIAction`
 
 Start an AI agent session on the call.
 
-```python
-action = await call.ai(
-    prompt={"text": "You are a helpful support agent."},
-    SWAIG={"functions": [...]},
-    ai_params={"end_of_speech_timeout": 3000},
+```go
+action := call.AI(
+	relay.WithAIPrompt(map[string]any{"text": "You are a helpful support agent."}),
+	relay.WithAISWAIG(map[string]any{"functions": []any{}}),
+	relay.WithAIParams(map[string]any{"end_of_speech_timeout": 3000}),
 )
-event = await action.wait()
+event, _ := action.Wait(context.Background())
+_ = event
 ```
 
-### `amazon_bedrock(*, prompt=None, SWAIG=None, ...) -> dict`
+### `AmazonBedrock(opts ...AIOption) *AIAction`
 
-Connect to an Amazon Bedrock AI agent.
+Connect to an Amazon Bedrock AI agent. Takes the same `AIOption` values as `AI`.
 
-### `ai_message(*, message_text=None, role=None, ...) -> dict`
+### `AIMessage(controlID, text, role string, reset, globalData map[string]any) error`
 
 Send a message to an active AI session.
 
-### `ai_hold(*, timeout=None, prompt=None) -> dict` / `ai_unhold(*, prompt=None) -> dict`
+### `AIHold(controlID, timeout, prompt string) error` / `AIUnhold(controlID, prompt string) error`
 
 Put an AI session on/off hold.
 
 ## Rooms
 
-### `join_room(name, *, status_url=None) -> dict`
+### `JoinRoom(name, statusURL string) error`
 
-```python
-await call.join_room("my_room")
+```go
+call.JoinRoom("my_room", "")
 ```
 
-### `leave_room() -> dict`
+### `LeaveRoom() error`
 
-```python
-await call.leave_room()
+```go
+call.LeaveRoom()
 ```
 
 ## Queue
 
-### `queue_enter(queue_name, *, control_id=None, status_url=None) -> dict`
+### `QueueEnter(name, statusURL string) error`
 
-```python
-await call.queue_enter("support")
+```go
+call.QueueEnter("support", "")
 ```
 
-### `queue_leave(queue_name, *, control_id=None, queue_id=None, status_url=None) -> dict`
+### `QueueLeave(name, queueID, statusURL string) error`
 
-```python
-await call.queue_leave("support", queue_id="q-123")
+```go
+call.QueueLeave("support", "q-123", "")
 ```
 
 ## Digit Bindings
 
-### `bind_digit(digits, bind_method, *, bind_params=None, realm=None, max_triggers=None) -> dict`
+### `BindDigit(digits, method string, bindParams map[string]any, realm string, maxTriggers int) error`
 
 Bind a DTMF sequence to trigger a RELAY method.
 
-```python
-await call.bind_digit(
-    "*1",
-    "calling.play",
-    bind_params={"play": [{"type": "tts", "params": {"text": "You pressed star-1"}}]},
+```go
+call.BindDigit(
+	"*1",
+	"calling.play",
+	map[string]any{"play": []map[string]any{{"type": "tts", "params": map[string]any{"text": "You pressed star-1"}}}},
+	"",
+	0,
 )
 ```
 
-### `clear_digit_bindings(*, realm=None) -> dict`
+### `ClearDigitBindings(realm string) error`
 
-```python
-await call.clear_digit_bindings()
+```go
+call.ClearDigitBindings("")
 ```
 
 ## User Events
 
-### `user_event(*, event=None, **kwargs) -> dict`
+### `UserEvent(eventName string, extra ...map[string]any) error`
 
 Send a custom event.
 
-```python
-await call.user_event(event="order_placed", order_id="12345")
+```go
+call.UserEvent("order_placed", map[string]any{"order_id": "12345"})
 ```
 
 ## Event Handling
 
-### `on(event_type, handler)`
+### `On(eventType string, handler func(*RelayEvent))`
 
 Register an event listener on this call.
 
-```python
-def on_play(event):
-    print(f"Play state: {event.params.get('state')}")
-
-call.on("calling.call.play", on_play)
+```go
+call.On(relay.EventCallingCallPlay, func(event *relay.RelayEvent) {
+	fmt.Printf("Play state: %s\n", event.GetString("state"))
+})
 ```
 
-### `wait_for(event_type, predicate=None, timeout=None) -> RelayEvent`
+### `WaitFor(ctx context.Context, eventType string, predicate func(*RelayEvent) bool) (*RelayEvent, error)`
 
-Wait for a specific event.
+Wait for a specific event. Pass a `nil` predicate to match the first event of that type.
 
-```python
-event = await call.wait_for("calling.call.play", timeout=30.0)
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+event, err := call.WaitFor(ctx, relay.EventCallingCallPlay, nil)
+_ = event
+_ = err
 ```
 
-### `wait_for_ended(timeout=None) -> RelayEvent`
+### `WaitForEnded(ctx context.Context) (*RelayEvent, error)`
 
 Wait for the call to end.
 
-```python
-event = await call.wait_for_ended()
-print(f"End reason: {event.params.get('end_reason')}")
+```go
+event, _ := call.WaitForEnded(context.Background())
+fmt.Printf("End reason: %s\n", event.GetString("end_reason"))
 ```

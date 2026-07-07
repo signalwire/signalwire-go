@@ -70,17 +70,15 @@ export SWML_BASIC_AUTH_PASSWORD=mysecurepassword
 
 SWML-based services automatically use the unified security configuration:
 
-```python
-from signalwire_agents import AgentBase
+```go
+// Security is automatically configured from the environment
+a := agent.NewAgentBase(
+    agent.WithName("secure-agent"),
+    agent.WithRoute("/agent"),
+)
 
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="secure-agent", route="/agent")
-        # Security is automatically configured from environment
-
-# The agent will use HTTPS if SWML_SSL_ENABLED=true
-agent = MyAgent()
-agent.run()
+// The agent will use HTTPS if SWML_SSL_ENABLED=true
+a.Run()
 ```
 
 ### Remote Search Server
@@ -185,12 +183,12 @@ export SWML_RATE_LIMIT=20
 
 Monitor security-related logs:
 
-```python
-# Security events are logged with structured data
-# Look for log entries with:
-# - "security_config_loaded" - Configuration details
-# - "ssl_config_invalid" - SSL configuration errors
-# - "starting_search_service" / "starting_server" - Service startup with security info
+```text
+Security events are logged with structured data.
+Look for log entries with:
+- "security_config_loaded" - Configuration details
+- "ssl_config_invalid" - SSL configuration errors
+- "starting_search_service" / "starting_server" - Service startup with security info
 ```
 
 ## Migration Guide

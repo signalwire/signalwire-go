@@ -4,41 +4,55 @@ The REST client provides synchronous access to all SignalWire APIs using standar
 
 ## Installation
 
-The REST client is included in the `signalwire-agents` package:
+The REST client is part of the `signalwire-go` module. Add it to your project with:
 
 ```bash
-pip install signalwire-agents
+go get github.com/signalwire/signalwire-go
 ```
 
-The only additional dependency is `requests`, which is installed automatically.
+It depends only on the Go standard library for HTTP.
 
 ## Configuration
 
 You need three things to connect:
 
-| Parameter | Env Var | Description |
-|-----------|---------|-------------|
+| Constructor arg | Env Var | Description |
+|-----------------|---------|-------------|
 | `project` | `SIGNALWIRE_PROJECT_ID` | Your SignalWire project ID |
 | `token` | `SIGNALWIRE_API_TOKEN` | Your SignalWire API token |
-| `host` | `SIGNALWIRE_SPACE` | Your space hostname (e.g. `example.signalwire.com`) |
+| `space` | `SIGNALWIRE_SPACE` | Your space hostname (e.g. `example.signalwire.com`) |
 
 ## Minimal Example
 
-```python
-from signalwire_agents.rest import RestClient
+```go
+package main
 
-client = RestClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
+import (
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/rest"
 )
 
-# List your AI agents
-agents = client.fabric.ai_agents.list()
-print(agents)
+func main() {
+	client, err := rest.NewRestClient(
+		"your-project-id",
+		"your-api-token",
+		"example.signalwire.com",
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// List your AI agents
+	agents, err := client.Fabric.AIAgents.List(nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(agents)
+}
 ```
 
-Or use environment variables and skip the constructor args:
+Or use environment variables and pass empty strings so the constructor reads them:
 
 ```bash
 export SIGNALWIRE_PROJECT_ID=your-project-id
@@ -46,60 +60,67 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
-```python
-from signalwire_agents.rest import RestClient
-
-client = RestClient()
-agents = client.fabric.ai_agents.list()
+```go
+client, err := rest.NewRestClient("", "", "")
+if err != nil {
+	panic(err)
+}
+agents, err := client.Fabric.AIAgents.List(nil)
 ```
 
 ## CRUD Pattern
 
 Most resources follow the same CRUD pattern:
 
-```python
-# List
-items = client.fabric.ai_agents.list()
+```go
+// List
+items, err := client.Fabric.AIAgents.List(nil)
 
-# Create
-agent = client.fabric.ai_agents.create(name="Support", prompt={"text": "Be helpful"})
+// Create
+agent, err := client.Fabric.AIAgents.Create(map[string]any{
+	"name":   "Support",
+	"prompt": map[string]any{"text": "Be helpful"},
+})
 
-# Get by ID
-agent = client.fabric.ai_agents.get("agent-uuid")
+// Get by ID
+agent, err = client.Fabric.AIAgents.Get("agent-uuid")
 
-# Update
-client.fabric.ai_agents.update("agent-uuid", name="Updated Name")
+// Update
+_, err = client.Fabric.AIAgents.Update("agent-uuid", map[string]any{"name": "Updated Name"})
 
-# Delete
-client.fabric.ai_agents.delete("agent-uuid")
+// Delete
+_, err = client.Fabric.AIAgents.Delete("agent-uuid")
 ```
+
+`List` accepts a `map[string]string` of query params (or `nil` for none), and
+`Create`/`Update` take a `map[string]any` request body.
 
 Fabric resources also support listing addresses:
 
-```python
-addresses = client.fabric.ai_agents.list_addresses("agent-uuid")
+```go
+addresses, err := client.Fabric.AIAgents.ListAddresses("agent-uuid", nil)
 ```
 
 ## Error Handling
 
-```python
-from signalwire_agents.rest import RestClient, SignalWireRestError
+A non-2xx HTTP response is returned as a `*rest.SignalWireRestError`:
 
-client = RestClient()
+```go
+import (
+	"errors"
+	"fmt"
 
-try:
-    agent = client.fabric.ai_agents.get("nonexistent-id")
-except SignalWireRestError as e:
-    print(f"HTTP {e.status_code}: {e.body}")
-    # HTTP 404: {'error': 'not found'}
-```
+	"github.com/signalwire/signalwire-go/pkg/rest"
+)
 
-## Debug Logging
-
-Set the log level to see HTTP request details:
-
-```bash
-export SIGNALWIRE_LOG_LEVEL=debug
+_, err := client.Fabric.AIAgents.Get("nonexistent-id")
+if err != nil {
+	var restErr *rest.SignalWireRestError
+	if errors.As(err, &restErr) {
+		fmt.Printf("HTTP %d: %s\n", restErr.StatusCode, restErr.Body)
+		// HTTP 404: {"error": "not found"}
+	}
+}
 ```
 
 ## Next Steps

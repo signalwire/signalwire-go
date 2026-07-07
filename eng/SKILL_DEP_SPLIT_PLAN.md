@@ -37,7 +37,7 @@ Python (verified in signalwire-python):
 - **Skill *loading* is lazy** — `importlib` loads a skill module only on `add_skill('spider')`
   (`skills/registry.py:32-66`); importing the SDK does not import spider/web_search.
 - **Dependency *install* is forced** — `beautifulsoup4` + `lxml` are **core** deps in
-  `pyproject.toml:34,36`, not extras. So `pip install signalwire` always pulls lxml+bs4.
+  `pyproject.toml:34,36`, not extras. So a base install of the Python package always pulls lxml+bs4.
 - Net: Python is **lazy at import, forced at install.**
 
 Implications for Go:

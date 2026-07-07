@@ -6,102 +6,112 @@ RELAY events are server-pushed notifications about call state changes and operat
 
 ### On a Call
 
-```python
-@client.on_call
-async def handle(call):
-    # Register a listener
-    call.on("calling.call.play", lambda event: print(f"Play: {event.params}"))
+```go
+client.OnCall(func(call *relay.Call) {
+	// Register a listener
+	call.On(relay.EventCallingCallPlay, func(event *relay.RelayEvent) {
+		fmt.Printf("Play: %v\n", event.Params)
+	})
 
-    # Or wait for a specific event
-    event = await call.wait_for("calling.call.state",
-        predicate=lambda e: e.params.get("call_state") == "ended",
-        timeout=60.0,
-    )
+	// Or wait for a specific event
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	event, err := call.WaitFor(ctx, relay.EventCallingCallState, func(e *relay.RelayEvent) bool {
+		return e.GetString("call_state") == relay.CallStateEnded
+	})
+	_ = event
+	_ = err
+})
 ```
 
 ### Via Actions
 
-Actions returned by `play()`, `record()`, etc. have a `wait()` method that resolves when the operation completes:
+Actions returned by `Play()`, `Record()`, etc. have a `Wait()` method that resolves when the operation completes:
 
-```python
-action = await call.play([{"type": "tts", "params": {"text": "Hello"}}])
-event = await action.wait(timeout=30.0)
-# event is a RelayEvent with the terminal state
+```go
+action := call.PlayTTS("Hello")
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+event, err := action.Wait(ctx)
+// event is a *relay.RelayEvent with the terminal state
+_ = event
+_ = err
 ```
 
 ## Event Types
 
-All event type constants are importable from `signalwire_agents.relay`:
+All event type constants live in the `relay` package (from `constants.go`):
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `EVENT_CALL_STATE` | `calling.call.state` | Call state changes (created, ringing, answered, ending, ended) |
-| `EVENT_CALL_RECEIVE` | `calling.call.receive` | Inbound call notification |
-| `EVENT_CALL_PLAY` | `calling.call.play` | Play operation state changes |
-| `EVENT_CALL_RECORD` | `calling.call.record` | Record operation state changes |
-| `EVENT_CALL_COLLECT` | `calling.call.collect` | Input collection results |
-| `EVENT_CALL_CONNECT` | `calling.call.connect` | Bridge/connect state changes |
-| `EVENT_CALL_DETECT` | `calling.call.detect` | Detection results |
-| `EVENT_CALL_FAX` | `calling.call.fax` | Fax operation state changes |
-| `EVENT_CALL_TAP` | `calling.call.tap` | Tap operation state changes |
-| `EVENT_CALL_STREAM` | `calling.call.stream` | Stream operation state changes |
-| `EVENT_CALL_SEND_DIGITS` | `calling.call.send_digits` | DTMF send completion |
-| `EVENT_CALL_DIAL` | `calling.call.dial` | Outbound dial progress |
-| `EVENT_CALL_REFER` | `calling.call.refer` | SIP REFER results |
-| `EVENT_CALL_DENOISE` | `calling.call.denoise` | Denoise state changes |
-| `EVENT_CALL_PAY` | `calling.call.pay` | Payment state changes |
-| `EVENT_CALL_QUEUE` | `calling.call.queue` | Queue state changes |
-| `EVENT_CALL_ECHO` | `calling.call.echo` | Echo state changes |
-| `EVENT_CALL_TRANSCRIBE` | `calling.call.transcribe` | Transcription state changes |
-| `EVENT_CONFERENCE` | `calling.conference` | Conference state changes |
-| `EVENT_CALLING_ERROR` | `calling.error` | Error events |
-| `EVENT_MESSAGING_RECEIVE` | `messaging.receive` | Inbound message received |
-| `EVENT_MESSAGING_STATE` | `messaging.state` | Outbound message state change |
+| `EventCallingCallState` | `calling.call.state` | Call state changes (created, ringing, answered, ending, ended) |
+| `EventCallingCallReceive` | `calling.call.receive` | Inbound call notification |
+| `EventCallingCallPlay` | `calling.call.play` | Play operation state changes |
+| `EventCallingCallRecord` | `calling.call.record` | Record operation state changes |
+| `EventCallingCallCollect` | `calling.call.collect` | Input collection results |
+| `EventCallingCallConnect` | `calling.call.connect` | Bridge/connect state changes |
+| `EventCallingCallDetect` | `calling.call.detect` | Detection results |
+| `EventCallingCallFax` | `calling.call.fax` | Fax operation state changes |
+| `EventCallingCallTap` | `calling.call.tap` | Tap operation state changes |
+| `EventCallingCallStream` | `calling.call.stream` | Stream operation state changes |
+| `EventCallingCallSendDigits` | `calling.call.send_digits` | DTMF send completion |
+| `EventCallingCallDial` | `calling.call.dial` | Outbound dial progress |
+| `EventCallingCallRefer` | `calling.call.refer` | SIP REFER results |
+| `EventCallingCallDenoise` | `calling.call.denoise` | Denoise state changes |
+| `EventCallingCallPay` | `calling.call.pay` | Payment state changes |
+| `EventCallingCallQueue` | `calling.call.queue` | Queue state changes |
+| `EventCallingCallEcho` | `calling.call.echo` | Echo state changes |
+| `EventCallingCallTranscribe` | `calling.call.transcribe` | Transcription state changes |
+| `EventCallingCallConference` | `calling.conference` | Conference state changes |
+| `EventCallingCallError` | `calling.error` | Error events |
+| `EventMessagingReceive` | `messaging.receive` | Inbound message received |
+| `EventMessagingState` | `messaging.state` | Outbound message state change |
 
-## Typed Event Classes
+## Typed Event Structs
 
-Raw events are always `RelayEvent` with a `params` dict. For convenience, typed event classes provide named properties:
+Raw events are always `*relay.RelayEvent` with a `Params` map. For convenience, typed event structs embed `*RelayEvent` and add named fields. `relay.ParseEvent` returns the concrete typed struct (as `any`) for a raw payload:
 
-```python
-from signalwire_agents.relay import CallStateEvent, PlayEvent, RecordEvent, parse_event
+```go
+// Automatic parsing — returns the concrete typed event as `any`.
+event := relay.ParseEvent(rawPayload)
 
-# Automatic parsing
-event = parse_event(raw_payload)
-
-# Or construct directly
-if event.event_type == "calling.call.state":
-    state_event = CallStateEvent.from_payload(raw_payload)
-    print(state_event.call_state)   # "answered"
-    print(state_event.end_reason)   # "hangup" (only on ended)
+// Type-switch to the concrete struct
+switch e := event.(type) {
+case *relay.CallStateEvent:
+	fmt.Println(e.CallState) // "answered"
+	fmt.Println(e.EndReason) // "hangup" (only on ended)
+case *relay.PlayEvent:
+	fmt.Println(e.State)
+}
 ```
 
 ### Available Typed Events
 
-| Class | Key Properties |
-|-------|---------------|
-| `CallStateEvent` | `call_state`, `end_reason`, `direction`, `device` |
-| `CallReceiveEvent` | `call_state`, `direction`, `device`, `node_id`, `context`, `tag` |
-| `PlayEvent` | `control_id`, `state` |
-| `RecordEvent` | `control_id`, `state`, `url`, `duration`, `size` |
-| `CollectEvent` | `control_id`, `state`, `result`, `final` |
-| `ConnectEvent` | `connect_state`, `peer` |
-| `DetectEvent` | `control_id`, `detect` |
-| `FaxEvent` | `control_id`, `fax` |
-| `TapEvent` | `control_id`, `state`, `tap`, `device` |
-| `StreamEvent` | `control_id`, `state`, `url`, `name` |
-| `SendDigitsEvent` | `control_id`, `state` |
-| `DialEvent` | `tag`, `dial_state`, `call` |
-| `ReferEvent` | `state`, `sip_refer_to`, `sip_refer_response_code` |
-| `DenoiseEvent` | `denoised` |
-| `PayEvent` | `control_id`, `state` |
-| `QueueEvent` | `control_id`, `status`, `queue_id`, `queue_name`, `position`, `size` |
-| `EchoEvent` | `state` |
-| `TranscribeEvent` | `control_id`, `state`, `url`, `duration`, `size` |
-| `HoldEvent` | `state` |
-| `ConferenceEvent` | `conference_id`, `name`, `status` |
-| `CallingErrorEvent` | `code`, `message` |
-| `MessageReceiveEvent` | `message_id`, `context`, `direction`, `from_number`, `to_number`, `body`, `media`, `segments`, `message_state`, `tags` |
-| `MessageStateEvent` | `message_id`, `context`, `direction`, `from_number`, `to_number`, `body`, `media`, `segments`, `message_state`, `reason`, `tags` |
+| Struct | Key Fields |
+|--------|------------|
+| `CallStateEvent` | `CallState`, `EndReason`, `Direction`, `Device` |
+| `CallReceiveEvent` | `CallState`, `Direction`, `Device`, `NodeID`, `Context`, `Tag` |
+| `PlayEvent` | `ControlID`, `State` |
+| `RecordEvent` | `ControlID`, `State`, `URL`, `Duration`, `Size` |
+| `CollectEvent` | `ControlID`, `State`, `Result`, `Final` |
+| `ConnectEvent` | `ConnectState`, `Peer` |
+| `DetectEvent` | `ControlID`, `Detect` |
+| `FaxEvent` | `ControlID`, `Fax` |
+| `TapEvent` | `ControlID`, `State`, `Tap`, `Device` |
+| `StreamEvent` | `ControlID`, `State`, `URL`, `Name` |
+| `SendDigitsEvent` | `ControlID`, `State` |
+| `DialEvent` | `Tag`, `DialState`, `Call` |
+| `ReferEvent` | `State`, `SIPReferTo`, `SIPReferResponseCode` |
+| `DenoiseEvent` | `Denoised` |
+| `PayEvent` | `ControlID`, `State` |
+| `QueueEvent` | `ControlID`, `Status`, `QueueID`, `QueueName`, `Position`, `Size` |
+| `EchoEvent` | `State` |
+| `TranscribeEvent` | `ControlID`, `State`, `URL`, `Duration`, `Size` |
+| `HoldEvent` | `State` |
+| `ConferenceEvent` | `ConferenceID`, `Name`, `Status` |
+| `CallingErrorEvent` | `Code`, `Message` |
+| `MessageReceiveEvent` | `MessageID`, `Context`, `Direction`, `FromNumber`, `ToNumber`, `Body`, `Media`, `Segments`, `MessageState`, `Tags` |
+| `MessageStateEvent` | `MessageID`, `Context`, `Direction`, `FromNumber`, `ToNumber`, `Body`, `Media`, `Segments`, `MessageState`, `Reason`, `Tags` |
 
 ## Call States
 

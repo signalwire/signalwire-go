@@ -2,117 +2,122 @@
 
 ## Constructor
 
-```python
-RelayClient(
-    project: str = None,          # SIGNALWIRE_PROJECT_ID
-    token: str = None,            # SIGNALWIRE_API_TOKEN
-    jwt_token: str = None,        # SIGNALWIRE_JWT_TOKEN
-    host: str = None,             # SIGNALWIRE_SPACE (default: relay.signalwire.com)
-    contexts: list[str] = None,   # Topics to subscribe to
-    max_active_calls: int = None, # RELAY_MAX_ACTIVE_CALLS (default: 1000)
+`NewRelayClient` takes functional options:
+
+```go
+client := relay.NewRelayClient(
+	relay.WithProject("..."),      // SIGNALWIRE_PROJECT_ID
+	relay.WithToken("..."),        // SIGNALWIRE_API_TOKEN
+	relay.WithJWT("..."),          // SIGNALWIRE_JWT_TOKEN
+	relay.WithSpace("..."),        // SIGNALWIRE_SPACE (default: relay.signalwire.com)
+	relay.WithContexts("default"), // Topics to subscribe to (variadic)
+	relay.WithMaxActiveCalls(100), // RELAY_MAX_ACTIVE_CALLS (default: 1000)
 )
 ```
 
-Authentication requires either `project` + `token` (legacy) or `jwt_token` (faster, no server roundtrip). All parameters fall back to their corresponding environment variables.
+Authentication requires either `WithProject` + `WithToken` (legacy) or `WithJWT` (faster, no server roundtrip). Any credential you don't set explicitly falls back to its corresponding environment variable.
 
 ## Methods
 
-### `run()`
+### `Run() error`
 
-Blocking entry point. Connects, authenticates, and runs the event loop with auto-reconnect until interrupted.
+Blocking entry point. Connects, authenticates, and runs the event loop with auto-reconnect until interrupted. Returns an error if the client fails to start.
 
-```python
-client.run()
+```go
+if err := client.Run(); err != nil {
+	log.Fatal(err)
+}
 ```
 
-### `connect()` / `disconnect()`
+`RunContext(ctx)` is the cancellable form — it returns when `ctx` is cancelled.
 
-Manual lifecycle control for use in async code.
+### `Connect() error` / `Stop()`
 
-```python
-await client.connect()
-# ... use client ...
-await client.disconnect()
+Manual lifecycle control.
+
+```go
+if err := client.Connect(); err != nil {
+	log.Fatal(err)
+}
+// ... use client ...
+client.Stop()
 ```
 
-Also supports async context manager:
+### `OnCall(handler func(*relay.Call))`
 
-```python
-async with RelayClient(contexts=["default"]) as client:
-    ...
+Register the inbound call handler. The handler receives a `*relay.Call`.
+
+```go
+client.OnCall(func(call *relay.Call) {
+	call.Answer()
+})
 ```
 
-### `on_call(handler)`
+### `Dial(devices [][]map[string]any, opts ...DialOption) (*relay.Call, error)`
 
-Decorator to register the inbound call handler. The handler receives a `Call` object.
+Place an outbound call. Returns a `*relay.Call` once the remote party answers.
 
-```python
-@client.on_call
-async def handle(call):
-    await call.answer()
+- `devices` -- nested slice of device objects (serial/parallel dial)
+- `relay.WithDialTag(tag)` -- optional correlation tag (auto-generated if omitted)
+- `relay.WithDialMaxDuration(minutes)` -- max call duration in minutes
+- `relay.WithDialClientTimeout(d)` -- how long to wait before returning `ErrDialTimeout` (default: 120s)
+
+```go
+call, err := client.Dial([][]map[string]any{
+	{
+		{"type": "phone", "params": map[string]any{"to_number": "+15551234567", "from_number": "+15559876543"}},
+	},
+})
 ```
 
-### `dial(devices, *, tag=None, max_duration=None, dial_timeout=None) -> Call`
+`DialContext(ctx, devices, opts...)` adds caller cancellation via a `context.Context`.
 
-Place an outbound call. Returns a `Call` once the remote party answers.
+### `OnMessage(handler func(*relay.Message))`
 
-- `devices` -- nested list of device objects (serial/parallel dial)
-- `tag` -- optional correlation tag (auto-generated if omitted)
-- `max_duration` -- max call duration in minutes
-- `dial_timeout` -- seconds to wait before raising `TimeoutError` (default: 120)
+Register the inbound message handler. The handler receives a `*relay.Message`.
 
-```python
-call = await client.dial([
-    [{"type": "phone", "params": {"to_number": "+15551234567", "from_number": "+15559876543"}}]
-])
+```go
+client.OnMessage(func(message *relay.Message) {
+	fmt.Printf("SMS from %s: %s\n", message.FromNumber(), message.Body())
+})
 ```
 
-### `on_message(handler)`
+### `SendMessage(to, from, body string, opts ...MessageOption) (*relay.Message, error)`
 
-Decorator to register the inbound message handler. The handler receives a `Message` object.
+Send an outbound SMS/MMS. Returns a `*relay.Message` that tracks delivery state.
 
-```python
-@client.on_message
-async def handle(message):
-    print(f"SMS from {message.from_number}: {message.body}")
-```
-
-### `send_message(*, to_number, from_number, body=None, media=None, ...) -> Message`
-
-Send an outbound SMS/MMS. Returns a `Message` that tracks delivery state.
-
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello!",
-)
-event = await message.wait()  # block until delivered/failed
+```go
+message, err := client.SendMessage("+15552222222", "+15551111111", "Hello!")
+if err != nil {
+	log.Fatal(err)
+}
+event, _ := message.Wait(context.Background()) // block until delivered/failed
+_ = event
 ```
 
 See [Messaging](messaging.md) for full details.
 
-### `execute(method, params) -> dict`
+### `Execute(method string, params map[string]any) (json.RawMessage, error)`
 
 Send a raw JSON-RPC request. Used internally by Call methods, but available for custom commands.
 
-### `receive(contexts) / unreceive(contexts)`
+### `Receive(contexts ...string) error` / `Unreceive(contexts ...string) error`
 
 Dynamically subscribe to or unsubscribe from contexts after connecting.
 
-```python
-await client.receive(["new-context"])
-await client.unreceive(["old-context"])
+```go
+client.Receive("new-context")
+client.Unreceive("old-context")
 ```
 
-## Properties
+## Accessors
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `relay_protocol` | `str` | Server-assigned protocol string from connect response |
-| `project` | `str` | Project ID |
-| `host` | `str` | Relay host |
-| `contexts` | `list[str]` | Initial contexts |
+| Method | Type | Description |
+|--------|------|-------------|
+| `RelayProtocol()` | `string` | Server-assigned protocol string from connect response |
+| `ProjectID()` | `string` | Project ID |
+| `Space()` | `string` | Relay host |
+| `Contexts()` | `[]string` | Initial contexts |
 
 ## Connection Behavior
 
@@ -130,13 +135,22 @@ For multiple WebSocket connections in one process, set `RELAY_MAX_CONNECTIONS` (
 
 ## Error Handling
 
-```python
-from signalwire_agents.relay import RelayError
+RELAY methods that return an `error` surface a `*relay.RelayError` when the
+server returns a non-2xx response code. Use `errors.As` to inspect the code and
+message:
 
-try:
-    await call.play([...])
-except RelayError as e:
-    print(f"Error {e.code}: {e.message}")
+```go
+import "errors"
+
+action := call.PlayTTS("Hello")
+if _, err := action.Wait(context.Background()); err != nil {
+	var re *relay.RelayError
+	if errors.As(err, &re) {
+		fmt.Printf("Error %d: %s\n", re.Code, re.Message)
+	}
+}
 ```
 
-`RelayError` is raised when the server returns a non-2xx response code. Errors 404 and 410 (call gone) are silently swallowed by Call methods since the call no longer exists.
+Errors 404 and 410 (call gone) are silently swallowed by Call methods since the
+call no longer exists. Dial failures expose the `relay.ErrDialTimeout` and
+`relay.ErrDialFailed` sentinels for `errors.Is` checks.

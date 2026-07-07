@@ -6,13 +6,19 @@ The MCP-SWAIG Gateway bridges Model Context Protocol (MCP) servers with SignalWi
 
 ## Installation
 
-The MCP Gateway is included in the SignalWire Agents SDK. Install with the gateway dependencies:
+The `mcp_gateway` **skill** is built into the SignalWire Go SDK. Add the SDK to your module:
 
 ```bash
-pip install "signalwire-agents[mcp-gateway]"
+go get github.com/signalwire/signalwire-go
 ```
 
-Once installed, the `mcp-gateway` CLI command is available:
+Blank-import the builtin skills so their `init()` functions register them:
+
+```go
+import _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+```
+
+The gateway **server** itself is a separate service. Once it is installed and on your PATH, run it against a config file:
 
 ```bash
 mcp-gateway -c config.json
@@ -265,26 +271,26 @@ Each service can have its own sandbox configuration:
 
 ### Skill Configuration
 
-```python
-agent.add_skill("mcp_gateway", {
-    "gateway_url": "https://localhost:8080",
-    "auth_user": "admin",
+```go
+a.AddSkill("mcp_gateway", map[string]any{
+    "gateway_url":   "https://localhost:8080",
+    "auth_user":     "admin",
     "auth_password": "changeme",
-    "services": [
+    "services": []map[string]any{
         {
-            "name": "todo",
-            "tools": ["add_todo", "list_todos"]  # Specific tools only
+            "name":  "todo",
+            "tools": []string{"add_todo", "list_todos"}, // Specific tools only
         },
         {
-            "name": "calculator",
-            "tools": "*"  # All tools
-        }
-    ],
-    "session_timeout": 300,     # Override default timeout
-    "tool_prefix": "mcp_",      # Prefix for SWAIG function names
-    "retry_attempts": 3,        # Gateway connection retries
-    "request_timeout": 30,      # Individual request timeout
-    "verify_ssl": True         # SSL certificate verification
+            "name":  "calculator",
+            "tools": "*", // All tools
+        },
+    },
+    "session_timeout": 300,     // Override default timeout
+    "tool_prefix":     "mcp_",  // Prefix for SWAIG function names
+    "retry_attempts":  3,       // Gateway connection retries
+    "request_timeout": 30,      // Individual request timeout
+    "verify_ssl":      true,    // SSL certificate verification
 })
 ```
 
@@ -430,39 +436,44 @@ python3 gateway_service.py
 
 ```bash
 # Test the agent with MCP skill
-swaig-test test/test_agent.py --list-tools
+swaig-test test_agent.go --list-tools
 
 # IMPORTANT: --call-id must come BEFORE --exec for session persistence
-swaig-test test/test_agent.py --call-id test-session --exec mcp_todo_add_todo --text "Buy milk"
-swaig-test test/test_agent.py --call-id test-session --exec mcp_todo_list_todos
+swaig-test test_agent.go --call-id test-session --exec mcp_todo_add_todo --text "Buy milk"
+swaig-test test_agent.go --call-id test-session --exec mcp_todo_list_todos
 
 # WRONG: This won't work - --call-id after --exec is treated as function argument
-swaig-test test/test_agent.py --exec mcp_todo_add_todo --text "Buy milk" --call-id test-session
+swaig-test test_agent.go --exec mcp_todo_add_todo --text "Buy milk" --call-id test-session
 
 # Generate SWML document
-swaig-test test/test_agent.py --dump-swml
+swaig-test test_agent.go --dump-swml
 ```
 
 ### 3. End-to-End Testing
 
-```python
-# test/test_agent.py
-from signalwire_agents import AgentBase
+```go
+// test_agent.go
+package main
 
-class TestMCPAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="MCP Test Agent")
-        
-        self.add_skill("mcp_gateway", {
-            "gateway_url": "http://localhost:8080",
-            "auth_user": "admin",
-            "auth_password": "changeme",
-            "services": [{"name": "todo"}]
-        })
+import (
+    "github.com/signalwire/signalwire-go/pkg/agent"
 
-if __name__ == "__main__":
-    agent = TestMCPAgent()
-    agent.run()
+    // Import builtin skills so their init() functions register them
+    _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+)
+
+func main() {
+    a := agent.NewAgentBase(agent.WithName("MCP Test Agent"))
+
+    a.AddSkill("mcp_gateway", map[string]any{
+        "gateway_url":   "http://localhost:8080",
+        "auth_user":     "admin",
+        "auth_password": "changeme",
+        "services":      []map[string]any{{"name": "todo"}},
+    })
+
+    a.Run()
+}
 ```
 
 ## Deployment
@@ -637,7 +648,7 @@ Enable debug logging:
 
 ## Examples
 
-- `examples/mcp_gateway_demo.py` - Agent connecting to MCP servers through the `mcp_gateway` skill
+- `examples/mcp_gateway/main.go` - Agent connecting to MCP servers through the `mcp_gateway` skill
 
 ## Future Enhancements
 

@@ -1147,16 +1147,19 @@ The CLI tool supports testing three types of webhook functions:
 
 External webhook functions are automatically detected when a function has a `webhook_url` parameter and are tested by making HTTP requests to the external service:
 
-```python
-@AgentBase.tool(
-    name="get_weather",
-    description="Get weather from external service",
-    parameters={"location": {"type": "string"}},
-    webhook_url="https://weather-api.example.com/current"
-)
-def get_weather_external(self, args, raw_data):
-    # This function body is never called for external webhooks
-    pass
+```go
+a.DefineTool(agent.ToolDefinition{
+    Name:        "get_weather",
+    Description: "Get weather from external service",
+    Parameters: map[string]any{
+        "location": map[string]any{"type": "string"},
+    },
+    WebhookURL: "https://weather-api.example.com/current",
+    Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+        // This handler is never called for external webhooks
+        return nil
+    },
+})
 ```
 
 **Testing External Webhooks:**

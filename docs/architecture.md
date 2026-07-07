@@ -2,7 +2,7 @@
 
 ## Overview
 
-The SignalWire AI Agents SDK provides a Python framework for building, deploying, and managing AI agents as microservices. These agents are self-contained web applications that expose HTTP endpoints to interact with the SignalWire platform. The SDK simplifies the creation of custom AI agents by handling common functionality like HTTP routing, prompt management, and tool execution.
+The SignalWire AI Agents SDK provides a Go framework for building, deploying, and managing AI agents as microservices. These agents are self-contained web applications that expose HTTP endpoints to interact with the SignalWire platform. The SDK simplifies the creation of custom AI agents by handling common functionality like HTTP routing, prompt management, and tool execution.
 
 ## Core Components
 
@@ -34,7 +34,7 @@ The SDK is built around a clear class hierarchy:
    - Handler registry for function execution
 
 4. **HTTP Routing**
-   - FastAPI-based web service
+   - `net/http`-based web service
    - Endpoint routing for SWML, SWAIG, and other services
    - Custom routing callbacks for dynamic endpoint handling
    - SIP request routing for voice applications
@@ -65,7 +65,7 @@ The DataMap system provides a declarative approach to creating SWAIG tools that 
 
 DataMap tools follow a pipeline execution model on the SignalWire server:
 
-```
+```text
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │ Function Call   │    │ Expression      │    │ Webhook         │    │ Response        │
 │ (Arguments)     │━━━▶│ Processing      │━━━▶│ Execution       │━━━▶│ Generation      │
@@ -82,13 +82,12 @@ DataMap tools follow a pipeline execution model on the SignalWire server:
 ### Core Components
 
 1. **Builder Pattern**: Fluent interface for constructing data_map configurations
-   ```python
-   tool = (DataMap('function_name')
-       .description('Function purpose')
-       .parameter('param', 'string', 'Description', required=True)
-       .webhook('GET', 'https://api.example.com/endpoint')
-       .output(SwaigFunctionResult('Response template'))
-   )
+   ```go
+   dm := datamap.New("function_name").
+       Description("Function purpose").
+       Parameter("param", "string", "Description", true, nil).
+       Webhook("GET", "https://api.example.com/endpoint", nil, "", false, nil).
+       Output(swaig.NewFunctionResult("Response template"))
    ```
 
 2. **Processing Pipeline**: Ordered execution with early termination
@@ -109,40 +108,37 @@ DataMap tools follow a pipeline execution model on the SignalWire server:
 The system supports different tool patterns:
 
 1. **API Integration Tools**: Direct REST API calls
-   ```python
-   weather_tool = (DataMap('get_weather')
-       .webhook('GET', 'https://api.weather.com/v1/current?q=${location}')
-       .output(SwaigFunctionResult('Weather: ${response.current.condition}'))
-   )
+   ```go
+   weatherTool := datamap.New("get_weather").
+       Webhook("GET", "https://api.weather.com/v1/current?q=${location}", nil, "", false, nil).
+       Output(swaig.NewFunctionResult("Weather: ${response.current.condition}"))
    ```
 
 2. **Expression-Based Tools**: Pattern matching without API calls
-   ```python
-   control_tool = (DataMap('file_control')
-       .expression(r'start.*', SwaigFunctionResult().add_action('start', True))
-       .expression(r'stop.*', SwaigFunctionResult().add_action('stop', True))
-   )
+   ```go
+   controlTool := datamap.New("file_control").
+       Expression("${args.command}", "start.*", swaig.NewFunctionResult().AddAction("start", true), nil).
+       Expression("${args.command}", "stop.*", swaig.NewFunctionResult().AddAction("stop", true), nil)
    ```
 
 3. **Array Processing Tools**: Handle list responses
-   ```python
-   search_tool = (DataMap('search_docs')
-       .webhook('GET', 'https://api.docs.com/search')
-       .foreach('${response.results}')
-       .output(SwaigFunctionResult('Found: ${foreach.title}'))
-   )
+   ```go
+   searchTool := datamap.New("search_docs").
+       Webhook("GET", "https://api.docs.com/search", nil, "", false, nil).
+       Foreach(map[string]any{"input_key": "response.results"}).
+       Output(swaig.NewFunctionResult("Found: ${foreach.title}"))
    ```
 
 ### Integration with Agent Architecture
 
 DataMap tools integrate with the existing agent architecture:
 
-```
+```text
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │ AgentBase       │    │ SWAIG           │    │ SignalWire      │
 │                 │    │ Function        │    │ Server          │
-│ .register_      │━━━▶│ Registry        │━━━▶│ Execution       │
-│  swaig_function │    │                 │    │ Environment     │
+│ .RegisterSwaig  │━━━▶│ Registry        │━━━▶│ Execution       │
+│  Function       │    │                 │    │ Environment     │
 │                 │    │ data_map field  │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
@@ -214,13 +210,13 @@ The Skills System provides a modular architecture for extending agent capabiliti
 
 The skills system follows a three-layer architecture:
 
-```
+```text
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │ Agent Layer     │    │ Management      │    │ Skills Layer    │
 │                 │    │ Layer           │    │                 │
 │ AgentBase       │━━━▶│ SkillManager    │━━━▶│ SkillBase       │
-│ .add_skill()    │    │ .load_skill()   │    │ .setup()        │
-│                 │    │ .unload_skill() │    │ .register_tools()│
+│ .AddSkill()     │    │ .LoadSkill()    │    │ .Setup()        │
+│                 │    │                 │    │ .RegisterTools()│
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          │                       │                       │
@@ -252,7 +248,7 @@ The skills system follows a three-layer architecture:
 
 ### Skill Lifecycle
 
-```
+```text
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │ Discovery       │    │ Loading         │    │ Registration    │
 │                 │    │                 │    │                 │
@@ -268,25 +264,32 @@ The skills system follows a three-layer architecture:
 
 Skills support configurable parameters for customization:
 
-```python
-# Default behavior
-agent.add_skill("web_search")
+```go
+// Default behavior
+a.AddSkill("web_search", nil)
 
-# Custom configuration
-agent.add_skill("web_search", {
+// Custom configuration
+a.AddSkill("web_search", map[string]any{
     "num_results": 3,
-    "delay": 0.5
+    "delay":       0.5,
 })
 ```
 
-Parameters are passed to the skill constructor and accessible via `self.params`:
+Parameters are passed to the skill factory and accessed via the `BaseSkill` typed getters (`GetParamInt`, `GetParamFloat`, `GetParamString`, ...):
 
-```python
-class WebSearchSkill(SkillBase):
-    def setup(self) -> bool:
-        self.num_results = self.params.get('num_results', 1)
-        self.delay = self.params.get('delay', 0)
-        # Configure behavior based on parameters
+```go
+type WebSearchSkill struct {
+    skills.BaseSkill
+    numResults int
+    delay      float64
+}
+
+func (s *WebSearchSkill) Setup() bool {
+    s.numResults = s.GetParamInt("num_results", 1)
+    s.delay = s.GetParamFloat("delay", 0)
+    // Configure behavior based on parameters
+    return true
+}
 ```
 
 ### Error Handling
@@ -299,7 +302,7 @@ The system provides detailed error reporting for common issues:
 - **Parameter Validation**: Validates parameter types and values
 
 Error messages are actionable and specific:
-```
+```text
 Failed to load skill 'web_search': Missing required environment variables: ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_ENGINE_ID']
 ```
 
@@ -330,7 +333,7 @@ The SDK implements a multi-layer security model:
    - Function-specific security tokens
    - Token validation for secure function calls
    - SessionManager-based security scope
-   - `secure=True` option on tool definitions (default)
+   - `Secure: true` field on tool definitions
 
 4. **State Isolation**
    - Per-call state separation
@@ -340,91 +343,110 @@ The SDK implements a multi-layer security model:
 
 The SDK is designed to be highly extensible:
 
-1. **Custom Agents**: Extend AgentBase to create specialized agents
-   ```python
-   class CustomAgent(AgentBase):
-       def __init__(self):
-           super().__init__(name="custom", route="/custom")
+1. **Custom Agents**: Compose AgentBase with functional options to create specialized agents
+   ```go
+   a := agent.NewAgentBase(
+       agent.WithName("custom"),
+       agent.WithRoute("/custom"),
+   )
    ```
 
-2. **Tool Registration**: Add new tools using the decorator pattern
-   ```python
-   @AgentBase.tool(
-       name="tool_name", 
-       description="Tool description",
-       parameters={...},
-       secure=True
-   )
-   def my_tool(self, args, raw_data):
-       # Tool implementation
+2. **Tool Registration**: Add new tools with `DefineTool`
+   ```go
+   a.DefineTool(agent.ToolDefinition{
+       Name:        "tool_name",
+       Description: "Tool description",
+       Parameters:  map[string]any{ /* ... */ },
+       Secure:      true,
+       Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+           // Tool implementation
+           return swaig.NewFunctionResult("done")
+       },
+   })
    ```
 
 3. **Prompt Customization**: Add sections, hints, languages
-   ```python
-   agent.add_language(name="English", code="en-US", voice="elevenlabs.josh")
-   agent.add_hints(["SignalWire", "SWML", "SWAIG"])
+   ```go
+   a.AddLanguage(map[string]any{"name": "English", "code": "en-US", "voice": "elevenlabs.josh"})
+   a.AddHints([]string{"SignalWire", "SWML", "SWAIG"})
    ```
 
 4. **Session Management**: The SDK includes session management for secure function calls
 
-5. **Request Handling**: Override request handling methods
-   ```python
-   def on_swml_request(self, request_data):
-       # Custom request handling
-   ```
-
-6. **Custom Prefabs**: Create reusable agent patterns
-   ```python
-   class MyCustomPrefab(AgentBase):
-       def __init__(self, config_param1, config_param2, **kwargs):
-           super().__init__(**kwargs)
-           # Configure the agent based on parameters
-           self.prompt_add_section("Personality", body=f"Customized based on: {config_param1}")
-   ```
-
-7. **Dynamic Configuration**: Per-request agent configuration for flexible behavior
-   ```python
-   def configure_agent_dynamically(self, query_params, body_params, headers, agent):
-       # Configure agent differently based on request data
-       # agent is the actual AgentBase instance
-       tier = query_params.get('tier', 'standard')
-       agent.set_params({"end_of_speech_timeout": 300 if tier == 'premium' else 500})
-   
-   self.set_dynamic_config_callback(self.configure_agent_dynamically)
-   ```
-
-8. **Skills Integration**: Add capabilities with one-liner calls
-   ```python
-   # Add built-in skills
-   agent.add_skill("web_search")
-   agent.add_skill("datetime")
-   agent.add_skill("math")
-   
-   # Configure skills with parameters
-   agent.add_skill("web_search", {
-       "num_results": 3,
-       "delay": 0.5
+5. **Request Handling**: Register a dynamic-config callback to customize each request
+   ```go
+   a.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ag *agent.AgentBase) {
+       // Custom request handling
    })
    ```
 
-9. **Custom Skills**: Create reusable skill modules
-   ```python
-   from signalwire_agents.core.skill_base import SkillBase
-   
-   class MyCustomSkill(SkillBase):
-       SKILL_NAME = "my_skill"
-       SKILL_DESCRIPTION = "A custom skill"
-       REQUIRED_PACKAGES = ["requests"]
-       REQUIRED_ENV_VARS = ["API_KEY"]
-       
-       def setup(self) -> bool:
-           # Initialize the skill
-           return True
-           
-       def register_tools(self) -> None:
-           # Register tools with the agent using the wrapper method
-           # This automatically includes swaig_fields
-           self.define_tool(...)
+6. **Custom Prefabs**: Create reusable agent patterns by wrapping AgentBase
+   ```go
+   func NewMyPrefab(configParam1 string) *agent.AgentBase {
+       a := agent.NewAgentBase(agent.WithName("my-prefab"))
+       // Configure the agent based on parameters
+       a.PromptAddSection("Personality", "Customized based on: "+configParam1, nil)
+       return a
+   }
+   ```
+
+7. **Dynamic Configuration**: Per-request agent configuration for flexible behavior
+   ```go
+   a.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ag *agent.AgentBase) {
+       // Configure agent differently based on request data
+       tier := queryParams["tier"]
+       if tier == "" {
+           tier = "standard"
+       }
+       timeout := 500
+       if tier == "premium" {
+           timeout = 300
+       }
+       ag.SetParams(map[string]any{"end_of_speech_timeout": timeout})
+   })
+   ```
+
+8. **Skills Integration**: Add capabilities with one-liner calls
+   ```go
+   // Add built-in skills
+   a.AddSkill("web_search", nil)
+   a.AddSkill("datetime", nil)
+   a.AddSkill("math", nil)
+
+   // Configure skills with parameters
+   a.AddSkill("web_search", map[string]any{
+       "num_results": 3,
+       "delay":       0.5,
+   })
+   ```
+
+9. **Custom Skills**: Create reusable skill modules by embedding `skills.BaseSkill`
+   ```go
+   type MyCustomSkill struct {
+       skills.BaseSkill
+   }
+
+   func NewMyCustomSkill(params map[string]any) skills.SkillBase {
+       return &MyCustomSkill{BaseSkill: skills.BaseSkill{
+           SkillName: "my_skill",
+           SkillDesc: "A custom skill",
+           Params:    params,
+       }}
+   }
+
+   func (s *MyCustomSkill) RequiredEnvVars() []string { return []string{"API_KEY"} }
+
+   func (s *MyCustomSkill) Setup() bool {
+       // Initialize the skill
+       return true
+   }
+
+   func (s *MyCustomSkill) RegisterTools() []skills.ToolRegistration {
+       // Return tool registrations (parameters + handler)
+       return []skills.ToolRegistration{ /* ... */ }
+   }
+
+   func init() { skills.RegisterSkill("my_skill", NewMyCustomSkill) }
    ```
 
 ### Dynamic Configuration
@@ -435,7 +457,7 @@ The dynamic configuration system enables agents to adapt their behavior on a per
 
 Dynamic configuration intercepts the SWML document generation process to apply request-specific configuration:
 
-```
+```text
 ┌─────────────┐    ┌──────────────────┐    ┌─────────────────────┐    ┌──────────────┐
 │ HTTP        │    │ Dynamic Config   │    │ Agent Instance      │    │ SWML         │
 │ Request     │━━━▶│ Callback         │━━━▶│ (AgentBase)         │━━━▶│ Document     │
@@ -460,7 +482,7 @@ Dynamic configuration intercepts the SWML document generation process to apply r
 
 #### Request Processing Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │ Dynamic Configuration Request Flow                                              │
 ├─────────────────────────────────────────────────────────────────────────────────┤
@@ -506,7 +528,7 @@ Dynamic configuration intercepts the SWML document generation process to apply r
 
 The dynamic configuration callback receives the actual agent instance, allowing direct manipulation of the agent's configuration for a single request:
 
-```
+```text
 ┌───────────────────────────────────────────────────────────────────────────────┐
 │ Agent Configuration Methods Available in Callback                             │
 ├───────────────────────────────────────────────────────────────────────────────┤
@@ -541,7 +563,7 @@ The dynamic configuration system is designed with performance in mind:
 
 #### Memory Management
 
-```
+```text
 Request 1 ┌─────────────┐    Request 2 ┌─────────────┐    Request 3 ┌─────────────┐
 Lifecycle │ RECEIVE     │    Lifecycle │ RECEIVE     │    Lifecycle │ RECEIVE     │
           │ REQUEST     │              │ REQUEST     │              │ REQUEST     │
@@ -565,7 +587,7 @@ Lifecycle │ RECEIVE     │    Lifecycle │ RECEIVE     │    Lifecycle │ 
 The dynamic configuration architecture supports several key patterns:
 
 1. **Multi-Tenant Applications**
-   ```
+   ```text
    ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
    │ Tenant A    │    │ Same Agent   │    │ Config A    │
    │ Request     │━━━▶│ Instance     │━━━▶│ Applied     │
@@ -578,7 +600,7 @@ The dynamic configuration architecture supports several key patterns:
    ```
 
 2. **A/B Testing and Experimentation**
-   ```
+   ```text
    ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
    │ Control     │    │ Decision     │    │ Version A   │
    │ Group       │━━━▶│ Logic        │━━━▶│ Config      │
@@ -591,7 +613,7 @@ The dynamic configuration architecture supports several key patterns:
    ```
 
 3. **Geographic and Cultural Localization**
-   ```
+   ```text
    ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
    │ US Request  │    │ Locale       │    │ English     │
    │ (en-US)     │━━━▶│ Detection    │━━━▶│ Voice + USD │
@@ -617,23 +639,25 @@ Dynamic configuration integrates with other SDK components:
 
 The system includes robust error handling:
 
-```python
-def configure_agent_dynamically(self, query_params, body_params, headers, agent):
-    try:
-        # Primary configuration logic
-        # agent is the actual AgentBase instance
-        tier = query_params.get('tier', 'standard')
-        if tier == 'premium':
-            agent.set_params({"end_of_speech_timeout": 300})
-            agent.add_hints(["premium support", "priority handling"])
-    except ConfigurationError as e:
-        # Log error and apply safe defaults
-        self.log.error("dynamic_config_error", error=str(e))
-        # Agent retains its base configuration
-    except Exception as e:
-        # Catch-all - agent continues with existing configuration
-        self.log.error("dynamic_config_critical", error=str(e))
+```go
+a.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ag *agent.AgentBase) {
+    // Primary configuration logic; guard risky work and fall back to safe
+    // defaults. On any failure the agent retains its base configuration.
+    tier := queryParams["tier"]
+    if tier == "" {
+        tier = "standard"
+    }
+    if tier == "premium" {
+        ag.SetParams(map[string]any{"end_of_speech_timeout": 300})
+        ag.AddHints([]string{"premium support", "priority handling"})
+    }
+})
 ```
+
+Go's error model favors early returns and explicit checks over exceptions:
+recover from panics at the callback boundary if a data source may fail, and log
+the error via `logging.New(...)` so the agent continues with its existing
+configuration.
 
 #### Migration Strategy
 
@@ -679,50 +703,57 @@ The SDK includes a collection of prefab agents that provide ready-to-use impleme
 
 ### Creating Custom Prefabs
 
-Users can create their own prefab agents by extending `AgentBase` or any existing prefab. Custom prefabs can be created within your project or packaged as reusable libraries.
+Users can create their own prefab agents by composing `AgentBase` (or wrapping an existing prefab) inside a constructor function. Custom prefabs can live within your project or be packaged as reusable libraries.
 
 Key steps for creating custom prefabs:
 
-1. **Extend the base class**:
-   ```python
-   class MyCustomPrefab(AgentBase):
-       def __init__(self, custom_param, **kwargs):
-           super().__init__(**kwargs)
-           self._custom_param = custom_param
+1. **Wrap AgentBase in a struct**:
+   ```go
+   type MyCustomPrefab struct {
+       *agent.AgentBase
+       customParam string
+   }
    ```
 
-2. **Configure defaults**:
-   ```python
-   # Set standard prompt sections
-   self.prompt_add_section("Personality", body="I am a specialized agent for...")
-   self.prompt_add_section("Goal", body="Help users with...")
-   
-   # Add default tools
-   self.register_default_tools()
+2. **Configure defaults in the constructor**:
+   ```go
+   func NewMyCustomPrefab(customParam string, opts ...agent.AgentOption) *MyCustomPrefab {
+       a := agent.NewAgentBase(opts...)
+
+       // Set standard prompt sections
+       a.PromptAddSection("Personality", "I am a specialized agent for...", nil)
+       a.PromptAddSection("Goal", "Help users with...", nil)
+
+       p := &MyCustomPrefab{AgentBase: a, customParam: customParam}
+       p.registerTools()
+       return p
+   }
    ```
 
 3. **Add specialized tools**:
-   ```python
-   @AgentBase.tool(
-       name="specialized_function", 
-       description="Do something specialized",
-       parameters={...}
-   )
-   def specialized_function(self, args, raw_data):
-       # Implementation
-       return SwaigFunctionResult("Function result")
+   ```go
+   func (p *MyCustomPrefab) registerTools() {
+       p.DefineTool(agent.ToolDefinition{
+           Name:        "specialized_function",
+           Description: "Do something specialized",
+           Parameters:  map[string]any{ /* ... */ },
+           Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+               // Implementation
+               return swaig.NewFunctionResult("Function result")
+           },
+       })
+   }
    ```
 
-4. **Create a factory method** (optional):
-   ```python
-   @classmethod
-   def create(cls, config_dict, **kwargs):
-       """Create an instance from a configuration dictionary"""
-       return cls(
-           custom_param=config_dict.get("custom_param", "default"),
-           name=config_dict.get("name", "custom_prefab"),
-           **kwargs
-       )
+4. **Provide a config-map factory** (optional):
+   ```go
+   func NewMyCustomPrefabFromConfig(config map[string]any, opts ...agent.AgentOption) *MyCustomPrefab {
+       customParam, _ := config["custom_param"].(string)
+       if customParam == "" {
+           customParam = "default"
+       }
+       return NewMyCustomPrefab(customParam, opts...)
+   }
    ```
 
 ### Prefab Customization Points
@@ -749,7 +780,7 @@ When designing prefabs, consider exposing these customization points:
 
 The POM (Prompt Object Model) represents a structured approach to prompt construction:
 
-```
+```text
 ┌───────────────────────────────────────────────┐
 │ Prompt                                        │
 ├───────────────────────────────────────────────┤
@@ -771,7 +802,7 @@ The Contexts and Steps system enhances traditional POM prompts by adding structu
 
 #### Core Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │ ContextBuilder                                              │
 ├─────────────────────────────────────────────────────────────┤
@@ -796,7 +827,7 @@ The Contexts and Steps system enhances traditional POM prompts by adding structu
 The system implements sophisticated navigation control through two primary mechanisms:
 
 **Intra-Context Navigation (Steps within a Context):**
-```
+```text
 Context: Customer Service
 ┌────────────┐    valid_steps    ┌──────────────┐    valid_steps    ┌──────────────┐
 │  greeting  │ ────────────────▶ │   identify   │ ────────────────▶ │   resolve    │
@@ -811,7 +842,7 @@ Context: Customer Service
 ```
 
 **Inter-Context Navigation (Switching between Contexts):**
-```
+```text
 ┌─────────────────┐    valid_contexts    ┌─────────────────┐    valid_contexts    ┌─────────────────┐
 │     Triage      │ ─────────────────▶   │   Technical     │ ─────────────────▶   │    Billing      │
 │                 │                      │   Support       │                      │                 │
@@ -830,7 +861,7 @@ Context: Customer Service
 
 Each step can restrict available AI functions to enhance security and user experience:
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │ Function Access Control by Step                │
 ├─────────────────────────────────────────────────┤
@@ -856,7 +887,7 @@ Each step can restrict available AI functions to enhance security and user exper
 
 The contexts system integrates with the existing SWML generation pipeline:
 
-```
+```text
 ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
 │ ContextBuilder  │ ───▶ │ Context Data    │ ───▶ │ SWML AI Verb    │
 │                 │      │ Serialization   │      │ Generation      │
@@ -884,7 +915,7 @@ The contexts system integrates with the existing SWML generation pipeline:
 #### Integration with Existing Systems
 
 **Coexistence with Traditional Prompts:**
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │ Agent Configuration                             │
 ├─────────────────────────────────────────────────┤
@@ -992,25 +1023,29 @@ Functions are defined with:
 - Security settings
 
 Example:
-```python
-@AgentBase.tool(
-    name="get_weather",
-    description="Get the current weather for a location",
-    parameters={
-        "location": {
-            "type": "string",
-            "description": "The city or location to get weather for"
+```go
+a.DefineTool(agent.ToolDefinition{
+    Name:        "get_weather",
+    Description: "Get the current weather for a location",
+    Parameters: map[string]any{
+        "location": map[string]any{
+            "type":        "string",
+            "description": "The city or location to get weather for",
+        },
+    },
+    Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+        location, _ := args["location"].(string)
+        if location == "" {
+            location = "Unknown location"
         }
-    }
-)
-def get_weather(self, args, raw_data):
-    location = args.get("location", "Unknown location")
-    return SwaigFunctionResult(f"It's sunny and 72°F in {location}.")
+        return swaig.NewFunctionResult("It's sunny and 72°F in " + location + ".")
+    },
+})
 ```
 
 ### HTTP Routing
 
-The SDK uses FastAPI for routing with these key endpoints:
+The SDK uses the standard-library `net/http` server for routing with these key endpoints:
 
 - **/** (GET/POST): Main endpoint that returns the SWML document
 - **/swaig/** (POST): Endpoint for executing SWAIG functions
@@ -1030,19 +1065,18 @@ The SDK supports multiple deployment models:
 
 1. **Standalone Mode**
    - Single agent on dedicated port
-   - Direct invocation via `agent.run()` (auto-detects deployment mode)
+   - Direct invocation via `a.Run()` (auto-detects deployment mode)
 
 2. **Multi-Agent Mode**
    - Multiple agents on same server with different routes
-   - `app.include_router(agent.as_router(), prefix=agent.route)`
+   - `srv := server.NewAgentServer(...); srv.Register(a, a.Route()); srv.Run()`
 
 3. **Reverse Proxy Integration**
    - Set `SWML_PROXY_URL_BASE` for proper webhook URL generation
    - Enable SSL termination at proxy level
 
 4. **Direct HTTPS Mode**
-   - Configure with SSL certificates
-   - `agent.serve(ssl_cert="cert.pem", ssl_key="key.pem")`
+   - Configure with SSL certificates via the `SWML_SSL_ENABLED` / `SWML_SSL_CERT` / `SWML_SSL_KEY` env vars
 
 ## Best Practices
 
@@ -1065,7 +1099,7 @@ The SDK supports multiple deployment models:
 4. **Security**
    - Use HTTPS in production
    - Set strong authentication credentials
-   - Enable security for sensitive operations with `secure=True`
+   - Enable security for sensitive operations with `Secure: true`
 
 5. **Deployment**
    - Use environment variables for configuration
@@ -1141,7 +1175,7 @@ Key environment variables:
 
 The SDK provides session management for secure function call authentication:
 
-```
+```text
 ┌───────────────┐     ┌─────────────────┐     ┌───────────────┐
 │ Session       │     │ Token           │     │ Validation    │
 │ Manager       │━━━━▶│ Generation      │━━━━▶│ Layer         │

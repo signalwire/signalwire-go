@@ -1,56 +1,70 @@
 # Getting Started with RELAY
 
-The RELAY client connects to SignalWire via WebSocket and gives you real-time, imperative control over phone calls using Python's asyncio.
+The RELAY client connects to SignalWire via WebSocket and gives you real-time, imperative control over phone calls.
 
 ## Installation
 
-The RELAY client is included in the `signalwire-agents` package:
+The RELAY client is part of the SignalWire Go SDK:
 
 ```bash
-pip install signalwire-agents
+go get github.com/signalwire/signalwire-go
 ```
 
-The only additional dependency is `websockets>=12.0`, which is installed automatically.
+Then import the package:
+
+```go
+import "github.com/signalwire/signalwire-go/pkg/relay"
+```
 
 ## Configuration
 
 You need three things to connect:
 
-| Parameter | Env Var | Description |
-|-----------|---------|-------------|
-| `project` | `SIGNALWIRE_PROJECT_ID` | Your SignalWire project ID |
-| `token` | `SIGNALWIRE_API_TOKEN` | Your SignalWire API token |
-| `host` | `SIGNALWIRE_SPACE` | Your space hostname (e.g. `example.signalwire.com`) |
+| Option | Env Var | Description |
+|--------|---------|-------------|
+| `relay.WithProject` | `SIGNALWIRE_PROJECT_ID` | Your SignalWire project ID |
+| `relay.WithToken` | `SIGNALWIRE_API_TOKEN` | Your SignalWire API token |
+| `relay.WithSpace` | `SIGNALWIRE_SPACE` | Your space hostname (e.g. `example.signalwire.com`) |
 
 Alternatively, you can authenticate with a JWT token:
 
-| Parameter | Env Var | Description |
-|-----------|---------|-------------|
-| `jwt_token` | `SIGNALWIRE_JWT_TOKEN` | A SignalWire JWT auth token |
+| Option | Env Var | Description |
+|--------|---------|-------------|
+| `relay.WithJWT` | `SIGNALWIRE_JWT_TOKEN` | A SignalWire JWT auth token |
 
 ## Minimal Example
 
-```python
-from signalwire_agents.relay import RelayClient
+```go
+package main
 
-client = RelayClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
-    contexts=["default"],
+import (
+	"context"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
 )
 
-@client.on_call
-async def handle(call):
-    await call.answer()
-    action = await call.play([{"type": "tts", "params": {"text": "Hello!"}}])
-    await action.wait()
-    await call.hangup()
+func main() {
+	client := relay.NewRelayClient(
+		relay.WithProject("your-project-id"),
+		relay.WithToken("your-api-token"),
+		relay.WithSpace("example.signalwire.com"),
+		relay.WithContexts("default"),
+	)
 
-client.run()
+	client.OnCall(func(call *relay.Call) {
+		call.Answer()
+		action := call.PlayTTS("Hello!")
+		action.Wait(context.Background())
+		call.Hangup("")
+	})
+
+	client.Run()
+}
 ```
 
-Or use environment variables and skip the constructor args:
+Or skip the credential options entirely — `NewRelayClient` automatically falls
+back to `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_JWT_TOKEN`,
+and `SIGNALWIRE_SPACE` for any credential you don't set explicitly:
 
 ```bash
 export SIGNALWIRE_PROJECT_ID=your-project-id
@@ -58,55 +72,61 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
-```python
-from signalwire_agents.relay import RelayClient
+```go
+client := relay.NewRelayClient(
+	relay.WithContexts("default"),
+)
 
-client = RelayClient(contexts=["default"])
+client.OnCall(func(call *relay.Call) {
+	call.Answer()
+	call.Hangup("")
+})
 
-@client.on_call
-async def handle(call):
-    await call.answer()
-    await call.hangup()
-
-client.run()
+client.Run()
 ```
 
 ## Contexts
 
-Contexts are topics your client subscribes to for receiving inbound calls. When a call arrives on a context you're subscribed to, your `@client.on_call` handler is invoked.
+Contexts are topics your client subscribes to for receiving inbound calls. When a call arrives on a context you're subscribed to, your `OnCall` handler is invoked.
 
-```python
-# Subscribe at connect time
-client = RelayClient(contexts=["sales", "support"])
+```go
+// Subscribe at connect time
+client := relay.NewRelayClient(relay.WithContexts("sales", "support"))
 
-# Or dynamically after connecting
-await client.receive(["billing"])
-await client.unreceive(["sales"])
+// Or dynamically after connecting
+client.Receive("billing")
+client.Unreceive("sales")
 ```
 
 ## Making Outbound Calls
 
-Use `client.dial()` to place an outbound call:
+Use `client.Dial()` to place an outbound call. Devices are `[][]map[string]any`:
+the outer slice is serial attempts, the inner slice is parallel attempts.
 
-```python
-call = await client.dial([
-    [{"type": "phone", "params": {"to_number": "+15551234567", "from_number": "+15559876543"}}]
-])
-# call is now a live Call object
-action = await call.play([{"type": "tts", "params": {"text": "This is an outbound call."}}])
-await action.wait()
-await call.hangup()
+```go
+call, err := client.Dial([][]map[string]any{
+	{
+		{"type": "phone", "params": map[string]any{"to_number": "+15551234567", "from_number": "+15559876543"}},
+	},
+})
+if err != nil {
+	// dial failed or timed out
+}
+// call is now a live *relay.Call
+action := call.PlayTTS("This is an outbound call.")
+action.Wait(context.Background())
+call.Hangup("")
 ```
 
-The outer list represents serial attempts; the inner list represents parallel attempts. For example, to try two numbers simultaneously:
+To try two numbers simultaneously, put both devices in the same inner slice:
 
-```python
-call = await client.dial([
-    [
-        {"type": "phone", "params": {"to_number": "+15551111111", "from_number": "+15559876543"}},
-        {"type": "phone", "params": {"to_number": "+15552222222", "from_number": "+15559876543"}},
-    ]
-])
+```go
+call, err := client.Dial([][]map[string]any{
+	{
+		{"type": "phone", "params": map[string]any{"to_number": "+15551111111", "from_number": "+15559876543"}},
+		{"type": "phone", "params": map[string]any{"to_number": "+15552222222", "from_number": "+15559876543"}},
+	},
+})
 ```
 
 ## Debug Logging
@@ -117,14 +137,20 @@ Set the log level to see WebSocket traffic:
 export SIGNALWIRE_LOG_LEVEL=debug
 ```
 
-## Async Context Manager
+## Cancellable Dial
 
-For use within an existing async application:
+For use within an existing application, `DialContext` accepts a `context.Context`
+so a caller can cancel or time out the dial:
 
-```python
-async with RelayClient(contexts=["default"]) as client:
-    call = await client.dial([...])
-    await call.answer()
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+call, err := client.DialContext(ctx, [][]map[string]any{
+	{
+		{"type": "phone", "params": map[string]any{"to_number": "+15551234567", "from_number": "+15559876543"}},
+	},
+})
 ```
 
 ## Next Steps

@@ -4,7 +4,7 @@ The Calling API provides REST-based call control. All commands are dispatched vi
 
 ## How It Works
 
-Every method on `client.calling` sends a POST request with this structure:
+Every method on `client.Calling` sends a POST request with this structure:
 
 ```json
 {
@@ -14,260 +14,305 @@ Every method on `client.calling` sends a POST request with this structure:
 }
 ```
 
-For `dial` and `update`, the call details are inside `params` (no top-level `id`). For all other commands, `id` is the UUID of the call to control.
+For `Dial` and `Update`, the call details are inside `params` (no top-level `id`). For all other commands, `id` is the UUID of the call to control.
+
+Each method takes a typed `namespaces.CallingNamespace<Op>Params` struct. Optional
+fields are pointers; use a small helper to take their address:
+
+```go
+func strPtr(s string) *string { return &s }
+func intPtr(i int) *int       { return &i }
+func floatPtr(f float64) *float64 { return &f }
+```
+
+Any parameter not modeled as a typed field can be passed through the
+`Extras map[string]any` field present on every params struct.
 
 ## Call Lifecycle
 
-### `dial(**params) -> dict`
+### `Dial(params) (*CallResponse, error)`
 
 Initiate an outbound call.
 
-```python
-result = client.calling.dial(
-    from_="+15559876543",
-    to="+15551234567",
-    url="https://example.com/call-handler",
-)
-call_id = result.get("id")
+```go
+result, err := client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+	From: "+15559876543",
+	To:   "+15551234567",
+	Url:  strPtr("https://example.com/call-handler"),
+})
+// CallResponse is decoded JSON; assert to a map to read fields.
+call, _ := (*result).(map[string]any)
+callID, _ := call["id"].(string)
 ```
 
-### `update(**params) -> dict`
+### `Update(params) (*CallResponse, error)`
 
 Update an active call's dialplan mid-call.
 
-```python
-client.calling.update(id=call_id, url="https://example.com/new-handler")
+```go
+_, err := client.Calling.Update(namespaces.CallingNamespaceUpdateParams{
+	Id:  callID,
+	Url: strPtr("https://example.com/new-handler"),
+})
 ```
 
-### `end(call_id, **params) -> dict`
+### `End(callID, params) (*CallResponse, error)`
 
 Terminate a call.
 
-```python
-client.calling.end(call_id, reason="hangup")
+```go
+_, err := client.Calling.End(callID, namespaces.CallingNamespaceEndParams{
+	Extras: map[string]any{"reason": "hangup"},
+})
 ```
 
-### `transfer(call_id, **params) -> dict`
+### `Transfer(callID, params) (*CallResponse, error)`
 
 Transfer a call to a new destination.
 
-```python
-client.calling.transfer(call_id, dest="sip:agent@example.com")
+```go
+_, err := client.Calling.Transfer(callID, namespaces.CallingNamespaceTransferParams{
+	Dest: "sip:agent@example.com",
+})
 ```
 
-### `disconnect(call_id) -> dict`
+### `Disconnect(callID, params) (*CallResponse, error)`
 
 Disconnect bridged calls without hanging up either leg.
 
-```python
-client.calling.disconnect(call_id)
+```go
+_, err := client.Calling.Disconnect(callID, namespaces.CallingNamespaceDisconnectParams{})
 ```
 
 ## Audio Playback
 
-### `play(call_id, **params) -> dict`
+### `Play(callID, params) (*CallResponse, error)`
 
 Play audio, TTS, silence, or ringtone.
 
-```python
-client.calling.play(call_id,
-    play=[{"type": "tts", "text": "Hello!"}],
-    volume=5.0,
-)
+```go
+_, err := client.Calling.Play(callID, namespaces.CallingNamespacePlayParams{
+	Play:   []map[string]any{{"type": "tts", "text": "Hello!"}},
+	Volume: floatPtr(5.0),
+})
 ```
 
-### `play_pause(call_id, **params)` / `play_resume(call_id, **params)`
+### `PlayPause(callID, params)` / `PlayResume(callID, params)`
 
 Pause or resume active playback.
 
-```python
-client.calling.play_pause(call_id, control_id="ctrl-1")
-client.calling.play_resume(call_id, control_id="ctrl-1")
+```go
+_, err := client.Calling.PlayPause(callID, namespaces.CallingNamespacePlayPauseParams{ControlId: "ctrl-1"})
+_, err = client.Calling.PlayResume(callID, namespaces.CallingNamespacePlayResumeParams{ControlId: "ctrl-1"})
 ```
 
-### `play_stop(call_id, **params)`
+### `PlayStop(callID, params)`
 
 Stop active playback.
 
-```python
-client.calling.play_stop(call_id, control_id="ctrl-1")
+```go
+_, err := client.Calling.PlayStop(callID, namespaces.CallingNamespacePlayStopParams{ControlId: "ctrl-1"})
 ```
 
-### `play_volume(call_id, **params)`
+### `PlayVolume(callID, params)`
 
 Adjust playback volume.
 
-```python
-client.calling.play_volume(call_id, control_id="ctrl-1", volume=-3.0)
+```go
+_, err := client.Calling.PlayVolume(callID, namespaces.CallingNamespacePlayVolumeParams{
+	ControlId: "ctrl-1",
+	Volume:    -3.0,
+})
 ```
 
 ## Recording
 
-### `record(call_id, **params)` / `record_pause` / `record_resume` / `record_stop`
+### `Record(callID, params)` / `RecordPause` / `RecordResume` / `RecordStop`
 
-```python
-client.calling.record(call_id,
-    control_id="rec-1",
-    audio={"beep": True, "format": "wav", "stereo": True},
-)
-client.calling.record_pause(call_id, control_id="rec-1")
-client.calling.record_resume(call_id, control_id="rec-1")
-client.calling.record_stop(call_id, control_id="rec-1")
+```go
+_, err := client.Calling.Record(callID, namespaces.CallingNamespaceRecordParams{
+	ControlId: strPtr("rec-1"),
+	Audio:     map[string]any{"beep": true, "format": "wav", "stereo": true},
+})
+_, err = client.Calling.RecordPause(callID, namespaces.CallingNamespaceRecordPauseParams{ControlId: "rec-1"})
+_, err = client.Calling.RecordResume(callID, namespaces.CallingNamespaceRecordResumeParams{ControlId: "rec-1"})
+_, err = client.Calling.RecordStop(callID, namespaces.CallingNamespaceRecordStopParams{ControlId: "rec-1"})
 ```
 
 ## Input Collection
 
-### `collect(call_id, **params)` / `collect_stop` / `collect_start_input_timers`
+### `Collect(callID, params)` / `CollectStop` / `CollectStartInputTimers`
 
-```python
-client.calling.collect(call_id,
-    control_id="coll-1",
-    digits={"max": 4, "terminators": "#"},
-    speech={"end_silence_timeout": 2.0},
-)
-client.calling.collect_stop(call_id, control_id="coll-1")
-client.calling.collect_start_input_timers(call_id, control_id="coll-1")
+```go
+_, err := client.Calling.Collect(callID, namespaces.CallingNamespaceCollectParams{
+	ControlId: strPtr("coll-1"),
+	Digits:    map[string]any{"max": 4, "terminators": "#"},
+	Speech:    map[string]any{"end_silence_timeout": 2.0},
+})
+_, err = client.Calling.CollectStop(callID, namespaces.CallingNamespaceCollectStopParams{ControlId: "coll-1"})
+_, err = client.Calling.CollectStartInputTimers(callID, namespaces.CallingNamespaceCollectStartInputTimersParams{ControlId: "coll-1"})
 ```
 
 ## Detection
 
-### `detect(call_id, **params)` / `detect_stop`
+### `Detect(callID, params)` / `DetectStop`
 
-```python
-client.calling.detect(call_id,
-    control_id="det-1",
-    detect={"type": "machine", "params": {"initial_timeout": 4.5}},
-)
-client.calling.detect_stop(call_id, control_id="det-1")
+```go
+_, err := client.Calling.Detect(callID, namespaces.CallingNamespaceDetectParams{
+	ControlId: strPtr("det-1"),
+	Detect:    map[string]any{"type": "machine", "params": map[string]any{"initial_timeout": 4.5}},
+})
+_, err = client.Calling.DetectStop(callID, namespaces.CallingNamespaceDetectStopParams{ControlId: "det-1"})
 ```
 
 ## Tap & Stream
 
-### `tap(call_id, **params)` / `tap_stop`
+### `Tap(callID, params)` / `TapStop`
 
-```python
-client.calling.tap(call_id,
-    control_id="tap-1",
-    tap={"type": "audio", "params": {"direction": "both"}},
-    device={"type": "rtp", "params": {"addr": "192.168.1.1", "port": 1234}},
-)
-client.calling.tap_stop(call_id, control_id="tap-1")
+```go
+_, err := client.Calling.Tap(callID, namespaces.CallingNamespaceTapParams{
+	ControlId: strPtr("tap-1"),
+	Tap:       map[string]any{"type": "audio", "params": map[string]any{"direction": "both"}},
+	Device:    map[string]any{"type": "rtp", "params": map[string]any{"addr": "192.168.1.1", "port": 1234}},
+})
+_, err = client.Calling.TapStop(callID, namespaces.CallingNamespaceTapStopParams{ControlId: "tap-1"})
 ```
 
-### `stream(call_id, **params)` / `stream_stop`
+### `Stream(callID, params)` / `StreamStop`
 
-```python
-client.calling.stream(call_id,
-    control_id="str-1",
-    url="wss://example.com/audio-stream",
-    codec="PCMU",
-)
-client.calling.stream_stop(call_id, control_id="str-1")
+```go
+_, err := client.Calling.Stream(callID, namespaces.CallingNamespaceStreamParams{
+	Url:       "wss://example.com/audio-stream",
+	ControlId: strPtr("str-1"),
+	Codec:     strPtr("PCMU"),
+})
+_, err = client.Calling.StreamStop(callID, namespaces.CallingNamespaceStreamStopParams{ControlId: "str-1"})
 ```
 
 ## Denoise
 
-### `denoise(call_id)` / `denoise_stop(call_id)`
+### `Denoise(callID, params)` / `DenoiseStop(callID, params)`
 
-```python
-client.calling.denoise(call_id)
-client.calling.denoise_stop(call_id)
+```go
+_, err := client.Calling.Denoise(callID, namespaces.CallingNamespaceDenoiseParams{})
+_, err = client.Calling.DenoiseStop(callID, namespaces.CallingNamespaceDenoiseStopParams{})
 ```
 
 ## Transcription
 
-### `transcribe(call_id, **params)` / `transcribe_stop`
+### `Transcribe(callID, params)` / `TranscribeStop`
 
-```python
-client.calling.transcribe(call_id, control_id="tx-1", status_url="https://example.com/hook")
-client.calling.transcribe_stop(call_id, control_id="tx-1")
+```go
+_, err := client.Calling.Transcribe(callID, namespaces.CallingNamespaceTranscribeParams{
+	ControlId: strPtr("tx-1"),
+	StatusUrl: strPtr("https://example.com/hook"),
+})
+_, err = client.Calling.TranscribeStop(callID, namespaces.CallingNamespaceTranscribeStopParams{ControlId: "tx-1"})
 ```
 
 ## AI
 
-### `ai_message(call_id, **params)`
+### `AIMessage(callID, params)`
 
 Inject a message into an active AI session.
 
-```python
-client.calling.ai_message(call_id, role="user", message_text="Transfer me to billing")
+```go
+_, err := client.Calling.AIMessage(callID, namespaces.CallingNamespaceAIMessageParams{
+	Role:        strPtr("user"),
+	MessageText: strPtr("Transfer me to billing"),
+})
 ```
 
-### `ai_hold(call_id, **params)` / `ai_unhold(call_id, **params)`
+### `AIHold(callID, params)` / `AIUnhold(callID, params)`
 
-```python
-client.calling.ai_hold(call_id, timeout=60, prompt="Please wait while I transfer you.")
-client.calling.ai_unhold(call_id, prompt="I'm back, how can I help?")
+```go
+_, err := client.Calling.AIHold(callID, namespaces.CallingNamespaceAIHoldParams{
+	Timeout: intPtr(60),
+	Prompt:  strPtr("Please wait while I transfer you."),
+})
+_, err = client.Calling.AIUnhold(callID, namespaces.CallingNamespaceAIUnholdParams{
+	Prompt: strPtr("I'm back, how can I help?"),
+})
 ```
 
-### `ai_stop(call_id, **params)`
+### `AIStop(callID, params)`
 
-```python
-client.calling.ai_stop(call_id, control_id="ai-1")
+```go
+_, err := client.Calling.AIStop(callID, namespaces.CallingNamespaceAIStopParams{ControlId: "ai-1"})
 ```
 
 ## Live Transcribe & Translate
 
-```python
-client.calling.live_transcribe(call_id, action="start", lang="en")
-client.calling.live_translate(call_id, action="start", from_lang="en", to_lang="es")
+```go
+_, err := client.Calling.LiveTranscribe(callID, namespaces.CallingNamespaceLiveTranscribeParams{
+	Action: "start",
+	Extras: map[string]any{"lang": "en"},
+})
+_, err = client.Calling.LiveTranslate(callID, namespaces.CallingNamespaceLiveTranslateParams{
+	Action: "start",
+	Extras: map[string]any{"from_lang": "en", "to_lang": "es"},
+})
 ```
 
 ## Fax
 
-```python
-client.calling.send_fax_stop(call_id, control_id="fax-1")
-client.calling.receive_fax_stop(call_id, control_id="fax-1")
+```go
+_, err := client.Calling.SendFaxStop(callID, namespaces.CallingNamespaceSendFaxStopParams{ControlId: "fax-1"})
+_, err = client.Calling.ReceiveFaxStop(callID, namespaces.CallingNamespaceReceiveFaxStopParams{ControlId: "fax-1"})
 ```
 
 ## SIP & Custom Events
 
-```python
-# SIP REFER transfer
-client.calling.refer(call_id, device={"to": "sip:agent@example.com"})
+```go
+// SIP REFER transfer
+_, err := client.Calling.Refer(callID, namespaces.CallingNamespaceReferParams{
+	Device: map[string]any{"to": "sip:agent@example.com"},
+})
 
-# Custom event
-client.calling.user_event(call_id, event={"type": "custom", "data": {"key": "value"}})
+// Custom event
+_, err = client.Calling.UserEvent(callID, namespaces.CallingNamespaceUserEventParams{
+	Event: map[string]any{"type": "custom", "data": map[string]any{"key": "value"}},
+})
 ```
 
 ## Complete Method List
 
-| Method | Command | Requires call_id |
+| Method | Command | Requires callID |
 |--------|---------|:-:|
-| `dial(**params)` | `dial` | No |
-| `update(**params)` | `update` | No |
-| `end(call_id, **params)` | `calling.end` | Yes |
-| `transfer(call_id, **params)` | `calling.transfer` | Yes |
-| `disconnect(call_id)` | `calling.disconnect` | Yes |
-| `play(call_id, **params)` | `calling.play` | Yes |
-| `play_pause(call_id, **params)` | `calling.play.pause` | Yes |
-| `play_resume(call_id, **params)` | `calling.play.resume` | Yes |
-| `play_stop(call_id, **params)` | `calling.play.stop` | Yes |
-| `play_volume(call_id, **params)` | `calling.play.volume` | Yes |
-| `record(call_id, **params)` | `calling.record` | Yes |
-| `record_pause(call_id, **params)` | `calling.record.pause` | Yes |
-| `record_resume(call_id, **params)` | `calling.record.resume` | Yes |
-| `record_stop(call_id, **params)` | `calling.record.stop` | Yes |
-| `collect(call_id, **params)` | `calling.collect` | Yes |
-| `collect_stop(call_id, **params)` | `calling.collect.stop` | Yes |
-| `collect_start_input_timers(call_id, **params)` | `calling.collect.start_input_timers` | Yes |
-| `detect(call_id, **params)` | `calling.detect` | Yes |
-| `detect_stop(call_id, **params)` | `calling.detect.stop` | Yes |
-| `tap(call_id, **params)` | `calling.tap` | Yes |
-| `tap_stop(call_id, **params)` | `calling.tap.stop` | Yes |
-| `stream(call_id, **params)` | `calling.stream` | Yes |
-| `stream_stop(call_id, **params)` | `calling.stream.stop` | Yes |
-| `denoise(call_id)` | `calling.denoise` | Yes |
-| `denoise_stop(call_id)` | `calling.denoise.stop` | Yes |
-| `transcribe(call_id, **params)` | `calling.transcribe` | Yes |
-| `transcribe_stop(call_id, **params)` | `calling.transcribe.stop` | Yes |
-| `ai_message(call_id, **params)` | `calling.ai_message` | Yes |
-| `ai_hold(call_id, **params)` | `calling.ai_hold` | Yes |
-| `ai_unhold(call_id, **params)` | `calling.ai_unhold` | Yes |
-| `ai_stop(call_id, **params)` | `calling.ai.stop` | Yes |
-| `live_transcribe(call_id, **params)` | `calling.live_transcribe` | Yes |
-| `live_translate(call_id, **params)` | `calling.live_translate` | Yes |
-| `send_fax_stop(call_id, **params)` | `calling.send_fax.stop` | Yes |
-| `receive_fax_stop(call_id, **params)` | `calling.receive_fax.stop` | Yes |
-| `refer(call_id, **params)` | `calling.refer` | Yes |
-| `user_event(call_id, **params)` | `calling.user_event` | Yes |
+| `Dial(params)` | `dial` | No |
+| `Update(params)` | `update` | No |
+| `End(callID, params)` | `calling.end` | Yes |
+| `Transfer(callID, params)` | `calling.transfer` | Yes |
+| `Disconnect(callID, params)` | `calling.disconnect` | Yes |
+| `Play(callID, params)` | `calling.play` | Yes |
+| `PlayPause(callID, params)` | `calling.play.pause` | Yes |
+| `PlayResume(callID, params)` | `calling.play.resume` | Yes |
+| `PlayStop(callID, params)` | `calling.play.stop` | Yes |
+| `PlayVolume(callID, params)` | `calling.play.volume` | Yes |
+| `Record(callID, params)` | `calling.record` | Yes |
+| `RecordPause(callID, params)` | `calling.record.pause` | Yes |
+| `RecordResume(callID, params)` | `calling.record.resume` | Yes |
+| `RecordStop(callID, params)` | `calling.record.stop` | Yes |
+| `Collect(callID, params)` | `calling.collect` | Yes |
+| `CollectStop(callID, params)` | `calling.collect.stop` | Yes |
+| `CollectStartInputTimers(callID, params)` | `calling.collect.start_input_timers` | Yes |
+| `Detect(callID, params)` | `calling.detect` | Yes |
+| `DetectStop(callID, params)` | `calling.detect.stop` | Yes |
+| `Tap(callID, params)` | `calling.tap` | Yes |
+| `TapStop(callID, params)` | `calling.tap.stop` | Yes |
+| `Stream(callID, params)` | `calling.stream` | Yes |
+| `StreamStop(callID, params)` | `calling.stream.stop` | Yes |
+| `Denoise(callID, params)` | `calling.denoise` | Yes |
+| `DenoiseStop(callID, params)` | `calling.denoise.stop` | Yes |
+| `Transcribe(callID, params)` | `calling.transcribe` | Yes |
+| `TranscribeStop(callID, params)` | `calling.transcribe.stop` | Yes |
+| `AIMessage(callID, params)` | `calling.ai_message` | Yes |
+| `AIHold(callID, params)` | `calling.ai_hold` | Yes |
+| `AIUnhold(callID, params)` | `calling.ai_unhold` | Yes |
+| `AIStop(callID, params)` | `calling.ai.stop` | Yes |
+| `LiveTranscribe(callID, params)` | `calling.live_transcribe` | Yes |
+| `LiveTranslate(callID, params)` | `calling.live_translate` | Yes |
+| `SendFaxStop(callID, params)` | `calling.send_fax.stop` | Yes |
+| `ReceiveFaxStop(callID, params)` | `calling.receive_fax.stop` | Yes |
+| `Refer(callID, params)` | `calling.refer` | Yes |
+| `UserEvent(callID, params)` | `calling.user_event` | Yes |

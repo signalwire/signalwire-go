@@ -80,7 +80,6 @@ This directory contains runnable examples demonstrating the SignalWire AI Agents
 |---------|-------------|
 | [relay_demo](relay_demo/) | RELAY WebSocket call control. Creating a RELAY client, handling inbound calls, playing TTS audio, and hanging up. Requires SignalWire credentials. |
 | [rest_demo](rest_demo/) | REST API usage with RestClient. Creating a client, listing phone numbers, and other namespace usage patterns. Requires SignalWire credentials. |
-| [livewire_agent](livewire_agent/) | LiveKit-style agent running on SignalWire's platform using familiar LiveKit API symbols. |
 
 ## Running Examples
 

@@ -1470,7 +1470,6 @@ func run() error {
 		// Autodetect: try sibling porting-sdk
 		candidates := []string{
 			filepath.Join(repoRoot, "..", "porting-sdk", "type_aliases.yaml"),
-			"/usr/local/home/devuser/src/porting-sdk/type_aliases.yaml",
 		}
 		for _, c := range candidates {
 			if _, err := os.Stat(c); err == nil {

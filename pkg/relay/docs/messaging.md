@@ -4,136 +4,144 @@ Send and receive SMS/MMS messages through the RELAY client.
 
 ## Sending Messages
 
-Use `client.send_message()` to send an outbound SMS or MMS.
+Use `client.SendMessage(to, from, body, opts...)` to send an outbound SMS or MMS.
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello from SignalWire!",
-)
+```go
+message, err := client.SendMessage("+15552222222", "+15551111111", "Hello from SignalWire!")
+if err != nil {
+	log.Fatal(err)
+}
+_ = message
 ```
 
 ### Wait for delivery
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello!",
-)
-event = await message.wait()  # blocks until delivered/failed
-print(f"Final state: {message.state}")
-if message.reason:
-    print(f"Reason: {message.reason}")
+```go
+message, err := client.SendMessage("+15552222222", "+15551111111", "Hello!")
+if err != nil {
+	log.Fatal(err)
+}
+message.Wait(context.Background()) // blocks until delivered/failed
+fmt.Printf("Final state: %s\n", message.State())
+if message.Reason() != "" {
+	fmt.Printf("Reason: %s\n", message.Reason())
+}
 ```
 
 ### Fire and forget
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello!",
-)
-# don't call message.wait() — continue immediately
+```go
+message, err := client.SendMessage("+15552222222", "+15551111111", "Hello!")
+if err != nil {
+	log.Fatal(err)
+}
+// don't call message.Wait() — continue immediately
+_ = message
 ```
 
 ### Callback on completion
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello!",
-    on_completed=lambda event: print(f"Delivery: {event.params.get('message_state')}"),
+```go
+message, err := client.SendMessage("+15552222222", "+15551111111", "Hello!",
+	relay.WithMessageOnCompleted(func(m *relay.Message, event *relay.RelayEvent) {
+		fmt.Printf("Delivery: %s\n", event.GetString("message_state"))
+	}),
 )
+_ = message
+_ = err
 ```
 
 ### MMS (media messages)
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Check this out!",
-    media=["https://example.com/image.jpg"],
+```go
+message, err := client.SendMessage("+15552222222", "+15551111111", "Check this out!",
+	relay.WithMessageMedia([]string{"https://example.com/image.jpg"}),
 )
+_ = message
+_ = err
 ```
 
 ### All parameters
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",       # required — E.164 format
-    from_number="+15551111111",     # required — E.164 format
-    body="Message text",            # required if no media
-    media=["https://..."],          # required if no body
-    context="my_context",           # context for state events (default: relay protocol)
-    tags=["vip", "support"],        # optional tags for searching in UI
-    region="us",                    # optional origination region
-    on_completed=callback_fn,       # optional completion callback
+```go
+message, err := client.SendMessage(
+	"+15552222222", // to    — required, E.164 format
+	"+15551111111", // from  — required, E.164 format
+	"Message text", // body  — required if no media
+	relay.WithMessageMedia([]string{"https://..."}), // required if no body
+	relay.WithMessageContext("my_context"),          // context for state events (default: relay protocol)
+	relay.WithMessageTags([]string{"vip", "support"}), // optional tags for searching in UI
+	relay.WithMessageRegion("us"),                     // optional origination region
+	relay.WithMessageOnCompleted(callbackFn),          // optional completion callback
 )
+_ = message
+_ = err
 ```
 
 ## Receiving Messages
 
-Register a handler with `@client.on_message` to receive inbound SMS/MMS.
+Register a handler with `client.OnMessage` to receive inbound SMS/MMS.
 
-```python
-from signalwire_agents.relay import RelayClient
+```go
+package main
 
-client = RelayClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
-    contexts=["default"],
+import (
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
 )
 
-@client.on_message
-async def handle_message(message):
-    print(f"From: {message.from_number}")
-    print(f"To: {message.to_number}")
-    print(f"Body: {message.body}")
-    if message.media:
-        print(f"Media: {message.media}")
+func main() {
+	client := relay.NewRelayClient(
+		relay.WithProject("your-project-id"),
+		relay.WithToken("your-api-token"),
+		relay.WithSpace("example.signalwire.com"),
+		relay.WithContexts("default"),
+	)
 
-    # Reply back
-    await client.send_message(
-        to_number=message.from_number,
-        from_number=message.to_number,
-        body=f"You said: {message.body}",
-    )
+	client.OnMessage(func(message *relay.Message) {
+		fmt.Printf("From: %s\n", message.FromNumber())
+		fmt.Printf("To: %s\n", message.ToNumber())
+		fmt.Printf("Body: %s\n", message.Body())
+		if len(message.Media()) > 0 {
+			fmt.Printf("Media: %v\n", message.Media())
+		}
 
-client.run()
+		// Reply back
+		client.SendMessage(message.ToNumber(), message.FromNumber(),
+			fmt.Sprintf("You said: %s", message.Body()))
+	})
+
+	client.Run()
+}
 ```
 
 ## Message Object
 
-### Properties
+### Accessors
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `message_id` | `str` | Unique message identifier |
-| `context` | `str` | Context the message belongs to |
-| `direction` | `str` | `inbound` or `outbound` |
-| `from_number` | `str` | Sender phone number (E.164) |
-| `to_number` | `str` | Recipient phone number (E.164) |
-| `body` | `str` | Text body of the message |
-| `media` | `list[str]` | Media URLs (MMS) |
-| `segments` | `int` | Number of message segments |
-| `state` | `str` | Current message state |
-| `reason` | `str` | Failure reason (on `undelivered` or `failed`) |
-| `tags` | `list[str]` | Tags attached to the message |
-| `is_done` | `bool` | `True` if message reached a terminal state |
-| `result` | `RelayEvent` | Terminal event (or `None` if not done) |
+| Method | Type | Description |
+|--------|------|-------------|
+| `MessageID()` | `string` | Unique message identifier |
+| `Context()` | `string` | Context the message belongs to |
+| `Direction()` | `string` | `inbound` or `outbound` |
+| `FromNumber()` | `string` | Sender phone number (E.164) |
+| `ToNumber()` | `string` | Recipient phone number (E.164) |
+| `Body()` | `string` | Text body of the message |
+| `Media()` | `[]string` | Media URLs (MMS) |
+| `Segments()` | `int` | Number of message segments |
+| `State()` | `string` | Current message state |
+| `Reason()` | `string` | Failure reason (on `undelivered` or `failed`) |
+| `Tags()` | `[]string` | Tags attached to the message |
+| `IsDone()` | `bool` | `true` if message reached a terminal state |
+| `Result()` | `*RelayEvent` | Terminal event (or `nil` if not done) |
 
 ### Methods
 
 | Method | Description |
 |--------|-------------|
-| `await message.wait(timeout=None)` | Block until terminal state. Returns the terminal `RelayEvent`. |
-| `message.on(handler)` | Register a listener for state change events. |
+| `Wait(ctx context.Context)` | Block until terminal state (or `ctx` cancellation). Returns the terminal `*RelayEvent`. |
+| `On(handler func(*RelayEvent))` | Register a listener for state change events. |
 
 ### Message States
 
@@ -157,26 +165,29 @@ Inbound messages always arrive with state `received`.
 | `MessageReceiveEvent` | Inbound message received |
 | `MessageStateEvent` | Outbound message state change |
 
-```python
-from signalwire_agents.relay import MessageReceiveEvent, MessageStateEvent
-```
+Both `relay.MessageReceiveEvent` and `relay.MessageStateEvent` are typed event
+structs in the `relay` package.
 
 ## Combining Calls and Messages
 
-The same `RelayClient` handles both calls and messages:
+The same `Client` handles both calls and messages:
 
-```python
-client = RelayClient(project="...", token="...", contexts=["default"])
+```go
+client := relay.NewRelayClient(
+	relay.WithProject("..."),
+	relay.WithToken("..."),
+	relay.WithContexts("default"),
+)
 
-@client.on_call
-async def handle_call(call):
-    await call.answer()
-    await call.play([{"type": "tts", "params": {"text": "Hello!"}}])
-    await call.hangup()
+client.OnCall(func(call *relay.Call) {
+	call.Answer()
+	call.PlayTTS("Hello!")
+	call.Hangup("")
+})
 
-@client.on_message
-async def handle_message(message):
-    print(f"SMS from {message.from_number}: {message.body}")
+client.OnMessage(func(message *relay.Message) {
+	fmt.Printf("SMS from %s: %s\n", message.FromNumber(), message.Body())
+})
 
-client.run()
+client.Run()
 ```

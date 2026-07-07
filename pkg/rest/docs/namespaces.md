@@ -2,284 +2,330 @@
 
 Reference for every namespace beyond Fabric and Calling (which have their own pages).
 
+The examples below import the resource-parameter structs from
+`github.com/signalwire/signalwire-go/pkg/rest/namespaces` and use a small helper
+to set optional pointer fields:
+
+```go
+func strPtr(s string) *string { return &s }
+func intPtr(i int) *int       { return &i }
+func floatPtr(f float64) *float64 { return &f }
+```
+
 ## Phone Numbers
 
-```python
-# List your phone numbers
-numbers = client.phone_numbers.list()
-numbers = client.phone_numbers.list(name="Main")
+```go
+// List your phone numbers
+numbers, err := client.PhoneNumbers.List(nil)
+numbers, err = client.PhoneNumbers.List(map[string]string{"name": "Main"})
 
-# Search available numbers to purchase
-available = client.phone_numbers.search(area_code="512", number_type="local")
+// Search available numbers to purchase
+available, err := client.PhoneNumbers.Search(map[string]string{
+	"area_code":   "512",
+	"number_type": "local",
+})
 
-# Purchase a number
-number = client.phone_numbers.create(number="+15551234567")
+// Purchase a number
+number, err := client.PhoneNumbers.Create(map[string]any{"number": "+15551234567"})
 
-# Get / update / release
-number = client.phone_numbers.get("pn-uuid")
-client.phone_numbers.update("pn-uuid", name="Support Line")
-client.phone_numbers.delete("pn-uuid")
+// Get / update / release
+number, err = client.PhoneNumbers.Get("pn-uuid")
+_, err = client.PhoneNumbers.Update("pn-uuid", map[string]any{"name": "Support Line"})
+_, err = client.PhoneNumbers.Delete("pn-uuid")
 ```
 
 ## Addresses
 
-```python
-addresses = client.addresses.list()
-address = client.addresses.create(label="Office", street="123 Main St", city="Austin", state="TX")
-address = client.addresses.get("addr-uuid")
-client.addresses.delete("addr-uuid")
+```go
+addresses, err := client.Addresses.List(nil)
+address, err := client.Addresses.Create(namespaces.AddressesNamespaceCreateParams{
+	Label:      "Office",
+	StreetName: "Main St",
+	City:       "Austin",
+	State:      "TX",
+})
+address, err = client.Addresses.Get("addr-uuid", nil)
+_, err = client.Addresses.Delete("addr-uuid")
 ```
 
 ## Queues
 
-```python
-queues = client.queues.list()
-queue = client.queues.create(name="Support")
-queue = client.queues.get("q-uuid")
-client.queues.update("q-uuid", name="VIP Support")
-client.queues.delete("q-uuid")
+```go
+queues, err := client.Queues.List(nil)
+queue, err := client.Queues.Create(map[string]any{"name": "Support"})
+queue, err = client.Queues.Get("q-uuid")
+_, err = client.Queues.Update("q-uuid", map[string]any{"name": "VIP Support"})
+_, err = client.Queues.Delete("q-uuid")
 
-# Members
-members = client.queues.list_members("q-uuid")
-next_member = client.queues.get_next_member("q-uuid")
-member = client.queues.get_member("q-uuid", "member-uuid")
+// Members
+members, err := client.Queues.ListMembers("q-uuid", nil)
+nextMember, err := client.Queues.GetNextMember("q-uuid", nil)
+member, err := client.Queues.GetMember("q-uuid", "member-uuid", nil)
 ```
 
 ## Recordings
 
-```python
-recordings = client.recordings.list()
-recording = client.recordings.get("rec-uuid")
-client.recordings.delete("rec-uuid")
+```go
+recordings, err := client.Recordings.List(nil)
+recording, err := client.Recordings.Get("rec-uuid", nil)
+_, err = client.Recordings.Delete("rec-uuid")
 ```
 
 ## Number Groups
 
-```python
-groups = client.number_groups.list()
-group = client.number_groups.create(name="Marketing")
-group = client.number_groups.get("ng-uuid")
-client.number_groups.update("ng-uuid", name="Sales")
-client.number_groups.delete("ng-uuid")
+```go
+groups, err := client.NumberGroups.List(nil)
+group, err := client.NumberGroups.Create(map[string]any{"name": "Marketing"})
+group, err = client.NumberGroups.Get("ng-uuid")
+_, err = client.NumberGroups.Update("ng-uuid", map[string]any{"name": "Sales"})
+_, err = client.NumberGroups.Delete("ng-uuid")
 
-# Memberships
-memberships = client.number_groups.list_memberships("ng-uuid")
-client.number_groups.add_membership("ng-uuid", phone_number_id="pn-uuid")
-membership = client.number_groups.get_membership("mem-uuid")
-client.number_groups.delete_membership("mem-uuid")
+// Memberships
+memberships, err := client.NumberGroups.ListMemberships("ng-uuid", nil)
+_, err = client.NumberGroups.AddMembership("ng-uuid", namespaces.NumberGroupsNamespaceAddMembershipParams{
+	Extras: map[string]any{"phone_number_id": "pn-uuid"},
+})
+membership, err := client.NumberGroups.GetMembership("mem-uuid", nil)
+_, err = client.NumberGroups.DeleteMembership("mem-uuid")
 ```
 
 ## Verified Caller IDs
 
-```python
-callers = client.verified_callers.list()
-caller = client.verified_callers.create(phone_number="+15551234567", name="Office")
-caller = client.verified_callers.get("vc-uuid")
-client.verified_callers.update("vc-uuid", name="Main Office")
-client.verified_callers.delete("vc-uuid")
+```go
+callers, err := client.VerifiedCallers.List(nil)
+caller, err := client.VerifiedCallers.Create(map[string]any{
+	"phone_number": "+15551234567",
+	"name":         "Office",
+})
+caller, err = client.VerifiedCallers.Get("vc-uuid")
+_, err = client.VerifiedCallers.Update("vc-uuid", map[string]any{"name": "Main Office"})
+_, err = client.VerifiedCallers.Delete("vc-uuid")
 
-# Verification flow
-client.verified_callers.redial_verification("vc-uuid")
-client.verified_callers.submit_verification("vc-uuid", code="123456")
+// Verification flow
+_, err = client.VerifiedCallers.RedialVerification("vc-uuid")
+_, err = client.VerifiedCallers.SubmitVerification("vc-uuid", namespaces.VerifiedCallersNamespaceSubmitVerificationParams{
+	VerificationCode: "123456",
+})
 ```
 
 ## SIP Profile
 
 Singleton resource -- no ID needed:
 
-```python
-profile = client.sip_profile.get()
-client.sip_profile.update(username="myproject", password="newsecret")
+```go
+profile, err := client.SIPProfile.Get(nil)
+_, err = client.SIPProfile.Update(namespaces.SIPProfileNamespaceUpdateParams{
+	Extras: map[string]any{"username": "myproject", "password": "newsecret"},
+})
 ```
 
 ## Phone Number Lookup
 
-```python
-info = client.lookup.phone_number("+15551234567")
-info = client.lookup.phone_number("+15551234567", include="carrier,cnam")
+```go
+info, err := client.Lookup.PhoneNumber("+15551234567", nil)
+info, err = client.Lookup.PhoneNumber("+15551234567", map[string]string{"include": "carrier,cnam"})
 ```
 
 Note: carrier and CNAM lookups are billable.
 
 ## Short Codes
 
-```python
-codes = client.short_codes.list()
-code = client.short_codes.get("sc-uuid")
-client.short_codes.update("sc-uuid", name="Alerts")
+```go
+codes, err := client.ShortCodes.List(nil)
+code, err := client.ShortCodes.Get("sc-uuid", nil)
+_, err = client.ShortCodes.Update("sc-uuid", namespaces.ShortCodesNamespaceUpdateParams{Name: "Alerts"})
 ```
 
 ## Imported Phone Numbers
 
-```python
-client.imported_numbers.create(number="+15559999999", carrier="external")
+```go
+_, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreateParams{
+	Number:     "+15559999999",
+	NumberType: "external",
+})
 ```
 
 ## MFA (Multi-Factor Authentication)
 
-```python
-# Request a verification code via SMS
-result = client.mfa.sms(
-    to="+15551234567",
-    from_="+15559876543",
-    message="Your code is {code}",
-)
-request_id = result["id"]
+```go
+// Request a verification code via SMS
+result, err := client.MFA.SMS(namespaces.MFANamespaceSMSParams{
+	To:      "+15551234567",
+	From:    strPtr("+15559876543"),
+	Message: strPtr("Your code is {code}"),
+})
+requestID := string(result.Id)
 
-# Or via phone call
-result = client.mfa.call(
-    to="+15551234567",
-    from_="+15559876543",
-)
+// Or via phone call
+result, err = client.MFA.Call(namespaces.MFANamespaceCallParams{
+	To:   "+15551234567",
+	From: strPtr("+15559876543"),
+})
 
-# Verify the code
-result = client.mfa.verify(request_id, token="123456")
+// Verify the code
+verified, err := client.MFA.Verify(requestID, namespaces.MFANamespaceVerifyParams{Token: "123456"})
 ```
 
 ## 10DLC Campaign Registry
 
-```python
-# Brands
-brands = client.registry.brands.list()
-brand = client.registry.brands.create(name="My Brand", ein="12-3456789")
-brand = client.registry.brands.get("brand-uuid")
+```go
+// Brands
+brands, err := client.Registry.Brands.List(nil)
+brand, err := client.Registry.Brands.Create(map[string]any{"name": "My Brand", "ein": "12-3456789"})
+brand, err = client.Registry.Brands.Get("brand-uuid", nil)
 
-# Campaigns under a brand
-campaigns = client.registry.brands.list_campaigns("brand-uuid")
-campaign = client.registry.brands.create_campaign("brand-uuid", description="Alerts")
+// Campaigns under a brand
+campaigns, err := client.Registry.Brands.ListCampaigns("brand-uuid", nil)
+campaign, err := client.Registry.Brands.CreateCampaign("brand-uuid", map[string]any{"description": "Alerts"})
 
-# Campaign management
-campaign = client.registry.campaigns.get("camp-uuid")
-client.registry.campaigns.update("camp-uuid", description="Updated alerts")
+// Campaign management
+campaign, err = client.Registry.Campaigns.Get("camp-uuid", nil)
+_, err = client.Registry.Campaigns.Update("camp-uuid", namespaces.RegistryCampaignsUpdateParams{
+	Extras: map[string]any{"description": "Updated alerts"},
+})
 
-# Number assignments
-numbers = client.registry.campaigns.list_numbers("camp-uuid")
-orders = client.registry.campaigns.list_orders("camp-uuid")
-order = client.registry.campaigns.create_order("camp-uuid", phone_number_ids=["pn-1"])
-order = client.registry.orders.get("order-uuid")
-client.registry.numbers.delete("number-assignment-uuid")
+// Number assignments
+numbers, err := client.Registry.Campaigns.ListNumbers("camp-uuid", nil)
+orders, err := client.Registry.Campaigns.ListOrders("camp-uuid", nil)
+order, err := client.Registry.Campaigns.CreateOrder("camp-uuid", namespaces.RegistryCampaignsCreateOrderParams{
+	PhoneNumbers: []string{"pn-1"},
+})
+order, err = client.Registry.Orders.Get("order-uuid", nil)
+_, err = client.Registry.Numbers.Delete("number-assignment-uuid")
 ```
 
 ## Datasphere
 
-```python
-# Documents
-docs = client.datasphere.documents.list()
-doc = client.datasphere.documents.create(url="https://example.com/doc.pdf", tags=["support"])
-doc = client.datasphere.documents.get("doc-uuid")
-client.datasphere.documents.update("doc-uuid", tags=["support", "billing"])
-client.datasphere.documents.delete("doc-uuid")
+```go
+// Documents
+docs, err := client.Datasphere.Documents.List(nil)
+doc, err := client.Datasphere.Documents.Create(map[string]any{
+	"url":  "https://example.com/doc.pdf",
+	"tags": []string{"support"},
+})
+doc, err = client.Datasphere.Documents.Get("doc-uuid")
+_, err = client.Datasphere.Documents.Update("doc-uuid", map[string]any{"tags": []string{"support", "billing"}})
+_, err = client.Datasphere.Documents.Delete("doc-uuid")
 
-# Semantic search
-results = client.datasphere.documents.search(
-    query_string="How do I reset my password?",
-    tags=["support"],
-    count=5,
-)
+// Semantic search
+results, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{
+	QueryString: "How do I reset my password?",
+	Tags:        []string{"support"},
+	Count:       intPtr(5),
+})
 
-# Chunks
-chunks = client.datasphere.documents.list_chunks("doc-uuid")
-chunk = client.datasphere.documents.get_chunk("doc-uuid", "chunk-uuid")
-client.datasphere.documents.delete_chunk("doc-uuid", "chunk-uuid")
+// Chunks
+chunks, err := client.Datasphere.Documents.ListChunks("doc-uuid", nil)
+chunk, err := client.Datasphere.Documents.GetChunk("doc-uuid", "chunk-uuid", nil)
+_, err = client.Datasphere.Documents.DeleteChunk("doc-uuid", "chunk-uuid")
 ```
 
 ## Video
 
-```python
-# Rooms
-rooms = client.video.rooms.list()
-room = client.video.rooms.create(name="standup", max_members=10)
-room = client.video.rooms.get("room-uuid")
-client.video.rooms.update("room-uuid", max_members=20)
-client.video.rooms.delete("room-uuid")
-client.video.rooms.list_streams("room-uuid")
-client.video.rooms.create_stream("room-uuid", url="rtmp://example.com/live")
+```go
+// Rooms
+rooms, err := client.Video.Rooms.List(nil)
+room, err := client.Video.Rooms.Create(map[string]any{"name": "standup", "max_members": 10})
+room, err = client.Video.Rooms.Get("room-uuid")
+_, err = client.Video.Rooms.Update("room-uuid", map[string]any{"max_members": 20})
+_, err = client.Video.Rooms.Delete("room-uuid")
+_, err = client.Video.Rooms.ListStreams("room-uuid", nil)
+_, err = client.Video.Rooms.CreateStream("room-uuid", namespaces.VideoRoomsCreateStreamParams{Url: "rtmp://example.com/live"})
 
-# Room tokens
-token = client.video.room_tokens.create(room_name="standup", user_name="alice")
+// Room tokens
+token, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{
+	RoomName: "standup",
+	UserName: strPtr("alice"),
+})
 
-# Room sessions
-sessions = client.video.room_sessions.list(room_name="standup")
-session = client.video.room_sessions.get("session-uuid")
-events = client.video.room_sessions.list_events("session-uuid")
-members = client.video.room_sessions.list_members("session-uuid")
-recordings = client.video.room_sessions.list_recordings("session-uuid")
+// Room sessions
+sessions, err := client.Video.RoomSessions.List(map[string]string{"room_name": "standup"})
+session, err := client.Video.RoomSessions.Get("session-uuid")
+events, err := client.Video.RoomSessions.ListEvents("session-uuid", nil)
+members, err := client.Video.RoomSessions.ListMembers("session-uuid", nil)
+recordings, err := client.Video.RoomSessions.ListRecordings("session-uuid", nil)
 
-# Room recordings
-recs = client.video.room_recordings.list()
-rec = client.video.room_recordings.get("rec-uuid")
-client.video.room_recordings.delete("rec-uuid")
-events = client.video.room_recordings.list_events("rec-uuid")
+// Room recordings
+recs, err := client.Video.RoomRecordings.List(nil)
+rec, err := client.Video.RoomRecordings.Get("rec-uuid", nil)
+_, err = client.Video.RoomRecordings.Delete("rec-uuid")
+recEvents, err := client.Video.RoomRecordings.ListEvents("rec-uuid", nil)
+_ = recEvents
 
-# Conferences
-confs = client.video.conferences.list()
-conf = client.video.conferences.create(name="all-hands", quality="720p")
-conf = client.video.conferences.get("conf-uuid")
-client.video.conferences.update("conf-uuid", quality="1080p")
-client.video.conferences.delete("conf-uuid")
-tokens = client.video.conferences.list_conference_tokens("conf-uuid")
-client.video.conferences.list_streams("conf-uuid")
-client.video.conferences.create_stream("conf-uuid", url="rtmp://example.com/live")
+// Conferences
+confs, err := client.Video.Conferences.List(nil)
+conf, err := client.Video.Conferences.Create(map[string]any{"name": "all-hands", "quality": "720p"})
+conf, err = client.Video.Conferences.Get("conf-uuid")
+_, err = client.Video.Conferences.Update("conf-uuid", map[string]any{"quality": "1080p"})
+_, err = client.Video.Conferences.Delete("conf-uuid")
+tokens, err := client.Video.Conferences.ListConferenceTokens("conf-uuid", nil)
+_, err = client.Video.Conferences.ListStreams("conf-uuid", nil)
+_, err = client.Video.Conferences.CreateStream("conf-uuid", namespaces.VideoConferencesCreateStreamParams{Url: "rtmp://example.com/live"})
 
-# Conference tokens
-token = client.video.conference_tokens.get("token-uuid")
-client.video.conference_tokens.reset("token-uuid")
+// Conference tokens
+confToken, err := client.Video.ConferenceTokens.Get("token-uuid", nil)
+_ = confToken
+_, err = client.Video.ConferenceTokens.Reset("token-uuid")
 
-# Streams
-stream = client.video.streams.get("stream-uuid")
-client.video.streams.update("stream-uuid", url="rtmp://example.com/new")
-client.video.streams.delete("stream-uuid")
+// Streams
+stream, err := client.Video.Streams.Get("stream-uuid", nil)
+_, err = client.Video.Streams.Update("stream-uuid", namespaces.VideoStreamsUpdateParams{Url: "rtmp://example.com/new"})
+_, err = client.Video.Streams.Delete("stream-uuid")
 ```
 
 ## Logs
 
 All log endpoints are read-only.
 
-```python
-# Message logs
-logs = client.logs.messages.list(include_deleted=True)
-log = client.logs.messages.get("log-uuid")
+```go
+// Message logs
+logs, err := client.Logs.Messages.List(map[string]string{"include_deleted": "true"})
+log, err := client.Logs.Messages.Get("log-uuid")
 
-# Voice logs (with events)
-logs = client.logs.voice.list()
-log = client.logs.voice.get("log-uuid")
-events = client.logs.voice.list_events("log-uuid")
+// Voice logs (with events)
+voiceLogs, err := client.Logs.Voice.List(nil)
+voiceLog, err := client.Logs.Voice.Get("log-uuid")
+events, err := client.Logs.Voice.ListEvents("log-uuid", nil)
 
-# Fax logs
-logs = client.logs.fax.list()
-log = client.logs.fax.get("log-uuid")
+// Fax logs
+faxLogs, err := client.Logs.Fax.List(nil)
+faxLog, err := client.Logs.Fax.Get("log-uuid")
 
-# Conference logs
-logs = client.logs.conferences.list()
+// Conference logs
+confLogs, err := client.Logs.Conferences.List(nil)
 ```
 
 ## Project Tokens
 
-```python
-token = client.project.tokens.create(
-    name="ci-token",
-    permissions=["calling", "messaging", "numbers"],
-)
-client.project.tokens.update("token-uuid", name="renamed-token")
-client.project.tokens.delete("token-uuid")
+```go
+token, err := client.Project.Tokens.Create(namespaces.ProjectTokensCreateParams{
+	Name:        "ci-token",
+	Permissions: []namespaces.TokenPermission{"calling", "messaging", "numbers"},
+})
+_, err = client.Project.Tokens.Update("token-uuid", namespaces.ProjectTokensUpdateParams{Name: strPtr("renamed-token")})
+_, err = client.Project.Tokens.Delete("token-uuid")
 ```
 
 ## PubSub Tokens
 
-```python
-token = client.pubsub.create_token(
-    ttl=60,
-    channels=[{"name": "updates", "read": True, "write": False}],
-    member_id="user-123",
-)
+```go
+token, err := client.PubSub.CreateToken(namespaces.PubSubNamespaceCreateTokenParams{
+	Ttl: 60,
+	Channels: namespaces.PubSubChannels{
+		"updates": map[string]any{"read": true, "write": false},
+	},
+	MemberId: strPtr("user-123"),
+})
 ```
 
 ## Chat Tokens
 
-```python
-token = client.chat.create_token(
-    ttl=60,
-    channels=[{"name": "support", "read": True, "write": True}],
-    member_id="user-123",
-)
+```go
+token, err := client.Chat.CreateToken(namespaces.ChatNamespaceCreateTokenParams{
+	Ttl: 60,
+	Channels: namespaces.ChatChannel{
+		"support": map[string]any{"read": true, "write": true},
+	},
+	MemberId: strPtr("user-123"),
+})
 ```
