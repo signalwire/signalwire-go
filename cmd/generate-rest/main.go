@@ -44,8 +44,16 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/signalwire/signalwire-go/cmd/internal/overlay"
 	"gopkg.in/yaml.v3"
 )
+
+// restOverlay is the SDK-surface policy (x-sdk-overlay.yaml), loaded once in
+// run() from porting-sdk. It is consulted at every struct-field emission site to
+// drop hidden fields / flag deprecated ones. A nil value (porting-sdk absent) is
+// a no-op. Package-level, like emittedTypeNames, so the emit helpers reach it
+// without threading it through every call.
+var restOverlay *overlay.Overlay
 
 // ---------------------------------------------------------------------------
 // Spec model (a minimal ordered OpenAPI view; mirrors generate-payloads).
@@ -2167,6 +2175,11 @@ func run() error {
 		}
 		fmt.Fprintf(os.Stderr, "generate-rest: %v — skipping (committed files kept)\n", err)
 		return nil
+	}
+
+	restOverlay, err = overlay.Load(psdk)
+	if err != nil {
+		return err
 	}
 
 	bases, err := loadBases(psdk)

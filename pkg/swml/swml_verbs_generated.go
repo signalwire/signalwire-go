@@ -593,10 +593,6 @@ type AIParams struct {
 	AsrDiarize any `json:"asr_diarize,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// AsrSpeakerAffinity If true, will force the AI Agent to only respond to the speaker who reesponds to the AI Agent first.
 	AsrSpeakerAffinity any `json:"asr_speaker_affinity,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// AudibleDebug If `true`, the AI will announce the function that is being executed on the call. **Default:** `false`.
-	AudibleDebug any `json:"audible_debug,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// AudibleLatency If `true`, the AI will announce latency information during the call. Useful for debugging. **Default:** `false`.
-	AudibleLatency any `json:"audible_latency,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// BackgroundFile URL of audio file to play in the background while AI plays in foreground.
 	BackgroundFile string `json:"background_file,omitempty" gen:"string"`
 	// BackgroundFileLoops Maximum number of times to loop playing the background file. `undefined` means loop indefinitely.
@@ -617,8 +613,6 @@ type AIParams struct {
 	BargeMinWords any `json:"barge_min_words,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// BargeFunctions If `true`, allows functions to be executed while the AI is being interrupted. **Default:** `true`.
 	BargeFunctions any `json:"barge_functions,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// CacheMode If `true`, enables response caching for improved performance. **Default:** `false`.
-	CacheMode any `json:"cache_mode,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// Conscience Sets the prompt which binds the agent to its purpose.
 	Conscience string `json:"conscience,omitempty" gen:"string"`
 	// Convo Injects pre-existing conversation history into the AI session at startup. This allows you to seed the AI agent with context from a previous conversation or provide example interactions.
@@ -641,8 +635,6 @@ type AIParams struct {
 	DigitTimeout any `json:"digit_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// EndOfSpeechTimeout Amount of silence, in ms, at the end of an utterance to detect end of speech. Allowed values from `250` - `10,000`. **Default:** `700` ms.
 	EndOfSpeechTimeout any `json:"end_of_speech_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// EnableAccounting If `true`, enables usage accounting. The default is `false`.
-	EnableAccounting any `json:"enable_accounting,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// EnableThinking Enables thinking output for the AI Agent.
 	EnableThinking any `json:"enable_thinking,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// EnableVision Enables visual input processing for the AI Agent.
@@ -679,7 +671,7 @@ type AIParams struct {
 	InterruptOnNoise any `json:"interrupt_on_noise,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// InterruptPrompt Provide a prompt for the agent to handle crosstalk.
 	InterruptPrompt string `json:"interrupt_prompt,omitempty" gen:"string"`
-	// LanguagesEnabled Allows multilingualism when `true`.
+	// Deprecated: languages_enabled
 	LanguagesEnabled any `json:"languages_enabled,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// LocalTz The local timezone setting for the AI. Value should use `IANA TZ ID`
 	LocalTz string `json:"local_tz,omitempty" gen:"string"`
@@ -737,8 +729,6 @@ type AIParams struct {
 	TurnDetectionTimeout any `json:"turn_detection_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// TtsNumberFormat The format for the AI agent to reference phone numbers.
 	TtsNumberFormat any `json:"tts_number_format,omitempty" gen:"string"`
-	// VerboseLogs Enable verbose logging.
-	VerboseLogs any `json:"verbose_logs,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// VideoListeningFile URL of a video file to play when AI is listening to the user speak. Only works for calls that support video.
 	VideoListeningFile string `json:"video_listening_file,omitempty" gen:"string"`
 	// VideoIdleFile URL of a video file to play when AI is idle. Only works for calls that support video.

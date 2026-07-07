@@ -126,8 +126,6 @@ type AIParams struct {
 	AttentionTimeoutPrompt    *string               `json:"attention_timeout_prompt,omitempty"`
 	AsrDiarize                any                   `json:"asr_diarize,omitempty"`
 	AsrSpeakerAffinity        any                   `json:"asr_speaker_affinity,omitempty"`
-	AudibleDebug              any                   `json:"audible_debug,omitempty"`
-	AudibleLatency            any                   `json:"audible_latency,omitempty"`
 	BackgroundFile            *string               `json:"background_file,omitempty"`
 	BackgroundFileLoops       any                   `json:"background_file_loops,omitempty"`
 	BackgroundFileVolume      any                   `json:"background_file_volume,omitempty"`
@@ -138,7 +136,6 @@ type AIParams struct {
 	BargeMatchString          *string               `json:"barge_match_string,omitempty"`
 	BargeMinWords             any                   `json:"barge_min_words,omitempty"`
 	BargeFunctions            any                   `json:"barge_functions,omitempty"`
-	CacheMode                 any                   `json:"cache_mode,omitempty"`
 	Conscience                *string               `json:"conscience,omitempty"`
 	Convo                     []ConversationMessage `json:"convo,omitempty"`
 	ConversationId            *string               `json:"conversation_id,omitempty"`
@@ -150,7 +147,6 @@ type AIParams struct {
 	DigitTerminators          *string               `json:"digit_terminators,omitempty"`
 	DigitTimeout              any                   `json:"digit_timeout,omitempty"`
 	EndOfSpeechTimeout        any                   `json:"end_of_speech_timeout,omitempty"`
-	EnableAccounting          any                   `json:"enable_accounting,omitempty"`
 	EnableThinking            any                   `json:"enable_thinking,omitempty"`
 	EnableVision              any                   `json:"enable_vision,omitempty"`
 	EnergyLevel               any                   `json:"energy_level,omitempty"`
@@ -169,45 +165,45 @@ type AIParams struct {
 	InputPollFreq             any                   `json:"input_poll_freq,omitempty"`
 	InterruptOnNoise          any                   `json:"interrupt_on_noise,omitempty"`
 	InterruptPrompt           *string               `json:"interrupt_prompt,omitempty"`
-	LanguagesEnabled          any                   `json:"languages_enabled,omitempty"`
-	LocalTz                   *string               `json:"local_tz,omitempty"`
-	LlmDiarizeAware           any                   `json:"llm_diarize_aware,omitempty"`
-	MaxEmotion                any                   `json:"max_emotion,omitempty"`
-	MaxResponseTokens         any                   `json:"max_response_tokens,omitempty"`
-	OpenaiAsrEngine           *string               `json:"openai_asr_engine,omitempty"`
-	OutboundAttentionTimeout  any                   `json:"outbound_attention_timeout,omitempty"`
-	PersistGlobalData         any                   `json:"persist_global_data,omitempty"`
-	PomFormat                 *string               `json:"pom_format,omitempty"`
-	SaveConversation          any                   `json:"save_conversation,omitempty"`
-	SpeechEventTimeout        any                   `json:"speech_event_timeout,omitempty"`
-	SpeechGenQuickStops       any                   `json:"speech_gen_quick_stops,omitempty"`
-	SpeechTimeout             any                   `json:"speech_timeout,omitempty"`
-	SpeakWhenSpokenTo         any                   `json:"speak_when_spoken_to,omitempty"`
-	StartPaused               any                   `json:"start_paused,omitempty"`
-	StaticGreeting            *string               `json:"static_greeting,omitempty"`
-	StaticGreetingNoBarge     any                   `json:"static_greeting_no_barge,omitempty"`
-	SummaryMode               any                   `json:"summary_mode,omitempty"`
-	SwaigAllowSettings        any                   `json:"swaig_allow_settings,omitempty"`
-	SwaigAllowSwml            any                   `json:"swaig_allow_swml,omitempty"`
-	SwaigPostConversation     any                   `json:"swaig_post_conversation,omitempty"`
-	SwaigSetGlobalData        any                   `json:"swaig_set_global_data,omitempty"`
-	SwaigPostSwmlVars         any                   `json:"swaig_post_swml_vars,omitempty"`
-	ThinkingModel             any                   `json:"thinking_model,omitempty"`
-	TransparentBarge          any                   `json:"transparent_barge,omitempty"`
-	TransparentBargeMaxTime   any                   `json:"transparent_barge_max_time,omitempty"`
-	TransferSummary           any                   `json:"transfer_summary,omitempty"`
-	TurnDetectionTimeout      any                   `json:"turn_detection_timeout,omitempty"`
-	TtsNumberFormat           *string               `json:"tts_number_format,omitempty"`
-	VerboseLogs               any                   `json:"verbose_logs,omitempty"`
-	VideoListeningFile        *string               `json:"video_listening_file,omitempty"`
-	VideoIdleFile             *string               `json:"video_idle_file,omitempty"`
-	VideoTalkingFile          *string               `json:"video_talking_file,omitempty"`
-	VisionModel               any                   `json:"vision_model,omitempty"`
-	VadConfig                 *string               `json:"vad_config,omitempty"`
-	WaitForUser               any                   `json:"wait_for_user,omitempty"`
-	WakePrefix                *string               `json:"wake_prefix,omitempty"`
-	ElevenLabsStability       any                   `json:"eleven_labs_stability,omitempty"`
-	ElevenLabsSimilarity      any                   `json:"eleven_labs_similarity,omitempty"`
+	// Deprecated: languages_enabled
+	LanguagesEnabled         any     `json:"languages_enabled,omitempty"`
+	LocalTz                  *string `json:"local_tz,omitempty"`
+	LlmDiarizeAware          any     `json:"llm_diarize_aware,omitempty"`
+	MaxEmotion               any     `json:"max_emotion,omitempty"`
+	MaxResponseTokens        any     `json:"max_response_tokens,omitempty"`
+	OpenaiAsrEngine          *string `json:"openai_asr_engine,omitempty"`
+	OutboundAttentionTimeout any     `json:"outbound_attention_timeout,omitempty"`
+	PersistGlobalData        any     `json:"persist_global_data,omitempty"`
+	PomFormat                *string `json:"pom_format,omitempty"`
+	SaveConversation         any     `json:"save_conversation,omitempty"`
+	SpeechEventTimeout       any     `json:"speech_event_timeout,omitempty"`
+	SpeechGenQuickStops      any     `json:"speech_gen_quick_stops,omitempty"`
+	SpeechTimeout            any     `json:"speech_timeout,omitempty"`
+	SpeakWhenSpokenTo        any     `json:"speak_when_spoken_to,omitempty"`
+	StartPaused              any     `json:"start_paused,omitempty"`
+	StaticGreeting           *string `json:"static_greeting,omitempty"`
+	StaticGreetingNoBarge    any     `json:"static_greeting_no_barge,omitempty"`
+	SummaryMode              any     `json:"summary_mode,omitempty"`
+	SwaigAllowSettings       any     `json:"swaig_allow_settings,omitempty"`
+	SwaigAllowSwml           any     `json:"swaig_allow_swml,omitempty"`
+	SwaigPostConversation    any     `json:"swaig_post_conversation,omitempty"`
+	SwaigSetGlobalData       any     `json:"swaig_set_global_data,omitempty"`
+	SwaigPostSwmlVars        any     `json:"swaig_post_swml_vars,omitempty"`
+	ThinkingModel            any     `json:"thinking_model,omitempty"`
+	TransparentBarge         any     `json:"transparent_barge,omitempty"`
+	TransparentBargeMaxTime  any     `json:"transparent_barge_max_time,omitempty"`
+	TransferSummary          any     `json:"transfer_summary,omitempty"`
+	TurnDetectionTimeout     any     `json:"turn_detection_timeout,omitempty"`
+	TtsNumberFormat          *string `json:"tts_number_format,omitempty"`
+	VideoListeningFile       *string `json:"video_listening_file,omitempty"`
+	VideoIdleFile            *string `json:"video_idle_file,omitempty"`
+	VideoTalkingFile         *string `json:"video_talking_file,omitempty"`
+	VisionModel              any     `json:"vision_model,omitempty"`
+	VadConfig                *string `json:"vad_config,omitempty"`
+	WaitForUser              any     `json:"wait_for_user,omitempty"`
+	WakePrefix               *string `json:"wake_prefix,omitempty"`
+	ElevenLabsStability      any     `json:"eleven_labs_stability,omitempty"`
+	ElevenLabsSimilarity     any     `json:"eleven_labs_similarity,omitempty"`
 }
 
 type AIPostPrompt any

@@ -227,9 +227,10 @@ func isObjectSchema(node *yaml.Node) bool {
 func emitTypeDecl(b *strings.Builder, schemas *yaml.Node, rawName string, node *yaml.Node) {
 	goName := typeGoName(rawName)
 
-	// Object → struct.
+	// Object → struct. rawName (the components/schemas key) is the SPEC schema
+	// name the overlay scope matches against — NOT goName (the emitted Go type).
 	if isObjectSchema(node) {
-		emitStructDecl(b, schemas, goName, node)
+		emitStructDecl(b, schemas, goName, rawName, node)
 		return
 	}
 
@@ -251,7 +252,10 @@ func emitTypeDecl(b *strings.Builder, schemas *yaml.Node, rawName string, node *
 // emitStructDecl emits a Go struct for an object schema. Required fields are
 // value-typed; optional fields are pointer-typed (nil = unset). The wire key is
 // the schema property name (json tag), so the struct marshals to the same body.
-func emitStructDecl(b *strings.Builder, schemas *yaml.Node, goName string, node *yaml.Node) {
+// specName is the schema's name AS IT APPEARS IN THE SPEC (the
+// components/schemas key) — the overlay scope is matched against it, never the
+// emitted goName.
+func emitStructDecl(b *strings.Builder, schemas *yaml.Node, goName, specName string, node *yaml.Node) {
 	required := map[string]bool{}
 	if req := seqChild(node, "required"); req != nil {
 		for _, r := range req.Content {
@@ -264,6 +268,13 @@ func emitStructDecl(b *strings.Builder, schemas *yaml.Node, goName string, node 
 	for i := 0; i+1 < len(props.Content); i += 2 {
 		wireKey := props.Content[i].Value
 		propNode := props.Content[i+1]
+		// SDK-surface policy from the single overlay (x-sdk-overlay.yaml), matched
+		// by (wire field, SPEC schema name). Hidden → drop from the surface
+		// entirely (still on the wire); deprecated → emit with a Go // Deprecated:
+		// doc comment.
+		if restOverlay.Hidden(wireKey, specName) {
+			continue
+		}
 		fieldName := structFieldName(wireKey)
 		for used[fieldName] {
 			fieldName += "_"
@@ -278,6 +289,9 @@ func emitStructDecl(b *strings.Builder, schemas *yaml.Node, goName string, node 
 		// port's reference-typed fields).
 		if !required[wireKey] {
 			typ = optionalGoType(typ)
+		}
+		if restOverlay.Deprecated(wireKey, specName) {
+			fmt.Fprintf(b, "\t// Deprecated: %s\n", wireKey)
 		}
 		fmt.Fprintf(b, "\t%s %s `json:%q`\n", fieldName, typ, wireKey+",omitempty")
 	}

@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/signalwire/signalwire-go/cmd/internal/overlay"
 	"gopkg.in/yaml.v3"
 )
 
@@ -255,6 +256,9 @@ func canonModule(kind string) string {
 type gen struct {
 	module    string
 	refModule map[string]string
+	// overlay is the SDK-surface policy (x-sdk-overlay.yaml). Set on the SWML-verb
+	// path where AIParams surfaces; nil (no-op) for the SWAIG payload paths.
+	overlay *overlay.Overlay
 }
 
 func (g *gen) classRef(name string) string {
@@ -502,11 +506,21 @@ func (g *gen) declaration(name string, s *schema) string {
 	if s.isObject() && len(s.Properties) > 0 {
 		fmt.Fprintf(&b, "type %s struct {\n", ident)
 		for _, p := range s.Properties {
+			// SDK-surface policy from the single overlay (x-sdk-overlay.yaml), matched
+			// by (wire field, SPEC schema name). `name` is the schema name as it
+			// appears in the spec ($defs key) — NOT the emitted Go ident. Hidden →
+			// drop from the surface entirely (still on the wire); deprecated → emit
+			// with a Go // Deprecated: doc comment.
+			if g.overlay.Hidden(p.name, name) {
+				continue
+			}
 			canon := g.canonicalType(p.sch)
 			got := g.goType(p.sch)
 			fn := fieldName(p.name)
 			tag := fmt.Sprintf("`json:%q gen:%q`", p.name+",omitempty", canon)
-			if fd := firstLine(p.sch.Description); fd != "" {
+			if g.overlay.Deprecated(p.name, name) {
+				fmt.Fprintf(&b, "\t// Deprecated: %s\n", p.name)
+			} else if fd := firstLine(p.sch.Description); fd != "" {
 				fmt.Fprintf(&b, "\t// %s %s\n", fn, fd)
 			}
 			fmt.Fprintf(&b, "\t%s %s %s\n", fn, got, tag)
@@ -733,12 +747,12 @@ var handWrittenVerbs = map[string]bool{
 // EmitSwmlVerbs mirrors generate_swml_verbs: one decl per schema.json $defs entry
 // (object -> struct; else -> alias) + the flattened <Verb>Config structs from
 // SWMLMethod.anyOf. raw is the schema.json bytes.
-func EmitSwmlVerbs(raw []byte) (string, error) {
+func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay) (string, error) {
 	defs, order, err := loadJSONDefs(raw)
 	if err != nil {
 		return "", err
 	}
-	g := &gen{module: canonModule("swml"), refModule: map[string]string{}}
+	g := &gen{module: canonModule("swml"), refModule: map[string]string{}, overlay: ov}
 	var decls []string
 	declared := map[string]bool{}
 	emit := func(name string, s *schema) {

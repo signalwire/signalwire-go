@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ abb11a8394bdb7bfce067b588b8faf8f62232d79 (go/ast walker)",
+  "generated_from": "signalwire-go @ fe9816ef441830116e2b278342dfb036f57c85fc (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -5709,24 +5709,6 @@
               ],
               "returns": "union\u003cclass:signalwire.core.swml_verbs_generated.AttentionTimeout,string,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
             },
-            "audible_debug": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union\u003cbool,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
-            },
-            "audible_latency": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union\u003cbool,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
-            },
             "background_file_loops": {
               "params": [
                 {
@@ -5762,15 +5744,6 @@
                 }
               ],
               "returns": "union\u003cint,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
-            },
-            "cache_mode": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union\u003cbool,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
             },
             "conversation_sliding_window": {
               "params": [
@@ -5843,15 +5816,6 @@
                 }
               ],
               "returns": "union\u003cfloat,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
-            },
-            "enable_accounting": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union\u003cbool,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
             },
             "enable_barge": {
               "params": [
@@ -6221,15 +6185,6 @@
                 }
               ],
               "returns": "union\u003cint,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
-            },
-            "verbose_logs": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union\u003cbool,class:signalwire.core.swml_verbs_generated.SWMLVar\u003e"
             },
             "wait_for_user": {
               "params": [

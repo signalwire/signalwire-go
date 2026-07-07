@@ -30,6 +30,7 @@ import (
 	"path/filepath"
 
 	"github.com/signalwire/signalwire-go/cmd/internal/gen"
+	"github.com/signalwire/signalwire-go/cmd/internal/overlay"
 	"github.com/signalwire/signalwire-go/cmd/internal/payloadgen"
 )
 
@@ -58,7 +59,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	src, err := payloadgen.EmitSwmlVerbs(raw)
+	ov, err := overlay.Load(psdk)
+	if err != nil {
+		return err
+	}
+	src, err := payloadgen.EmitSwmlVerbs(raw, ov)
 	if err != nil {
 		return err
 	}
