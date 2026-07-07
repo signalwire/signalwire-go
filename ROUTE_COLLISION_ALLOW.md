@@ -24,3 +24,5 @@ Key format: `<Class>.<canonical_op>` (matching the gate's finding key).
   plural `/api/fabric/resources/conference_rooms`. `ConferenceRoomsResource` embeds
   `*CrudResource`, so the singular override is the only `list_addresses` route, matching
   the Python reference. (burn-go, 2026-07-07)
+
+<!-- user-approved 2026-07-07: all entries reviewed + approved for enforcing flip -->
