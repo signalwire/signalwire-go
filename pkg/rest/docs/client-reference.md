@@ -2,11 +2,25 @@
 
 ## Constructor
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func rest.NewRestClient(project, token, space string) (*rest.RestClient, error)
 //   project -> SIGNALWIRE_PROJECT_ID
 //   token   -> SIGNALWIRE_API_TOKEN
 //   space   -> SIGNALWIRE_SPACE
+```
+
+<!-- snippet-setup -->
+```go
+import "github.com/signalwire/signalwire-go/pkg/rest"
+
+// Shared context assumed by the fragments below: a constructed REST client.
+var client, err = rest.NewRestClient("project", "token", "space")
+
+var (
+	_ = client
+	_ = err
+)
 ```
 
 Any empty-string argument falls back to its corresponding environment variable. A non-nil error is returned if any of the three values is still empty after the environment lookup.
@@ -78,11 +92,9 @@ Every API surface is available as a namespace attribute on the client:
 import (
 	"errors"
 	"fmt"
-
-	"github.com/signalwire/signalwire-go/pkg/rest"
 )
 
-_, err := client.Fabric.AIAgents.Get("bad-id")
+_, err = client.Fabric.AIAgents.Get("bad-id")
 var restErr *rest.SignalWireRestError
 if errors.As(err, &restErr) {
 	fmt.Println(restErr.StatusCode) // 404

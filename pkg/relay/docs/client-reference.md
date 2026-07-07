@@ -1,11 +1,36 @@
 # RelayClient Reference
 
+<!-- snippet-setup -->
+```go
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var call *relay.Call
+var message *relay.Message
+var err error
+
+var (
+	_ = client
+	_ = call
+	_ = message
+	_ = err
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
 ## Constructor
 
 `NewRelayClient` takes functional options:
 
 ```go
-client := relay.NewRelayClient(
+client = relay.NewRelayClient(
 	relay.WithProject("..."),      // SIGNALWIRE_PROJECT_ID
 	relay.WithToken("..."),        // SIGNALWIRE_API_TOKEN
 	relay.WithJWT("..."),          // SIGNALWIRE_JWT_TOKEN
@@ -24,6 +49,8 @@ Authentication requires either `WithProject` + `WithToken` (legacy) or `WithJWT`
 Blocking entry point. Connects, authenticates, and runs the event loop with auto-reconnect until interrupted. Returns an error if the client fails to start.
 
 ```go
+import "log"
+
 if err := client.Run(); err != nil {
 	log.Fatal(err)
 }
@@ -36,6 +63,8 @@ if err := client.Run(); err != nil {
 Manual lifecycle control.
 
 ```go
+import "log"
+
 if err := client.Connect(); err != nil {
 	log.Fatal(err)
 }
@@ -63,7 +92,7 @@ Place an outbound call. Returns a `*relay.Call` once the remote party answers.
 - `relay.WithDialClientTimeout(d)` -- how long to wait before returning `ErrDialTimeout` (default: 120s)
 
 ```go
-call, err := client.Dial([][]map[string]any{
+call, err = client.Dial([][]map[string]any{
 	{
 		{"type": "phone", "params": map[string]any{"to_number": "+15551234567", "from_number": "+15559876543"}},
 	},
@@ -87,7 +116,9 @@ client.OnMessage(func(message *relay.Message) {
 Send an outbound SMS/MMS. Returns a `*relay.Message` that tracks delivery state.
 
 ```go
-message, err := client.SendMessage("+15552222222", "+15551111111", "Hello!")
+import "log"
+
+message, err = client.SendMessage("+15552222222", "+15551111111", "Hello!")
 if err != nil {
 	log.Fatal(err)
 }

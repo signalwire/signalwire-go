@@ -70,9 +70,23 @@ export SWML_BASIC_AUTH_PASSWORD=mysecurepassword
 
 SWML-based services automatically use the unified security configuration:
 
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
+// Shared context the fragments below assume.
+var a = agent.NewAgentBase()
+
+var (
+	_ = a
+)
+```
+
 ```go
 // Security is automatically configured from the environment
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
     agent.WithName("secure-agent"),
     agent.WithRoute("/agent"),
 )
@@ -94,7 +108,7 @@ loopback, and link-local addresses are rejected unless `SWML_ALLOW_PRIVATE_URLS`
 set to a truthy value (intended for local/test environments only).
 
 ```go
-agent.AddSkill("native_vector_search", map[string]any{
+a.AddSkill("native_vector_search", map[string]any{
     "remote_url": "https://user:pass@search.example.com:8001",
     "index_name": "docs",
 })

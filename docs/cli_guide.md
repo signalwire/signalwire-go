@@ -1147,6 +1147,22 @@ The CLI tool supports testing three types of webhook functions:
 
 External webhook functions are automatically detected when a function has a `webhook_url` parameter and are tested by making HTTP requests to the external service:
 
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared agent established in prose above.
+var a = agent.NewAgentBase()
+
+var (
+	_ = a
+	_ = swaig.NewFunctionResult("")
+)
+```
+
 ```go
 a.DefineTool(agent.ToolDefinition{
     Name:        "get_weather",

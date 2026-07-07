@@ -6,8 +6,35 @@ Send and receive SMS/MMS messages through the RELAY client.
 
 Use `client.SendMessage(to, from, body, opts...)` to send an outbound SMS or MMS.
 
+<!-- snippet-setup -->
 ```go
-message, err := client.SendMessage("+15552222222", "+15551111111", "Hello from SignalWire!")
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var message *relay.Message
+var err error
+var callbackFn = func(m *relay.Message, event *relay.RelayEvent) {}
+
+var (
+	_ = client
+	_ = message
+	_ = err
+	_ = callbackFn
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
+```go
+import "log"
+
+message, err = client.SendMessage("+15552222222", "+15551111111", "Hello from SignalWire!")
 if err != nil {
 	log.Fatal(err)
 }
@@ -17,7 +44,9 @@ _ = message
 ### Wait for delivery
 
 ```go
-message, err := client.SendMessage("+15552222222", "+15551111111", "Hello!")
+import "log"
+
+message, err = client.SendMessage("+15552222222", "+15551111111", "Hello!")
 if err != nil {
 	log.Fatal(err)
 }
@@ -31,7 +60,9 @@ if message.Reason() != "" {
 ### Fire and forget
 
 ```go
-message, err := client.SendMessage("+15552222222", "+15551111111", "Hello!")
+import "log"
+
+message, err = client.SendMessage("+15552222222", "+15551111111", "Hello!")
 if err != nil {
 	log.Fatal(err)
 }
@@ -42,7 +73,7 @@ _ = message
 ### Callback on completion
 
 ```go
-message, err := client.SendMessage("+15552222222", "+15551111111", "Hello!",
+message, err = client.SendMessage("+15552222222", "+15551111111", "Hello!",
 	relay.WithMessageOnCompleted(func(m *relay.Message, event *relay.RelayEvent) {
 		fmt.Printf("Delivery: %s\n", event.GetString("message_state"))
 	}),
@@ -54,7 +85,7 @@ _ = err
 ### MMS (media messages)
 
 ```go
-message, err := client.SendMessage("+15552222222", "+15551111111", "Check this out!",
+message, err = client.SendMessage("+15552222222", "+15551111111", "Check this out!",
 	relay.WithMessageMedia([]string{"https://example.com/image.jpg"}),
 )
 _ = message
@@ -64,7 +95,7 @@ _ = err
 ### All parameters
 
 ```go
-message, err := client.SendMessage(
+message, err = client.SendMessage(
 	"+15552222222", // to    — required, E.164 format
 	"+15551111111", // from  — required, E.164 format
 	"Message text", // body  — required if no media
@@ -173,7 +204,7 @@ structs in the `relay` package.
 The same `Client` handles both calls and messages:
 
 ```go
-client := relay.NewRelayClient(
+client = relay.NewRelayClient(
 	relay.WithProject("..."),
 	relay.WithToken("..."),
 	relay.WithContexts("default"),

@@ -41,8 +41,23 @@ go get github.com/signalwire/signalwire-go
 
 Then import the `web` package:
 
+<!-- snippet: no-compile illustrative import statement (reference only) -->
 ```go
 import "github.com/signalwire/signalwire-go/pkg/web"
+```
+
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/web"
+)
+
+// Shared context the fragments below assume.
+var service = web.NewWebService(web.Options{})
+
+var (
+	_ = service
+)
 ```
 
 ## Quick Start
@@ -80,7 +95,7 @@ WebService can be configured through multiple methods (in order of priority):
 The `web.Options` struct configures the service:
 
 ```go
-service := web.NewWebService(web.Options{
+service = web.NewWebService(web.Options{
 	Port: 8002, // Port to bind to
 	Directories: map[string]string{ // URL path to directory mappings
 		"/docs":   "./documentation",
@@ -175,7 +190,7 @@ These attempts will be blocked:
 #### File Size Limits
 Default maximum file size is 100MB. Configure with:
 ```go
-service := web.NewWebService(web.Options{MaxFileSize: 50 * 1024 * 1024}) // 50MB
+service = web.NewWebService(web.Options{MaxFileSize: 50 * 1024 * 1024}) // 50MB
 ```
 
 ### Security Headers
@@ -211,7 +226,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQE...
 Pass the certificate and key paths as the last two arguments to `Start`:
 
 ```go
-service := web.NewWebService(web.Options{
+service = web.NewWebService(web.Options{
 	Directories: map[string]string{"/docs": "./docs"},
 })
 // host, port, sslCert, sslKey — non-empty cert+key enables TLS.
@@ -306,7 +321,7 @@ func main() {
 ### With Directory Browsing
 
 ```go
-service := web.NewWebService(web.Options{
+service = web.NewWebService(web.Options{
 	Directories:             map[string]string{"/files": "./public"},
 	EnableDirectoryBrowsing: true, // Allow browsing directories
 })
@@ -319,7 +334,7 @@ service.Start("", 0, "", "")
 
 ```go
 // Only serve web assets
-service := web.NewWebService(web.Options{
+service = web.NewWebService(web.Options{
 	Directories:             map[string]string{"/web": "./www"},
 	AllowedExtensions:       []string{".html", ".css", ".js", ".png", ".jpg", ".woff2"},
 	EnableDirectoryBrowsing: false,
@@ -329,7 +344,7 @@ service := web.NewWebService(web.Options{
 ### Dynamic Directory Management
 
 ```go
-service := web.NewWebService(web.Options{})
+service = web.NewWebService(web.Options{})
 
 // Add directories after initialization
 service.AddDirectory("/docs", "./documentation")
@@ -344,7 +359,7 @@ service.Start("", 0, "", "")
 ### With Custom Authentication
 
 ```go
-service := web.NewWebService(web.Options{
+service = web.NewWebService(web.Options{
 	Directories:       map[string]string{"/private": "./sensitive-docs"},
 	BasicAuthUser:     "admin",
 	BasicAuthPassword: "super-secret-password",
@@ -356,7 +371,7 @@ service.Start("", 0, "", "")
 
 ```go
 // Assuming you have Let's Encrypt certificates
-service := web.NewWebService(web.Options{
+service = web.NewWebService(web.Options{
 	Directories: map[string]string{"/secure": "./secure-files"},
 })
 service.Start(
@@ -401,8 +416,7 @@ if os.Getenv("ENVIRONMENT") == "production" {
 Run WebService as a dedicated static file server:
 
 ```go
-// web_server.go
-package main
+package main // web_server.go
 
 import "github.com/signalwire/signalwire-go/pkg/web"
 
@@ -425,8 +439,7 @@ Run WebService alongside your AI agents on different ports. Because `Start`
 blocks, run the WebService in its own goroutine:
 
 ```go
-// main.go
-package main
+package main // main.go
 
 import (
 	"github.com/signalwire/signalwire-go/pkg/agent"
@@ -571,15 +584,20 @@ go mod tidy
 
 **Issue: SSL certificate errors**
 ```go
-// Check certificate paths
+package main
+
 import "os"
 
+// Check certificate paths.
 func certExists(p string) bool {
 	_, err := os.Stat(p)
 	return err == nil
 }
-// certExists("/path/to/cert.pem") should return true
-// certExists("/path/to/key.pem")  should return true
+
+func main() {
+	_ = certExists("/path/to/cert.pem") // should return true
+	_ = certExists("/path/to/key.pem")  // should return true
+}
 ```
 
 **Issue: Permission denied**
@@ -594,7 +612,7 @@ chmod -R 755 /path/to/static/files
 import "path/filepath"
 
 docs, _ := filepath.Abs("./documentation")
-service := web.NewWebService(web.Options{
+service = web.NewWebService(web.Options{
 	Directories: map[string]string{"/docs": docs},
 })
 ```
@@ -609,7 +627,7 @@ export SIGNALWIRE_LOG_LEVEL=debug
 ```
 
 ```go
-service := web.NewWebService(web.Options{
+service = web.NewWebService(web.Options{
 	Directories: map[string]string{"/test": "./test"},
 })
 service.Start("", 0, "", "")
@@ -621,6 +639,7 @@ service.Start("", 0, "", "")
 
 The constructor takes a `web.Options` struct:
 
+<!-- snippet: no-compile illustrative API reference (type + signature, reference only) -->
 ```go
 type Options struct {
 	Port                    int
@@ -652,6 +671,7 @@ func NewWebService(opts Options) *WebService
 #### Methods
 
 ##### Start
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func (ws *WebService) Start(host string, port int, sslCert, sslKey string) error
 ```
@@ -660,18 +680,21 @@ constructor port; non-empty `sslCert` and `sslKey` enable TLS. `Start` blocks
 until `Stop` is called or the server errors.
 
 ##### Stop
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func (ws *WebService) Stop() error
 ```
 Gracefully shut the server down.
 
 ##### AddDirectory
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func (ws *WebService) AddDirectory(route, directory string)
 ```
 Add a new directory to serve.
 
 ##### RemoveDirectory
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func (ws *WebService) RemoveDirectory(route string)
 ```

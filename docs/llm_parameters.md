@@ -14,6 +14,16 @@ SignalWire AI Agents SDK provides methods to customize LLM parameters for both t
 
 Sets LLM parameters for the main agent prompt. Accepts any parameters that will be passed to the server.
 
+<!-- snippet-setup -->
+```go
+import "github.com/signalwire/signalwire-go/pkg/agent"
+
+// Shared agent established in prose above.
+var a = agent.NewAgentBase()
+
+var _ = a
+```
+
 ```go
 a.SetPromptLlmParams(map[string]any{
     "temperature":       0.7,
@@ -79,7 +89,7 @@ Repetition control. Penalizes tokens based on their frequency in the conversatio
 
 ### Customer Service Agent
 ```go
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
     agent.WithName("customer-service"),
     agent.WithRoute("/support"),
 )
@@ -98,7 +108,7 @@ a.SetPromptLlmParams(map[string]any{
 
 ### Creative Writing Assistant
 ```go
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
     agent.WithName("creative-writer"),
     agent.WithRoute("/writer"),
 )
@@ -117,7 +127,7 @@ a.SetPromptLlmParams(map[string]any{
 
 ### Technical Documentation Bot
 ```go
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
     agent.WithName("tech-docs"),
     agent.WithRoute("/docs"),
 )
@@ -141,7 +151,7 @@ a.SetPostPromptLlmParams(map[string]any{
 
 ### Legal Advisor Bot
 ```go
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
     agent.WithName("legal-advisor"),
     agent.WithRoute("/legal"),
 )

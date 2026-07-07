@@ -19,6 +19,22 @@ All registered third-party skills are discovered and indexed the same way as
 built-in skills, appearing in `skills.ListSkillsWithParams()` output with their
 parameter schemas.
 
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+)
+
+// Shared context the fragments below assume.
+var a = agent.NewAgentBase()
+
+var (
+	_ = a
+	_ = skills.ListSkills
+)
+```
+
 ## Creating a Third-Party Skill
 
 Third-party skills follow the same structure as built-in skills: a struct that
@@ -26,8 +42,7 @@ embeds `skills.BaseSkill` and implements the `SkillBase` interface, registered f
 `init()`. Here's a minimal example:
 
 ```go
-// mymodule/weather/skill.go
-package weather
+package weather // mymodule/weather/skill.go
 
 import (
     "strings"
@@ -139,6 +154,7 @@ If you define a skill in your own program, register its factory directly with
 `skills.RegisterSkill` (typically from the package's `init()`, or from `main` before
 you build agents):
 
+<!-- snippet: no-compile imports a hypothetical user module (github.com/you/mymodule/weather) that does not exist -->
 ```go
 import (
     "github.com/signalwire/signalwire-go/pkg/agent"
@@ -169,6 +185,7 @@ see the `init()` line in the example above), you only need to blank-import the
 package. Its `init()` runs at program start and calls `skills.RegisterSkill` for
 you:
 
+<!-- snippet: no-compile blank-imports hypothetical user skill packages (github.com/you/myskills/*) that do not exist -->
 ```go
 import (
     // Blank-import each skill package so its init() registers the skill.
@@ -201,6 +218,7 @@ Publish your skills as a Go module and depend on it like any other library. Cons
 go get github.com/you/my-signalwire-skills@latest
 ```
 
+<!-- snippet: no-compile blank-imports hypothetical published user module packages (github.com/you/my-signalwire-skills/*) that do not exist -->
 ```go
 import (
     // Each imported package registers its skill via init().
@@ -251,6 +269,7 @@ github.com/you/my-signalwire-skills/
 Third-party skills are fully integrated with the SDK's discovery system once their
 package has been imported:
 
+<!-- snippet: no-compile blank-imports a hypothetical user skill package (github.com/you/my-signalwire-skills/weather) that does not exist -->
 ```go
 import (
     "fmt"
@@ -311,6 +330,7 @@ The `weather` entry, expressed as JSON:
 
 ### 3. Error Handling
 
+<!-- snippet: no-compile illustrative Setup() method on WeatherSkill (references the type + a hypothetical s.testAPIConnection helper) -->
 ```go
 func (s *WeatherSkill) Setup() bool {
     // Validate required parameters
@@ -362,6 +382,7 @@ a.AddSkill("weather", map[string]any{
 Support multiple instances of your skill by returning `true` from
 `SupportsMultipleInstances()` and providing a unique `GetInstanceKey()`:
 
+<!-- snippet: no-compile illustrative method stubs on WeatherSkill (the type is defined in the full skill example above; shown in isolation) -->
 ```go
 func (s *WeatherSkill) SupportsMultipleInstances() bool { return true }
 
@@ -392,6 +413,7 @@ a.AddSkill("weather", map[string]any{
 
 Customize tool names for better agent prompts:
 
+<!-- snippet: no-compile illustrative method stub on WeatherSkill (references s.handleGetWeather / the type from the full skill example above) -->
 ```go
 func (s *WeatherSkill) RegisterTools() []skills.ToolRegistration {
     toolName := s.GetParamString("tool_name", "get_weather")
@@ -414,6 +436,14 @@ instead — add the prerequisite skill first and check `HasSkill` on the agent b
 adding the dependent one:
 
 ```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func addWeather(a *agent.AgentBase) error {
     // The weather skill depends on the translation skill.
     a.AddSkill("translation", nil)
@@ -423,12 +453,15 @@ func addWeather(a *agent.AgentBase) error {
     a.AddSkill("weather", map[string]any{"api_key": "..."})
     return nil
 }
+
+func main() { _ = addWeather }
 ```
 
 ## Testing Third-Party Skills
 
 Test your skills before distribution with the standard `testing` package:
 
+<!-- snippet: no-compile test file for package weather (references NewWeatherSkill defined in the sibling skill.go fragment; cross-file, not standalone) -->
 ```go
 // skill_test.go
 package weather
@@ -485,6 +518,7 @@ If your skill isn't being discovered:
 A skill registers itself from `init()`, which only runs if the package is imported.
 If nothing in your program references the package, add a blank import to force it:
 
+<!-- snippet: no-compile blank-imports a hypothetical user skill package (github.com/you/myskills/weather) that does not exist -->
 ```go
 import (
     // Force the package's init() to run and register its skill.
@@ -497,6 +531,8 @@ import (
 List every registered skill (built-in and third-party) to confirm yours is present:
 
 ```go
+package main
+
 import (
     "fmt"
 
@@ -506,6 +542,8 @@ import (
 func printRegisteredSkills() {
     fmt.Println("Registered skills:", skills.ListSkills())
 }
+
+func main() { printRegisteredSkills() }
 ```
 
 ## Example: Complete Third-Party Skill Package
@@ -537,6 +575,7 @@ require github.com/signalwire/signalwire-go v1.0.12
 
 Each package registers its skill from `init()`, e.g. in `weather/skill.go`:
 
+<!-- snippet: no-compile illustrative init() from weather/skill.go (references NewWeatherSkill from the same package file; shown in isolation) -->
 ```go
 func init() { skills.RegisterSkill("weather", NewWeatherSkill) }
 ```
@@ -548,6 +587,7 @@ Install and use — `go get` the module, then blank-import each skill package so
 go get github.com/yourname/my-signalwire-skills@latest
 ```
 
+<!-- snippet: no-compile blank-imports hypothetical published user module packages (github.com/yourname/my-signalwire-skills/*) that do not exist -->
 ```go
 package main
 

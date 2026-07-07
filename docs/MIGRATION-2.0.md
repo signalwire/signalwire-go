@@ -18,6 +18,7 @@ go mod tidy
 
 ## Import Changes
 
+<!-- snippet: no-compile illustrative before/after showing the removed v1 module path signalwire-agents-go -->
 ```go
 // Before
 import (

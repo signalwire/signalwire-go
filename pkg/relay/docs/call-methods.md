@@ -22,6 +22,27 @@ Methods like `Play()`, `Record()`, `Detect()`, etc. return **Action** objects. T
 
 ### Wait inline (blocking)
 
+<!-- snippet-setup -->
+```go
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume: a live Call from OnCall/Dial.
+var call *relay.Call
+var err error
+
+var (
+	_ = call
+	_ = err
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
 ```go
 action := call.Play([]map[string]any{{"type": "tts", "params": map[string]any{"text": "Hello"}}})
 action.Wait(context.Background()) // blocks until playback finishes
@@ -492,6 +513,8 @@ call.On(relay.EventCallingCallPlay, func(event *relay.RelayEvent) {
 Wait for a specific event. Pass a `nil` predicate to match the first event of that type.
 
 ```go
+import "time"
+
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 event, err := call.WaitFor(ctx, relay.EventCallingCallPlay, nil)

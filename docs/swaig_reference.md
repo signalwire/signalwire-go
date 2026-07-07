@@ -4,6 +4,26 @@ SWAIG (SignalWire AI Gateway) is the platform's AI tool-calling system -- it con
 
 Construct a result with `swaig.NewFunctionResult(response string)`. Every action method returns the receiver (`*swaig.FunctionResult`) so calls can be chained.
 
+<!-- snippet-setup -->
+```go
+import (
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared context the fragments below assume.
+var result = swaig.NewFunctionResult("")
+var a = agent.NewAgentBase()
+
+var (
+	_ = fmt.Sprint
+	_ = a
+	_ = result
+)
+```
+
 ## Core Methods
 
 ### Basic Construction & Control
@@ -12,8 +32,8 @@ Construct a result with `swaig.NewFunctionResult(response string)`. Every action
 Creates a new result object with optional response text. Post-processing is off by default; call `SetPostProcess(true)` to enable it.
 
 ```go
-result := swaig.NewFunctionResult("Hello, I'll help you with that")
-result := swaig.NewFunctionResult("Processing request...").SetPostProcess(true)
+result = swaig.NewFunctionResult("Hello, I'll help you with that")
+result = swaig.NewFunctionResult("Processing request...").SetPostProcess(true)
 ```
 
 #### `SetResponse(response string) *FunctionResult`
@@ -201,6 +221,7 @@ prompt := swaig.CreatePaymentPrompt(
 
 // Create payment parameter
 param := swaig.CreatePaymentParameter("customer_id", "12345")
+_, _, _ = action, prompt, param
 ```
 
 **Variables Set:**
@@ -625,11 +646,11 @@ When called with a string, the tool_call/tool_result pair is replaced with an as
 
 ```go
 // Remove entirely — LLM won't see this function was called
-result := swaig.NewFunctionResult("Done.")
+result = swaig.NewFunctionResult("Done.")
 result.ReplaceInHistory(true)
 
 // Replace with a friendly assistant message instead of tool artifacts
-result := swaig.NewFunctionResult("Profile saved.")
+result = swaig.NewFunctionResult("Profile saved.")
 result.ReplaceInHistory("I've saved your profile information.")
 
 // Practical example: data collection function that shouldn't clutter history
@@ -738,6 +759,7 @@ Convert result to a map for JSON serialization.
 ```go
 resultMap := result.ToMap()
 // Returns: {"response": "...", "action": [...], "post_process": true/false}
+_ = resultMap
 ```
 
 ---
@@ -747,14 +769,14 @@ resultMap := result.ToMap()
 All methods return the receiver (`*swaig.FunctionResult`) to enable fluent method chaining:
 
 ```go
-result := swaig.NewFunctionResult("Processing your request").
+result = swaig.NewFunctionResult("Processing your request").
 	SetPostProcess(true).
 	UpdateGlobalData(map[string]any{"status": "processing"}).
 	PlayBackgroundFile("processing.wav", true).
 	SetEndOfSpeechTimeout(2500)
 
 // Complex chaining example
-result := swaig.NewFunctionResult("Let me transfer you to billing").
+result = swaig.NewFunctionResult("Let me transfer you to billing").
 	SetMetadata(map[string]any{"transfer_reason": "billing_inquiry"}).
 	UpdateGlobalData(map[string]any{"last_action": "transfer_to_billing"}).
 	Connect("+15551234567", true, "")

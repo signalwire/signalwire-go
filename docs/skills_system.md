@@ -6,16 +6,31 @@ The SignalWire Agents SDK now includes a modular skills system that lets you add
 
 Instead of manually implementing every agent capability, you can now:
 
+<!-- snippet-setup -->
 ```go
 import (
-    "github.com/signalwire/signalwire-go/pkg/agent"
+	"fmt"
 
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
+// Shared context the fragments below assume.
+var a = agent.NewAgentBase()
+
+var (
+	_ = a
+	_ = fmt.Sprint
+)
+```
+
+```go
+import (
     // Blank-import the built-in skills so their init() functions register them.
     _ "github.com/signalwire/signalwire-go/pkg/skills/all"
 )
 
 // Create an agent
-a := agent.NewAgentBase(agent.WithName("My Assistant"))
+a = agent.NewAgentBase(agent.WithName("My Assistant"))
 
 // Add skills with one-liners!
 a.AddSkill("web_search", nil) // Web search capability with default settings
@@ -140,13 +155,13 @@ the Go SDK -- the search server is operated separately and exposes `/health` and
 **Usage examples:**
 ```go
 // Connect to a remote search server
-agent.AddSkill("native_vector_search", map[string]any{
+a.AddSkill("native_vector_search", map[string]any{
     "remote_url": "http://localhost:8001",
     "index_name": "knowledge",
 })
 
 // Custom tool name, more results, and a similarity floor
-agent.AddSkill("native_vector_search", map[string]any{
+a.AddSkill("native_vector_search", map[string]any{
     "remote_url":           "http://search.internal:8001",
     "index_name":           "docs",
     "tool_name":            "search_docs",
@@ -155,7 +170,7 @@ agent.AddSkill("native_vector_search", map[string]any{
 })
 
 // Multiple instances querying different indexes on the same server
-agent.AddSkill("native_vector_search", map[string]any{
+a.AddSkill("native_vector_search", map[string]any{
     "remote_url": "http://localhost:8001",
     "index_name": "examples",
     "tool_name":  "search_examples",
@@ -230,14 +245,12 @@ a.AddSkill("swml_transfer", map[string]any{
 ### Basic Usage
 ```go
 import (
-    "github.com/signalwire/signalwire-go/pkg/agent"
-
     // Blank-import the built-in skills so their init() functions register them.
     _ "github.com/signalwire/signalwire-go/pkg/skills/all"
 )
 
 // Create agent and add skills
-a := agent.NewAgentBase(agent.WithName("Assistant"), agent.WithRoute("/assistant"))
+a = agent.NewAgentBase(agent.WithName("Assistant"), agent.WithRoute("/assistant"))
 a.AddSkill("datetime", nil)
 a.AddSkill("math", nil)
 a.AddSkill("web_search", nil) // Uses defaults: 1 result, no delay
@@ -249,7 +262,7 @@ a.Run()
 ### Skills with Custom Parameters
 ```go
 // Create agent
-a := agent.NewAgentBase(agent.WithName("Research Assistant"), agent.WithRoute("/research"))
+a = agent.NewAgentBase(agent.WithName("Research Assistant"), agent.WithRoute("/research"))
 
 // Add web search optimized for research (more results)
 a.AddSkill("web_search", map[string]any{
@@ -289,23 +302,23 @@ a.AddSkill("web_search", map[string]any{
 ### Check Available Skills
 ```go
 import (
-    "fmt"
-
     "github.com/signalwire/signalwire-go/pkg/skills"
 )
 
-// List all discovered skills with their parameter schemas
+// List all discovered skills with their parameter schemas. The schema for each
+// skill is a map of parameter name -> parameter metadata (type/description/
+// default/required).
 for name, schema := range skills.ListSkillsWithParams() {
-    fmt.Printf("- %s: %v\n", name, schema["description"])
-    if envVars, ok := schema["required_env_vars"].([]string); ok && len(envVars) > 0 {
-        fmt.Printf("  Requires: %v\n", envVars)
+    fmt.Printf("- %s (%d parameters)\n", name, len(schema))
+    for param, meta := range schema {
+        fmt.Printf("    %s: %v\n", param, meta["description"])
     }
 }
 ```
 
 ### Runtime Skill Management
 ```go
-a := agent.NewAgentBase(agent.WithName("Dynamic Agent"))
+a = agent.NewAgentBase(agent.WithName("Dynamic Agent"))
 
 // Add skills with different configurations
 a.AddSkill("math", nil)
@@ -331,8 +344,7 @@ implements the `SkillBase` interface. Register it from the package's `init()` so
 blank-import makes it available:
 
 ```go
-// mymodule/myskill/skill.go
-package myskill
+package myskill // mymodule/myskill/skill.go
 
 import (
     "fmt"
@@ -409,6 +421,7 @@ func init() { skills.RegisterSkill("my_skill", NewMyCustomSkill) }
 
 Blank-import the package once so its `init()` registers the skill, then use it like
 any built-in:
+<!-- snippet: no-compile references a hypothetical user module (github.com/you/mymodule/myskill) that does not exist -->
 ```go
 import _ "github.com/you/mymodule/myskill"
 
@@ -487,9 +500,10 @@ func main() {
 ## Migration Guide
 
 **Before (manual implementation):**
+<!-- snippet: no-compile illustrative "old way" pseudo-code (setupGoogleSearch / webSearchHandler are hypothetical user helpers) -->
 ```go
 // Had to manually implement every capability
-a := agent.NewAgentBase(agent.WithName("WebSearchAgent"))
+a = agent.NewAgentBase(agent.WithName("WebSearchAgent"))
 setupGoogleSearch(a)
 a.DefineTool(agent.ToolDefinition{
     Name:    "web_search",
@@ -501,7 +515,7 @@ a.DefineTool(agent.ToolDefinition{
 **After (skills system with parameters):**
 ```go
 // Simple one-liner with custom configuration
-a := agent.NewAgentBase(agent.WithName("WebSearchAgent"))
+a = agent.NewAgentBase(agent.WithName("WebSearchAgent"))
 a.AddSkill("web_search", map[string]any{
     "num_results": 3,   // Get more results
     "delay":       0.5, // Be respectful to servers

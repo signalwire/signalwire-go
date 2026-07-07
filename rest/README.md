@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -32,11 +33,13 @@ func main() {
 	results, _ := client.PhoneNumbers.Search(map[string]string{"area_code": "512"})
 
 	// Place a call via REST
-	client.Calling.Dial(map[string]any{
-		"from": "+15559876543",
-		"to":   "+15551234567",
-		"url":  "https://example.com/call-handler",
+	_, _ = client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+		From:   "+15559876543",
+		To:     "+15551234567",
+		Extras: map[string]any{"url": "https://example.com/call-handler"},
 	})
+
+	fmt.Println(agent, results)
 }
 ```
 

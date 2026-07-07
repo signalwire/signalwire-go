@@ -6,8 +6,28 @@ The examples below import the resource-parameter structs from
 `github.com/signalwire/signalwire-go/pkg/rest/namespaces` and use a small helper
 to set optional pointer fields:
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func ptr[T any](v T) *T { return &v }
+```
+
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+)
+
+// Shared context the fragments below assume: a constructed REST client.
+// (The `ptr` helper above is illustrative; runnable fragments take the address
+// of a local variable instead.)
+var client, err = rest.NewRestClient("project", "token", "space")
+
+var (
+	_ = client
+	_ = err
+	_ = namespaces.Uuid("")
+)
 ```
 
 ## Standard CRUD Pattern
@@ -36,6 +56,8 @@ _, err = client.Fabric.AIAgents.Delete("agent-uuid")
 
 // List addresses assigned to this resource
 addresses, err := client.Fabric.AIAgents.ListAddresses("agent-uuid", nil)
+
+_, _, _ = items, agent, addresses
 ```
 
 ## Resource Types
@@ -77,6 +99,8 @@ versions, err := client.Fabric.CallFlows.ListVersions("call-flow-uuid", nil)
 
 // Deploy a new version
 _, err = client.Fabric.CallFlows.DeployVersion("call-flow-uuid", map[string]any{"document_version": 3})
+
+_ = versions
 ```
 
 ## Subscribers -- SIP Endpoints
@@ -88,12 +112,13 @@ Subscribers have nested SIP endpoint management:
 endpoints, err := client.Fabric.Subscribers.ListSIPEndpoints("subscriber-uuid", nil)
 
 // Create a SIP endpoint for a subscriber
+callerId := "+15551234567"
 endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(
 	"subscriber-uuid",
 	namespaces.SubscribersResourceCreateSIPEndpointParams{
 		Username: "user1",
 		Password: "secret",
-		CallerId: ptr("+15551234567"),
+		CallerId: &callerId,
 	},
 )
 
@@ -101,15 +126,18 @@ endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(
 endpoint, err = client.Fabric.Subscribers.GetSIPEndpoint("subscriber-uuid", "endpoint-uuid", nil)
 
 // Update a SIP endpoint (uses PATCH)
+newCallerId := "+15559876543"
 _, err = client.Fabric.Subscribers.UpdateSIPEndpoint(
 	"subscriber-uuid", "endpoint-uuid",
 	namespaces.SubscribersResourceUpdateSIPEndpointParams{
-		CallerId: ptr("+15559876543"),
+		CallerId: &newCallerId,
 	},
 )
 
 // Delete a SIP endpoint
 _, err = client.Fabric.Subscribers.DeleteSIPEndpoint("subscriber-uuid", "endpoint-uuid")
+
+_, _ = endpoints, endpoint
 ```
 
 ## cXML Applications
@@ -119,12 +147,15 @@ cXML applications support list/get/update/delete but not create:
 ```go
 apps, err := client.Fabric.CXMLApplications.List(nil)
 app, err := client.Fabric.CXMLApplications.Get("app-uuid", nil)
+voiceUrl := "https://example.com/voice"
 _, err = client.Fabric.CXMLApplications.Update("app-uuid", namespaces.CxmlApplicationsResourceUpdateParams{
-	VoiceUrl: ptr("https://example.com/voice"),
+	VoiceUrl: &voiceUrl,
 })
 _, err = client.Fabric.CXMLApplications.Delete("app-uuid")
 
 // There is no Create method on CXMLApplications -- creation is not supported.
+
+_, _ = apps, app
 ```
 
 ## Generic Resources
@@ -149,6 +180,8 @@ _, err = client.Fabric.Resources.AssignDomainApplication(
 	"resource-uuid",
 	namespaces.GenericResourcesAssignDomainApplicationParams{DomainApplicationId: "da-uuid"},
 )
+
+_, _, _ = allResources, resource, addresses
 ```
 
 > **Note:** `AssignPhoneRoute` is deprecated for the common binding cases.
@@ -168,6 +201,8 @@ addresses, err := client.Fabric.Addresses.List(map[string]string{"type": "room"}
 
 // Get a specific address
 address, err := client.Fabric.Addresses.Get("address-uuid")
+
+_, _ = addresses, address
 ```
 
 ## Tokens
@@ -178,9 +213,10 @@ through the `Extras` map:
 
 ```go
 // Subscriber token
+password := "secret"
 token, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{
 	Reference: "user@example.com",
-	Password:  ptr("secret"),
+	Password:  &password,
 })
 
 // Refresh a subscriber token
@@ -189,19 +225,21 @@ refreshed, err := client.Fabric.Tokens.RefreshSubscriberToken(namespaces.FabricT
 })
 
 // Guest token
-token, err = client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{
+guestToken, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{
 	Extras: map[string]any{
 		"allowed_addresses": []string{"address-uuid-1", "address-uuid-2"},
 	},
 })
 
 // Subscriber invite token
-token, err = client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{
+inviteToken, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{
 	Extras: map[string]any{"address_id": "address-uuid"},
 })
 
 // Click-to-call embed token
-token, err = client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{
+embedToken, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{
 	Token: "embed-source-token",
 })
+
+_, _, _, _, _ = token, refreshed, guestToken, inviteToken, embedToken
 ```

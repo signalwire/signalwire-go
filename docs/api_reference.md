@@ -4,6 +4,42 @@ This document provides a comprehensive reference for all public APIs in the Sign
 
 Add the SDK to your module with `go get github.com/signalwire/signalwire-go`, then import the packages you need (`pkg/agent`, `pkg/swaig`, `pkg/datamap`, `pkg/contexts`, `pkg/skills`, `pkg/prefabs`, `pkg/server`).
 
+<!-- snippet-setup -->
+```go
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/contexts"
+	"github.com/signalwire/signalwire-go/pkg/datamap"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/swml"
+)
+
+// Shared context the fragments below assume (established in prose above).
+var a = agent.NewAgentBase()
+var result = swaig.NewFunctionResult("")
+var dm = datamap.New("function_name")
+var cb = contexts.NewContextBuilder()
+var err error
+
+var (
+	_ = a
+	_ = result
+	_ = dm
+	_ = cb
+	_ = err
+	_ = fmt.Sprint
+	_ = log.Print
+	_ = http.MethodGet
+	_ = skills.SkillDatetime
+	_ = swml.ModeServer
+)
+```
+
 ## Table of Contents
 
 1. [AgentBase](#agentbase) - Core agent functionality
@@ -24,6 +60,7 @@ Unlike the Python SDK, the Go SDK does not use subclassing. You construct an age
 
 ### Constructor
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func NewAgentBase(opts ...AgentOption) *AgentBase
 ```
@@ -51,7 +88,7 @@ func NewAgentBase(opts ...AgentOption) *AgentBase
 - `WithConfigFile(path string)`: Path to JSON configuration file. See [Configuration Guide](configuration.md) for details.
 
 ```go
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
 	agent.WithName("my-agent"),
 	agent.WithRoute("/agent"),
 	agent.WithPort(3000),
@@ -73,7 +110,7 @@ if err := a.Run(); err != nil {
 }
 
 // Force server mode
-if err := a.RunWithMode(swml.ExecutionModeServer); err != nil {
+if err := a.RunWithMode(swml.ModeServer); err != nil {
 	log.Fatal(err)
 }
 ```
@@ -322,6 +359,7 @@ a.UpdateGlobalData(map[string]any{
 ##### `DefineTool(def ToolDefinition) *AgentBase`
 Define a custom SWAIG function/tool. The `ToolDefinition` struct fields are:
 
+<!-- snippet: no-compile illustrative type definition (reference only; see agent.ToolDefinition) -->
 ```go
 type ToolDefinition struct {
 	Name           string
@@ -694,6 +732,7 @@ a.AddPreAnswerVerb("set", map[string]any{"source": "ai_agent"}).
 ##### `SetDynamicConfigCallback(cb DynamicConfigCallback) *AgentBase`
 Set the callback for per-request dynamic configuration. `DynamicConfigCallback` is:
 
+<!-- snippet: no-compile illustrative type definition (reference only; see agent.DynamicConfigCallback) -->
 ```go
 type DynamicConfigCallback func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, agent *AgentBase)
 ```
@@ -733,6 +772,10 @@ a.RegisterSIPUsername("sales")
 Register custom routing logic for calls. `swml.RoutingCallback` is `func(body map[string]any, headers map[string]any) *string` — return a pointer to a redirect route, or `nil` to process normally.
 
 ```go
+package main
+
+import "github.com/signalwire/signalwire-go/pkg/agent"
+
 func routeCall(body map[string]any, headers map[string]any) *string {
 	sipUsername, _ := body["sip_username"].(string)
 	switch sipUsername {
@@ -746,7 +789,10 @@ func routeCall(body map[string]any, headers map[string]any) *string {
 	return nil
 }
 
-a.RegisterRoutingCallback(routeCall, "/sip")
+func main() {
+	a := agent.NewAgentBase()
+	a.RegisterRoutingCallback(routeCall, "/sip")
+}
 ```
 
 ### Utility Methods
@@ -768,8 +814,9 @@ mux.Handle("/agent/", http.StripPrefix("/agent", a.AsRouter()))
 ##### `OnSummary(cb SummaryCallback) *AgentBase`
 Register a handler for conversation summaries. This callback is triggered when the AI generates a summary based on your post-prompt configuration. `SummaryCallback` is `func(summary map[string]any, rawData map[string]any)`.
 
+<!-- snippet: no-compile references illustrative user helper scheduleFollowUp -->
 ```go
-a := agent.NewAgentBase(agent.WithName("summary-agent"), agent.WithRoute("/agent"))
+a = agent.NewAgentBase(agent.WithName("summary-agent"), agent.WithRoute("/agent"))
 
 // Configure post-prompt to request a JSON summary
 a.SetPostPrompt(`
@@ -807,7 +854,7 @@ a.OnSummary(func(summary map[string]any, rawData map[string]any) {
 Register a handler for debug webhook events. Requires `EnableDebugEvents` to be called first. `DebugEventHandler` is `func(event map[string]any)` — the event's label is available as `event["event_type"]` and the call id as `event["call_id"]`.
 
 ```go
-a := agent.NewAgentBase(agent.WithName("my_agent"))
+a = agent.NewAgentBase(agent.WithName("my_agent"))
 a.EnableDebugEvents(1)
 
 a.OnDebugEvent(func(event map[string]any) {
@@ -830,7 +877,8 @@ a.OnDebugEvent(func(event map[string]any) {
 Dispatch a SWAIG function call by name to its registered handler. Call this to invoke a tool programmatically (for example, from your own routing logic); it returns the tool's result.
 
 ```go
-result, err := a.OnFunctionCall("get_weather", map[string]any{"location": "Miami"}, rawData)
+res, err := a.OnFunctionCall("get_weather", map[string]any{"location": "Miami"}, map[string]any{})
+_, _ = res, err
 ```
 
 ##### `SetOnSwmlRequestHook(hook OnSwmlRequestHook) *AgentBase`
@@ -857,6 +905,7 @@ a.SetOnSwmlRequestHook(func(requestData map[string]any, callbackPath string, r *
 Validate basic-auth credentials against the agent's configured (or environment-sourced) credentials.
 
 ```go
+user, pass := "admin", "secret"
 if a.ValidateBasicAuth(user, pass) {
 	// authorized
 }
@@ -867,7 +916,8 @@ Get the basic-auth credentials from the constructor or environment; the `WithSou
 
 ```go
 user, pass := a.GetBasicAuthCredentials()
-user, pass, source := a.GetBasicAuthCredentialsWithSource()
+user2, pass2, source := a.GetBasicAuthCredentialsWithSource()
+_, _, _, _, _ = user, pass, user2, pass2, source
 ```
 
 ### Context System
@@ -876,7 +926,7 @@ user, pass, source := a.GetBasicAuthCredentialsWithSource()
 Define structured workflow contexts for the agent.
 
 ```go
-cb := a.DefineContexts()
+cb = a.DefineContexts()
 cb.AddContext("greeting").
 	AddStep("welcome").
 	SetText("Welcome! How can I help?").
@@ -898,6 +948,7 @@ The `swaig.FunctionResult` type is used to create structured responses from SWAI
 
 ### Constructor
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func NewFunctionResult(response string) *FunctionResult
 ```
@@ -909,10 +960,10 @@ Post-processing (letting the AI take another turn before actions execute) is con
 
 ```go
 // Simple response
-result := swaig.NewFunctionResult("The weather is sunny and 75°F")
+result = swaig.NewFunctionResult("The weather is sunny and 75°F")
 
 // Empty response (actions only)
-result := swaig.NewFunctionResult("")
+result = swaig.NewFunctionResult("")
 ```
 
 ### Core Methods
@@ -923,7 +974,7 @@ result := swaig.NewFunctionResult("")
 Set or update the natural-language response text.
 
 ```go
-result := swaig.NewFunctionResult("")
+result = swaig.NewFunctionResult("")
 result.SetResponse("I found your order information")
 ```
 
@@ -931,7 +982,7 @@ result.SetResponse("I found your order information")
 Enable or disable post-processing for this result. When `true`, the AI responds to the user once more before the actions execute.
 
 ```go
-result := swaig.NewFunctionResult("I'll help you with that")
+result = swaig.NewFunctionResult("I'll help you with that")
 result.SetPostProcess(true)
 ```
 
@@ -1006,14 +1057,14 @@ result.SIPRefer("sip:support@company.com")
 End the call immediately.
 
 ```go
-result := swaig.NewFunctionResult("Thank you for calling. Goodbye!").Hangup()
+result = swaig.NewFunctionResult("Thank you for calling. Goodbye!").Hangup()
 ```
 
 ##### `Hold(timeout int) *FunctionResult`
 Put the call on hold for `timeout` seconds.
 
 ```go
-result := swaig.NewFunctionResult("Please hold while I look that up").Hold(60)
+result = swaig.NewFunctionResult("Please hold while I look that up").Hold(60)
 ```
 
 ##### `Stop() *FunctionResult`
@@ -1318,9 +1369,10 @@ result.ExecuteSwml(customSWML, false)
 Convert the result to a map for serialization.
 
 ```go
-result := swaig.NewFunctionResult("Hello world").AddAction("play", "music.mp3")
+result = swaig.NewFunctionResult("Hello world").AddAction("play", "music.mp3")
 resultMap := result.ToMap()
 // {"response": "Hello world", "action": [{"play": "music.mp3"}]}
+_ = resultMap
 ```
 
 ### Static Helper Functions (payment prompts)
@@ -1333,18 +1385,21 @@ These package-level helpers build payment-prompt configurations for `PayOptions.
 prompt := swaig.CreatePaymentPrompt("card_number", []map[string]string{
 	swaig.CreatePaymentAction("say", "Please enter your card number"),
 }, "", "")
+_ = prompt
 ```
 
 ##### `CreatePaymentAction(actionType, phrase string) map[string]string`
 
 ```go
 action := swaig.CreatePaymentAction("say", "Enter your card number")
+_ = action
 ```
 
 ##### `CreatePaymentParameter(name, value string) map[string]string`
 
 ```go
 param := swaig.CreatePaymentParameter("merchant_id", "12345")
+_ = param
 ```
 
 ### Method Chaining
@@ -1352,14 +1407,14 @@ param := swaig.CreatePaymentParameter("merchant_id", "12345")
 All action methods return the receiver, enabling fluent chaining:
 
 ```go
-result := swaig.NewFunctionResult("I'll help you with that").
+result = swaig.NewFunctionResult("I'll help you with that").
 	SetPostProcess(true).
 	UpdateGlobalData(map[string]any{"status": "helping"}).
 	SetEndOfSpeechTimeout(800).
 	AddAction("play", "thinking.mp3")
 
 // Complex workflow
-result := swaig.NewFunctionResult("Processing your payment").
+result = swaig.NewFunctionResult("Processing your payment").
 	SetPostProcess(true).
 	UpdateGlobalData(map[string]any{"payment_status": "processing"}).
 	Pay("https://payments.com/webhook", &swaig.PayOptions{
@@ -1377,6 +1432,7 @@ The `datamap.DataMap` type provides a declarative approach to creating SWAIG too
 
 ### Constructor
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func New(functionName string) *DataMap
 ```
@@ -1387,6 +1443,7 @@ func New(functionName string) *DataMap
 ```go
 weatherMap := datamap.New("get_weather")
 searchMap := datamap.New("search_docs")
+_, _ = weatherMap, searchMap
 ```
 
 ### Core Configuration Methods
@@ -1397,14 +1454,14 @@ searchMap := datamap.New("search_docs")
 Set the function description/purpose.
 
 ```go
-dm := datamap.New("get_weather").Purpose("Get current weather information for any city")
+dm = datamap.New("get_weather").Purpose("Get current weather information for any city")
 ```
 
 ##### `Description(description string) *DataMap`
 Alias for `Purpose()`.
 
 ```go
-dm := datamap.New("search_api").Description("Search our knowledge base for information")
+dm = datamap.New("search_api").Description("Search our knowledge base for information")
 ```
 
 #### Parameter Definition
@@ -1487,7 +1544,7 @@ dm.Params(map[string]any{
 DataMap supports multiple webhook configurations for fallback scenarios — each `Webhook`/`Output` pair defines one attempt, and `FallbackOutput` is used if they all fail:
 
 ```go
-dm := datamap.New("search_with_fallback").
+dm = datamap.New("search_with_fallback").
 	Purpose("Search with multiple API fallbacks").
 	Parameter("query", "string", "Search query", true, nil).
 	// Primary API
@@ -1539,7 +1596,7 @@ Process array responses by iterating over elements.
 
 ```go
 // Simple array processing
-dm := datamap.New("search_docs").
+dm = datamap.New("search_docs").
 	Webhook("GET", "https://api.docs.com/search?q=${args.query}", nil, "", false, nil).
 	Foreach(map[string]any{"array": "${response.results}"}).
 	Output(swaig.NewFunctionResult("Found: ${foreach.title} - ${foreach.summary}"))
@@ -1588,6 +1645,7 @@ controlMap := datamap.New("file_control").
 		swaig.NewFunctionResult("Setting volume to ${match.1}").
 			AddAction("set_volume", "${match.1}"),
 		nil)
+_ = controlMap
 ```
 
 **Pattern Matching Variables:**
@@ -1666,6 +1724,7 @@ searchTool := datamap.New("search_knowledge").
 	Foreach(map[string]any{"array": "${response.results}"}).
 	Output(swaig.NewFunctionResult("Found: ${foreach.title} - ${foreach.summary}")).
 	FallbackOutput(swaig.NewFunctionResult("Search service is temporarily unavailable"))
+_ = searchTool
 ```
 
 #### Command Processing (No API)
@@ -1689,6 +1748,7 @@ controlTool := datamap.New("system_control").
 	Expression("${args.action}", `.*`,
 		swaig.NewFunctionResult("Unknown command: ${args.action}"),
 		swaig.NewFunctionResult("Please specify a valid action"))
+_ = controlTool
 ```
 
 ### Conversion and Registration
@@ -1762,6 +1822,7 @@ completeTool := datamap.New("comprehensive_search").
 	Output(swaig.NewFunctionResult("Backup: ${response.title}")).
 	FallbackOutput(swaig.NewFunctionResult("All search services unavailable")).
 	ErrorKeys([]string{"error", "message"})
+_ = completeTool
 ```
 
 ---
@@ -1778,7 +1839,7 @@ The `contexts.ContextBuilder` is accessed via `agent.DefineContexts()` and provi
 
 ```go
 // Access the context builder
-cb := a.DefineContexts()
+cb = a.DefineContexts()
 
 // Create contexts and steps
 cb.AddContext("greeting").
@@ -1795,6 +1856,7 @@ Create a new context in the workflow.
 greetingContext := cb.AddContext("greeting")
 mainMenuContext := cb.AddContext("main_menu")
 supportContext := cb.AddContext("support")
+_, _, _ = greetingContext, mainMenuContext, supportContext
 ```
 
 ### Context
@@ -1846,11 +1908,13 @@ managerContext.SetSystemPrompt("You are a senior manager").
 Each `Step` is configured with fluent methods: `SetText(text)`, `AddSection(title, body)`, `AddBullets(title, bullets)`, `SetStepCriteria(criteria)`, `SetFunctions(functions)`, `SetValidSteps(steps)`, `SetValidContexts(ctxs)`, `SetEnd(end)`, and reset controls (`SetResetSystemPrompt`, `SetResetUserPrompt`, `SetResetConsolidate`, `SetResetFullReset`).
 
 ```go
+ctx := cb.AddContext("diagnostics")
 step := ctx.AddStep("diagnose").
 	SetText("Let me run some diagnostics to identify the issue.").
 	SetFunctions([]string{"run_diagnostics", "check_system_status"}).
 	SetStepCriteria("Diagnostics completed").
 	SetValidSteps([]string{"resolve"})
+_ = step
 ```
 
 ---
@@ -1860,6 +1924,10 @@ step := ctx.AddStep("diagnose").
 The Go SDK does not maintain per-call conversation state inside `AgentBase`. Persist any session state you need in your own store — a database, Redis, or a mutex-guarded in-memory map — keyed by `call_id`, and access it from your SWAIG handlers via `rawData["call_id"]`. The `startup_hook` / `hangup_hook` lifecycle tools (see [Session Lifecycle Hooks](#session-lifecycle-hooks)) are the natural place to initialize and clean up that state.
 
 ```go
+package main
+
+import "sync"
+
 // A minimal call-keyed state store
 type stateStore struct {
 	mu   sync.RWMutex
@@ -1883,6 +1951,8 @@ func (s *stateStore) Get(callID string) (map[string]any, bool) {
 	st, ok := s.data[callID]
 	return st, ok
 }
+
+func main() {}
 ```
 
 ---
@@ -2026,6 +2096,7 @@ In Go, a skill implements the `skills.SkillBase` interface (it is an interface, 
 A DataMap-backed skill's `register` step typically looks like:
 
 ```go
+apiKey := "your-api-key"
 tool := datamap.New("custom_function").
 	Description("Custom API integration").
 	Parameter("query", "string", "Search query", true, nil).
@@ -2110,7 +2181,7 @@ os.Setenv("SWML_BASIC_AUTH_PASSWORD", "secret")
 os.Setenv("GOOGLE_SEARCH_API_KEY", "your-api-key")
 
 // The agent will automatically use these
-a := agent.NewAgentBase(agent.WithName("My Agent"))
+a = agent.NewAgentBase(agent.WithName("My Agent"))
 a.AddSkill(skills.SkillWebSearch, map[string]any{
 	"search_engine_id": "your-engine-id",
 	// api_key will be read from the environment

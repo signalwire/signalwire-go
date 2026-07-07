@@ -4,6 +4,30 @@
 
 The SignalWire AI Agents SDK provides a Go framework for building, deploying, and managing AI agents as microservices. These agents are self-contained web applications that expose HTTP endpoints to interact with the SignalWire platform. The SDK simplifies the creation of custom AI agents by handling common functionality like HTTP routing, prompt management, and tool execution.
 
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/datamap"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared context the fragments below assume (established in prose above).
+var a = agent.NewAgentBase()
+var dm = datamap.New("function_name")
+var err error
+
+var (
+	_ = a
+	_ = dm
+	_ = err
+	_ = datamap.New
+	_ = swaig.NewFunctionResult
+	_ = skills.SkillDatetime
+)
+```
+
 ## Core Components
 
 ### Class Hierarchy
@@ -83,7 +107,7 @@ DataMap tools follow a pipeline execution model on the SignalWire server:
 
 1. **Builder Pattern**: Fluent interface for constructing data_map configurations
    ```go
-   dm := datamap.New("function_name").
+   dm = datamap.New("function_name").
        Description("Function purpose").
        Parameter("param", "string", "Description", true, nil).
        Webhook("GET", "https://api.example.com/endpoint", nil, "", false, nil).
@@ -112,13 +136,15 @@ The system supports different tool patterns:
    weatherTool := datamap.New("get_weather").
        Webhook("GET", "https://api.weather.com/v1/current?q=${location}", nil, "", false, nil).
        Output(swaig.NewFunctionResult("Weather: ${response.current.condition}"))
+   _ = weatherTool
    ```
 
 2. **Expression-Based Tools**: Pattern matching without API calls
    ```go
    controlTool := datamap.New("file_control").
-       Expression("${args.command}", "start.*", swaig.NewFunctionResult().AddAction("start", true), nil).
-       Expression("${args.command}", "stop.*", swaig.NewFunctionResult().AddAction("stop", true), nil)
+       Expression("${args.command}", "start.*", swaig.NewFunctionResult("").AddAction("start", true), nil).
+       Expression("${args.command}", "stop.*", swaig.NewFunctionResult("").AddAction("stop", true), nil)
+   _ = controlTool
    ```
 
 3. **Array Processing Tools**: Handle list responses
@@ -127,6 +153,7 @@ The system supports different tool patterns:
        Webhook("GET", "https://api.docs.com/search", nil, "", false, nil).
        Foreach(map[string]any{"input_key": "response.results"}).
        Output(swaig.NewFunctionResult("Found: ${foreach.title}"))
+   _ = searchTool
    ```
 
 ### Integration with Agent Architecture
@@ -278,6 +305,10 @@ a.AddSkill("web_search", map[string]any{
 Parameters are passed to the skill factory and accessed via the `BaseSkill` typed getters (`GetParamInt`, `GetParamFloat`, `GetParamString`, ...):
 
 ```go
+package main
+
+import "github.com/signalwire/signalwire-go/pkg/skills"
+
 type WebSearchSkill struct {
     skills.BaseSkill
     numResults int
@@ -290,6 +321,8 @@ func (s *WebSearchSkill) Setup() bool {
     // Configure behavior based on parameters
     return true
 }
+
+func main() {}
 ```
 
 ### Error Handling
@@ -345,7 +378,7 @@ The SDK is designed to be highly extensible:
 
 1. **Custom Agents**: Compose AgentBase with functional options to create specialized agents
    ```go
-   a := agent.NewAgentBase(
+   a = agent.NewAgentBase(
        agent.WithName("custom"),
        agent.WithRoute("/custom"),
    )
@@ -382,12 +415,18 @@ The SDK is designed to be highly extensible:
 
 6. **Custom Prefabs**: Create reusable agent patterns by wrapping AgentBase
    ```go
+   package main
+
+   import "github.com/signalwire/signalwire-go/pkg/agent"
+
    func NewMyPrefab(configParam1 string) *agent.AgentBase {
        a := agent.NewAgentBase(agent.WithName("my-prefab"))
        // Configure the agent based on parameters
        a.PromptAddSection("Personality", "Customized based on: "+configParam1, nil)
        return a
    }
+
+   func main() {}
    ```
 
 7. **Dynamic Configuration**: Per-request agent configuration for flexible behavior
@@ -422,6 +461,10 @@ The SDK is designed to be highly extensible:
 
 9. **Custom Skills**: Create reusable skill modules by embedding `skills.BaseSkill`
    ```go
+   package main
+
+   import "github.com/signalwire/signalwire-go/pkg/skills"
+
    type MyCustomSkill struct {
        skills.BaseSkill
    }
@@ -447,6 +490,8 @@ The SDK is designed to be highly extensible:
    }
 
    func init() { skills.RegisterSkill("my_skill", NewMyCustomSkill) }
+
+   func main() {}
    ```
 
 ### Dynamic Configuration
@@ -708,6 +753,7 @@ Users can create their own prefab agents by composing `AgentBase` (or wrapping a
 Key steps for creating custom prefabs:
 
 1. **Wrap AgentBase in a struct**:
+   <!-- snippet: no-compile illustrative prefab definition split across the fragments in this section (type/constructor/methods are interdependent) -->
    ```go
    type MyCustomPrefab struct {
        *agent.AgentBase
@@ -716,6 +762,7 @@ Key steps for creating custom prefabs:
    ```
 
 2. **Configure defaults in the constructor**:
+   <!-- snippet: no-compile illustrative prefab definition split across the fragments in this section (type/constructor/methods are interdependent) -->
    ```go
    func NewMyCustomPrefab(customParam string, opts ...agent.AgentOption) *MyCustomPrefab {
        a := agent.NewAgentBase(opts...)
@@ -731,6 +778,7 @@ Key steps for creating custom prefabs:
    ```
 
 3. **Add specialized tools**:
+   <!-- snippet: no-compile illustrative prefab definition split across the fragments in this section (type/constructor/methods are interdependent) -->
    ```go
    func (p *MyCustomPrefab) registerTools() {
        p.DefineTool(agent.ToolDefinition{
@@ -746,6 +794,7 @@ Key steps for creating custom prefabs:
    ```
 
 4. **Provide a config-map factory** (optional):
+   <!-- snippet: no-compile illustrative prefab definition split across the fragments in this section (type/constructor/methods are interdependent) -->
    ```go
    func NewMyCustomPrefabFromConfig(config map[string]any, opts ...agent.AgentOption) *MyCustomPrefab {
        customParam, _ := config["custom_param"].(string)

@@ -140,6 +140,29 @@ Function Call → Template Expansion → HTTP Request → Response Processing �
 | **Development Speed** | Slower (code + deploy) | Faster (configuration only) |
 
 **Traditional Webhook Example:**
+<!-- snippet-setup -->
+```go
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared agent established in prose above.
+var a = agent.NewAgentBase()
+
+var (
+	_ = a
+	_ = json.Marshal
+	_ = http.MethodGet
+	_ = bytes.NewReader
+	_ = swaig.NewFunctionResult
+)
+```
+
 ```go
 a.DefineTool(agent.ToolDefinition{
 	Name:        "search_knowledge",
@@ -2327,6 +2350,7 @@ weather := datamap.CreateSimpleAPITool(
 	nil,                                        // body
 	[]string{"error"},                          // errorKeys
 )
+_ = weather
 ```
 
 #### Expression Tool
@@ -2334,7 +2358,6 @@ weather := datamap.CreateSimpleAPITool(
 ```go
 import (
 	"github.com/signalwire/signalwire-go/pkg/datamap"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // Each entry pairs the test value (evaluated against the args) with the

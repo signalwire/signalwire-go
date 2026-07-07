@@ -67,6 +67,28 @@ That's a complete agent: HTTP server, SWML generation, authenticated webhook rou
 
 Raw SWML prompts are flat strings. The SDK provides structured prompt building:
 
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/datamap"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared agent established in prose above.
+var a = agent.NewAgentBase()
+
+// A context shared by the contexts/steps examples below.
+var c = a.DefineContexts().AddContext("default")
+
+var (
+	_ = a
+	_ = c
+	_ = datamap.New
+	_ = swaig.NewFunctionResult
+)
+```
+
 ```go
 a.PromptAddSection("Role", "You are a travel booking assistant.", nil)
 a.PromptAddSection("Rules", "", []string{
@@ -86,21 +108,42 @@ POM sections are rendered by the platform into a format the LLM understands with
 ### 1. Local Tools (Local Execution)
 
 ```go
-a.DefineTool(agent.ToolDefinition{
-    Name:        "lookup_order",
-    Description: "Look up an order",
-    Parameters: map[string]any{
-        "order_id": map[string]any{"type": "string"},
-    },
-    Required: []string{"order_id"},
-    Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-        orderID, _ := args["order_id"].(string)
-        order := db.Get(orderID)
-        result := swaig.NewFunctionResult("Order " + order.ID + ": " + order.Status)
-        result.AddAction("set_global_data", map[string]any{"current_order": order.ToMap()})
-        return result
-    },
-})
+package main
+
+import (
+    "github.com/signalwire/signalwire-go/pkg/agent"
+    "github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// order + db stand in for your own data layer.
+type order struct{ ID, Status string }
+
+func (o order) ToMap() map[string]any { return map[string]any{"id": o.ID, "status": o.Status} }
+
+type orderDB struct{}
+
+func (orderDB) Get(id string) order { return order{ID: id, Status: "shipped"} }
+
+var db orderDB
+
+func main() {
+    a := agent.NewAgentBase()
+    a.DefineTool(agent.ToolDefinition{
+        Name:        "lookup_order",
+        Description: "Look up an order",
+        Parameters: map[string]any{
+            "order_id": map[string]any{"type": "string"},
+        },
+        Required: []string{"order_id"},
+        Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+            orderID, _ := args["order_id"].(string)
+            order := db.Get(orderID)
+            result := swaig.NewFunctionResult("Order " + order.ID + ": " + order.Status)
+            result.AddAction("set_global_data", map[string]any{"current_order": order.ToMap()})
+            return result
+        },
+    })
+}
 ```
 
 The SDK converts this into a SWAIG function definition with JSON Schema parameters, creates a secure webhook URL, routes inbound POST requests to the handler, parses arguments, and formats the response -- including the 20+ SWAIG actions (transfer, hold, context_switch, toggle_functions, etc.) that tools can return.
@@ -108,19 +151,38 @@ The SDK converts this into a SWAIG function definition with JSON Schema paramete
 A tool's `Parameters` map is the JSON Schema `properties` object; `Required` lists the required fields. The `Handler` receives the parsed `args` plus the full `rawData` webhook payload and returns a `*swaig.FunctionResult`:
 
 ```go
-a.DefineTool(agent.ToolDefinition{
-    Name:        "lookup_order",
-    Description: "Look up an order by ID",
-    Parameters: map[string]any{
-        "order_id": map[string]any{"type": "string", "description": "The order identifier"},
-    },
-    Required: []string{"order_id"},
-    Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-        orderID, _ := args["order_id"].(string)
-        order := db.Get(orderID)
-        return swaig.NewFunctionResult("Order " + order.ID + ": " + order.Status)
-    },
-})
+package main
+
+import (
+    "github.com/signalwire/signalwire-go/pkg/agent"
+    "github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// order + db stand in for your own data layer.
+type order struct{ ID, Status string }
+
+type orderDB struct{}
+
+func (orderDB) Get(id string) order { return order{ID: id, Status: "shipped"} }
+
+var db orderDB
+
+func main() {
+    a := agent.NewAgentBase()
+    a.DefineTool(agent.ToolDefinition{
+        Name:        "lookup_order",
+        Description: "Look up an order by ID",
+        Parameters: map[string]any{
+            "order_id": map[string]any{"type": "string", "description": "The order identifier"},
+        },
+        Required: []string{"order_id"},
+        Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+            orderID, _ := args["order_id"].(string)
+            order := db.Get(orderID)
+            return swaig.NewFunctionResult("Order " + order.ID + ": " + order.Status)
+        },
+    })
+}
 ```
 
 ### 2. DataMap (Server-Side Execution)
@@ -241,6 +303,19 @@ The `you_lost` step has zero functions and zero valid transitions. The game is o
 The tool handler demonstrates execution authority -- the model has no idea a step change is about to happen:
 
 ```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// drawCard, calculateHand, formatCard stand in for your own game logic.
+func drawCard(game map[string]any) string      { return "Ace of Spades" }
+func calculateHand(game map[string]any) int    { return 20 }
+func formatCard(card string) string            { return card }
+
 func handleHit(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
     globalData, _ := rawData["global_data"].(map[string]any)
     game, _ := globalData["game_state"].(map[string]any)
@@ -258,6 +333,8 @@ func handleHit(args map[string]any, rawData map[string]any) *swaig.FunctionResul
 
     return result
 }
+
+func main() { _ = handleHit }
 ```
 
 The model speaks the result. The platform changes the step. The model's world changes without its participation.
@@ -281,7 +358,7 @@ The SDK's contexts/steps/function restrictions are the primitives that make PGI 
 ## Deployment: One `Run()` Call
 
 ```go
-a := agent.NewAgentBase(agent.WithName("my-agent"), agent.WithRoute("/agent"))
+a = agent.NewAgentBase(agent.WithName("my-agent"), agent.WithRoute("/agent"))
 a.Run()
 ```
 
@@ -310,6 +387,10 @@ For standalone mode, the SDK provides:
 ```go
 import "github.com/signalwire/signalwire-go/pkg/server"
 
+salesAgent := agent.NewAgentBase(agent.WithName("sales"))
+supportAgent := agent.NewAgentBase(agent.WithName("support"))
+triageAgent := agent.NewAgentBase(agent.WithName("triage"))
+
 srv := server.NewAgentServer(
     server.WithServerHost("0.0.0.0"),
     server.WithServerPort(3000),
@@ -327,6 +408,17 @@ One process, multiple agents, route-based dispatch. Each agent gets its own SWML
 ## Dynamic Configuration and Multi-Tenancy
 
 ```go
+// loadTenantConfig stands in for your own per-tenant config lookup.
+loadTenantConfig := func(tenant string) struct {
+    CompanyInfo string
+    Tier        string
+} {
+    return struct {
+        CompanyInfo string
+        Tier        string
+    }{CompanyInfo: "Acme Inc.", Tier: "premium"}
+}
+
 tenantConfig := func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ag *agent.AgentBase) {
     tenant := headers["X-Tenant-ID"]
     if tenant == "" {
@@ -356,7 +448,7 @@ index-building CLI or local search backend. You run the search server separately
 (it exposes `/health` and `/search` endpoints) and point the skill at it:
 
 ```go
-agent.AddSkill("native_vector_search", map[string]any{
+a.AddSkill("native_vector_search", map[string]any{
     "remote_url":  "http://localhost:8001",       // required
     "index_name":  "knowledge",                    // index to query on the server
     "tool_name":   "search_docs",
@@ -402,6 +494,8 @@ receptionist := prefabs.NewReceptionistAgent(prefabs.ReceptionistOptions{
         {Name: "Support", Number: "+15559876543", Description: "Technical help"},
     },
 })
+
+_, _ = gatherer, receptionist
 ```
 
 Five prefabs: **InfoGatherer**, **Survey**, **Receptionist**, **FAQ**, **Concierge** —
@@ -455,7 +549,7 @@ a.AddPostAiVerb("hangup", map[string]any{})
 Call recording is configured at construction via functional options:
 
 ```go
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
     agent.WithName("recorder"),
     agent.WithRecordCall(true),
     agent.WithRecordFormat("wav"),

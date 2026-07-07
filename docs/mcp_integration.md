@@ -44,6 +44,22 @@ func main() {
 
 MCP servers can expose read-only data as resources. When enabled, resources are fetched at session start and merged into `global_data`:
 
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared context the fragments below assume.
+var a = agent.NewAgentBase()
+
+var (
+	_ = a
+	_ = swaig.NewFunctionResult
+)
+```
+
 ```go
 a.AddMcpServer(agent.MCPServerConfig{
     URL:          "https://mcp.example.com/crm",
@@ -136,7 +152,7 @@ Your `DefineTool` functions are now available in Claude Desktop conversations.
 The two features are independent:
 
 ```go
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
     agent.WithName("my-agent"),
     agent.WithRoute("/agent"),
 )

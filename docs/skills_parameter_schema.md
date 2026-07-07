@@ -18,12 +18,25 @@ The parameter schema system allows skills to declare their configurable paramete
 
 Use the `skills.ListSkillsWithParams()` function to get a complete schema of all available skills:
 
+<!-- snippet-setup -->
+```go
+// Shared context the fragments below assume: `schema` is one skill's parameter
+// schema (parameter name -> metadata), as produced by
+// skills.ListSkillsWithParams()[<name>].
+var schema = map[string]map[string]any{}
+
+var (
+	_ = schema
+)
+```
+
 ```go
 import "github.com/signalwire/signalwire-go/pkg/skills"
 
 // Get complete schema for all skills.
 // Returns map[string]map[string]map[string]any keyed by skill name.
-schema := skills.ListSkillsWithParams()
+allSchema := skills.ListSkillsWithParams()
+_ = allSchema
 ```
 
 The returned structure, expressed as JSON, looks like:
@@ -84,6 +97,8 @@ The returned structure, expressed as JSON, looks like:
 Here's an example of how to use the schema to generate a configuration form:
 
 ```go
+package main
+
 import (
     "fmt"
     "strings"
@@ -160,6 +175,8 @@ func printWebSearchForm() {
     }
     fmt.Println("</form>")
 }
+
+func main() { printWebSearchForm() }
 ```
 
 ### Programmatic Skill Configuration
@@ -167,6 +184,8 @@ func printWebSearchForm() {
 Use the schema to validate and configure skills programmatically:
 
 ```go
+package main
+
 import (
     "fmt"
 
@@ -202,6 +221,8 @@ func newMyAgent() (*agent.AgentBase, error) {
     a.AddSkill("web_search", webSearchParams)
     return a, nil
 }
+
+func main() { _, _ = newMyAgent() }
 ```
 
 ## Parameter Schema Reference
@@ -309,6 +330,11 @@ func (s *MyCustomSkill) Setup() bool {
     // ... etc
     return true
 }
+
+// RegisterTools registers the skill's tools with the agent (required by SkillBase).
+func (s *MyCustomSkill) RegisterTools() []skills.ToolRegistration {
+    return nil
+}
 ```
 
 ## Common Parameter Patterns
@@ -385,17 +411,22 @@ base schema. Since `skills.BaseSkill` already provides `GetParameterSchema()`, y
 don't override it at all:
 
 ```go
+import "github.com/signalwire/signalwire-go/pkg/skills"
+
 // No GetParameterSchema override needed — the embedded skills.BaseSkill
 // supplies the base schema (swaig_fields, tool_name).
 type DateTimeSkill struct {
     skills.BaseSkill
 }
+
+var _ DateTimeSkill
 ```
 
 ### Complex Skill (Many Parameters)
 
 Skills like `web_search` with multiple configuration options:
 
+<!-- snippet: no-compile illustrative GetParameterSchema method on WebSearchSkill (type defined elsewhere; entries elided with /* ... */) -->
 ```go
 func (s *WebSearchSkill) GetParameterSchema() map[string]map[string]any {
     schema := s.BaseSkill.GetParameterSchema()

@@ -73,6 +73,41 @@ When entering a context, these parameters control conversation behavior:
 
 Contexts can have their own prompts (separate from entry parameters):
 
+<!-- snippet-setup -->
+```go
+import (
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/contexts"
+)
+
+// Shared context the fragments below assume.
+var a = agent.NewAgentBase()
+var cb = a.DefineContexts()
+var ctx = cb.AddContext("default")
+var context = cb.AddContext("ctxvar")
+var step = ctx.AddStep("step")
+var (
+	publicStep  = ctx.AddStep("public")
+	authStep    = ctx.AddStep("auth")
+	billingStep = ctx.AddStep("billing")
+)
+
+var (
+	_ = fmt.Sprint
+	_ = a
+	_ = cb
+	_ = ctx
+	_ = context
+	_ = step
+	_ = publicStep
+	_ = authStep
+	_ = billingStep
+	_ = contexts.WithType
+)
+```
+
 ```go
 // Simple string prompt
 context.SetPrompt("Context-specific guidance")
@@ -223,6 +258,7 @@ func main() {
 
 The main entry point for defining contexts and steps.
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 // Get the builder
 contexts := a.DefineContexts()
@@ -235,6 +271,7 @@ context := contexts.AddContext(name string) // returns *contexts.Context
 
 Represents a conversation context or workflow state.
 
+<!-- snippet: no-compile illustrative API signatures (reference only) -->
 ```go
 // Context represents a conversation context or workflow state.
 // All setters return *Context for fluent chaining.
@@ -310,6 +347,7 @@ func (c *Context) AddExitFiller(langCode string, fillers []string) *Context
 
 Represents a single step within a context workflow.
 
+<!-- snippet: no-compile illustrative API signatures (reference only) -->
 ```go
 // Step represents a single step within a context workflow.
 // All setters return *Step for fluent chaining.
@@ -480,7 +518,7 @@ Control which AI tools/functions are available in each step for enhanced securit
 
 ```go
 // No restrictions (default) - all agent functions available
-step // Don't call SetFunctions()
+// step  // Don't call SetFunctions()
 
 // Allow specific functions only
 step.SetFunctions([]string{"datetime", "math", "web_search"})
@@ -662,16 +700,16 @@ Each question has a `type` that controls the JSON schema of the `answer` paramet
 
 ```go
 // String (default) - free text
-AddGatherQuestion("name", "What is your name?", contexts.WithType("string"))
+step.AddGatherQuestion("name", "What is your name?", contexts.WithType("string"))
 
 // Integer - whole numbers
-AddGatherQuestion("age", "How old are you?", contexts.WithType("integer"))
+step.AddGatherQuestion("age", "How old are you?", contexts.WithType("integer"))
 
 // Number - decimal values
-AddGatherQuestion("budget", "What is your budget in dollars?", contexts.WithType("number"))
+step.AddGatherQuestion("budget", "What is your budget in dollars?", contexts.WithType("number"))
 
 // Boolean - yes/no questions
-AddGatherQuestion("has_passport", "Do you have a valid passport?", contexts.WithType("boolean"))
+step.AddGatherQuestion("has_passport", "Do you have a valid passport?", contexts.WithType("boolean"))
 ```
 
 #### Confirmation Flow
@@ -679,7 +717,7 @@ AddGatherQuestion("has_passport", "Do you have a valid passport?", contexts.With
 When `confirm=True`, the AI must read the answer back to the caller and get explicit confirmation before submitting:
 
 ```go
-AddGatherQuestion(
+step.AddGatherQuestion(
 	"last_name",
 	"What is your last name?",
 	contexts.WithType("string"),
@@ -699,7 +737,7 @@ How it works:
 Each question can have additional instructions and specific functions made available:
 
 ```go
-AddGatherQuestion(
+step.AddGatherQuestion(
 	"home_airport",
 	"What is your home airport or nearest major city for departure?",
 	contexts.WithType("string"),
@@ -718,12 +756,12 @@ Answers are stored in `global_data`, which is available in prompt variable expan
 
 ```go
 // Store under a namespace
-SetGatherInfo("profile", "", "")
+step.SetGatherInfo("profile", "", "")
 // Results in: global_data.profile.first_name, global_data.profile.last_name, etc.
 // Accessible in prompts as: ${profile}
 
 // Store at top level (empty output key)
-SetGatherInfo("", "", "")
+step.SetGatherInfo("", "", "")
 // Results in: global_data.first_name, global_data.last_name, etc.
 ```
 
@@ -1085,14 +1123,14 @@ Use descriptive step names that indicate purpose:
 
 ```go
 // Good
-AddStep("collect_shipping_address")
-AddStep("verify_payment_method")
-AddStep("confirm_order_details")
+ctx.AddStep("collect_shipping_address")
+ctx.AddStep("verify_payment_method")
+ctx.AddStep("confirm_order_details")
 
 // Avoid
-AddStep("step1")
-AddStep("next")
-AddStep("continue")
+ctx.AddStep("step1")
+ctx.AddStep("next")
+ctx.AddStep("continue")
 ```
 
 ### 2. Meaningful Completion Criteria
@@ -1101,12 +1139,12 @@ Define clear, testable completion criteria:
 
 ```go
 // Good - specific and measurable
-SetStepCriteria("User has provided valid email address and confirmed subscription preferences")
-SetStepCriteria("All required fields completed and payment method verified")
+step.SetStepCriteria("User has provided valid email address and confirmed subscription preferences")
+step.SetStepCriteria("All required fields completed and payment method verified")
 
 // Avoid - vague or subjective
-SetStepCriteria("User is ready")
-SetStepCriteria("Everything is good")
+step.SetStepCriteria("User is ready")
+step.SetStepCriteria("Everything is good")
 ```
 
 ### 3. Logical Navigation Flow
@@ -1115,13 +1153,13 @@ Design intuitive navigation that matches user expectations:
 
 ```go
 // Allow users to go back and review
-SetValidSteps([]string{"review_info", "edit_details", "confirm_submission"})
+step.SetValidSteps([]string{"review_info", "edit_details", "confirm_submission"})
 
 // Provide escape routes
-SetValidContexts([]string{"main_menu", "help"})
+step.SetValidContexts([]string{"main_menu", "help"})
 
 // Consider dead ends carefully
-SetValidSteps([]string{}) // Only if this is truly the end
+step.SetValidSteps([]string{}) // Only if this is truly the end
 ```
 
 ### 4. Progressive Function Access
@@ -1145,13 +1183,14 @@ Organize contexts by functional area or user journey:
 
 ```go
 // By functional area
-contexts := []string{"triage", "technical_support", "billing", "account_management"}
+names := []string{"triage", "technical_support", "billing", "account_management"}
 
 // By user journey stage
-contexts := []string{"onboarding", "verification", "configuration", "completion"}
+names = []string{"onboarding", "verification", "configuration", "completion"}
 
 // By security level
-contexts := []string{"public", "authenticated", "admin"}
+names = []string{"public", "authenticated", "admin"}
+_ = names
 ```
 
 ### 6. Error Handling and Recovery
@@ -1160,13 +1199,13 @@ Provide recovery paths for common issues:
 
 ```go
 // Allow users to retry failed steps
-SetValidSteps([]string{"retry_payment", "choose_different_method", "contact_support"})
+step.SetValidSteps([]string{"retry_payment", "choose_different_method", "contact_support"})
 
 // Provide help context access
-SetValidContexts([]string{"help", "main"})
+step.SetValidContexts([]string{"help", "main"})
 
 // Include validation steps
-verificationCtx.AddStep("validation").
+ctx.AddStep("validation").
 	SetStepCriteria("Data validation passed").
 	SetValidSteps([]string{"proceed", "edit_data"})
 ```
@@ -1196,10 +1235,11 @@ step.AddSection("Role", "You are a technical specialist").
 
 ```go
 // Wrong
-context := contexts.AddContext("main") // Error!
+wrongCtx := cb.AddContext("main") // Error!
 
 // Correct
-context := contexts.AddContext("default")
+rightCtx := cb.AddContext("default")
+_, _ = wrongCtx, rightCtx
 ```
 
 #### 2. "Cannot mix set_text with add_section"
@@ -1253,10 +1293,22 @@ step.SetFunctions([]string{"web_search"}) // Must match exactly
 Add logging to understand flow:
 
 ```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/contexts"
+)
+
 func createStepWithLogging(ctx *contexts.Context, name string) *contexts.Step {
 	step := ctx.AddStep(name)
 	fmt.Printf("Created step: %s\n", name)
 	return step
+}
+
+func main() {
+	_ = createStepWithLogging
 }
 ```
 
@@ -1266,10 +1318,10 @@ Check that all referenced steps/contexts exist:
 
 ```go
 // Ensure referenced steps exist
-SetValidSteps([]string{"review", "edit"}) // Both "review" and "edit" steps must exist
+step.SetValidSteps([]string{"review", "edit"}) // Both "review" and "edit" steps must exist
 
 // Ensure referenced contexts exist
-SetValidContexts([]string{"main", "help"}) // Both "main" and "help" contexts must exist
+step.SetValidContexts([]string{"main", "help"}) // Both "main" and "help" contexts must exist
 ```
 
 #### 3. Test Function Restrictions

@@ -35,6 +35,7 @@ go get github.com/signalwire/signalwire-go
 
 Then import the `swml` package:
 
+<!-- snippet: no-compile illustrative import statement only -->
 ```go
 import "github.com/signalwire/signalwire-go/pkg/swml"
 ```
@@ -75,6 +76,20 @@ func main() {
 For any verb without a dedicated typed method, use the generic
 `ExecuteVerb(verbName string, config any)`:
 
+<!-- snippet-setup -->
+```go
+import "github.com/signalwire/signalwire-go/pkg/swml"
+
+// Shared service established in prose above.
+var svc = swml.NewService(swml.WithName("svc"))
+var document = ""
+
+var (
+	_ = svc
+	_ = document
+)
+```
+
 ```go
 svc.ExecuteVerb("answer", map[string]any{})
 svc.ExecuteVerb("play", map[string]any{
@@ -99,6 +114,8 @@ The `swml.Service` type includes a centralized structured logging system (packag
 Every `swml.Service` instance has a `Logger` field that can be used for logging. Each method takes a `printf`-style format string and arguments:
 
 ```go
+someOperation := func() error { return nil } // your operation
+
 // Basic logging
 svc.Logger.Info("service started")
 
@@ -198,6 +215,10 @@ if err := svc.ExecuteVerb("play", map[string]any{
 You can register custom verb handlers for specialized verb processing. A handler implements the `swml.VerbHandler` interface:
 
 ```go
+package main
+
+import "github.com/signalwire/signalwire-go/pkg/swml"
+
 // CustomPlayHandler implements swml.VerbHandler for the "play" verb.
 type CustomPlayHandler struct{}
 
@@ -213,8 +234,12 @@ func (h CustomPlayHandler) BuildConfig(params map[string]any) (map[string]any, e
 	return params, nil
 }
 
-// Register it on the service.
-svc.RegisterVerbHandler(CustomPlayHandler{})
+func main() {
+	svc := swml.NewService(swml.WithName("my-service"))
+
+	// Register it on the service.
+	svc.RegisterVerbHandler(CustomPlayHandler{})
+}
 ```
 
 ## Web Service Features
@@ -237,7 +262,7 @@ Where `route` is the route path specified when creating the service.
 Basic authentication is automatically set up for all endpoints. Credentials are generated if not provided, or can be specified with the `WithBasicAuth` option:
 
 ```go
-svc := swml.NewService(
+svc = swml.NewService(
 	swml.WithName("my-service"),
 	swml.WithBasicAuth("username", "password"),
 )
@@ -256,6 +281,10 @@ routing callbacks and then serves the document. A common pattern is to inspect
 the request body and rebuild the document before serving:
 
 ```go
+package main
+
+import "github.com/signalwire/signalwire-go/pkg/swml"
+
 // buildDocument (re)builds the SWML document from the parsed request body.
 func buildDocument(svc *swml.Service, requestData map[string]any) {
 	// Reset the document to start fresh.
@@ -270,6 +299,11 @@ func buildDocument(svc *swml.Service, requestData map[string]any) {
 		std := "say:Welcome caller!"
 		svc.Play(&std, nil, nil, nil, nil, nil, nil)
 	}
+}
+
+func main() {
+	svc := swml.NewService(swml.WithName("my-service"))
+	buildDocument(svc, map[string]any{})
 }
 ```
 
@@ -391,7 +425,7 @@ larger `net/http` application:
 ```go
 import "net/http"
 
-svc := swml.NewService(swml.WithName("my-service"))
+svc = swml.NewService(swml.WithName("my-service"))
 
 mux := http.NewServeMux()
 mux.Handle("/voice/", http.StripPrefix("/voice", svc.AsRouter()))
@@ -404,7 +438,7 @@ http.ListenAndServe(":8080", mux)
 You can specify a custom path to the schema file with the `WithSchemaPath` option:
 
 ```go
-svc := swml.NewService(
+svc = swml.NewService(
 	swml.WithName("my-service"),
 	swml.WithSchemaPath("/path/to/schema.json"),
 )
@@ -512,12 +546,19 @@ This example builds the document from the parsed request body, then serves it.
 to the right number:
 
 ```go
+package main
+
 import (
 	"fmt"
 	"strings"
 
 	"github.com/signalwire/signalwire-go/pkg/swml"
 )
+
+func main() {
+	svc := swml.NewService(swml.WithName("call-router"))
+	buildCallRouterDocument(svc, map[string]any{})
+}
 
 // buildCallRouterDocument builds the routing document from the request body.
 func buildCallRouterDocument(svc *swml.Service, requestData map[string]any) {

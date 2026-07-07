@@ -20,6 +20,28 @@ You need three things to connect:
 | `token` | `SIGNALWIRE_API_TOKEN` | Your SignalWire API token |
 | `host` | `SIGNALWIRE_SPACE` | Your space hostname (e.g. `example.signalwire.com`) |
 
+<!-- snippet-setup -->
+```go
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	"github.com/signalwire/signalwire-go/pkg/rest"
+)
+
+// Shared context assumed by the fragments below: a constructed REST client.
+var client, err = rest.NewRestClient("project", "token", "space")
+
+var (
+	_ = client
+	_ = err
+	_ = errors.New
+	_ = fmt.Sprint
+	_ = os.Getenv
+)
+```
+
 ## Minimal Example
 
 ```go
@@ -98,27 +120,28 @@ agent, err := client.Fabric.AIAgents.Create(map[string]any{
 })
 
 // Get by ID
-agent, err := client.Fabric.AIAgents.Get("agent-uuid")
+agent, err = client.Fabric.AIAgents.Get("agent-uuid")
 
 // Update
-_, err := client.Fabric.AIAgents.Update("agent-uuid", map[string]any{"name": "Updated Name"})
+_, err = client.Fabric.AIAgents.Update("agent-uuid", map[string]any{"name": "Updated Name"})
 
 // Delete
-err := client.Fabric.AIAgents.Delete("agent-uuid")
+_, err = client.Fabric.AIAgents.Delete("agent-uuid")
+
+_, _ = items, agent
 ```
 
 Fabric resources also support listing addresses:
 
 ```go
-addresses, err := client.Fabric.AIAgents.ListAddresses("agent-uuid")
+addresses, err := client.Fabric.AIAgents.ListAddresses("agent-uuid", nil)
+_ = addresses
 ```
 
 ## Error Handling
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/rest"
-
-client, _ := rest.NewRestClient("", "", "")
+client, _ = rest.NewRestClient("", "", "")
 
 agent, err := client.Fabric.AIAgents.Get("nonexistent-id")
 if err != nil {
@@ -128,6 +151,7 @@ if err != nil {
 		// HTTP 404: {"error":"not found"}
 	}
 }
+_ = agent
 ```
 
 ## Debug Logging

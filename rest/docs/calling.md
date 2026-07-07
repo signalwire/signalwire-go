@@ -16,237 +16,293 @@ Every method on `client.Calling` sends a POST request with this structure:
 
 For `Dial` and `Update`, the call details are inside `params` (no top-level `id`). For all other commands, `id` is the UUID of the call to control.
 
+Each method takes a typed `namespaces.CallingNamespace<Op>Params` struct. Optional
+fields are pointers; a tiny package-level helper takes their address:
+
+<!-- snippet: no-compile illustrative API signature (reference only) -->
+```go
+func ptr[T any](v T) *T { return &v }
+```
+
+Any parameter not modeled as a typed field can be passed through the
+`Extras map[string]any` field present on every params struct.
+
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+)
+
+// Shared context the fragments below assume: a constructed REST client and a
+// call UUID. (The `ptr` helper shown above is illustrative; the runnable
+// fragments below take the address of a local variable instead.)
+var client, err = rest.NewRestClient("project", "token", "space")
+var callID = "call-uuid"
+
+var (
+	_ = client
+	_ = err
+	_ = callID
+)
+```
+
 ## Call Lifecycle
 
-### `Dial(params map[string]any) (map[string]any, error)`
+### `Dial(params) (*CallResponse, error)`
 
 Initiate an outbound call.
 
 ```go
-result, err := client.Calling.Dial(map[string]any{
-	"from": "+15559876543",
-	"to":   "+15551234567",
-	"url":  "https://example.com/call-handler",
+result, err := client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+	From:   "+15559876543",
+	To:     "+15551234567",
+	Extras: map[string]any{"url": "https://example.com/call-handler"},
 })
-if err != nil {
-	fmt.Printf("Dial failed: %v\n", err)
-	return
-}
-callID, _ := result["id"].(string)
+// CallResponse is decoded JSON; assert to a map to read fields.
+call, _ := (*result).(map[string]any)
+callID, _ = call["id"].(string)
+_, _, _ = result, call, callID
 ```
 
-### `Update(params map[string]any) (map[string]any, error)`
+### `Update(params) (*CallResponse, error)`
 
 Update an active call's dialplan mid-call.
 
 ```go
-client.Calling.Update(map[string]any{"id": callID, "url": "https://example.com/new-handler"})
+_, err = client.Calling.Update(namespaces.CallingNamespaceUpdateParams{
+	Id:     namespaces.Uuid(callID),
+	Extras: map[string]any{"url": "https://example.com/new-handler"},
+})
 ```
 
-### `End(callID string, params map[string]any) (map[string]any, error)`
+### `End(callID, params) (*CallResponse, error)`
 
 Terminate a call.
 
 ```go
-client.Calling.End(callID, map[string]any{"reason": "hangup"})
+_, err = client.Calling.End(callID, namespaces.CallingNamespaceEndParams{
+	Extras: map[string]any{"reason": "hangup"},
+})
 ```
 
-### `Transfer(callID string, params map[string]any) (map[string]any, error)`
+### `Transfer(callID, params) (*CallResponse, error)`
 
 Transfer a call to a new destination.
 
 ```go
-client.Calling.Transfer(callID, map[string]any{"dest": "sip:agent@example.com"})
+_, err = client.Calling.Transfer(callID, namespaces.CallingNamespaceTransferParams{
+	Dest: "sip:agent@example.com",
+})
 ```
 
-### `Disconnect(callID string, params map[string]any) (map[string]any, error)`
+### `Disconnect(callID, params) (*CallResponse, error)`
 
-Disconnect bridged calls without hanging up either leg. Pass `nil` for
-`params` when no extra fields are needed.
+Disconnect bridged calls without hanging up either leg.
 
 ```go
-client.Calling.Disconnect(callID, nil)
+_, err = client.Calling.Disconnect(callID, namespaces.CallingNamespaceDisconnectParams{})
 ```
 
 ## Audio Playback
 
-### `Play(callID string, params map[string]any) (map[string]any, error)`
+### `Play(callID, params) (*CallResponse, error)`
 
 Play audio, TTS, silence, or ringtone.
 
 ```go
-client.Calling.Play(callID, map[string]any{
-	"play":   []map[string]any{{"type": "tts", "text": "Hello!"}},
-	"volume": 5.0,
+vol := 5.0
+_, err = client.Calling.Play(callID, namespaces.CallingNamespacePlayParams{
+	Play:   []map[string]any{{"type": "tts", "text": "Hello!"}},
+	Volume: &vol,
 })
 ```
 
-### `PlayPause` / `PlayResume`
+### `PlayPause(callID, params)` / `PlayResume(callID, params)`
 
 Pause or resume active playback.
 
 ```go
-client.Calling.PlayPause(callID, map[string]any{"control_id": "ctrl-1"})
-client.Calling.PlayResume(callID, map[string]any{"control_id": "ctrl-1"})
+_, err = client.Calling.PlayPause(callID, namespaces.CallingNamespacePlayPauseParams{ControlId: "ctrl-1"})
+_, err = client.Calling.PlayResume(callID, namespaces.CallingNamespacePlayResumeParams{ControlId: "ctrl-1"})
 ```
 
-### `PlayStop`
+### `PlayStop(callID, params)`
 
 Stop active playback.
 
 ```go
-client.Calling.PlayStop(callID, map[string]any{"control_id": "ctrl-1"})
+_, err = client.Calling.PlayStop(callID, namespaces.CallingNamespacePlayStopParams{ControlId: "ctrl-1"})
 ```
 
-### `PlayVolume`
+### `PlayVolume(callID, params)`
 
 Adjust playback volume.
 
 ```go
-client.Calling.PlayVolume(callID, map[string]any{"control_id": "ctrl-1", "volume": -3.0})
+_, err = client.Calling.PlayVolume(callID, namespaces.CallingNamespacePlayVolumeParams{
+	ControlId: "ctrl-1",
+	Volume:    -3.0,
+})
 ```
 
 ## Recording
 
-### `Record` / `RecordPause` / `RecordResume` / `RecordStop`
+### `Record(callID, params)` / `RecordPause` / `RecordResume` / `RecordStop`
 
 ```go
-client.Calling.Record(callID, map[string]any{
-	"control_id": "rec-1",
-	"audio":      map[string]any{"beep": true, "format": "wav", "stereo": true},
+recID := "rec-1"
+_, err = client.Calling.Record(callID, namespaces.CallingNamespaceRecordParams{
+	ControlId: &recID,
+	Audio:     map[string]any{"beep": true, "format": "wav", "stereo": true},
 })
-client.Calling.RecordPause(callID, map[string]any{"control_id": "rec-1"})
-client.Calling.RecordResume(callID, map[string]any{"control_id": "rec-1"})
-client.Calling.RecordStop(callID, map[string]any{"control_id": "rec-1"})
+_, err = client.Calling.RecordPause(callID, namespaces.CallingNamespaceRecordPauseParams{ControlId: "rec-1"})
+_, err = client.Calling.RecordResume(callID, namespaces.CallingNamespaceRecordResumeParams{ControlId: "rec-1"})
+_, err = client.Calling.RecordStop(callID, namespaces.CallingNamespaceRecordStopParams{ControlId: "rec-1"})
 ```
 
 ## Input Collection
 
-### `Collect` / `CollectStop` / `CollectStartInputTimers`
+### `Collect(callID, params)` / `CollectStop` / `CollectStartInputTimers`
 
 ```go
-client.Calling.Collect(callID, map[string]any{
-	"control_id": "coll-1",
-	"digits":     map[string]any{"max": 4, "terminators": "#"},
-	"speech":     map[string]any{"end_silence_timeout": 2.0},
+collID := "coll-1"
+_, err = client.Calling.Collect(callID, namespaces.CallingNamespaceCollectParams{
+	ControlId: &collID,
+	Digits:    map[string]any{"max": 4, "terminators": "#"},
+	Speech:    map[string]any{"end_silence_timeout": 2.0},
 })
-client.Calling.CollectStop(callID, map[string]any{"control_id": "coll-1"})
-client.Calling.CollectStartInputTimers(callID, map[string]any{"control_id": "coll-1"})
+_, err = client.Calling.CollectStop(callID, namespaces.CallingNamespaceCollectStopParams{ControlId: "coll-1"})
+_, err = client.Calling.CollectStartInputTimers(callID, namespaces.CallingNamespaceCollectStartInputTimersParams{ControlId: "coll-1"})
 ```
 
 ## Detection
 
-### `Detect` / `DetectStop`
+### `Detect(callID, params)` / `DetectStop`
 
 ```go
-client.Calling.Detect(callID, map[string]any{
-	"control_id": "det-1",
-	"detect":     map[string]any{"type": "machine", "params": map[string]any{"initial_timeout": 4.5}},
+detID := "det-1"
+_, err = client.Calling.Detect(callID, namespaces.CallingNamespaceDetectParams{
+	ControlId: &detID,
+	Detect:    map[string]any{"type": "machine", "params": map[string]any{"initial_timeout": 4.5}},
 })
-client.Calling.DetectStop(callID, map[string]any{"control_id": "det-1"})
+_, err = client.Calling.DetectStop(callID, namespaces.CallingNamespaceDetectStopParams{ControlId: "det-1"})
 ```
 
 ## Tap & Stream
 
-### `Tap` / `TapStop`
+### `Tap(callID, params)` / `TapStop`
 
 ```go
-client.Calling.Tap(callID, map[string]any{
-	"control_id": "tap-1",
-	"tap":        map[string]any{"type": "audio", "params": map[string]any{"direction": "both"}},
-	"device":     map[string]any{"type": "rtp", "params": map[string]any{"addr": "192.168.1.1", "port": 1234}},
+tapID := "tap-1"
+_, err = client.Calling.Tap(callID, namespaces.CallingNamespaceTapParams{
+	ControlId: &tapID,
+	Tap:       map[string]any{"type": "audio", "params": map[string]any{"direction": "both"}},
+	Device:    map[string]any{"type": "rtp", "params": map[string]any{"addr": "192.168.1.1", "port": 1234}},
 })
-client.Calling.TapStop(callID, map[string]any{"control_id": "tap-1"})
+_, err = client.Calling.TapStop(callID, namespaces.CallingNamespaceTapStopParams{ControlId: "tap-1"})
 ```
 
-### `Stream` / `StreamStop`
+### `Stream(callID, params)` / `StreamStop`
 
 ```go
-client.Calling.Stream(callID, map[string]any{
-	"control_id": "str-1",
-	"url":        "wss://example.com/audio-stream",
-	"codec":      "PCMU",
+strID, codec := "str-1", "PCMU"
+_, err = client.Calling.Stream(callID, namespaces.CallingNamespaceStreamParams{
+	Url:       "wss://example.com/audio-stream",
+	ControlId: &strID,
+	Codec:     &codec,
 })
-client.Calling.StreamStop(callID, map[string]any{"control_id": "str-1"})
+_, err = client.Calling.StreamStop(callID, namespaces.CallingNamespaceStreamStopParams{ControlId: "str-1"})
 ```
 
 ## Denoise
 
-### `Denoise` / `DenoiseStop`
+### `Denoise(callID, params)` / `DenoiseStop(callID, params)`
 
 ```go
-client.Calling.Denoise(callID, nil)
-client.Calling.DenoiseStop(callID, nil)
+_, err = client.Calling.Denoise(callID, namespaces.CallingNamespaceDenoiseParams{})
+_, err = client.Calling.DenoiseStop(callID, namespaces.CallingNamespaceDenoiseStopParams{})
 ```
 
 ## Transcription
 
-### `Transcribe` / `TranscribeStop`
+### `Transcribe(callID, params)` / `TranscribeStop`
 
 ```go
-client.Calling.Transcribe(callID, map[string]any{
-	"control_id": "tx-1",
-	"status_url": "https://example.com/hook",
+txID, hook := "tx-1", "https://example.com/hook"
+_, err = client.Calling.Transcribe(callID, namespaces.CallingNamespaceTranscribeParams{
+	ControlId: &txID,
+	StatusUrl: &hook,
 })
-client.Calling.TranscribeStop(callID, map[string]any{"control_id": "tx-1"})
+_, err = client.Calling.TranscribeStop(callID, namespaces.CallingNamespaceTranscribeStopParams{ControlId: "tx-1"})
 ```
 
 ## AI
 
-### `AIMessage`
+### `AIMessage(callID, params)`
 
 Inject a message into an active AI session.
 
 ```go
-client.Calling.AIMessage(callID, map[string]any{
-	"role": "user", "message_text": "Transfer me to billing",
+role, msg := "user", "Transfer me to billing"
+_, err = client.Calling.AIMessage(callID, namespaces.CallingNamespaceAIMessageParams{
+	Role:        &role,
+	MessageText: &msg,
 })
 ```
 
-### `AIHold` / `AIUnhold`
+### `AIHold(callID, params)` / `AIUnhold(callID, params)`
 
 ```go
-client.Calling.AIHold(callID, map[string]any{
-	"timeout": 60, "prompt": "Please wait while I transfer you.",
+timeout := 60
+holdPrompt := "Please wait while I transfer you."
+_, err = client.Calling.AIHold(callID, namespaces.CallingNamespaceAIHoldParams{
+	Timeout: &timeout,
+	Prompt:  &holdPrompt,
 })
-client.Calling.AIUnhold(callID, map[string]any{
-	"prompt": "I'm back, how can I help?",
+unholdPrompt := "I'm back, how can I help?"
+_, err = client.Calling.AIUnhold(callID, namespaces.CallingNamespaceAIUnholdParams{
+	Prompt: &unholdPrompt,
 })
 ```
 
-### `AIStop`
+### `AIStop(callID, params)`
 
 ```go
-client.Calling.AIStop(callID, map[string]any{"control_id": "ai-1"})
+_, err = client.Calling.AIStop(callID, namespaces.CallingNamespaceAIStopParams{ControlId: "ai-1"})
 ```
 
 ## Live Transcribe & Translate
 
 ```go
-client.Calling.LiveTranscribe(callID, map[string]any{"action": "start", "lang": "en"})
-client.Calling.LiveTranslate(callID, map[string]any{
-	"action": "start", "from_lang": "en", "to_lang": "es",
+_, err = client.Calling.LiveTranscribe(callID, namespaces.CallingNamespaceLiveTranscribeParams{
+	Action: "start",
+	Extras: map[string]any{"lang": "en"},
+})
+_, err = client.Calling.LiveTranslate(callID, namespaces.CallingNamespaceLiveTranslateParams{
+	Action: "start",
+	Extras: map[string]any{"from_lang": "en", "to_lang": "es"},
 })
 ```
 
 ## Fax
 
 ```go
-client.Calling.SendFaxStop(callID, map[string]any{"control_id": "fax-1"})
-client.Calling.ReceiveFaxStop(callID, map[string]any{"control_id": "fax-1"})
+_, err = client.Calling.SendFaxStop(callID, namespaces.CallingNamespaceSendFaxStopParams{ControlId: "fax-1"})
+_, err = client.Calling.ReceiveFaxStop(callID, namespaces.CallingNamespaceReceiveFaxStopParams{ControlId: "fax-1"})
 ```
 
 ## SIP & Custom Events
 
 ```go
 // SIP REFER transfer
-client.Calling.Refer(callID, map[string]any{
-	"device": map[string]any{"to": "sip:agent@example.com"},
+_, err = client.Calling.Refer(callID, namespaces.CallingNamespaceReferParams{
+	Device: map[string]any{"to": "sip:agent@example.com"},
 })
 
 // Custom event
-client.Calling.UserEvent(callID, map[string]any{
-	"event": map[string]any{"type": "custom", "data": map[string]any{"key": "value"}},
+_, err = client.Calling.UserEvent(callID, namespaces.CallingNamespaceUserEventParams{
+	Event: map[string]any{"type": "custom", "data": map[string]any{"key": "value"}},
 })
 ```
 

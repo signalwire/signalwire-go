@@ -6,7 +6,32 @@ RELAY events are server-pushed notifications about call state changes and operat
 
 ### On a Call
 
+<!-- snippet-setup -->
 ```go
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var call *relay.Call
+var rawPayload map[string]any
+
+var (
+	_ = client
+	_ = call
+	_ = rawPayload
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
+```go
+import "time"
+
 client.OnCall(func(call *relay.Call) {
 	// Register a listener
 	call.On(relay.EventCallingCallPlay, func(event *relay.RelayEvent) {
@@ -29,6 +54,8 @@ client.OnCall(func(call *relay.Call) {
 Actions returned by `Play()`, `Record()`, etc. have a `Wait()` method that resolves when the operation completes:
 
 ```go
+import "time"
+
 action := call.PlayTTS("Hello")
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()

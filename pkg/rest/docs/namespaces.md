@@ -6,8 +6,28 @@ The examples below import the resource-parameter structs from
 `github.com/signalwire/signalwire-go/pkg/rest/namespaces` and use a small helper
 to set optional pointer fields:
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 func ptr[T any](v T) *T { return &v }
+```
+
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+)
+
+// Shared context the fragments below assume: a constructed REST client.
+// (The `ptr` helper above is illustrative; runnable fragments take the address
+// of a local variable instead.)
+var client, err = rest.NewRestClient("project", "token", "space")
+
+var (
+	_ = client
+	_ = err
+	_ = namespaces.Uuid("")
+)
 ```
 
 ## Phone Numbers
@@ -30,6 +50,8 @@ number, err := client.PhoneNumbers.Create(map[string]any{"number": "+15551234567
 number, err = client.PhoneNumbers.Get("pn-uuid")
 _, err = client.PhoneNumbers.Update("pn-uuid", map[string]any{"name": "Support Line"})
 _, err = client.PhoneNumbers.Delete("pn-uuid")
+
+_, _, _ = numbers, available, number
 ```
 
 ## Addresses
@@ -44,6 +66,8 @@ address, err := client.Addresses.Create(namespaces.AddressesNamespaceCreateParam
 })
 address, err = client.Addresses.Get("addr-uuid", nil)
 _, err = client.Addresses.Delete("addr-uuid")
+
+_, _ = addresses, address
 ```
 
 ## Queues
@@ -59,6 +83,9 @@ _, err = client.Queues.Delete("q-uuid")
 members, err := client.Queues.ListMembers("q-uuid", nil)
 nextMember, err := client.Queues.GetNextMember("q-uuid", nil)
 member, err := client.Queues.GetMember("q-uuid", "member-uuid", nil)
+
+_, _, _, _ = queues, queue, members, nextMember
+_ = member
 ```
 
 ## Recordings
@@ -67,6 +94,8 @@ member, err := client.Queues.GetMember("q-uuid", "member-uuid", nil)
 recordings, err := client.Recordings.List(nil)
 recording, err := client.Recordings.Get("rec-uuid", nil)
 _, err = client.Recordings.Delete("rec-uuid")
+
+_, _ = recordings, recording
 ```
 
 ## Number Groups
@@ -85,6 +114,9 @@ _, err = client.NumberGroups.AddMembership("ng-uuid", namespaces.NumberGroupsNam
 })
 membership, err := client.NumberGroups.GetMembership("mem-uuid", nil)
 _, err = client.NumberGroups.DeleteMembership("mem-uuid")
+
+_, _, _ = groups, group, memberships
+_ = membership
 ```
 
 ## Verified Caller IDs
@@ -104,6 +136,8 @@ _, err = client.VerifiedCallers.RedialVerification("vc-uuid")
 _, err = client.VerifiedCallers.SubmitVerification("vc-uuid", namespaces.VerifiedCallersNamespaceSubmitVerificationParams{
 	VerificationCode: "123456",
 })
+
+_, _ = callers, caller
 ```
 
 ## SIP Profile
@@ -115,6 +149,8 @@ profile, err := client.SIPProfile.Get(nil)
 _, err = client.SIPProfile.Update(namespaces.SIPProfileNamespaceUpdateParams{
 	Extras: map[string]any{"username": "myproject", "password": "newsecret"},
 })
+
+_ = profile
 ```
 
 ## Phone Number Lookup
@@ -122,6 +158,8 @@ _, err = client.SIPProfile.Update(namespaces.SIPProfileNamespaceUpdateParams{
 ```go
 info, err := client.Lookup.PhoneNumber("+15551234567", nil)
 info, err = client.Lookup.PhoneNumber("+15551234567", map[string]string{"include": "carrier,cnam"})
+
+_ = info
 ```
 
 Note: carrier and CNAM lookups are billable.
@@ -132,12 +170,14 @@ Note: carrier and CNAM lookups are billable.
 codes, err := client.ShortCodes.List(nil)
 code, err := client.ShortCodes.Get("sc-uuid", nil)
 _, err = client.ShortCodes.Update("sc-uuid", namespaces.ShortCodesNamespaceUpdateParams{Name: "Alerts"})
+
+_, _ = codes, code
 ```
 
 ## Imported Phone Numbers
 
 ```go
-_, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreateParams{
+_, err = client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreateParams{
 	Number:     "+15559999999",
 	NumberType: "external",
 })
@@ -147,21 +187,25 @@ _, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreat
 
 ```go
 // Request a verification code via SMS
+from := "+15559876543"
+message := "Your code is {code}"
 result, err := client.MFA.SMS(namespaces.MFANamespaceSMSParams{
 	To:      "+15551234567",
-	From:    ptr("+15559876543"),
-	Message: ptr("Your code is {code}"),
+	From:    &from,
+	Message: &message,
 })
 requestID := string(result.Id)
 
 // Or via phone call
 result, err = client.MFA.Call(namespaces.MFANamespaceCallParams{
 	To:   "+15551234567",
-	From: ptr("+15559876543"),
+	From: &from,
 })
 
 // Verify the code
 verified, err := client.MFA.Verify(requestID, namespaces.MFANamespaceVerifyParams{Token: "123456"})
+
+_, _ = result, verified
 ```
 
 ## 10DLC Campaign Registry
@@ -190,6 +234,10 @@ order, err := client.Registry.Campaigns.CreateOrder("camp-uuid", namespaces.Regi
 })
 order, err = client.Registry.Orders.Get("order-uuid", nil)
 _, err = client.Registry.Numbers.Delete("number-assignment-uuid")
+
+_, _, _ = brands, brand, campaigns
+_, _, _ = campaign, numbers, orders
+_ = order
 ```
 
 ## Datasphere
@@ -206,16 +254,20 @@ _, err = client.Datasphere.Documents.Update("doc-uuid", map[string]any{"tags": [
 _, err = client.Datasphere.Documents.Delete("doc-uuid")
 
 // Semantic search
+count := 5
 results, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{
 	QueryString: "How do I reset my password?",
 	Tags:        []string{"support"},
-	Count:       ptr(5),
+	Count:       &count,
 })
 
 // Chunks
 chunks, err := client.Datasphere.Documents.ListChunks("doc-uuid", nil)
 chunk, err := client.Datasphere.Documents.GetChunk("doc-uuid", "chunk-uuid", nil)
 _, err = client.Datasphere.Documents.DeleteChunk("doc-uuid", "chunk-uuid")
+
+_, _, _, _ = docs, doc, results, chunks
+_ = chunk
 ```
 
 ## Video
@@ -231,9 +283,10 @@ _, err = client.Video.Rooms.ListStreams("room-uuid", nil)
 _, err = client.Video.Rooms.CreateStream("room-uuid", namespaces.VideoRoomsCreateStreamParams{Url: "rtmp://example.com/live"})
 
 // Room tokens
+userName := "alice"
 token, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{
 	RoomName: "standup",
-	UserName: ptr("alice"),
+	UserName: &userName,
 })
 
 // Room sessions
@@ -269,6 +322,11 @@ _, err = client.Video.ConferenceTokens.Reset("token-uuid")
 stream, err := client.Video.Streams.Get("stream-uuid", nil)
 _, err = client.Video.Streams.Update("stream-uuid", namespaces.VideoStreamsUpdateParams{Url: "rtmp://example.com/new"})
 _, err = client.Video.Streams.Delete("stream-uuid")
+
+_, _, _, _ = rooms, room, token, sessions
+_, _, _, _ = session, events, members, recordings
+_, _, _, _ = recs, rec, confs, conf
+_, _ = tokens, stream
 ```
 
 ## Logs
@@ -291,6 +349,9 @@ faxLog, err := client.Logs.Fax.Get("log-uuid")
 
 // Conference logs
 confLogs, err := client.Logs.Conferences.List(nil)
+
+_, _, _, _ = logs, log, voiceLogs, voiceLog
+_, _, _, _ = events, faxLogs, faxLog, confLogs
 ```
 
 ## Project Tokens
@@ -300,30 +361,38 @@ token, err := client.Project.Tokens.Create(namespaces.ProjectTokensCreateParams{
 	Name:        "ci-token",
 	Permissions: []namespaces.TokenPermission{"calling", "messaging", "numbers"},
 })
-_, err = client.Project.Tokens.Update("token-uuid", namespaces.ProjectTokensUpdateParams{Name: ptr("renamed-token")})
+renamed := "renamed-token"
+_, err = client.Project.Tokens.Update("token-uuid", namespaces.ProjectTokensUpdateParams{Name: &renamed})
 _, err = client.Project.Tokens.Delete("token-uuid")
+
+_ = token
 ```
 
 ## PubSub Tokens
 
 ```go
+memberID := "user-123"
 token, err := client.PubSub.CreateToken(namespaces.PubSubNamespaceCreateTokenParams{
 	Ttl: 60,
 	Channels: namespaces.PubSubChannels{
 		"updates": map[string]any{"read": true, "write": false},
 	},
-	MemberId: ptr("user-123"),
+	MemberId: &memberID,
 })
+
+_ = token
 ```
 
 ## Chat Tokens
 
 ```go
+memberID := "user-123"
 token, err := client.Chat.CreateToken(namespaces.ChatNamespaceCreateTokenParams{
 	Ttl: 60,
 	Channels: namespaces.ChatChannel{
 		"support": map[string]any{"read": true, "write": true},
 	},
-	MemberId: ptr("user-123"),
+	MemberId: &memberID,
 })
-```
+
+_ = token

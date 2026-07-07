@@ -1,7 +1,33 @@
 # RelayClient Reference
 
+<!-- snippet-setup -->
+```go
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var call *relay.Call
+var message *relay.Message
+var err error
+
+var (
+	_ = client
+	_ = call
+	_ = message
+	_ = err
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
 ## Constructor
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 client := relay.NewRelayClient(opts ...ClientOption)
 ```
@@ -35,6 +61,8 @@ Signal a running client to tear down its WebSocket and exit `Run()`. Safe to
 call from another goroutine.
 
 ```go
+import "time"
+
 go func() {
 	time.Sleep(5 * time.Minute)
 	client.Stop()
@@ -60,7 +88,7 @@ Place an outbound call. Returns a `*Call` once the remote party answers.
 - `devices` -- nested slice of device objects (serial/parallel dial)
 
 ```go
-call, err := client.Dial(
+call, err = client.Dial(
 	[][]map[string]any{
 		{{"type": "phone", "params": map[string]any{
 			"to_number": "+15551234567", "from_number": "+15559876543",
@@ -73,6 +101,7 @@ if err != nil {
 	fmt.Printf("Dial failed: %v\n", err)
 	return
 }
+_ = call
 ```
 
 ### `OnMessage(handler func(*relay.Message))`
@@ -81,7 +110,7 @@ Register the inbound message handler. The handler receives a `*Message` object.
 
 ```go
 client.OnMessage(func(message *relay.Message) {
-	fmt.Printf("SMS from %s: %s\n", message.FromNumber, message.Body)
+	fmt.Printf("SMS from %s: %s\n", message.FromNumber(), message.Body())
 })
 ```
 
@@ -92,7 +121,7 @@ The three required parameters are positional; additional `MessageOption`
 values configure media, region, and tags.
 
 ```go
-message, err := client.SendMessage(
+message, err = client.SendMessage(
 	"+15552222222",
 	"+15551111111",
 	"Hello!",
@@ -101,7 +130,8 @@ if err != nil {
 	fmt.Printf("Send failed: %v\n", err)
 	return
 }
-event := message.Wait(context.Background()) // block until delivered/failed
+event, _ := message.Wait(context.Background()) // block until delivered/failed
+_ = event
 ```
 
 See [Messaging](messaging.md) for full details.
@@ -128,15 +158,18 @@ Each inbound call handler runs in its own goroutine, so multiple calls are handl
 ## Error Handling
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/relay"
+import "errors"
 
-result, err := call.Play([]map[string]any{...}).Wait(context.Background())
+result, err := call.Play([]map[string]any{
+	{"type": "tts", "params": map[string]any{"text": "Hello"}},
+}).Wait(context.Background())
 if err != nil {
 	var relayErr *relay.RelayError
 	if errors.As(err, &relayErr) {
 		fmt.Printf("Error %d: %s\n", relayErr.Code, relayErr.Message)
 	}
 }
+_ = result
 ```
 
 `RelayError` carries the numeric `Code` and `Message` the RELAY server
@@ -151,10 +184,17 @@ Use a cancellable context or OS signal handler to call `client.Stop()` when
 the process should exit:
 
 ```go
+import (
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+)
+
 ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 defer cancel()
 
-client := relay.NewRelayClient(relay.WithContexts("default"))
+client = relay.NewRelayClient(relay.WithContexts("default"))
 
 client.OnCall(func(call *relay.Call) {
 	call.Answer()

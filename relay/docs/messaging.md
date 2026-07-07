@@ -8,8 +8,31 @@ Use `client.SendMessage()` to send an outbound SMS or MMS. The three required
 parameters (to, from, body) are positional; everything else is a
 `MessageOption`.
 
+<!-- snippet-setup -->
 ```go
-message, err := client.SendMessage(
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var message *relay.Message
+var err error
+
+var (
+	_ = client
+	_ = message
+	_ = err
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
+```go
+message, err = client.SendMessage(
 	"+15552222222",                 // to (E.164)
 	"+15551111111",                 // from (E.164)
 	"Hello from SignalWire!",       // body
@@ -18,12 +41,13 @@ if err != nil {
 	fmt.Printf("Send failed: %v\n", err)
 	return
 }
+_ = message
 ```
 
 ### Wait for delivery
 
 ```go
-message, err := client.SendMessage(
+message, err = client.SendMessage(
 	"+15552222222",
 	"+15551111111",
 	"Hello!",
@@ -42,18 +66,19 @@ if message.Reason() != "" {
 ### Fire and forget
 
 ```go
-message, err := client.SendMessage(
+message, err = client.SendMessage(
 	"+15552222222",
 	"+15551111111",
 	"Hello!",
 )
 // don't call message.Wait() -- continue immediately
+_, _ = message, err
 ```
 
 ### Callback via goroutine
 
 ```go
-message, err := client.SendMessage(
+message, err = client.SendMessage(
 	"+15552222222",
 	"+15551111111",
 	"Hello!",
@@ -73,18 +98,19 @@ go func() {
 ### MMS (media messages)
 
 ```go
-message, err := client.SendMessage(
+message, err = client.SendMessage(
 	"+15552222222",
 	"+15551111111",
 	"Check this out!",
 	relay.WithMessageMedia([]string{"https://example.com/image.jpg"}),
 )
+_, _ = message, err
 ```
 
 ### All options
 
 ```go
-message, err := client.SendMessage(
+message, err = client.SendMessage(
 	"+15552222222",                                       // to   (required -- E.164)
 	"+15551111111",                                       // from (required -- E.164)
 	"Message text",                                       // body (required if no media)
@@ -92,6 +118,7 @@ message, err := client.SendMessage(
 	relay.WithMessageTags([]string{"vip", "support"}),    // optional tags
 	relay.WithMessageRegion("us"),                        // optional origination region
 )
+_, _ = message, err
 ```
 
 ## Receiving Messages
@@ -189,11 +216,9 @@ Inbound messages always arrive with state `received`.
 | `MessageStateEvent` | Outbound message state change |
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/relay"
-
 // Use the event type constants
-relay.EventMessagingReceive // "messaging.receive"
-relay.EventMessagingState   // "messaging.state"
+_ = relay.EventMessagingReceive // "messaging.receive"
+_ = relay.EventMessagingState   // "messaging.state"
 ```
 
 ## Combining Calls and Messages
@@ -201,7 +226,7 @@ relay.EventMessagingState   // "messaging.state"
 The same `RelayClient` handles both calls and messages:
 
 ```go
-client := relay.NewRelayClient(
+client = relay.NewRelayClient(
 	relay.WithProject("..."),
 	relay.WithToken("..."),
 	relay.WithContexts("default"),
@@ -217,7 +242,7 @@ client.OnCall(func(call *relay.Call) {
 })
 
 client.OnMessage(func(message *relay.Message) {
-	fmt.Printf("SMS from %s: %s\n", message.FromNumber, message.Body)
+	fmt.Printf("SMS from %s: %s\n", message.FromNumber(), message.Body())
 })
 
 client.Run()

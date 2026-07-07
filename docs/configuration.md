@@ -9,6 +9,13 @@ All SignalWire services (SWML-based agents, Search, MCP Gateway) now support opt
 ## Quick Start
 
 ### Zero Configuration (Default)
+<!-- snippet-setup -->
+```go
+import "github.com/signalwire/signalwire-go/pkg/agent"
+
+var _ = agent.NewAgentBase
+```
+
 ```go
 // Works exactly as before - no config needed
 a := agent.NewAgentBase(agent.WithName("my-agent"), agent.WithRoute("/agent"))
@@ -258,8 +265,6 @@ After (Option 3 - Mix config and env vars):
 ### Loading Configuration
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/agent"
-
 // Load config from a search-path list (first existing file wins)
 loader := agent.NewConfigLoader([]string{"my_config.json"})
 if loader.HasConfig() {

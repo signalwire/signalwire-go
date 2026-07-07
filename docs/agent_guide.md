@@ -116,7 +116,82 @@ The SignalWire AI Agent SDK provides a `Run()` method that automatically detects
 
 ### Deployment with `Run()`
 
+<!-- snippet-setup -->
 ```go
+import (
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared context the fragments below assume (established in prose above):
+// `a`/`ep` are agent instances; newMyAgent is your agent factory. The remaining
+// vars/closures stand in for your own helpers referenced illustratively below.
+var a = agent.NewAgentBase()
+var ep = agent.NewAgentBase()
+var newMyAgent = func() *agent.AgentBase { return agent.NewAgentBase() }
+var err error
+
+var tierConfigs = map[string]map[string]any{}
+var isValidCustomer = func(id string) bool { return true }
+var getCustomerTier = func(id string) string { return "standard" }
+var applyCustomConfig = func(qp map[string]string, ep *agent.AgentBase) error { return nil }
+var applyDefaultConfig = func(ep *agent.AgentBase) {}
+var alertOpsTeam = func(event map[string]any) {}
+
+// sessions stands in for your external session store; loadUserPreferences for
+// your own lookup. Referenced illustratively by the lifecycle-hook examples.
+var sessions = struct {
+	Update func(id string, data map[string]any)
+	Get    func(id string) (map[string]any, bool)
+	Delete func(id string)
+}{
+	Update: func(id string, data map[string]any) {},
+	Get:    func(id string) (map[string]any, bool) { return nil, false },
+	Delete: func(id string) {},
+}
+var loadUserPreferences = func(callerID string) map[string]any { return map[string]any{} }
+
+// Additional agent instances referenced by the multi-agent routing examples.
+var registrationAgent = agent.NewAgentBase()
+var supportAgent = agent.NewAgentBase()
+var sendToAnalytics = func(data map[string]any) {}
+
+var (
+	_ = a
+	_ = ep
+	_ = newMyAgent
+	_ = err
+	_ = skills.SkillWebSearch
+	_ = swaig.NewFunctionResult
+	_ = tierConfigs
+	_ = isValidCustomer
+	_ = getCustomerTier
+	_ = applyCustomConfig
+	_ = applyDefaultConfig
+	_ = alertOpsTeam
+	_ = sessions
+	_ = loadUserPreferences
+	_ = registrationAgent
+	_ = supportAgent
+	_ = sendToAnalytics
+	_ = log.Printf
+	_ = http.MethodGet
+	_ = os.Getenv
+	_ = strconv.Atoi
+	_ = strings.ToLower
+)
+```
+
+```go
+import "fmt"
+
 func main() {
 	a := newMyAgent()
 
@@ -293,12 +368,7 @@ A vague description is the #1 cause of "the model has the right tool but doesn't
 These are the traditional SWAIG functions that are handled locally by your agent. Register them with `DefineTool`, providing a handler that returns a `*swaig.FunctionResult`:
 
 ```go
-import (
-	"fmt"
-
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
-)
+import "fmt"
 
 a.DefineTool(agent.ToolDefinition{
 	Name:        "get_weather",
@@ -384,6 +454,13 @@ When you specify a `WebhookURL`:
 You can mix both types of functions in the same agent:
 
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
 func newHybridAgent() *agent.AgentBase {
 	a := agent.NewAgentBase(
 		agent.WithName("hybrid-agent"),
@@ -427,6 +504,8 @@ func newHybridAgent() *agent.AgentBase {
 
 	return a
 }
+
+func main() {}
 ```
 
 #### Testing External Webhooks
@@ -450,6 +529,7 @@ The CLI tool will automatically detect external webhook functions and make HTTP 
 
 The parameters for a SWAIG function are defined using JSON Schema, expressed in Go as a `map[string]any`:
 
+<!-- snippet: no-compile illustrative struct-field literal (Parameters value fragment) -->
 ```go
 Parameters: map[string]any{
 	"parameter_name": map[string]any{
@@ -470,6 +550,7 @@ Parameters that must always be present are listed in the tool definition's `Requ
 
 To return results from a SWAIG function, use the `swaig.FunctionResult` builder:
 
+<!-- snippet: no-compile illustrative bare-return examples (multiple returns outside a function body) -->
 ```go
 // Basic result with just text
 return swaig.NewFunctionResult("Here's the result")
@@ -588,7 +669,7 @@ a.DefineTool(agent.ToolDefinition{
 The default token expiration is 60 minutes (3600 seconds), but you can configure this when constructing your agent:
 
 ```go
-a := agent.NewAgentBase(
+a = agent.NewAgentBase(
 	agent.WithName("my_agent"),
 	agent.WithTokenExpiry(1800), // Set token expiration to 30 minutes
 )
@@ -609,10 +690,14 @@ Skills are referenced by typed `skills.SkillName` constants (e.g. `skills.SkillW
 ### Quick Start
 
 ```go
+package main
+
 import (
 	"github.com/signalwire/signalwire-go/pkg/agent"
 	"github.com/signalwire/signalwire-go/pkg/skills"
 )
+
+func main() {}
 
 func newSkillfulAgent() *agent.AgentBase {
 	a := agent.NewAgentBase(
@@ -845,6 +930,8 @@ The remote search server is a separate component that hosts the indexes; the Go 
 ### Skill Management
 
 ```go
+import "fmt"
+
 // Check what skills are loaded
 loadedSkills := a.ListSkills()
 fmt.Printf("Loaded skills: %s\n", strings.Join(loadedSkills, ", "))
@@ -1131,6 +1218,12 @@ There are two main approaches to agent configuration:
 
 #### Static Configuration (Traditional)
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func newStaticAgent() *agent.AgentBase {
 	a := agent.NewAgentBase(agent.WithName("static-agent"))
 
@@ -1142,6 +1235,8 @@ func newStaticAgent() *agent.AgentBase {
 
 	return a
 }
+
+func main() {}
 ```
 
 **Pros**: Simple, fast, predictable
@@ -1149,6 +1244,12 @@ func newStaticAgent() *agent.AgentBase {
 
 #### Dynamic Configuration
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func newDynamicAgent() *agent.AgentBase {
 	a := agent.NewAgentBase(agent.WithName("dynamic-agent"))
 
@@ -1175,6 +1276,8 @@ func newDynamicAgent() *agent.AgentBase {
 
 	return a
 }
+
+func main() {}
 ```
 
 **Pros**: Highly flexible, single agent serves multiple configurations, enables advanced use cases
@@ -1185,6 +1288,12 @@ func newDynamicAgent() *agent.AgentBase {
 Use the `SetDynamicConfigCallback()` method to register a callback function that will be called for each request:
 
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func newMyDynamicAgent() *agent.AgentBase {
 	a := agent.NewAgentBase(
 		agent.WithName("my-agent"),
@@ -1206,6 +1315,8 @@ func newMyDynamicAgent() *agent.AgentBase {
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
 	// Your dynamic configuration logic here
 }
+
+func main() {}
 ```
 
 The callback function receives four parameters:
@@ -1291,6 +1402,13 @@ Your callback function receives detailed information about the incoming request:
 
 #### Query Parameters
 ```go
+package main
+
+import (
+	"strings"
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
 	// Extract query parameters
 	tier := queryParams["tier"]
@@ -1312,10 +1430,18 @@ func configureAgentDynamically(queryParams map[string]string, bodyParams map[str
 }
 
 // Request: GET /agent?tier=premium&language=es&customer_id=12345&debug=true
+
+func main() {}
 ```
 
 #### POST Body Parameters
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
 	// Extract from POST body
 	userProfile, _ := bodyParams["user_profile"].(map[string]any)
@@ -1336,10 +1462,19 @@ func configureAgentDynamically(queryParams map[string]string, bodyParams map[str
 //   "user_profile": {"language": "es", "region": "mx"},
 //   "preferences": {"voice_speed": "fast", "tone": "formal"}
 // }
+
+func main() {}
 ```
 
 #### HTTP Headers
 ```go
+package main
+
+import (
+	"strings"
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
 	// Extract headers
 	userAgent := headers["user-agent"]
@@ -1357,12 +1492,20 @@ func configureAgentDynamically(queryParams map[string]string, bodyParams map[str
 		ep.AddLanguage(map[string]any{"name": "Spanish", "code": "es-ES", "voice": "rime.spore:mistv2"})
 	}
 }
+
+func main() {}
 ```
 
 ### Configuration Examples
 
 #### Simple Multi-Tenant Configuration
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
 	tenant := queryParams["tenant"]
 	if tenant == "" {
@@ -1389,10 +1532,18 @@ func configureAgentDynamically(queryParams map[string]string, bodyParams map[str
 		})
 	}
 }
+
+func main() {}
 ```
 
 #### Language and Localization
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
 	language := queryParams["language"]
 	if language == "" {
@@ -1433,10 +1584,18 @@ func configureAgentDynamically(queryParams map[string]string, bodyParams map[str
 		"currency": currency,
 	})
 }
+
+func main() {}
 ```
 
 #### A/B Testing Configuration
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
 	// Determine test group (could be from query param, user ID hash, etc.)
 	testGroup := queryParams["test_group"]
@@ -1457,10 +1616,18 @@ func configureAgentDynamically(queryParams map[string]string, bodyParams map[str
 		ep.SetGlobalData(map[string]any{"test_group": "B", "features": []string{"basic", "enhanced"}})
 	}
 }
+
+func main() {}
 ```
 
 #### Customer Tier-Based Configuration
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
 	customerID := queryParams["customer_id"]
 	tier := queryParams["tier"]
@@ -1507,6 +1674,8 @@ func configureAgentDynamically(queryParams map[string]string, bodyParams map[str
 	}
 	ep.SetGlobalData(globalData)
 }
+
+func main() {}
 ```
 
 ### Use Cases
@@ -1577,6 +1746,12 @@ Benefits:
 
 Before (Static):
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func newMyAgent() *agent.AgentBase {
 	a := agent.NewAgentBase(agent.WithName("my-agent"))
 
@@ -1588,10 +1763,18 @@ func newMyAgent() *agent.AgentBase {
 
 	return a
 }
+
+func main() {}
 ```
 
 After (Dynamic):
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func newMyAgent() *agent.AgentBase {
 	a := agent.NewAgentBase(agent.WithName("my-agent"))
 
@@ -1606,6 +1789,8 @@ func newMyAgent() *agent.AgentBase {
 
 	return a
 }
+
+func main() {}
 ```
 
 **Step 2: Add Parameter-Based Logic**
@@ -1636,6 +1821,12 @@ a.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[st
 You can support both static and dynamic patterns during migration by branching at construction time:
 
 ```go
+package main
+
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
 func newMyAgent(useDynamic bool) *agent.AgentBase {
 	a := agent.NewAgentBase(agent.WithName("my-agent"))
 
@@ -1652,6 +1843,8 @@ func newMyAgent(useDynamic bool) *agent.AgentBase {
 
 	return a
 }
+
+func main() {}
 ```
 
 ### Best Practices
@@ -1675,6 +1868,12 @@ a.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[st
 
 2. **Cache Configuration Data**
 ```go
+package main
+
+import "github.com/signalwire/signalwire-go/pkg/agent"
+
+func main() {}
+
 // Pre-compute configuration templates once (package-level or captured in a closure)
 var tierConfigs = map[string]map[string]any{
 	"basic":      {"end_of_speech_timeout": 500},
@@ -1771,6 +1970,17 @@ a.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[st
 
 3. **Rate Limiting for Complex Configurations**
 ```go
+package main
+
+import "github.com/signalwire/signalwire-go/pkg/agent"
+
+// customerConfigCache stands in for your own memoizing cache.
+type customerConfigCache struct{}
+
+func (c *customerConfigCache) Get(id string) map[string]any { return map[string]any{} }
+
+func main() {}
+
 // Cache expensive lookups (e.g. with an in-memory cache guarded by a mutex)
 func newMyAgent(cache *customerConfigCache) *agent.AgentBase {
 	a := agent.NewAgentBase(agent.WithName("my-agent"))
@@ -1839,7 +2049,7 @@ The debug events system provides real-time visibility into what the AI module is
 #### Basic Setup
 
 ```go
-a := agent.NewAgentBase(agent.WithName("my_agent"))
+a = agent.NewAgentBase(agent.WithName("my_agent"))
 a.EnableDebugEvents(1) // Level 1 — events are auto-logged
 a.Serve()
 ```
@@ -1854,7 +2064,9 @@ With `EnableDebugEvents(1)`, every debug event is logged through the agent's str
 To act on specific events (alerting, metrics, custom logging), register a handler with `OnDebugEvent`. The handler receives each event as a `map[string]any` (the event's `event_type` and `call_id` are keys in the map):
 
 ```go
-a := agent.NewAgentBase(agent.WithName("my_agent"))
+import "fmt"
+
+a = agent.NewAgentBase(agent.WithName("my_agent"))
 a.EnableDebugEvents(1)
 
 a.OnDebugEvent(func(event map[string]any) {
@@ -1916,9 +2128,6 @@ To implement lifecycle hooks, define them as regular SWAIG functions with these 
 import (
 	"fmt"
 	"time"
-
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
 )
 
 // sessions is any external store you maintain (DB, Redis, guarded map, etc.).
@@ -2106,9 +2315,21 @@ With server-level routing:
 You can dynamically handle requests to different paths using routing callbacks. A `swml.RoutingCallback` has the signature `func(body map[string]any, headers map[string]any) *string` — return a pointer to a redirect URL, or `nil` to process the request normally:
 
 ```go
-// Enable custom routing at construction or anytime after
-a.RegisterRoutingCallback(handleCustomerRoute, "/customer")
-a.RegisterRoutingCallback(handleProductRoute, "/product")
+package main
+
+import (
+	"strings"
+
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
+
+func main() {
+	a := agent.NewAgentBase()
+
+	// Enable custom routing at construction or anytime after
+	a.RegisterRoutingCallback(handleCustomerRoute, "/customer")
+	a.RegisterRoutingCallback(handleProductRoute, "/product")
+}
 
 // Define the routing handlers
 func handleCustomerRoute(body map[string]any, headers map[string]any) *string {
@@ -2124,6 +2345,8 @@ func handleCustomerRoute(body map[string]any, headers map[string]any) *string {
 	// Or return nil to process the request with the SWML request hook
 	return nil
 }
+
+func handleProductRoute(body map[string]any, headers map[string]any) *string { return nil }
 ```
 
 ### Customizing SWML Requests
@@ -2209,8 +2432,9 @@ a.SetPostPromptURL("https://analytics.example.com/conversation-summaries")
 The SDK provides a check-for-input endpoint that allows agents to check for new input from external systems. A client can POST to `/check_for_input`:
 
 ```go
-// Example client code that checks for new input
 package main
+
+// Example client code that checks for new input
 
 import (
 	"bytes"
@@ -2251,6 +2475,8 @@ func checkForNewInput(agentURL, conversationID, user, pass string) ([]any, error
 
 	return nil, nil
 }
+
+func main() { _ = checkForNewInput }
 ```
 
 By default, the check_for_input endpoint returns an empty response. Enable it with `agent.WithCheckForInputOverride(true)` and customize behavior by supplying your own handler logic in your agent wiring; the endpoint performs basic-auth validation (via `ValidateBasicAuth`) before invoking your logic. A typical implementation:
@@ -2275,23 +2501,25 @@ The SDK includes several built-in prefab agents:
 Collects structured information from users. Each `Question` has a `KeyName` (where the answer is stored), `QuestionText`, and an optional `Confirm` flag:
 
 ```go
-import (
-	"github.com/signalwire/signalwire-go/pkg/prefabs"
-)
+package main
 
-questions := []prefabs.Question{
-	{KeyName: "full_name", QuestionText: "What is your full name?"},
-	{KeyName: "email", QuestionText: "What is your email address?", Confirm: true},
-	{KeyName: "reason", QuestionText: "How can I help you today?"},
+import "github.com/signalwire/signalwire-go/pkg/prefabs"
+
+func main() {
+	questions := []prefabs.Question{
+		{KeyName: "full_name", QuestionText: "What is your full name?"},
+		{KeyName: "email", QuestionText: "What is your email address?", Confirm: true},
+		{KeyName: "reason", QuestionText: "How can I help you today?"},
+	}
+
+	a := prefabs.NewInfoGathererAgent(prefabs.InfoGathererOptions{
+		Name:      "info-gatherer",
+		Route:     "/info-gatherer",
+		Questions: &questions,
+	})
+
+	a.Run()
 }
-
-a := prefabs.NewInfoGathererAgent(prefabs.InfoGathererOptions{
-	Name:      "info-gatherer",
-	Route:     "/info-gatherer",
-	Questions: &questions,
-})
-
-a.Run()
 ```
 
 #### FAQBotAgent
@@ -2299,20 +2527,26 @@ a.Run()
 Answers questions based on a set of FAQ entries. Each `FAQ` has a `Question`, `Answer`, and optional `Categories`:
 
 ```go
-a := prefabs.NewFAQBotAgent(prefabs.FAQBotOptions{
-	Name:    "knowledge-base",
-	Route:   "/knowledge-base",
-	Persona: "I'm a product documentation assistant.",
-	FAQs: []prefabs.FAQ{
-		{
-			Question: "How do I reset my password?",
-			Answer:   "Use the 'Forgot password' link on the sign-in page.",
-			Categories: []string{"account"},
-		},
-	},
-})
+package main
 
-a.Run()
+import "github.com/signalwire/signalwire-go/pkg/prefabs"
+
+func main() {
+	a := prefabs.NewFAQBotAgent(prefabs.FAQBotOptions{
+		Name:    "knowledge-base",
+		Route:   "/knowledge-base",
+		Persona: "I'm a product documentation assistant.",
+		FAQs: []prefabs.FAQ{
+			{
+				Question: "How do I reset my password?",
+				Answer:   "Use the 'Forgot password' link on the sign-in page.",
+				Categories: []string{"account"},
+			},
+		},
+	})
+
+	a.Run()
+}
 ```
 
 #### ConciergeAgent
@@ -2320,20 +2554,26 @@ a.Run()
 Acts as a virtual concierge for a venue, answering questions about amenities, services, hours, and directions:
 
 ```go
-a := prefabs.NewConciergeAgent(prefabs.ConciergeOptions{
-	Name:      "concierge",
-	Route:     "/concierge",
-	VenueName: "Grand Hotel",
-	Services:  []string{"room service", "valet parking", "spa booking"},
-	Amenities: map[string]prefabs.Amenity{
-		"pool": {Hours: "6am-10pm", Location: "3rd floor", Details: "Heated, towels provided"},
-		"gym":  {Hours: "24/7", Location: "2nd floor"},
-	},
-	Hours:          "Front desk staffed 24/7",
-	WelcomeMessage: "Welcome to the Grand Hotel. How can I help you today?",
-})
+package main
 
-a.Run()
+import "github.com/signalwire/signalwire-go/pkg/prefabs"
+
+func main() {
+	a := prefabs.NewConciergeAgent(prefabs.ConciergeOptions{
+		Name:      "concierge",
+		Route:     "/concierge",
+		VenueName: "Grand Hotel",
+		Services:  []string{"room service", "valet parking", "spa booking"},
+		Amenities: map[string]prefabs.Amenity{
+			"pool": {Hours: "6am-10pm", Location: "3rd floor", Details: "Heated, towels provided"},
+			"gym":  {Hours: "24/7", Location: "2nd floor"},
+		},
+		Hours:          "Front desk staffed 24/7",
+		WelcomeMessage: "Welcome to the Grand Hotel. How can I help you today?",
+	})
+
+	a.Run()
+}
 ```
 
 #### SurveyAgent
@@ -2341,28 +2581,34 @@ a.Run()
 Conducts structured surveys with different question types. Build questions with `NewSurveyQuestion` plus option functions (`WithQuestionID`, `WithQuestionType`, `WithQuestionScale`, `WithQuestionChoices`, `WithOptional`):
 
 ```go
-a := prefabs.NewSurveyAgent(prefabs.SurveyOptions{
-	Name:       "satisfaction-survey",
-	Route:      "/survey",
-	SurveyName: "Customer Satisfaction",
-	BrandName:  "Acme",
-	Questions: []prefabs.SurveyQuestion{
-		prefabs.NewSurveyQuestion(
-			"How satisfied are you with our product?",
-			prefabs.WithQuestionID("satisfaction"),
-			prefabs.WithQuestionType("rating"),
-			prefabs.WithQuestionScale(5),
-		),
-		prefabs.NewSurveyQuestion(
-			"Do you have any specific feedback about how we can improve?",
-			prefabs.WithQuestionID("feedback"),
-			prefabs.WithQuestionType("open_ended"),
-			prefabs.WithOptional(),
-		),
-	},
-})
+package main
 
-a.Run()
+import "github.com/signalwire/signalwire-go/pkg/prefabs"
+
+func main() {
+	a := prefabs.NewSurveyAgent(prefabs.SurveyOptions{
+		Name:       "satisfaction-survey",
+		Route:      "/survey",
+		SurveyName: "Customer Satisfaction",
+		BrandName:  "Acme",
+		Questions: []prefabs.SurveyQuestion{
+			prefabs.NewSurveyQuestion(
+				"How satisfied are you with our product?",
+				prefabs.WithQuestionID("satisfaction"),
+				prefabs.WithQuestionType("rating"),
+				prefabs.WithQuestionScale(5),
+			),
+			prefabs.NewSurveyQuestion(
+				"Do you have any specific feedback about how we can improve?",
+				prefabs.WithQuestionID("feedback"),
+				prefabs.WithQuestionType("open_ended"),
+				prefabs.WithOptional(),
+			),
+		},
+	})
+
+	a.Run()
+}
 ```
 
 #### ReceptionistAgent
@@ -2370,19 +2616,25 @@ a.Run()
 Handles call routing and department transfers. Each `Department` has a `Name`, `Description`, `Number`, and a `TransferSWML` flag (true when `Number` is a SWML transfer destination):
 
 ```go
-a := prefabs.NewReceptionistAgent(prefabs.ReceptionistOptions{
-	Name:  "acme-receptionist",
-	Route: "/reception",
-	Voice: "rime.spore:mistv2",
-	Departments: []prefabs.Department{
-		{Name: "sales", Description: "For product inquiries and pricing", Number: "+15551235555"},
-		{Name: "support", Description: "For technical assistance", Number: "+15551236666"},
-		{Name: "billing", Description: "For payment and invoice questions", Number: "+15551237777"},
-	},
-	Greeting: "Thank you for calling ACME Corp. How may I direct your call?",
-})
+package main
 
-a.Run()
+import "github.com/signalwire/signalwire-go/pkg/prefabs"
+
+func main() {
+	a := prefabs.NewReceptionistAgent(prefabs.ReceptionistOptions{
+		Name:  "acme-receptionist",
+		Route: "/reception",
+		Voice: "rime.spore:mistv2",
+		Departments: []prefabs.Department{
+			{Name: "sales", Description: "For product inquiries and pricing", Number: "+15551235555"},
+			{Name: "support", Description: "For technical assistance", Number: "+15551236666"},
+			{Name: "billing", Description: "For payment and invoice questions", Number: "+15551237777"},
+		},
+		Greeting: "Thank you for calling ACME Corp. How may I direct your call?",
+	})
+
+	a.Run()
+}
 ```
 
 ### Creating Your Own Prefabs
@@ -2476,6 +2728,7 @@ func NewCustomerSupportAgent(opts CustomerSupportOptions) *CustomerSupportAgent 
 
 #### Using the Custom Prefab
 
+<!-- snippet: no-compile references the supportprefab package + agent from the separate custom-prefab definition above -->
 ```go
 supportAgent := supportprefab.NewCustomerSupportAgent(supportprefab.CustomerSupportOptions{
 	ProductName:    "SignalWire Voice API",

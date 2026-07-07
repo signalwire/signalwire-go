@@ -34,6 +34,7 @@ The Lambda adapter wraps the `http.Handler` produced by `agent.AsRouter()` (any
 
 ### Function URL deployment (recommended)
 
+<!-- snippet: no-compile requires third-party module github.com/aws/aws-lambda-go/lambda (not part of the SDK-linked snippet module) -->
 ```go
 package main
 
@@ -62,6 +63,7 @@ is needed in the common case.
 
 ### API Gateway HTTP API v2 deployment
 
+<!-- snippet: no-compile requires third-party github.com/aws/aws-lambda-go/lambda and the handler var from the prior example -->
 ```go
 func main() {
 	awslambda.Start(handler.HandleAPIGatewayV2)

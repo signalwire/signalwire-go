@@ -63,6 +63,7 @@ Implications for Go:
 2. **Preserve the one-step full install** with an aggregator side-effect package. Add
    `pkg/skills/all` (or keep `builtin` as the "everything" umbrella) that blank-imports every skill
    sub-package:
+   <!-- snippet: no-compile illustrative import-path sketch (abbreviated `…/pkg/...` paths, not real module paths) -->
    ```go
    package all
    import (

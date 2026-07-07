@@ -12,6 +12,7 @@ go get github.com/signalwire/signalwire-go
 
 Then import the package:
 
+<!-- snippet: no-compile illustrative import statement (reference only) -->
 ```go
 import "github.com/signalwire/signalwire-go/pkg/relay"
 ```
@@ -72,8 +73,26 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
+<!-- snippet-setup -->
 ```go
-client := relay.NewRelayClient(
+import (
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var call *relay.Call
+var err error
+
+var (
+	_ = client
+	_ = call
+	_ = err
+)
+```
+
+```go
+client = relay.NewRelayClient(
 	relay.WithContexts("default"),
 )
 
@@ -91,7 +110,7 @@ Contexts are topics your client subscribes to for receiving inbound calls. When 
 
 ```go
 // Subscribe at connect time
-client := relay.NewRelayClient(relay.WithContexts("sales", "support"))
+client = relay.NewRelayClient(relay.WithContexts("sales", "support"))
 
 // Or dynamically after connecting
 client.Receive("billing")
@@ -104,7 +123,9 @@ Use `client.Dial()` to place an outbound call. Devices are `[][]map[string]any`:
 the outer slice is serial attempts, the inner slice is parallel attempts.
 
 ```go
-call, err := client.Dial([][]map[string]any{
+import "context"
+
+call, err = client.Dial([][]map[string]any{
 	{
 		{"type": "phone", "params": map[string]any{"to_number": "+15551234567", "from_number": "+15559876543"}},
 	},
@@ -121,7 +142,7 @@ call.Hangup("")
 To try two numbers simultaneously, put both devices in the same inner slice:
 
 ```go
-call, err := client.Dial([][]map[string]any{
+call, err = client.Dial([][]map[string]any{
 	{
 		{"type": "phone", "params": map[string]any{"to_number": "+15551111111", "from_number": "+15559876543"}},
 		{"type": "phone", "params": map[string]any{"to_number": "+15552222222", "from_number": "+15559876543"}},
@@ -143,10 +164,15 @@ For use within an existing application, `DialContext` accepts a `context.Context
 so a caller can cancel or time out the dial:
 
 ```go
+import (
+	"context"
+	"time"
+)
+
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
-call, err := client.DialContext(ctx, [][]map[string]any{
+call, err = client.DialContext(ctx, [][]map[string]any{
 	{
 		{"type": "phone", "params": map[string]any{"to_number": "+15551234567", "from_number": "+15559876543"}},
 	},
