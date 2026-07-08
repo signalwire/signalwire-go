@@ -31,7 +31,7 @@ func main() {
 	// 1. Search for available phone numbers
 	fmt.Println("Searching available numbers...")
 	available, err := client.PhoneNumbers.Search(map[string]string{
-		"areacode":   "512",
+		"areacode":    "512",
 		"max_results": "3",
 	})
 	if err != nil {
