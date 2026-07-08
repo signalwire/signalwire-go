@@ -215,7 +215,7 @@ func ptr[T any](v T) *T { return &v }
 
 - 20 namespaced API surfaces: Fabric (13 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
 - Shared `http.Client` for connection pooling
-- `map[string]any` returns -- raw JSON, no wrapper objects
+- Typed params and responses -- generated `*Params` structs and `*Response` wrapper types per operation (from the spec-driven REST generator)
 
 See the **[REST documentation](rest/README.md)** for the full guide, API reference, and examples.
 
