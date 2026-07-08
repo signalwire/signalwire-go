@@ -52,7 +52,7 @@ func main() {
 - Video: rooms, sessions, recordings, conferences, tokens, streams
 - Phone number management, 10DLC registry, MFA, logs, and more
 - Shared `http.Client` for connection pooling across all calls
-- `map[string]any` returns -- raw JSON, no wrapper objects to learn
+- Typed params and responses -- generated `*Params` structs and `*Response` wrapper types per operation
 
 ## Documentation
 
