@@ -29,7 +29,7 @@ func main() {
 	client.OnCall(func(call *relay.Call) {
 		call.Answer()
 		action := call.Play([]map[string]any{
-			{"type": "tts", "text": "Welcome to SignalWire!"},
+			{"type": "tts", "params": map[string]any{"text": "Welcome to SignalWire!"}},
 		})
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

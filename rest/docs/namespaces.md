@@ -39,7 +39,7 @@ numbers, err = client.PhoneNumbers.List(map[string]string{"name": "Main"})
 
 // Search available numbers to purchase
 available, err := client.PhoneNumbers.Search(map[string]string{
-	"area_code":   "512",
+	"areacode":   "512",
 	"number_type": "local",
 })
 
