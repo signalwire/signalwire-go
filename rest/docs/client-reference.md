@@ -2,8 +2,25 @@
 
 ## Constructor
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
-client, err := rest.NewRestClient(project, token, host string) (*RestClient, error)
+func rest.NewRestClient(project, token, space string) (*rest.RestClient, error)
+//   project -> SIGNALWIRE_PROJECT_ID
+//   token   -> SIGNALWIRE_API_TOKEN
+//   space   -> SIGNALWIRE_SPACE
+```
+
+<!-- snippet-setup -->
+```go
+import "github.com/signalwire/signalwire-go/pkg/rest"
+
+// Shared context assumed by the fragments below: a constructed REST client.
+var client, err = rest.NewRestClient("project", "token", "space")
+
+var (
+	_ = client
+	_ = err
+)
 ```
 
 All parameters fall back to their corresponding environment variables when passed as empty strings. An error is returned if any are missing.
@@ -12,10 +29,10 @@ Authentication uses HTTP Basic Auth (`project:token`).
 
 ```go
 // Explicit credentials
-client, err := rest.NewRestClient("your-project-id", "your-api-token", "example.signalwire.com")
+client, err = rest.NewRestClient("your-project-id", "your-api-token", "example.signalwire.com")
 
 // From environment variables
-client, err := rest.NewRestClient("", "", "")
+client, err = rest.NewRestClient("", "", "")
 ```
 
 ## Namespaces
@@ -76,7 +93,6 @@ Every API surface is available as a namespace attribute on the client:
 | `client.Project` | API token management |
 | `client.PubSub` | PubSub token creation |
 | `client.Chat` | Chat token creation |
-| `client.Compat` | Twilio-compatible LAML API |
 
 ## Error Handling
 
@@ -84,8 +100,6 @@ Every API surface is available as a namespace attribute on the client:
 import (
 	"errors"
 	"fmt"
-
-	"github.com/signalwire/signalwire-go/pkg/rest"
 )
 
 agent, err := client.Fabric.AIAgents.Get("bad-id")
@@ -98,6 +112,7 @@ if err != nil {
 		fmt.Println(restErr.Method)     // "GET"
 	}
 }
+_ = agent
 ```
 
 `SignalWireRestError` is returned on any non-2xx HTTP response.
@@ -123,6 +138,11 @@ if err != nil {
 ### Parallel API calls with goroutines
 
 ```go
+import (
+	"fmt"
+	"sync"
+)
+
 var wg sync.WaitGroup
 
 wg.Add(2)
@@ -147,22 +167,26 @@ fmt.Printf("Agents: %v\nNumbers: %v\n", agents, numbers)
 ### Error handling with retries
 
 ```go
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 var result map[string]any
-var err error
+var getErr error
 
 for attempt := 0; attempt < 3; attempt++ {
-	result, err = client.Fabric.AIAgents.Get("agent-uuid")
-	if err == nil {
+	result, getErr = client.Fabric.AIAgents.Get("agent-uuid")
+	if getErr == nil {
 		break
 	}
 
 	var restErr *rest.SignalWireRestError
-	if errors.As(err, &restErr) && restErr.StatusCode >= 500 {
+	if errors.As(getErr, &restErr) && restErr.StatusCode >= 500 {
 		time.Sleep(time.Duration(attempt+1) * time.Second)
 		continue
 	}
 	break // don't retry client errors
 }
+_ = result
 ```

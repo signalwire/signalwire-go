@@ -1335,7 +1335,7 @@ func TestTap_DirectionAndCodecEnumOrStringByteIdentical(t *testing.T) {
 
 // TestTap_DirectionAndCodecAllRoundTrip proves (c) every advertised TapDirection
 // and Codec round-trips onto the wire. The default arms (both/PCMU) are
-// deliberately OMITTED by Tap (parity with Python's "differ from defaults"
+// deliberately OMITTED by Tap (compatibility with Python's "differ from defaults"
 // emission), so they are asserted ABSENT; the non-default arms must appear
 // verbatim.
 func TestTap_DirectionAndCodecAllRoundTrip(t *testing.T) {

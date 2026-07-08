@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -48,35 +49,31 @@ func main() {
 
 	// 2. Add a SIP endpoint to the subscriber
 	fmt.Println("\nCreating SIP endpoint on subscriber...")
-	endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(subID, map[string]any{
-		"username": "alice_sip",
-		"password": "SecurePass123!",
+	endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(subID, namespaces.SubscribersResourceCreateSIPEndpointParams{
+		Username: "alice_sip",
+		Password: "SecurePass123!",
 	})
 	if err != nil {
 		fmt.Printf("  Create SIP endpoint failed: %v\n", err)
 		return
 	}
-	epID := endpoint["id"].(string)
+	epID := string(endpoint.Id)
 	fmt.Printf("  Created SIP endpoint: %s\n", epID)
 
 	// 3. List SIP endpoints on the subscriber
 	fmt.Println("\nListing subscriber SIP endpoints...")
 	endpoints, err := client.Fabric.Subscribers.ListSIPEndpoints(subID, nil)
 	if err == nil {
-		if data, ok := endpoints["data"].([]any); ok {
-			for _, ep := range data {
-				if m, ok := ep.(map[string]any); ok {
-					fmt.Printf("  - %s: %v\n", m["id"], m["username"])
-				}
-			}
+		for _, ep := range endpoints.Data {
+			fmt.Printf("  - %s: %v\n", ep.Id, ep.Username)
 		}
 	}
 
 	// 4. Get specific SIP endpoint details
 	fmt.Printf("\nGetting SIP endpoint %s...\n", epID)
-	epDetail, err := client.Fabric.Subscribers.GetSIPEndpoint(subID, epID)
+	epDetail, err := client.Fabric.Subscribers.GetSIPEndpoint(subID, epID, nil)
 	if err == nil {
-		fmt.Printf("  Username: %v\n", epDetail["username"])
+		fmt.Printf("  Username: %v\n", epDetail.Username)
 	}
 
 	// 5. Create a standalone SIP gateway
@@ -128,16 +125,16 @@ func main() {
 
 	// 8. Generate a subscriber token
 	fmt.Println("\nGenerating subscriber token...")
-	token, err := client.Fabric.Tokens.CreateSubscriberToken(map[string]any{
-		"subscriber_id": innerSubID,
-		"reference":     innerSubID,
+	token, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{
+		Reference: innerSubID,
+		Extras:    map[string]any{"subscriber_id": innerSubID},
 	})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Token generation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		tokenStr, _ := token["token"].(string)
+		tokenStr := string(token.Token)
 		if len(tokenStr) > 40 {
 			tokenStr = tokenStr[:40]
 		}

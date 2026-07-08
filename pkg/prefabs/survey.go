@@ -260,17 +260,22 @@ func NewSurveyAgent(opts SurveyOptions) *SurveyAgent {
 	sa.registerTools()
 
 	// ---- Summary callback ----
-	base.OnSummary(func(summary map[string]any, rawData map[string]any) {
-		if summary != nil {
-			if data, err := json.Marshal(summary); err == nil {
-				base.Logger.Info("Survey completed: %s", string(data))
-			} else {
-				base.Logger.Info("Survey summary (unstructured): %v", summary)
-			}
-		}
-	})
+	base.OnSummary(sa.OnSummary)
 
 	return sa
+}
+
+// OnSummary is the summary hook for the survey agent. It matches the
+// agent.SummaryCallback signature and is registered via base.OnSummary in the
+// constructor. It logs the completed survey summary as JSON.
+func (sa *SurveyAgent) OnSummary(summary map[string]any, rawData map[string]any) {
+	if summary != nil {
+		if data, err := json.Marshal(summary); err == nil {
+			sa.Logger.Info("Survey completed: %s", string(data))
+		} else {
+			sa.Logger.Info("Survey summary (unstructured): %v", summary)
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -292,56 +297,7 @@ func (sa *SurveyAgent) registerTools() {
 				"description": "The user's response to validate",
 			},
 		},
-		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			qID, _ := args["question_id"].(string)
-			response, _ := args["response"].(string)
-
-			var question *SurveyQuestion
-			for i := range sa.questions {
-				if sa.questions[i].ID == qID {
-					question = &sa.questions[i]
-					break
-				}
-			}
-			if question == nil {
-				return swaig.NewFunctionResult(fmt.Sprintf("Error: Question with ID '%s' not found.", qID))
-			}
-
-			switch question.Type {
-			case "rating":
-				rating, err := strconv.Atoi(strings.TrimSpace(response))
-				if err != nil || rating < 1 || rating > question.Scale {
-					return swaig.NewFunctionResult(
-						fmt.Sprintf("Invalid rating. Please provide a number between 1 and %d.", question.Scale),
-					)
-				}
-			case "multiple_choice":
-				found := false
-				respLower := strings.TrimSpace(strings.ToLower(response))
-				for _, c := range question.Choices {
-					if strings.ToLower(c) == respLower {
-						found = true
-						break
-					}
-				}
-				if !found {
-					return swaig.NewFunctionResult(
-						fmt.Sprintf("Invalid choice. Please select one of: %s.", strings.Join(question.Choices, ", ")),
-					)
-				}
-			case "yes_no":
-				r := strings.TrimSpace(strings.ToLower(response))
-				if r != "yes" && r != "no" && r != "y" && r != "n" {
-					return swaig.NewFunctionResult("Please answer with 'yes' or 'no'.")
-				}
-			case "open_ended":
-				if strings.TrimSpace(response) == "" && question.Required {
-					return swaig.NewFunctionResult("A response is required for this question.")
-				}
-			}
-
-			return swaig.NewFunctionResult(fmt.Sprintf("Response to '%s' is valid.", qID))
-		},
+		Handler: sa.ValidateResponse,
 	})
 
 	// log_response -----------------------------------------------------
@@ -358,22 +314,79 @@ func (sa *SurveyAgent) registerTools() {
 				"description": "The user's validated response",
 			},
 		},
-		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			qID, _ := args["question_id"].(string)
-
-			// Find the question text for a more informative message
-			var questionText string
-			for _, q := range sa.questions {
-				if q.ID == qID {
-					questionText = q.Text
-					break
-				}
-			}
-			if questionText == "" {
-				questionText = qID
-			}
-
-			return swaig.NewFunctionResult(fmt.Sprintf("Response to '%s' has been recorded.", questionText))
-		},
+		Handler: sa.LogResponse,
 	})
+}
+
+// ValidateResponse handles the "validate_response" tool: it checks whether a
+// response satisfies the type-specific requirements of the given question.
+func (sa *SurveyAgent) ValidateResponse(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+	qID, _ := args["question_id"].(string)
+	response, _ := args["response"].(string)
+
+	var question *SurveyQuestion
+	for i := range sa.questions {
+		if sa.questions[i].ID == qID {
+			question = &sa.questions[i]
+			break
+		}
+	}
+	if question == nil {
+		return swaig.NewFunctionResult(fmt.Sprintf("Error: Question with ID '%s' not found.", qID))
+	}
+
+	switch question.Type {
+	case "rating":
+		rating, err := strconv.Atoi(strings.TrimSpace(response))
+		if err != nil || rating < 1 || rating > question.Scale {
+			return swaig.NewFunctionResult(
+				fmt.Sprintf("Invalid rating. Please provide a number between 1 and %d.", question.Scale),
+			)
+		}
+	case "multiple_choice":
+		found := false
+		respLower := strings.TrimSpace(strings.ToLower(response))
+		for _, c := range question.Choices {
+			if strings.ToLower(c) == respLower {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return swaig.NewFunctionResult(
+				fmt.Sprintf("Invalid choice. Please select one of: %s.", strings.Join(question.Choices, ", ")),
+			)
+		}
+	case "yes_no":
+		r := strings.TrimSpace(strings.ToLower(response))
+		if r != "yes" && r != "no" && r != "y" && r != "n" {
+			return swaig.NewFunctionResult("Please answer with 'yes' or 'no'.")
+		}
+	case "open_ended":
+		if strings.TrimSpace(response) == "" && question.Required {
+			return swaig.NewFunctionResult("A response is required for this question.")
+		}
+	}
+
+	return swaig.NewFunctionResult(fmt.Sprintf("Response to '%s' is valid.", qID))
+}
+
+// LogResponse handles the "log_response" tool: it records a validated response
+// and returns a confirmation referencing the question text.
+func (sa *SurveyAgent) LogResponse(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+	qID, _ := args["question_id"].(string)
+
+	// Find the question text for a more informative message
+	var questionText string
+	for _, q := range sa.questions {
+		if q.ID == qID {
+			questionText = q.Text
+			break
+		}
+	}
+	if questionText == "" {
+		questionText = qID
+	}
+
+	return swaig.NewFunctionResult(fmt.Sprintf("Response to '%s' has been recorded.", questionText))
 }

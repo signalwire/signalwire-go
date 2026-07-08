@@ -10,7 +10,7 @@
 //
 // One of the three cross-port "every SDK does verified HTTPS + WSS" quadrants.
 // It spawns the shared mock_signalwire in --tls mode (HTTPS, backed by the
-// porting-sdk self-signed test CA), points a real *rest.RestClient at
+// shared self-signed test CA), points a real *rest.RestClient at
 // https://127.0.0.1:<port> via SetBaseURL, trusts the test CA, and performs a
 // GET against a spec-backed endpoint, asserting a real JSON response.
 //
@@ -50,10 +50,11 @@ func TestTLS_RestClient_HTTPS(t *testing.T) {
 	// GET a spec-backed collection endpoint over HTTPS. A real JSON response
 	// with a "data" array can only come back over a completed, CA-verified
 	// TLS session (SSL_CERT_FILE was set in TestMain).
-	body, err := client.Addresses.List(map[string]string{"page_size": "5"})
+	bodyResp, err := client.Addresses.List(map[string]string{"page_size": "5"})
 	if err != nil {
 		t.Fatalf("Addresses.List over https:// failed: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Fatalf("https response missing 'data' key; got keys %v", keys(body))
 	}

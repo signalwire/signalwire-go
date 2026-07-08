@@ -50,7 +50,7 @@ func (b *tlsSyncBuffer) String() string {
 	return b.buf.String()
 }
 
-// trustTestCA wires the porting-sdk throwaway CA into Go's system cert pool by
+// trustTestCA wires the shared throwaway CA into Go's system cert pool by
 // setting SSL_CERT_FILE to certs/ca.crt (running the idempotent gen_certs.sh
 // first). The REST client's *http.Client uses the default transport (nil
 // TLSClientConfig), which consults that pool — so this is the idiomatic,
@@ -156,7 +156,7 @@ func (m *tlsMockSignalwire) lastJournal(t *testing.T) tlsJournalEntry {
 }
 
 // startTLSMockSignalwire spawns `python -m mock_signalwire --tls` on a
-// dedicated port, injecting porting-sdk/test_harness/mock_signalwire into
+// dedicated port, injecting the shared test harness's mock_signalwire package into
 // PYTHONPATH. It waits for the HTTPS /__mock__/health (using an SSL_CERT_FILE-
 // trusting client), registers a Kill cleanup, and skips when unavailable.
 func startTLSMockSignalwire(t *testing.T) *tlsMockSignalwire {

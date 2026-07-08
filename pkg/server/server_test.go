@@ -281,6 +281,64 @@ func TestRegisterSipUsername(t *testing.T) {
 	}
 }
 
+// TestSIPRouting_ServedPathExtractsAndRoutes is Tier-2 behavioral contract #6:
+// a registered SIP username, POSTed to the SERVED /sip endpoint, must (a) fire
+// the SIP handler, (b) have its username EXTRACTED from the SIP body (call.to =
+// "sip:<user>@domain"), and (c) be ROUTED to the mapped agent route. A
+// stored-but-unconsulted mapping would never route — the endpoint would 404 or
+// ignore the mapping. This exercises the mapping through the served mux, not
+// just the in-memory map assertion the other SIP tests make.
+func TestSIPRouting_ServedPathExtractsAndRoutes(t *testing.T) {
+	s := NewAgentServer()
+	s.Register(agent.NewAgentBase(agent.WithName("Support"), agent.WithRoute("/support")), "/support")
+	s.SetupSIPRouting("/sip", false)
+	s.RegisterSIPUsername("support", "/support")
+
+	mux := s.buildMux()
+
+	// SIP-shaped body: the username lives in call.to as a SIP URI.
+	body := `{"call":{"to":"sip:support@example.sip.signalwire.com","from":"sip:caller@x"}}`
+	req := httptest.NewRequest("POST", "/sip", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	// A cross-agent SIP match is an HTTP 307 redirect to the mapped agent
+	// route (Location: <route>), NOT a 200 JSON blob. This mirrors Python's
+	// routing-callback semantics (swml_service: a route-string return yields
+	// (307, {"Location": route}, "")); 307 preserves the POST method + body.
+	if rr.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("served /sip: status = %d, want 307 (cross-agent redirect); body=%s", rr.Code, rr.Body.String())
+	}
+	// (c) routed to the mapped agent route via the Location header.
+	if loc := rr.Header().Get("Location"); loc != "/support" {
+		t.Errorf("Location = %q, want /support (username 'support' extracted from call.to and consulted)", loc)
+	}
+}
+
+// TestSIPRouting_ServedPathUnregisteredUsername confirms the served /sip
+// endpoint actually consults the mapping: an unregistered extracted username
+// yields 404, not a route. A stored-but-unconsulted implementation could not
+// distinguish registered from unregistered.
+func TestSIPRouting_ServedPathUnregisteredUsername(t *testing.T) {
+	s := NewAgentServer()
+	s.Register(agent.NewAgentBase(agent.WithName("Support"), agent.WithRoute("/support")), "/support")
+	s.SetupSIPRouting("/sip", false)
+	s.RegisterSIPUsername("support", "/support")
+
+	mux := s.buildMux()
+
+	body := `{"call":{"to":"sip:nobody@example.sip.signalwire.com"}}`
+	req := httptest.NewRequest("POST", "/sip", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("unregistered username: status = %d, want 404 (mapping consulted, no match)", rr.Code)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Static file serving tests
 // ---------------------------------------------------------------------------
@@ -461,16 +519,14 @@ func TestHTTP_SipRouting(t *testing.T) {
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rr.Code)
+	// A cross-agent SIP match issues an HTTP 307 redirect to the mapped agent
+	// route (Location: <route>), matching Python's routing-callback semantics
+	// (swml_service: route-string return => (307, {"Location": route}, "")).
+	if rr.Code != http.StatusTemporaryRedirect {
+		t.Errorf("expected 307, got %d; body=%s", rr.Code, rr.Body.String())
 	}
-
-	var body map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if body["route"] != "/sales" {
-		t.Errorf("expected route=/sales, got %q", body["route"])
+	if loc := rr.Header().Get("Location"); loc != "/sales" {
+		t.Errorf("expected Location=/sales, got %q", loc)
 	}
 }
 
@@ -615,39 +671,31 @@ func TestRegisterGlobalSipRoutingCallback_NormalizesPath(t *testing.T) {
 	}
 }
 
-// Ensure response-document override (RegisterGlobalRoutingCallback) and
-// redirect-string (RegisterGlobalSIPRoutingCallback) variants do not collide
-// when registered on different paths.
-func TestRegisterGlobalSipRoutingCallback_CoexistsWithDocumentVariant(t *testing.T) {
+// Ensure the routing-callback (RegisterGlobalRoutingCallback, (body,headers)->
+// route|nil) and the SIP-redirect (RegisterGlobalSIPRoutingCallback) variants
+// coexist when registered on different paths — both issue a 307 redirect.
+func TestRegisterGlobalRoutingCallbacks_Coexist(t *testing.T) {
 	s := NewAgentServer()
 	a := agent.NewAgentBase(agent.WithName("a"), agent.WithBasicAuth("u", "p"))
 	s.Register(a, "/a")
 
-	const docMarker = "__doc_override__"
-	s.RegisterGlobalRoutingCallback("/override", func(r *http.Request, body map[string]any) map[string]any {
-		return map[string]any{
-			"version":  docMarker,
-			"sections": map[string]any{"main": []any{}},
-		}
+	s.RegisterGlobalRoutingCallback("/override", func(body map[string]any, headers map[string]any) *string {
+		route := "/routed"
+		return &route
 	})
 	s.RegisterGlobalSIPRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
 		return "https://elsewhere.example"
 	})
 
-	// Document-override path returns SWML doc.
-	req := httptest.NewRequest(http.MethodPost, "/a/override", strings.NewReader("{}"))
+	// Routing-callback path returns a 307 redirect to the route.
+	req := httptest.NewRequest(http.MethodPost, "/a/override", strings.NewReader(`{"x":1}`))
 	req.SetBasicAuth("u", "p")
 	rec := httptest.NewRecorder()
 	s.buildMux().ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Errorf("override path: status=%d, want 200", rec.Code)
-	} else {
-		var doc map[string]any
-		if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
-			t.Errorf("override path: body not JSON: %v", err)
-		} else if doc["version"] != docMarker {
-			t.Errorf("override path: version=%v, want %q", doc["version"], docMarker)
-		}
+	if rec.Code != http.StatusTemporaryRedirect {
+		t.Errorf("routing path: status=%d, want 307", rec.Code)
+	} else if loc := rec.Header().Get("Location"); loc != "/routed" {
+		t.Errorf("routing path: Location=%q, want /routed", loc)
 	}
 
 	// SIP path returns 307.

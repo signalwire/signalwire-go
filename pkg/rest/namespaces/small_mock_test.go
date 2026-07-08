@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 // ----------------- Addresses -----------------
@@ -30,10 +31,11 @@ func TestAddresses_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.List(map[string]string{"page_size": "10"})
+	bodyResp, err := client.Addresses.List(map[string]string{"page_size": "10"})
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data', got keys %v", keys(body))
@@ -63,15 +65,16 @@ func TestAddresses_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Create(map[string]any{
+	bodyResp, err := client.Addresses.Create(namespaces.AddressesNamespaceCreateParams{Extras: map[string]any{
 		"address_type": "commercial",
 		"first_name":   "Ada",
 		"last_name":    "Lovelace",
 		"country":      "US",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("response missing 'id', got keys %v", keys(body))
 	}
@@ -104,10 +107,11 @@ func TestAddresses_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Get("addr-123")
+	bodyResp, err := client.Addresses.Get("addr-123", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("response missing 'id'")
 	}
@@ -127,10 +131,11 @@ func TestAddresses_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Addresses.Delete("addr-123")
+	bodyResp, err := client.Addresses.Delete("addr-123")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -157,10 +162,11 @@ func TestRecordings_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Recordings.List(map[string]any{"page_size": 5})
+	bodyResp, err := client.Recordings.List(map[string]string{"page_size": "5"})
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data', got keys %v", keys(body))
@@ -187,10 +193,11 @@ func TestRecordings_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Recordings.Get("rec-123")
+	bodyResp, err := client.Recordings.Get("rec-123", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("response missing 'id'")
 	}
@@ -210,10 +217,11 @@ func TestRecordings_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Recordings.Delete("rec-123")
+	bodyResp, err := client.Recordings.Delete("rec-123")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}

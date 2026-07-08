@@ -68,7 +68,7 @@ func (c *Call) State() string {
 }
 
 // CallState returns the current call state as a typed CallState ALONGSIDE the
-// bare-string State() accessor (kept for parity with the Python reference).
+// bare-string State() accessor (kept for compatibility with the Python reference).
 // The typed kind gives callers IsTerminal()/IsKnown() predicates and
 // compile-time distinctness from DialState/MessageState; its underlying string
 // equals State() exactly. Additive port idiom — see states.go and
@@ -1176,6 +1176,14 @@ func (c *Call) LeaveConference(confID string) error {
 // AI starts an AI session on the call. Use WithAIControlID for an
 // explicit control_id (matches Python's ai(control_id=...)).
 func (c *Call) AI(opts ...AIOption) *AIAction {
+	return c.aiDispatch("calling.ai", opts...)
+}
+
+// aiDispatch builds the AI param frame from the supplied options and executes
+// the given RELAY method. AI() uses "calling.ai"; AmazonBedrock() uses
+// "calling.amazon_bedrock" — each is a distinct server RPC (matching Python's
+// call.ai → _execute("ai") and call.amazon_bedrock → _execute("amazon_bedrock")).
+func (c *Call) aiDispatch(method string, opts ...AIOption) *AIAction {
 	params := map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
@@ -1194,7 +1202,7 @@ func (c *Call) AI(opts ...AIOption) *AIAction {
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.ai", params)
+		_, err := c.client.execute(method, params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallAI, map[string]any{
 				"control_id": cid,
@@ -1207,10 +1215,12 @@ func (c *Call) AI(opts ...AIOption) *AIAction {
 	return action
 }
 
-// AmazonBedrock starts an AI session using Amazon Bedrock.
+// AmazonBedrock starts an AI session using Amazon Bedrock. It dispatches the
+// dedicated "calling.amazon_bedrock" RELAY method (NOT calling.ai with an
+// engine key — that was a wire-fidelity bug; Python's amazon_bedrock() calls
+// _execute("amazon_bedrock", params) with no engine field, call.py).
 func (c *Call) AmazonBedrock(opts ...AIOption) *AIAction {
-	merged := append([]AIOption{WithAIEngine("amazon_bedrock")}, opts...)
-	return c.AI(merged...)
+	return c.aiDispatch("calling.amazon_bedrock", opts...)
 }
 
 // AIMessage sends a text message within an active AI session. All parameters
@@ -1399,10 +1409,10 @@ func (c *Call) QueueLeave(name string, queueID string, statusURL string) error {
 // matching Python's bind_digit(digits, bind_method, *, bind_params, realm, max_triggers).
 func (c *Call) BindDigit(digits, method string, bindParams map[string]any, realm string, maxTriggers int) error {
 	p := map[string]any{
-		"node_id": c.nodeID,
-		"call_id": c.callID,
-		"digits":  digits,
-		"method":  method,
+		"node_id":     c.nodeID,
+		"call_id":     c.callID,
+		"digits":      digits,
+		"bind_method": method,
 	}
 	if bindParams != nil {
 		p["params"] = bindParams

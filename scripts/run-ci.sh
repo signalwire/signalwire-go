@@ -4,20 +4,30 @@
 # Same script is invoked locally (`bash scripts/run-ci.sh`) AND by the
 # GitHub Actions workflow. No drift between local and CI behavior.
 #
-# Gates (in order, fail-fast):
-#   1. go test ./...                      — language test runner
-#   2. signature regen                    — go run ./cmd/enumerate-signatures
-#   3. drift gate                         — porting-sdk diff_port_signatures.py
-#   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
-#   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
-#   6. emission gate                      — porting-sdk diff_port_emission.py
-#   7. fmt gate                           — gofmt (local: auto-fix; CI: -l check)
-#   8. lint gate                          — go vet + golangci-lint (.golangci.yml)
-#   9. doc-audit gate                     — porting-sdk audit_docs.py
-#  10. surface-diff gate                  — porting-sdk diff_port_surface.py
+# FMT / LINT / TEST are the CANONICAL scripts (self-bootstrapping, CWD-independent):
+#   scripts/run-format.sh · scripts/run-lint.sh · scripts/run-tests.sh
+# (shared env in scripts/_env.sh). Do not invoke gofmt / go vet / golangci-lint /
+# go test directly — go through those three scripts (porting-sdk/RUN_LINT_FORMAT_SPEC.md).
 #
-# Each gate prints `[GATE-NAME] ... PASS` or `[GATE-NAME] ... FAIL: <reason>`
-# Final line: `==> CI PASS` or `==> CI FAIL (gates: <list>)`.
+# GATE SCHEDULING (porting-sdk/scripts/gate_scheduler.sh — CI_PERF S1 + S2):
+#   Gates run CONCURRENTLY up to a cap (SW_CI_JOBS, default nproc), scheduled by
+#   their DATA dependencies:
+#     * S2 concurrent wave: the pure-Python side-effect-free gates (DRIFT, NO-CHEAT,
+#       EMISSION, SKILL-CONTRACT, SWAIG-COVERAGE, SURFACE-DIFF, DOC-AUDIT, SWAIG-CLI,
+#       GEN-FRESH-TESTS) overlap — they share no mutable state.
+#     * S1 fail-fast: heavy gates (TEST, LINT, FMT, REST-COVERAGE, SPEC-PARITY) are
+#       deferred behind the cheap wave, so a trivial cheap-gate failure surfaces in
+#       seconds; --fail-fast aborts the run before TEST starts.
+#   HARD ordering is data-dependency ONLY:
+#     * DRIFT reads port_signatures.json that SIGNATURES writes → deps=SIGNATURES.
+#     * SURFACE-FRESH regenerates port_surface.json + port_surface_go.json in place
+#       (and restores them); SURFACE-DIFF reads port_surface.json, DOC-AUDIT reads
+#       port_surface_go.json → all three share res=surface (mutually exclusive).
+#   Per-gate PASS/FAIL + the FAILED_GATES tally preserved exactly; each gate's output
+#   captured + replayed atomically.
+#
+# Flags:
+#   --fail-fast   stop launching new gates at the first failure (local dev loop).
 #
 # Exit codes:
 #   0  all gates passed
@@ -52,31 +62,38 @@ PORTING_SDK_DIR="$(resolve_porting_sdk)" || {
     exit 2
 }
 
-# ---- gate plumbing ----------------------------------------------------------
-
-FAILED_GATES=""
-
-run_gate() {
-    # run_gate <gate-name> <description> <command...>
-    local name="$1"
-    shift
-    local description="$1"
-    shift
-    local logfile
-    logfile="$(mktemp)"
-    "$@" >"$logfile" 2>&1
-    local rc=$?
-    if [ "$rc" -eq 0 ]; then
-        echo "[$name] $description ... PASS"
-        rm -f "$logfile"
-        return 0
-    fi
-    echo "[$name] $description ... FAIL: exit $rc"
-    sed 's/^/    /' "$logfile" | tail -40
-    rm -f "$logfile"
-    FAILED_GATES="$FAILED_GATES $name"
-    return $rc
+# ---- locate signalwire-python (Layer-D behavioral oracle) -------------------
+# The Layer-D differs (diff_port_<surface>.py) build their golden oracle by
+# importing signalwire-python; they put "<dir>/signalwire" on sys.path, and the
+# importable package lives at signalwire-python/signalwire/signalwire/, so the
+# path we hand to --python-sdk is <workspace>/signalwire-python/signalwire.
+# Mirror diff_port_emission.py's adjacency resolution (CI checks it out as a
+# sibling of porting-sdk; do NOT hardcode ~/src — CI clones elsewhere).
+resolve_python_sdk() {
+    local c
+    for c in \
+        "${PYTHON_SDK:-}" \
+        "$PORTING_SDK_DIR/../signalwire-python/signalwire" \
+        "$PORT_ROOT/../signalwire-python/signalwire" \
+        "$HOME/src/signalwire-python/signalwire"; do
+        if [ -n "$c" ] && [ -d "$c/signalwire" ]; then
+            (cd "$c" && pwd)
+            return 0
+        fi
+    done
+    return 1
 }
+
+PYTHON_SDK_DIR="$(resolve_python_sdk)" || {
+    echo "FATAL: signalwire-python not found for Layer-D behavioral gates" >&2
+    echo "       (expected signalwire-python adjacent to porting-sdk or \$PYTHON_SDK env var)" >&2
+    exit 2
+}
+
+# ---- gate plumbing (shared scheduler) ---------------------------------------
+
+# shellcheck source=/dev/null
+source "$PORTING_SDK_DIR/scripts/gate_scheduler.sh"
 
 # ---- per-port commands ------------------------------------------------------
 
@@ -84,72 +101,40 @@ cd "$PORT_ROOT"
 
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
 
-# Gate 1: language test runner
-run_gate "TEST" "go test ./..." \
-    go test ./...
-
-# Gate 2: signature regen
-run_gate "SIGNATURES" "regenerate port_signatures.json" \
-    bash -c 'go run ./cmd/enumerate-signatures > port_signatures.json'
-
-# Gate 3: drift gate (filtered drift must be 0)
-run_gate "DRIFT" "diff_port_signatures vs python reference" \
-    python3 "$PORTING_SDK_DIR/scripts/diff_port_signatures.py" \
-        --reference "$PORTING_SDK_DIR/python_signatures.json" \
-        --port-signatures "$PORT_ROOT/port_signatures.json" \
-        --surface-omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
-        --surface-additions "$PORT_ROOT/PORT_ADDITIONS.md" \
-        --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md"
-
-# Gate 4: surface-fresh gate — the committed cross-port port_surface.json must
-# match a fresh regen (modulo the volatile generated_from git-sha). Closes the
-# Layer-B-not-gated hole: DRIFT above only gates Layer A (signatures), so the
-# surface could silently rot. `go run ./cmd/enumerate-surface` rewrites
-# port_surface.json IN PLACE (default; not stdout) and also touches
-# port_surface_go.json + port_additions_actual.json — we only *gate* the
-# cross-port port_surface.json (the file diff_port_signatures.py's --surface*
-# flags consume), but we restore all three the regen wrote so the gate is
-# side-effect-free whether it passes or fails.
-run_gate "SURFACE-FRESH" "check_surface_freshness vs committed port_surface.json" \
-    bash -c '
-        # Restore every file the regen rewrites, on ANY exit path (pass, fail,
-        # or a broken enumerator), so the gate leaves no working-tree changes.
-        trap "git checkout -- port_surface.json port_surface_go.json port_additions_actual.json 2>/dev/null" EXIT
-        git show HEAD:port_surface.json > /tmp/committed_surface.json 2>/dev/null \
-            || cp port_surface.json /tmp/committed_surface.json
-        go run ./cmd/enumerate-surface || exit $?
-        python3 "'"$PORTING_SDK_DIR"'/scripts/check_surface_freshness.py" \
-            --committed /tmp/committed_surface.json \
-            --fresh port_surface.json
-    '
-
-# Gate 5: no-cheat gate
-run_gate "NO-CHEAT" "audit_no_cheat_tests" \
-    python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
-
-# Gate 5b: REST-COVERAGE — every canonical REST route the SDK implements must be
-# exercised with BOTH a success (2xx) AND an error (4xx/5xx) response on the
-# correct on-the-wire path (parity). Measured by replaying the mock journal of a
-# REST-suite run through porting-sdk's rest_coverage checker. Accepted gaps —
-# routes with no SDK method, malformed canonical routes, mock-router collisions —
-# are allowlisted: the shared baseline (porting-sdk/REST_COVERAGE_BASELINE.md) +
-# this port's REST_COVERAGE_GAPS.md. A stale entry (route now covered) fails the
-# gate. Self-contained: spins its own mock, runs the rest suite serially (-p 1) so
-# all traffic lands in one journal, then checks that journal. Same shape as
-# python's/java's/typescript's gate.
-# Pick a free TCP port on 127.0.0.1 (bind :0, read the OS-assigned port,
-# release). Never reuse a hardcoded port — a leftover or concurrent mock
-# squatting a fixed port otherwise makes the gate hang on its health poll.
 pick_free_port() {
     python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
 }
+
+# SURFACE-FRESH — the committed cross-port port_surface.json must match a fresh
+# regen (modulo the volatile generated_from git-sha). The enumerator rewrites
+# port_surface.json + port_surface_go.json + port_additions_actual.json in place;
+# restore all three on any exit path so the gate is side-effect-free.
+surface_fresh_gate() {
+    trap "git checkout -- port_surface.json port_surface_go.json port_additions_actual.json 2>/dev/null" RETURN
+    # Scratch under the repo-local, gitignored .sw-tmp/ (never machine-wide /tmp).
+    mkdir -p "$PORT_ROOT/.sw-tmp"
+    local committed="$PORT_ROOT/.sw-tmp/committed_surface.json"
+    git show HEAD:port_surface.json > "$committed" 2>/dev/null \
+        || cp port_surface.json "$committed"
+    go run ./cmd/enumerate-surface || return $?
+    python3 "$PORTING_SDK_DIR/scripts/check_surface_freshness.py" \
+        --committed "$committed" \
+        --fresh port_surface.json
+}
+
+# REST-COVERAGE — every implemented REST route covered success+error. Self-
+# contained: spins its own mock on a free port, runs the rest suite serially, then
+# checks the journal.
 rest_coverage_gate() {
     local port
     port="$(pick_free_port)" || { echo "could not allocate a free port" >&2; return 1; }
     local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
     export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
+    # Mock log under the repo-local, gitignored .sw-tmp/ (never machine-wide /tmp).
+    mkdir -p "$PORT_ROOT/.sw-tmp"
+    local mock_log="$PORT_ROOT/.sw-tmp/rest_cov_mock_go.$$.log"
     python3 -m mock_signalwire --host 127.0.0.1 --port "$port" --log-level error \
-        >/tmp/rest_cov_mock_go.$$.log 2>&1 &
+        >"$mock_log" 2>&1 &
     local mock_pid=$!
     # shellcheck disable=SC2064
     trap "kill $mock_pid 2>/dev/null" RETURN
@@ -158,7 +143,7 @@ rest_coverage_gate() {
     for i in $(seq 1 60); do
         if ! kill -0 "$mock_pid" 2>/dev/null; then
             echo "mock_signalwire died on port $port — log:" >&2
-            cat "/tmp/rest_cov_mock_go.$$.log" >&2
+            cat "$mock_log" >&2
             return 1
         fi
         if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$port/__mock__/health',timeout=1)" 2>/dev/null; then
@@ -180,23 +165,9 @@ rest_coverage_gate() {
         --allowlist "$PORT_ROOT/REST_COVERAGE_GAPS.md" \
         --gap-baseline "$PORTING_SDK_DIR/REST_COVERAGE_GAP_BASELINE.md"
 }
-run_gate "REST-COVERAGE" "every implemented REST route covered success+error (parity + allowlist)" \
-    rest_coverage_gate
 
-# Gate 5c: SPEC-PARITY — the routes the SDK actually IMPLEMENTS must equal the
-# canonical spec route set, modulo porting-sdk/SPEC_IMPLEMENTATION_GAPS.md. This
-# is the spec-first guard REST-COVERAGE can't give: REST-COVERAGE only proves
-# *tested* routes match the spec, so a route the SDK implements that the spec
-# doesn't define (or a canonical route the SDK never implemented) would slip past
-# it. Set B is built by cmd/route-registry — it drives the live RestClient through
-# a recording HTTP transport (an httptest server that records (method, path) and
-# returns a stub 200) and reflects over every namespace/sub-resource method,
-# invoking each with sentinel args, so it sees every dispatched route whether or
-# not it's tested (not an AST scrape, not the journal). The shared porting-sdk
-# diff consumes that JSON via --registry-json. The registry prints ONLY JSON to
-# stdout (the SDK logger writes to stderr), captured to a temp file here.
-#
-# NOTE: --registry-json is on porting-sdk PR #45 (feat/spec-parity-registry-json).
+# SPEC-PARITY — implemented routes == canonical spec. cmd/route-registry drives the
+# live RestClient through a recording transport and captures every dispatched route.
 spec_parity_gate() {
     local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
     export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
@@ -215,143 +186,112 @@ spec_parity_gate() {
     rm -f "$registry"
     return $rc
 }
-run_gate "SPEC-PARITY" "implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
-    spec_parity_gate
 
-# Gate 6: emission — byte-compare the SWAIG FunctionResult serialisation against
-# Python's to_dict() over the shared 81-entry corpus. The drift gate (Gate 3)
-# polices the SURFACE; this one polices the EMISSION (action shape/keys/values +
-# the to_dict() envelope), the bug class the §6 sweep proved is otherwise drift-0
-# and invisible to CI. Pure serialisation — no mock servers, no network; needs
-# only signalwire-python adjacent (already required) + the emit-corpus program.
-# The dump program is cmd/emit-corpus (go run ./cmd/emit-corpus). go was the
-# emission PoC, so it carried the dump but was skipped in the 8-port gate rollout
-# — this closes that gap so go's emission can't silently drift either.
-run_gate "EMISSION" "diff_port_emission vs python to_dict() oracle" \
-    python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
+# ---- register gates ----------------------------------------------------------
+sched_init "$@"
+
+sched_gate TEST defer=1 desc="go test ./... (scripts/run-tests.sh)" \
+    -- bash "$PORT_ROOT/scripts/run-tests.sh"
+
+sched_gate SIGNATURES desc="regenerate port_signatures.json" \
+    -- bash -c 'go run ./cmd/enumerate-signatures > port_signatures.json'
+
+sched_gate DRIFT deps=SIGNATURES desc="diff_port_signatures vs python reference" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_signatures.py" \
+        --reference "$PORTING_SDK_DIR/python_signatures.json" \
+        --port-signatures "$PORT_ROOT/port_signatures.json" \
+        --surface-omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
+        --surface-additions "$PORT_ROOT/PORT_ADDITIONS.md" \
+        --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md"
+
+sched_gate SURFACE-FRESH res=surface desc="check_surface_freshness vs committed port_surface.json" \
+    --fn surface_fresh_gate
+
+sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
+    -- python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
+
+sched_gate REST-COVERAGE defer=1 desc="every implemented REST route covered success+error (parity + allowlist)" \
+    --fn rest_coverage_gate
+
+sched_gate SPEC-PARITY defer=1 desc="implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
+    --fn spec_parity_gate
+
+sched_gate GEN-FRESH desc="generated REST layer matches the canonical specs" \
+    -- go run ./cmd/generate-rest --check
+
+sched_gate GEN-FRESH-TESTS desc="generated REST wire tests match the canonical specs" \
+    -- go run ./cmd/generate-rest-tests --check
+
+sched_gate GEN-FRESH-RELAY desc="generated RELAY protocol types match the canonical specs" \
+    -- go run ./cmd/generate-relay-protocol --check
+
+sched_gate GEN-FRESH-SWAIG desc="generated SWAIG read-side payloads match the canonical specs" \
+    -- go run ./cmd/generate-swaig-payloads --check
+
+sched_gate GEN-FRESH-SWML desc="generated SWML verb config types match the canonical specs" \
+    -- go run ./cmd/generate-swml-verbs --check
+
+sched_gate EMISSION desc="diff_port_emission vs python to_dict() oracle" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --port go \
         --port-repo "$PORT_ROOT"
 
-# Gate 6b: skill-contract — the sibling of EMISSION for built-in SKILLS. EMISSION
-# byte-compares FunctionResult serialisation; this compares each skill's SWAIG
-# tool contract (name/parameters/required/enum from RegisterTools()) against the
-# Python reference. Catches a class drift/surface/emission can't see: a wrong
-# `required`, a renamed/retyped param, an extra/missing tool. The dump program
-# is cmd/emit-skills (go run ./cmd/emit-skills); dynamic skills are excluded +
-# logged by the shared corpus. Same prereqs as EMISSION (signalwire-python
-# adjacent; no network).
-run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
-    python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
+# ---- Layer-D behavioral coverage (per-surface differs vs python oracle) ------
+sched_gate BEHAVIORAL-WIRE desc="diff_port_wire vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/wire-dump"
+
+sched_gate BEHAVIORAL-SWML desc="diff_port_swml vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_swml.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/swml-dump"
+
+sched_gate BEHAVIORAL-STATE desc="diff_port_state vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_state.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/state-dump"
+
+sched_gate BEHAVIORAL-HTTP desc="diff_port_http vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_http.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/http-dump"
+
+sched_gate BEHAVIORAL-WIRE_RELAY desc="diff_port_wire_relay vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire_relay.py" \
+        --port go --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "go run ./cmd/wire-relay-dump"
+
+sched_gate SKILL-CONTRACT desc="diff_skill_contracts vs python reference" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
         --dump-cmd "go run ./cmd/emit-skills" \
         --port-repo "$PORT_ROOT"
 
-# Gate 7: FMT — the language format gate. Canonical gate name is language-neutral
-# (FMT); each port runs its own formatter under it. Here that is gofmt (Go's
-# builtin, canonical formatter — no tool to install, no config to bikeshed,
-# matches Rust's "formatter ships with the toolchain" shape). Source-style only
-# — proven surface/emission-neutral (a gofmt reformat leaves port_signatures.json
-# byte-identical modulo the git-sha provenance), so it can never move the audit.
-#   * LOCAL ($CI unset)  → `gofmt -w .`: silently reformats your working tree, so
-#     you never have to run gofmt by hand; surfaces a note if it changed files.
-#   * CI ($CI=true)      → `gofmt -l .` must list nothing: read-only safety net
-#     that FAILS if unformatted code reached CI (a committer who skipped run-ci).
-# (goimports/golangci-lint are the deferred ADVISORY tier — they need a tool
-# install + carry a backlog; gofmt + go vet are the zero-backlog day-1 floor.)
-fmt_gate() {
-    if [ -n "${CI:-}" ]; then
-        local unformatted
-        unformatted="$(gofmt -l .)"
-        if [ -n "$unformatted" ]; then
-            echo "unformatted files (run \`gofmt -w .\`):"
-            echo "$unformatted"
-            return 1
-        fi
-        return 0
-    else
-        gofmt -w .
-        if ! git diff --quiet 2>/dev/null; then
-            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
-        fi
-        return 0
-    fi
-}
-run_gate "FMT" "gofmt (local: auto-fix; CI: -l check)" fmt_gate
+sched_gate SWAIG-COVERAGE desc="every engine SWAIG action emittable (modulo allowlist)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/swaig_coverage.py" --check \
+        --emission "$PORT_ROOT/pkg/swaig/function_result.go"
 
-# Gate 8: LINT — the language lint gate (go). Two layers:
-#   1. `go vet ./...` — the builtin static-analysis floor (always available).
-#   2. golangci-lint — the deep linter set governed by .golangci.yml (errcheck,
-#      staticcheck, forcetypeassert, errchkjson, … — burned to zero, see the
-#      config header). Mirrors how Rust promoted clippy to a blocking gate after
-#      its burn-down.
-#
-# golangci-lint is a PINNED dev dependency (GOLANGCI_VERSION below — keep it in
-# lockstep with .github/workflows/test.yml's golangci-lint-action version). It is
-# BLOCKING both locally and in CI — no "run go-vet-only locally" degradation,
-# because that let golangci-only findings reach CI red after a local "PASS"
-# (drift the porting-sdk no-drift rule forbids). Self-heal like perl's
-# ensure_dev_tools: if it's missing locally, `go install` the pinned version into
-# GOPATH/bin and put that on PATH. In CI the workflow installs it; if it's still
-# absent there, fail loudly rather than skip.
-GOLANGCI_VERSION="v2.12.2"
-ensure_golangci() {
-    command -v golangci-lint >/dev/null 2>&1 && return 0
-    local gobin
-    gobin="$(go env GOPATH)/bin"
-    export PATH="$gobin:$PATH"
-    command -v golangci-lint >/dev/null 2>&1 && return 0
-    if [ -n "${CI:-}" ]; then
-        echo "golangci-lint not found in CI — the workflow must install it (golangci-lint-action)" >&2
-        return 1
-    fi
-    echo "    (golangci-lint $GOLANGCI_VERSION missing — installing the pinned dev dependency...)"
-    go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$GOLANGCI_VERSION" || {
-        echo "    golangci-lint install failed — install it manually (go install …@$GOLANGCI_VERSION)" >&2
-        return 1
-    }
-    command -v golangci-lint >/dev/null 2>&1
-}
-lint_gate() {
-    go vet ./... || return 1
-    ensure_golangci || return 1
-    golangci-lint run --config "$PORT_ROOT/.golangci.yml" \
-        --max-same-issues 0 --max-issues-per-linter 0 ./... || return 1
-}
-run_gate "LINT" "go vet + golangci-lint (lint gate)" lint_gate
+sched_gate FMT defer=1 desc="gofmt via scripts/run-format.sh (local: auto-fix; CI: --check)" \
+    -- bash "$PORT_ROOT/scripts/run-format.sh" ${CI:+--check}
 
-# Gate 9: DOC-AUDIT — every method/class referenced in docs/ + examples/ fenced
-# code blocks must resolve to a real symbol in the port surface (catches
-# phantom-API doc promises). Mirrors .github/workflows/doc-audit.yml exactly so
-# there's no local/CI drift — previously this ran ONLY in that workflow, never
-# under run-ci.sh, so a developer's local run was blind to doc drift. Uses the
-# committed port_surface_go.json (the Go-shaped surface audit_docs consumes);
-# the SURFACE-FRESH gate above already proved the surface is fresh.
-run_gate "DOC-AUDIT" "audit_docs vs port_surface_go.json" \
-    python3 "$PORTING_SDK_DIR/scripts/audit_docs.py" \
+sched_gate LINT defer=1 desc="go vet + golangci-lint via scripts/run-lint.sh" \
+    -- bash "$PORT_ROOT/scripts/run-lint.sh"
+
+sched_gate DOC-AUDIT res=surface desc="audit_docs vs port_surface_go.json" \
+    -- python3 "$PORTING_SDK_DIR/scripts/audit_docs.py" \
         --root "$PORT_ROOT" \
         --surface "$PORT_ROOT/port_surface_go.json" \
         --ignore "$PORT_ROOT/DOC_AUDIT_IGNORE.md"
 
-# Gate 10: SURFACE-DIFF — diff the port surface against the Python reference
-# (omissions/additions accounted for in PORT_OMISSIONS.md / PORT_ADDITIONS.md).
-# SURFACE-FRESH (gate 4) only checks the committed surface MATCHES A REGEN; this
-# checks it MATCHES PYTHON. Mirrors .github/workflows/surface-audit.yml — same
-# no-drift reason as gate 9: it ran only in that workflow, not under run-ci.sh.
-run_gate "SURFACE-DIFF" "diff_port_surface vs python_surface.json" \
-    python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
+sched_gate SURFACE-DIFF res=surface desc="diff_port_surface vs python_surface.json" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
         --reference "$PORTING_SDK_DIR/python_surface.json" \
         --port-surface "$PORT_ROOT/port_surface.json" \
         --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
         --additions "$PORT_ROOT/PORT_ADDITIONS.md"
 
-# SWAIG-CLI — lightweight shared swaig-test mini-contract (NOT python parity;
-# python's in-process simulator surface is reference-only). Black-box: invokes
-# `go run ./cmd/swaig-test --help` + golden invocations and asserts the shared
-# verbs are documented, an unknown --simulate-serverless platform errors (no
-# silent fallback), and no-action errors (the cross-port majority default). Go
-# uses the HTTP --url probe model AND accepts --simulate-serverless, so both
-# --require-url-model and --has-serverless apply.
-run_gate "SWAIG-CLI" "swaig-test shared mini-contract (verbs/serverless-reject/default-action)" \
-    python3 "$PORTING_SDK_DIR/scripts/audit_swaig_cli_contract.py" \
+sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-reject/default-action)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/audit_swaig_cli_contract.py" \
         --port go \
         --cmd "go run ./cmd/swaig-test" \
         --require-url-model \
@@ -359,12 +299,62 @@ run_gate "SWAIG-CLI" "swaig-test shared mini-contract (verbs/serverless-reject/d
         --has-serverless \
         --serverless-argv='--url|http://user:pass@127.0.0.1:1/|--simulate-serverless|bogus-platform-xyz|--dump-swml'
 
+# ---- Day-one deterministic gates --------------------------------------------
+# ARTIFACT-DENY uses the git ls-files PROXY (not --listing): go publishes no
+# package artifact with an include/exclude manifest, so there is no authoritative
+# package listing to feed. The proxy + ARTIFACT_DENY_ALLOW.md is the check.
+
+sched_gate DOC-LANG-PURITY res=dayone desc="no python-verbatim docs in a non-python port" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_lang_purity.py" --port go --repo "$PORT_ROOT"
+
+sched_gate DOC-LINKS res=dayone desc="every relative markdown link resolves to a tracked file" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_links.py" --port go --repo "$PORT_ROOT"
+
+sched_gate README-INCLUDE res=dayone desc="doc code blocks are byte-identical to their gate-compiled fixture regions" \
+    -- python3 "$PORTING_SDK_DIR/scripts/readme_include.py" --port go --repo "$PORT_ROOT"
+
+sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port go --repo "$PORT_ROOT"
+
+sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md" \
+    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port go --repo "$PORT_ROOT"
+
+sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
+    -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port go --repo "$PORT_ROOT"
+
+sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the published package (git ls-files proxy + ARTIFACT_DENY_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/artifact_deny.py" --port go --repo "$PORT_ROOT"
+
+# ---- expansion gates (GATE_EXPANSION_PLAN Tiers 5+) --------------------------
+# Blocking; backlog burned to zero and the GEN-TYPE-DEGENERACY / ROUTE-COLLISION
+# allowlists are user-approved (stamped 9cd5624). ROUTE-COLLISION builds go's
+# route-registry itself (`go run ./cmd/route-registry`, its built-in REGISTRY_CMD
+# — the same source the SPEC-PARITY gate uses). RELEASE-FRESH is report-only: go
+# has no publish/release workflow, so there is no publish path to gate (a gap to
+# flag, not a RED).
+
+sched_gate GEN-TYPE-DEGENERACY res=dayone desc="generated types aren't degenerate (modulo GEN_TYPE_DEGENERACY_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_type_degeneracy.py" --port go --repo "$PORT_ROOT"
+
+sched_gate PUBLIC-JARGON res=dayone desc="no porting/internal jargon in the public API surface" \
+    -- python3 "$PORTING_SDK_DIR/scripts/public_jargon.py" --port go --repo "$PORT_ROOT"
+
+sched_gate ROUTE-COLLISION res=dayone desc="no route-split/crud-dup latent defects (modulo ROUTE_COLLISION_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/route_collision.py" --port go --repo "$PORT_ROOT"
+
+sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (idiomatic, gate-clean)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port go --repo "$PORT_ROOT"
+
+sched_gate RELEASE-FRESH res=dayone desc="release hygiene (report-only: go has no publish workflow to gate)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port go --repo "$PORT_ROOT" --report-only
+
 # ---- summary ----------------------------------------------------------------
 
-if [ -z "$FAILED_GATES" ]; then
+sched_run
+rc=$?
+if [ "$rc" -eq 0 ]; then
     echo "==> CI PASS"
-    exit 0
 else
     echo "==> CI FAIL (gates:$FAILED_GATES )"
-    exit 1
 fi
+exit "$rc"

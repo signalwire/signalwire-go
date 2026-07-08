@@ -9,19 +9,28 @@ All SignalWire services (SWML-based agents, Search, MCP Gateway) now support opt
 ## Quick Start
 
 ### Zero Configuration (Default)
-```python
-# Works exactly as before - no config needed
-agent = MyAgent()
-agent.run()
+<!-- snippet-setup -->
+```go
+import "github.com/signalwire/signalwire-go/pkg/agent"
+
+var _ = agent.NewAgentBase
+```
+
+```go
+// Works exactly as before - no config needed
+a := agent.NewAgentBase(agent.WithName("my-agent"), agent.WithRoute("/agent"))
+a.Run()
 ```
 
 ### With Configuration File
-```python
-# Automatically detects config.json if present
-agent = MyAgent()
-
-# Or specify a config file
-agent = MyAgent(config_file="production_config.json")
+```go
+// Load settings from a specific config file
+a := agent.NewAgentBase(
+    agent.WithName("my-agent"),
+    agent.WithRoute("/agent"),
+    agent.WithConfigFile("production_config.json"),
+)
+a.Run()
 ```
 
 ## Configuration Files
@@ -255,36 +264,39 @@ After (Option 3 - Mix config and env vars):
 
 ### Loading Configuration
 
-```python
-from signalwire_agents.core.config_loader import ConfigLoader
+```go
+// Load config from a search-path list (first existing file wins)
+loader := agent.NewConfigLoader([]string{"my_config.json"})
+if loader.HasConfig() {
+    config := loader.GetConfig()
+    _ = config
 
-# Load config
-loader = ConfigLoader(["my_config.json"])
-if loader.has_config():
-    config = loader.get_config()
-    
-    # Get specific value with substitution
-    port = loader.get("service.port", default=3000)
-    
-    # Get entire section
-    security = loader.get_section("security")
+    // Get a specific value with ${VAR|default} substitution applied
+    port := loader.Get("service.port", 3000)
+
+    // Get an entire section
+    security := loader.GetSection("security")
+    _, _ = port, security
+}
 ```
 
 ### Using with Services
 
-```python
-# SWML Service
-from signalwire_agents import AgentBase
+```go
+// SWML Service / Agent — pass the config file via the WithConfigFile option
+a := agent.NewAgentBase(
+    agent.WithName("my-agent"),
+    agent.WithRoute("/agent"),
+    agent.WithConfigFile("agent_config.json"),
+)
+a.Run()
+```
 
-class MyAgent(AgentBase):
-    def __init__(self):
-        # Auto-detects config.json if present
-        super().__init__(name="my-agent", config_file="agent_config.json")
+The MCP Gateway is a standalone server, not a Go SDK type. Run its binary and
+point it at a config file:
 
-# MCP Gateway
-from mcp_gateway.gateway_service import MCPGateway
-
-gateway = MCPGateway(config_path="mcp_config.json")
+```bash
+mcp-gateway --config mcp_config.json
 ```
 
 ## Troubleshooting
@@ -293,13 +305,13 @@ gateway = MCPGateway(config_path="mcp_config.json")
 
 1. Check file exists and is valid JSON:
    ```bash
-   python -m json.tool config.json
+   jq . config.json
    ```
 
-2. Enable debug logging:
-   ```python
-   import logging
-   logging.basicConfig(level=logging.DEBUG)
+2. Enable debug logging via the log-level environment variable:
+   ```bash
+   export SIGNALWIRE_LOG_LEVEL=debug
+   go run ./...
    ```
 
 3. Check for syntax errors in variable substitution

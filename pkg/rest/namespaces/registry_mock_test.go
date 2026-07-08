@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 const regBase = "/api/relay/rest/registry/beta"
@@ -31,10 +32,11 @@ func TestRegistryBrands_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Brands.List(nil)
+	bodyResp, err := client.Registry.Brands.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -59,10 +61,11 @@ func TestRegistryBrands_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Brands.Get("brand-77")
+	bodyResp, err := client.Registry.Brands.Get("brand-77", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -84,10 +87,11 @@ func TestRegistryBrands_ListCampaigns_UsesBrandSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Brands.ListCampaigns("brand-1", nil)
+	bodyResp, err := client.Registry.Brands.ListCampaigns("brand-1", nil)
 	if err != nil {
 		t.Fatalf("ListCampaigns: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -112,13 +116,14 @@ func TestRegistryBrands_CreateCampaign_PostsToBrandSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Brands.CreateCampaign("brand-2", map[string]any{
+	bodyResp, err := client.Registry.Brands.CreateCampaign("brand-2", map[string]any{
 		"usecase":     "LOW_VOLUME",
 		"description": "MFA",
 	})
 	if err != nil {
 		t.Fatalf("CreateCampaign: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -152,10 +157,11 @@ func TestRegistryCampaigns_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.Get("camp-1")
+	bodyResp, err := client.Registry.Campaigns.Get("camp-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -177,12 +183,13 @@ func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.Update("camp-2", map[string]any{
+	bodyResp, err := client.Registry.Campaigns.Update("camp-2", namespaces.RegistryCampaignsUpdateParams{Extras: map[string]any{
 		"description": "Updated",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -211,10 +218,11 @@ func TestRegistryCampaigns_ListNumbers_UsesNumbersSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.ListNumbers("camp-3", nil)
+	bodyResp, err := client.Registry.Campaigns.ListNumbers("camp-3", nil)
 	if err != nil {
 		t.Fatalf("ListNumbers: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -239,12 +247,13 @@ func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Campaigns.CreateOrder("camp-4", map[string]any{
+	bodyResp, err := client.Registry.Campaigns.CreateOrder("camp-4", namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{
 		"numbers": []string{"pn-1", "pn-2"},
-	})
+	}})
 	if err != nil {
 		t.Fatalf("CreateOrder: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -279,10 +288,11 @@ func TestRegistryOrders_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Orders.Get("order-1")
+	bodyResp, err := client.Registry.Orders.Get("order-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -309,10 +319,11 @@ func TestRegistryNumbers_Delete_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Registry.Numbers.Delete("num-1")
+	bodyResp, err := client.Registry.Numbers.Delete("num-1")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}

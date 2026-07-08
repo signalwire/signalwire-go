@@ -1,33 +1,53 @@
 # SignalWire REST Client
 
-Synchronous REST client for managing SignalWire resources, controlling live calls, and interacting with every SignalWire API surface from Python. No WebSocket required -- just standard HTTP requests with automatic connection pooling.
+Synchronous REST client for managing SignalWire resources, controlling live calls, and interacting with every SignalWire API surface from Go. No WebSocket required -- just standard HTTP requests with automatic connection pooling.
 
 ## Quick Start
 
-```python
-from signalwire_agents.rest import RestClient
+```go
+package main
 
-client = RestClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
+import (
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
-# Create an AI agent
-agent = client.fabric.ai_agents.create(
-    name="Support Bot",
-    prompt={"text": "You are a helpful support agent."},
-)
+func main() {
+	client, err := rest.NewRestClient(
+		"your-project-id",
+		"your-api-token",
+		"example.signalwire.com",
+	)
+	if err != nil {
+		panic(err)
+	}
 
-# Search for a phone number
-results = client.phone_numbers.search(area_code="512")
+	// Create an AI agent
+	agent, err := client.Fabric.AIAgents.Create(map[string]any{
+		"name":   "Support Bot",
+		"prompt": map[string]any{"text": "You are a helpful support agent."},
+	})
+	_ = agent
 
-# Place a call via REST
-client.calling.dial(
-    from_="+15559876543",
-    to="+15551234567",
-    url="https://example.com/call-handler",
-)
+	// Search for a phone number
+	results, err := client.PhoneNumbers.Search(map[string]string{"area_code": "512"})
+	_ = results
+
+	// Place a call via REST
+	_, err = client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+		From: "+15559876543",
+		To:   "+15551234567",
+		Url:  ptr("https://example.com/call-handler"),
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+// ptr returns a pointer to v, for setting optional pointer-typed params.
+func ptr[T any](v T) *T { return &v }
 ```
 
 ## Features
@@ -37,24 +57,22 @@ client.calling.dial(
 - Full Fabric API: 13 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
 - Video: rooms, sessions, recordings, conferences, tokens, streams
-- Compatibility API: full Twilio-compatible LAML surface
 - Phone number management, 10DLC registry, MFA, logs, and more
-- Shared `requests.Session` for connection pooling across all calls
-- Dict returns -- raw JSON, no wrapper objects to learn
+- Shared `net/http` client with connection pooling across all calls
+- Typed generated response structs for typed endpoints; `map[string]any` (raw JSON) for the rest
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.md) -- installation, configuration, first API call
-- [Client Reference](docs/client-reference.md) -- RestClient constructor, namespaces, error handling
-- [Fabric Resources](docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
-- [Calling Commands](docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
-- [Compatibility API](docs/compat.md) -- Twilio-compatible LAML endpoints
-- [All Namespaces](docs/namespaces.md) -- phone numbers, video, datasphere, logs, registry, and more
+- [Getting Started](../../rest/docs/getting-started.md) -- installation, configuration, first API call
+- [Client Reference](../../rest/docs/client-reference.md) -- RestClient constructor, namespaces, error handling
+- [Fabric Resources](../../rest/docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
+- [Calling Commands](../../rest/docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
+- [All Namespaces](../../rest/docs/namespaces.md) -- phone numbers, video, datasphere, logs, registry, and more
 
 ## Examples
 
-- [rest_manage_resources.py](examples/rest_manage_resources.py) -- create an AI agent, assign a phone number, and place a test call
-- [rest_datasphere_search.py](examples/rest_datasphere_search.py) -- upload a document and run a semantic search
+- [rest_demo](../../examples/rest_demo/) -- create an AI agent, assign a phone number, and place a test call
+- [datasphere](../../examples/datasphere/) -- upload a document and run a semantic search
 
 ## Environment Variables
 
@@ -63,22 +81,20 @@ client.calling.dial(
 | `SIGNALWIRE_PROJECT_ID` | Project ID for authentication |
 | `SIGNALWIRE_API_TOKEN` | API token for authentication |
 | `SIGNALWIRE_SPACE` | Space hostname (e.g. `example.signalwire.com`) |
-| `SIGNALWIRE_LOG_LEVEL` | Log level (`debug` for HTTP request details) |
 
-## Module Structure
+## Package Structure
 
 ```
-signalwire_agents/rest/
-    __init__.py          # Public exports: RestClient, SignalWireRestError
-    client.py            # RestClient -- namespace wiring, env var resolution
-    _base.py             # HttpClient, BaseResource, CrudResource, CrudWithAddresses
-    _pagination.py       # PaginatedIterator for list endpoints
+github.com/signalwire/signalwire-go/pkg/rest/
+    client.go                 # HTTPClient, SignalWireRestError
+    rest_client.go            # RestClient -- namespace wiring, env var resolution
+    rest_tree_generated.go    # generated top-level namespace fields
     namespaces/
-        fabric.py        # 13 resource types + generic resources + addresses + tokens
-        calling.py       # 37 command dispatch methods via single POST
-        phone_numbers.py # Search, purchase, update, release
-        compat.py        # Twilio-compatible LAML API
-        video.py         # Rooms, sessions, recordings, conferences
-        datasphere.py    # Documents, search, chunks
-        ... and 15 more
+        common.go                       # Resource, CrudResource, CrudWithAddresses
+        fabric_resources_generated.go   # 13 resource types + generic resources + addresses + tokens
+        calling_resources_generated.go  # 37 command dispatch methods via single POST
+        relay_rest_resources_generated.go # phone numbers, queues, MFA, registry, and more
+        video_resources_generated.go    # rooms, sessions, recordings, conferences
+        datasphere_resources_generated.go # documents, search, chunks
+        ... and more
 ```

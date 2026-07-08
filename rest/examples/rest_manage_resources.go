@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -55,26 +56,25 @@ func main() {
 
 	// 3. Search for a phone number
 	fmt.Println("\nSearching for available phone numbers...")
-	available, err := client.PhoneNumbers.Search(map[string]any{
+	available, err := client.PhoneNumbers.Search(map[string]string{
 		"area_code":   "512",
-		"max_results": 3,
+		"max_results": "3",
 	})
 	if err != nil {
 		fmt.Printf("  Search failed: %v\n", err)
-	} else if data, ok := available["data"].([]any); ok {
-		for _, n := range data {
-			if m, ok := n.(map[string]any); ok {
-				fmt.Printf("  - %v\n", m["e164"])
-			}
+	} else {
+		for _, n := range available.Data {
+			fmt.Printf("  - %v\n", n.Number)
 		}
 	}
 
 	// 4. Place a test call (requires valid numbers)
 	fmt.Println("\nPlacing a test call...")
-	result, err := client.Calling.Dial(map[string]any{
-		"from": "+15559876543",
-		"to":   "+15551234567",
-		"url":  "https://example.com/call-handler",
+	callURL := "https://example.com/call-handler"
+	result, err := client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+		From: "+15559876543",
+		To:   "+15551234567",
+		Url:  &callURL,
 	})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {

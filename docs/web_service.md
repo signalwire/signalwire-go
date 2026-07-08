@@ -1,6 +1,6 @@
 # WebService Documentation
 
-The `WebService` class provides static file serving capabilities for the SignalWire AI Agents SDK. It follows the same architectural pattern as `SearchService`, allowing it to run as a standalone service or alongside your AI agents.
+The `WebService` type (package `github.com/signalwire/signalwire-go/pkg/web`) provides static file serving capabilities for the SignalWire AI Agents Go SDK. It can run as a standalone service or alongside your AI agents.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -33,52 +33,82 @@ WebService is designed to serve static files with configurable security features
 
 ## Installation
 
-WebService is included in the core SignalWire AI Agents SDK:
+WebService is included in the core SignalWire AI Agents Go SDK. Add it to your module:
 
 ```bash
-pip install signalwire-agents
+go get github.com/signalwire/signalwire-go
+```
+
+Then import the `web` package:
+
+<!-- snippet: no-compile illustrative import statement (reference only) -->
+```go
+import "github.com/signalwire/signalwire-go/pkg/web"
+```
+
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/web"
+)
+
+// Shared context the fragments below assume.
+var service = web.NewWebService(web.Options{})
+
+var (
+	_ = service
+)
 ```
 
 ## Quick Start
 
-```python
-from signalwire_agents import WebService
+```go
+package main
 
-# Create a service to serve files
-service = WebService(
-    port=8002,
-    directories={
-        "/docs": "./documentation",
-        "/assets": "./static/assets"
-    }
-)
+import "github.com/signalwire/signalwire-go/pkg/web"
 
-# Start the service
-service.start()
-# Service available at http://localhost:8002
-# Basic Auth: dev:w00t (auto-generated)
+func main() {
+	// Create a service to serve files
+	service := web.NewWebService(web.Options{
+		Port: 8002,
+		Directories: map[string]string{
+			"/docs":   "./documentation",
+			"/assets": "./static/assets",
+		},
+	})
+
+	// Start the service (blocks). host="" defaults to 0.0.0.0, port 0 uses
+	// the constructor port, and empty ssl paths serve plain HTTP.
+	// Service available at http://localhost:8002
+	if err := service.Start("", 0, "", ""); err != nil {
+		panic(err)
+	}
+}
 ```
 
 ## Configuration
 
 WebService can be configured through multiple methods (in order of priority):
 
-### 1. Constructor Parameters
+### 1. Constructor Options
 
-```python
-service = WebService(
-    port=8002,                          # Port to bind to
-    directories={                       # URL path to directory mappings
-        "/docs": "./documentation",
-        "/assets": "./static"
-    },
-    basic_auth=("admin", "secret"),    # Custom authentication
-    enable_directory_browsing=True,     # Allow directory listings
-    allowed_extensions=['.html', '.css', '.js'],  # Whitelist extensions
-    blocked_extensions=['.env', '.key'],          # Blacklist extensions
-    max_file_size=100 * 1024 * 1024,   # Max file size (100MB)
-    enable_cors=True                    # Enable CORS headers
-)
+The `web.Options` struct configures the service:
+
+```go
+service = web.NewWebService(web.Options{
+	Port: 8002, // Port to bind to
+	Directories: map[string]string{ // URL path to directory mappings
+		"/docs":   "./documentation",
+		"/assets": "./static",
+	},
+	BasicAuthUser:           "admin", // Custom authentication
+	BasicAuthPassword:       "secret",
+	EnableDirectoryBrowsing: true,                             // Allow directory listings
+	AllowedExtensions:       []string{".html", ".css", ".js"}, // Whitelist extensions
+	BlockedExtensions:       []string{".env", ".key"},         // Blacklist extensions
+	MaxFileSize:             100 * 1024 * 1024,                // Max file size (100MB)
+	EnableCORS:              true,                             // Enable CORS headers
+})
 ```
 
 ### 2. Environment Variables
@@ -151,16 +181,16 @@ WebService implements HTTP Basic Authentication. Credentials can be set via:
 
 #### Path Traversal Protection
 WebService prevents access outside designated directories:
-```python
-# These attempts will be blocked:
-# GET /docs/../../../etc/passwd
-# GET /docs/./././../config.json
+```text
+These attempts will be blocked:
+  GET /docs/../../../etc/passwd
+  GET /docs/./././../config.json
 ```
 
 #### File Size Limits
 Default maximum file size is 100MB. Configure with:
-```python
-service = WebService(max_file_size=50 * 1024 * 1024)  # 50MB
+```go
+service = web.NewWebService(web.Options{MaxFileSize: 50 * 1024 * 1024}) // 50MB
 ```
 
 ### Security Headers
@@ -193,13 +223,15 @@ MIIEvQIBADANBgkqhkiG9w0BAQE...
 
 ### Method 2: Direct Parameters
 
-```python
-service = WebService(directories={"/docs": "./docs"})
-service.start(
-    ssl_cert="/path/to/cert.pem",
-    ssl_key="/path/to/key.pem"
-)
-# Service available at https://localhost:8002
+Pass the certificate and key paths as the last two arguments to `Start`:
+
+```go
+service = web.NewWebService(web.Options{
+	Directories: map[string]string{"/docs": "./docs"},
+})
+// host, port, sslCert, sslKey — non-empty cert+key enables TLS.
+service.Start("", 0, "/path/to/cert.pem", "/path/to/key.pem")
+// Service available at https://localhost:8002
 ```
 
 ### Method 3: Configuration File
@@ -265,109 +297,116 @@ Serve files from mounted directories
 
 ### Basic File Serving
 
-```python
-from signalwire_agents import WebService
+```go
+package main
 
-# Serve documentation
-service = WebService(
-    directories={
-        "/docs": "./documentation",
-        "/api": "./api-specs"
-    }
-)
-service.start()
+import "github.com/signalwire/signalwire-go/pkg/web"
 
-# Files accessible at:
-# http://localhost:8002/docs/index.html
-# http://localhost:8002/api/swagger.json
+func main() {
+	// Serve documentation
+	service := web.NewWebService(web.Options{
+		Directories: map[string]string{
+			"/docs": "./documentation",
+			"/api":  "./api-specs",
+		},
+	})
+	service.Start("", 0, "", "")
+
+	// Files accessible at:
+	//   http://localhost:8002/docs/index.html
+	//   http://localhost:8002/api/swagger.json
+}
 ```
 
 ### With Directory Browsing
 
-```python
-service = WebService(
-    directories={"/files": "./public"},
-    enable_directory_browsing=True  # Allow browsing directories
-)
-service.start()
+```go
+service = web.NewWebService(web.Options{
+	Directories:             map[string]string{"/files": "./public"},
+	EnableDirectoryBrowsing: true, // Allow browsing directories
+})
+service.Start("", 0, "", "")
 
-# Browse files at: http://localhost:8002/files/
+// Browse files at: http://localhost:8002/files/
 ```
 
 ### Restricted File Types
 
-```python
-# Only serve web assets
-service = WebService(
-    directories={"/web": "./www"},
-    allowed_extensions=['.html', '.css', '.js', '.png', '.jpg', '.woff2'],
-    enable_directory_browsing=False
-)
+```go
+// Only serve web assets
+service = web.NewWebService(web.Options{
+	Directories:             map[string]string{"/web": "./www"},
+	AllowedExtensions:       []string{".html", ".css", ".js", ".png", ".jpg", ".woff2"},
+	EnableDirectoryBrowsing: false,
+})
 ```
 
 ### Dynamic Directory Management
 
-```python
-service = WebService()
+```go
+service = web.NewWebService(web.Options{})
 
-# Add directories after initialization
-service.add_directory("/docs", "./documentation")
-service.add_directory("/reports", "./generated/reports")
+// Add directories after initialization
+service.AddDirectory("/docs", "./documentation")
+service.AddDirectory("/reports", "./generated/reports")
 
-# Remove a directory
-service.remove_directory("/reports")
+// Remove a directory
+service.RemoveDirectory("/reports")
 
-service.start()
+service.Start("", 0, "", "")
 ```
 
 ### With Custom Authentication
 
-```python
-service = WebService(
-    directories={"/private": "./sensitive-docs"},
-    basic_auth=("admin", "super-secret-password")
-)
-service.start()
+```go
+service = web.NewWebService(web.Options{
+	Directories:       map[string]string{"/private": "./sensitive-docs"},
+	BasicAuthUser:     "admin",
+	BasicAuthPassword: "super-secret-password",
+})
+service.Start("", 0, "", "")
 ```
 
 ### HTTPS with Let's Encrypt
 
-```python
-# Assuming you have Let's Encrypt certificates
-service = WebService(
-    directories={"/secure": "./secure-files"}
+```go
+// Assuming you have Let's Encrypt certificates
+service = web.NewWebService(web.Options{
+	Directories: map[string]string{"/secure": "./secure-files"},
+})
+service.Start(
+	"", 0,
+	"/etc/letsencrypt/live/example.com/fullchain.pem",
+	"/etc/letsencrypt/live/example.com/privkey.pem",
 )
-service.start(
-    ssl_cert="/etc/letsencrypt/live/example.com/fullchain.pem",
-    ssl_key="/etc/letsencrypt/live/example.com/privkey.pem"
-)
-# Service available at https://example.com:8002
+// Service available at https://example.com:8002
 ```
 
 ### Multi-Environment Configuration
 
-```python
-import os
+```go
+import "os"
 
-# Development vs Production
-if os.getenv("ENVIRONMENT") == "production":
-    service = WebService(
-        port=443,
-        directories={"/": "./dist"},
-        enable_directory_browsing=False
-    )
-    service.start(
-        host="0.0.0.0",
-        ssl_cert="/etc/ssl/certs/production.crt",
-        ssl_key="/etc/ssl/private/production.key"
-    )
-else:
-    service = WebService(
-        port=8002,
-        directories={"/": "./src"},
-        enable_directory_browsing=True
-    )
-    service.start()
+// Development vs Production
+if os.Getenv("ENVIRONMENT") == "production" {
+	service := web.NewWebService(web.Options{
+		Port:                    443,
+		Directories:             map[string]string{"/": "./dist"},
+		EnableDirectoryBrowsing: false,
+	})
+	service.Start(
+		"0.0.0.0", 0,
+		"/etc/ssl/certs/production.crt",
+		"/etc/ssl/private/production.key",
+	)
+} else {
+	service := web.NewWebService(web.Options{
+		Port:                    8002,
+		Directories:             map[string]string{"/": "./src"},
+		EnableDirectoryBrowsing: true,
+	})
+	service.Start("", 0, "", "")
+}
 ```
 
 ## Deployment Patterns
@@ -376,71 +415,79 @@ else:
 
 Run WebService as a dedicated static file server:
 
-```python
-# web_server.py
-from signalwire_agents import WebService
+```go
+package main // web_server.go
 
-if __name__ == "__main__":
-    service = WebService(
-        port=8002,
-        directories={
-            "/docs": "/var/www/docs",
-            "/assets": "/var/www/assets",
-            "/downloads": "/var/www/downloads"
-        }
-    )
-    service.start()
+import "github.com/signalwire/signalwire-go/pkg/web"
+
+func main() {
+	service := web.NewWebService(web.Options{
+		Port: 8002,
+		Directories: map[string]string{
+			"/docs":      "/var/www/docs",
+			"/assets":    "/var/www/assets",
+			"/downloads": "/var/www/downloads",
+		},
+	})
+	service.Start("", 0, "", "")
+}
 ```
 
 ### Alongside AI Agents
 
-Run WebService alongside your AI agents on different ports:
+Run WebService alongside your AI agents on different ports. Because `Start`
+blocks, run the WebService in its own goroutine:
 
-```python
-# main.py
-from signalwire_agents import AgentBase, WebService
-import threading
+```go
+package main // main.go
 
-# Start WebService in background
-def run_web_service():
-    web = WebService(
-        port=8002,
-        directories={"/docs": "./agent-docs"}
-    )
-    web.start()
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/web"
+)
 
-# Start web service thread
-web_thread = threading.Thread(target=run_web_service, daemon=True)
-web_thread.start()
+func main() {
+	// Start WebService in the background (Start blocks).
+	go func() {
+		ws := web.NewWebService(web.Options{
+			Port:        8002,
+			Directories: map[string]string{"/docs": "./agent-docs"},
+		})
+		ws.Start("", 0, "", "")
+	}()
 
-# Run your agent
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="My Agent")
-
-agent = MyAgent()
-agent.serve(port=3000)  # Agent on port 3000, WebService on 8002
+	// Run your agent on a different port.
+	a := agent.NewAgentBase(
+		agent.WithName("My Agent"),
+		agent.WithPort(3000),
+	)
+	a.Run() // Agent on port 3000, WebService on 8002
+}
 ```
 
 ### Docker Deployment
 
 ```dockerfile
-FROM python:3.9-slim
+# Build stage
+FROM golang:1.22 AS build
+WORKDIR /src
+COPY . .
+# Build your web_server.go (see the Standalone Service example above)
+RUN CGO_ENABLED=0 go build -o /out/web-server ./cmd/web-server
 
+# Runtime stage
+FROM gcr.io/distroless/static-debian12
 WORKDIR /app
 
-# Install SDK
-RUN pip install signalwire-agents
-
-# Copy static files
+# Copy the compiled binary and static files
+COPY --from=build /out/web-server /app/web-server
 COPY ./static /app/static
-COPY ./web_config.json /app/web_config.json
 
 # Expose port
 EXPOSE 8002
 
 # Run WebService
-CMD ["python", "-c", "from signalwire_agents import WebService; WebService(config_file='web_config.json').start()"]
+CMD ["/app/web-server"]
 ```
 
 ### Systemd Service
@@ -458,7 +505,8 @@ User=www-data
 WorkingDirectory=/opt/signalwire
 Environment="SWML_SSL_CERT=/etc/ssl/certs/server.crt"
 Environment="SWML_SSL_KEY=/etc/ssl/private/server.key"
-ExecStart=/usr/bin/python3 -c "from signalwire_agents import WebService; WebService(directories={'/': '/var/www/html'}).start()"
+# Run your compiled Go web server binary (see the Standalone Service example).
+ExecStart=/opt/signalwire/web-server
 Restart=always
 
 [Install]
@@ -527,18 +575,29 @@ server {
 
 ### Common Issues
 
-**Issue: "FastAPI not available"**
+**Issue: Build errors — module not found**
 ```bash
-# Install FastAPI and uvicorn
-pip install fastapi uvicorn
+# Ensure the SDK is in your go.mod
+go get github.com/signalwire/signalwire-go
+go mod tidy
 ```
 
 **Issue: SSL certificate errors**
-```python
-# Check certificate paths
-import os
-print(os.path.exists("/path/to/cert.pem"))  # Should be True
-print(os.path.exists("/path/to/key.pem"))   # Should be True
+```go
+package main
+
+import "os"
+
+// Check certificate paths.
+func certExists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
+}
+
+func main() {
+	_ = certExists("/path/to/cert.pem") // should return true
+	_ = certExists("/path/to/key.pem")  // should return true
+}
 ```
 
 **Issue: Permission denied**
@@ -548,78 +607,96 @@ chmod -R 755 /path/to/static/files
 ```
 
 **Issue: Directory not found**
-```python
-# Use absolute paths
-import os
-service = WebService(
-    directories={
-        "/docs": os.path.abspath("./documentation")
-    }
-)
+```go
+// Use absolute paths
+import "path/filepath"
+
+docs, _ := filepath.Abs("./documentation")
+service = web.NewWebService(web.Options{
+	Directories: map[string]string{"/docs": docs},
+})
 ```
 
 ### Debug Logging
 
-Enable debug logging to troubleshoot issues:
+The SDK's structured logger honors the `SIGNALWIRE_LOG_LEVEL` environment
+variable. Set it to `debug` to troubleshoot issues:
 
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
+```bash
+export SIGNALWIRE_LOG_LEVEL=debug
+```
 
-service = WebService(directories={"/test": "./test"})
-service.start()
+```go
+service = web.NewWebService(web.Options{
+	Directories: map[string]string{"/test": "./test"},
+})
+service.Start("", 0, "", "")
 ```
 
 ## API Reference
 
-### WebService Class
+### WebService Type
 
-```python
-class WebService:
-    def __init__(self,
-                 port: int = 8002,
-                 directories: Dict[str, str] = None,
-                 basic_auth: Optional[Tuple[str, str]] = None,
-                 config_file: Optional[str] = None,
-                 enable_directory_browsing: bool = False,
-                 allowed_extensions: Optional[list] = None,
-                 blocked_extensions: Optional[list] = None,
-                 max_file_size: int = 100 * 1024 * 1024,
-                 enable_cors: bool = True)
+The constructor takes a `web.Options` struct:
+
+<!-- snippet: no-compile illustrative API reference (type + signature, reference only) -->
+```go
+type Options struct {
+	Port                    int
+	Directories             map[string]string
+	BasicAuthUser           string
+	BasicAuthPassword       string
+	ConfigFile              string
+	EnableDirectoryBrowsing bool
+	AllowedExtensions       []string
+	BlockedExtensions       []string
+	MaxFileSize             int64
+	EnableCORS              bool
+}
+
+func NewWebService(opts Options) *WebService
 ```
 
-#### Parameters
-- `port`: Port to bind to (default: 8002)
-- `directories`: Dictionary mapping URL paths to local directories
-- `basic_auth`: Tuple of (username, password) for authentication
-- `config_file`: Path to JSON configuration file
-- `enable_directory_browsing`: Allow directory listing (default: False)
-- `allowed_extensions`: List of allowed file extensions
-- `blocked_extensions`: List of blocked file extensions
-- `max_file_size`: Maximum file size in bytes (default: 100MB)
-- `enable_cors`: Enable CORS headers (default: True)
+#### Options fields
+- `Port`: Port to bind to (default: 8002)
+- `Directories`: Map of URL paths to local directories
+- `BasicAuthUser` / `BasicAuthPassword`: Credentials for HTTP Basic Auth
+- `ConfigFile`: Path to JSON configuration file
+- `EnableDirectoryBrowsing`: Allow directory listing (default: false)
+- `AllowedExtensions`: List of allowed file extensions
+- `BlockedExtensions`: List of blocked file extensions
+- `MaxFileSize`: Maximum file size in bytes (default: 100MB)
+- `EnableCORS`: Enable CORS headers (default: false unless set)
 
 #### Methods
 
-##### start()
-```python
-def start(self,
-          host: str = "0.0.0.0",
-          port: Optional[int] = None,
-          ssl_cert: Optional[str] = None,
-          ssl_key: Optional[str] = None)
+##### Start
+<!-- snippet: no-compile illustrative API signature (reference only) -->
+```go
+func (ws *WebService) Start(host string, port int, sslCert, sslKey string) error
 ```
-Start the web service.
+Start the web service. `host=""` defaults to `0.0.0.0`; `port=0` uses the
+constructor port; non-empty `sslCert` and `sslKey` enable TLS. `Start` blocks
+until `Stop` is called or the server errors.
 
-##### add_directory()
-```python
-def add_directory(self, route: str, directory: str) -> None
+##### Stop
+<!-- snippet: no-compile illustrative API signature (reference only) -->
+```go
+func (ws *WebService) Stop() error
+```
+Gracefully shut the server down.
+
+##### AddDirectory
+<!-- snippet: no-compile illustrative API signature (reference only) -->
+```go
+func (ws *WebService) AddDirectory(route, directory string)
 ```
 Add a new directory to serve.
 
-##### remove_directory()
-```python
-def remove_directory(self, route: str) -> None
+##### RemoveDirectory
+<!-- snippet: no-compile illustrative API signature (reference only) -->
+```go
+func (ws *WebService) RemoveDirectory(route string)
 ```
 Remove a directory from being served.
 
@@ -627,49 +704,59 @@ Remove a directory from being served.
 
 WebService complements AI agents by providing static file serving:
 
-```python
-from signalwire_agents import AgentBase, WebService
+```go
+package main
 
-class DocumentationAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="Documentation Assistant")
-        
-        # Reference documentation served by WebService
-        self.prompt_add_section(
-            "Documentation",
-            "User documentation is available at https://example.com:8002/docs/"
-        )
-    
-        @self.tool(
-            "get_doc_link",
-            description="Get link to a documentation page",
-            parameters={
-                "doc_name": {"type": "string", "description": "Name of the documentation page"}
-            }
-        )
-        def get_doc_link(self, args, raw_data):
-            doc_name = args.get('doc_name')
-            return SwaigFunctionResult(
-                f"Documentation available at: https://example.com:8002/docs/{doc_name}.html"
-            )
+import (
+	"fmt"
 
-# Run both services
-if __name__ == "__main__":
-    # Start WebService for documentation
-    web = WebService(
-        port=8002,
-        directories={"/docs": "./documentation"}
-    )
-    
-    # Start agent
-    agent = DocumentationAgent()
-    
-    # Run in threads or separate processes
-    import threading
-    web_thread = threading.Thread(target=web.start, daemon=True)
-    web_thread.start()
-    
-    agent.serve(port=3000)
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/pkg/web"
+)
+
+func main() {
+	a := agent.NewAgentBase(
+		agent.WithName("Documentation Assistant"),
+		agent.WithPort(3000),
+	)
+
+	// Reference documentation served by WebService.
+	a.PromptAddSection(
+		"Documentation",
+		"User documentation is available at https://example.com:8002/docs/",
+		nil,
+	)
+
+	a.DefineTool(agent.ToolDefinition{
+		Name:        "get_doc_link",
+		Description: "Get link to a documentation page",
+		Parameters: map[string]any{
+			"doc_name": map[string]any{
+				"type":        "string",
+				"description": "Name of the documentation page",
+			},
+		},
+		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+			docName, _ := args["doc_name"].(string)
+			return swaig.NewFunctionResult(
+				fmt.Sprintf("Documentation available at: https://example.com:8002/docs/%s.html", docName),
+			)
+		},
+	})
+
+	// Start WebService for documentation in the background (Start blocks).
+	go func() {
+		ws := web.NewWebService(web.Options{
+			Port:        8002,
+			Directories: map[string]string{"/docs": "./documentation"},
+		})
+		ws.Start("", 0, "", "")
+	}()
+
+	// Run the agent on port 3000.
+	a.Run()
+}
 ```
 
 ## Summary

@@ -58,7 +58,24 @@ type config struct {
 }
 
 func main() {
-	cfg := parseFlags(os.Args[1:])
+	// --parse-only / --dry-run is detected and stripped from argv FIRST, so it
+	// is position-independent: it works whether it precedes or trails other
+	// args (including trailing an `--exec name`, where it would otherwise be
+	// swallowed as a function argument). It validates the invocation's args and
+	// exits WITHOUT loading any agent, spawning a subprocess, or making a
+	// network call. Mirrors the Python reference contract (test_swaig.py):
+	// `parse OK` + exit 0 on success, exit 2 on invalid args.
+	args, parseOnly := stripParseOnly(os.Args[1:])
+	if parseOnly {
+		if err := parseOnlyValidate(args); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			os.Exit(2)
+		}
+		fmt.Println("parse OK")
+		os.Exit(0)
+	}
+
+	cfg := parseFlags(args)
 
 	if err := run(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
@@ -66,10 +83,44 @@ func main() {
 	}
 }
 
-// parseFlags parses command-line arguments into a config struct.
-func parseFlags(args []string) config {
-	var cfg config
-	fs := flag.NewFlagSet("swaig-test", flag.ExitOnError)
+// stripParseOnly scans args for the position-independent --parse-only /
+// --dry-run flags (accepting both the single- and double-dash spellings the Go
+// flag package treats as equivalent), removes every occurrence, and reports
+// whether any were present. Everything else is preserved in order so the
+// remaining args parse exactly as they would have without the flag.
+func stripParseOnly(args []string) (rest []string, parseOnly bool) {
+	rest = make([]string, 0, len(args))
+	for _, a := range args {
+		switch a {
+		case "--parse-only", "-parse-only", "--dry-run", "-dry-run":
+			parseOnly = true
+		default:
+			rest = append(rest, a)
+		}
+	}
+	return rest, parseOnly
+}
+
+// parseOnlyValidate parses the (parse-only-stripped) args and runs the same
+// argument validation the CLI performs before any network/subprocess action,
+// but stops short of executing it. A nil return means the invocation is
+// well-formed. It never loads an agent, spawns `go run`, or makes an HTTP
+// request. Uses flag.ContinueOnError so a bad flag surfaces as an error the
+// caller maps to exit 2 (rather than flag.ExitOnError's exit 1).
+func parseOnlyValidate(args []string) error {
+	cfg, err := parseFlagsStrict(args)
+	if err != nil {
+		return err
+	}
+	return validate(&cfg)
+}
+
+// newFlagSet builds the swaig-test flag set bound to cfg, with the given
+// error-handling mode. Both parseFlags (ExitOnError, the normal path) and
+// parseFlagsStrict (ContinueOnError, the parse-only path) share this so the
+// declared flags — and therefore what validates — never drift between them.
+func newFlagSet(cfg *config, errorHandling flag.ErrorHandling) *flag.FlagSet {
+	fs := flag.NewFlagSet("swaig-test", errorHandling)
 
 	fs.StringVar(&cfg.url, "url", "", "Agent URL (e.g. http://user:pass@localhost:3000/)")
 	fs.StringVar(&cfg.example, "example", "",
@@ -86,6 +137,13 @@ func parseFlags(args []string) config {
 			"Sets mode-detection env vars and clears SWML_PROXY_URL_BASE so "+
 			"platform-specific URL generation is exercised.")
 
+	// Accepted-and-ignored here: main() strips --parse-only/--dry-run from argv
+	// before parsing, but declaring them keeps them from being rejected as
+	// unknown flags if they ever reach a flag set, and documents them in usage.
+	var parseOnly bool
+	fs.BoolVar(&parseOnly, "parse-only", false, "Validate arguments and exit without running the agent (prints 'parse OK')")
+	fs.BoolVar(&parseOnly, "dry-run", false, "Alias for --parse-only")
+
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: swaig-test --url <agent-url> [options]\n\n")
 		fmt.Fprintf(os.Stderr, "A CLI tool for testing SWAIG agents via their HTTP endpoints.\n\n")
@@ -99,15 +157,99 @@ func parseFlags(args []string) config {
 		fmt.Fprintf(os.Stderr, "                       the invocation; clears SWML_PROXY_URL_BASE\n")
 		fmt.Fprintf(os.Stderr, "                       for the duration. Combine with --dump-swml\n")
 		fmt.Fprintf(os.Stderr, "                       or --exec as normal.\n\n")
+		fmt.Fprintf(os.Stderr, "Validation:\n")
+		fmt.Fprintf(os.Stderr, "  --parse-only         Validate args and exit (prints 'parse OK');\n")
+		fmt.Fprintf(os.Stderr, "  --dry-run            loads no agent and makes no network call.\n\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		fs.PrintDefaults()
 	}
 
+	return fs
+}
+
+// parseFlags parses command-line arguments into a config struct.
+func parseFlags(args []string) config {
+	var cfg config
+	fs := newFlagSet(&cfg, flag.ExitOnError)
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
 	}
 	return cfg
+}
+
+// parseFlagsStrict parses args with flag.ContinueOnError so an unknown or
+// malformed flag is returned as an error (the parse-only path maps it to exit
+// 2) instead of exiting the process. It parses the SAME flag surface as
+// parseFlags.
+func parseFlagsStrict(args []string) (config, error) {
+	var cfg config
+	fs := newFlagSet(&cfg, flag.ContinueOnError)
+	// Suppress the automatic usage dump on error; the caller reports the error.
+	fs.SetOutput(io.Discard)
+	if err := fs.Parse(args); err != nil {
+		return config{}, err
+	}
+	return cfg, nil
+}
+
+// validate runs every argument-consistency check the CLI performs before it
+// touches the network, the filesystem, or a subprocess — the same checks run()
+// applies below — WITHOUT executing the selected action. parse-only uses it to
+// prove an invocation is well-formed. A nil return means "would run". Note it
+// may mutate cfg (e.g. defaulting dump-swml in simulate mode) exactly as run()
+// does, so its judgement matches the real path.
+func validate(cfg *config) error {
+	if cfg.simulateServerless != "" {
+		if err := validateSimulatePlatform(cfg.simulateServerless); err != nil {
+			return err
+		}
+	}
+
+	if cfg.example != "" {
+		if cfg.url != "" {
+			return fmt.Errorf("--example and --url are mutually exclusive")
+		}
+		if cfg.dumpSWML || cfg.exec != "" {
+			return fmt.Errorf("--example currently only supports --list-tools")
+		}
+		return nil
+	}
+
+	if cfg.url == "" {
+		if cfg.simulateServerless != "" {
+			return fmt.Errorf(
+				"--simulate-serverless %s: requires --url <agent-url>. "+
+					"Go agents are compiled binaries, so this CLI simulates by "+
+					"running the agent URL with the platform env vars applied. "+
+					"For true in-process adapter dispatch, use "+
+					"SimulateDumpSWMLViaLambda / SimulateExecToolViaLambda "+
+					"from package main directly (see cmd/swaig-test/simulate.go)",
+				cfg.simulateServerless,
+			)
+		}
+		return fmt.Errorf("--url is required")
+	}
+
+	if !cfg.dumpSWML && !cfg.listTools && cfg.exec == "" {
+		if cfg.simulateServerless != "" {
+			cfg.dumpSWML = true
+		} else {
+			return fmt.Errorf("one of --dump-swml, --list-tools, or --exec is required")
+		}
+	}
+
+	if _, _, _, err := parseAuthURL(cfg.url); err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	if cfg.exec != "" {
+		if _, err := parseParams(cfg.params); err != nil {
+			return fmt.Errorf("invalid parameters: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // run executes the CLI command based on the parsed config.

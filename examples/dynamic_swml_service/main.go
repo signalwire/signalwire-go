@@ -2,14 +2,15 @@
 
 // Example: dynamic_swml_service
 //
-// SWML service with dynamic routing. Demonstrates creating a SWML service
-// that generates different SWML documents based on the incoming request
-// data (caller type, department, VIP status).
+// SWML service with a routing callback. A routing callback inspects the POST
+// body and headers and returns a route string to redirect the request (HTTP
+// 307) — for example, sending VIP callers to a dedicated priority endpoint — or
+// nil to serve the default document. This mirrors the reference
+// SWMLService.register_routing_callback (body, headers) -> route | None.
 package main
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/signalwire/signalwire-go/pkg/swml"
@@ -33,63 +34,20 @@ func main() {
 	})
 	svc.Hangup(nil)
 
-	// Register a routing callback that customises the response
-	svc.RegisterRoutingCallback("/greeting", func(r *http.Request, body map[string]any) map[string]any {
-		if body == nil {
-			return nil // Use default document
-		}
-
+	// Register a routing callback: redirect VIP callers to a priority endpoint;
+	// everyone else falls through to the default document.
+	svc.RegisterRoutingCallback("/greeting", func(body map[string]any, headers map[string]any) *string {
 		callerType, _ := body["caller_type"].(string)
-		callerType = strings.ToLower(callerType)
-		callerName, _ := body["caller_name"].(string)
-
-		// Build a dynamic document
-		doc := swml.NewDocument()
-
-		doc.AddVerb("answer", map[string]any{})
-
-		// Personalised greeting
-		if callerName != "" {
-			doc.AddVerb("play", map[string]any{
-				"url": fmt.Sprintf("say:Hello %s, welcome back to our service!", callerName),
-			})
-		} else {
-			doc.AddVerb("play", map[string]any{
-				"url": "say:Hello, thank you for calling our service.",
-			})
+		if strings.ToLower(callerType) == "vip" {
+			route := "/priority"
+			return &route
 		}
-
-		// Route based on caller type
-		switch callerType {
-		case "vip":
-			doc.AddVerb("play", map[string]any{
-				"url": "say:As a VIP customer, you will be connected to priority support.",
-			})
-			doc.AddVerb("connect", map[string]any{
-				"to":      "+15551234567",
-				"timeout": 30,
-			})
-		case "existing":
-			doc.AddVerb("prompt", map[string]any{
-				"play":        "say:Press 1 for account management, 2 for support, or 3 for billing.",
-				"max_digits":  1,
-				"terminators": "#",
-			})
-		default:
-			doc.AddVerb("prompt", map[string]any{
-				"play":        "say:Press 1 for sales, 2 for support, or 3 to leave a message.",
-				"max_digits":  1,
-				"terminators": "#",
-			})
-		}
-
-		doc.AddVerb("hangup", map[string]any{})
-		return doc.ToMap()
+		return nil // no redirect — serve the default document
 	})
 
 	fmt.Println("Starting DynamicGreeting on :3024/greeting ...")
 	fmt.Println("  Default: generic menu")
-	fmt.Println("  VIP:     POST with {\"caller_type\": \"vip\", \"caller_name\": \"John\"}")
+	fmt.Println("  VIP:     POST {\"caller_type\":\"vip\"} -> 307 redirect to /priority")
 
 	if err := svc.Serve(); err != nil {
 		fmt.Printf("Service error: %v\n", err)

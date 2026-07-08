@@ -135,7 +135,20 @@ func NewReceptionistAgent(opts ReceptionistOptions) *ReceptionistAgent {
 	// ---- Tools ----
 	ra.registerTools()
 
+	// ---- Summary callback ----
+	ra.AgentBase.OnSummary(ra.OnSummary)
+
 	return ra
+}
+
+// OnSummary is the summary hook for the receptionist agent. It matches the
+// agent.SummaryCallback signature and is registered via ra.AgentBase.OnSummary
+// in the constructor. There is currently no receptionist-specific summary logic
+// (the post-prompt already emits a JSON summary), so this is a no-op placeholder
+// that mirrors Python's on_summary surface.
+func (ra *ReceptionistAgent) OnSummary(summary map[string]any, rawData map[string]any) {
+	_ = summary
+	_ = rawData
 }
 
 // ---------------------------------------------------------------------------

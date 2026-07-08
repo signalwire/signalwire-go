@@ -28,12 +28,27 @@ Alternatively, you can authenticate with a JWT token:
 
 ## Minimal Example
 
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var call *relay.Call
+
+var (
+	_ = client
+	_ = call
+)
+```
+
 ```go
 package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/relay"
@@ -95,19 +110,28 @@ Contexts are topics your client subscribes to for receiving inbound calls. When 
 
 ```go
 // Subscribe at connect time
-client := relay.NewRelayClient(
+client = relay.NewRelayClient(
 	relay.WithContexts("sales", "support"),
 )
+
+// Or change the subscription set dynamically after connecting
+client.Receive("billing")
+client.Unreceive("sales")
 ```
 
-Contexts are fixed at client construction time in the Go port; to change the
-subscription set, construct a new `RelayClient`.
+Pass the initial set at construction with `WithContexts(...)`, and adjust it on
+a live client with `client.Receive(...)` / `client.Unreceive(...)`.
 
 ## Making Outbound Calls
 
 Use `client.Dial()` to place an outbound call:
 
 ```go
+import (
+	"context"
+	"fmt"
+)
+
 call, err := client.Dial([][]map[string]any{
 	{{"type": "phone", "params": map[string]any{"to_number": "+15551234567", "from_number": "+15559876543"}}},
 })
@@ -132,6 +156,7 @@ call, err := client.Dial([][]map[string]any{
 		{"type": "phone", "params": map[string]any{"to_number": "+15552222222", "from_number": "+15559876543"}},
 	},
 })
+_, _ = call, err
 ```
 
 ## Debug Logging
@@ -149,7 +174,13 @@ tear the client down early. `Dial()` and `SendMessage()` connect implicitly
 the first time they are called.
 
 ```go
-client := relay.NewRelayClient(relay.WithContexts("default"))
+import (
+	"fmt"
+	"os"
+	"time"
+)
+
+client = relay.NewRelayClient(relay.WithContexts("default"))
 
 go func() {
 	time.Sleep(5 * time.Minute)

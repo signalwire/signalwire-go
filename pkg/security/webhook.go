@@ -215,7 +215,7 @@ func checkBodySHA256(rawURL, rawBody string) bool {
 //
 // url: full URL SignalWire POSTed to (scheme, host, optional port, path,
 // query). Must match what the platform saw — see the URL reconstruction
-// section of porting-sdk/webhooks.md.
+// section of the SignalWire webhooks specification.
 //
 // rawBody: raw request body bytes as a UTF-8 string, BEFORE any JSON / form
 // parsing.

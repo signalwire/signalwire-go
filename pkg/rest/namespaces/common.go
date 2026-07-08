@@ -9,7 +9,10 @@
 // for the SignalWire REST client.
 package namespaces
 
-import "strings"
+import (
+	"encoding/json"
+	"strings"
+)
 
 // HTTPClient is the interface that namespace implementations use to make HTTP
 // requests. It is satisfied by the httpAdapter in the parent rest package,
@@ -112,4 +115,43 @@ func NewCrudWithAddressesPUT(client HTTPClient, path string) *CrudWithAddresses 
 // ListAddresses lists addresses associated with the resource identified by id.
 func (r *CrudWithAddresses) ListAddresses(id string, params map[string]string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id, "addresses"), params)
+}
+
+// decodeResult re-marshals a base-method map[string]any response into a typed
+// generated wire struct T. The generated REST resource methods return
+// (*T, error) for operations whose spec declares a typed ($ref) 200/201 response
+// (the closed typed-output surface — PORT_PHILOSOPHY_GO.md §4 / TYPED_SURFACE_
+// STRATEGY §4); this converts the loose map the HTTP layer decodes into the typed
+// value. The wire bytes are unchanged — the HTTP layer already parsed the JSON
+// into a map, and this round-trips that map through the same encoding/json into
+// the struct's json-tagged fields. A base-method error is passed through
+// untouched (the typed pointer is nil on error, matching Go convention).
+func decodeResult[T any](m map[string]any, err error) (*T, error) {
+	if err != nil {
+		return nil, err
+	}
+	raw, mErr := json.Marshal(m)
+	if mErr != nil {
+		return nil, mErr
+	}
+	var out T
+	if uErr := json.Unmarshal(raw, &out); uErr != nil {
+		return nil, uErr
+	}
+	return &out, nil
+}
+
+// mergeExtra merges optional extra-fields maps into body. It is used by the
+// generated Set* wrappers (SetSwmlWebhook, SetCxmlWebhook, …) to funnel their
+// variadic extra-map tail into the update body. Kept here (a hand base file) so
+// the generated resource files can call it without owning it.
+func mergeExtra(body map[string]any, extra []map[string]any) {
+	if len(extra) == 0 {
+		return
+	}
+	for _, m := range extra {
+		for k, v := range m {
+			body[k] = v
+		}
+	}
 }

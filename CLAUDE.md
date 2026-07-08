@@ -8,36 +8,44 @@ This is the SignalWire AI Agents Go SDK - a Go port of the Python/TypeScript Sig
 
 ## Development Commands
 
+Format, lint, and test go through **three canonical scripts** under `scripts/`.
+They self-bootstrap their tool environment (resolve `go`, install the pinned
+`golangci-lint` if absent) and run from the module root **regardless of your
+current directory**, so they work identically for run-ci, an agent, or you from
+any CWD. Do not invoke `gofmt` / `go vet` / `golangci-lint` / `go test` directly —
+go through these scripts (shared env lives in `scripts/_env.sh`).
+
+### Formatting — `scripts/run-format.sh`
+```bash
+bash scripts/run-format.sh          # APPLY: gofmt -w (reformat the tree in place)
+bash scripts/run-format.sh --check  # VERIFY-ONLY (CI): gofmt -l, non-zero if unformatted
+```
+
+### Linting — `scripts/run-lint.sh`
+```bash
+bash scripts/run-lint.sh            # go vet ./... + golangci-lint (.golangci.yml)
+bash scripts/run-lint.sh --fix      # + golangci-lint autofix where supported
+```
+
+### Testing — `scripts/run-tests.sh`
+```bash
+bash scripts/run-tests.sh                                 # go test ./... (full suite)
+bash scripts/run-tests.sh ./pkg/swml/...                  # a subset (package path)
+bash scripts/run-tests.sh -run TestFoo ./pkg/agent/...    # a filter passthrough
+```
+
 ### Building
 ```bash
 go build ./...
 ```
 
-### Testing
-```bash
-# Run all tests
-go test ./...
+Raw `go test` flags still work when you need them (`-v`, `-cover`,
+`-coverprofile=…`, `-race`) — pass them through `scripts/run-tests.sh`, e.g.
+`bash scripts/run-tests.sh -race ./...`.
 
-# Run tests with verbose output
-go test -v ./...
-
-# Run tests for a specific package
-go test -v ./pkg/swml/...
-go test -v ./pkg/agent/...
-
-# Run with coverage
-go test -cover ./...
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out -o coverage.html
-
-# Run with race detection
-go test -race ./...
-```
-
-### Linting
-```bash
-go vet ./...
-```
+### Full gate set
+`bash scripts/run-ci.sh` runs every gate (TEST/FMT/LINT wired to the three
+scripts above, plus the drift/surface/coverage gates).
 
 ## Architecture Overview
 

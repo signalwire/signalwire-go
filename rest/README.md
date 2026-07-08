@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -32,11 +33,13 @@ func main() {
 	results, _ := client.PhoneNumbers.Search(map[string]string{"area_code": "512"})
 
 	// Place a call via REST
-	client.Calling.Dial(map[string]any{
-		"from": "+15559876543",
-		"to":   "+15551234567",
-		"url":  "https://example.com/call-handler",
+	_, _ = client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+		From:   "+15559876543",
+		To:     "+15551234567",
+		Extras: map[string]any{"url": "https://example.com/call-handler"},
 	})
+
+	fmt.Println(agent, results)
 }
 ```
 
@@ -47,7 +50,6 @@ func main() {
 - Full Fabric API: 13 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
 - Video: rooms, sessions, recordings, conferences, tokens, streams
-- Compatibility API: full Twilio-compatible LAML surface
 - Phone number management, 10DLC registry, MFA, logs, and more
 - Shared `http.Client` for connection pooling across all calls
 - `map[string]any` returns -- raw JSON, no wrapper objects to learn
@@ -58,7 +60,6 @@ func main() {
 - [Client Reference](docs/client-reference.md) -- RestClient constructor, namespaces, error handling
 - [Fabric Resources](docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
 - [Calling Commands](docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
-- [Compatibility API](docs/compat.md) -- Twilio-compatible LAML endpoints
 - [All Namespaces](docs/namespaces.md) -- phone numbers, video, datasphere, logs, registry, and more
 
 ## Examples
@@ -72,7 +73,6 @@ func main() {
 - [rest_fabric_conferences_and_routing.go](examples/rest_fabric_conferences_and_routing.go) -- conferences, cXML, routing, and tokens
 - [rest_phone_number_management.go](examples/rest_phone_number_management.go) -- full phone number inventory lifecycle
 - [rest_10dlc_registration.go](examples/rest_10dlc_registration.go) -- 10DLC brand and campaign registration
-- [rest_compat_laml.go](examples/rest_compat_laml.go) -- Twilio-compatible LAML migration
 - [rest_queues_mfa_and_recordings.go](examples/rest_queues_mfa_and_recordings.go) -- queues, MFA verification, and recordings
 - [rest_video_rooms.go](examples/rest_video_rooms.go) -- video rooms, sessions, conferences, and streams
 
@@ -96,7 +96,6 @@ pkg/rest/
         fabric.go         // 13 resource types + generic resources + addresses + tokens
         calling.go        // 37 command dispatch methods via single POST
         phone_numbers.go  // Search, purchase, update, release
-        compat.go         // Twilio-compatible LAML API
         video.go          // Rooms, sessions, recordings, conferences
         datasphere.go     // Documents, search, chunks
         ... and 15 more

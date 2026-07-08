@@ -18,16 +18,8 @@
 // always 1:1 with Go method names. The mapping below routes each dotted
 // name to the appropriate Go REST method:
 //
-//   - calling.list_calls          → Compat.Calls.List   (LAML endpoint)
-//   - messaging.send              → Compat.Messages.Create
 //   - phone_numbers.list          → PhoneNumbers.List
 //   - fabric.subscribers.list     → Fabric.Subscribers.List
-//   - compatibility.calls.list    → Compat.Calls.List
-//
-// The Calling namespace in Go (and Python) is for relay-native command
-// dispatch (POST /api/calling/calls), not for listing LAML-style calls.
-// The audit's `calling.list_calls` is interpreted as the LAML endpoint
-// because that's the only "list calls" operation the SDK exposes.
 //
 // Not for production use.
 package main
@@ -75,15 +67,6 @@ func main() {
 	var result map[string]any
 	var opErr error
 	switch op {
-	case "calling.list_calls", "compatibility.calls.list":
-		// LAML calls listing — Go's Compat.Calls embeds CrudResource
-		// whose List method issues GET against the resource path.
-		result, opErr = client.Compat.Calls.List(stringParams(args))
-	case "messaging.send":
-		// Send SMS — Compat.Messages.Create matches Twilio's POST
-		// /Messages with To/From/Body in form fields. The audit
-		// fixture serves the canned response on any POST.
-		result, opErr = client.Compat.Messages.Create(remapMessagingArgs(args))
 	case "phone_numbers.list":
 		result, opErr = client.PhoneNumbers.List(stringParams(args))
 	case "fabric.subscribers.list":
@@ -113,26 +96,6 @@ func stringParams(args map[string]any) map[string]string {
 	out := make(map[string]string, len(args))
 	for k, v := range args {
 		out[k] = fmt.Sprint(v)
-	}
-	return out
-}
-
-// remapMessagingArgs maps the audit's Python-style messaging args to
-// the Twilio LAML form-field shape that Compat.Messages.Create expects:
-// from_ → From, to → To, body → Body.
-func remapMessagingArgs(args map[string]any) map[string]any {
-	out := map[string]any{}
-	for k, v := range args {
-		switch k {
-		case "from_", "from":
-			out["From"] = v
-		case "to":
-			out["To"] = v
-		case "body":
-			out["Body"] = v
-		default:
-			out[k] = v
-		}
 	}
 	return out
 }

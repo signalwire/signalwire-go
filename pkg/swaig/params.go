@@ -66,6 +66,29 @@ type Params struct {
 	// PropRequired() options.
 	required []string
 	reqSeen  map[string]bool
+	// description is the tool-level description this typed declaration carries,
+	// surfaced by InferSchema (the Go analog of the docstring summary Python's
+	// infer_schema derives from the handler). Empty means "no description".
+	description string
+	// hasRawData records whether the handler this declaration describes also
+	// receives the SWAIG raw payload, surfaced by InferSchema's has_raw_data.
+	hasRawData bool
+}
+
+// Describe sets the tool-level description carried by this typed declaration,
+// surfaced by InferSchema as the schema's description. Returns the receiver for
+// chaining.
+func (b *Params) Describe(description string) *Params {
+	b.description = description
+	return b
+}
+
+// WithRawData marks that the handler this declaration describes also receives
+// the SWAIG raw payload (the analog of Python's `raw_data` handler parameter),
+// surfaced by InferSchema's has_raw_data return. Returns the receiver.
+func (b *Params) WithRawData() *Params {
+	b.hasRawData = true
+	return b
 }
 
 // NewParams returns an empty parameter builder ready to accept property

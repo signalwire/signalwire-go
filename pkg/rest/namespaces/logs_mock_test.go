@@ -29,10 +29,11 @@ func TestMessageLogs_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Logs.Messages.List(nil)
+	bodyResp, err := client.Logs.Messages.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -61,10 +62,11 @@ func TestMessageLogs_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Logs.Messages.Get("ml-42")
+	bodyResp, err := client.Logs.Messages.Get("ml-42")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -91,10 +93,11 @@ func TestVoiceLogs_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Logs.Voice.List(nil)
+	bodyResp, err := client.Logs.Voice.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -123,10 +126,11 @@ func TestVoiceLogs_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Logs.Voice.Get("vl-99")
+	bodyResp, err := client.Logs.Voice.Get("vl-99")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -150,10 +154,11 @@ func TestFaxLogs_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Logs.Fax.List(nil)
+	bodyResp, err := client.Logs.Fax.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -182,10 +187,11 @@ func TestFaxLogs_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Logs.Fax.Get("fl-7")
+	bodyResp, err := client.Logs.Fax.Get("fl-7")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -209,10 +215,11 @@ func TestConferenceLogs_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Logs.Conferences.List(nil)
+	bodyResp, err := client.Logs.Conferences.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}

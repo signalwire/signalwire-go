@@ -140,17 +140,57 @@ Function Call → Template Expansion → HTTP Request → Response Processing �
 | **Development Speed** | Slower (code + deploy) | Faster (configuration only) |
 
 **Traditional Webhook Example:**
-```python
-def search_knowledge(args, post_data):
-    # Custom HTTP request logic
-    response = requests.post("https://api.example.com/search", 
-                           json={"query": args["query"]})
-    # Custom error handling
-    if response.status_code != 200:
-        return {"error": "API request failed"}
-    # Custom response processing
-    data = response.json()
-    return {"response": f"Found: {data['results'][0]['text']}"}
+<!-- snippet-setup -->
+```go
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared agent established in prose above.
+var a = agent.NewAgentBase()
+
+var (
+	_ = a
+	_ = json.Marshal
+	_ = http.MethodGet
+	_ = bytes.NewReader
+	_ = swaig.NewFunctionResult
+)
+```
+
+```go
+a.DefineTool(agent.ToolDefinition{
+	Name:        "search_knowledge",
+	Description: "Search the knowledge base",
+	Parameters: map[string]any{
+		"query": map[string]any{"type": "string", "description": "Search terms"},
+	},
+	Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+		query, _ := args["query"].(string)
+		// Custom HTTP request logic
+		body, _ := json.Marshal(map[string]any{"query": query})
+		resp, err := http.Post("https://api.example.com/search",
+			"application/json", bytes.NewReader(body))
+		// Custom error handling
+		if err != nil || resp.StatusCode != http.StatusOK {
+			return swaig.NewFunctionResult("API request failed")
+		}
+		defer resp.Body.Close()
+		// Custom response processing
+		var data struct {
+			Results []struct {
+				Text string `json:"text"`
+			} `json:"results"`
+		}
+		json.NewDecoder(resp.Body).Decode(&data)
+		return swaig.NewFunctionResult("Found: " + data.Results[0].Text)
+	},
+})
 ```
 
 **DataMap Equivalent:**
@@ -2291,41 +2331,56 @@ For common patterns, convenience functions simplify DataMap creation:
 
 #### Simple API Tool
 
-```python
-from signalwire_agents.core.data_map import create_simple_api_tool
+```go
+import "github.com/signalwire/signalwire-go/pkg/datamap"
 
-weather = create_simple_api_tool(
-    name='get_weather',
-    url='https://api.weather.com/v1/current?key=API_KEY&q=${location}',
-    response_template='Weather: ${response.current.condition.text}, ${response.current.temp_f}°F',
-    parameters={
-        'location': {
-            'type': 'string',
-            'description': 'City name',
-            'required': True
-        }
-    },
-    headers={'X-API-Key': 'your-api-key'},
-    error_keys=['error']
+weather := datamap.CreateSimpleAPITool(
+	"get_weather",
+	"https://api.weather.com/v1/current?key=API_KEY&q=${location}",
+	"Weather: ${response.current.condition.text}, ${response.current.temp_f}°F",
+	map[string]map[string]any{
+		"location": {
+			"type":        "string",
+			"description": "City name",
+			"required":    true,
+		},
+	},
+	"GET",                                      // method
+	map[string]string{"X-API-Key": "your-api-key"}, // headers
+	nil,                                        // body
+	[]string{"error"},                          // errorKeys
 )
+_ = weather
 ```
 
 #### Expression Tool
 
-```python
-from signalwire_agents.core.data_map import create_expression_tool
-
-control = create_expression_tool(
-    name='media_control',
-    patterns={
-        r'start|play|begin': SwaigFunctionResult().add_action('start', True),
-        r'stop|end|pause': SwaigFunctionResult().add_action('stop', True),
-        r'next|skip': SwaigFunctionResult().add_action('next', True)
-    },
-    parameters={
-        'command': {'type': 'string', 'description': 'Control command'}
-    }
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/datamap"
 )
+
+// Each entry pairs the test value (evaluated against the args) with the
+// regex pattern and the FunctionResult to return on a match.
+control := datamap.CreateExpressionTool(
+	"media_control",
+	map[string]datamap.ExpressionPattern{
+		"${args.command}": {
+			Pattern: `start|play|begin`,
+			Result:  swaig.NewFunctionResult("").AddAction("start", true),
+		},
+	},
+	map[string]map[string]any{
+		"command": {"type": "string", "description": "Control command"},
+	},
+)
+
+// Add the remaining patterns for the same test value with Expression:
+control.
+	Expression("${args.command}", `stop|end|pause`,
+		swaig.NewFunctionResult("").AddAction("stop", true), nil).
+	Expression("${args.command}", `next|skip`,
+		swaig.NewFunctionResult("").AddAction("next", true), nil)
 ```
 
 ### 12.1 Multiple Webhook Fallback Chains

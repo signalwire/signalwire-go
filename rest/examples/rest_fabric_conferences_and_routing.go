@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -44,11 +45,9 @@ func main() {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  List addresses failed: %d\n", restErr.StatusCode)
 		}
-	} else if data, ok := addrs["data"].([]any); ok {
-		for _, a := range data {
-			if m, ok := a.(map[string]any); ok {
-				fmt.Printf("  - %v\n", m["display_name"])
-			}
+	} else {
+		for _, a := range addrs.Data {
+			fmt.Printf("  - %v\n", a.DisplayName)
 		}
 	}
 
@@ -95,27 +94,26 @@ func main() {
 	fmt.Println("\nListing all fabric resources...")
 	resources, err := client.Fabric.Resources.List(nil)
 	if err == nil {
-		if data, ok := resources["data"].([]any); ok {
-			limit := 5
-			if len(data) < limit {
-				limit = len(data)
-			}
-			for _, r := range data[:limit] {
-				if m, ok := r.(map[string]any); ok {
-					fmt.Printf("  - %v: %v\n", m["type"], m["display_name"])
-				}
+		data := resources.Data
+		limit := 5
+		if len(data) < limit {
+			limit = len(data)
+		}
+		for _, r := range data[:limit] {
+			if m, ok := r.(map[string]any); ok {
+				fmt.Printf("  - %v: %v\n", m["type"], m["display_name"])
 			}
 		}
 	}
 
 	// 7. Get a specific generic resource
-	if resources != nil {
-		if data, ok := resources["data"].([]any); ok && len(data) > 0 {
-			if first, ok := data[0].(map[string]any); ok {
-				if id, ok := first["id"].(string); ok {
-					detail, err := client.Fabric.Resources.Get(id)
-					if err == nil {
-						fmt.Printf("  Resource detail: %v (%v)\n", detail["display_name"], detail["type"])
+	if resources != nil && len(resources.Data) > 0 {
+		if first, ok := resources.Data[0].(map[string]any); ok {
+			if id, ok := first["id"].(string); ok {
+				detail, err := client.Fabric.Resources.Get(id, nil)
+				if err == nil {
+					if m, ok := (*detail).(map[string]any); ok {
+						fmt.Printf("  Resource detail: %v (%v)\n", m["display_name"], m["type"])
 					}
 				}
 			}
@@ -128,9 +126,9 @@ func main() {
 
 	// 8. Assign a domain application (demo)
 	fmt.Println("\nAssigning domain application (demo)...")
-	_, err = client.Fabric.Resources.AssignDomainApplication(relayID, map[string]any{
+	_, err = client.Fabric.Resources.AssignDomainApplication(relayID, namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{
 		"domain": "app.example.com",
-	})
+	}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Domain assignment failed (expected in demo): %d\n", restErr.StatusCode)
@@ -141,39 +139,39 @@ func main() {
 
 	// 9. Generate tokens
 	fmt.Println("\nGenerating tokens...")
-	guest, err := client.Fabric.Tokens.CreateGuestToken(map[string]any{"resource_id": relayID})
+	guest, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Guest token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		token, _ := guest["token"].(string)
+		token := string(guest.Token)
 		if len(token) > 40 {
 			token = token[:40]
 		}
 		fmt.Printf("  Guest token: %s...\n", token)
 	}
 
-	invite, err := client.Fabric.Tokens.CreateInviteToken(map[string]any{"resource_id": relayID})
+	invite, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Invite token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		token, _ := invite["token"].(string)
+		token := string(invite.Token)
 		if len(token) > 40 {
 			token = token[:40]
 		}
 		fmt.Printf("  Invite token: %s...\n", token)
 	}
 
-	embed, err := client.Fabric.Tokens.CreateEmbedToken(map[string]any{"resource_id": relayID})
+	embed, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Embed token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		token, _ := embed["token"].(string)
+		token := string(embed.Token)
 		if len(token) > 40 {
 			token = token[:40]
 		}

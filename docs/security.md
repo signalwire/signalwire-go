@@ -70,17 +70,29 @@ export SWML_BASIC_AUTH_PASSWORD=mysecurepassword
 
 SWML-based services automatically use the unified security configuration:
 
-```python
-from signalwire_agents import AgentBase
+<!-- snippet-setup -->
+```go
+import (
+	"github.com/signalwire/signalwire-go/pkg/agent"
+)
 
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="secure-agent", route="/agent")
-        # Security is automatically configured from environment
+// Shared context the fragments below assume.
+var a = agent.NewAgentBase()
 
-# The agent will use HTTPS if SWML_SSL_ENABLED=true
-agent = MyAgent()
-agent.run()
+var (
+	_ = a
+)
+```
+
+```go
+// Security is automatically configured from the environment
+a = agent.NewAgentBase(
+    agent.WithName("secure-agent"),
+    agent.WithRoute("/agent"),
+)
+
+// The agent will use HTTPS if SWML_SSL_ENABLED=true
+a.Run()
 ```
 
 ### Remote Search Server
@@ -96,7 +108,7 @@ loopback, and link-local addresses are rejected unless `SWML_ALLOW_PRIVATE_URLS`
 set to a truthy value (intended for local/test environments only).
 
 ```go
-agent.AddSkill("native_vector_search", map[string]any{
+a.AddSkill("native_vector_search", map[string]any{
     "remote_url": "https://user:pass@search.example.com:8001",
     "index_name": "docs",
 })
@@ -185,12 +197,12 @@ export SWML_RATE_LIMIT=20
 
 Monitor security-related logs:
 
-```python
-# Security events are logged with structured data
-# Look for log entries with:
-# - "security_config_loaded" - Configuration details
-# - "ssl_config_invalid" - SSL configuration errors
-# - "starting_search_service" / "starting_server" - Service startup with security info
+```text
+Security events are logged with structured data.
+Look for log entries with:
+- "security_config_loaded" - Configuration details
+- "ssl_config_invalid" - SSL configuration errors
+- "starting_search_service" / "starting_server" - Service startup with security info
 ```
 
 ## Migration Guide

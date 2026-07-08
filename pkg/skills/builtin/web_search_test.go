@@ -489,7 +489,7 @@ func TestWebSearch_Handler_ParallelFastPathScrapesContent(t *testing.T) {
 	}
 }
 
-// Schema drift guard (Python parity: test_every_setup_param_is_advertised).
+// Schema drift guard (Matches Python: test_every_setup_param_is_advertised).
 // Every latency/response param read in Setup() must be advertised in the schema
 // with the matching type + default.
 func TestWebSearch_Schema_AdvertisesLatencyAndResponseParams(t *testing.T) {

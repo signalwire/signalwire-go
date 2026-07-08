@@ -14,17 +14,23 @@ var (
 	registryMu sync.RWMutex
 )
 
-// SkillRegistry is the per-instance Python-parity surface mirroring
+// SkillRegistry is the per-instance Python-equivalent surface mirroring
 // `signalwire.skills.registry.SkillRegistry`. Each instance owns its
 // own list of external skill directories, validated and de-duplicated
 // on insert. The package-level `RegisterSkill` / `GetSkillFactory` /
 // `ListSkills` functions remain the canonical Go API for static
 // compile-time skill registration; `SkillRegistry` exists so the
-// `add_skill_directory` parity case has a real owning object the
+// `add_skill_directory` compatibility case has a real owning object the
 // audit and downstream callers can hold.
 type SkillRegistry struct {
 	mu            sync.Mutex
 	externalPaths []string
+	// skills is the per-instance name -> factory map that mirrors Python's
+	// SkillRegistry._skills (name -> class). register_skill populates it and it
+	// is idempotent: re-registering the same name is a no-op (Python warns and
+	// keeps the first). This is the direct class-registration surface, distinct
+	// from the directory-discovery externalPaths above.
+	skills map[string]func(params map[string]any) SkillBase
 }
 
 // NewSkillRegistry constructs a new SkillRegistry. The Python reference
@@ -32,7 +38,42 @@ type SkillRegistry struct {
 // construct their own via NewSkillRegistry() or use the global
 // `globalRegistry` accessed through the package-level helpers.
 func NewSkillRegistry() *SkillRegistry {
-	return &SkillRegistry{externalPaths: nil}
+	return &SkillRegistry{
+		externalPaths: nil,
+		skills:        make(map[string]func(params map[string]any) SkillBase),
+	}
+}
+
+// RegisterSkill registers a skill factory by name into this registry (the
+// instance-level analog of Python's SkillRegistry.register_skill(cls), which
+// stores self._skills[cls.SKILL_NAME] = cls). Registration is idempotent:
+// re-registering an already-present name is a no-op, matching Python (which
+// warns and keeps the first). Returns true if the skill was newly added.
+func (r *SkillRegistry) RegisterSkill(name string, factory func(params map[string]any) SkillBase) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.skills == nil {
+		r.skills = make(map[string]func(params map[string]any) SkillBase)
+	}
+	if _, exists := r.skills[name]; exists {
+		return false
+	}
+	r.skills[name] = factory
+	return true
+}
+
+// RegisteredNames returns the sorted names of skills registered on this
+// instance via RegisterSkill — the compatibility accessor for Python's
+// sorted(SkillRegistry._skills.keys()).
+func (r *SkillRegistry) RegisteredNames() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	out := make([]string, 0, len(r.skills))
+	for n := range r.skills {
+		out = append(out, n)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // globalRegistry backs the package-level `AddSkillDirectory` shim so
@@ -75,7 +116,7 @@ func (r *SkillRegistry) AddSkillDirectory(path string) error {
 }
 
 // ExternalPaths returns a copy of the registered external skill
-// directories. Parity surface for Python's `_external_paths`.
+// directories. Compatibility surface for Python's `_external_paths`.
 func (r *SkillRegistry) ExternalPaths() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()

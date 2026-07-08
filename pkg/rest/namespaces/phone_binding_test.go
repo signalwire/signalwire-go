@@ -8,15 +8,9 @@
 package namespaces
 
 import (
-	"bytes"
-	"io"
-	"log"
-	"os"
 	"strings"
 	"sync"
 	"testing"
-
-	"github.com/signalwire/signalwire-go/pkg/logging"
 )
 
 // ---------------------------------------------------------------------------
@@ -188,7 +182,7 @@ func TestSetSwmlWebhook_Extra(t *testing.T) {
 
 func TestSetCxmlWebhook_Minimal(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", nil)
+	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", nil, nil)
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "laml_webhooks" {
 		t.Errorf("call_handler = %v, want laml_webhooks", body["call_handler"])
@@ -206,10 +200,9 @@ func TestSetCxmlWebhook_Minimal(t *testing.T) {
 
 func TestSetCxmlWebhook_WithFallbackAndStatus(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", &CxmlWebhookOptions{
-		FallbackURL:       "https://example.com/fallback.xml",
-		StatusCallbackURL: "https://example.com/status",
-	})
+	fallback := "https://example.com/fallback.xml"
+	status := "https://example.com/status"
+	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", &fallback, &status)
 	body := mock.Calls()[0].Body
 	want := map[string]any{
 		"call_handler":             "laml_webhooks",
@@ -268,7 +261,8 @@ func TestSetCallFlow_Minimal(t *testing.T) {
 
 func TestSetCallFlow_WithVersion(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCallFlow("pn-1", "cf-1", &CallFlowOptions{Version: "current_deployed"})
+	version := "current_deployed"
+	_, _ = pn.SetCallFlow("pn-1", "cf-1", &version)
 	body := mock.Calls()[0].Body
 	if body["call_flow_version"] != "current_deployed" {
 		t.Errorf("call_flow_version = %v, want current_deployed", body["call_flow_version"])
@@ -301,9 +295,8 @@ func TestSetRelayTopic_Minimal(t *testing.T) {
 
 func TestSetRelayTopic_WithStatusCallback(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetRelayTopic("pn-1", "office", &RelayTopicOptions{
-		StatusCallbackURL: "https://example.com/status",
-	})
+	statusCB := "https://example.com/status"
+	_, _ = pn.SetRelayTopic("pn-1", "office", &statusCB)
 	body := mock.Calls()[0].Body
 	if body["call_relay_topic_status_callback_url"] != "https://example.com/status" {
 		t.Errorf("call_relay_topic_status_callback_url = %v",
@@ -373,151 +366,6 @@ func TestBindingRegression_EnumConstantMatchesWireValue(t *testing.T) {
 	if body["call_handler"] != "relay_script" {
 		t.Errorf("call_handler = %v, want relay_script (from PhoneCallHandlerRelayScript)",
 			body["call_handler"])
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Deprecation warnings
-// ---------------------------------------------------------------------------
-
-// withCapturedStderr redirects os.Stderr for the duration of fn, builds a
-// fresh package-level deprecation logger that writes to the redirected
-// stderr, and restores both afterwards. Returns the captured output.
-//
-// The deprecationLogger is rebuilt inside the redirect because
-// logging.New(...) captures os.Stderr at construction time.
-func withCapturedStderr(t *testing.T, fn func()) string {
-	t.Helper()
-	ResetDeprecationWarnOnce()
-
-	origStderr := os.Stderr
-	origLogOut := log.Default().Writer()
-
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("pipe: %v", err)
-	}
-	os.Stderr = w
-	log.SetOutput(w)
-
-	buf := &bytes.Buffer{}
-	done := make(chan struct{})
-	go func() {
-		_, _ = io.Copy(buf, r)
-		close(done)
-	}()
-
-	prevLevel := logging.GetGlobalLevel()
-	logging.SetGlobalLevel(logging.LevelWarn)
-	// Logger is constructed here so it captures the redirected stderr.
-	prevLogger := SetDeprecationLogger(logging.New("rest_deprecation_test"))
-
-	// Run the test body.
-	fn()
-
-	// Restore everything: close the write end so the copier finishes,
-	// then put stderr and log output back.
-	SetDeprecationLogger(prevLogger)
-	logging.SetGlobalLevel(prevLevel)
-	_ = w.Close()
-	<-done
-	os.Stderr = origStderr
-	log.SetOutput(origLogOut)
-
-	return buf.String()
-}
-
-func TestDeprecation_AssignPhoneRoute(t *testing.T) {
-	var output string
-	var callCount int
-	var lastMethod string
-	var lastPath string
-
-	output = withCapturedStderr(t, func() {
-		mock := &callRecorder{resp: map[string]any{}}
-		f := NewFabricNamespace(mock)
-		_, _ = f.Resources.AssignPhoneRoute("res-1", map[string]any{"phone_number": "+15551234567"})
-		calls := mock.Calls()
-		callCount = len(calls)
-		if callCount > 0 {
-			lastMethod = calls[0].Method
-			lastPath = calls[0].Path
-		}
-	})
-
-	if !strings.Contains(output, "phone_numbers.Set") {
-		t.Errorf("expected deprecation warning mentioning phone_numbers.Set*, got %q", output)
-	}
-	if !strings.Contains(output, "WARN") {
-		t.Errorf("expected WARN prefix in output, got %q", output)
-	}
-	// Backcompat: POST still happens.
-	if callCount != 1 {
-		t.Errorf("calls = %d, want 1 (backcompat: method still works)", callCount)
-	}
-	if lastMethod != "POST" {
-		t.Errorf("method = %q, want POST", lastMethod)
-	}
-	if !strings.HasSuffix(lastPath, "/phone_routes") {
-		t.Errorf("path = %q, want /phone_routes suffix", lastPath)
-	}
-}
-
-func TestDeprecation_SwmlWebhooksCreate(t *testing.T) {
-	var output string
-	var calls []recordedCall
-
-	output = withCapturedStderr(t, func() {
-		mock := &callRecorder{resp: map[string]any{}}
-		f := NewFabricNamespace(mock)
-		_, _ = f.SWMLWebhooks.Create(map[string]any{"name": "test"})
-		calls = mock.Calls()
-	})
-
-	if !strings.Contains(output, "SetSwmlWebhook") {
-		t.Errorf("expected deprecation warning mentioning SetSwmlWebhook, got %q", output)
-	}
-	// Backcompat: direct create still posts.
-	if len(calls) != 1 || calls[0].Method != "POST" {
-		t.Errorf("expected 1 POST call, got %+v", calls)
-	}
-}
-
-func TestDeprecation_CxmlWebhooksCreate(t *testing.T) {
-	var output string
-	var calls []recordedCall
-
-	output = withCapturedStderr(t, func() {
-		mock := &callRecorder{resp: map[string]any{}}
-		f := NewFabricNamespace(mock)
-		_, _ = f.CXMLWebhooks.Create(map[string]any{"name": "test"})
-		calls = mock.Calls()
-	})
-
-	if !strings.Contains(output, "SetCxmlWebhook") {
-		t.Errorf("expected deprecation warning mentioning SetCxmlWebhook, got %q", output)
-	}
-	if len(calls) != 1 || calls[0].Method != "POST" {
-		t.Errorf("expected 1 POST call, got %+v", calls)
-	}
-}
-
-// TestDeprecation_WebhooksNonCreateOpsUnchanged confirms list/get/update/delete
-// on the webhook resources don't fire the deprecation warning.
-func TestDeprecation_WebhooksNonCreateOpsUnchanged(t *testing.T) {
-	output := withCapturedStderr(t, func() {
-		mock := &callRecorder{resp: map[string]any{}}
-		f := NewFabricNamespace(mock)
-		_, _ = f.SWMLWebhooks.List(nil)
-		_, _ = f.SWMLWebhooks.Get("wh-1")
-		_, _ = f.SWMLWebhooks.Update("wh-1", map[string]any{"name": "renamed"})
-		_, _ = f.SWMLWebhooks.Delete("wh-1")
-		_, _ = f.CXMLWebhooks.List(nil)
-		_, _ = f.CXMLWebhooks.Get("wh-2")
-	})
-	if strings.Contains(output, "orphan") || strings.Contains(output, "SetSwmlWebhook") ||
-		strings.Contains(output, "SetCxmlWebhook") {
-		t.Errorf("non-Create ops should not emit deprecation warnings, got %q", output)
 	}
 }
 

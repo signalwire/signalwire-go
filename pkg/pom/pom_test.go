@@ -1,11 +1,10 @@
 // Tests for pkg/pom — every assertion is paired with the Python
 // reference test in:
 //
-//	signalwire-python/tests/unit/pom/test_pom_render_parity.py
-//	signalwire-python/tests/unit/pom/test_pom_object_model.py
+//	signalwire-python/tests/unit/pom/  (the render + object-model suites)
 //
 // Each test uses exact-string assertions to guarantee byte-for-byte
-// parity with the Python renderer (no substring shortcuts).
+// compatibility with the Python renderer (no substring shortcuts).
 package pom
 
 import (

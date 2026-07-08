@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 func main() {
@@ -84,15 +85,13 @@ func main() {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Member ops failed (expected if queue empty): %d\n", restErr.StatusCode)
 			}
-		} else if data, ok := members["data"].([]any); ok {
-			for _, m := range data {
-				if member, ok := m.(map[string]any); ok {
-					fmt.Printf("  - Member: %v\n", member["call_id"])
-				}
+		} else {
+			for _, member := range members.Data {
+				fmt.Printf("  - Member: %v\n", member.CallId)
 			}
 		}
 
-		next, err := client.Queues.GetNextMember(queueID)
+		next, err := client.Queues.GetNextMember(queueID, nil)
 		if err == nil {
 			fmt.Printf("  Next member: %v\n", next)
 		}
@@ -104,28 +103,25 @@ func main() {
 	fmt.Println("\nListing recordings...")
 	recordings, err := client.Recordings.List(nil)
 	if err == nil {
-		if data, ok := recordings["data"].([]any); ok {
-			limit := 5
-			if len(data) < limit {
-				limit = len(data)
-			}
-			for _, r := range data[:limit] {
-				if m, ok := r.(map[string]any); ok {
-					fmt.Printf("  - %s: %vs\n", m["id"], m["duration"])
-				}
+		data := recordings.Data
+		limit := 5
+		if len(data) < limit {
+			limit = len(data)
+		}
+		for _, r := range data[:limit] {
+			if m, ok := r.(map[string]any); ok {
+				fmt.Printf("  - %s: %vs\n", m["id"], m["duration"])
 			}
 		}
 	}
 
 	// 6. Get recording details
-	if recordings != nil {
-		if data, ok := recordings["data"].([]any); ok && len(data) > 0 {
-			if first, ok := data[0].(map[string]any); ok {
-				if id, ok := first["id"].(string); ok {
-					recDetail, err := client.Recordings.Get(id)
-					if err == nil {
-						fmt.Printf("  Recording: %vs, %v\n", recDetail["duration"], recDetail["format"])
-					}
+	if recordings != nil && len(recordings.Data) > 0 {
+		if first, ok := recordings.Data[0].(map[string]any); ok {
+			if id, ok := first["id"].(string); ok {
+				recDetail, err := client.Recordings.Get(id, nil)
+				if err == nil {
+					fmt.Printf("  Recording: %vs, %v\n", recDetail["duration"], recDetail["format"])
 				}
 			}
 		}
@@ -136,48 +132,41 @@ func main() {
 	// 7. Send MFA via SMS
 	fmt.Println("\nSending MFA SMS code...")
 	var requestID string
-	smsResult, err := client.MFA.SMS(map[string]any{
+	smsResult, err := client.MFA.SMS(namespaces.MFANamespaceSMSParams{Extras: map[string]any{
 		"to":           "+15551234567",
 		"from":         "+15559876543",
 		"message":      "Your code is {{code}}",
 		"token_length": 6,
-	})
+	}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  MFA SMS failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		requestID, _ = smsResult["id"].(string)
-		if requestID == "" {
-			requestID, _ = smsResult["request_id"].(string)
-		}
+		requestID = string(smsResult.Id)
 		fmt.Printf("  MFA SMS sent: %s\n", requestID)
 	}
 
 	// 8. Send MFA via voice call
 	fmt.Println("\nSending MFA voice code...")
-	voiceResult, err := client.MFA.Call(map[string]any{
+	voiceResult, err := client.MFA.Call(namespaces.MFANamespaceCallParams{Extras: map[string]any{
 		"to":           "+15551234567",
 		"from":         "+15559876543",
 		"message":      "Your verification code is {{code}}",
 		"token_length": 6,
-	})
+	}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  MFA call failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		vID, _ := voiceResult["id"].(string)
-		if vID == "" {
-			vID, _ = voiceResult["request_id"].(string)
-		}
-		fmt.Printf("  MFA call sent: %s\n", vID)
+		fmt.Printf("  MFA call sent: %s\n", string(voiceResult.Id))
 	}
 
 	// 9. Verify MFA token
 	if requestID != "" {
 		fmt.Println("\nVerifying MFA token...")
-		verify, err := client.MFA.Verify(requestID, map[string]any{"token": "123456"})
+		verify, err := client.MFA.Verify(requestID, namespaces.MFANamespaceVerifyParams{Extras: map[string]any{"token": "123456"}})
 		if err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Verify failed (expected in demo): %d\n", restErr.StatusCode)

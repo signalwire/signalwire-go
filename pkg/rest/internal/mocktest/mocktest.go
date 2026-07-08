@@ -5,7 +5,7 @@
 // Licensed under the MIT License.
 // See LICENSE file in the project root for full license information.
 
-// Package mocktest is the Go test helper for the porting-sdk mock_signalwire
+// Package mocktest is the Go test helper for the shared mock_signalwire server
 // HTTP server. It mirrors the Python conftest fixtures (signalwire_client +
 // mock) so unit tests can exercise the real SDK code path against a real
 // HTTP server backed by SignalWire's 13 OpenAPI specs.
@@ -226,12 +226,12 @@ const defaultPort = 8765
 const startupTimeout = 30 * time.Second
 
 // discoverPortingSDKPackage walks up from this source file looking for an
-// adjacent “porting-sdk/test_harness/<name>/<name>/__init__.py“. The
-// adjacency contract is "porting-sdk lives next to signalwire-go in ~/src/",
+// adjacent “the shared test harness package's __init__.py“. The
+// adjacency contract is "the shared test harness lives next to signalwire-go in ~/src/",
 // so a fresh clone of either repo can find the mock harness with no prior
 // pip install. Returns the absolute path to the directory containing the
 // Python package (i.e. the path that should be added to PYTHONPATH so that
-// “python -m <name>“ resolves), or "" when no adjacent porting-sdk is
+// “python -m <name>“ resolves), or "" when no adjacent test harness is
 // reachable.
 func discoverPortingSDKPackage(name string) string {
 	_, file, _, ok := runtime.Caller(0)

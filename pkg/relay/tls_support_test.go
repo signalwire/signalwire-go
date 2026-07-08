@@ -46,7 +46,7 @@ func (b *tlsSyncBuffer) String() string {
 	return b.buf.String()
 }
 
-// trustTestCA wires the porting-sdk throwaway CA into Go's system cert pool by
+// trustTestCA wires the shared throwaway CA into Go's system cert pool by
 // setting SSL_CERT_FILE to certs/ca.crt (running the idempotent gen_certs.sh
 // first). gorilla/websocket's dialer and net/http both consult that pool when
 // their TLSClientConfig.RootCAs is nil — which is how the RELAY client builds
@@ -58,7 +58,7 @@ func (b *tlsSyncBuffer) String() string {
 // it at the top of the test, before any dial, is sufficient. The negative
 // subtest supplies an explicit empty pool and is therefore unaffected.
 //
-// Skips the test when porting-sdk is not adjacent (matching the mocktest
+// Skips the test when the shared test harness is not adjacent (matching the mocktest
 // adjacency contract).
 func trustTestCA(t *testing.T) {
 	t.Helper()
@@ -76,7 +76,7 @@ func trustTestCA(t *testing.T) {
 	t.Setenv("SSL_CERT_FILE", caPath)
 }
 
-// findTLSCertsDir walks up to porting-sdk/test_harness/tls, runs the idempotent
+// findTLSCertsDir walks up to the shared test harness's tls directory, runs the idempotent
 // gen_certs.sh, and returns the certs dir, or "" when not adjacent / on error.
 func findTLSCertsDir() string {
 	_, file, _, ok := runtime.Caller(0)
@@ -140,7 +140,7 @@ func (m *tlsMockRelay) sawRecvMethod(t *testing.T, method string) bool {
 }
 
 // startTLSMockRelay spawns `python -m mock_relay --tls` on a dedicated WS+HTTP
-// port pair, injecting porting-sdk/test_harness/mock_relay into PYTHONPATH via
+// port pair, injecting the shared test harness's mock_relay package into PYTHONPATH via
 // the adjacency walk. It waits for the plain-HTTP control plane to answer
 // /__mock__/health, registers a Kill cleanup, and skips the test when the
 // harness is unavailable.
@@ -202,7 +202,7 @@ func startTLSMockRelay(t *testing.T) *tlsMockRelay {
 	return nil
 }
 
-// discoverHarnessPkg walks up to porting-sdk/test_harness/<name>, returning the
+// discoverHarnessPkg walks up to the shared test harness package, returning the
 // dir to prepend to PYTHONPATH (so `python -m <name>` resolves), or "".
 func discoverHarnessPkg(name string) string {
 	_, file, _, ok := runtime.Caller(0)

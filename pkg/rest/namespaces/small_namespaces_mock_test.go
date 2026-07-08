@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 // ---------- Short Codes ----------
@@ -37,10 +38,11 @@ func TestShortCodes_List(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.List(map[string]any{"page_size": 20})
+	bodyResp, err := client.ShortCodes.List(map[string]string{"page_size": "20"})
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data' in %v", keys(body))
@@ -66,10 +68,11 @@ func TestShortCodes_Get(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.Get("sc-1")
+	bodyResp, err := client.ShortCodes.Get("sc-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("missing 'id' in %v", keys(body))
 	}
@@ -91,12 +94,13 @@ func TestShortCodes_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ShortCodes.Update("sc-1", map[string]any{
+	bodyResp, err := client.ShortCodes.Update("sc-1", namespaces.ShortCodesNamespaceUpdateParams{Extras: map[string]any{
 		"name": "Marketing SMS",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("missing 'id' in %v", keys(body))
 	}
@@ -128,15 +132,16 @@ func TestImportedNumbers_Create(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.ImportedNumbers.Create(map[string]any{
+	bodyResp, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreateParams{Extras: map[string]any{
 		"number":       "+15551234567",
 		"sip_username": "alice",
 		"sip_password": "secret",
 		"sip_proxy":    "sip.example.com",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("missing 'id' in %v", keys(body))
 	}
@@ -173,14 +178,15 @@ func TestMFA_Call(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.MFA.Call(map[string]any{
+	bodyResp, err := client.MFA.Call(namespaces.MFANamespaceCallParams{Extras: map[string]any{
 		"to":      "+15551234567",
 		"from_":   "+15559876543",
 		"message": "Your code is {code}",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Call: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("missing 'id' in %v", keys(body))
 	}
@@ -217,13 +223,14 @@ func TestSipProfile_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.SIPProfile.Update(map[string]any{
+	bodyResp, err := client.SIPProfile.Update(namespaces.SIPProfileNamespaceUpdateParams{Extras: map[string]any{
 		"domain":         "myco.sip.signalwire.com",
 		"default_codecs": []string{"PCMU", "PCMA"},
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	_, hasDomain := body["domain"]
 	_, hasCodecs := body["default_codecs"]
 	if !hasDomain && !hasCodecs {
@@ -263,12 +270,13 @@ func TestNumberGroups_ListMemberships(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.NumberGroups.ListMemberships("ng-1", map[string]string{
+	bodyResp, err := client.NumberGroups.ListMemberships("ng-1", map[string]string{
 		"page_size": "10",
 	})
 	if err != nil {
 		t.Fatalf("ListMemberships: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data' in %v", keys(body))
@@ -297,10 +305,11 @@ func TestNumberGroups_DeleteMembership(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.NumberGroups.DeleteMembership("mem-1")
+	bodyResp, err := client.NumberGroups.DeleteMembership("mem-1")
 	if err != nil {
 		t.Fatalf("DeleteMembership: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -329,12 +338,13 @@ func TestProjectTokens_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Project.Tokens.Update("tok-1", map[string]any{
+	bodyResp, err := client.Project.Tokens.Update("tok-1", namespaces.ProjectTokensUpdateParams{Extras: map[string]any{
 		"name": "renamed-token",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("missing 'id' in %v", keys(body))
 	}
@@ -363,10 +373,11 @@ func TestProjectTokens_Delete(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Project.Tokens.Delete("tok-1")
+	bodyResp, err := client.Project.Tokens.Delete("tok-1")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -395,10 +406,11 @@ func TestDatasphere_GetChunk(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-99")
+	bodyResp, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-99", nil)
 	if err != nil {
 		t.Fatalf("GetChunk: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["id"]; !ok {
 		t.Errorf("missing 'id' in %v", keys(body))
 	}
@@ -422,10 +434,11 @@ func TestQueues_GetMember(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Queues.GetMember("q-1", "mem-7")
+	bodyResp, err := client.Queues.GetMember("q-1", "mem-7", nil)
 	if err != nil {
 		t.Fatalf("GetMember: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	_, hasQ := body["queue_id"]
 	_, hasC := body["call_id"]
 	if !hasQ && !hasC {

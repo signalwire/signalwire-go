@@ -26,6 +26,92 @@ import (
 	"strings"
 )
 
+// WebhookRejection is the framework-free rejection triple the decomposed
+// Validate core returns when an inbound signed request fails validation.
+// It mirrors the cross-port decomposed contract
+// signalwire.core.security.webhook_middleware.validate, whose return is
+// optional<tuple<int,dict<string,string>,string>> — a nil *WebhookRejection
+// means "pass" (the request is authentic), a non-nil value carries the
+// (status, headers, body) an HTTP layer should send back to reject.
+//
+// This is the SAME shape dotnet ships as WebhookValidationMiddleware.Validate
+// and that Rack/PSGI middleware responses literally are — the decision core
+// every port's framework wrapper is built on. The http.Handler middleware
+// (WebhookMiddleware, below) is Go's framework wrapper idiom over this core.
+type WebhookRejection struct {
+	// Status is the HTTP status code to return (403 for a failed signature).
+	Status int
+	// Headers are the response headers to send with the rejection.
+	Headers map[string]string
+	// Body is the response body (kept detail-free — never leaks which branch
+	// failed, which scheme was tried, or the expected signature).
+	Body string
+}
+
+// Validate is the framework-free decomposed webhook-validation core
+// (cross-port contract signalwire.core.security.webhook_middleware.validate):
+// given the primitives of an inbound HTTP request — method, the full public
+// url, the request headers, and the raw body — it returns nil when the
+// request carries a valid SignalWire signature ("pass"), or a
+// *WebhookRejection carrying the (status, headers, body) an HTTP layer should
+// send to reject the request.
+//
+// It pulls X-SignalWire-Signature (falling back to the legacy
+// X-Twilio-Signature alias for cXML compatibility, per webhooks.md §"The
+// Header"), then delegates the actual HMAC check to ValidateWebhookSignatureE.
+// A missing header or a bad signature both reject with 403 and no detail; a
+// missing signing key is a programmer error and panics (matching the
+// bool-returning validator entry points).
+//
+// The framework middleware WebhookMiddleware is a thin http.Handler wrapper
+// over this core; other embeddings (a serverless handler, a manual dispatch)
+// can call Validate directly with the four primitives.
+func Validate(method, url string, headers map[string]string, body string, signingKey string) *WebhookRejection {
+	if signingKey == "" {
+		panic(ErrMissingSigningKey)
+	}
+
+	sig := headerLookup(headers, "X-SignalWire-Signature")
+	if sig == "" {
+		sig = headerLookup(headers, "X-Twilio-Signature")
+	}
+	if sig == "" {
+		return forbidden()
+	}
+
+	ok, err := ValidateWebhookSignatureE(signingKey, sig, url, body)
+	if err != nil || !ok {
+		return forbidden()
+	}
+	return nil
+}
+
+// forbidden builds the canonical 403 rejection triple. Body carries no branch
+// detail, per webhooks.md §"Required SDK Behaviors / Error modes".
+func forbidden() *WebhookRejection {
+	return &WebhookRejection{
+		Status:  http.StatusForbidden,
+		Headers: map[string]string{"Content-Type": "text/plain; charset=utf-8"},
+		Body:    "Forbidden",
+	}
+}
+
+// headerLookup does a case-insensitive header fetch over a plain string map
+// (the decomposed core takes primitives, not an http.Header). HTTP header
+// names are case-insensitive, so a caller passing "x-signalwire-signature"
+// still matches.
+func headerLookup(headers map[string]string, name string) string {
+	if v, ok := headers[name]; ok {
+		return v
+	}
+	for k, v := range headers {
+		if strings.EqualFold(k, name) {
+			return v
+		}
+	}
+	return ""
+}
+
 // rawBodyKey is an unexported type for the context key, preventing
 // cross-package collisions per the http.Server docs guidance.
 type rawBodyKey struct{}
@@ -77,7 +163,7 @@ type WebhookOpts struct {
 // override consulted).
 //
 // The middleware never logs the signing key, the expected signature, or
-// which validation branch matched — per porting-sdk/webhooks.md §"Required
+// which validation branch matched — per the SignalWire webhooks specification §"Required
 // SDK Behaviors / Error modes".
 func WebhookMiddleware(signingKey string, opts *WebhookOpts) func(http.Handler) http.Handler {
 	if signingKey == "" {
@@ -113,24 +199,20 @@ func WebhookMiddleware(signingKey string, opts *WebhookOpts) func(http.Handler) 
 			// Restore body for downstream handlers — Go consumes r.Body once.
 			r.Body = io.NopCloser(bytes.NewReader(body))
 
-			// Pull signature header. X-SignalWire-Signature is canonical;
-			// X-Twilio-Signature is the legacy alias we honor for cXML
-			// compatibility (per spec §"The Header").
-			sig := r.Header.Get("X-SignalWire-Signature")
-			if sig == "" {
-				sig = r.Header.Get("X-Twilio-Signature")
-			}
-			if sig == "" {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
-
 			// Reconstruct the public URL the platform POSTed to.
 			fullURL := reconstructURL(r, &resolved)
 
-			ok, vErr := ValidateWebhookSignatureE(signingKey, sig, fullURL, string(body))
-			if vErr != nil || !ok {
-				http.Error(w, "Forbidden", http.StatusForbidden)
+			// Delegate the decision to the framework-free decomposed core
+			// (Validate). The middleware is Go's http.Handler wrapper idiom
+			// over that core: it marshals the request into the four primitives
+			// (method, url, headers, body), then either rejects with the
+			// returned triple or forwards to the downstream handler.
+			if rej := Validate(r.Method, fullURL, flattenHeaders(r.Header), string(body), signingKey); rej != nil {
+				for k, v := range rej.Headers {
+					w.Header().Set(k, v)
+				}
+				w.WriteHeader(rej.Status)
+				_, _ = io.WriteString(w, rej.Body)
 				return
 			}
 
@@ -142,9 +224,24 @@ func WebhookMiddleware(signingKey string, opts *WebhookOpts) func(http.Handler) 
 	}
 }
 
+// flattenHeaders collapses an http.Header (map[string][]string) into the
+// plain map[string]string the decomposed Validate core consumes, taking the
+// first value per key. The validator only reads the signature header, so
+// first-value-wins is sufficient and matches how the platform sends a single
+// signature.
+func flattenHeaders(h http.Header) map[string]string {
+	out := make(map[string]string, len(h))
+	for k, v := range h {
+		if len(v) > 0 {
+			out[k] = v[0]
+		}
+	}
+	return out
+}
+
 // reconstructURL rebuilds the public URL the platform saw, honoring proxy
 // headers when opts.TrustProxy is set. Mirrors the URL-reconstruction rules
-// in porting-sdk/webhooks.md §"URL reconstruction behind proxies".
+// in the SignalWire webhooks specification §"URL reconstruction behind proxies".
 func reconstructURL(r *http.Request, opts *WebhookOpts) string {
 	// Explicit override wins over everything.
 	if opts != nil && opts.ProxyURLBase != "" {

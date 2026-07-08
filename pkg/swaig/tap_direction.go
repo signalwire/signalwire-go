@@ -13,7 +13,7 @@ package swaig
 //	fr.Tap("rtp://h:1", "id", "hear", "PCMU", 0, "")                          // bare string still compiles
 //
 // TapDirection is a string subtype, so the value written into the SWML tap
-// params is byte-identical to the bare string the reference uses — parity with
+// params is byte-identical to the bare string the reference uses — compatibility with
 // Python's tap(direction=...) keyword (a plain str). The enumerator emits the
 // direction param as union<TapDirection,string>, so signature drift stays 0
 // against the reference's str (the string member absorbs).

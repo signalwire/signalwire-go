@@ -1,32 +1,54 @@
 # SwaigFunctionResult Methods Reference
 
-SWAIG (SignalWire AI Gateway) is the platform's AI tool-calling system -- it connects the AI's decisions to actions like call transfers, SMS, recordings, and API calls, with native access to the media stack. This document provides a complete reference for all methods available in the `SwaigFunctionResult` class. These methods provide convenient abstractions for SWAIG actions, eliminating the need to manually construct action JSON objects.
+SWAIG (SignalWire AI Gateway) is the platform's AI tool-calling system -- it connects the AI's decisions to actions like call transfers, SMS, recordings, and API calls, with native access to the media stack. This document provides a complete reference for all methods available on the `swaig.FunctionResult` type (package `github.com/signalwire/signalwire-go/pkg/swaig`). These methods provide convenient abstractions for SWAIG actions, eliminating the need to manually construct action JSON objects.
+
+Construct a result with `swaig.NewFunctionResult(response string)`. Every action method returns the receiver (`*swaig.FunctionResult`) so calls can be chained.
+
+<!-- snippet-setup -->
+```go
+import (
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/pkg/swaig"
+)
+
+// Shared context the fragments below assume.
+var result = swaig.NewFunctionResult("")
+var a = agent.NewAgentBase()
+
+var (
+	_ = fmt.Sprint
+	_ = a
+	_ = result
+)
+```
 
 ## Core Methods
 
 ### Basic Construction & Control
 
-#### `__init__(response=None, post_process=False)`
-Creates a new result object with optional response text and post-processing behavior.
+#### `NewFunctionResult(response string) *FunctionResult`
+Creates a new result object with optional response text. Post-processing is off by default; call `SetPostProcess(true)` to enable it.
 
-```python
-result = SwaigFunctionResult("Hello, I'll help you with that")
-result = SwaigFunctionResult("Processing request...", post_process=True)
+```go
+result = swaig.NewFunctionResult("Hello, I'll help you with that")
+result = swaig.NewFunctionResult("Processing request...").SetPostProcess(true)
 ```
 
-#### `set_response(response)`
+#### `SetResponse(response string) *FunctionResult`
 Sets or updates the response text that the AI will speak.
 
-```python
-result.set_response("I've updated your information")
+```go
+result.SetResponse("I've updated your information")
 ```
 
-#### `set_post_process(post_process)`
+#### `SetPostProcess(postProcess bool) *FunctionResult`
 Controls whether AI gets one more turn before executing actions.
 
-```python
-result.set_post_process(True)  # AI speaks response before executing actions
-result.set_post_process(False)  # Actions execute immediately
+```go
+result.SetPostProcess(true)  // AI speaks response before executing actions
+result.SetPostProcess(false) // Actions execute immediately
 ```
 
 ---
@@ -35,57 +57,60 @@ result.set_post_process(False)  # Actions execute immediately
 
 ### Call Control Actions
 
-#### `execute_swml(swml_content, transfer=False)`
-Execute SWML content with flexible input support and optional transfer behavior.
+#### `ExecuteSwml(swmlContent any, transfer bool) *FunctionResult`
+Execute SWML content with flexible input support and optional transfer behavior. `swmlContent` accepts a raw JSON string or a `map[string]any` document.
 
-```python
-# Raw SWML string
-result.execute_swml('{"version":"1.0.0","sections":{"main":[{"say":"Hello"}]}}')
+```go
+// Raw SWML string
+result.ExecuteSwml(`{"version":"1.0.0","sections":{"main":[{"say":"Hello"}]}}`, false)
 
-# SWML dictionary
-swml_dict = {"version": "1.0.0", "sections": {"main": [{"say": "Hello"}]}}
-result.execute_swml(swml_dict, transfer=True)
-
-# SWML SDK object
-from signalwire.swml import SWML
-swml_doc = SWML()
-swml_doc.add_application("main", "say", {"text": "Connecting now"})
-result.execute_swml(swml_doc)
+// SWML document as a map
+swmlDoc := map[string]any{
+	"version": "1.0.0",
+	"sections": map[string]any{
+		"main": []any{map[string]any{"say": "Hello"}},
+	},
+}
+result.ExecuteSwml(swmlDoc, true)
 ```
 
-#### **[IMPLEMENTED]** - Transfer/connect call to another destination using SWML.
+#### `Connect(destination string, final bool, from string) *FunctionResult`
+Transfer/connect call to another destination using SWML. Pass `from = ""` to omit the from-address.
 
-```python
-result.connect("+15551234567", final=True)  # Permanent transfer
-result.connect("support@company.com", final=False, from_addr="+15559876543")  # Temporary transfer
+```go
+result.Connect("+15551234567", true, "")                        // Permanent transfer
+result.Connect("support@company.com", false, "+15559876543")    // Temporary transfer
 ```
 
-#### `send_sms(to_number, from_number, body=None, media=None, tags=None, region=None)`
-**[HELPER METHOD]** - Send SMS message to PSTN phone number using SWML.
+#### `SendSms(toNumber, fromNumber, body string, media []string, tags []string, region string) *FunctionResult`
+**[HELPER METHOD]** - Send SMS message to PSTN phone number using SWML. Pass `""` / `nil` for optional arguments you want to omit.
 
-```python
-# Simple text message
-result.send_sms(
-    to_number="+15551234567",
-    from_number="+15559876543", 
-    body="Your order has been confirmed!"
+```go
+// Simple text message
+result.SendSms(
+	"+15551234567", // toNumber
+	"+15559876543", // fromNumber
+	"Your order has been confirmed!", // body
+	nil, nil, "",
 )
 
-# Media message with images
-result.send_sms(
-    to_number="+15551234567",
-    from_number="+15559876543",
-    media=["https://example.com/receipt.jpg", "https://example.com/map.png"]
+// Media message with images (no body)
+result.SendSms(
+	"+15551234567",
+	"+15559876543",
+	"",
+	[]string{"https://example.com/receipt.jpg", "https://example.com/map.png"},
+	nil, "",
 )
 
-# Full featured message with tags and region
-result.send_sms(
-    to_number="+15551234567",
-    from_number="+15559876543",
-    body="Order update with receipt attached",
-    media=["https://example.com/receipt.pdf"],
-    tags=["order", "confirmation", "customer"],
-    region="us"
+// Full featured message with tags and region
+result.SendSms(
+	"+15551234567",
+	"+15559876543",
+	"Order update with receipt attached",
+	[]string{"https://example.com/receipt.pdf"},
+	[]string{"order", "confirmation", "customer"},
+	"us",
 )
 ```
 
@@ -100,60 +125,59 @@ result.send_sms(
 **Variables Set:**
 - `send_sms_result`: "success" or "failed"
 
-#### `pay(payment_connector_url, **options)`
-**[HELPER METHOD]** - Process payments using SWML pay action with extensive customization.
+#### `Pay(connectorURL string, opts *PayOptions) *FunctionResult`
+**[HELPER METHOD]** - Process payments using SWML pay action with extensive customization. `connectorURL` is required; pass a `*swaig.PayOptions` (or `nil` for all defaults) for the rest.
 
-```python
-# Simple payment setup
-result.pay(
-    payment_connector_url="https://api.example.com/accept-payment",
-    charge_amount="10.99",
-    description="Monthly subscription"
+```go
+// Simple payment setup
+result.Pay("https://api.example.com/accept-payment", &swaig.PayOptions{
+	ChargeAmount: "10.99",
+	Description:  "Monthly subscription",
+})
+
+// Advanced payment with custom prompts.
+// Build prompt actions with the package helper functions.
+welcomeActions := []map[string]string{
+	swaig.CreatePaymentAction("Say", "Welcome to our payment system"),
+	swaig.CreatePaymentAction("Say", "Please enter your credit card number"),
+}
+cardPrompt := swaig.CreatePaymentPrompt("payment-card-number", welcomeActions, "", "")
+
+errorActions := []map[string]string{
+	swaig.CreatePaymentAction("Say", "Invalid card number, please try again"),
+}
+errorPrompt := swaig.CreatePaymentPrompt(
+	"payment-card-number",
+	errorActions,
+	"",                          // cardType
+	"invalid-card-number timeout", // errorType
 )
 
-# Advanced payment with custom prompts
-from signalwire_agents.core.function_result import SwaigFunctionResult
+// Create payment parameters.
+params := []map[string]string{
+	swaig.CreatePaymentParameter("customer_id", "12345"),
+	swaig.CreatePaymentParameter("order_id", "ORD-789"),
+}
 
-# Create custom prompts
-welcome_actions = [
-    SwaigFunctionResult.create_payment_action("Say", "Welcome to our payment system"),
-    SwaigFunctionResult.create_payment_action("Say", "Please enter your credit card number")
-]
-card_prompt = SwaigFunctionResult.create_payment_prompt("payment-card-number", welcome_actions)
-
-error_actions = [
-    SwaigFunctionResult.create_payment_action("Say", "Invalid card number, please try again")
-]
-error_prompt = SwaigFunctionResult.create_payment_prompt(
-    "payment-card-number", 
-    error_actions, 
-    error_type="invalid-card-number timeout"
-)
-
-# Create payment parameters
-params = [
-    SwaigFunctionResult.create_payment_parameter("customer_id", "12345"),
-    SwaigFunctionResult.create_payment_parameter("order_id", "ORD-789")
-]
-
-# Full payment configuration
-result.pay(
-    payment_connector_url="https://api.example.com/accept-payment",
-    status_url="https://api.example.com/payment-status",
-    timeout=10,
-    max_attempts=3,
-    security_code=True,
-    postal_code=False,
-    token_type="one-time",
-    charge_amount="25.50",
-    currency="usd",
-    language="en-US",
-    voice="polly.Sally",
-    description="Premium service upgrade",
-    valid_card_types="visa mastercard amex",
-    parameters=params,
-    prompts=[card_prompt, error_prompt]
-)
+// Full payment configuration.
+falseVal := false
+result.Pay("https://api.example.com/accept-payment", &swaig.PayOptions{
+	StatusURL:       "https://api.example.com/payment-status",
+	Timeout:         10,
+	MaxAttempts:     3,
+	SecurityCode:    true,
+	SecurityCodeSet: true,
+	PostalCode:      falseVal,
+	TokenType:       "one-time",
+	ChargeAmount:    "25.50",
+	Currency:        "usd",
+	Language:        "en-US",
+	Voice:           "polly.Sally",
+	Description:     "Premium service upgrade",
+	ValidCardTypes:  "visa mastercard amex",
+	Parameters:      params,
+	Prompts:         []map[string]any{cardPrompt, errorPrompt},
+})
 ```
 
 **Core Parameters:**
@@ -182,55 +206,55 @@ result.pay(
 - `parameters`: Additional name/value pairs for connector
 - `prompts`: Custom prompt configurations
 
-**Helper Methods for Payment Setup:**
-```python
-# Create payment action
-action = SwaigFunctionResult.create_payment_action("Say", "Enter card number")
+**Helper Functions for Payment Setup:**
+```go
+// Create payment action
+action := swaig.CreatePaymentAction("Say", "Enter card number")
 
-# Create payment prompt
-prompt = SwaigFunctionResult.create_payment_prompt(
-    "payment-card-number", 
-    [action], 
-    error_type="invalid-card-number"
+// Create payment prompt
+prompt := swaig.CreatePaymentPrompt(
+	"payment-card-number",
+	[]map[string]string{action},
+	"",                     // cardType
+	"invalid-card-number", // errorType
 )
 
-# Create payment parameter
-param = SwaigFunctionResult.create_payment_parameter("customer_id", "12345")
+// Create payment parameter
+param := swaig.CreatePaymentParameter("customer_id", "12345")
+_, _, _ = action, prompt, param
 ```
 
 **Variables Set:**
 - `pay_result`: "success", "too-many-failed-attempts", "payment-connector-error", etc.
 - `pay_payment_results`: JSON with payment details including tokens and card info
 
-#### `record_call(control_id=None, stereo=False, format="wav", direction="both", **options)`
+#### `RecordCall(controlID string, stereo bool, format RecordFormat, direction RecordDirection, opts *RecordCallOptions) *FunctionResult`
 **[HELPER METHOD]** - Start background call recording using SWML.
 
-Unlike foreground recording, the script continues executing while recording happens in the background.
+Unlike foreground recording, the script continues executing while recording happens in the background. `format` and `direction` are defined string types (`swaig.FormatWAV`/`swaig.FormatMP3`; `swaig.RecordDirectionBoth`/`Speak`/`Listen`), but bare string literals also compile.
 
-```python
-# Simple background recording
-result.record_call()
+```go
+// Simple background recording (all defaults)
+result.RecordCall("", false, swaig.FormatWAV, swaig.RecordDirectionBoth, nil)
 
-# Recording with custom settings
-result.record_call(
-    control_id="support_call_001",
-    stereo=True,
-    format="mp3",
-    direction="both",
-    max_length=300  # 5 minutes max
-)
+// Recording with custom settings
+result.RecordCall("support_call_001", true, swaig.FormatMP3, swaig.RecordDirectionBoth,
+	&swaig.RecordCallOptions{
+		MaxLength:    300, // 5 minutes max
+		MaxLengthSet: true,
+	})
 
-# Recording with terminator and status webhook
-result.record_call(
-    control_id="customer_voicemail", 
-    format="wav",
-    direction="speak",           # Only record customer voice
-    terminators="#",             # Stop on '#' press
-    beep=True,                   # Play beep before recording
-    initial_timeout=4.0,         # Wait 4 seconds for speech
-    end_silence_timeout=3.0,     # Stop after 3 seconds of silence
-    status_url="https://api.example.com/recording-status"
-)
+// Recording with terminator and status webhook
+result.RecordCall("customer_voicemail", false, swaig.FormatWAV, swaig.RecordDirectionSpeak, // Only record customer voice
+	&swaig.RecordCallOptions{
+		Terminators:       "#",   // Stop on '#' press
+		Beep:              true,  // Play beep before recording
+		InitialTimeout:    4.0,   // Wait 4 seconds for speech
+		InitialTimeoutSet: true,
+		EndSilenceTimeout:    3.0, // Stop after 3 seconds of silence
+		EndSilenceTimeoutSet: true,
+		StatusURL:            "https://api.example.com/recording-status",
+	})
 ```
 
 **Core Parameters:**
@@ -256,19 +280,19 @@ result.record_call(
 - `record_call_result`: "success" or "failed"
 - `record_call_url`: URL of recorded file (when recording completes)
 
-#### `stop_record_call(control_id=None)`
-**[HELPER METHOD]** - Stop an active background call recording using SWML.
+#### `StopRecordCall(controlID string) *FunctionResult`
+**[HELPER METHOD]** - Stop an active background call recording using SWML. Pass `""` to stop the most recent recording.
 
-```python
-# Stop the most recent recording
-result.stop_record_call()
+```go
+// Stop the most recent recording
+result.StopRecordCall("")
 
-# Stop specific recording by ID
-result.stop_record_call("support_call_001")
+// Stop specific recording by ID
+result.StopRecordCall("support_call_001")
 
-# Chain to stop recording and provide feedback
-result.stop_record_call("customer_voicemail") \
-      .say("Thank you, your message has been recorded")
+// Chain to stop recording and provide feedback
+result.StopRecordCall("customer_voicemail").
+	Say("Thank you, your message has been recorded")
 ```
 
 **Parameters:**
@@ -277,22 +301,22 @@ result.stop_record_call("customer_voicemail") \
 **Variables Set:**
 - `stop_record_call_result`: "success" or "failed"
 
-#### `join_room(name)`
+#### `JoinRoom(name string) *FunctionResult`
 **[HELPER METHOD]** - Join a RELAY room using SWML.
 
 RELAY rooms enable multi-party communication and collaboration features.
 
-```python
-# Join a conference room
-result.join_room("support_team_room")
+```go
+// Join a conference room
+result.JoinRoom("support_team_room")
 
-# Join customer meeting room
-result.join_room("customer_meeting_001") \
-      .say("Welcome to the customer meeting room")
+// Join customer meeting room
+result.JoinRoom("customer_meeting_001").
+	Say("Welcome to the customer meeting room")
 
-# Join room and set metadata
-result.join_room("sales_conference") \
-      .set_metadata({"participant_role": "moderator", "join_time": "2024-01-01T12:00:00Z"})
+// Join room and set metadata
+result.JoinRoom("sales_conference").
+	SetMetadata(map[string]any{"participant_role": "moderator", "join_time": "2024-01-01T12:00:00Z"})
 ```
 
 **Parameters:**
@@ -301,21 +325,21 @@ result.join_room("sales_conference") \
 **Variables Set:**
 - `join_room_result`: "success" or "failed"
 
-#### `sip_refer(to_uri)`
+#### `SIPRefer(toURI string) *FunctionResult`
 **[HELPER METHOD]** - Send SIP REFER for call transfer using SWML.
 
 SIP REFER is used for call transfer in SIP environments, allowing one endpoint to request another to initiate a new connection.
 
-```python
-# Basic SIP refer to transfer call
-result.sip_refer("sip:support@company.com")
+```go
+// Basic SIP refer to transfer call
+result.SIPRefer("sip:support@company.com")
 
-# Transfer to specific SIP address with domain
-result.sip_refer("sip:agent123@pbx.company.com:5060")
+// Transfer to specific SIP address with domain
+result.SIPRefer("sip:agent123@pbx.company.com:5060")
 
-# Chain with announcement
-result.say("Transferring your call to our specialist") \
-      .sip_refer("sip:specialist@company.com")
+// Chain with announcement
+result.Say("Transferring your call to our specialist").
+	SIPRefer("sip:specialist@company.com")
 ```
 
 **Parameters:**
@@ -324,42 +348,41 @@ result.say("Transferring your call to our specialist") \
 **Variables Set:**
 - `sip_refer_result`: "success" or "failed"
 
-#### `join_conference(name, **options)`
+#### `JoinConference(name string, opts *JoinConferenceOptions) *FunctionResult`
 **[HELPER METHOD]** - Join an ad-hoc audio conference with RELAY and CXML calls using SWML.
 
-Provides extensive configuration options for conference call management and recording.
+Provides extensive configuration options (via `*swaig.JoinConferenceOptions`, or `nil` for defaults) for conference call management and recording.
 
-```python
-# Simple conference join
-result.join_conference("my_conference")
+```go
+// Simple conference join
+result.JoinConference("my_conference", nil)
 
-# Basic conference with recording
-result.join_conference(
-    name="daily_standup",
-    record="record-from-start",
-    max_participants=10
-)
+// Basic conference with recording
+result.JoinConference("daily_standup", &swaig.JoinConferenceOptions{
+	Record:          "record-from-start",
+	MaxParticipants: 10,
+})
 
-# Advanced conference with callbacks and coaching
-result.join_conference(
-    name="customer_support_conf", 
-    muted=False,
-    beep="onEnter",
-    start_on_enter=True,
-    end_on_exit=False,
-    max_participants=50,
-    record="record-from-start",
-    region="us-east",
-    trim="trim-silence",
-    status_callback="https://api.company.com/conference-events",
-    status_callback_event="start end join leave",
-    recording_status_callback="https://api.company.com/recording-events"
-)
+// Advanced conference with callbacks and coaching
+startOnEnter := true
+result.JoinConference("customer_support_conf", &swaig.JoinConferenceOptions{
+	Muted:               false,
+	Beep:                "onEnter",
+	StartOnEnter:        &startOnEnter,
+	EndOnExit:           false,
+	MaxParticipants:     50,
+	Record:              "record-from-start",
+	Region:              "us-east",
+	Trim:                "trim-silence",
+	StatusCallback:      "https://api.company.com/conference-events",
+	StatusCallbackEvent: "start end join leave",
+	RecordingStatusCallback: "https://api.company.com/recording-events",
+})
 
-# Chain with other actions
-result.say("Joining you to the team conference") \
-      .join_conference("team_meeting") \
-      .set_metadata({"meeting_type": "team_sync", "participant_role": "attendee"})
+// Chain with other actions
+result.Say("Joining you to the team conference").
+	JoinConference("team_meeting", nil).
+	SetMetadata(map[string]any{"meeting_type": "team_sync", "participant_role": "attendee"})
 ```
 
 **Core Parameters:**
@@ -394,32 +417,27 @@ result.say("Joining you to the team conference") \
 - `join_conference_result`: "completed", "answered", "no-answer", "failed", or "canceled"
 - `return_value`: Same as `join_conference_result`
 
-#### `tap(uri, **options)`
+#### `Tap(uri string, controlID string, direction TapDirection, codec Codec, rtpPtime int, statusURL string) *FunctionResult`
 **[HELPER METHOD]** - Start background call tap using SWML.
 
-Media is streamed over Websocket or RTP to customer controlled URI for real-time monitoring and analysis.
+Media is streamed over Websocket or RTP to customer controlled URI for real-time monitoring and analysis. `direction` is `swaig.TapDirectionBoth`/`Speak`/`Hear`; `codec` is `swaig.CodecPCMU`/`CodecPCMA`. Pass `0` / `""` for arguments you want at their defaults.
 
-```python
-# Simple WebSocket tap
-result.tap("wss://example.com/tap")
+```go
+// Simple WebSocket tap
+result.Tap("wss://example.com/tap", "", swaig.TapDirectionBoth, swaig.CodecPCMU, 0, "")
 
-# RTP tap with custom settings
-result.tap(
-    uri="rtp://192.168.1.100:5004",
-    control_id="monitoring_tap_001",
-    direction="both",
-    codec="PCMA",
-    rtp_ptime=30
-)
+// RTP tap with custom settings
+result.Tap("rtp://192.168.1.100:5004", "monitoring_tap_001", swaig.TapDirectionBoth, swaig.CodecPCMA, 30, "")
 
-# Advanced tap with status callbacks
-result.tap(
-    uri="wss://monitoring.company.com/audio-stream",
-    control_id="compliance_tap",
-    direction="speak",  # Only what the party says
-    status_url="https://api.company.com/tap-status"
-) \
-.set_metadata({"tap_purpose": "compliance", "session_id": "sess_123"})
+// Advanced tap with status callbacks
+result.Tap(
+	"wss://monitoring.company.com/audio-stream",
+	"compliance_tap",
+	swaig.TapDirectionSpeak, // Only what the party says
+	swaig.CodecPCMU,
+	0,
+	"https://api.company.com/tap-status",
+).SetMetadata(map[string]any{"tap_purpose": "compliance", "session_id": "sess_123"})
 ```
 
 **Core Parameters:**
@@ -449,20 +467,20 @@ result.tap(
 - `tap_codec`: Codec in the tap stream
 - `tap_rate`: Sample rate in the tap stream
 
-#### `stop_tap(control_id=None)`
-**[HELPER METHOD]** - Stop an active tap stream using SWML.
+#### `StopTap(controlID string) *FunctionResult`
+**[HELPER METHOD]** - Stop an active tap stream using SWML. Pass `""` to stop the most recent tap.
 
-```python
-# Stop the most recent tap
-result.stop_tap()
+```go
+// Stop the most recent tap
+result.StopTap("")
 
-# Stop specific tap by ID
-result.stop_tap("monitoring_tap_001")
+// Stop specific tap by ID
+result.StopTap("monitoring_tap_001")
 
-# Chain to stop tap and provide feedback
-result.stop_tap("compliance_tap") \
-      .say("Audio monitoring has been stopped") \
-      .update_global_data({"tap_active": False})
+// Chain to stop tap and provide feedback
+result.StopTap("compliance_tap").
+	Say("Audio monitoring has been stopped").
+	UpdateGlobalData(map[string]any{"tap_active": false})
 ```
 
 **Parameters:**
@@ -471,171 +489,181 @@ result.stop_tap("compliance_tap") \
 **Variables Set:**
 - `stop_tap_result`: "success" or "failed"
 
-#### `hangup()`
+#### `Hangup() *FunctionResult`
 Terminate the call immediately.
 
-```python
-result.hangup()
+```go
+result.Hangup()
 ```
 
 ---
 
 ### Call Flow Control
 
-#### `hold(timeout=300)`
+#### `Hold(timeout int) *FunctionResult`
 Put call on hold with timeout (max 900 seconds).
 
-```python
-result.hold(60)    # Hold for 1 minute
-result.hold(600)   # Hold for 10 minutes
+```go
+result.Hold(60)    // Hold for 1 minute
+result.Hold(600)   // Hold for 10 minutes
 ```
 
-#### `wait_for_user(enabled=None, timeout=None, answer_first=False)`
-Control how agent waits for user input with flexible parameters.
+#### `WaitForUser(enabled *bool, timeout *int, answerFirst bool) *FunctionResult`
+Control how agent waits for user input with flexible parameters. `enabled` and `timeout` are pointers so they can be omitted with `nil`.
 
-```python
-result.wait_for_user(True)                    # Wait indefinitely
-result.wait_for_user(timeout=30)              # Wait 30 seconds
-result.wait_for_user(answer_first=True)       # Special answer_first mode
-result.wait_for_user(False)                   # Disable waiting
+```go
+enabled := true
+result.WaitForUser(&enabled, nil, false)      // Wait indefinitely
+
+timeout := 30
+result.WaitForUser(nil, &timeout, false)      // Wait 30 seconds
+
+result.WaitForUser(nil, nil, true)            // Special answer-first mode
+
+disabled := false
+result.WaitForUser(&disabled, nil, false)     // Disable waiting
 ```
 
-#### `stop()`
+#### `Stop() *FunctionResult`
 Stop agent execution completely.
 
-```python
-result.stop()
+```go
+result.Stop()
 ```
 
 ---
 
 ### Speech & Audio Control
 
-#### `say(text)`
+#### `Say(text string) *FunctionResult`
 Make the agent speak specific text immediately.
 
-```python
-result.say("Please hold while I look that up for you")
+```go
+result.Say("Please hold while I look that up for you")
 ```
 
-#### `play_background_file(filename, wait=False)`
+#### `PlayBackgroundFile(filename string, wait bool) *FunctionResult`
 Play audio file in background with attention control.
 
-```python
-result.play_background_file("hold_music.wav")                    # AI tries to get attention
-result.play_background_file("announcement.mp3", wait=True)       # AI suppresses attention
+```go
+result.PlayBackgroundFile("hold_music.wav", false)       // AI tries to get attention
+result.PlayBackgroundFile("announcement.mp3", true)      // AI suppresses attention
 ```
 
-#### `stop_background_file()`
+#### `StopBackgroundFile() *FunctionResult`
 Stop currently playing background audio.
 
-```python
-result.stop_background_file()
+```go
+result.StopBackgroundFile()
 ```
 
 ---
 
 ### Speech Recognition Settings
 
-#### `set_end_of_speech_timeout(milliseconds)`
+#### `SetEndOfSpeechTimeout(ms int) *FunctionResult`
 Set silence timeout after speech detection for finalizing recognition.
 
-```python
-result.set_end_of_speech_timeout(2000)  # 2 seconds of silence
+```go
+result.SetEndOfSpeechTimeout(2000)  // 2 seconds of silence
 ```
 
-#### `set_speech_event_timeout(milliseconds)`
+#### `SetSpeechEventTimeout(ms int) *FunctionResult`
 Set timeout since last speech event - better for noisy environments.
 
-```python
-result.set_speech_event_timeout(3000)  # 3 seconds since last speech event
+```go
+result.SetSpeechEventTimeout(3000)  // 3 seconds since last speech event
 ```
 
 ---
 
 ### Data Management
 
-#### `update_global_data(data)`
-**[IMPLEMENTED]** - Update global agent data variables.
+#### `UpdateGlobalData(data map[string]any) *FunctionResult`
+Update global agent data variables.
 
-```python
-result.update_global_data({"user_name": "John", "step": 2})
+```go
+result.UpdateGlobalData(map[string]any{"user_name": "John", "step": 2})
 ```
 
-#### `remove_global_data(keys)`
+#### `RemoveGlobalData(keys []string) *FunctionResult` / `RemoveGlobalDataKey(key string) *FunctionResult`
 Remove global data variables by key(s).
 
-```python
-result.remove_global_data("temporary_data")           # Single key
-result.remove_global_data(["step", "temp_value"])     # Multiple keys
+```go
+result.RemoveGlobalDataKey("temporary_data")               // Single key
+result.RemoveGlobalData([]string{"step", "temp_value"})    // Multiple keys
 ```
 
-#### `set_metadata(data)`
+#### `SetMetadata(data map[string]any) *FunctionResult`
 Set metadata scoped to current function's meta_data_token.
 
-```python
-result.set_metadata({"session_id": "abc123", "user_tier": "premium"})
+```go
+result.SetMetadata(map[string]any{"session_id": "abc123", "user_tier": "premium"})
 ```
 
-#### `remove_metadata(keys)`
+#### `RemoveMetadata(keys []string) *FunctionResult` / `RemoveMetadataKey(key string) *FunctionResult`
 Remove metadata from current function's scope.
 
-```python
-result.remove_metadata("temp_session_data")           # Single key  
-result.remove_metadata(["cache_key", "temp_flag"])    # Multiple keys
+```go
+result.RemoveMetadataKey("temp_session_data")              // Single key
+result.RemoveMetadata([]string{"cache_key", "temp_flag"})  // Multiple keys
 ```
 
 ---
 
 ### Function & Behavior Control
 
-#### `toggle_functions(function_toggles)`
+#### `ToggleFunctions(toggles []map[string]any) *FunctionResult`
 Enable/disable specific SWAIG functions dynamically.
 
-```python
-result.toggle_functions([
-    {"function": "transfer_call", "active": False},
-    {"function": "lookup_info", "active": True}
-])
+```go
+result.ToggleFunctions([]map[string]any{
+	{"function": "transfer_call", "active": false},
+	{"function": "lookup_info", "active": true},
+})
 ```
 
-#### `enable_functions_on_timeout(enabled=True)`
+#### `EnableFunctionsOnTimeout(enabled bool) *FunctionResult`
 Control whether functions can be called on speaker timeout.
 
-```python
-result.enable_functions_on_timeout(True)
-result.enable_functions_on_timeout(False)
+```go
+result.EnableFunctionsOnTimeout(true)
+result.EnableFunctionsOnTimeout(false)
 ```
 
-#### `enable_extensive_data(enabled=True)`
+#### `EnableExtensiveData(enabled bool) *FunctionResult`
 Send full data to LLM for this turn only, then use smaller replacement.
 
-```python
-result.enable_extensive_data(True)   # Send extensive data this turn
-result.enable_extensive_data(False)  # Use normal data
+```go
+result.EnableExtensiveData(true)   // Send extensive data this turn
+result.EnableExtensiveData(false)  // Use normal data
 ```
 
-#### `replace_in_history(text=True)`
+#### `ReplaceInHistory(text any) *FunctionResult`
 Remove or replace the tool_call + tool_result pair from the LLM's conversation history after the first send. This is useful when a function call is an implementation detail that would confuse the model if it remained visible in context.
 
-When called with a string, the tool_call/tool_result pair is replaced with an assistant message containing that text. When called with `True`, the pair is removed entirely — the LLM will never see that the function was called.
+When called with a string, the tool_call/tool_result pair is replaced with an assistant message containing that text. When called with `true`, the pair is removed entirely — the LLM will never see that the function was called.
 
-```python
-# Remove entirely — LLM won't see this function was called
-result = SwaigFunctionResult("Done.")
-result.replace_in_history()
+```go
+// Remove entirely — LLM won't see this function was called
+result = swaig.NewFunctionResult("Done.")
+result.ReplaceInHistory(true)
 
-# Replace with a friendly assistant message instead of tool artifacts
-result = SwaigFunctionResult("Profile saved.")
-result.replace_in_history("I've saved your profile information.")
+// Replace with a friendly assistant message instead of tool artifacts
+result = swaig.NewFunctionResult("Profile saved.")
+result.ReplaceInHistory("I've saved your profile information.")
 
-# Practical example: data collection function that shouldn't clutter history
-@agent.tool(name="save_answer", description="Save the user's answer")
-def save_answer(args, raw_data):
-    answer = args.get("answer")
-    result = SwaigFunctionResult(f"Answer recorded: {answer}")
-    result.replace_in_history()  # Keep history clean
-    return result
+// Practical example: data collection function that shouldn't clutter history
+a.DefineTool(agent.ToolDefinition{
+	Name:        "save_answer",
+	Description: "Save the user's answer",
+	Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+		answer, _ := args["answer"].(string)
+		result := swaig.NewFunctionResult(fmt.Sprintf("Answer recorded: %s", answer))
+		result.ReplaceInHistory(true) // Keep history clean
+		return result
+	},
+})
 ```
 
 **When to use:**
@@ -649,21 +677,21 @@ def save_answer(args, raw_data):
 
 ### Agent Settings & Configuration
 
-#### `update_settings(settings)`
+#### `UpdateSettings(settings map[string]any) *FunctionResult`
 Update agent runtime settings with validation.
 
-```python
-# AI model settings
-result.update_settings({
-    "temperature": 0.7,
-    "max-tokens": 2048,
-    "frequency-penalty": -0.5
+```go
+// AI model settings
+result.UpdateSettings(map[string]any{
+	"temperature":       0.7,
+	"max-tokens":        2048,
+	"frequency-penalty": -0.5,
 })
 
-# Speech recognition settings  
-result.update_settings({
-    "confidence": 0.8,
-    "barge-confidence": 0.7
+// Speech recognition settings
+result.UpdateSettings(map[string]any{
+	"confidence":       0.8,
+	"barge-confidence": 0.7,
 })
 ```
 
@@ -676,26 +704,28 @@ result.update_settings({
 - `barge-confidence`: Float (0.0 to 1.0)
 - `temperature`: Float (0.0 to 2.0, clamped to 1.5)
 
-#### `switch_context(system_prompt=None, user_prompt=None, consolidate=False, full_reset=False)`
-Change agent context/prompt during conversation.
+#### `SwitchContext(systemPrompt, userPrompt string, consolidate, fullReset, isolated bool) *FunctionResult`
+Change agent context/prompt during conversation. Pass `""` for a prompt you want to omit.
 
-```python
-# Simple context switch
-result.switch_context("You are now a technical support agent")
+```go
+// Simple context switch
+result.SwitchContext("You are now a technical support agent", "", false, false, false)
 
-# Advanced context switch
-result.switch_context(
-    system_prompt="You are a billing specialist",
-    user_prompt="The user needs help with their invoice",
-    consolidate=True
+// Advanced context switch
+result.SwitchContext(
+	"You are a billing specialist",         // systemPrompt
+	"The user needs help with their invoice", // userPrompt
+	true,  // consolidate
+	false, // fullReset
+	false, // isolated
 )
 ```
 
-#### `simulate_user_input(text)`
+#### `SimulateUserInput(text string) *FunctionResult`
 Queue simulated user input for testing or flow control.
 
-```python
-result.simulate_user_input("Yes, I'd like to speak to billing")
+```go
+result.SimulateUserInput("Yes, I'd like to speak to billing")
 ```
 
 ---
@@ -704,81 +734,83 @@ result.simulate_user_input("Yes, I'd like to speak to billing")
 
 ### Manual Action Construction
 
-#### `add_action(name, data)`
+#### `AddAction(name string, data any) *FunctionResult`
 Add a single action manually (for custom actions not covered by helper methods).
 
-```python
-result.add_action("custom_action", {"param": "value"})
+```go
+result.AddAction("custom_action", map[string]any{"param": "value"})
 ```
 
-#### `add_actions(actions)`
+#### `AddActions(actions []map[string]any) *FunctionResult`
 Add multiple actions at once.
 
-```python
-result.add_actions([
-    {"say": "Hello"},
-    {"hold": 300}
-])
+```go
+result.AddActions([]map[string]any{
+	{"say": "Hello"},
+	{"hold": 300},
+})
 ```
 
 ### Output Generation
 
-#### `to_dict()`
-Convert result to dictionary format for JSON serialization.
+#### `ToMap() map[string]any`
+Convert result to a map for JSON serialization.
 
-```python
-result_dict = result.to_dict()
-# Returns: {"response": "...", "action": [...], "post_process": true/false}
+```go
+resultMap := result.ToMap()
+// Returns: {"response": "...", "action": [...], "post_process": true/false}
+_ = resultMap
 ```
 
 ---
 
 ## Method Chaining
 
-All methods return `self` to enable fluent method chaining:
+All methods return the receiver (`*swaig.FunctionResult`) to enable fluent method chaining:
 
-```python
-result = SwaigFunctionResult("Processing your request", post_process=True) \
-    .update_global_data({"status": "processing"}) \
-    .play_background_file("processing.wav", wait=True) \
-    .set_end_of_speech_timeout(2500)
+```go
+result = swaig.NewFunctionResult("Processing your request").
+	SetPostProcess(true).
+	UpdateGlobalData(map[string]any{"status": "processing"}).
+	PlayBackgroundFile("processing.wav", true).
+	SetEndOfSpeechTimeout(2500)
 
-# Complex chaining example
-result = SwaigFunctionResult("Let me transfer you to billing") \
-    .set_metadata({"transfer_reason": "billing_inquiry"}) \
-    .update_global_data({"last_action": "transfer_to_billing"}) \
-    .connect("+15551234567", final=True)
+// Complex chaining example
+result = swaig.NewFunctionResult("Let me transfer you to billing").
+	SetMetadata(map[string]any{"transfer_reason": "billing_inquiry"}).
+	UpdateGlobalData(map[string]any{"last_action": "transfer_to_billing"}).
+	Connect("+15551234567", true, "")
 ```
 
 ---
 
 ## Implementation Status
 
-- **[IMPLEMENTED]**: `connect()`, `update_global_data()`, and all methods listed above
-- **[HELPER METHODS]**: `send_sms()`, `pay()`, `record_call()`, `stop_record_call()`, `join_room()`, `sip_refer()`, `join_conference()`, `tap()`, `stop_tap()` - Additional convenience methods that generate SWML
-- **[UTILITY METHODS]**: `create_payment_prompt()`, `create_payment_action()`, `create_payment_parameter()`
+- **[IMPLEMENTED]**: `Connect()`, `UpdateGlobalData()`, and all methods listed above
+- **[HELPER METHODS]**: `SendSms()`, `Pay()`, `RecordCall()`, `StopRecordCall()`, `JoinRoom()`, `SIPRefer()`, `JoinConference()`, `Tap()`, `StopTap()` - Additional convenience methods that generate SWML
+- **[UTILITY FUNCTIONS]**: `CreatePaymentPrompt()`, `CreatePaymentAction()`, `CreatePaymentParameter()`
 - **[EXTENSIBLE]**: Additional convenience methods for common SWML patterns
 
 ## Best Practices
 
-1. **Use post_process=True** when you want the AI to speak before executing actions
+1. **Use `SetPostProcess(true)`** when you want the AI to speak before executing actions
 2. **Chain methods** for cleaner, more readable code
 3. **Use specific methods** instead of manual action construction when available
-4. **Handle errors gracefully** - methods may raise TypeError for invalid inputs
-5. **Validate settings** - update_settings() relies on server-side validation 
+4. **Handle inputs carefully** - pass zero values (`""`, `nil`, `0`) for optional arguments you want to omit
+5. **Validate settings** - `UpdateSettings()` relies on server-side validation
 
 ### Final State
 The framework now includes **10 virtual helpers total**:
-1. connect() - Call transfer/connect
-2. send_sms() - SMS messaging
-3. pay() - Payment processing
-4. record_call() - Start background recording
-5. stop_record_call() - Stop background recording
-6. join_room() - Join RELAY room
-7. sip_refer() - SIP REFER transfer
-8. join_conference() - Join audio conference with extensive options
-9. tap() - Start background call tap for monitoring
-10. stop_tap() - Stop background call tap
+1. `Connect()` - Call transfer/connect
+2. `SendSms()` - SMS messaging
+3. `Pay()` - Payment processing
+4. `RecordCall()` - Start background recording
+5. `StopRecordCall()` - Stop background recording
+6. `JoinRoom()` - Join RELAY room
+7. `SIPRefer()` - SIP REFER transfer
+8. `JoinConference()` - Join audio conference with extensive options
+9. `Tap()` - Start background call tap for monitoring
+10. `StopTap()` - Stop background call tap
 
 ---
 
@@ -872,14 +904,14 @@ DataMap processing supports template expansion with access to:
 
 ## Related Documentation
 
-- **[API Reference](api_reference.md)** - Complete AgentBase and SwaigFunctionResult API reference
-- **[Contexts Guide](contexts_guide.md)** - Using `swml_change_context()` and `swml_change_step()`
-- **[DataMap Guide](datamap_guide.md)** - Using SwaigFunctionResult with DataMap outputs
+- **[API Reference](api_reference.md)** - Complete `AgentBase` and `swaig.FunctionResult` API reference
+- **[Contexts Guide](contexts_guide.md)** - Using `SwmlChangeContext()` and `SwmlChangeStep()`
+- **[DataMap Guide](datamap_guide.md)** - Using `swaig.FunctionResult` with DataMap outputs
 - **[Agent Guide](agent_guide.md)** - General agent development guide
 
 ### Example Files
 
-- `examples/simple_agent.py` - Basic SWAIG function usage
-- `examples/swaig_features_agent.py` - Advanced SWAIG features with fillers
-- `examples/record_call_example.py` - Recording and tapping calls
-- `examples/room_and_sip_example.py` - Room joining and SIP transfer
+- `examples/simple_agent/main.go` - Basic SWAIG function usage
+- `examples/swaig_features/main.go` - Advanced SWAIG features (FunctionResult actions)
+- `examples/record_call/main.go` - Recording and tapping calls
+- `examples/room_and_sip/main.go` - Room joining and SIP transfer

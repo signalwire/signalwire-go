@@ -6,7 +6,32 @@ RELAY events are server-pushed notifications about call state changes and operat
 
 ### On a Call
 
+<!-- snippet-setup -->
 ```go
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var call *relay.Call
+var event *relay.RelayEvent
+
+var (
+	_ = client
+	_ = call
+	_ = event
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
+```go
+import "time"
+
 client.OnCall(func(call *relay.Call) {
 	// Register a listener
 	call.On("calling.call.play", func(event *relay.RelayEvent) {
@@ -25,6 +50,7 @@ client.OnCall(func(call *relay.Call) {
 	if err != nil {
 		fmt.Printf("Wait error: %v\n", err)
 	}
+	_ = event
 })
 ```
 
@@ -36,7 +62,7 @@ Actions returned by `Play()`, `Record()`, etc. have a `Wait()` method that resol
 action := call.Play([]map[string]any{
 	{"type": "tts", "params": map[string]any{"text": "Hello"}},
 })
-event, _ := action.Wait(context.Background())
+event, _ = action.Wait(context.Background())
 // event is a *RelayEvent with the terminal state
 ```
 
@@ -76,8 +102,6 @@ All event type constants are defined in the `relay` package:
 Raw events are always `*RelayEvent` with a `Params` map. For convenience, typed event structs provide named fields:
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/relay"
-
 // The event arrives as a *RelayEvent with an EventType and Params map.
 if event.EventType == relay.EventCallingCallState {
 	// Promote the generic event to its typed struct by passing the
@@ -85,6 +109,21 @@ if event.EventType == relay.EventCallingCallState {
 	stateEvent := relay.NewCallStateEvent(event.Params)
 	fmt.Println(stateEvent.CallState) // "answered"
 	fmt.Println(stateEvent.EndReason) // "hangup" (only on ended)
+}
+```
+
+Alternatively, `relay.ParseEvent(rawPayload)` inspects a raw payload map and
+returns the concrete typed struct (as `any`), which you can dispatch on with a
+type switch:
+
+```go
+var rawPayload map[string]any
+switch e := relay.ParseEvent(rawPayload).(type) {
+case *relay.CallStateEvent:
+	fmt.Println(e.CallState) // "answered"
+	fmt.Println(e.EndReason) // "hangup" (only on ended)
+case *relay.PlayEvent:
+	fmt.Println(e.State)
 }
 ```
 
@@ -151,6 +190,8 @@ Constants: `MessageStateQueued`, `MessageStateInitiated`, `MessageStateSent`, `M
 ### Goroutine-based listener
 
 ```go
+import "time"
+
 client.OnCall(func(call *relay.Call) {
 	call.Answer()
 

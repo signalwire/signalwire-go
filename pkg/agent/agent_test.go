@@ -95,7 +95,7 @@ func TestNewAgentBase_WithBasicAuth(t *testing.T) {
 	}
 }
 
-// AuthMixin parity tests — Python parity:
+// AuthMixin compatibility tests — Matches Python:
 // tests/unit/core/mixins/test_auth_mixin.py::TestValidateBasicAuth
 func TestValidateBasicAuth_AcceptsMatch(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("admin", "secret"))
@@ -118,7 +118,7 @@ func TestValidateBasicAuth_RejectsBadPass(t *testing.T) {
 	}
 }
 
-// Python parity:
+// Matches Python:
 // tests/unit/core/mixins/test_auth_mixin.py::TestGetBasicAuthCredentials
 func TestGetBasicAuthCredentialsWithSource_Provided(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("alice", "shortpw"))
@@ -476,9 +476,11 @@ func TestGlobalData(t *testing.T) {
 		t.Error("UpdateGlobalData should merge")
 	}
 
+	// SetGlobalData MERGES (matches Python's set_global_data = .update()); prior
+	// keys survive alongside the new ones.
 	a.SetGlobalData(map[string]any{"key3": "val3"})
-	if _, exists := a.globalData["key1"]; exists {
-		t.Error("SetGlobalData should replace all")
+	if a.globalData["key1"] != "val1" || a.globalData["key3"] != "val3" {
+		t.Error("SetGlobalData should merge (keep existing keys, add new)")
 	}
 }
 
@@ -826,8 +828,8 @@ func TestRenderSWML_WithParams(t *testing.T) {
 				t.Errorf("expected temperature=0.5, got %v", params["temperature"])
 			}
 
-			// Check hints
-			hints, ok := aiCfg["hints"].([]string)
+			// Check hints (rendered as a mixed []any array).
+			hints, ok := aiCfg["hints"].([]any)
 			if !ok {
 				t.Fatal("expected hints")
 			}

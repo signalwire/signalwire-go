@@ -10,7 +10,7 @@
 //
 // The third cross-port "every SDK does verified HTTPS + WSS" quadrant — the
 // server side. It starts a swml.Service via WithTLS(server.crt, server.key)
-// (the shared porting-sdk self-signed leaf cert, SAN localhost/127.0.0.1) in a
+// (the shared the shared test harness self-signed leaf cert, SAN localhost/127.0.0.1) in a
 // goroutine, then reaches its unauthenticated /health route from an in-test Go
 // *http.Client that trusts the test CA over https://, asserting a real
 // response. Running the server in a goroutine + an in-process client keeps the
@@ -174,9 +174,9 @@ func trustTestCA(t *testing.T, certsDir string) {
 	t.Setenv("SSL_CERT_FILE", filepath.Join(certsDir, "ca.crt"))
 }
 
-// tlsServerCertsDir walks up to porting-sdk/test_harness/tls, runs the
+// tlsServerCertsDir walks up to the shared test harness's tls directory, runs the
 // idempotent gen_certs.sh, and returns the certs dir. Skips the test when
-// porting-sdk is not adjacent.
+// the shared test harness is not adjacent.
 func tlsServerCertsDir(t *testing.T) string {
 	t.Helper()
 	_, file, _, ok := runtime.Caller(0)

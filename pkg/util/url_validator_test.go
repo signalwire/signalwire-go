@@ -1,4 +1,4 @@
-// Parity tests for ValidateURL (projects onto Python
+// Compatibility tests for ValidateURL (projects onto Python
 // signalwire.utils.url_validator.validate_url).
 //
 // Mirrors signalwire-python/tests/unit/utils/test_url_validator.py.

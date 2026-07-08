@@ -154,16 +154,22 @@ func (pa *PlayAction) Stop() error {
 	return err
 }
 
-// Pause pauses the currently playing media.
-func (pa *PlayAction) Pause() error {
+// Pause pauses the currently playing media. An optional behavior string may be
+// provided to control how the gap is handled. Pass no argument — or "" — to omit
+// behavior, matching Python's pause(behavior: Optional[str] = None) signature.
+func (pa *PlayAction) Pause(behavior ...string) error {
 	if pa.call == nil || pa.call.client == nil {
 		return fmt.Errorf("action not associated with a call or client")
 	}
-	_, err := pa.call.client.execute("calling.play.pause", map[string]any{
+	params := map[string]any{
 		"node_id":    pa.call.nodeID,
 		"call_id":    pa.call.callID,
 		"control_id": pa.controlID,
-	})
+	}
+	if len(behavior) > 0 && behavior[0] != "" {
+		params["behavior"] = behavior[0]
+	}
+	_, err := pa.call.client.execute("calling.play.pause", params)
 	return err
 }
 
@@ -305,6 +311,41 @@ func (ca *CollectAction) Stop() error {
 		return fmt.Errorf("action not associated with a call or client")
 	}
 	_, err := ca.call.client.execute("calling.play_and_collect.stop", map[string]any{
+		"node_id":    ca.call.nodeID,
+		"call_id":    ca.call.callID,
+		"control_id": ca.controlID,
+	})
+	return err
+}
+
+// Pause pauses the play portion of a play-and-collect operation. An optional
+// behavior string may be provided to control how the gap is handled. Pass no
+// argument — or "" — to omit behavior, matching Python's
+// pause(behavior: Optional[str] = None) signature. Uses the play_and_collect
+// prefix (Python CollectAction._command_prefix = "play_and_collect").
+func (ca *CollectAction) Pause(behavior ...string) error {
+	if ca.call == nil || ca.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	params := map[string]any{
+		"node_id":    ca.call.nodeID,
+		"call_id":    ca.call.callID,
+		"control_id": ca.controlID,
+	}
+	if len(behavior) > 0 && behavior[0] != "" {
+		params["behavior"] = behavior[0]
+	}
+	_, err := ca.call.client.execute("calling.play_and_collect.pause", params)
+	return err
+}
+
+// Resume resumes a paused play-and-collect operation. Uses the play_and_collect
+// prefix (Python CollectAction._command_prefix = "play_and_collect").
+func (ca *CollectAction) Resume() error {
+	if ca.call == nil || ca.call.client == nil {
+		return fmt.Errorf("action not associated with a call or client")
+	}
+	_, err := ca.call.client.execute("calling.play_and_collect.resume", map[string]any{
 		"node_id":    ca.call.nodeID,
 		"call_id":    ca.call.callID,
 		"control_id": ca.controlID,

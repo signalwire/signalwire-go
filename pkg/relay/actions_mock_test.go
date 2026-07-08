@@ -481,6 +481,83 @@ func TestRelay_PlayAndCollectStopJournalsPACStop(t *testing.T) {
 	}
 }
 
+// TestRelay_PlayAndCollectPauseResumeJournal exercises CollectAction's
+// pause/resume control surface (projected from Python's PausableAction mixin
+// onto CollectAction). Pause posts calling.play_and_collect.pause with the
+// optional behavior; Resume posts calling.play_and_collect.resume.
+func TestRelay_PlayAndCollectPauseResumeJournal(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-pac-pr")
+	action := call.PlayAndCollect(
+		[]map[string]any{{"type": "silence", "params": map[string]any{"duration": 1}}},
+		map[string]any{"digits": map[string]any{"max": 1}},
+		relay.WithPlayControlID("pac-pr"),
+	)
+	time.Sleep(50 * time.Millisecond)
+	if err := action.Pause("skip"); err != nil {
+		t.Fatalf("Pause: %v", err)
+	}
+	if err := action.Resume(); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	pauses := h.JournalRecv(t, "calling.play_and_collect.pause")
+	if len(pauses) == 0 {
+		t.Fatal("no calling.play_and_collect.pause frame")
+	}
+	pp, _ := pauses[len(pauses)-1].FrameParams()
+	if pp["control_id"] != "pac-pr" {
+		t.Errorf("pause control_id = %v, want pac-pr", pp["control_id"])
+	}
+	if pp["behavior"] != "skip" {
+		t.Errorf("pause behavior = %v, want skip", pp["behavior"])
+	}
+	resumes := h.JournalRecv(t, "calling.play_and_collect.resume")
+	if len(resumes) == 0 {
+		t.Fatal("no calling.play_and_collect.resume frame")
+	}
+	rp, _ := resumes[len(resumes)-1].FrameParams()
+	if rp["control_id"] != "pac-pr" {
+		t.Errorf("resume control_id = %v, want pac-pr", rp["control_id"])
+	}
+}
+
+// TestRelay_PlayPauseBehaviorJournal asserts PlayAction.Pause forwards the
+// optional behavior string (matching Python's pause(behavior: str | None)),
+// and that a no-arg Pause omits the behavior key.
+func TestRelay_PlayPauseBehaviorJournal(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-play-beh")
+	action := call.Play(
+		[]map[string]any{{"type": "silence", "params": map[string]any{"duration": 1}}},
+		relay.WithPlayControlID("play-beh"),
+	)
+	time.Sleep(50 * time.Millisecond)
+	if err := action.Pause("silence"); err != nil {
+		t.Fatalf("Pause(silence): %v", err)
+	}
+	if err := action.Pause(); err != nil {
+		t.Fatalf("Pause(): %v", err)
+	}
+	pauses := h.JournalRecv(t, "calling.play.pause")
+	if len(pauses) < 2 {
+		t.Fatalf("want >=2 calling.play.pause frames, got %d", len(pauses))
+	}
+	withBeh, _ := pauses[0].FrameParams()
+	if withBeh["behavior"] != "silence" {
+		t.Errorf("first pause behavior = %v, want silence", withBeh["behavior"])
+	}
+	noBeh, _ := pauses[len(pauses)-1].FrameParams()
+	if _, ok := noBeh["behavior"]; ok {
+		t.Errorf("no-arg pause should omit behavior, got %v", noBeh["behavior"])
+	}
+}
+
 // ---------------------------------------------------------------------------
 // StandaloneCollectAction
 // ---------------------------------------------------------------------------
@@ -934,6 +1011,88 @@ func TestRelay_ConcurrentPlayAndRecordRouteIndependently(t *testing.T) {
 	}
 	if recordAction.IsDone() {
 		t.Error("recordAction unexpectedly done")
+	}
+}
+
+// TestRelay_BindDigitEmitsBindMethodWireKey is a wire-fidelity regression test:
+// Python's bind_digit writes the RELAY param under the key "bind_method"
+// (call.py: params["bind_method"] = bind_method). A prior Go bug emitted
+// "method" instead, which the server would not recognize.
+func TestRelay_BindDigitEmitsBindMethodWireKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-bind")
+	_ = call.BindDigit("123", "my.method", nil, "", 0)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.bind_digit")
+	params, _ := entry.FrameParams()
+	if params["bind_method"] != "my.method" {
+		t.Errorf("bind_method = %v, want my.method (Python wire key)", params["bind_method"])
+	}
+	if _, has := params["method"]; has {
+		t.Error("must not emit 'method' key — Python uses 'bind_method'")
+	}
+	if params["digits"] != "123" {
+		t.Errorf("digits = %v, want 123", params["digits"])
+	}
+}
+
+// TestRelay_AmazonBedrockDispatchesOwnMethod is a wire-fidelity regression test:
+// Python's amazon_bedrock() calls _execute("amazon_bedrock", params) — the
+// dedicated RELAY method — with NO "engine" field. A prior Go bug routed it to
+// calling.ai with params["engine"]="amazon_bedrock".
+func TestRelay_AmazonBedrockDispatchesOwnMethod(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-bedrock")
+	_ = call.AmazonBedrock(
+		relay.WithAIPrompt(map[string]any{"text": "hi"}),
+		relay.WithAIControlID("bedrock-ctl"),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.amazon_bedrock")
+	params, _ := entry.FrameParams()
+	if params["control_id"] != "bedrock-ctl" {
+		t.Errorf("control_id = %v, want bedrock-ctl", params["control_id"])
+	}
+	if _, has := params["engine"]; has {
+		t.Error("amazon_bedrock must not emit an 'engine' key (Python never sends one)")
+	}
+	// It must NOT have been routed to calling.ai.
+	if len(h.JournalRecv(t, "calling.ai")) != 0 {
+		t.Error("amazon_bedrock must not dispatch calling.ai")
+	}
+}
+
+// TestRelay_AIParamsNestedUnderParamsKey is a wire-fidelity regression test:
+// Python's ai(ai_params=...) writes the map nested under the "params" wire key
+// (call.py: params["params"] = ai_params), NOT spread onto the top level.
+func TestRelay_AIParamsNestedUnderParamsKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-aiparams")
+	_ = call.AI(
+		relay.WithAIParams(map[string]any{"temperature": 0.7}),
+		relay.WithAIControlID("aip-ctl"),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.ai")
+	params, _ := entry.FrameParams()
+	nested, ok := params["params"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai_params must be nested under 'params' key; got params=%v", params)
+	}
+	if nested["temperature"] != 0.7 {
+		t.Errorf("params.temperature = %v, want 0.7", nested["temperature"])
+	}
+	if _, spilled := params["temperature"]; spilled {
+		t.Error("ai_params keys must not spill onto the top-level frame")
 	}
 }
 

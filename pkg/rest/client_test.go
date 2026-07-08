@@ -106,7 +106,6 @@ func TestAllNamespacesInitialized(t *testing.T) {
 		{"Registry", client.Registry},
 		{"Datasphere", client.Datasphere},
 		{"Video", client.Video},
-		{"Compat", client.Compat},
 		{"Logs", client.Logs},
 		{"Project", client.Project},
 		{"PubSub", client.PubSub},
@@ -179,38 +178,6 @@ func TestVideoSubResources(t *testing.T) {
 	for _, check := range checks {
 		if check.val == nil {
 			t.Errorf("Video.%s is nil", check.name)
-		}
-	}
-}
-
-func TestCompatSubResources(t *testing.T) {
-	client, err := NewRestClient("proj", "tok", "space.signalwire.com")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	c := client.Compat
-	checks := []struct {
-		name string
-		val  any
-	}{
-		{"Accounts", c.Accounts},
-		{"Calls", c.Calls},
-		{"Messages", c.Messages},
-		{"Faxes", c.Faxes},
-		{"Conferences", c.Conferences},
-		{"PhoneNumbers", c.PhoneNumbers},
-		{"Applications", c.Applications},
-		{"LamlBins", c.LamlBins},
-		{"Queues", c.Queues},
-		{"Recordings", c.Recordings},
-		{"Transcriptions", c.Transcriptions},
-		{"Tokens", c.Tokens},
-	}
-
-	for _, check := range checks {
-		if check.val == nil {
-			t.Errorf("Compat.%s is nil", check.name)
 		}
 	}
 }
@@ -313,34 +280,6 @@ func TestSignalWireRestError_ImplementsError(t *testing.T) {
 	want := `POST /api/test returned 500: internal server error`
 	if got != want {
 		t.Errorf("Error() = %q, want %q", got, want)
-	}
-}
-
-func TestCrudResource_PathConstruction(t *testing.T) {
-	// Use the top-level CrudResource from client.go
-	r := NewCrudResource(nil, "/api/test/resources")
-	if r.Path != "/api/test/resources" {
-		t.Errorf("Path = %q, want %q", r.Path, "/api/test/resources")
-	}
-
-	sub := r.subPath("abc-123")
-	expected := "/api/test/resources/abc-123"
-	if sub != expected {
-		t.Errorf("subPath = %q, want %q", sub, expected)
-	}
-}
-
-func TestCrudResource_DefaultUpdateMethod(t *testing.T) {
-	r := NewCrudResource(nil, "/api/test")
-	if r.UpdateMethod != "PATCH" {
-		t.Errorf("UpdateMethod = %q, want %q", r.UpdateMethod, "PATCH")
-	}
-}
-
-func TestCrudResourcePUT_UpdateMethod(t *testing.T) {
-	r := NewCrudResourcePUT(nil, "/api/test")
-	if r.UpdateMethod != "PUT" {
-		t.Errorf("UpdateMethod = %q, want %q", r.UpdateMethod, "PUT")
 	}
 }
 

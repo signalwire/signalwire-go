@@ -14,7 +14,7 @@ package relay
 //
 // TTSGender is a string subtype, so the value written into the
 // {"type":"tts","params":{"gender":...}} media entry is byte-identical to the
-// bare string the reference uses — parity with Python's play_tts/prompt_tts
+// bare string the reference uses — compatibility with Python's play_tts/prompt_tts
 // gender keyword (a plain str).
 type TTSGender string
 

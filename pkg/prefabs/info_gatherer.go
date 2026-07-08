@@ -36,6 +36,10 @@ type InfoGathererOptions struct {
 type InfoGathererAgent struct {
 	*agent.AgentBase
 	staticQuestions *[]Question
+	// questionCallback holds the per-request question provider registered via
+	// SetQuestionCallback. When nil, OnSwmlRequest falls back to a safe default
+	// question set.
+	questionCallback func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string) []Question
 }
 
 // ---------------------------------------------------------------------------
@@ -135,35 +139,46 @@ func NewInfoGathererAgent(opts InfoGathererOptions) *InfoGathererAgent {
 func (ig *InfoGathererAgent) SetQuestionCallback(
 	cb func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string) []Question,
 ) {
-	ig.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, a *agent.AgentBase) {
-		var questions []Question
+	ig.questionCallback = cb
+	ig.SetDynamicConfigCallback(ig.OnSwmlRequest)
+}
 
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					// Callback panicked — fall back to safe defaults
-					questions = fallbackQuestions()
-				}
-			}()
-			questions = cb(queryParams, bodyParams, headers)
-			if len(questions) == 0 {
+// OnSwmlRequest is the per-request SWML hook for dynamic question mode. It
+// matches agent.DynamicConfigCallback so it can be registered directly via
+// SetDynamicConfigCallback, and mirrors Python's InfoGathererAgent.on_swml_request:
+// it invokes the registered question callback (falling back to a safe default
+// set when the callback is absent, returns nothing, or panics) and writes the
+// resulting question list into the request's ephemeral global data.
+func (ig *InfoGathererAgent) OnSwmlRequest(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, a *agent.AgentBase) {
+	var questions []Question
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// Callback panicked — fall back to safe defaults
 				questions = fallbackQuestions()
 			}
 		}()
-
-		questionMaps := make([]map[string]any, len(questions))
-		for i, q := range questions {
-			questionMaps[i] = map[string]any{
-				"key_name":      q.KeyName,
-				"question_text": q.QuestionText,
-				"confirm":       q.Confirm,
-			}
+		if ig.questionCallback != nil {
+			questions = ig.questionCallback(queryParams, bodyParams, headers)
 		}
-		a.SetGlobalData(map[string]any{
-			"questions":      questionMaps,
-			"question_index": 0,
-			"answers":        []any{},
-		})
+		if len(questions) == 0 {
+			questions = fallbackQuestions()
+		}
+	}()
+
+	questionMaps := make([]map[string]any, len(questions))
+	for i, q := range questions {
+		questionMaps[i] = map[string]any{
+			"key_name":      q.KeyName,
+			"question_text": q.QuestionText,
+			"confirm":       q.Confirm,
+		}
+	}
+	a.SetGlobalData(map[string]any{
+		"questions":      questionMaps,
+		"question_index": 0,
+		"answers":        []any{},
 	})
 }
 
@@ -185,22 +200,7 @@ func (ig *InfoGathererAgent) registerTools() {
 	ig.DefineTool(agent.ToolDefinition{
 		Name:        "start_questions",
 		Description: "Start the question sequence with the first question",
-		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			globalData, _ := rawData["global_data"].(map[string]any)
-			questions, _ := globalData["questions"].([]any)
-			if len(questions) == 0 {
-				return swaig.NewFunctionResult("I don't have any questions to ask.")
-			}
-
-			first, _ := questions[0].(map[string]any)
-			text, _ := first["question_text"].(string)
-			confirm, _ := first["confirm"].(bool)
-
-			instruction := ig.buildQuestionInstruction(text, confirm, true)
-			result := swaig.NewFunctionResult(instruction)
-			result.ReplaceInHistory("Welcome! Let me ask you a few questions.")
-			return result
-		},
+		Handler:     ig.StartQuestions,
 	})
 
 	// submit_answer ----------------------------------------------------
@@ -216,56 +216,80 @@ func (ig *InfoGathererAgent) registerTools() {
 				"description": "The user's answer to the current question",
 			},
 		},
-		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
-			answer, _ := args["answer"].(string)
-
-			globalData, _ := rawData["global_data"].(map[string]any)
-			questions, _ := globalData["questions"].([]any)
-			idxFloat, _ := globalData["question_index"].(float64)
-			idx := int(idxFloat)
-			answers, _ := globalData["answers"].([]any)
-
-			if idx >= len(questions) {
-				return swaig.NewFunctionResult("All questions have already been answered.")
-			}
-
-			// Derive key_name from global_data, not from model-supplied args.
-			current, _ := questions[idx].(map[string]any)
-			keyName, _ := current["key_name"].(string)
-
-			// Record the answer
-			newAnswer := map[string]any{"key_name": keyName, "answer": answer}
-			//nolint:gocritic // appendAssign: deliberately derives a fresh answers slice that is stored alongside newIdx via UpdateGlobalData; the original answers is intentionally not mutated.
-			newAnswers := append(answers, newAnswer)
-			newIdx := idx + 1
-
-			if newIdx < len(questions) {
-				next, _ := questions[newIdx].(map[string]any)
-				nextText, _ := next["question_text"].(string)
-				nextConfirm, _ := next["confirm"].(bool)
-
-				instruction := ig.buildQuestionInstruction(nextText, nextConfirm, false)
-				result := swaig.NewFunctionResult(instruction)
-				result.ReplaceInHistory(true)
-				result.UpdateGlobalData(map[string]any{
-					"answers":        newAnswers,
-					"question_index": newIdx,
-				})
-				return result
-			}
-
-			// All questions answered
-			result := swaig.NewFunctionResult(
-				"Thank you! All questions have been answered. You can now summarize the information collected or ask if there's anything else the user would like to discuss.",
-			)
-			result.ReplaceInHistory(true)
-			result.UpdateGlobalData(map[string]any{
-				"answers":        newAnswers,
-				"question_index": newIdx,
-			})
-			return result
-		},
+		Handler: ig.SubmitAnswer,
 	})
+}
+
+// StartQuestions handles the "start_questions" tool: it emits the first
+// question in the sequence from the request's global data.
+func (ig *InfoGathererAgent) StartQuestions(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+	globalData, _ := rawData["global_data"].(map[string]any)
+	questions, _ := globalData["questions"].([]any)
+	if len(questions) == 0 {
+		return swaig.NewFunctionResult("I don't have any questions to ask.")
+	}
+
+	first, _ := questions[0].(map[string]any)
+	text, _ := first["question_text"].(string)
+	confirm, _ := first["confirm"].(bool)
+
+	instruction := ig.buildQuestionInstruction(text, confirm, true)
+	result := swaig.NewFunctionResult(instruction)
+	result.ReplaceInHistory("Welcome! Let me ask you a few questions.")
+	return result
+}
+
+// SubmitAnswer handles the "submit_answer" tool: it records the answer to the
+// current question (deriving key_name server-side from global data) and emits
+// either the next question or a completion message.
+func (ig *InfoGathererAgent) SubmitAnswer(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+	answer, _ := args["answer"].(string)
+
+	globalData, _ := rawData["global_data"].(map[string]any)
+	questions, _ := globalData["questions"].([]any)
+	idxFloat, _ := globalData["question_index"].(float64)
+	idx := int(idxFloat)
+	answers, _ := globalData["answers"].([]any)
+
+	if idx >= len(questions) {
+		return swaig.NewFunctionResult("All questions have already been answered.")
+	}
+
+	// Derive key_name from global_data, not from model-supplied args.
+	current, _ := questions[idx].(map[string]any)
+	keyName, _ := current["key_name"].(string)
+
+	// Record the answer
+	newAnswer := map[string]any{"key_name": keyName, "answer": answer}
+	//nolint:gocritic // appendAssign: deliberately derives a fresh answers slice that is stored alongside newIdx via UpdateGlobalData; the original answers is intentionally not mutated.
+	newAnswers := append(answers, newAnswer)
+	newIdx := idx + 1
+
+	if newIdx < len(questions) {
+		next, _ := questions[newIdx].(map[string]any)
+		nextText, _ := next["question_text"].(string)
+		nextConfirm, _ := next["confirm"].(bool)
+
+		instruction := ig.buildQuestionInstruction(nextText, nextConfirm, false)
+		result := swaig.NewFunctionResult(instruction)
+		result.ReplaceInHistory(true)
+		result.UpdateGlobalData(map[string]any{
+			"answers":        newAnswers,
+			"question_index": newIdx,
+		})
+		return result
+	}
+
+	// All questions answered
+	result := swaig.NewFunctionResult(
+		"Thank you! All questions have been answered. You can now summarize the information collected or ask if there's anything else the user would like to discuss.",
+	)
+	result.ReplaceInHistory(true)
+	result.UpdateGlobalData(map[string]any{
+		"answers":        newAnswers,
+		"question_index": newIdx,
+	})
+	return result
 }
 
 // buildQuestionInstruction generates the prompt text for a question.

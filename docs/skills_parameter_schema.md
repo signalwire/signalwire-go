@@ -16,66 +16,79 @@ The parameter schema system allows skills to declare their configurable paramete
 
 ### Getting All Skills Schema
 
-Use the `list_skills_with_params()` function to get a complete schema of all available skills:
+Use the `skills.ListSkillsWithParams()` function to get a complete schema of all available skills:
 
-```python
-from signalwire_agents import list_skills_with_params
+<!-- snippet-setup -->
+```go
+// Shared context the fragments below assume: `schema` is one skill's parameter
+// schema (parameter name -> metadata), as produced by
+// skills.ListSkillsWithParams()[<name>].
+var schema = map[string]map[string]any{}
 
-# Get complete schema for all skills
-schema = list_skills_with_params()
+var (
+	_ = schema
+)
+```
 
-# Example output structure:
+```go
+import "github.com/signalwire/signalwire-go/pkg/skills"
+
+// Get complete schema for all skills.
+// Returns map[string]map[string]map[string]any keyed by skill name.
+allSchema := skills.ListSkillsWithParams()
+_ = allSchema
+```
+
+The returned structure, expressed as JSON, looks like:
+
+```json
 {
     "web_search": {
         "name": "web_search",
         "description": "Search the web for information using Google Custom Search API",
         "version": "1.0.0",
-        "supports_multiple_instances": True,
-        "required_packages": ["bs4", "requests"],
+        "supports_multiple_instances": true,
         "required_env_vars": [],
         "parameters": {
             "api_key": {
                 "type": "string",
                 "description": "Google Custom Search API key",
-                "required": True,
-                "hidden": True,
+                "required": true,
+                "hidden": true,
                 "env_var": "GOOGLE_SEARCH_API_KEY"
             },
             "search_engine_id": {
                 "type": "string",
                 "description": "Google Custom Search Engine ID",
-                "required": True,
-                "hidden": True,
+                "required": true,
+                "hidden": true,
                 "env_var": "GOOGLE_SEARCH_ENGINE_ID"
             },
             "num_results": {
                 "type": "integer",
                 "description": "Default number of search results to return",
                 "default": 1,
-                "required": False,
+                "required": false,
                 "min": 1,
                 "max": 10
-            },
-            ...
+            }
         }
     },
     "datetime": {
         "name": "datetime",
         "description": "Get current date, time, and timezone information",
         "version": "1.0.0",
-        "supports_multiple_instances": False,
-        "required_packages": ["pytz"],
+        "supports_multiple_instances": false,
         "required_env_vars": [],
         "parameters": {
             "swaig_fields": {
                 "type": "object",
                 "description": "Additional SWAIG function metadata to merge into tool definitions",
                 "default": {},
-                "required": False
+                "required": false
             }
         }
-    },
-    ...
+    }
 }
 ```
 
@@ -83,89 +96,133 @@ schema = list_skills_with_params()
 
 Here's an example of how to use the schema to generate a configuration form:
 
-```python
-import json
-from signalwire_agents import list_skills_with_params, AgentBase
+```go
+package main
 
-# Get skills schema
-schema = list_skills_with_params()
+import (
+    "fmt"
+    "strings"
 
-# Example: Generate HTML form for web_search skill
-web_search_schema = schema['web_search']
+    "github.com/signalwire/signalwire-go/pkg/skills"
+)
 
-def generate_form_field(param_name, param_info):
-    """Generate HTML form field based on parameter schema"""
-    field_html = f'<div class="form-group">\n'
-    field_html += f'  <label for="{param_name}">{param_info["description"]}</label>\n'
-    
-    # Mark required fields
-    required = "required" if param_info.get("required", False) else ""
-    
-    # Hide sensitive fields
-    input_type = "password" if param_info.get("hidden", False) else "text"
-    
-    # Handle different types
-    if param_info["type"] == "string":
-        default = param_info.get("default", "")
-        field_html += f'  <input type="{input_type}" id="{param_name}" name="{param_name}" '
-        field_html += f'value="{default}" {required}>\n'
-    
-    elif param_info["type"] == "integer":
-        default = param_info.get("default", 0)
-        min_val = f'min="{param_info["min"]}"' if "min" in param_info else ""
-        max_val = f'max="{param_info["max"]}"' if "max" in param_info else ""
-        field_html += f'  <input type="number" id="{param_name}" name="{param_name}" '
-        field_html += f'value="{default}" {min_val} {max_val} {required}>\n'
-    
-    elif param_info["type"] == "boolean":
-        default = param_info.get("default", False)
-        checked = "checked" if default else ""
-        field_html += f'  <input type="checkbox" id="{param_name}" name="{param_name}" {checked}>\n'
-    
-    # Show environment variable hint
-    if "env_var" in param_info:
-        field_html += f'  <small>Can also be set via {param_info["env_var"]} environment variable</small>\n'
-    
-    field_html += '</div>\n'
-    return field_html
+// generateFormField builds an HTML form field from a parameter's schema info.
+func generateFormField(paramName string, paramInfo map[string]any) string {
+    var b strings.Builder
+    fmt.Fprintf(&b, "<div class=\"form-group\">\n")
+    fmt.Fprintf(&b, "  <label for=\"%s\">%v</label>\n", paramName, paramInfo["description"])
 
-# Generate form fields for web_search skill
-print("<form>")
-for param_name, param_info in web_search_schema["parameters"].items():
-    print(generate_form_field(param_name, param_info))
-print("</form>")
+    // Mark required fields
+    required := ""
+    if req, _ := paramInfo["required"].(bool); req {
+        required = "required"
+    }
+
+    // Hide sensitive fields
+    inputType := "text"
+    if hidden, _ := paramInfo["hidden"].(bool); hidden {
+        inputType = "password"
+    }
+
+    // Handle different types
+    switch paramInfo["type"] {
+    case "string":
+        def, _ := paramInfo["default"]
+        fmt.Fprintf(&b, "  <input type=\"%s\" id=\"%s\" name=\"%s\" value=\"%v\" %s>\n",
+            inputType, paramName, paramName, def, required)
+    case "integer":
+        def := paramInfo["default"]
+        minVal := ""
+        if v, ok := paramInfo["min"]; ok {
+            minVal = fmt.Sprintf("min=\"%v\"", v)
+        }
+        maxVal := ""
+        if v, ok := paramInfo["max"]; ok {
+            maxVal = fmt.Sprintf("max=\"%v\"", v)
+        }
+        fmt.Fprintf(&b, "  <input type=\"number\" id=\"%s\" name=\"%s\" value=\"%v\" %s %s %s>\n",
+            paramName, paramName, def, minVal, maxVal, required)
+    case "boolean":
+        checked := ""
+        if def, _ := paramInfo["default"].(bool); def {
+            checked = "checked"
+        }
+        fmt.Fprintf(&b, "  <input type=\"checkbox\" id=\"%s\" name=\"%s\" %s>\n",
+            paramName, paramName, checked)
+    }
+
+    // Show environment variable hint
+    if envVar, ok := paramInfo["env_var"]; ok {
+        fmt.Fprintf(&b, "  <small>Can also be set via %v environment variable</small>\n", envVar)
+    }
+
+    b.WriteString("</div>\n")
+    return b.String()
+}
+
+func printWebSearchForm() {
+    // Get skills schema
+    schema := skills.ListSkillsWithParams()
+
+    // Generate an HTML form for the web_search skill.
+    // schema[name] is map[string]map[string]any, so ["parameters"] is a map[string]any.
+    webSearchParams := schema["web_search"]["parameters"]
+
+    fmt.Println("<form>")
+    for paramName, info := range webSearchParams {
+        paramInfo, _ := info.(map[string]any)
+        fmt.Print(generateFormField(paramName, paramInfo))
+    }
+    fmt.Println("</form>")
+}
+
+func main() { printWebSearchForm() }
 ```
 
 ### Programmatic Skill Configuration
 
 Use the schema to validate and configure skills programmatically:
 
-```python
-from signalwire_agents import AgentBase, list_skills_with_params
+```go
+package main
 
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="my-agent")
-        
-        # Get schema to validate configuration
-        schema = list_skills_with_params()
-        
-        # Configure web_search skill with validation
-        web_search_params = {
-            "api_key": "your-api-key",
-            "search_engine_id": "your-engine-id",
-            "num_results": 3,
-            "max_content_length": 3000
+import (
+    "fmt"
+
+    "github.com/signalwire/signalwire-go/pkg/agent"
+    "github.com/signalwire/signalwire-go/pkg/skills"
+)
+
+func newMyAgent() (*agent.AgentBase, error) {
+    a := agent.NewAgentBase(agent.WithName("my-agent"))
+
+    // Get schema to validate configuration
+    schema := skills.ListSkillsWithParams()
+
+    // Configure web_search skill with validation
+    webSearchParams := map[string]any{
+        "api_key":            "your-api-key",
+        "search_engine_id":   "your-engine-id",
+        "num_results":        3,
+        "max_content_length": 3000,
+    }
+
+    // Validate required parameters
+    webSearchSchema := schema["web_search"]["parameters"]
+    for param, info := range webSearchSchema {
+        paramInfo, _ := info.(map[string]any)
+        required, _ := paramInfo["required"].(bool)
+        if _, present := webSearchParams[param]; required && !present {
+            return nil, fmt.Errorf("missing required parameter: %s", param)
         }
-        
-        # Validate required parameters
-        web_search_schema = schema["web_search"]["parameters"]
-        for param, info in web_search_schema.items():
-            if info.get("required", False) and param not in web_search_params:
-                raise ValueError(f"Missing required parameter: {param}")
-        
-        # Add skill with validated parameters
-        self.add_skill("web_search", web_search_params)
+    }
+
+    // Add skill with validated parameters
+    a.AddSkill("web_search", webSearchParams)
+    return a, nil
+}
+
+func main() { _, _ = newMyAgent() }
 ```
 
 ## Parameter Schema Reference
@@ -186,81 +243,98 @@ Each parameter in the schema can have the following properties:
 
 ## Implementing Parameter Schema in Skills
 
-To add parameter schema support to a skill, override the `get_parameter_schema()` class method:
+To add parameter schema support to a skill, override the `GetParameterSchema()`
+method and merge in the base schema (which supplies the common parameters):
 
-```python
-from signalwire_agents.core.skill_base import SkillBase
-from typing import Dict, Any
+```go
+package mycustomskill
 
-class MyCustomSkill(SkillBase):
-    SKILL_NAME = "my_custom_skill"
-    SKILL_DESCRIPTION = "My custom skill"
-    SKILL_VERSION = "1.0.0"
-    REQUIRED_PACKAGES = []
-    REQUIRED_ENV_VARS = []
-    
-    @classmethod
-    def get_parameter_schema(cls) -> Dict[str, Dict[str, Any]]:
-        """Get parameter schema for this skill"""
-        # Get base schema from parent (includes common parameters)
-        schema = super().get_parameter_schema()
-        
-        # Add skill-specific parameters
-        schema.update({
-            "api_endpoint": {
-                "type": "string",
-                "description": "API endpoint URL",
-                "required": True,
-                "default": "https://api.example.com"
-            },
-            "api_key": {
-                "type": "string",
-                "description": "API authentication key",
-                "required": True,
-                "hidden": True,  # Mark as sensitive
-                "env_var": "MY_API_KEY"  # Can be set via environment
-            },
-            "timeout": {
-                "type": "integer",
-                "description": "Request timeout in seconds",
-                "default": 30,
-                "required": False,
-                "min": 1,
-                "max": 300
-            },
-            "retry_count": {
-                "type": "integer",
-                "description": "Number of retries on failure",
-                "default": 3,
-                "required": False,
-                "min": 0,
-                "max": 10
-            },
-            "output_format": {
-                "type": "string",
-                "description": "Output format for results",
-                "default": "json",
-                "required": False,
-                "enum": ["json", "xml", "text"]  # Allowed values
-            },
-            "enable_cache": {
-                "type": "boolean",
-                "description": "Enable response caching",
-                "default": True,
-                "required": False
-            }
-        })
-        
-        return schema
-    
-    def setup(self) -> bool:
-        """Setup the skill using parameters"""
-        # Access parameters via self.params
-        self.api_endpoint = self.params.get('api_endpoint')
-        self.api_key = self.params.get('api_key')
-        self.timeout = self.params.get('timeout', 30)
-        # ... etc
-        return True
+import (
+    "github.com/signalwire/signalwire-go/pkg/skills"
+)
+
+type MyCustomSkill struct {
+    skills.BaseSkill
+    apiEndpoint string
+    apiKey      string
+    timeout     int
+}
+
+func NewMyCustomSkill(params map[string]any) skills.SkillBase {
+    return &MyCustomSkill{
+        BaseSkill: skills.BaseSkill{
+            SkillName: "my_custom_skill",
+            SkillDesc: "My custom skill",
+            SkillVer:  "1.0.0",
+            Params:    params,
+        },
+    }
+}
+
+func (s *MyCustomSkill) GetParameterSchema() map[string]map[string]any {
+    // Get base schema (includes common parameters)
+    schema := s.BaseSkill.GetParameterSchema()
+
+    // Add skill-specific parameters
+    schema["api_endpoint"] = map[string]any{
+        "type":        "string",
+        "description": "API endpoint URL",
+        "required":    true,
+        "default":     "https://api.example.com",
+    }
+    schema["api_key"] = map[string]any{
+        "type":        "string",
+        "description": "API authentication key",
+        "required":    true,
+        "hidden":      true,          // Mark as sensitive
+        "env_var":     "MY_API_KEY",  // Can be set via environment
+    }
+    schema["timeout"] = map[string]any{
+        "type":        "integer",
+        "description": "Request timeout in seconds",
+        "default":     30,
+        "required":    false,
+        "min":         1,
+        "max":         300,
+    }
+    schema["retry_count"] = map[string]any{
+        "type":        "integer",
+        "description": "Number of retries on failure",
+        "default":     3,
+        "required":    false,
+        "min":         0,
+        "max":         10,
+    }
+    schema["output_format"] = map[string]any{
+        "type":        "string",
+        "description": "Output format for results",
+        "default":     "json",
+        "required":    false,
+        "enum":        []string{"json", "xml", "text"}, // Allowed values
+    }
+    schema["enable_cache"] = map[string]any{
+        "type":        "boolean",
+        "description": "Enable response caching",
+        "default":     true,
+        "required":    false,
+    }
+
+    return schema
+}
+
+func (s *MyCustomSkill) Setup() bool {
+    // Access parameters via the BaseSkill helpers
+    s.apiEndpoint = s.GetParamString("api_endpoint", "")
+    s.apiKey = s.GetParamString("api_key", "")
+    s.timeout = s.GetParamInt("timeout", 30)
+    // ... etc
+    return true
+}
+
+// RegisterTools registers the skill's tools with the agent (required by SkillBase).
+func (s *MyCustomSkill) RegisterTools() []skills.ToolRegistration {
+    return nil
+}
 ```
 
 ## Common Parameter Patterns
@@ -269,13 +343,13 @@ class MyCustomSkill(SkillBase):
 
 Always mark sensitive parameters as `hidden` and provide an `env_var` option:
 
-```python
-"api_key": {
-    "type": "string",
+```go
+schema["api_key"] = map[string]any{
+    "type":        "string",
     "description": "API key for authentication",
-    "required": True,
-    "hidden": True,
-    "env_var": "SERVICE_API_KEY"
+    "required":    true,
+    "hidden":      true,
+    "env_var":     "SERVICE_API_KEY",
 }
 ```
 
@@ -283,14 +357,14 @@ Always mark sensitive parameters as `hidden` and provide an `env_var` option:
 
 Use `min` and `max` to enforce valid ranges:
 
-```python
-"port": {
-    "type": "integer",
+```go
+schema["port"] = map[string]any{
+    "type":        "integer",
     "description": "Server port number",
-    "default": 8080,
-    "required": False,
-    "min": 1,
-    "max": 65535
+    "default":     8080,
+    "required":    false,
+    "min":         1,
+    "max":         65535,
 }
 ```
 
@@ -298,13 +372,13 @@ Use `min` and `max` to enforce valid ranges:
 
 Use `enum` to restrict to specific values:
 
-```python
-"log_level": {
-    "type": "string",
+```go
+schema["log_level"] = map[string]any{
+    "type":        "string",
     "description": "Logging level",
-    "default": "info",
-    "required": False,
-    "enum": ["debug", "info", "warning", "error"]
+    "default":     "info",
+    "required":    false,
+    "enum":        []string{"debug", "info", "warning", "error"},
 }
 ```
 
@@ -312,63 +386,69 @@ Use `enum` to restrict to specific values:
 
 Use boolean parameters for optional features:
 
-```python
-"enable_analytics": {
-    "type": "boolean",
+```go
+schema["enable_analytics"] = map[string]any{
+    "type":        "boolean",
     "description": "Enable analytics tracking",
-    "default": False,
-    "required": False
+    "default":     false,
+    "required":    false,
 }
 ```
 
 ## Base Parameters
 
-All skills automatically inherit these base parameters from `SkillBase`:
+All skills automatically inherit these base parameters from `skills.BaseSkill`:
 
 - **`swaig_fields`** (object) - Additional SWAIG function metadata to merge into tool definitions
-- **`tool_name`** (string) - Custom name for skill instances (only for skills with `SUPPORTS_MULTIPLE_INSTANCES = True`)
+- **`tool_name`** (string) - Custom name for skill instances (only for skills whose `SupportsMultipleInstances()` returns `true`)
 
 ## Examples
 
 ### Simple Skill (No Parameters)
 
-Skills like `datetime` and `math` that don't need configuration:
+Skills like `datetime` and `math` that don't need configuration simply inherit the
+base schema. Since `skills.BaseSkill` already provides `GetParameterSchema()`, you
+don't override it at all:
 
-```python
-@classmethod
-def get_parameter_schema(cls) -> Dict[str, Dict[str, Any]]:
-    # Just return base schema
-    return super().get_parameter_schema()
+```go
+import "github.com/signalwire/signalwire-go/pkg/skills"
+
+// No GetParameterSchema override needed — the embedded skills.BaseSkill
+// supplies the base schema (swaig_fields, tool_name).
+type DateTimeSkill struct {
+    skills.BaseSkill
+}
+
+var _ DateTimeSkill
 ```
 
 ### Complex Skill (Many Parameters)
 
 Skills like `web_search` with multiple configuration options:
 
-```python
-@classmethod
-def get_parameter_schema(cls) -> Dict[str, Dict[str, Any]]:
-    schema = super().get_parameter_schema()
-    
-    schema.update({
-        # API credentials (hidden)
-        "api_key": {...},
-        "api_secret": {...},
-        
-        # Configuration options
-        "timeout": {...},
-        "retry_count": {...},
-        
-        # Feature flags
-        "enable_cache": {...},
-        "debug_mode": {...},
-        
-        # Customization
-        "response_template": {...},
-        "error_messages": {...}
-    })
-    
+<!-- snippet: no-compile illustrative GetParameterSchema method on WebSearchSkill (type defined elsewhere; entries elided with /* ... */) -->
+```go
+func (s *WebSearchSkill) GetParameterSchema() map[string]map[string]any {
+    schema := s.BaseSkill.GetParameterSchema()
+
+    // API credentials (hidden)
+    schema["api_key"] = map[string]any{ /* ... */ }
+    schema["api_secret"] = map[string]any{ /* ... */ }
+
+    // Configuration options
+    schema["timeout"] = map[string]any{ /* ... */ }
+    schema["retry_count"] = map[string]any{ /* ... */ }
+
+    // Feature flags
+    schema["enable_cache"] = map[string]any{ /* ... */ }
+    schema["debug_mode"] = map[string]any{ /* ... */ }
+
+    // Customization
+    schema["response_template"] = map[string]any{ /* ... */ }
+    schema["error_messages"] = map[string]any{ /* ... */ }
+
     return schema
+}
 ```
 
 ## Best Practices

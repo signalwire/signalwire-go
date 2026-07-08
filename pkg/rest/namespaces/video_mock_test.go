@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 // ---------- Rooms — streams sub-resource ----------
@@ -30,10 +31,11 @@ func TestVideoRooms_ListStreams_ReturnsDataCollection(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Rooms.ListStreams("room-1", nil)
+	bodyResp, err := client.Video.Rooms.ListStreams("room-1", nil)
 	if err != nil {
 		t.Fatalf("ListStreams: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data' in %v", keys(body))
@@ -62,12 +64,13 @@ func TestVideoRooms_CreateStream_PostsKwargsInBody(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Rooms.CreateStream("room-1", map[string]any{
+	bodyResp, err := client.Video.Rooms.CreateStream("room-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{
 		"url": "rtmp://example.com/live",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("CreateStream: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -98,10 +101,11 @@ func TestVideoRoomSessions_List_ReturnsDataCollection(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.RoomSessions.List(nil)
+	bodyResp, err := client.Video.RoomSessions.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data' in %v", keys(body))
@@ -127,10 +131,11 @@ func TestVideoRoomSessions_Get_ReturnsSessionObject(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.RoomSessions.Get("sess-abc")
+	bodyResp, err := client.Video.RoomSessions.Get("sess-abc")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -155,10 +160,11 @@ func TestVideoRoomSessions_ListEvents_UsesEventsSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.RoomSessions.ListEvents("sess-1", nil)
+	bodyResp, err := client.Video.RoomSessions.ListEvents("sess-1", nil)
 	if err != nil {
 		t.Fatalf("ListEvents: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data' in %v", keys(body))
@@ -184,10 +190,11 @@ func TestVideoRoomSessions_ListRecordings_UsesRecordingsSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.RoomSessions.ListRecordings("sess-2", nil)
+	bodyResp, err := client.Video.RoomSessions.ListRecordings("sess-2", nil)
 	if err != nil {
 		t.Fatalf("ListRecordings: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data' in %v", keys(body))
 	}
@@ -211,10 +218,11 @@ func TestVideoRoomRecordings_List_ReturnsDataCollection(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.RoomRecordings.List(nil)
+	bodyResp, err := client.Video.RoomRecordings.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data' in %v", keys(body))
@@ -240,10 +248,11 @@ func TestVideoRoomRecordings_Get_ReturnsSingleRecording(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.RoomRecordings.Get("rec-xyz")
+	bodyResp, err := client.Video.RoomRecordings.Get("rec-xyz", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -265,10 +274,11 @@ func TestVideoRoomRecordings_Delete_ReturnsEmptyDictFor204(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.RoomRecordings.Delete("rec-del")
+	bodyResp, err := client.Video.RoomRecordings.Delete("rec-del")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -293,10 +303,11 @@ func TestVideoRoomRecordings_ListEvents_UsesEventsSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.RoomRecordings.ListEvents("rec-1", nil)
+	bodyResp, err := client.Video.RoomRecordings.ListEvents("rec-1", nil)
 	if err != nil {
 		t.Fatalf("ListEvents: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data' in %v", keys(body))
 	}
@@ -320,10 +331,11 @@ func TestVideoConferences_ListConferenceTokens(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Conferences.ListConferenceTokens("conf-1", nil)
+	bodyResp, err := client.Video.Conferences.ListConferenceTokens("conf-1", nil)
 	if err != nil {
 		t.Fatalf("ListConferenceTokens: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data' in %v", keys(body))
@@ -349,10 +361,11 @@ func TestVideoConferences_ListStreams(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Conferences.ListStreams("conf-2", nil)
+	bodyResp, err := client.Video.Conferences.ListStreams("conf-2", nil)
 	if err != nil {
 		t.Fatalf("ListStreams: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data' in %v", keys(body))
@@ -380,10 +393,11 @@ func TestVideoConferenceTokens_Get_ReturnsSingleToken(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.ConferenceTokens.Get("tok-1")
+	bodyResp, err := client.Video.ConferenceTokens.Get("tok-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -408,10 +422,11 @@ func TestVideoConferenceTokens_Reset_PostsToResetSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.ConferenceTokens.Reset("tok-2")
+	bodyResp, err := client.Video.ConferenceTokens.Reset("tok-2")
 	if err != nil {
 		t.Fatalf("Reset: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -450,10 +465,11 @@ func TestVideoStreams_Get_ReturnsStream(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Streams.Get("stream-1")
+	bodyResp, err := client.Video.Streams.Get("stream-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -475,12 +491,13 @@ func TestVideoStreams_Update_UsesPutWithKwargs(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Streams.Update("stream-2", map[string]any{
+	bodyResp, err := client.Video.Streams.Update("stream-2", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{
 		"url": "rtmp://example.com/new",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -509,10 +526,11 @@ func TestVideoStreams_Delete(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	body, err := client.Video.Streams.Delete("stream-3")
+	bodyResp, err := client.Video.Streams.Delete("stream-3")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}

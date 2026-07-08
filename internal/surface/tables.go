@@ -4,6 +4,27 @@
 // (full signatures) consume these tables.
 package surface
 
+import (
+	"fmt"
+	"maps"
+)
+
+// init folds the generated REST StructTable entries (GeneratedRESTStructTable,
+// in struct_table_generated.go — same package surface, so no import cycle) into
+// the master StructTable. The generated slice owns every per-resource REST entry
+// (namespaces.AddressesNamespace, namespaces.AIAgents, …); the hand entries above
+// keep only what the generator does not emit (namespaces.Resource + the six
+// namespace containers). A key collision between the two is a real bug (a hand
+// entry the generator now also owns) — fail loud rather than silently overwrite.
+func init() {
+	for k := range GeneratedRESTStructTable {
+		if _, dup := StructTable[k]; dup {
+			panic(fmt.Sprintf("surface: StructTable key %q defined both by hand and by GeneratedRESTStructTable — remove the hand entry", k))
+		}
+	}
+	maps.Copy(StructTable, GeneratedRESTStructTable)
+}
+
 // ClassTarget is one Python class destination for a Go struct's methods.
 // Each (pyModule, pyClass) pair is created exactly once; methods accumulate
 // across multiple mappings that share the same target.
@@ -49,9 +70,20 @@ var StructTable = map[string][]ClassTarget{
 				"RegisterSIPUsername":   "register_sip_username",
 				"SetPostPromptURL":      "set_post_prompt_url",
 				"SetWebHookURL":         "set_web_hook_url",
+				// RECONCILE: both helpers ARE present on the Go AgentBase
+				// (pkg/agent/agent.go) — map to their Python-canonical names.
+				"AutoMapSIPUsernames": "auto_map_sip_usernames",
+				"GetFullURL":          "get_full_url",
 			},
-			// ``get_full_url`` and ``auto_map_sip_usernames`` are helpers
-			// absent from the Go port's surface — see PORT_OMISSIONS.md.
+			// handle_request: the reference emits it as an AgentBase SURFACE
+			// symbol (an override of SWMLService.handle_request) but records the
+			// SIGNATURE only on the defining SWMLService class. Go likewise
+			// defines AgentBase.HandleRequest (pkg/agent/agent.go) overriding the
+			// promoted swml.Service.HandleRequest. Emit it as a surface-only
+			// synthetic (SyntheticMethods is consumed by enumerate-surface only),
+			// so SURFACE-DIFF sees AgentBase.handle_request while the signature is
+			// carried once on SWMLService — matching the oracle exactly.
+			SyntheticMethods: []string{"handle_request"},
 		},
 		ClassTarget{
 			Module: "signalwire.core.mixins.prompt_mixin", Class: "PromptMixin",
@@ -129,6 +161,7 @@ var StructTable = map[string][]ClassTarget{
 				"SetLanguageParams":      "set_language_params",
 				"LanguageParams":         "get_language_params",
 				"SetLanguages":           "set_languages",
+				"SetMultilingual":        "set_multilingual",
 				"AddPronunciation":       "add_pronunciation",
 				"SetPronunciations":      "set_pronunciations",
 				"SetParam":               "set_param",
@@ -167,6 +200,9 @@ var StructTable = map[string][]ClassTarget{
 				"EnableDebugRoutes":        "enable_debug_routes",
 				"OnRequest":                "on_request",
 				"OnSwmlRequest":            "on_swml_request",
+				// RECONCILE: present on Go AgentBase (pkg/agent/agent.go).
+				"RegisterRoutingCallback": "register_routing_callback",
+				"SetupGracefulShutdown":   "setup_graceful_shutdown",
 			},
 		},
 		ClassTarget{
@@ -182,19 +218,71 @@ var StructTable = map[string][]ClassTarget{
 		},
 	},
 
+	// --- bedrock agent ----------------------------------------------------
+	// IMPLEMENTED: pkg/agent/bedrock.go — AgentBase specialisation that renders
+	// the amazon_bedrock verb + Bedrock inference setters, mirroring
+	// signalwire.agents.bedrock.BedrockAgent.
+	"agent.BedrockAgent": {{
+		Module: "signalwire.agents.bedrock", Class: "BedrockAgent",
+		Methods: map[string]string{
+			"NewBedrockAgent":        "__init__",
+			"SetVoice":               "set_voice",
+			"SetInferenceParams":     "set_inference_params",
+			"SetLLMModel":            "set_llm_model",
+			"SetLLMTemperature":      "set_llm_temperature",
+			"SetPromptLLMParams":     "set_prompt_llm_params",
+			"SetPostPromptLLMParams": "set_post_prompt_llm_params",
+			"String":                 "__repr__",
+		},
+	}},
+
+	// --- web service ------------------------------------------------------
+	// IMPLEMENTED: pkg/web/web_service.go — standalone static-file HTTP service,
+	// mirroring signalwire.web.web_service.WebService (the reference surface
+	// records only __init__/add_directory/remove_directory/start/stop; app +
+	// security are Python @property accessors not surfaced).
+	"web.WebService": {{
+		Module: "signalwire.web.web_service", Class: "WebService",
+		Methods: map[string]string{
+			"NewWebService":   "__init__",
+			"AddDirectory":    "add_directory",
+			"RemoveDirectory": "remove_directory",
+			"Start":           "start",
+			"Stop":            "stop",
+		},
+	}},
+
+	// --- config loader ----------------------------------------------------
+	// IMPLEMENTED: pkg/agent/config_loader.go — JSON config with ${VAR|default}
+	// env substitution, mirroring signalwire.core.config_loader.ConfigLoader.
+	"agent.ConfigLoader": {{
+		Module: "signalwire.core.config_loader", Class: "ConfigLoader",
+		Methods: map[string]string{
+			"NewConfigLoader": "__init__",
+			"HasConfig":       "has_config",
+			"GetConfigFile":   "get_config_file",
+			"GetConfig":       "get_config",
+			"SubstituteVars":  "substitute_vars",
+			"Get":             "get",
+			"GetSection":      "get_section",
+			"MergeWithEnv":    "merge_with_env",
+		},
+	}},
+
 	// --- server package ---------------------------------------------------
 	"server.AgentServer": {{
 		Module: "signalwire.agent_server", Class: "AgentServer",
 		Methods: map[string]string{
-			"NewAgentServer":      "__init__",
-			"GetAgent":            "get_agent",
-			"GetAgents":           "get_agents",
-			"Register":            "register",
-			"Unregister":          "unregister",
-			"RegisterSIPUsername": "register_sip_username",
-			"Run":                 "run",
-			"ServeStaticFiles":    "serve_static_files",
-			"SetupSIPRouting":     "setup_sip_routing",
+			"NewAgentServer":                "__init__",
+			"GetAgent":                      "get_agent",
+			"GetAgents":                     "get_agents",
+			"Register":                      "register",
+			"Unregister":                    "unregister",
+			"RegisterSIPUsername":           "register_sip_username",
+			"Run":                           "run",
+			"ServeStaticFiles":              "serve_static_files",
+			"SetupSIPRouting":               "setup_sip_routing",
+			"RegisterGlobalRoutingCallback": "register_global_routing_callback",
 		},
 	}},
 
@@ -219,6 +307,26 @@ var StructTable = map[string][]ClassTarget{
 		// (pom.FromJSON / pom.FromYAML); see freeFnTable below.
 		SyntheticMethods: []string{"from_json", "from_yaml"},
 	}},
+	// IMPLEMENTED: pkg/pom/pom_builder.go — fluent builder wrapping
+	// PromptObjectModel, mirroring signalwire.core.pom_builder.PomBuilder.
+	"pom.PomBuilder": {{
+		Module: "signalwire.core.pom_builder", Class: "PomBuilder",
+		Methods: map[string]string{
+			"NewPomBuilder":  "__init__",
+			"AddSection":     "add_section",
+			"AddToSection":   "add_to_section",
+			"AddSubsection":  "add_subsection",
+			"HasSection":     "has_section",
+			"GetSection":     "get_section",
+			"RenderMarkdown": "render_markdown",
+			"RenderXML":      "render_xml",
+			"ToDict":         "to_dict",
+			"ToJSON":         "to_json",
+		},
+		// from_sections is a Python classmethod; Go exposes pom.FromSections
+		// (free function) — projected as a class member via the free-fn table.
+		SyntheticMethods: []string{"from_sections"},
+	}},
 	"pom.Section": {{
 		Module: "signalwire.pom.pom", Class: "Section",
 		Methods: map[string]string{
@@ -233,24 +341,101 @@ var StructTable = map[string][]ClassTarget{
 	}},
 
 	// --- swml package -----------------------------------------------------
-	"swml.Service": {{
-		Module: "signalwire.core.swml_service", Class: "SWMLService",
-		Methods: map[string]string{
-			"NewService":              "__init__",
-			"GetDocument":             "get_document",
-			"ResetDocument":           "reset_document",
-			"GetBasicAuthCredentials": "get_basic_auth_credentials",
-			"ExecuteVerb":             "add_verb",
-			"ExecuteVerbToSection":    "add_verb_to_section",
-			"RegisterRoutingCallback": "register_routing_callback",
-			"OnRequest":               "on_request",
-			"Render":                  "render_document",
-			"Serve":                   "serve",
-			// schema_utils accessor — exposes the SchemaUtils helper as a
-			// public attribute, matching Python's ``self.schema_utils``.
-			"SchemaUtils": "schema_utils",
+	"swml.Service": {
+		{
+			Module: "signalwire.core.swml_service", Class: "SWMLService",
+			Methods: map[string]string{
+				"NewService":              "__init__",
+				"GetDocument":             "get_document",
+				"ResetDocument":           "reset_document",
+				"GetBasicAuthCredentials": "get_basic_auth_credentials",
+				"ExecuteVerb":             "add_verb",
+				"ExecuteVerbToSection":    "add_verb_to_section",
+				"RegisterRoutingCallback": "register_routing_callback",
+				"OnRequest":               "on_request",
+				"HandleRequest":           "handle_request",
+				"Render":                  "render_document",
+				"Serve":                   "serve",
+				// schema_utils accessor — exposes the SchemaUtils helper as a
+				// public attribute, matching Python's ``self.schema_utils``.
+				"SchemaUtils": "schema_utils",
+				// RECONCILE: all present on the Go swml.Service (pkg/swml/service.go +
+				// verb_handler.go) — map to the Python-canonical names.
+				"AddSection":            "add_section",
+				"AsRouter":              "as_router",
+				"FullValidationEnabled": "full_validation_enabled",
+				"ManualSetProxyURL":     "manual_set_proxy_url",
+				"RegisterVerbHandler":   "register_verb_handler",
+				"Stop":                  "stop",
+			},
+			// extract_sip_username is a Python @classmethod; Go exposes the equivalent
+			// as the package-level swml.ExtractSIPUsername. Emit it as a class member
+			// so the reference's SWMLService.extract_sip_username is PRESENT.
+			SyntheticMethods: []string{"extract_sip_username"},
 		},
-	}},
+		// RECONCILE: the Python SWMLBuilder (signalwire.core.swml_builder) is a
+		// fluent SWML document builder; Go folds the identical builder surface
+		// onto swml.Service (verbs are methods on Service). Project Service's verb
+		// + build methods onto SWMLBuilder so the reference symbols are PRESENT.
+		{
+			Module: "signalwire.core.swml_builder", Class: "SWMLBuilder",
+			Methods: map[string]string{
+				"NewService":    "__init__",
+				"AI":            "ai",
+				"Answer":        "answer",
+				"Hangup":        "hangup",
+				"Play":          "play",
+				"Say":           "say",
+				"AddSection":    "add_section",
+				"Render":        "render",
+				"ResetDocument": "reset",
+			},
+			// build == render's alias (both return the document); GetDocument
+			// serves the build role in Go.
+			SyntheticMethods: []string{"build"},
+		},
+		// RECONCILE: the Python VerbHandlerRegistry (signalwire.core.swml_handler)
+		// is realised in Go as an inline map on swml.Service with Register/Get/Has
+		// accessors — project them onto the reference's registry class.
+		{
+			Module: "signalwire.core.swml_handler", Class: "VerbHandlerRegistry",
+			Methods: map[string]string{
+				"NewService":          "__init__",
+				"RegisterVerbHandler": "register_handler",
+				"GetVerbHandler":      "get_handler",
+				"HasVerbHandler":      "has_handler",
+			},
+		},
+	},
+
+	// --- swml verb handlers (signalwire.core.swml_handler) ----------------
+	// AIVerbHandler is a concrete Go struct (pkg/swml/ai_verb_handler.go);
+	// SWMLVerbHandler is the reference's abstract base — Go models it as the
+	// VerbHandler interface (pkg/swml/verb_handler.go) with the same contract.
+	"swml.AIVerbHandler": {
+		{
+			Module: "signalwire.core.swml_handler", Class: "AIVerbHandler",
+			Methods: map[string]string{
+				"GetVerbName":    "get_verb_name",
+				"ValidateConfig": "validate_config",
+				"BuildConfig":    "build_config",
+			},
+		},
+		// SWMLVerbHandler is the reference's abstract base (get_verb_name/
+		// validate_config/build_config). Go models the base as the VerbHandler
+		// interface (pkg/swml/verb_handler.go); the concrete AIVerbHandler
+		// provides the contract, so project the base's method set here to keep the
+		// reference symbol PRESENT (the interface itself is not a Go struct the
+		// walker records).
+		{
+			Module: "signalwire.core.swml_handler", Class: "SWMLVerbHandler",
+			Methods: map[string]string{
+				"GetVerbName":    "get_verb_name",
+				"ValidateConfig": "validate_config",
+				"BuildConfig":    "build_config",
+			},
+		},
+	},
 
 	// --- SchemaUtils (signalwire.utils.schema_utils.SchemaUtils) -------
 	"swml.SchemaUtils": {{
@@ -264,6 +449,10 @@ var StructTable = map[string][]ClassTarget{
 			"GetVerbParameters":         "get_verb_parameters",
 			"ValidateVerb":              "validate_verb",
 			"ValidateDocument":          "validate_document",
+			// RECONCILE: present on Go swml.SchemaUtils (pkg/swml/schema_utils.go).
+			"FullValidationAvailable": "full_validation_available",
+			"GenerateMethodSignature": "generate_method_signature",
+			"GenerateMethodBody":      "generate_method_body",
 		},
 	}},
 
@@ -312,9 +501,6 @@ var StructTable = map[string][]ClassTarget{
 			"ToggleFunctions":          "toggle_functions",
 			"EnableFunctionsOnTimeout": "enable_functions_on_timeout",
 			"Pay":                      "pay",
-			"CreatePaymentPrompt":      "create_payment_prompt",
-			"CreatePaymentAction":      "create_payment_action",
-			"CreatePaymentParameter":   "create_payment_parameter",
 			"JoinRoom":                 "join_room",
 			"JoinConference":           "join_conference",
 			"SendSms":                  "send_sms",
@@ -330,6 +516,12 @@ var StructTable = map[string][]ClassTarget{
 			"EnableExtensiveData":      "enable_extensive_data",
 			"UpdateSettings":           "update_settings",
 		},
+		// create_payment_* are @staticmethods on Python's FunctionResult; Go
+		// ships them as package-level helpers (swaig.CreatePaymentPrompt/Action/
+		// Parameter, pkg/swaig/function_result.go) that build the same payment
+		// config maps. RECONCILE-IN-EMIT: surface them under FunctionResult (the
+		// reference's class-static placement) since the helpers exist.
+		SyntheticMethods: []string{"create_payment_prompt", "create_payment_action", "create_payment_parameter"},
 	}},
 
 	// --- relay package ----------------------------------------------------
@@ -343,6 +535,22 @@ var StructTable = map[string][]ClassTarget{
 			"Stop":           "disconnect",
 			"Dial":           "dial",
 			"SendMessage":    "send_message",
+			// RECONCILE: the Go relay.Client exposes these directly (pkg/relay/
+			// client.go) — they were wrongly documented as unexported. Map them
+			// to their Python-canonical names so the symbols are PRESENT.
+			"Connect":       "connect",
+			"Execute":       "execute",
+			"Receive":       "receive",
+			"Unreceive":     "unreceive",
+			"RelayProtocol": "relay_protocol",
+		},
+	}},
+	// RECONCILE: Go ships a typed relay.RelayError (pkg/relay/error.go) — the
+	// Python-reference RelayError exception. NewRelayError satisfies __init__.
+	"relay.RelayError": {{
+		Module: "signalwire.relay.client", Class: "RelayError",
+		Methods: map[string]string{
+			"NewRelayError": "__init__",
 		},
 	}},
 	"relay.Call": {{
@@ -450,6 +658,8 @@ var StructTable = map[string][]ClassTarget{
 		Module: "signalwire.relay.call", Class: "CollectAction",
 		Methods: map[string]string{
 			"Stop":             "stop",
+			"Pause":            "pause",
+			"Resume":           "resume",
 			"StartInputTimers": "start_input_timers",
 			"Volume":           "volume",
 		},
@@ -560,14 +770,43 @@ var StructTable = map[string][]ClassTarget{
 			"NewSignalWireRestError": "__init__",
 		},
 	}},
-	"rest.CrudResource": {{
-		Module: "signalwire.rest._base", Class: "CrudResource",
+	// ADAPTER (base-placement rename): the Go `namespaces.CrudResource` struct (the
+	// single CRUD base every generated REST resource embeds — pkg/rest/namespaces/
+	// common.go) provides all five CRUD verbs on one base, but the Python reference
+	// SPLITS them across two bases — `ReadResource` carries get/list,
+	// `CrudResource(ReadResource)` adds create/update/delete. To compare on the
+	// reference's placement (rename-not-omission: keep the methods comparing, don't
+	// blind-spot them), map the Go struct's Get/List onto `_base.ReadResource` and
+	// Create/Update/Delete onto `_base.CrudResource`. This closes BOTH the
+	// SURFACE-DIFF `CrudResource.get/list` addition AND the
+	// `_base.ReadResource[.get/.list]` missing-port (surface + the two
+	// ReadResource.get/list DRIFT items) in one mapping.
+	"namespaces.CrudResource": {
+		{
+			Module: "signalwire.rest._base", Class: "ReadResource",
+			Methods: map[string]string{
+				"List": "list",
+				"Get":  "get",
+			},
+		},
+		{
+			Module: "signalwire.rest._base", Class: "CrudResource",
+			Methods: map[string]string{
+				"Create": "create",
+				"Update": "update",
+				"Delete": "delete",
+			},
+		},
+	},
+	// RECONCILE: Go's namespaces.CrudWithAddresses (pkg/rest/namespaces/common.go)
+	// IS the Python _base.CrudWithAddresses mixin — CRUD (promoted via embedded
+	// CrudResource) + ListAddresses. The FabricResource / FabricResourcePUT
+	// reference bases are empty aliases of this same mixin, so they carry no
+	// distinct surface (kept impossible-tagged in PORT_OMISSIONS).
+	"namespaces.CrudWithAddresses": {{
+		Module: "signalwire.rest._base", Class: "CrudWithAddresses",
 		Methods: map[string]string{
-			"List":   "list",
-			"Get":    "get",
-			"Create": "create",
-			"Update": "update",
-			"Delete": "delete",
+			"ListAddresses": "list_addresses",
 		},
 	}},
 	"rest.PaginatedIterator": {{
@@ -579,6 +818,18 @@ var StructTable = map[string][]ClassTarget{
 		SyntheticMethods: []string{"__iter__"},
 	}},
 
+	// --- REST namespaces (adopted from the generated surface) --------------
+	//
+	// The per-resource StructTable entries (namespaces.AddressesNamespace,
+	// namespaces.AIAgents, namespaces.FabricTokens, …) are GENERATED into
+	// internal/surface/struct_table_generated.go (var GeneratedRESTStructTable)
+	// from the x-sdk-* markup and merged into StructTable by the init() at the
+	// bottom of this file. Only the entries the generator does NOT emit are kept
+	// by hand below: the shared Resource base (Python BaseResource) and the six
+	// namespace containers, which the generator's resource pass does not produce
+	// but the oracle records in signalwire.rest.namespaces._client_tree_generated
+	// (their resource-accessor fields auto-project as snake_case accessors).
+
 	// rest/namespaces/common.go (Resource struct = Python's BaseResource)
 	"namespaces.Resource": {{
 		Module: "signalwire.rest._base", Class: "BaseResource",
@@ -586,490 +837,33 @@ var StructTable = map[string][]ClassTarget{
 		SyntheticMethods: []string{"__init__"},
 	}},
 
-	// REST namespaces — one Go struct per Python class.
-	"namespaces.AddressesNamespace": {{
-		Module: "signalwire.rest.namespaces.addresses", Class: "AddressesResource",
-		Methods: map[string]string{
-			"NewAddressesNamespace": "__init__",
-			"List":                  "list",
-			"Get":                   "get",
-			"Create":                "create",
-			"Delete":                "delete",
-		},
-	}},
-	"namespaces.CallingNamespace": {{
-		Module: "signalwire.rest.namespaces.calling", Class: "CallingNamespace",
-		Methods: map[string]string{
-			"NewCallingNamespace":     "__init__",
-			"Dial":                    "dial",
-			"End":                     "end",
-			"Update":                  "update",
-			"Disconnect":              "disconnect",
-			"Refer":                   "refer",
-			"Transfer":                "transfer",
-			"Play":                    "play",
-			"PlayStop":                "play_stop",
-			"PlayPause":               "play_pause",
-			"PlayResume":              "play_resume",
-			"PlayVolume":              "play_volume",
-			"Record":                  "record",
-			"RecordStop":              "record_stop",
-			"RecordPause":             "record_pause",
-			"RecordResume":            "record_resume",
-			"Collect":                 "collect",
-			"CollectStop":             "collect_stop",
-			"CollectStartInputTimers": "collect_start_input_timers",
-			"Detect":                  "detect",
-			"DetectStop":              "detect_stop",
-			"Stream":                  "stream",
-			"StreamStop":              "stream_stop",
-			"Tap":                     "tap",
-			"TapStop":                 "tap_stop",
-			"Transcribe":              "transcribe",
-			"TranscribeStop":          "transcribe_stop",
-			"LiveTranscribe":          "live_transcribe",
-			"LiveTranslate":           "live_translate",
-			"SendFaxStop":             "send_fax_stop",
-			"ReceiveFaxStop":          "receive_fax_stop",
-			"Denoise":                 "denoise",
-			"DenoiseStop":             "denoise_stop",
-			"AIHold":                  "ai_hold",
-			"AIUnhold":                "ai_unhold",
-			"AIMessage":               "ai_message",
-			"AIStop":                  "ai_stop",
-			"UserEvent":               "user_event",
-		},
-	}},
-	"namespaces.ChatNamespace": {{
-		Module: "signalwire.rest.namespaces.chat", Class: "ChatResource",
-		Methods: map[string]string{
-			"NewChatNamespace": "__init__",
-			"CreateToken":      "create_token",
-		},
-	}},
+	// Namespace containers (client_tree_generated.go). The oracle records these
+	// in the _client_tree_generated module; each container's resource fields
+	// (AIAgents, CallFlows, Documents, …) auto-project as snake_case accessor
+	// methods, matching Python's __getattr__/property accessors.
 	"namespaces.DatasphereNamespace": {{
-		Module: "signalwire.rest.namespaces.datasphere", Class: "DatasphereNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "DatasphereNamespace",
 		Methods: map[string]string{"NewDatasphereNamespace": "__init__"},
 	}},
-	"namespaces.DatasphereDocuments": {{
-		Module: "signalwire.rest.namespaces.datasphere", Class: "DatasphereDocuments",
-		Methods: map[string]string{
-			"Search":      "search",
-			"ListChunks":  "list_chunks",
-			"GetChunk":    "get_chunk",
-			"DeleteChunk": "delete_chunk",
-		},
-		SyntheticMethods: []string{"__init__"},
-	}},
-	"namespaces.ImportedNumbersNamespace": {{
-		Module: "signalwire.rest.namespaces.imported_numbers", Class: "ImportedNumbersResource",
-		Methods: map[string]string{
-			"NewImportedNumbersNamespace": "__init__",
-			"Create":                      "create",
-		},
-	}},
-	"namespaces.LookupNamespace": {{
-		Module: "signalwire.rest.namespaces.lookup", Class: "LookupResource",
-		Methods: map[string]string{
-			"NewLookupNamespace": "__init__",
-			"PhoneNumber":        "phone_number",
-		},
-	}},
-	"namespaces.MFANamespace": {{
-		Module: "signalwire.rest.namespaces.mfa", Class: "MfaResource",
-		Methods: map[string]string{
-			"NewMFANamespace": "__init__",
-			"SMS":             "sms",
-			"Call":            "call",
-			"Verify":          "verify",
-		},
-	}},
-	"namespaces.NumberGroupsNamespace": {{
-		Module: "signalwire.rest.namespaces.number_groups", Class: "NumberGroupsResource",
-		Methods: map[string]string{
-			"NewNumberGroupsNamespace": "__init__",
-			"ListMemberships":          "list_memberships",
-			"GetMembership":            "get_membership",
-			"AddMembership":            "add_membership",
-			"DeleteMembership":         "delete_membership",
-		},
-	}},
-	"namespaces.PhoneNumbersNamespace": {{
-		Module: "signalwire.rest.namespaces.phone_numbers", Class: "PhoneNumbersResource",
-		Methods: map[string]string{
-			"NewPhoneNumbersNamespace": "__init__",
-			"Search":                   "search",
-			"SetSwmlWebhook":           "set_swml_webhook",
-			"SetCxmlWebhook":           "set_cxml_webhook",
-			"SetCxmlApplication":       "set_cxml_application",
-			"SetAiAgent":               "set_ai_agent",
-			"SetCallFlow":              "set_call_flow",
-			"SetRelayApplication":      "set_relay_application",
-			"SetRelayTopic":            "set_relay_topic",
-		},
-	}},
-	"namespaces.PubSubNamespace": {{
-		Module: "signalwire.rest.namespaces.pubsub", Class: "PubSubResource",
-		Methods: map[string]string{
-			"NewPubSubNamespace": "__init__",
-			"CreateToken":        "create_token",
-		},
-	}},
-	"namespaces.QueuesNamespace": {{
-		Module: "signalwire.rest.namespaces.queues", Class: "QueuesResource",
-		Methods: map[string]string{
-			"NewQueuesNamespace": "__init__",
-			"ListMembers":        "list_members",
-			"GetMember":          "get_member",
-			"GetNextMember":      "get_next_member",
-		},
-	}},
-	"namespaces.RecordingsNamespace": {{
-		Module: "signalwire.rest.namespaces.recordings", Class: "RecordingsResource",
-		Methods: map[string]string{
-			"NewRecordingsNamespace": "__init__",
-			"List":                   "list",
-			"Get":                    "get",
-			"Delete":                 "delete",
-		},
-	}},
-	"namespaces.ShortCodesNamespace": {{
-		Module: "signalwire.rest.namespaces.short_codes", Class: "ShortCodesResource",
-		Methods: map[string]string{
-			"NewShortCodesNamespace": "__init__",
-			"List":                   "list",
-			"Get":                    "get",
-			"Update":                 "update",
-		},
-	}},
-	"namespaces.SIPProfileNamespace": {{
-		Module: "signalwire.rest.namespaces.sip_profile", Class: "SipProfileResource",
-		Methods: map[string]string{
-			"NewSIPProfileNamespace": "__init__",
-			"Get":                    "get",
-			"Update":                 "update",
-		},
-	}},
-	"namespaces.VerifiedCallersNamespace": {{
-		Module: "signalwire.rest.namespaces.verified_callers", Class: "VerifiedCallersResource",
-		Methods: map[string]string{
-			"NewVerifiedCallersNamespace": "__init__",
-			"RedialVerification":          "redial_verification",
-			"SubmitVerification":          "submit_verification",
-		},
-	}},
-
-	// Fabric namespace
 	"namespaces.FabricNamespace": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "FabricNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "FabricNamespace",
 		Methods: map[string]string{"NewFabricNamespace": "__init__"},
 	}},
-	"namespaces.FabricAddresses": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "FabricAddresses",
-		Methods: map[string]string{
-			"List": "list",
-			"Get":  "get",
-		},
-	}},
-	"namespaces.FabricTokens": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "FabricTokens",
-		Methods: map[string]string{
-			"CreateSubscriberToken":  "create_subscriber_token",
-			"RefreshSubscriberToken": "refresh_subscriber_token",
-			"CreateInviteToken":      "create_invite_token",
-			"CreateGuestToken":       "create_guest_token",
-			"CreateEmbedToken":       "create_embed_token",
-		},
-		SyntheticMethods: []string{"__init__"},
-	}},
-	"namespaces.ConferenceRoomsResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "ConferenceRoomsResource",
-		Methods: map[string]string{"ListAddresses": "list_addresses"},
-	}},
-	"namespaces.SubscribersResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "SubscribersResource",
-		Methods: map[string]string{
-			"ListSIPEndpoints":  "list_sip_endpoints",
-			"CreateSIPEndpoint": "create_sip_endpoint",
-			"GetSIPEndpoint":    "get_sip_endpoint",
-			"UpdateSIPEndpoint": "update_sip_endpoint",
-			"DeleteSIPEndpoint": "delete_sip_endpoint",
-		},
-	}},
-	"namespaces.CallFlowsResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "CallFlowsResource",
-		Methods: map[string]string{
-			"ListAddresses": "list_addresses",
-			"ListVersions":  "list_versions",
-			"DeployVersion": "deploy_version",
-		},
-	}},
-	"namespaces.GenericResources": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "GenericResources",
-		Methods: map[string]string{
-			"List":                    "list",
-			"Get":                     "get",
-			"Delete":                  "delete",
-			"ListAddresses":           "list_addresses",
-			"AssignPhoneRoute":        "assign_phone_route",
-			"AssignDomainApplication": "assign_domain_application",
-		},
-	}},
-	"namespaces.AutoMaterializedWebhookResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "AutoMaterializedWebhook",
-		Methods: map[string]string{"Create": "create"},
-	}},
-	"namespaces.CxmlApplicationsResource": {{
-		Module: "signalwire.rest.namespaces.fabric", Class: "CxmlApplicationsResource",
-		Methods: map[string]string{
-			"Create": "create",
-		},
-	}},
-
-	// Compat namespace
-	"namespaces.CompatNamespace": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatNamespace",
-		Methods: map[string]string{"NewCompatNamespace": "__init__"},
-	}},
-	"namespaces.CompatAccounts": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatAccounts",
-		Methods: map[string]string{
-			"List":   "list",
-			"Get":    "get",
-			"Create": "create",
-			"Update": "update",
-		},
-		SyntheticMethods: []string{"__init__"},
-		// __init__ is synthesized because Go uses NewCompatNamespace as the
-		// composite constructor; CompatAccounts has no exported New<X>.
-	}},
-	"namespaces.CompatCalls": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatCalls",
-		Methods: map[string]string{
-			"Update":          "update",
-			"StartRecording":  "start_recording",
-			"UpdateRecording": "update_recording",
-			"StartStream":     "start_stream",
-			"StopStream":      "stop_stream",
-		},
-	}},
-	"namespaces.CompatMessages": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatMessages",
-		Methods: map[string]string{
-			"Update":      "update",
-			"ListMedia":   "list_media",
-			"GetMedia":    "get_media",
-			"DeleteMedia": "delete_media",
-		},
-	}},
-	"namespaces.CompatFaxes": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatFaxes",
-		Methods: map[string]string{
-			"Update":      "update",
-			"ListMedia":   "list_media",
-			"GetMedia":    "get_media",
-			"DeleteMedia": "delete_media",
-		},
-	}},
-	"namespaces.CompatConferences": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatConferences",
-		Methods: map[string]string{
-			"List":              "list",
-			"Get":               "get",
-			"Update":            "update",
-			"ListParticipants":  "list_participants",
-			"GetParticipant":    "get_participant",
-			"UpdateParticipant": "update_participant",
-			"RemoveParticipant": "remove_participant",
-			"ListRecordings":    "list_recordings",
-			"GetRecording":      "get_recording",
-			"UpdateRecording":   "update_recording",
-			"DeleteRecording":   "delete_recording",
-			"StartStream":       "start_stream",
-			"StopStream":        "stop_stream",
-		},
-	}},
-	"namespaces.CompatPhoneNumbers": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatPhoneNumbers",
-		Methods: map[string]string{
-			"List":                   "list",
-			"Get":                    "get",
-			"Update":                 "update",
-			"Delete":                 "delete",
-			"ImportNumber":           "import_number",
-			"Purchase":               "purchase",
-			"SearchLocal":            "search_local",
-			"SearchTollFree":         "search_toll_free",
-			"ListAvailableCountries": "list_available_countries",
-		},
-		SyntheticMethods: []string{"__init__"},
-	}},
-	"namespaces.CompatApplications": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatApplications",
-		Methods: map[string]string{"Update": "update"},
-	}},
-	"namespaces.CompatLamlBins": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatLamlBins",
-		Methods: map[string]string{"Update": "update"},
-	}},
-	"namespaces.CompatQueues": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatQueues",
-		Methods: map[string]string{
-			"Update":        "update",
-			"ListMembers":   "list_members",
-			"GetMember":     "get_member",
-			"DequeueMember": "dequeue_member",
-		},
-	}},
-	"namespaces.CompatRecordings": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatRecordings",
-		Methods: map[string]string{
-			"List":   "list",
-			"Get":    "get",
-			"Delete": "delete",
-		},
-	}},
-	"namespaces.CompatTranscriptions": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatTranscriptions",
-		Methods: map[string]string{
-			"List":   "list",
-			"Get":    "get",
-			"Delete": "delete",
-		},
-	}},
-	"namespaces.CompatTokens": {{
-		Module: "signalwire.rest.namespaces.compat", Class: "CompatTokens",
-		Methods: map[string]string{
-			"Create": "create",
-			"Update": "update",
-			"Delete": "delete",
-		},
-	}},
-
-	// Video namespace
 	"namespaces.VideoNamespace": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "VideoNamespace",
 		Methods: map[string]string{"NewVideoNamespace": "__init__"},
 	}},
-	"namespaces.VideoRooms": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoRooms",
-		Methods: map[string]string{
-			"ListStreams":  "list_streams",
-			"CreateStream": "create_stream",
-		},
-	}},
-	"namespaces.VideoRoomTokens": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoRoomTokens",
-		Methods: map[string]string{"Create": "create"},
-	}},
-	"namespaces.VideoRoomSessions": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoRoomSessions",
-		Methods: map[string]string{
-			"List":           "list",
-			"Get":            "get",
-			"ListEvents":     "list_events",
-			"ListMembers":    "list_members",
-			"ListRecordings": "list_recordings",
-		},
-	}},
-	"namespaces.VideoRoomRecordings": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoRoomRecordings",
-		Methods: map[string]string{
-			"List":       "list",
-			"Get":        "get",
-			"Delete":     "delete",
-			"ListEvents": "list_events",
-		},
-	}},
-	"namespaces.VideoConferences": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoConferences",
-		Methods: map[string]string{
-			"ListStreams":          "list_streams",
-			"CreateStream":         "create_stream",
-			"ListConferenceTokens": "list_conference_tokens",
-		},
-	}},
-	"namespaces.VideoConferenceTokens": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoConferenceTokens",
-		Methods: map[string]string{
-			"Get":   "get",
-			"Reset": "reset",
-		},
-	}},
-	"namespaces.VideoStreams": {{
-		Module: "signalwire.rest.namespaces.video", Class: "VideoStreams",
-		Methods: map[string]string{
-			"Get":    "get",
-			"Update": "update",
-			"Delete": "delete",
-		},
-	}},
-
-	// Project / Registry / Logs namespaces
 	"namespaces.ProjectNamespace": {{
-		Module: "signalwire.rest.namespaces.project", Class: "ProjectNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "ProjectNamespace",
 		Methods: map[string]string{"NewProjectNamespace": "__init__"},
 	}},
-	"namespaces.ProjectTokens": {{
-		Module: "signalwire.rest.namespaces.project", Class: "ProjectTokens",
-		Methods: map[string]string{
-			"Create": "create",
-			"Update": "update",
-			"Delete": "delete",
-		},
-		SyntheticMethods: []string{"__init__"},
-	}},
 	"namespaces.LogsNamespace": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "LogsNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "LogsNamespace",
 		Methods: map[string]string{"NewLogsNamespace": "__init__"},
 	}},
-	"namespaces.MessageLogs": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "MessageLogs",
-		Methods: map[string]string{"List": "list", "Get": "get"},
-	}},
-	"namespaces.VoiceLogs": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "VoiceLogs",
-		Methods: map[string]string{"List": "list", "Get": "get", "ListEvents": "list_events"},
-	}},
-	"namespaces.FaxLogs": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "FaxLogs",
-		Methods: map[string]string{"List": "list", "Get": "get"},
-	}},
-	"namespaces.ConferenceLogs": {{
-		Module: "signalwire.rest.namespaces.logs", Class: "ConferenceLogs",
-		Methods: map[string]string{"List": "list"},
-	}},
 	"namespaces.RegistryNamespace": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryNamespace",
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "RegistryNamespace",
 		Methods: map[string]string{"NewRegistryNamespace": "__init__"},
-	}},
-	"namespaces.RegistryBrands": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryBrands",
-		Methods: map[string]string{
-			"List":           "list",
-			"Create":         "create",
-			"Get":            "get",
-			"ListCampaigns":  "list_campaigns",
-			"CreateCampaign": "create_campaign",
-		},
-	}},
-	"namespaces.RegistryCampaigns": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryCampaigns",
-		Methods: map[string]string{
-			"Get":         "get",
-			"Update":      "update",
-			"ListNumbers": "list_numbers",
-			"ListOrders":  "list_orders",
-			"CreateOrder": "create_order",
-		},
-	}},
-	"namespaces.RegistryOrders": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryOrders",
-		Methods: map[string]string{"Get": "get"},
-	}},
-	"namespaces.RegistryNumbers": {{
-		Module: "signalwire.rest.namespaces.registry", Class: "RegistryNumbers",
-		Methods: map[string]string{"Delete": "delete"},
 	}},
 
 	// --- contexts package -------------------------------------------------
@@ -1175,15 +969,46 @@ var StructTable = map[string][]ClassTarget{
 	}},
 
 	// --- security package -------------------------------------------------
-	// The Go port exposes only the TokenFactory surface (CreateToken /
-	// ValidateToken) from SessionManager; the full Python
-	// session-management API is under PORT_OMISSIONS.md.
+	// Go's SessionManager mirrors the full Python session-management surface:
+	// the tool-token pair (create_tool_token/validate_tool_token), the underlying
+	// session-token pair (generate_token/validate_token), token debugging, and
+	// session lifecycle + metadata (pkg/security/session_manager.go).
 	"security.SessionManager": {{
 		Module: "signalwire.core.security.session_manager", Class: "SessionManager",
 		Methods: map[string]string{
-			"NewSessionManager": "__init__",
-			"CreateToken":       "create_tool_token",
-			"ValidateToken":     "validate_tool_token",
+			"NewSessionManager":    "__init__",
+			"CreateToken":          "create_tool_token",
+			"ValidateToken":        "validate_tool_token",
+			"GenerateToken":        "generate_token",
+			"ValidateSessionToken": "validate_token",
+			"CreateSession":        "create_session",
+			"DebugToken":           "debug_token",
+			"ActivateSession":      "activate_session",
+			"EndSession":           "end_session",
+			"GetSessionMetadata":   "get_session_metadata",
+			"SetSessionMetadata":   "set_session_metadata",
+		},
+	}},
+
+	// IMPLEMENTED: pkg/security/security_config.go — HTTP security settings
+	// (SSL/hosts/CORS/headers/HSTS/basic-auth) from SWML_* env, mirroring
+	// signalwire.core.security_config.SecurityConfig. get_ssl_context_kwargs
+	// returns a primitive path-string dict ({ssl_certfile, ssl_keyfile}), which
+	// Go exposes as GetSSLContextKwargs -> map[string]any (fed into crypto/tls
+	// via swml.WithTLS).
+	"security.SecurityConfig": {{
+		Module: "signalwire.core.security_config", Class: "SecurityConfig",
+		Methods: map[string]string{
+			"NewSecurityConfig":   "__init__",
+			"LoadFromEnv":         "load_from_env",
+			"ValidateSSLConfig":   "validate_ssl_config",
+			"GetBasicAuth":        "get_basic_auth",
+			"GetSecurityHeaders":  "get_security_headers",
+			"GetSSLContextKwargs": "get_ssl_context_kwargs",
+			"ShouldAllowHost":     "should_allow_host",
+			"GetCORSConfig":       "get_cors_config",
+			"GetURLScheme":        "get_url_scheme",
+			"LogConfig":           "log_config",
 		},
 	}},
 
@@ -1208,8 +1033,16 @@ var StructTable = map[string][]ClassTarget{
 			"GetPromptSections":  "get_prompt_sections",
 			"Cleanup":            "cleanup",
 			"GetInstanceKey":     "get_instance_key",
+			// RECONCILE: present on Go BaseSkill (pkg/skills/skill_base.go).
+			"GetSkillData":    "get_skill_data",
+			"UpdateSkillData": "update_skill_data",
 		},
-		SyntheticMethods: []string{"__init__"},
+		// register_tools + setup are the two abstract contract methods every
+		// concrete skill implements (the SkillBase Go interface declares them);
+		// the reference records them on SkillBase. Emit synthetically so the base
+		// carries the contract. define_tool/validate_env_vars/validate_packages
+		// have no BaseSkill equivalent (impossible-tagged in PORT_OMISSIONS).
+		SyntheticMethods: []string{"__init__", "register_tools", "setup"},
 	}},
 	"skills.SkillRegistry": {{
 		// Python's `signalwire.skills.registry.SkillRegistry` is an
@@ -1359,6 +1192,32 @@ var StructTable = map[string][]ClassTarget{
 		Methods:          map[string]string{"Load": "load"},
 		SyntheticMethods: []string{"__init__"},
 	}},
+	// RECONCILE: these livewire types ARE present in Go (pkg/livewire/livewire.go
+	// + plugins.go) — surface them under their Python-canonical names.
+	"livewire.ChatContext": {{
+		Module: "signalwire.livewire", Class: "ChatContext",
+		Methods: map[string]string{
+			"NewChatContext": "__init__",
+			"Append":         "append",
+		},
+	}},
+	"livewire.ToolError": {{
+		Module: "signalwire.livewire", Class: "ToolError",
+		Methods: map[string]string{},
+		Alias:   true,
+	}},
+	"livewire.InferenceLLM": {{
+		Module: "signalwire.livewire", Class: "InferenceLLM",
+		Methods: map[string]string{"NewInferenceLLM": "__init__"},
+	}},
+	"livewire.InferenceSTT": {{
+		Module: "signalwire.livewire", Class: "InferenceSTT",
+		Methods: map[string]string{"NewInferenceSTT": "__init__"},
+	}},
+	"livewire.InferenceTTS": {{
+		Module: "signalwire.livewire", Class: "InferenceTTS",
+		Methods: map[string]string{"NewInferenceTTS": "__init__"},
+	}},
 	// Go-only livewire plugins (GoogleSTT, OpenAITTS) are port-only extensions.
 }
 
@@ -1375,6 +1234,18 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"skills.ListSkills":           {Module: "signalwire", Name: "list_skills"},
 	"skills.ListSkillsWithParams": {Module: "signalwire", Name: "list_skills_with_params"},
 	"rest.NewRestClient":          {Module: "signalwire", Name: "RestClient"},
+
+	// Typed-handler schema inference. Python's signalwire.core.agent.tools.
+	// type_inference reflects a handler's signature at runtime; Go builds the
+	// same JSON-Schema from the typed Params declaration (pkg/swaig/type_inference.go).
+	// Projected onto the reference module-level free functions.
+	"swaig.InferSchema":               {Module: "signalwire.core.agent.tools.type_inference", Name: "infer_schema"},
+	"swaig.CreateTypedHandlerWrapper": {Module: "signalwire.core.agent.tools.type_inference", Name: "create_typed_handler_wrapper"},
+
+	// config_loader.find_config_file is a Python @staticmethod; Go exposes it as
+	// the package-level agent.FindConfigFile. The surface diff records it under
+	// the ConfigLoader class (staticmethod placement) via the free-fn projection.
+	"agent.FindConfigFile": {Module: "signalwire.core.config_loader", Name: "ConfigLoader.find_config_file"},
 
 	// Core modules
 	"contexts.CreateSimpleContext": {Module: "signalwire.core.contexts", Name: "create_simple_context"},
@@ -1403,6 +1274,18 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"security.ValidateWebhookSignature": {Module: "signalwire.core.security.webhook_validator", Name: "validate_webhook_signature"},
 	"security.ValidateRequest":          {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
 
+	// Decomposed webhook-validation core — the framework-free decision unit
+	// signalwire.core.security.webhook_middleware.validate(method,url,headers,
+	// body) -> optional<(status,headers,body)>. Go exposes it as
+	// security.Validate returning *WebhookRejection (nil = pass, a
+	// {Status,Headers,Body} triple = reject); the *WebhookRejection type is
+	// aliased to the canonical tuple<int,dict<string,string>,string> in
+	// type_aliases.yaml, so the pointer enumerates to the oracle's
+	// optional<tuple<int,dict<string,string>,string>> return. The http.Handler
+	// WebhookMiddleware STAYS a PORT_ADDITION framework-wrapper idiom over this
+	// core; only the decomposed decision core is the required cross-port symbol.
+	"security.Validate": {Module: "signalwire.core.security.webhook_middleware", Name: "validate"},
+
 	// Standalone security hygiene utilities — Python ships these as
 	// module-level free functions in signalwire.core.security.security_utils.
 	// Go exposes them as package-level functions in pkg/security
@@ -1419,6 +1302,94 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 // “datamap.New“ constructs “DataMap“ — lift it into the __init__ slot.
 var FactoryInit = map[string]struct{ StructKey string }{
 	"datamap.New": {StructKey: "datamap.DataMap"},
+}
+
+// SkillContract records one Go built-in skill's Python-canonical class surface.
+// Each built-in skill in pkg/skills/builtin/*.go embeds skills.BaseSkill and
+// overrides a subset of the SkillBase contract; the remaining contract methods
+// are PROMOTED from the embedded BaseSkill, so the concrete skill struct
+// genuinely PROVIDES every method the Python reference records for it (declared
+// override or inherited default). Rather than blind-spot the whole batch under a
+// PORT_OMISSIONS excuse ("Go ships via *Skill structs"), we RECONCILE-IN-EMIT:
+// project each Go skill struct onto its Python-canonical
+// `signalwire.skills.<name>.skill.<Class>` module+class with the reference's
+// exact method set, so the symbols are PRESENT and compare EQUAL.
+//
+// Method names are the Python-canonical snake_case (the reference's own leaves);
+// the Go members they correspond to are RegisterTools/GetHints/Setup/Cleanup/
+// GetParameterSchema/GetInstanceKey/GetGlobalData/GetPromptSections (mapped via
+// the standard goNameToSnake fold: register_tools←RegisterTools, etc.).
+// `Synthetic` names are Python contract methods Go expresses differently but
+// equivalently: `__init__` (Go `New<Skill>` factory), `get_tools` (Go returns
+// the tool list via RegisterTools), `search_wiki` (Go registers it as a tool
+// handler). ClassName is the REFERENCE class casing (e.g. `ApiNinjasTriviaSkill`,
+// `WeatherApiSkill`), which differs from the Go struct's initialism casing.
+type SkillContract struct {
+	// GoStruct is the short `<pkg>.<Struct>` key as it appears in the walk
+	// (all built-in skills are package `builtin`, except spider which is its
+	// own sub-package `spider`). Used to verify the struct is present (fail
+	// loud on a renamed/removed skill).
+	GoStruct string
+	// Module is the Python-canonical per-skill module.
+	Module string
+	// ClassName is the Python-reference class name (reference casing).
+	ClassName string
+	// Methods are the contract method leaves that map 1:1 from a Go member via
+	// goNameToSnake (register_tools, get_hints, setup, cleanup,
+	// get_parameter_schema, get_instance_key, get_global_data,
+	// get_prompt_sections). Each is verified present on the struct (declared or
+	// promoted from BaseSkill).
+	Methods []string
+	// Synthetic are Python contract methods Go expresses via a factory / tool
+	// registration (__init__, get_tools, search_wiki) — emitted unconditionally.
+	Synthetic []string
+}
+
+// SkillContractTable is the per-built-in-skill projection consumed by BOTH
+// cmd/enumerate-surface and cmd/enumerate-signatures (kept in lockstep). The
+// method sets are the Python reference's own per-skill surface (each skill
+// records a DIFFERENT subset — see signalwire-python/signalwire/skills/<n>/skill.py).
+// mcp_gateway is intentionally absent: the Python reference does not surface a
+// signalwire.skills.mcp_gateway.skill module (Go ships the skill as a port
+// extension, recorded in PORT_ADDITIONS).
+var SkillContractTable = []SkillContract{
+	{GoStruct: "builtin.APINinjasTriviaSkill", Module: "signalwire.skills.api_ninjas_trivia.skill", ClassName: "ApiNinjasTriviaSkill",
+		Methods:   []string{"get_instance_key", "get_parameter_schema", "register_tools", "setup"},
+		Synthetic: []string{"__init__", "get_tools"}},
+	{GoStruct: "builtin.ClaudeSkillsSkill", Module: "signalwire.skills.claude_skills.skill", ClassName: "ClaudeSkillsSkill",
+		Methods: []string{"get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "setup"}},
+	{GoStruct: "builtin.DataSphereSkill", Module: "signalwire.skills.datasphere.skill", ClassName: "DataSphereSkill",
+		Methods: []string{"cleanup", "get_global_data", "get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.DataSphereServerlessSkill", Module: "signalwire.skills.datasphere_serverless.skill", ClassName: "DataSphereServerlessSkill",
+		Methods: []string{"get_global_data", "get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.DateTimeSkill", Module: "signalwire.skills.datetime.skill", ClassName: "DateTimeSkill",
+		Methods: []string{"get_hints", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.GoogleMapsSkill", Module: "signalwire.skills.google_maps.skill", ClassName: "GoogleMapsSkill",
+		Methods: []string{"get_hints", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.InfoGathererSkill", Module: "signalwire.skills.info_gatherer.skill", ClassName: "InfoGathererSkill",
+		Methods: []string{"get_global_data", "get_instance_key", "get_parameter_schema", "register_tools", "setup"}},
+	{GoStruct: "builtin.JokeSkill", Module: "signalwire.skills.joke.skill", ClassName: "JokeSkill",
+		Methods: []string{"get_global_data", "get_hints", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.MathSkill", Module: "signalwire.skills.math.skill", ClassName: "MathSkill",
+		Methods: []string{"get_hints", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.NativeVectorSearchSkill", Module: "signalwire.skills.native_vector_search.skill", ClassName: "NativeVectorSearchSkill",
+		Methods: []string{"cleanup", "get_global_data", "get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.PlayBackgroundFileSkill", Module: "signalwire.skills.play_background_file.skill", ClassName: "PlayBackgroundFileSkill",
+		Methods:   []string{"get_instance_key", "get_parameter_schema", "register_tools", "setup"},
+		Synthetic: []string{"__init__", "get_tools"}},
+	{GoStruct: "spider.SpiderSkill", Module: "signalwire.skills.spider.skill", ClassName: "SpiderSkill",
+		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "setup"},
+		Synthetic: []string{"__init__"}},
+	{GoStruct: "builtin.SWMLTransferSkill", Module: "signalwire.skills.swml_transfer.skill", ClassName: "SWMLTransferSkill",
+		Methods: []string{"get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.WeatherAPISkill", Module: "signalwire.skills.weather_api.skill", ClassName: "WeatherApiSkill",
+		Methods:   []string{"get_parameter_schema", "register_tools", "setup"},
+		Synthetic: []string{"__init__", "get_tools"}},
+	{GoStruct: "builtin.WebSearchSkill", Module: "signalwire.skills.web_search.skill", ClassName: "WebSearchSkill",
+		Methods: []string{"get_global_data", "get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.WikipediaSearchSkill", Module: "signalwire.skills.wikipedia_search.skill", ClassName: "WikipediaSearchSkill",
+		Methods:   []string{"get_hints", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"},
+		Synthetic: []string{"search_wiki"}},
 }
 
 // eventTarget builds the standard relay event class target: the class is

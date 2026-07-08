@@ -7,6 +7,8 @@
 
 package swml
 
+import "sort"
+
 // VerbHandler defines the contract for specialized SWML verb handlers.
 //
 // Implementations provide verb-specific validation and configuration-building
@@ -67,4 +69,17 @@ func (s *Service) HasVerbHandler(verbName string) bool {
 	defer s.mu.RUnlock()
 	_, ok := s.verbHandlers[verbName]
 	return ok
+}
+
+// VerbHandlerNames returns the sorted names of the registered verb handlers —
+// the compatibility accessor for Python's sorted(VerbHandlerRegistry._handlers.keys()).
+func (s *Service) VerbHandlerNames() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]string, 0, len(s.verbHandlers))
+	for name := range s.verbHandlers {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
 }

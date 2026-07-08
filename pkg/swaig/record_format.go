@@ -13,7 +13,7 @@ package swaig
 //	fr.RecordCall("id", true, "wav", "both", nil)            // bare string still compiles
 //
 // RecordFormat is a string subtype, so the value written into the SWML record
-// params is byte-identical to the bare string the reference uses — parity with
+// params is byte-identical to the bare string the reference uses — compatibility with
 // Python's record_call(format=...) keyword (a plain str). The enumerator emits
 // it as union<RecordFormat,string>, so signature drift stays 0 against the
 // reference's str (the string member absorbs).

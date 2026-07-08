@@ -10,8 +10,6 @@
 
 # --- Existing curated entries (preserved) ---
 signalwire.relay.event.AIEvent: Go-only typed wrapper around AI action events; Python uses RelayEvent directly
-signalwire.livewire.plugins.GoogleSTT: Go-only plugin stub; matches WithSTT("google") at AgentSession construction
-signalwire.livewire.plugins.OpenAITTS: Go-only plugin stub; matches WithTTS("openai") at AgentSession construction
 
 # --- Tier-2 idiom additions: context.Context-aware entry points (IDIOM_PASS_JOURNAL §4) ---
 # Additive *Context variants of the blocking/async entry points that honor ctx
@@ -31,11 +29,13 @@ agent.AgentBase.RunContext: Go ctx-aware form of AgentBase.Run; on ctx cancel/de
 # Run() is now the universal entry point: it computes the execution mode via
 # swml.GetExecutionMode() (the cross-language detection contract — CGI/Lambda/
 # GCF/Azure/server) and dispatches, mirroring Python web_mixin.run() +
-# serverless_mixin. Server mode serves HTTP (existing behavior, preserved);
-# a detected serverless platform returns ErrServerlessUnsupported rather than
-# silently binding a TCP listener that never receives traffic — Go's serverless
-# request handling lives in the dedicated adapter pkg/lambda (wraps AsRouter(),
-# driven from main() by aws-lambda-go), not inline in Run(). DetectRunMode and
+# serverless_mixin. Server mode serves HTTP (existing behavior, preserved); CGI
+# dispatches the single request inline through pkg/serverless (env+stdin→stdout);
+# the platform-runtime-driven modes (Lambda/GCF/Azure) return ErrServerlessUnsupported
+# rather than silently binding a TCP listener that never receives traffic — those
+# are served via the adapters (pkg/lambda wraps AsRouter(), driven from main() by
+# aws-lambda-go; pkg/serverless provides the GCF/CGI handlers), not inline in Run().
+# DetectRunMode and
 # RunWithMode are the Go-idiomatic shape for Python run()'s implicit
 # get_execution_mode() call and its force_mode= override arg respectively;
 # Python folds both into run()'s param list, Go exposes them as methods on the
@@ -43,8 +43,8 @@ agent.AgentBase.RunContext: Go ctx-aware form of AgentBase.Run; on ctx cancel/de
 # Tested in pkg/agent/run_serverless_test.go (detection fixtures, force-mode
 # dispatch, server-mode still serves HTTP).
 agent.AgentBase.DetectRunMode: Go accessor returning the swml.ExecutionMode Run() would dispatch on (from swml.GetExecutionMode()). Mirrors Python run()'s internal get_execution_mode() call; lets callers branch (e.g. wire a pkg/lambda adapter) before invoking Run. Method-on-mapped-struct: invisible to both diff gates
-agent.AgentBase.RunWithMode: Go force-mode form of Run — dispatches on the supplied swml.ExecutionMode rather than auto-detecting. Mirrors Python run(force_mode=...). Server mode serves HTTP; a serverless mode returns ErrServerlessUnsupported. Method-on-mapped-struct: invisible to both diff gates
-agent.ErrServerlessUnsupported: Go sentinel — Run/RunWithMode detected a serverless execution mode (Lambda/GCF/Azure/CGI); the agent must be served via its http.Handler (AsRouter) using the platform adapter (e.g. pkg/lambda), not Run(). errors.Is-able. No Python counterpart (Python's run() handles each platform inline; Go's serverless handling is the AsRouter+adapter path)
+agent.AgentBase.RunWithMode: Go force-mode form of Run — dispatches on the supplied swml.ExecutionMode rather than auto-detecting. Mirrors Python run(force_mode=...). Server mode serves HTTP; CGI dispatches the request inline via pkg/serverless; Lambda/GCF/Azure return ErrServerlessUnsupported (served via the adapters). Method-on-mapped-struct: invisible to both diff gates
+agent.ErrServerlessUnsupported: Go sentinel — Run/RunWithMode detected a platform-runtime-driven serverless mode (Lambda/GCF/Azure); the agent must be served via its http.Handler (AsRouter) using the platform adapter (pkg/lambda for Lambda, pkg/serverless for GCF; CGI dispatches inline and does not return this), not Run(). errors.Is-able. No Python counterpart (Python's run() handles each platform inline; Go's serverless handling is the AsRouter+adapter path)
 # REST client ctx-aware variants (cloud-product #19436). doRequest now delegates to
 # doRequestContext via http.NewRequestWithContext; the non-ctx verbs are PRESERVED and
 # delegate with context.Background(). Python's REST client has no caller-supplied
@@ -54,11 +54,6 @@ rest.HTTPClient.PostContext: Go ctx-aware form of HTTPClient.Post. Non-ctx Post 
 rest.HTTPClient.PutContext: Go ctx-aware form of HTTPClient.Put. Non-ctx Put preserved
 rest.HTTPClient.PatchContext: Go ctx-aware form of HTTPClient.Patch. Non-ctx Patch preserved
 rest.HTTPClient.DeleteContext: Go ctx-aware form of HTTPClient.Delete. Non-ctx Delete preserved
-rest.CrudResource.ListContext: Go ctx-aware form of CrudResource.List; delegates to HTTPClient.GetContext. Non-ctx List preserved
-rest.CrudResource.CreateContext: Go ctx-aware form of CrudResource.Create. Non-ctx Create preserved
-rest.CrudResource.GetContext: Go ctx-aware form of CrudResource.Get. Non-ctx Get preserved
-rest.CrudResource.UpdateContext: Go ctx-aware form of CrudResource.Update (honors UpdateMethod PATCH/PUT). Non-ctx Update preserved
-rest.CrudResource.DeleteContext: Go ctx-aware form of CrudResource.Delete. Non-ctx Delete preserved
 rest.PaginatedIterator.NextContext: Go ctx-aware form of PaginatedIterator.Next; page fetch cancelled on ctx cancel/deadline. Non-ctx Next preserved, delegates with context.Background()
 rest.PaginatedIterator.ForEachContext: Go ctx-aware form of PaginatedIterator.ForEach; page fetches cancelled on ctx cancel/deadline. Non-ctx ForEach preserved
 
@@ -132,28 +127,19 @@ builtin.MathSkill: Go skill implementation; matches the Python skill of the same
 builtin.NativeVectorSearchSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.PlayBackgroundFileSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.SWMLTransferSkill: Go skill implementation; matches the Python skill of the same name structurally
-builtin.SpiderSkill: Go skill implementation; matches the Python skill of the same name structurally
+spider.SpiderSkill: Go skill implementation (own `spider` sub-package); matches the Python skill of the same name structurally, surfaced via the skill-contract projection under signalwire.skills.spider.skill
 builtin.WeatherAPISkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.WebSearchSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.WikipediaSearchSkill: Go skill implementation; matches the Python skill of the same name structurally
 datamap.ExpressionPattern: Go-only struct; no direct Python counterpart
 lambda.Handler: Go-only struct; no direct Python counterpart
-livewire.ChatContext: Go-only struct; no direct Python counterpart
-livewire.ChatMessage: Go-only struct; no direct Python counterpart
-livewire.GoogleSTT: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
-livewire.InferenceLLM: Go-only struct; no direct Python counterpart
-livewire.InferenceSTT: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
-livewire.InferenceTTS: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
-livewire.OpenAITTS: Go livewire plugin stub; resolves WithSTT/WithTTS provider strings
-livewire.ToolError: Go-only struct; no direct Python counterpart
+serverless.Handler: Go-only struct; the CGI / Google Cloud Functions dispatch adapter (analog of pkg/lambda for the non-Lambda serverless platforms), wrapping the agent's http.Handler. Python's ServerlessMixin dispatches these inline; Go's serverless request handling is the AsRouter+adapter path
+serverless.CGIResult: Go-only struct; the CGI dispatch outcome (status/headers/body) that WriteCGI serializes. No Python counterpart (Python writes the CGI response inline via stdout)
 logging.Logger: Go-only struct; no direct Python counterpart
 logging.LogLevel: Go-only defined-string type (closed set of log-level names: debug/info/warn/warning/error/off) + LevelName* typed constants; server.WithLogLevel takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "debug" string compiling — parity with the reference's plain str log_level. ParseLevel(string(LogLevel)) resolves it to the internal Level, so it adds zero signature drift (it appears on no oracle method param). Distinct from the internal Level severity int.
-namespaces.CallFlowOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 namespaces.CrudResource: Go REST resource type; Python uses dynamic resource accessors via __getattr__
 namespaces.CrudWithAddresses: Go-only struct; no direct Python counterpart
 namespaces.CxmlApplicationsResource: Go REST resource type; Python uses dynamic resource accessors via __getattr__
-namespaces.CxmlWebhookOptions: Go-only options struct; encodes Python kwargs for the matching constructor
-namespaces.RelayTopicOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 prefabs.Amenity: Go-only struct; no direct Python counterpart
 prefabs.BedrockAgent: Go-only struct; no direct Python counterpart
 prefabs.BedrockOptions: Go-only options struct; encodes Python kwargs for the matching constructor
@@ -272,42 +258,8 @@ contexts.WithFunctions: Go functional-options helper; encodes a Python kwarg for
 contexts.WithPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
 contexts.WithType: Go functional-options helper; encodes a Python kwarg for the matching constructor
 lambda.NewHandler: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewAgentServer: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewChatContext: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewGoogleSTT: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewInferenceLLM: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewInferenceSTT: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewInferenceTTS: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewOpenAITTS: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.NewToolError: Go factory constructor for a port-only struct; Python equivalent does not exist
-livewire.WithAgentName: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithAllowInterruptions: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithDescription: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithInferenceLLMModel: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithInferenceSTTModel: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithLLM: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMCPServers: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMaxEndpointingDelay: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMaxToolSteps: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMinEndpointingDelay: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithMinInterruptionDuration: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithOnRequest: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithOnSessionEnd: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithParameters: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithPreemptiveGeneration: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithRecord: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithReplyInstructions: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithRoom: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithSTT: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithServerType: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithSessionMCPServers: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithSessionTools: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithSessionUserdata: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithTTS: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithTools: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithTurnDetection: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithUserdata: Go functional-options helper; encodes a Python kwarg for the matching constructor
-livewire.WithVAD: Go functional-options helper; encodes a Python kwarg for the matching constructor
+serverless.NewHandler: Go factory constructor for the port-only serverless.Handler (CGI/GCF adapter); Python equivalent does not exist
+serverless.WriteCGI: Go-only public function serializing a CGIResult to the CGI response wire format (Status line + headers + body); Python writes the CGI response inline
 logging.GetGlobalLevel: Go-only public function; no direct Python counterpart
 logging.IsSuppressed: Go-only public function; no direct Python counterpart
 logging.New: Go factory constructor for a port-only struct; Python equivalent does not exist
@@ -321,8 +273,6 @@ namespaces.NewCrudResource: Go factory constructor for a port-only struct; Pytho
 namespaces.NewCrudResourcePUT: Go factory constructor for a port-only struct; Python equivalent does not exist
 namespaces.NewCrudWithAddresses: Go factory constructor for a port-only struct; Python equivalent does not exist
 namespaces.NewCrudWithAddressesPUT: Go factory constructor for a port-only struct; Python equivalent does not exist
-namespaces.ResetDeprecationWarnOnce: Go-only public function; no direct Python counterpart
-namespaces.SetDeprecationLogger: Go-only public function; no direct Python counterpart
 prefabs.NewBedrockAgent: Go factory constructor for a port-only struct; Python equivalent does not exist
 prefabs.NewSurveyQuestion: Go factory constructor for a port-only struct; Python equivalent does not exist
 prefabs.WithOptional: Go functional-options helper; encodes a Python kwarg for the matching constructor
@@ -336,7 +286,6 @@ relay.NewAIEvent: Go factory constructor for a port-only struct; Python equivale
 relay.NewDevice: Go factory constructor for the port-only relay.Device struct; Python uses a raw {type, params} dict
 relay.NewRelayClient: Go factory constructor for a port-only struct; Python equivalent does not exist
 relay.NewRelayError: Go factory constructor for a port-only struct; Python equivalent does not exist
-relay.WithAIEngine: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithAIParams: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithAIPostPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithAIPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
@@ -349,7 +298,6 @@ relay.WithAMDMachineWordsThreshold: Go functional-options helper; encodes a Pyth
 relay.WithAMDTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithAudioVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithConferenceBeep: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithConferenceDeaf: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithConferenceMuted: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithConnectRingback: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithContexts: Go functional-options helper; encodes a Python kwarg for the matching constructor
@@ -399,13 +347,11 @@ relay.WithRingtoneDuration: Go functional-options helper; encodes a Python kwarg
 relay.WithRingtoneVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithSpace: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithStreamCodec: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithStreamDirection: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithTTSGender: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithTTSLanguage: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithTTSVoice: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithTTSVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.WithToken: Go functional-options helper; encodes a Python kwarg for the matching constructor
-rest.NewCrudResourcePUT: Go factory constructor for a port-only struct; Python equivalent does not exist
 security.WithDebugMode: Go functional-options helper; encodes a Python kwarg for the matching constructor
 security.WithSecret: Go functional-options helper; encodes a Python kwarg for the matching constructor
 server.WithLogLevel: Go functional-options helper; encodes a Python kwarg for the matching constructor
@@ -448,16 +394,11 @@ signalwire.core.mixins.tool_mixin.ToolMixin.logger: ToolMixin methods are projec
 signalwire.core.mixins.web_mixin.WebMixin.logger: WebMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
 signalwire.core.swml_service.SWMLService.logger: Go's swml.Service exposes a public ``Logger *logging.Logger`` field; auto-projected as ``logger`` accessor on the Python-canonical class
 
-# --- Go-only fields on livewire context structs (LiveKit-style typed handles) ---
-signalwire.livewire.AgentHandoff.agent: Go's AgentHandoff embeds a typed ``Agent *Agent`` reference; Python's AgentHandoff is an empty stub class
-signalwire.livewire.JobContext.proc: Go's JobContext embeds a typed ``Proc *JobProcess`` reference; Python's JobContext is an empty stub class
-signalwire.livewire.JobContext.room: Go's JobContext embeds a typed ``Room *Room`` reference; Python's JobContext is an empty stub class
-signalwire.livewire.RunContext.agent: Go's RunContext embeds a typed ``Agent *Agent`` reference; Python's RunContext is an empty stub class
-signalwire.livewire.RunContext.session: Go's RunContext embeds a typed ``Session *AgentSession`` reference; Python's RunContext is an empty stub class
 
 # --- Go-only fields on REST base resources (Python uses dynamic attribute lookup) ---
 signalwire.rest._base.BaseResource.http: Go's namespaces.Resource exposes a public ``http`` HTTPClient field; Python uses dynamic attribute lookup via __init__
 signalwire.rest._base.CrudResource.client: Go's namespaces.CrudResource exposes a public ``client`` HTTPClient field; Python uses dynamic attribute lookup via __init__
+signalwire.rest._base.ReadResource.client: same Go namespaces.CrudResource ``client`` field, surfaced under the ReadResource half of the CrudResource->ReadResource base-placement adapter (internal/surface/tables.go); Python's ReadResource uses dynamic attribute lookup
 
 # --- Go projections of Python attributes the Python adapter drops from surface but keeps in signatures ---
 # Python's enumerate-surface omits these as instance properties; signatures keeps them.
@@ -465,3 +406,19 @@ signalwire.rest._base.CrudResource.client: Go's namespaces.CrudResource exposes 
 signalwire.core.agent_base.AgentBase.pom: Go's Pom() method projects to Python's pom property; Python's signatures index includes it but the surface index drops it as an instance attribute
 signalwire.core.swml_service.SWMLService.schema_utils: Go's SchemaUtils field projects to Python's schema_utils property; Python's signatures index includes it but the surface index drops it as an instance attribute
 signalwire.relay.call.Action.result: Go's Result() method projects to Python's result property; Python's signatures index includes it but the surface index drops it as an instance attribute
+
+## SWML-verbs generated-payload reserved-word fields (port emits what the reference can't name)
+
+The reference's TypedDict generator cannot name a field that is a Python keyword, so it
+drops `else` to a `# non-identifier field 'else'` comment (the wire key still round-trips
+at runtime). Go struct field tags have no such restriction, so the generated SWML-verb
+configs legitimately type the field — the port is MORE faithful to the wire than the
+reference can express. This is the read-side analog of the `from`→`From` reserved-word
+handling. Keyed by the gen-payload fold token.
+
+gen-payload.CondElse.else: generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the Go struct types it
+gen-payload.CondReg.else: generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the Go struct types it
+
+# --- Port-only helper structs (options/results) ---
+web.Options: Go options struct for web.NewWebService — the idiomatic Go constructor-options shape for the WebService static-file server (Python passes a flat kwarg list). Call-shape plumbing, not oracle surface.
+swml.ValidationResult: Go struct returned by swml schema validation — an idiomatic typed result the Python reference expresses as a (bool, errors) tuple. Port-only helper type.

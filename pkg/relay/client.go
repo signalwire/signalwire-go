@@ -564,7 +564,7 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 //
 // When the host env var is set it takes precedence over the configured
 // space; when scheme is set it overrides "wss". This mirrors the
-// per-port harness contract documented in the porting-sdk
+// per-port harness contract documented in the shared test harness
 // SUBAGENT_PLAYBOOK.
 func (c *Client) connect() error {
 	host := os.Getenv("SIGNALWIRE_RELAY_HOST")
@@ -869,12 +869,13 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 		"params":  params,
 	}
 
-	// Add protocol to params if we have one.
-	c.mu.RLock()
-	if c.protocol != "" {
-		params["protocol"] = c.protocol
-	}
-	c.mu.RUnlock()
+	// NOTE: the server-issued `protocol` string is echoed back only on the
+	// signalwire.connect frame (see authenticate / reconnect), NOT injected into
+	// every calling.*/messaging.* command's params. Python's _send_request sends
+	// the caller's params verbatim; injecting `protocol` here produced a frame
+	// that diverged from the Python oracle on every RELAY command. The protocol
+	// is a session property carried by the connect handshake, not a per-command
+	// param.
 
 	ch := make(chan json.RawMessage, 1)
 	c.mu.Lock()

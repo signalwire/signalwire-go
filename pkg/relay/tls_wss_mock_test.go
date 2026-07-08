@@ -10,7 +10,7 @@
 //
 // This is one of the three cross-port "every SDK does verified HTTPS + WSS"
 // capability quadrants. It spawns the shared mock_relay in --tls mode (so the
-// WebSocket endpoint is wss:// backed by the porting-sdk self-signed test CA),
+// WebSocket endpoint is wss:// backed by the shared self-signed test CA),
 // points the real *relay.Client at wss://127.0.0.1:<port>, trusts the test CA,
 // and drives the full connect + authenticate handshake.
 //

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"os/signal"
 	"regexp"
@@ -24,6 +25,7 @@ import (
 	"github.com/signalwire/signalwire-go/pkg/logging"
 	"github.com/signalwire/signalwire-go/pkg/pom"
 	"github.com/signalwire/signalwire-go/pkg/security"
+	"github.com/signalwire/signalwire-go/pkg/serverless"
 	"github.com/signalwire/signalwire-go/pkg/skills"
 	"github.com/signalwire/signalwire-go/pkg/swaig"
 	"github.com/signalwire/signalwire-go/pkg/swml"
@@ -52,7 +54,7 @@ type DebugEventHandler func(event map[string]any)
 // non-nil map applies modifications to the rendered SWML; returning nil
 // uses the default rendering unchanged.
 //
-// Python parity: web_mixin.WebMixin.on_swml_request — Go has no method
+// Matches Python: web_mixin.WebMixin.on_swml_request — Go has no method
 // inheritance, so we expose the override as a settable function field.
 type OnSwmlRequestHook func(requestData map[string]any, callbackPath string, r *http.Request) map[string]any
 
@@ -297,7 +299,7 @@ func WithSchemaValidation(validate bool) AgentOption {
 // When this option is unset, AgentBase falls back to the
 // SIGNALWIRE_SIGNING_KEY environment variable. When neither is set, the
 // agent accepts unsigned requests and emits a one-time WARN log on
-// startup, per porting-sdk/webhooks.md §"AgentBase integration".
+// startup, per the SignalWire webhooks specification §"AgentBase integration".
 //
 // Python equivalent: AgentBase(signing_key="...") parameter.
 func WithSigningKey(key string) AgentOption {
@@ -310,7 +312,7 @@ func WithSigningKey(key string) AgentOption {
 // without it the validator sees the internal scheme/host and the signature
 // will mismatch.
 //
-// No Python parity flag — Python's web_mixin reads X-Forwarded-* headers
+// No Python-equivalent flag — Python's web_mixin reads X-Forwarded-* headers
 // unconditionally; in Go we make it explicit because forging these headers
 // is a real attack on naive deployments.
 func WithSigningKeyTrustProxy(trust bool) AgentOption {
@@ -358,6 +360,7 @@ type AgentBase struct {
 	hints               []string
 	patternHints        []map[string]any
 	languages           []map[string]any
+	multilingual        map[string]any
 	pronunciations      []map[string]any
 	params              map[string]any // AI params like temperature
 	globalData          map[string]any
@@ -787,7 +790,7 @@ func (a *AgentBase) GetPrompt() any {
 }
 
 // Pom returns a typed PromptObjectModel built from the agent's current
-// POM sections. Returns nil when use_pom is false (Python parity:
+// POM sections. Returns nil when use_pom is false (Matches Python:
 // “self.pom“ is “None“ when “use_pom=False“). The returned value
 // is a deep copy / fresh build — mutations don't affect the agent's
 // internal state.
@@ -996,7 +999,7 @@ func (a *AgentBase) RegisterSwaigFunction(funcDef map[string]any) *AgentBase {
 }
 
 // HasFunction reports whether a SWAIG function with the given name is
-// registered. (Python parity: “ToolRegistry.has_function“.)
+// registered. (Matches Python: “ToolRegistry.has_function“.)
 func (a *AgentBase) HasFunction(name string) bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1005,7 +1008,7 @@ func (a *AgentBase) HasFunction(name string) bool {
 }
 
 // Function returns the registered tool definition for the given
-// name, or nil when no such function is registered. (Python parity:
+// name, or nil when no such function is registered. (Matches Python:
 // “ToolRegistry.get_function“.)
 func (a *AgentBase) Function(name string) *ToolDefinition {
 	a.mu.RLock()
@@ -1018,7 +1021,7 @@ func (a *AgentBase) Function(name string) *ToolDefinition {
 
 // AllFunctions returns a snapshot of all registered SWAIG functions
 // keyed by name. The returned map is a copy — subsequent registrations
-// do not mutate it. (Python parity: “ToolRegistry.get_all_functions“.)
+// do not mutate it. (Matches Python: “ToolRegistry.get_all_functions“.)
 func (a *AgentBase) AllFunctions() map[string]*ToolDefinition {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1031,7 +1034,7 @@ func (a *AgentBase) AllFunctions() map[string]*ToolDefinition {
 
 // RemoveFunction removes a registered SWAIG function. Returns true when
 // the function was found and removed; false when it wasn't registered.
-// (Python parity: “ToolRegistry.remove_function“.)
+// (Matches Python: “ToolRegistry.remove_function“.)
 func (a *AgentBase) RemoveFunction(name string) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1108,10 +1111,13 @@ func (a *AgentBase) AddHints(hints []string) *AgentBase {
 // Python equivalent: ai_config_mixin.AIConfigMixin.add_pattern_hint
 // Python signature: add_pattern_hint(hint, pattern, replace, ignore_case=False)
 //
-// The Python implementation appends to self._hints (not a separate patternHints
-// list) as a dict with keys "hint", "pattern", "replace", "ignore_case".
-// The Go implementation stores in patternHints and merges into the rendered
-// "hints" array at render time.
+// The Python implementation appends to self._hints (not a separate list) as a
+// dict with keys "hint", "pattern", "replace", "ignore_case", so the structured
+// hint renders inside the SWML ai.hints array alongside plain-string hints. The
+// Go implementation stores in patternHints and merges into that same rendered
+// "hints" array at render time. Matching Python, a call with any of hint,
+// pattern, or replace empty is a no-op (the hint is only attached when all three
+// are non-empty).
 //
 // Parameters:
 //   - hint:       the hint text the model receives
@@ -1119,15 +1125,18 @@ func (a *AgentBase) AddHints(hints []string) *AgentBase {
 //   - replace:    replacement string for the matched pattern
 //   - ignoreCase: when true, matching is case-insensitive
 func (a *AgentBase) AddPatternHint(hint string, pattern string, replace string, ignoreCase ...bool) *AgentBase {
+	// Python guards: `if hint and pattern and replace`. Attach only when all
+	// three are non-empty; otherwise this is a no-op (still chainable).
+	if hint == "" || pattern == "" || replace == "" {
+		return a
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	ph := map[string]any{
-		"hint":    hint,
-		"pattern": pattern,
-		"replace": replace,
-	}
-	if len(ignoreCase) > 0 && ignoreCase[0] {
-		ph["ignore_case"] = true
+		"hint":        hint,
+		"pattern":     pattern,
+		"replace":     replace,
+		"ignore_case": len(ignoreCase) > 0 && ignoreCase[0],
 	}
 	a.patternHints = append(a.patternHints, ph)
 	return a
@@ -1283,6 +1292,29 @@ func (a *AgentBase) SetLanguages(languages []map[string]any) *AgentBase {
 	return a
 }
 
+// SetMultilingual configures ASR-driven multilingual mode (Mode B).
+//
+// Python equivalent: ai_config_mixin.AIConfigMixin.set_multilingual
+// Python signature: set_multilingual(config) -> AgentBase
+//
+// Emits a top-level multilingual object on the AI verb. The recognizer runs in
+// code-switching mode and the agent answers in whatever language the caller
+// actually spoke - the model does not pick the language. This is mutually
+// exclusive with SetLanguages; if both are set the server uses multilingual and
+// ignores languages.
+//
+// Parameters:
+//   - config: the multilingual config object (languages, allowed,
+//     start_language, min_switch_words, fillers, etc.).
+func (a *AgentBase) SetMultilingual(config map[string]any) *AgentBase {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if len(config) > 0 {
+		a.multilingual = config
+	}
+	return a
+}
+
 // AddPronunciation adds a pronunciation override rule.
 //
 // Python equivalent: ai_config_mixin.AIConfigMixin.add_pronunciation
@@ -1330,11 +1362,22 @@ func (a *AgentBase) SetParams(params map[string]any) *AgentBase {
 	return a
 }
 
-// SetGlobalData replaces all global data.
+// SetGlobalData merges data into the global data (later keys win, siblings
+// survive) — matching Python's set_global_data, which is a .update() not a
+// replace. Use ClearGlobalData first if a full replace is intended.
 func (a *AgentBase) SetGlobalData(data map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.globalData = data
+	// MERGE, not replace — Python's set_global_data does self._global_data.update(data)
+	// (ai_config_mixin.py:327) so skills and other callers each contribute keys
+	// without clobbering siblings. A later key with the same name wins; other
+	// keys survive. (This is identical to UpdateGlobalData by design.)
+	if a.globalData == nil {
+		a.globalData = make(map[string]any, len(data))
+	}
+	for k, v := range data {
+		a.globalData[k] = v
+	}
 	return a
 }
 
@@ -1346,6 +1389,29 @@ func (a *AgentBase) UpdateGlobalData(data map[string]any) *AgentBase {
 		a.globalData[k] = v
 	}
 	return a
+}
+
+// GetGlobalData returns a copy of the accumulated global data.
+func (a *AgentBase) GetGlobalData() map[string]any {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	out := make(map[string]any, len(a.globalData))
+	for k, v := range a.globalData {
+		out[k] = v
+	}
+	return out
+}
+
+// GetSIPUsernames returns the registered SIP usernames (lowercased, sorted).
+func (a *AgentBase) GetSIPUsernames() []string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	out := make([]string, 0, len(a.sipUsernames))
+	for u := range a.sipUsernames {
+		out = append(out, u)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // SetNativeFunctions sets the list of native function names.
@@ -1497,19 +1563,33 @@ func (a *AgentBase) SetFunctionIncludes(includes []map[string]any) *AgentBase {
 	return a
 }
 
-// SetPromptLlmParams sets LLM parameters for the main prompt.
+// SetPromptLlmParams merges LLM parameters into the main prompt's params.
+// Python (ai_config_mixin.py:669) does self._prompt_llm_params.update(params) —
+// a MERGE, so repeated calls with distinct keys accumulate rather than replace.
 func (a *AgentBase) SetPromptLlmParams(params map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.promptLlmParams = params
+	if a.promptLlmParams == nil {
+		a.promptLlmParams = make(map[string]any)
+	}
+	for k, v := range params {
+		a.promptLlmParams[k] = v
+	}
 	return a
 }
 
-// SetPostPromptLlmParams sets LLM parameters for the post-prompt.
+// SetPostPromptLlmParams merges LLM parameters into the post-prompt's params.
+// Python (ai_config_mixin.py:703) does self._post_prompt_llm_params.update(params) —
+// a MERGE, so repeated calls with distinct keys accumulate rather than replace.
 func (a *AgentBase) SetPostPromptLlmParams(params map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.postPromptLlmParams = params
+	if a.postPromptLlmParams == nil {
+		a.postPromptLlmParams = make(map[string]any)
+	}
+	for k, v := range params {
+		a.postPromptLlmParams[k] = v
+	}
 	return a
 }
 
@@ -1923,7 +2003,7 @@ func (a *AgentBase) ClearSwaigQueryParams() *AgentBase {
 // is a backward-compatibility no-op returning self because the debug routes
 // are registered unconditionally in _register_routes. The Go port mirrors that:
 // AsRouter always registers /debug and /debug_events, so this method exists for
-// API parity and chaining and simply returns the agent.
+// API compatibility and chaining and simply returns the agent.
 func (a *AgentBase) EnableDebugRoutes() *AgentBase {
 	return a
 }
@@ -1972,7 +2052,7 @@ func (a *AgentBase) OnSwmlRequest(requestData map[string]any, callbackPath strin
 // applies modifications to the rendered SWML; returning nil falls
 // through to the default rendering.
 //
-// Python parity: this is the Go-idiomatic way of "overriding"
+// Matches Python: this is the Go-idiomatic way of "overriding"
 // on_swml_request — Go has no method inheritance.
 func (a *AgentBase) SetOnSwmlRequestHook(hook OnSwmlRequestHook) *AgentBase {
 	a.mu.Lock()
@@ -2059,7 +2139,7 @@ func (a *AgentBase) GetBasicAuthCredentialsWithSource() (user, pass, source stri
 // when the function is not registered, the SessionManager rejects the token,
 // or the validation panics for any reason.
 //
-// Python parity: state_mixin.StateMixin.validate_tool_token. Python rejects
+// Matches Python: state_mixin.StateMixin.validate_tool_token. Python rejects
 // unknown function names up-front and swallows exceptions, returning false.
 func (a *AgentBase) ValidateToolToken(functionName, token, callID string) (ok bool) {
 	if !a.HasFunction(functionName) {
@@ -2074,7 +2154,7 @@ func (a *AgentBase) ValidateToolToken(functionName, token, callID string) (ok bo
 }
 
 // CreateToolToken mints a per-call SWAIG-function token via the agent's
-// SessionManager. Returns an empty string when minting fails (Python parity:
+// SessionManager. Returns an empty string when minting fails (Matches Python:
 // state_mixin.StateMixin._create_tool_token, which catches all exceptions and
 // returns "" on error).
 func (a *AgentBase) CreateToolToken(toolName, callID string) (token string) {
@@ -2142,10 +2222,7 @@ func (a *AgentBase) buildMcpToolList() []map[string]any {
 			"description": td.Description,
 		}
 		if td.Parameters != nil {
-			tool["inputSchema"] = map[string]any{
-				"type":       "object",
-				"properties": td.Parameters,
-			}
+			tool["inputSchema"] = ensureParameterStructure(td.Parameters, td.Required)
 		} else {
 			tool["inputSchema"] = map[string]any{
 				"type":       "object",
@@ -2323,19 +2400,17 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 // routing continue. It then calls register_routing_callback to register the
 // callback, and optionally calls auto_map_sip_usernames.
 func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
-	// Build SIP routing callback that matches Python behavior
-	cb := func(r *http.Request, body map[string]any) map[string]any {
+	// Build SIP routing callback that matches Python behavior: it extracts the
+	// SIP username and returns nil (no redirect) in both the matched and
+	// unmatched case, letting normal processing continue.
+	cb := func(body map[string]any, _ map[string]any) *string {
 		sipUsername := swml.ExtractSIPUsername(body)
 		if sipUsername != "" {
 			username := strings.ToLower(sipUsername)
 			a.mu.RLock()
 			_, matched := a.sipUsernames[username]
 			a.mu.RUnlock()
-			if matched {
-				// Username matched this agent — let normal processing continue
-				return nil
-			}
-			// Not matched — let routing continue
+			_ = matched // matched or not, routing continues (returns nil)
 		}
 		return nil
 	}
@@ -2359,18 +2434,17 @@ func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
 }
 
 // RegisterRoutingCallback registers a callback function that is invoked for
-// incoming requests at the given path to determine routing.
+// incoming POST requests at the given path to determine routing.
 //
 // Python equivalent: web_mixin.WebMixin.register_routing_callback
 // Python signature: register_routing_callback(callback_fn, path="/sip")
 //
-// The callback receives the HTTP request and the parsed body. It should return
-// a non-nil map to override the response, or nil to let normal processing continue.
-// This method delegates to swml.Service.RegisterRoutingCallback.
-//
-// For Python-aligned redirect semantics (callback returns a route string and
-// the framework issues an HTTP 307 redirect), use RegisterSIPRoutingCallback.
-func (a *AgentBase) RegisterRoutingCallback(callbackFn func(r *http.Request, body map[string]any) map[string]any, path string) {
+// The callback receives the parsed request body and the request headers —
+// callback_fn(body, headers) — and returns a non-nil route string to redirect
+// the request (the framework issues an HTTP 307 Temporary Redirect preserving
+// method + body) or nil to let normal SWML processing continue. This method
+// delegates to swml.Service.RegisterRoutingCallback.
+func (a *AgentBase) RegisterRoutingCallback(callbackFn swml.RoutingCallback, path string) {
 	a.Service.RegisterRoutingCallback(normalizeCallbackPath(path), callbackFn)
 }
 
@@ -2498,7 +2572,7 @@ func (a *AgentBase) RegisterSIPUsername(username string) *AgentBase {
 // skills.Skill* constants give autocomplete + call-site typo checking; because
 // Go auto-converts untyped string-constant literals, a bare "datetime" literal
 // or skills.SkillName("custom") for a third-party skill compiles identically —
-// parity with the Python reference's str parameter.
+// compatibility with the Python reference's str parameter.
 func (a *AgentBase) AddSkill(skillName skills.SkillName, params map[string]any) *AgentBase {
 	if params == nil {
 		params = map[string]any{}
@@ -2705,6 +2779,33 @@ func (a *AgentBase) buildEndpointURL(endpoint string) string {
 	return url
 }
 
+// ensureParameterStructure normalizes a tool's declared parameters into the
+// SWML/JSON-Schema envelope, mirroring the Python reference
+// SWAIGFunction._ensure_parameter_structure:
+//
+//   - a COMPLETE schema (already has both "type" and "properties") is passed
+//     through unchanged — NOT re-wrapped. This is the pass-through path a caller
+//     hits when they hand DefineTool a full {type,properties,required} schema;
+//     double-wrapping it would bury the real schema under a spurious outer
+//     {type:object, properties:{...the schema...}}.
+//   - otherwise, params is treated as a bare properties map and wrapped in
+//     {type:object, properties:params}, with required appended when non-empty.
+func ensureParameterStructure(params map[string]any, required []string) map[string]any {
+	if len(params) == 0 {
+		return map[string]any{"type": "object", "properties": map[string]any{}}
+	}
+	_, hasType := params["type"]
+	_, hasProps := params["properties"]
+	if hasType && hasProps {
+		return params
+	}
+	out := map[string]any{"type": "object", "properties": params}
+	if len(required) > 0 {
+		out["required"] = required
+	}
+	return out
+}
+
 // buildSwaigFunctions returns the SWAIG functions array for the AI verb.
 func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 	functions := make([]map[string]any, 0, len(a.toolOrder)+len(a.functionIncludes))
@@ -2734,14 +2835,7 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 		}
 
 		if tool.Parameters != nil {
-			params := map[string]any{
-				"type":       "object",
-				"properties": tool.Parameters,
-			}
-			if len(tool.Required) > 0 {
-				params["required"] = tool.Required
-			}
-			fn["parameters"] = params
+			fn["parameters"] = ensureParameterStructure(tool.Parameters, tool.Required)
 		}
 
 		if tool.Secure {
@@ -2824,10 +2918,18 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 	// 5. Build AI verb config
 	aiConfig := make(map[string]any)
 
-	// Prompt
-	if a.usePom && len(a.pomSections) > 0 {
+	// Prompt. Python's get_prompt() returns the POM list (possibly empty) when
+	// usePom is active, else the prompt text; build_config ALWAYS emits a
+	// "prompt" block from that base — so an agent with usePom but no sections
+	// still renders prompt:{pom:[]}. Mirroring this is what lets prompt LLM
+	// params (below) merge into ai.prompt even when no base text/section is set.
+	if a.usePom {
+		pom := a.pomSections
+		if pom == nil {
+			pom = []map[string]any{}
+		}
 		aiConfig["prompt"] = map[string]any{
-			"pom": a.pomSections,
+			"pom": pom,
 		}
 	} else if a.promptText != "" {
 		aiConfig["prompt"] = map[string]any{
@@ -2853,14 +2955,29 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		aiConfig["params"] = a.params
 	}
 
-	// Hints
-	if len(a.hints) > 0 {
-		aiConfig["hints"] = a.hints
+	// Hints — a single mixed array of plain-string hints (AddHint/AddHints) and
+	// structured pattern hints (AddPatternHint), matching Python, whose
+	// add_pattern_hint appends structured dicts into the same self._hints list
+	// that renders under ai.hints. (Python has NO separate pattern_hints key.)
+	if len(a.hints) > 0 || len(a.patternHints) > 0 {
+		merged := make([]any, 0, len(a.hints)+len(a.patternHints))
+		for _, h := range a.hints {
+			merged = append(merged, h)
+		}
+		for _, ph := range a.patternHints {
+			merged = append(merged, ph)
+		}
+		aiConfig["hints"] = merged
 	}
 
 	// Languages
 	if len(a.languages) > 0 {
 		aiConfig["languages"] = a.languages
+	}
+
+	// Multilingual (ASR-driven mode; top-level multilingual object)
+	if len(a.multilingual) > 0 {
+		aiConfig["multilingual"] = a.multilingual
 	}
 
 	// Pronunciations
@@ -2892,10 +3009,8 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 		aiConfig["native_functions"] = a.nativeFunctions
 	}
 
-	// Pattern hints
-	if len(a.patternHints) > 0 {
-		aiConfig["pattern_hints"] = a.patternHints
-	}
+	// (Pattern hints are merged into the "hints" array above, matching Python;
+	// there is no separate pattern_hints key in the SWML ai block.)
 
 	// Contexts
 	if a.contextBuilder != nil {
@@ -2989,9 +3104,11 @@ var ErrServerlessUnsupported = errors.New("agent: serverless execution mode dete
 // mirroring Python's run() (web_mixin.py:341 + serverless_mixin.py):
 //
 //   - server                → start the long-running HTTP server (blocking)
+//   - cgi                   → dispatch the single CGI request through the
+//     agent handler (pkg/serverless ServeCGI: env + stdin → stdout), then return
 //   - lambda / gcf / azure  → return ErrServerlessUnsupported (these are
-//     served via the platform adapter, see ErrServerlessUnsupported)
-//   - cgi                   → return ErrServerlessUnsupported (no CGI bridge)
+//     served via the platform adapter — pkg/lambda, pkg/serverless — wired from
+//     main() because the platform runtime owns the event loop)
 //
 // Detection order matches the cross-language SDK contract (see
 // swml.GetExecutionMode). To override the detected mode (e.g. in tests or an
@@ -3021,7 +3138,20 @@ func (a *AgentBase) RunWithMode(mode swml.ExecutionMode) error {
 	switch mode {
 	case swml.ModeServer:
 		return a.RunContext(context.Background())
-	case swml.ModeLambda, swml.ModeGoogleCloudFunction, swml.ModeAzureFunction, swml.ModeCGI:
+	case swml.ModeCGI:
+		// CGI is invoked once per request by the CGI host, which hands the
+		// request off via the process environment + stdin and expects the
+		// response on stdout, then the process exits. This is a real dispatch
+		// (mirrors Python's serverless_mixin CGI branch), not an unsupported
+		// mode: serve the request through the agent's http.Handler.
+		return serverless.NewHandler(a.AsRouter()).ServeCGI(context.Background())
+	case swml.ModeLambda, swml.ModeGoogleCloudFunction, swml.ModeAzureFunction:
+		// Lambda / GCF / Azure are driven by the platform runtime's own event
+		// loop (lambda.Start / functions.HTTP / the Azure worker), which calls
+		// the adapter from main() — Run() cannot host that loop itself. The
+		// dispatch happens in the adapter (pkg/lambda, pkg/serverless), wired
+		// from main(); Run() returns the descriptive error directing the caller
+		// there rather than binding a dead TCP listener.
 		return fmt.Errorf("%w (detected mode: %q)", ErrServerlessUnsupported, mode)
 	default:
 		// Unknown mode: be conservative and serve HTTP (matches Python's
@@ -3275,6 +3405,18 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 const maxAgentRequestBody = 1 << 20
 
 // handleSWML serves the SWML document for the agent.
+//
+// This is the thin framework adapter: it captures the raw body, method, URL, and
+// headers from the *http.Request, then delegates the auth / SIP-307 /
+// routing-callback-307 / dynamic-config / render DECISION to the shared
+// handleRequestWithContext core — the SAME core the framework-free HandleRequest
+// entry point uses. It marshals the returned (status, headers, body) triple back
+// into the http.ResponseWriter, including the 307 redirect (Location) and 401
+// (WWW-Authenticate). Keeping a single decision core is what guarantees the
+// served path (serve() / AsRouter()) behaves identically to HandleRequest —
+// notably that a routing callback returning a redirect yields a real 307, not a
+// stray 200. rust (swml/router.rs) and php (SWML/Service::dispatchFromGlobals)
+// mirror this shape.
 func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
 	if r.Method == http.MethodPost {
@@ -3286,96 +3428,163 @@ func (a *AgentBase) handleSWML(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// SIP redirect-routing dispatch. Python web_mixin._handle_request
-	// (web_mixin.py:621-635) checks _routing_callbacks; on a non-None string
-	// return, responds with HTTP 307 Temporary Redirect. Mirror that here
-	// using sipRoutingCallbacks (the parallel string-return registration).
-	// On an empty string return, fall through to the normal SWML pipeline so
-	// the same endpoint can serve as both a redirector and a document source.
-	sipMatchPath := strings.TrimRight(r.URL.Path, "/")
-	if sipMatchPath == "" {
-		sipMatchPath = "/"
+	headers := headerStringMap(r.Header)
+	status, respHeaders, respBody := a.handleRequestWithContext(r.Method, r.URL.String(), headers, body, r)
+
+	for k, v := range respHeaders {
+		w.Header().Set(k, v)
 	}
-	a.mu.RLock()
-	sipCb, sipMatched := a.sipRoutingCallbacks[sipMatchPath]
-	a.mu.RUnlock()
-	if sipMatched && r.Method == http.MethodPost && body != nil {
-		if route := sipCb(r, body); route != "" {
-			http.Redirect(w, r, route, http.StatusTemporaryRedirect)
-			return
+	w.WriteHeader(status)
+	if respBody != "" {
+		// respBody is a JSON document produced by json.Marshal in
+		// handleRequestWithContext (Content-Type application/json) or an empty
+		// redirect body — never attacker-controlled markup, so the gosec G705
+		// XSS-taint flag is a false positive here.
+		if _, err := w.Write([]byte(respBody)); err != nil { //nolint:gosec // G705: JSON body, not HTML; Content-Type is application/json
+			a.Logger.Warn("failed to write SWML response: %s", err)
+		}
+	}
+}
+
+// headerStringMap collapses an http.Header into a plain map[string]string keeping
+// the first value per key, matching the (method, url, headers, body) primitive
+// surface of handleRequestWithContext / HandleRequest.
+func headerStringMap(h http.Header) map[string]string {
+	out := make(map[string]string, len(h))
+	for k, v := range h {
+		if len(v) > 0 {
+			out[k] = v[0]
+		}
+	}
+	return out
+}
+
+// HandleRequest is the framework-free request-dispatch core for an agent,
+// overriding swml.Service.HandleRequest so the agent's full SWML render (prompt,
+// tools, dynamic config, on_swml_request modifications) is produced over plain
+// primitives instead of *http.Request objects.
+//
+// It mirrors the Python signalwire.core.agent_base.AgentBase.handle_request
+// override: proxy detection, basic-auth, routing-callback (307 redirect), then
+// the agent's rendered SWML document with any on_request modifications applied.
+//
+// Parameters and return follow swml.Service.HandleRequest:
+// (method, url, headers, body) -> (status, responseHeaders, bodyString).
+func (a *AgentBase) HandleRequest(method string, url string, headers map[string]string, body map[string]any) (int, map[string]string, string) {
+	return a.handleRequestWithContext(method, url, headers, body, nil)
+}
+
+// handleRequestWithContext is the single decision core behind BOTH the
+// framework-free HandleRequest entry point and the served handleSWML handler. It
+// performs proxy detection, basic-auth (401), SIP redirect-routing (307),
+// routing-callback dispatch (307), dynamic-config rendering, and on_swml_request
+// modifications over plain primitives, returning a (status, headers, body_string)
+// triple.
+//
+// The optional r may be nil. When non-nil (the served path) it is threaded into
+// the SIP-routing callback, the dynamic-config callback, and on_swml_request so
+// those subclass hooks still receive the raw request; when nil (the primitive
+// path) SIP routing is skipped (its callbacks are *http.Request-typed) and
+// dynamic config / on_swml_request run request-free. Routing-callback 307
+// redirect and 401 auth behave identically on both paths — that equivalence is the
+// point of routing the served path through here.
+func (a *AgentBase) handleRequestWithContext(
+	method string,
+	url string,
+	headers map[string]string,
+	body map[string]any,
+	r *http.Request,
+) (int, map[string]string, string) {
+	a.Service.DetectProxyFromPrimitives(url, headers)
+
+	if !a.Service.CheckBasicAuthHeaders(headers) {
+		return 401,
+			map[string]string{"WWW-Authenticate": "Basic"},
+			`{"error":"Unauthorized"}`
+	}
+
+	// SIP redirect-routing dispatch. Python web_mixin._handle_request
+	// (web_mixin.py:621-635) checks _routing_callbacks; on a non-empty string
+	// return, responds with HTTP 307 Temporary Redirect. Go registers SIP
+	// callbacks separately (they return a string and carry the raw request), so
+	// they only run on the served path where r is available.
+	if r != nil && method == http.MethodPost && body != nil {
+		sipMatchPath := strings.TrimRight(pathFromURL(url), "/")
+		if sipMatchPath == "" {
+			sipMatchPath = "/"
+		}
+		a.mu.RLock()
+		sipCb, sipMatched := a.sipRoutingCallbacks[sipMatchPath]
+		a.mu.RUnlock()
+		if sipMatched {
+			if route := sipCb(r, body); route != "" {
+				return 307, map[string]string{"Location": route}, ""
+			}
 		}
 	}
 
-	// Routing-callback dispatch. Python web_mixin._handle_request (line 620)
-	// checks whether the request URL matches a registered routing callback
-	// and, if so, delegates document generation to that callback. Match the
-	// URL path against both the exact registered key and the trim-right form
-	// (so /agents/ matches /agents).
-	urlPath := r.URL.Path
-	swmlRoute := strings.TrimRight(a.Service.Route, "/")
-	if swmlRoute == "" {
-		swmlRoute = "/"
-	}
-	isSwmlRoute := urlPath == swmlRoute || urlPath == swmlRoute+"/"
-	var callbackPath string
-	if !isSwmlRoute {
-		for _, p := range a.Service.RoutingCallbackPaths() {
-			trim := strings.TrimRight(p, "/")
-			if trim == "" {
-				continue
-			}
-			if urlPath == trim || urlPath == trim+"/" {
-				callbackPath = p
-				break
+	callbackPath := a.Service.CallbackPathForURL(url)
+
+	// Routing-callback dispatch → 307 redirect. Python web_mixin._handle_request
+	// (web_mixin.py:628-635): callback_fn(body, headers) -> route|None; on a
+	// non-None route, issue an HTTP 307.
+	if method == http.MethodPost && len(body) > 0 && callbackPath != "" {
+		if cb, ok := a.Service.RoutingCallbackFor(callbackPath); ok {
+			if route := cb(body, headerStringMapAnyFromMap(headers)); route != nil {
+				return 307, map[string]string{"Location": *route}, ""
 			}
 		}
 	}
+
+	// on_swml_request modifications. Thread the raw request when present so
+	// subclasses that override OnSwmlRequest still receive it (served path);
+	// the primitive path passes nil.
+	modifications := a.OnSwmlRequest(body, callbackPath, r)
 
 	a.mu.RLock()
 	hasDynamic := a.dynamicConfigCallback != nil
 	a.mu.RUnlock()
 
-	// Python web_mixin._handle_request (line 642) calls on_swml_request before
-	// rendering and passes modifications into _render_swml, which merges them
-	// into the AI verb config. Mirror that here: collect modifications first,
-	// then apply to the rendered doc.
-	//
-	// OnRequest is the public hook documented in SWMLService.on_request;
-	// AgentBase.OnRequest delegates to OnSwmlRequest. Call OnSwmlRequest
-	// directly so the *http.Request reaches subclasses (matching Python, which
-	// passes the request).
-	modifications := a.OnSwmlRequest(body, callbackPath, r)
-
 	var doc map[string]any
 	switch {
-	case callbackPath != "":
-		// Dispatch to the registered routing callback with the LIVE request so
-		// the callback can read headers, query params, etc. (Python passes the
-		// request: web_mixin.py:704 `callback_fn(request, body)`). When the
-		// callback returns nil — or no callback is registered for the path —
-		// fall back to the default rendered document.
-		if cb, ok := a.Service.RoutingCallbackFor(callbackPath); ok {
-			if result := cb(r, body); result != nil {
-				doc = result
-			}
-		}
-		if doc == nil {
-			doc = a.RenderSWML(body, r)
-		}
-	case hasDynamic:
+	case hasDynamic && r != nil:
 		doc = a.handleDynamicConfig(body, r)
 	default:
 		doc = a.RenderSWML(body, r)
 	}
-
 	if len(modifications) > 0 {
 		applySwmlModifications(doc, modifications)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(doc); err != nil {
-		a.Logger.Warn("failed to write SWML response: %s", err)
+	out, err := json.Marshal(doc)
+	if err != nil {
+		return 500, map[string]string{}, `{"error":"render failed"}`
 	}
+	return 200, map[string]string{"Content-Type": "application/json"}, string(out)
+}
+
+// pathFromURL extracts the path component from a raw URL string, tolerating a
+// bare path (no scheme/host). Used to match SIP-routing callbacks registered by
+// path.
+func pathFromURL(rawURL string) string {
+	if u, err := neturl.Parse(rawURL); err == nil && u.Path != "" {
+		return u.Path
+	}
+	// Fall back to the substring before any query/fragment.
+	p := rawURL
+	if i := strings.IndexAny(p, "?#"); i >= 0 {
+		p = p[:i]
+	}
+	return p
+}
+
+// headerStringMapAnyFromMap converts a plain string headers map to map[string]any
+// for the RoutingCallback headers argument.
+func headerStringMapAnyFromMap(h map[string]string) map[string]any {
+	out := make(map[string]any, len(h))
+	for k, v := range h {
+		out[k] = v
+	}
+	return out
 }
 
 // applySwmlModifications merges on_swml_request modifications into the AI
@@ -3504,6 +3713,13 @@ func (a *AgentBase) clone() *AgentBase {
 
 	c.languages = make([]map[string]any, len(a.languages))
 	copy(c.languages, a.languages)
+
+	if a.multilingual != nil {
+		c.multilingual = make(map[string]any, len(a.multilingual))
+		for k, v := range a.multilingual {
+			c.multilingual[k] = v
+		}
+	}
 
 	c.pronunciations = make([]map[string]any, len(a.pronunciations))
 	copy(c.pronunciations, a.pronunciations)
@@ -3838,8 +4054,17 @@ func (a *AgentBase) withAuth(next http.HandlerFunc) http.HandlerFunc {
 		userMatch := subtle.ConstantTimeCompare([]byte(reqUser), []byte(user)) == 1
 		passMatch := subtle.ConstantTimeCompare([]byte(reqPass), []byte(pass)) == 1
 		if !ok || !userMatch || !passMatch {
+			// JSON error body {"error":"Unauthorized"} — matches Python's 401
+			// challenge (auth_mixin._send_lambda_auth_challenge and the FastAPI
+			// path both return json {"error":"Unauthorized"}) and Go's own
+			// framework-free SWMLService.HandleRequest 401. http.Error would emit
+			// a plain-text "Unauthorized\n" body, diverging from every other port.
 			w.Header().Set("WWW-Authenticate", `Basic realm="Agent"`)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			if _, err := w.Write([]byte(`{"error":"Unauthorized"}`)); err != nil {
+				a.Logger.Warn("failed to write 401 body: %s", err)
+			}
 			return
 		}
 

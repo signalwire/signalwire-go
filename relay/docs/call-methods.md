@@ -25,11 +25,33 @@ Methods like `Play()`, `Record()`, `Detect()`, etc. return **Action** objects. T
 
 ### Wait inline (blocking)
 
+<!-- snippet-setup -->
+```go
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume: a live Call from OnCall/Dial.
+var call *relay.Call
+var err error
+
+var (
+	_ = call
+	_ = err
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
 ```go
 action := call.Play([]map[string]any{
 	{"type": "tts", "params": map[string]any{"text": "Hello"}},
 })
 event, _ := action.Wait(context.Background()) // blocks until playback finishes
+_ = event
 // execution continues only after play is done
 ```
 
@@ -156,7 +178,7 @@ fmt.Printf("Recording URL: %v\n", event.Params["url"])
 
 ## Input Collection
 
-### `PlayAndCollect(media []map[string]any, collect map[string]any, opts ...CollectOption) *CollectAction`
+### `PlayAndCollect(media []map[string]any, collect map[string]any, opts ...PlayOption) *CollectAction`
 
 Play audio and collect DTMF or speech input. Returns a `*CollectAction`.
 
@@ -171,6 +193,7 @@ event, _ := action.Wait(context.Background())
 result, _ := event.Params["result"].(map[string]any)
 params, _ := result["params"].(map[string]any)
 digit, _ := params["digits"].(string)
+_ = digit
 ```
 
 ### `Collect(params *CollectParams) *StandaloneCollectAction`
@@ -187,6 +210,7 @@ action := call.Collect(&relay.CollectParams{
 	PartialResults: &partial,
 })
 event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 ## Bridging
@@ -237,6 +261,7 @@ action := call.Detect(
 	&timeout,
 )
 event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 Typed helpers cover the common cases with functional options:
@@ -277,6 +302,7 @@ action := call.SendFax(
 	"+15551234567", // caller identity
 )
 event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 ### `ReceiveFax(opts ...FaxOption) *FaxAction`
@@ -284,11 +310,12 @@ event, _ := action.Wait(context.Background())
 ```go
 action := call.ReceiveFax()
 event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 ## Tap (Media Interception)
 
-### `Tap(tap, device map[string]any) *TapAction`
+### `Tap(tap, device map[string]any, controlID ...string) *TapAction`
 
 Intercept call media and stream to an RTP endpoint.
 
@@ -297,6 +324,7 @@ action := call.Tap(
 	map[string]any{"type": "audio", "params": map[string]any{"direction": "both"}},
 	map[string]any{"type": "rtp", "params": map[string]any{"addr": "192.168.1.100", "port": 5000}},
 )
+_ = action
 ```
 
 ## Streaming
@@ -308,7 +336,7 @@ Stream call audio to a WebSocket endpoint.
 ```go
 action := call.Stream("wss://example.com/audio",
 	relay.WithStreamCodec("PCMU"),
-	relay.WithStreamDirection("inbound"),
+	relay.WithStreamTrack("inbound"),
 )
 // Stop streaming
 action.Stop()
@@ -328,6 +356,7 @@ action := call.Pay(
 	relay.WithPayCurrency("usd"),
 )
 event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 ## Conference
@@ -369,7 +398,7 @@ call.DenoiseStop()
 
 ## Transcription
 
-### `Transcribe(statusURL string) *TranscribeAction`
+### `Transcribe(statusURL string, controlID ...string) *TranscribeAction`
 
 ```go
 action := call.Transcribe("https://example.com/transcription")
@@ -414,8 +443,10 @@ Start an AI agent session on the call.
 action := call.AI(
 	relay.WithAIPrompt(map[string]any{"text": "You are a helpful support agent."}),
 	relay.WithAIParams(map[string]any{"end_of_speech_timeout": 3000}),
+	relay.WithAISWAIG(map[string]any{"functions": []any{}}),
 )
 event, _ := action.Wait(context.Background())
+_ = event
 ```
 
 ### `AmazonBedrock(opts ...AIOption) *AIAction`
@@ -520,9 +551,12 @@ Wait for a specific event. Pass a `nil` predicate to match any event of
 handled via the context.
 
 ```go
+import "time"
+
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 event, err := call.WaitFor(ctx, "calling.call.play", nil)
+_, _ = event, err
 ```
 
 ### State-change convenience helpers
@@ -538,6 +572,8 @@ returning `(*relay.RelayEvent, error)`:
 | `WaitForEnded(ctx)` | the call has ended |
 
 ```go
+import "time"
+
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 defer cancel()
 event, err := call.WaitForEnded(ctx)
@@ -549,8 +585,10 @@ if err == nil {
 You can also filter the raw state-change event yourself with `WaitFor`:
 
 ```go
+ctx := context.Background()
 event, err := call.WaitFor(ctx, "calling.call.state", func(e *relay.RelayEvent) bool {
 	state, _ := e.Params["call_state"].(string)
 	return state == "ended"
 })
+_, _ = event, err
 ```

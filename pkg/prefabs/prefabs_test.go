@@ -45,6 +45,71 @@ func TestInfoGatherer_HasTools(t *testing.T) {
 	}
 }
 
+// TestInfoGatherer_SubmitAnswerAdvancesState is Tier-2 behavioral contract #3:
+// submit_answer is a STATE MACHINE, not a "recorded" echo. Starting at
+// question_index 0 with two questions, submitting an answer must (a) record the
+// answer in global_data.answers keyed by the current question's key_name, (b)
+// advance question_index to 1, and (c) present the SECOND question's text. A
+// stub that just echoes "Answer recorded" with no set_global_data action would
+// fail (a) and (b); one that doesn't advance the index would fail (c).
+func TestInfoGatherer_SubmitAnswerAdvancesState(t *testing.T) {
+	qs := []Question{
+		{KeyName: "name", QuestionText: "What is your name?"},
+		{KeyName: "email", QuestionText: "What is your email?"},
+	}
+	ig := NewInfoGathererAgent(InfoGathererOptions{Questions: &qs})
+
+	// Simulate the request-body shape the platform delivers: global_data with
+	// JSON-typed values (question_index is a float64, questions/answers are []any).
+	rawData := map[string]any{
+		"global_data": map[string]any{
+			"questions": []any{
+				map[string]any{"key_name": "name", "question_text": "What is your name?", "confirm": false},
+				map[string]any{"key_name": "email", "question_text": "What is your email?", "confirm": false},
+			},
+			"question_index": float64(0),
+			"answers":        []any{},
+		},
+	}
+
+	res := ig.SubmitAnswer(map[string]any{"answer": "Ada Lovelace"}, rawData)
+	if res == nil {
+		t.Fatal("SubmitAnswer returned nil")
+	}
+
+	// The result must carry a set_global_data action recording the new state.
+	var gd map[string]any
+	for _, action := range res.Actions() {
+		if v, ok := action["set_global_data"].(map[string]any); ok {
+			gd = v
+			break
+		}
+	}
+	if gd == nil {
+		t.Fatalf("no set_global_data action — SubmitAnswer is a stateless echo stub; actions=%v", res.Actions())
+	}
+
+	// (b) question_index advanced 0 → 1.
+	if idx, ok := gd["question_index"].(int); !ok || idx != 1 {
+		t.Errorf("question_index = %v (ok=%v), want 1 (state did not advance)", gd["question_index"], ok)
+	}
+
+	// (a) answer recorded under the first question's key_name.
+	answers, _ := gd["answers"].([]any)
+	if len(answers) != 1 {
+		t.Fatalf("answers len = %d, want 1 (answer not recorded); answers=%v", len(answers), answers)
+	}
+	rec, _ := answers[0].(map[string]any)
+	if rec["key_name"] != "name" || rec["answer"] != "Ada Lovelace" {
+		t.Errorf("recorded answer = %v, want {key_name:name, answer:Ada Lovelace}", rec)
+	}
+
+	// (c) the result presents the SECOND question.
+	if !strings.Contains(res.Response(), "What is your email?") {
+		t.Errorf("response does not present the 2nd question; got %q", res.Response())
+	}
+}
+
 func TestInfoGatherer_QuestionsInGlobalData(t *testing.T) {
 	qs := []Question{
 		{KeyName: "name", QuestionText: "What is your name?", Confirm: true},

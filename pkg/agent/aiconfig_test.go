@@ -47,11 +47,16 @@ func TestAddPatternHint_WithLanguage(t *testing.T) {
 
 func TestAddPatternHint_WithoutLanguage(t *testing.T) {
 	a := NewAgentBase()
-	// Python-aligned: ignoreCase not set, so no ignore_case field
+	// Python-aligned: add_pattern_hint always stores ignore_case (default False),
+	// so the structured hint carries ignore_case=false when not explicitly set.
 	a.AddPatternHint("letters", "[A-Z]+", "WORD")
 	ph := a.patternHints[0]
-	if _, ok := ph["ignore_case"]; ok {
-		t.Error("ignore_case should not be stored when not set")
+	v, ok := ph["ignore_case"]
+	if !ok {
+		t.Error("ignore_case should always be stored (Python parity)")
+	}
+	if v != false {
+		t.Errorf("expected ignore_case=false, got %v", v)
 	}
 }
 
@@ -92,6 +97,50 @@ func TestSetLanguages_ReplaceAll(t *testing.T) {
 	if a.languages[0]["code"] != "fr-FR" {
 		t.Errorf("first language = %v", a.languages[0]["code"])
 	}
+}
+
+// SetMultilingual mirrors Python AIConfigMixin.set_multilingual: it stores the
+// config and the AI verb renders a top-level "multilingual" object.
+func TestSetMultilingual_Stores(t *testing.T) {
+	a := NewAgentBase()
+	got := a.SetMultilingual(map[string]any{"start_language": "en-US", "min_switch_words": 2})
+	if got != a {
+		t.Error("SetMultilingual should return receiver for chaining")
+	}
+	if a.multilingual["start_language"] != "en-US" || a.multilingual["min_switch_words"] != 2 {
+		t.Errorf("multilingual = %#v", a.multilingual)
+	}
+}
+
+func TestSetMultilingual_EmptyIsNoop(t *testing.T) {
+	a := NewAgentBase()
+	a.SetMultilingual(map[string]any{})
+	if a.multilingual != nil {
+		t.Errorf("empty config should be a no-op; got %#v", a.multilingual)
+	}
+}
+
+func TestSetMultilingual_RendersTopLevelObject(t *testing.T) {
+	a := NewAgentBase()
+	a.SetMultilingual(map[string]any{"start_language": "en-US"})
+
+	doc := a.RenderSWML(nil, nil)
+	sections, _ := doc["sections"].(map[string]any)
+	main, _ := sections["main"].([]any)
+	for _, v := range main {
+		vm, _ := v.(map[string]any)
+		if aiCfg, ok := vm["ai"].(map[string]any); ok {
+			ml, _ := aiCfg["multilingual"].(map[string]any)
+			if ml == nil {
+				t.Fatalf("expected top-level multilingual object on AI verb; got %#v", aiCfg["multilingual"])
+			}
+			if ml["start_language"] != "en-US" {
+				t.Errorf("multilingual.start_language = %v", ml["start_language"])
+			}
+			return
+		}
+	}
+	t.Fatal("no ai verb found in rendered SWML")
 }
 
 // ---------------------------------------------------------------------------
@@ -276,12 +325,14 @@ func TestSetParams_ReplaceAll(t *testing.T) {
 // Global data
 // ---------------------------------------------------------------------------
 
-func TestSetGlobalData_ReplaceAll(t *testing.T) {
+func TestSetGlobalData_Merge(t *testing.T) {
 	a := NewAgentBase()
 	a.UpdateGlobalData(map[string]any{"old": "data"})
+	// SetGlobalData MERGES (Python parity: set_global_data is a .update()), so
+	// the prior "old" key survives alongside the newly added "new" key.
 	a.SetGlobalData(map[string]any{"new": "data"})
-	if _, ok := a.globalData["old"]; ok {
-		t.Error("SetGlobalData should replace old data")
+	if a.globalData["old"] != "data" {
+		t.Error("SetGlobalData should merge (keep existing keys)")
 	}
 	if a.globalData["new"] != "data" {
 		t.Errorf("globalData[new] = %v", a.globalData["new"])
@@ -491,6 +542,72 @@ func TestPromptLlmParams_RenderInSWML(t *testing.T) {
 	t.Fatal("AI verb not found")
 }
 
+// TestSetPromptLlmParams_MergesAcrossCalls is Tier-2 behavioral contract #2:
+// set_prompt_llm_params MERGES (Python ai_config_mixin.py:669 does
+// self._prompt_llm_params.update(params)). Two calls with distinct keys must
+// BOTH survive into the rendered SWML — a replace stub (the old
+// `a.promptLlmParams = params`) would drop temperature, keeping only top_p.
+func TestSetPromptLlmParams_MergesAcrossCalls(t *testing.T) {
+	a := NewAgentBase()
+	a.SetPromptText("test prompt")
+	a.SetPromptLlmParams(map[string]any{"temperature": 0.5})
+	a.SetPromptLlmParams(map[string]any{"top_p": 0.9})
+
+	doc := a.RenderSWML(nil, nil)
+	prompt := findAIVerbSubMap(t, doc, "prompt")
+
+	if got, ok := prompt["temperature"].(float64); !ok || got != 0.5 {
+		t.Errorf("temperature = %v (ok=%v), want 0.5 — first call was dropped (replace, not merge)", prompt["temperature"], ok)
+	}
+	if got, ok := prompt["top_p"].(float64); !ok || got != 0.9 {
+		t.Errorf("top_p = %v (ok=%v), want 0.9", prompt["top_p"], ok)
+	}
+}
+
+// TestSetPostPromptLlmParams_MergesAcrossCalls is the post_prompt half of
+// contract #2 (Python ai_config_mixin.py:703).
+func TestSetPostPromptLlmParams_MergesAcrossCalls(t *testing.T) {
+	a := NewAgentBase()
+	a.SetPostPrompt("summarize")
+	a.SetPostPromptLlmParams(map[string]any{"temperature": 0.2})
+	a.SetPostPromptLlmParams(map[string]any{"max_tokens": 150})
+
+	doc := a.RenderSWML(nil, nil)
+	pp := findAIVerbSubMap(t, doc, "post_prompt")
+
+	if got, ok := pp["temperature"].(float64); !ok || got != 0.2 {
+		t.Errorf("post_prompt temperature = %v (ok=%v), want 0.2 — first call dropped (replace, not merge)", pp["temperature"], ok)
+	}
+	// max_tokens was passed as an int literal; the render copies params
+	// verbatim (no JSON round-trip), so assert on the original int type.
+	if got, ok := pp["max_tokens"].(int); !ok || got != 150 {
+		t.Errorf("post_prompt max_tokens = %v (ok=%v), want 150", pp["max_tokens"], ok)
+	}
+}
+
+// findAIVerbSubMap locates the AI verb in a rendered SWML doc and returns the
+// named sub-config map (e.g. "prompt" or "post_prompt"), failing the test if
+// the verb or sub-map is absent.
+func findAIVerbSubMap(t *testing.T, doc map[string]any, key string) map[string]any {
+	t.Helper()
+	sections, _ := doc["sections"].(map[string]any)
+	main, _ := sections["main"].([]any)
+	for _, v := range main {
+		vm, _ := v.(map[string]any)
+		aiCfg, ok := vm["ai"].(map[string]any)
+		if !ok {
+			continue
+		}
+		sub, ok := aiCfg[key].(map[string]any)
+		if !ok {
+			t.Fatalf("AI verb has no %q sub-config; ai keys: %v", key, keysOf(aiCfg))
+		}
+		return sub
+	}
+	t.Fatalf("AI verb not found in rendered SWML")
+	return nil
+}
+
 func TestPostPromptLlmParams_RenderInSWML(t *testing.T) {
 	a := NewAgentBase()
 	a.SetPostPrompt("summarize")
@@ -581,6 +698,100 @@ func TestAIConfigMethods_ReturnSelf(t *testing.T) {
 	}
 	if a.SetPostPromptLlmParams(nil) != a {
 		t.Error("SetPostPromptLlmParams should return self")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Contract 8 — AI/LLM structured fillers
+// ---------------------------------------------------------------------------
+
+// aiConfigFrom extracts the rendered ai verb config from a SWML document.
+func aiConfigFrom(t *testing.T, doc map[string]any) map[string]any {
+	t.Helper()
+	sections, _ := doc["sections"].(map[string]any)
+	main, _ := sections["main"].([]any)
+	for _, v := range main {
+		vm, _ := v.(map[string]any)
+		if aiCfg, ok := vm["ai"].(map[string]any); ok {
+			return aiCfg
+		}
+	}
+	t.Fatal("no ai verb found in rendered SWML")
+	return nil
+}
+
+// TestContract8_StructuredFillersAndPatternHint is the contract-8 lock-in:
+// (a) add_pattern_hint attaches a STRUCTURED hint (pattern + replacements) that
+// survives into the rendered SWML ai.hints array (NOT a bare string, and NOT a
+// separate pattern_hints key); (b) add_language carries engine + model +
+// fillers into the rendered ai.languages entry.
+func TestContract8_StructuredFillersAndPatternHint(t *testing.T) {
+	a := NewAgentBase(WithBasicAuth("u", "p"))
+	a.SetPromptText("You are a bot")
+
+	// A structured pattern hint (hint + pattern + replace + ignore_case).
+	a.AddPatternHint("SignalWire", "(?i)signal ?wire", "SignalWire", true)
+
+	// A language carrying engine + model + BOTH filler lists.
+	a.AddLanguageTyped(
+		"English", "en-US", "josh",
+		[]string{"um", "uh"},          // speech_fillers
+		[]string{"one moment", "hmm"}, // function_fillers
+		"elevenlabs",                  // engine
+		"eleven_turbo_v2_5",           // model
+	)
+
+	aiCfg := aiConfigFrom(t, a.RenderSWML(nil, nil))
+
+	// (a) The structured pattern hint survives into ai.hints.
+	if aiCfg["pattern_hints"] != nil {
+		t.Errorf("pattern_hints must not be a separate key (Python parity); got %v", aiCfg["pattern_hints"])
+	}
+	hints, ok := aiCfg["hints"].([]any)
+	if !ok {
+		t.Fatalf("ai.hints should be a mixed []any array, got %T", aiCfg["hints"])
+	}
+	var structured map[string]any
+	for _, h := range hints {
+		if hm, ok := h.(map[string]any); ok && hm["hint"] == "SignalWire" {
+			structured = hm
+		}
+	}
+	if structured == nil {
+		t.Fatal("structured pattern hint did not survive into ai.hints")
+	}
+	if structured["pattern"] != "(?i)signal ?wire" {
+		t.Errorf("pattern field lost: %v", structured["pattern"])
+	}
+	if structured["replace"] != "SignalWire" {
+		t.Errorf("replace field lost: %v", structured["replace"])
+	}
+	if structured["ignore_case"] != true {
+		t.Errorf("ignore_case field lost: %v", structured["ignore_case"])
+	}
+
+	// (b) The language carries engine + model + fillers into ai.languages.
+	langs, ok := aiCfg["languages"].([]map[string]any)
+	if !ok {
+		t.Fatalf("ai.languages should be []map[string]any, got %T", aiCfg["languages"])
+	}
+	if len(langs) != 1 {
+		t.Fatalf("expected 1 language, got %d", len(langs))
+	}
+	lang := langs[0]
+	if lang["engine"] != "elevenlabs" {
+		t.Errorf("engine lost: %v", lang["engine"])
+	}
+	if lang["model"] != "eleven_turbo_v2_5" {
+		t.Errorf("model lost: %v", lang["model"])
+	}
+	sf, _ := lang["speech_fillers"].([]string)
+	if len(sf) != 2 || sf[0] != "um" {
+		t.Errorf("speech_fillers lost: %v", lang["speech_fillers"])
+	}
+	ff, _ := lang["function_fillers"].([]string)
+	if len(ff) != 2 || ff[0] != "one moment" {
+		t.Errorf("function_fillers lost: %v", lang["function_fillers"])
 	}
 }
 

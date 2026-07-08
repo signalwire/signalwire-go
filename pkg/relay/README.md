@@ -1,51 +1,67 @@
 # SignalWire RELAY Client
 
-Real-time call control and messaging over WebSocket using Python's asyncio. The RELAY client connects to SignalWire via the Blade protocol (JSON-RPC 2.0 over WebSocket) and gives you imperative control over live phone calls and SMS/MMS messaging.
+Real-time call control and messaging over WebSocket. The RELAY client connects to SignalWire via the Blade protocol (JSON-RPC 2.0 over WebSocket) and gives you imperative control over live phone calls and SMS/MMS messaging.
+
+## Installation
+
+```bash
+go get github.com/signalwire/signalwire-go
+```
 
 ## Quick Start
 
-```python
-from signalwire_agents.relay import RelayClient
+```go
+package main
 
-client = RelayClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
-    contexts=["default"],
+import (
+	"context"
+	"time"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
 )
 
-@client.on_call
-async def handle(call):
-    await call.answer()
-    action = await call.play([{"type": "tts", "params": {"text": "Welcome to SignalWire!"}}])
-    await action.wait()
-    await call.hangup()
+func main() {
+	client := relay.NewRelayClient(
+		relay.WithProject("your-project-id"),
+		relay.WithToken("your-api-token"),
+		relay.WithSpace("example.signalwire.com"),
+		relay.WithContexts("default"),
+	)
 
-client.run()
+	client.OnCall(func(call *relay.Call) {
+		call.Answer()
+		action := call.PlayTTS("Welcome to SignalWire!")
+		action.Wait(context.Background())
+		call.Hangup("")
+	})
+
+	client.Run() // blocking
+	_ = time.Second
+}
 ```
 
 ## Features
 
-- Asyncio-native with auto-reconnect and exponential backoff
+- Auto-reconnect with exponential backoff
 - All 57+ calling methods: play, record, collect, connect, detect, fax, tap, stream, AI, conferencing, queues, and more
 - SMS/MMS messaging: send outbound messages, receive inbound messages, track delivery state
-- Action objects with `wait()`, `stop()`, `pause()`, `resume()` for controllable operations
-- Typed event classes for all call events
+- Action objects with `Wait()`, `Stop()`, `Pause()`, `Resume()` for controllable operations
+- Typed event structs for all call events
 - JWT and legacy authentication
 - Dynamic context subscription/unsubscription
 - Configurable concurrency limits
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.md) -- installation, configuration, first call
-- [Call Methods Reference](docs/call-methods.md) -- every method available on a Call object
-- [Events](docs/events.md) -- event types, typed event classes, call states
-- [Messaging](docs/messaging.md) -- sending and receiving SMS/MMS messages
-- [Client Reference](docs/client-reference.md) -- RelayClient configuration, methods, connection behavior
+- [Getting Started](../../relay/docs/getting-started.md) -- installation, configuration, first call
+- [Call Methods Reference](../../relay/docs/call-methods.md) -- every method available on a Call object
+- [Events](../../relay/docs/events.md) -- event types, typed event classes, call states
+- [Messaging](../../relay/docs/messaging.md) -- sending and receiving SMS/MMS messages
+- [Client Reference](../../relay/docs/client-reference.md) -- RelayClient configuration, methods, connection behavior
 
 ## Examples
 
-- [relay_answer_and_welcome.py](examples/relay_answer_and_welcome.py) -- answer an inbound call and play a TTS greeting
+- [relay_demo](../../examples/relay_demo/) -- connect a RelayClient, answer an inbound call, and play a TTS greeting
 
 ## Environment Variables
 
@@ -59,14 +75,15 @@ client.run()
 | `RELAY_MAX_CONNECTIONS` | Max WebSocket connections per process (default: 1) |
 | `SIGNALWIRE_LOG_LEVEL` | Log level (`debug` for WebSocket traffic) |
 
-## Module Structure
+## Package Structure
 
 ```
-signalwire_agents/relay/
-    __init__.py      # Public exports
-    client.py        # RelayClient -- WebSocket connection, auth, event dispatch
-    call.py          # Call object -- all calling methods and Action classes
-    message.py       # Message object -- SMS/MMS message tracking
-    event.py         # Typed event dataclasses
-    constants.py     # Protocol constants, call states, event types
+pkg/relay/
+    client.go        # Client (relay.NewRelayClient) -- WebSocket connection, auth, event dispatch
+    call.go          # Call -- all calling methods
+    action.go        # Action types -- Wait/Stop/Pause/Resume/Volume for controllable operations
+    message.go       # Message -- SMS/MMS message tracking
+    event.go         # Typed event structs (CallStateEvent, PlayEvent, ...)
+    options.go       # Functional options (WithProject, WithToken, WithContexts, ...)
+    constants.go     # Protocol constants, call states, event types
 ```

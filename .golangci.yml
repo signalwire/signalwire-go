@@ -107,6 +107,13 @@ linters:
       # genuinely missing arm in a default-less switch — the bug we want caught.
       default-signifies-exhaustive: true
   exclusions:
+    # Lint GENERATED code too. golangci-lint's default (`lax`) auto-skips files
+    # carrying the `// Code generated … DO NOT EDIT.` header — so the whole
+    # generated REST/SWML/SWAIG surface would go unchecked. `disable` turns the
+    # generated-file exclusion OFF entirely: generated code is linted exactly like
+    # hand-written code (GEN-IDIOM gate). (`strict` only tightens the detection
+    # heuristic — it STILL excludes; `disable` is the real opt-in.)
+    generated: disable
     rules:
       # gosec on TEST files: hardcoded test credentials (G101), and the
       # subprocess / file-inclusion / file-perm patterns in test + mock
@@ -124,3 +131,14 @@ linters:
       - path: (^|/)(cmd|internal)/
         linters:
           - gosec
+      # gosec G101 on GENERATED REST wire-type enum constants: the emitter names
+      # permission/scope enum types like `RoomTokenPermission` and gives them wire
+      # string VALUES (e.g. "room.set_position") — gosec's credential heuristic
+      # misreads the `Token`-in-the-name + string-literal pair as a hardcoded
+      # secret. These are OpenAPI enum constants (the wire's permission vocabulary),
+      # not credentials. Narrow: only gosec, only the generated type files — every
+      # other linter still runs over the generated code (GEN-IDIOM opt-in above).
+      - path: _types_generated\.go
+        linters:
+          - gosec
+        text: "G101"

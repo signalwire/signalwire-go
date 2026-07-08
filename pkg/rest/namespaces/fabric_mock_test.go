@@ -16,10 +16,10 @@
 package namespaces_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
 
 // ---------------- FabricAddresses ----------------
@@ -31,10 +31,11 @@ func TestFabricAddresses_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Addresses.List(nil)
+	bodyResp, err := client.Fabric.Addresses.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	data, ok := body["data"]
 	if !ok {
 		t.Fatalf("missing 'data', got keys %v", keys(body))
@@ -65,10 +66,11 @@ func TestFabricAddresses_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Addresses.Get("addr-9001")
+	bodyResp, err := client.Fabric.Addresses.Get("addr-9001")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map, got nil")
 	}
@@ -84,29 +86,6 @@ func TestFabricAddresses_Get(t *testing.T) {
 	}
 }
 
-// ---------------- CXMLApplications.Create deliberately fails ----------------
-
-func TestFabricCXMLApplications_CreateRaisesNotImplemented(t *testing.T) {
-	t.Parallel()
-	client, mock := mocktest.New(t)
-	if client == nil {
-		return
-	}
-	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.Create(map[string]any{"name": "never_built"})
-	if err == nil {
-		t.Fatal("Create did not return an error - the SDK must refuse this call")
-	}
-	if !strings.Contains(err.Error(), "cXML applications cannot") {
-		t.Errorf("error message = %q, want substring 'cXML applications cannot'", err.Error())
-	}
-	// Nothing should have hit the wire.
-	j := mock.Journal(t)
-	if len(j) != 0 {
-		t.Errorf("expected no journal entries, got %d: %v", len(j), j)
-	}
-}
-
 // ---------------- CallFlows.ListAddresses uses singular path ----------------
 
 func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
@@ -116,10 +95,11 @@ func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.CallFlows.ListAddresses("cf-1", nil)
+	bodyResp, err := client.Fabric.CallFlows.ListAddresses("cf-1", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data' in body")
 	}
@@ -142,10 +122,11 @@ func TestFabricConferenceRooms_ListAddressesUsesSingularPath(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.ConferenceRooms.ListAddresses("cr-1", nil)
+	bodyResp, err := client.Fabric.ConferenceRooms.ListAddresses("cr-1", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data' in body")
 	}
@@ -168,10 +149,11 @@ func TestFabricSubscribers_GetSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1")
+	bodyResp, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1", nil)
 	if err != nil {
 		t.Fatalf("GetSIPEndpoint: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map")
 	}
@@ -192,9 +174,9 @@ func TestFabricSubscribers_UpdateSIPEndpointUsesPATCH(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", map[string]any{
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{Extras: map[string]any{
 		"username": "renamed",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("UpdateSIPEndpoint: %v", err)
 	}
@@ -222,10 +204,11 @@ func TestFabricSubscribers_DeleteSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Subscribers.DeleteSIPEndpoint("sub-1", "ep-1")
+	bodyResp, err := client.Fabric.Subscribers.DeleteSIPEndpoint("sub-1", "ep-1")
 	if err != nil {
 		t.Fatalf("DeleteSIPEndpoint: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map (204 normalized to {})")
 	}
@@ -248,9 +231,9 @@ func TestFabricTokens_CreateInviteToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(map[string]any{
+	_, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{
 		"email": "invitee@example.com",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("CreateInviteToken: %v", err)
 	}
@@ -277,9 +260,9 @@ func TestFabricTokens_CreateEmbedToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateEmbedToken(map[string]any{
+	_, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{
 		"allowed_addresses": []string{"addr-1", "addr-2"},
-	})
+	}})
 	if err != nil {
 		t.Fatalf("CreateEmbedToken: %v", err)
 	}
@@ -307,9 +290,9 @@ func TestFabricTokens_RefreshSubscriberToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(map[string]any{
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{
 		"refresh_token": "abc-123",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("RefreshSubscriberToken: %v", err)
 	}
@@ -338,10 +321,11 @@ func TestFabricResources_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Resources.List(nil)
+	bodyResp, err := client.Fabric.Resources.List(nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data', got keys %v", keys(body))
 	}
@@ -361,7 +345,7 @@ func TestFabricResources_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.Get("res-1")
+	_, err := client.Fabric.Resources.Get("res-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -381,10 +365,11 @@ func TestFabricResources_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Resources.Delete("res-2")
+	bodyResp, err := client.Fabric.Resources.Delete("res-2")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if body == nil {
 		t.Error("expected map")
 	}
@@ -404,10 +389,11 @@ func TestFabricResources_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	body, err := client.Fabric.Resources.ListAddresses("res-3", nil)
+	bodyResp, err := client.Fabric.Resources.ListAddresses("res-3", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
+	body := respMap(t, bodyResp)
 	if _, ok := body["data"]; !ok {
 		t.Errorf("missing 'data'")
 	}
@@ -427,9 +413,9 @@ func TestFabricResources_AssignDomainApplication(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", map[string]any{
+	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{
 		"domain_application_id": "da-7",
-	})
+	}})
 	if err != nil {
 		t.Fatalf("AssignDomainApplication: %v", err)
 	}

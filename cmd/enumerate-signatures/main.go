@@ -41,6 +41,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -54,6 +55,103 @@ var (
 	freeFnTable = surfacepkg.FreeFnTable
 	factoryInit = surfacepkg.FactoryInit
 )
+
+// kwargsTailMethods lists the fully-qualified Python reference methods whose
+// FINAL parameter is a `**kwargs`/`**params` var_keyword tail rather than a
+// concrete positional argument. Go models such a tail as a trailing
+// `params map[string]any` / `extra map[string]any` bag; the Python oracle now
+// (porting-sdk #58) STRIPS the var_keyword tail from the extracted signature,
+// and the cross-port signature checker only excuses a trailing tail the port
+// still carries when it is `required: false`. So for these — and ONLY these —
+// methods the enumerator reclassifies the trailing bag param to a var_keyword
+// tail (required:false), matching the reference's `**kwargs` idiom. This is a
+// reconciliation table (the var_keyword-tail analog of a rename table), keyed by
+// the reference QN so a genuine positional `params: dict` argument (e.g.
+// AIConfigMixin.set_language_params(self, code, params: dict) — a REAL required
+// positional, NOT **kwargs) is left untouched and keeps comparing EQUAL. The
+// generated-REST resource methods carry their own `sig.restResource` var_keyword
+// handling below and are not listed here.
+//
+// Each entry was verified against the reference source: the Python def ends in
+// `**params: Any` / `**kwargs: Any`.
+var kwargsTailMethods = map[string]bool{
+	"signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_prompt_llm_params":      true, // def set_prompt_llm_params(self, **params: Any)
+	"signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_post_prompt_llm_params": true, // def set_post_prompt_llm_params(self, **params: Any)
+	"signalwire.core.swml_handler.SWMLVerbHandler.build_config":                       true, // def build_config(self, **kwargs: Any)
+	"signalwire.core.swml_builder.SWMLBuilder.ai":                                     true, // def ai(self, ..., swaig=None, **kwargs)
+	"signalwire.rest._base.CrudWithAddresses.list_addresses":                          true, // def list_addresses(self, resource_id, **params: Any)
+}
+
+// optionalTailVariadicMethods lists the fully-qualified Python reference methods
+// whose FINAL parameter is a single OPTIONAL scalar (`behavior: str | None = None`)
+// that Go idiomatically models as a trailing variadic `...string`. The RELAY
+// pause controls (PlayAction/RecordAction/CollectAction, projected from the
+// PausableAction mixin — porting-sdk @5744580) take `pause(behavior: str | None =
+// None)`; Go spells "an optional single behavior" as `Pause(behavior ...string)`
+// (call with 0 or 1 arg). The raw enumerator would translate `...string` to
+// `list<string>` required:true, which mismatches the reference's `optional<string>`
+// required:false. For THESE — and only these — methods, reclassify the trailing
+// variadic to `optional<string>` required:false so the port compares EQUAL. This
+// is an idiom reconciliation table (the optional-scalar analog of the var_keyword
+// tail table above), keyed by reference QN; a genuine required `[]string` /
+// multi-arg variadic elsewhere is untouched. Verified against the reference:
+// signalwire/relay/call.py PausableAction.pause(self, behavior: str | None = None).
+var optionalTailVariadicMethods = map[string]bool{
+	"signalwire.relay.call.PlayAction.pause":    true,
+	"signalwire.relay.call.RecordAction.pause":  true,
+	"signalwire.relay.call.CollectAction.pause": true,
+}
+
+// paramsStructField is one field of a generated-REST params struct (§5/§4a).
+type paramsStructField struct {
+	name    string // exported Go field name (e.g. "QueryString", "Extras")
+	typeStr string // source-level type expression (e.g. "any", "map[string]any")
+}
+
+// paramsStructFields maps a generated-REST `<...>Params` struct's SHORT type name
+// to its ordered fields. Populated while parsing pkg/rest/namespaces/
+// *_resources_generated.go. The signature enumerator UNFOLDS these fields back
+// into the flat keyword param set the Python oracle records, so collapsing the old
+// flat-positional operation/command params into a named Go options struct is a pure
+// call-site reshape and keeps port_signatures.json byte-identical (drift 0).
+var paramsStructFields = map[string][]paramsStructField{}
+
+// genTypeModule maps a generated REST wire-type name (declared in a
+// pkg/rest/namespaces/*_types_generated.go file) to its canonical Python module
+// `signalwire.rest.namespaces.<ns>_types_generated`. Populated while parsing
+// those files. translateType consults it so a field/return referencing a
+// generated type (including the LOWERCASE scalar-format aliases docid/uuid/jwt,
+// which the leading-uppercase class-ref fallback would otherwise reject) resolves
+// to `class:signalwire.rest.namespaces.<ns>_types_generated.<Name>`. The shared
+// diff tool folds that to `gen:<Name>` and compares by leaf, matching the
+// reference's per-namespace `<ns>_types_generated.<Name>` exactly. A name shared
+// across specs (deduped to one Go decl) keeps whichever ns declared it — the leaf
+// fold makes the module path immaterial to the comparison.
+var genTypeModule = map[string]string{}
+
+// scalarAliasLeaf folds an EXPORTED generated scalar-format alias type name back to
+// the reference's lowercase canonical leaf. The REST generator exports every type
+// (uuid→Uuid, docid→Docid, jwt→Jwt, play_url→Play_url) so a public struct field
+// doesn't leak a private type; the Python oracle records these scalar-format aliases
+// under their lowercase names (relay_rest_types_generated.uuid, datasphere…docid,
+// fabric…jwt). Folding the leaf here keeps the class ref parity-identical to the
+// oracle while the Go source stays idiomatic (exported). A name not in this map is
+// returned unchanged.
+var scalarAliasLeaf = map[string]string{
+	"Uuid":     "uuid",
+	"Docid":    "docid",
+	"Jwt":      "jwt",
+	"Play_url": "play_url",
+}
+
+// genLeaf returns the canonical leaf name for a generated type name (folding the
+// exported scalar-format aliases back to their lowercase oracle leaf).
+func genLeaf(t string) string {
+	if leaf, ok := scalarAliasLeaf[t]; ok {
+		return leaf
+	}
+	return t
+}
 
 // ---------------------------------------------------------------------------
 // AST walking — collects signatures, not just names
@@ -70,6 +168,11 @@ type goSignature struct {
 	params  []goParam
 	returns string // source-level type expression of the canonical return; "" → void
 	isField bool   // true when this signature was synthesized from a struct field, not a method
+	// restResource marks a method on a generated REST resource class
+	// (pkg/rest/namespaces/*_resources_generated.go). Its named params-struct
+	// (`params <Recv><Method>Params`) is UNFOLDED back into the Python reference's
+	// flat keyword set (see toCanonicalSignature + paramsStructFields).
+	restResource bool
 }
 
 type goFunc = goSignature // free function
@@ -78,11 +181,91 @@ type goStructFacts struct {
 	pkg     string
 	name    string
 	methods map[string]*goSignature
+	// embeds holds the SHORT type names of the struct's anonymous (embedded)
+	// fields whose declared methods are PROMOTED onto this struct — e.g. a
+	// generated REST resource embeds `*CrudResource` / `*CrudWithAddresses`,
+	// promoting their Create/Update/Get/List/Delete. When a StructTable-listed
+	// goMethod is not declared directly on the struct, it is resolved through
+	// this embed chain and the promoted method's SIGNATURE is used for the
+	// projection, attributed to the subclass. Only the short type name is
+	// stored; the embed chain lives in the same package (namespaces).
+	embeds []string
 }
 
-func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, error) {
+// ---------------------------------------------------------------------------
+// Generated-payload (SWAIG + SWML-verb) interface-field emission (D3)
+//
+// The generated READ-side payload structs (cmd/generate-payloads output) are NOT
+// in the StructTable — they carry no ergonomic method surface, only typed wire
+// FIELDS. Without special handling the drift gate can't SEE them and reports
+// every field the Python/TS reference records as `missing-port`. So, SCOPED to
+// the generated-payload files only (by filename), we emit each struct's exported
+// FIELDS as zero-arg members — matching the reference `_is_sdk_class_type` rule:
+// only a CLASS-typed field (a `$ref` to another generated payload struct, a list
+// of one, or a union carrying one) is part of the cross-port surface; a
+// primitive/plain-dict field is Python-internal scaffolding the reference skips.
+//
+// Each generated field carries a `gen:"<canonical-audit-type>"` struct tag (Go
+// has no union type, so a `union<int,class:SWMLVar>` field is `any` at runtime
+// but its exact audit shape lives in the tag). We read that tag verbatim as the
+// member's canonical return type — the tag is the single source of truth, so the
+// (lossy) Go static type never has to be re-derived here.
+//
+// The MODULE names below end in the `_generated` markers the shared diff tool
+// folds to the stable `gen-payload` token (diff_port_signatures.py
+// _GEN_PAYLOAD_MODULE_MARKERS), so a payload class keys as `gen-payload.<Class>.
+// <field>` cross-port regardless of which file/package a port groups it in.
+// ---------------------------------------------------------------------------
+
+// genPayloadModule maps a generated-payload file's base name to the canonical
+// module it is recorded under. Only files listed here are interface-walked (the
+// scope restriction — no other struct leaks into the payload oracle).
+var genPayloadModule = map[string]string{
+	"swaig_request_generated.go": "signalwire.core.swaig_request_generated",
+	"post_prompt_generated.go":   "signalwire.core.post_prompt_generated",
+	"swaig_actions_generated.go": "signalwire.core.swaig_actions_generated",
+	"swml_verbs_generated.go":    "signalwire.core.swml_verbs_generated",
+}
+
+// genPayloadFacts collects the class-typed members of the generated-payload
+// structs, keyed by canonical module -> class -> member -> canonical return.
+type genPayloadFacts struct {
+	// members[module][class][member] = canonical return type (from the gen: tag)
+	members map[string]map[string]map[string]string
+}
+
+func newGenPayloadFacts() *genPayloadFacts {
+	return &genPayloadFacts{members: map[string]map[string]map[string]string{}}
+}
+
+func (g *genPayloadFacts) add(module, class, member, ret string) {
+	if g.members[module] == nil {
+		g.members[module] = map[string]map[string]string{}
+	}
+	if g.members[module][class] == nil {
+		g.members[module][class] = map[string]string{}
+	}
+	g.members[module][class][member] = ret
+}
+
+// genTagRe extracts the `gen:"..."` value from a struct-field tag literal.
+var genTagRe = regexp.MustCompile(`gen:"([^"]*)"`)
+
+// jsonTagRe extracts the wire key from the `json:"key,..."` tag — the member is
+// keyed by the WIRE name (snake_case), matching how the reference records the
+// TypedDict field (its member name IS the wire key).
+var jsonTagRe = regexp.MustCompile(`json:"([^",]*)`)
+
+// isGenClassType applies the reference `_is_sdk_class_type` rule to a canonical
+// type string: emit the field only when it carries a class ref.
+func isGenClassType(canon string) bool {
+	return strings.Contains(canon, "class:")
+}
+
+func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, *genPayloadFacts, error) {
 	structs := map[string]*goStructFacts{}
 	funcs := map[string]*goFunc{}
+	payloads := newGenPayloadFacts()
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -98,18 +281,105 @@ func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, error) {
 		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
-		return parseFile(path, structs, funcs)
+		return parseFile(path, structs, funcs, payloads)
 	})
-	return structs, funcs, err
+	return structs, funcs, payloads, err
 }
 
-func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]*goFunc) error {
+// collectGenPayload walks a generated-payload file's structs and records each
+// exported, class-typed field as a member (keyed by wire name).
+func collectGenPayload(file *ast.File, module string, payloads *genPayloadFacts) {
+	for _, decl := range file.Decls {
+		gd, ok := decl.(*ast.GenDecl)
+		if !ok || gd.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range gd.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok || !ast.IsExported(ts.Name.Name) {
+				continue
+			}
+			st, isStruct := ts.Type.(*ast.StructType)
+			if !isStruct || st.Fields == nil {
+				continue
+			}
+			class := ts.Name.Name
+			for _, f := range st.Fields.List {
+				if len(f.Names) == 0 || f.Tag == nil {
+					continue
+				}
+				tag := f.Tag.Value
+				gm := genTagRe.FindStringSubmatch(tag)
+				if gm == nil {
+					continue
+				}
+				canon := gm[1]
+				// Only class-typed fields are part of the cross-port surface
+				// (the reference _is_sdk_class_type rule).
+				if !isGenClassType(canon) {
+					continue
+				}
+				member := ""
+				if jm := jsonTagRe.FindStringSubmatch(tag); jm != nil {
+					member = jm[1]
+				}
+				if member == "" {
+					continue
+				}
+				payloads.add(module, class, member, canon)
+			}
+		}
+	}
+}
+
+func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts) error {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
 	if err != nil {
 		return fmt.Errorf("parse %s: %w", path, err)
 	}
+	// Generated-payload files are interface-walked separately (D3) and NOT fed
+	// into the StructTable-driven method projection (they carry no method
+	// surface, only typed wire fields).
+	if module, ok := genPayloadModule[filepath.Base(path)]; ok {
+		collectGenPayload(file, module, payloads)
+		return nil
+	}
 	pkgName := file.Name.Name
+	// Generated REST resource files carry the exploded-typed operation +
+	// command-dispatch methods (§5). Their body-field params are keyword-only in
+	// the Python reference; mark them so buildSignature captures which params are
+	// exploded body fields and toCanonicalSignature reclassifies their kinds.
+	base := filepath.Base(path)
+	isRestResource := strings.HasSuffix(base, "_resources_generated.go") &&
+		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/")
+	// Generated REST wire-type files (<ns>_types_generated.go): record every
+	// declared type name → its canonical <ns>_types_generated module, so a
+	// field/return referencing it resolves to the folded class ref (see
+	// genTypeModule). The <ns> is the file base with the suffix stripped.
+	if strings.HasSuffix(base, "_types_generated.go") &&
+		strings.Contains(filepath.ToSlash(path), "pkg/rest/namespaces/") {
+		ns := strings.TrimSuffix(base, "_types_generated.go")
+		module := "signalwire.rest.namespaces." + ns + "_types_generated"
+		for _, decl := range file.Decls {
+			gd, ok := decl.(*ast.GenDecl)
+			if !ok || gd.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gd.Specs {
+				ts, ok := spec.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+				// Record every generated type name (first-declaring ns wins for a
+				// cross-spec-deduped name; the leaf fold makes the module immaterial).
+				if _, seen := genTypeModule[ts.Name.Name]; !seen {
+					genTypeModule[ts.Name.Name] = module
+				}
+			}
+		}
+		return nil
+	}
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
@@ -125,6 +395,20 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				if !isStruct {
 					continue
 				}
+				// Record generated-REST params structs' fields (§5/§4a) so the
+				// signature enumerator can UNFOLD `params <...>Params` back into the
+				// flat keyword set the oracle records (drift-neutral). Scoped to
+				// `*Params` structs in the generated resource files.
+				if isRestResource && strings.HasSuffix(ts.Name.Name, "Params") && st.Fields != nil {
+					var fields []paramsStructField
+					for _, f := range st.Fields.List {
+						typeStr := exprString(f.Type)
+						for _, n := range f.Names {
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr})
+						}
+					}
+					paramsStructFields[ts.Name.Name] = fields
+				}
 				key := pkgName + "." + ts.Name.Name
 				if _, present := structs[key]; !present {
 					structs[key] = &goStructFacts{
@@ -133,6 +417,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						methods: map[string]*goSignature{},
 					}
 				}
+				// Record anonymous (embedded) fields so promoted methods can be
+				// resolved through the embed chain during projection.
+				structs[key].embeds = append(structs[key].embeds, embeddedTypeNames(st)...)
 				// Project exported struct fields (e.g. RestClient.Calling
 				// *namespaces.CallingNamespace) as zero-arg accessor
 				// methods so the cross-language audit sees them. Matches
@@ -167,6 +454,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				continue
 			}
 			sig := buildSignature(pkgName, d)
+			if isRestResource {
+				sig.restResource = true
+			}
 			if d.Recv == nil || len(d.Recv.List) == 0 {
 				funcs[pkgName+"."+d.Name.Name] = sig
 				continue
@@ -205,13 +495,30 @@ func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
 		}
 	}
 	if fd.Type.Results != nil && len(fd.Type.Results.List) > 0 {
-		// Take the first result. Multi-return Go funcs collapse to the
-		// first result for canonical shape; the second result is usually
-		// an `error`, which is mapped to `any` and not part of the
-		// Python signature. Methods that legitimately return tuples will
-		// surface as drift and need PORT_SIGNATURE_OMISSIONS.md entries.
-		first := fd.Type.Results.List[0]
-		sig.returns = exprString(first.Type)
+		// Flatten the result list to individual source-level type strings
+		// (a single `f.Names` entry may still name one type).
+		var rets []string
+		for _, f := range fd.Type.Results.List {
+			ts := exprString(f.Type)
+			n := 1
+			if len(f.Names) > 0 {
+				n = len(f.Names)
+			}
+			for range n {
+				rets = append(rets, ts)
+			}
+		}
+		// A genuine multi-value return whose values are ALL non-error is a real
+		// tuple (e.g. HandleRequest's (int, map[string]string, string) →
+		// tuple<int,dict<string,string>,string>); emit it as a tuple so it
+		// compares EQUAL to the reference's tuple return. Otherwise take the
+		// first result — multi-return Go funcs typically pair a value with an
+		// `error` (mapped to `any`, not part of the Python signature).
+		if len(rets) > 1 && rets[len(rets)-1] != "error" {
+			sig.returns = "tuple(" + strings.Join(rets, ",") + ")"
+		} else {
+			sig.returns = rets[0]
+		}
 	}
 	return sig
 }
@@ -301,6 +608,60 @@ func recvTypeName(expr ast.Expr) string {
 	return ""
 }
 
+// embeddedTypeNames returns the SHORT type names of a struct's anonymous
+// (embedded) fields — the fields with no explicit name. Only embeds whose type
+// resolves to a bare/pointer identifier in the same package are recorded (e.g.
+// `*CrudResource`, `CrudWithAddresses`); qualified selector embeds (pkg.Type)
+// carry no promoted SDK method surface we project and are skipped.
+func embeddedTypeNames(st *ast.StructType) []string {
+	if st.Fields == nil {
+		return nil
+	}
+	var out []string
+	for _, f := range st.Fields.List {
+		if len(f.Names) != 0 {
+			continue // named field, not an embed
+		}
+		if name := recvTypeName(f.Type); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// resolvePromotedMethod returns the promoted method signature for goMethod if it
+// is declared on one of facts' embedded base structs (transitively), else nil.
+// Go promotes an embedded field's methods onto the embedder, so a StructTable
+// entry that lists e.g. `Create` for a generated REST resource embedding
+// `*CrudResource` is supplied by CrudResource's own `Create` signature. The
+// embed chain is walked in the same package; cycles are guarded by a visited
+// set.
+func resolvePromotedMethod(structs map[string]*goStructFacts, facts *goStructFacts, goMethod string) *goSignature {
+	visited := map[string]struct{}{}
+	var search func(f *goStructFacts) *goSignature
+	search = func(f *goStructFacts) *goSignature {
+		for _, embed := range f.embeds {
+			base, ok := structs[f.pkg+"."+embed]
+			if !ok {
+				continue
+			}
+			key := base.pkg + "." + base.name
+			if _, seen := visited[key]; seen {
+				continue
+			}
+			visited[key] = struct{}{}
+			if sig, present := base.methods[goMethod]; present {
+				return sig
+			}
+			if sig := search(base); sig != nil {
+				return sig
+			}
+		}
+		return nil
+	}
+	return search(facts)
+}
+
 // ---------------------------------------------------------------------------
 // Type translation
 // ---------------------------------------------------------------------------
@@ -324,6 +685,22 @@ func loadAliases(path string) (map[string]string, error) {
 		return nil, err
 	}
 	return doc.Aliases.Go, nil
+}
+
+// goLocalAliases holds Go-specific named-type → canonical-type expansions that
+// the shared porting-sdk/type_aliases.yaml does not carry (they name Go-only
+// SDK types). Applied on top of the loaded aliases (loaded entries win).
+var goLocalAliases = map[string]string{
+	// swml.RoutingCallback = func(body, headers map[string]any) *string.
+	"RoutingCallback":      "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
+	"swml.RoutingCallback": "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
+	// swaig.ToolHandler / swaig.TypedHandler are SWAIG tool-handler func types;
+	// the reference types the create_typed_handler_wrapper func + return as a
+	// bare callable. Expand to the canonical callable so they compare EQUAL.
+	"ToolHandler":        "callable<list<any>,any>",
+	"swaig.ToolHandler":  "callable<list<any>,any>",
+	"TypedHandler":       "callable<list<any>,any>",
+	"swaig.TypedHandler": "callable<list<any>,any>",
 }
 
 // closedSetUnions maps the Go defined-string closed-set types (and their
@@ -369,6 +746,20 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	// either the defining package or an importer.
 	if canon, ok := closedSetUnions[t]; ok {
 		return canon, nil
+	}
+	// context.Context is Go's idiomatic deadline/cancellation carrier — the
+	// idiomatic Go expression of "this call may take an optional timeout" (the
+	// PORT_PHILOSOPHY_GO ctx-cancelled-loop idiom). Where the Python reference
+	// expresses the same capability it uses a `timeout: float = None` param, so
+	// record a `ctx context.Context` param as the reference's canonical
+	// `optional<float>` timeout slot — the idiom is reconciled in the recorded
+	// surface (the param analog of the StructTable method-name mapping), not left
+	// as an untyped `any` or papered over with an omission. Emitted OPTIONAL (a Go
+	// ctx is always cancellable but never obligates a deadline, matching Python's
+	// `timeout=None`), so on methods whose reference has no timeout it is absorbed
+	// as an optional extra param (functional-parity tolerance), not a mismatch.
+	if t == "context.Context" {
+		return "optional<float>", nil
 	}
 	// Pointer: canonical interpretation is optional<T> for value types,
 	// class:<T> for struct types. Without go/types we can't tell; default
@@ -445,6 +836,22 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	if strings.HasPrefix(t, "interface{") {
 		return "any", nil
 	}
+	// Multi-value return marker tuple(a,b,c) → tuple<a,b,c>. Emitted by
+	// extractSignature for a genuine all-non-error multi-return (e.g.
+	// HandleRequest's (int, dict<string,string>, string)).
+	if strings.HasPrefix(t, "tuple(") && strings.HasSuffix(t, ")") {
+		inner := t[len("tuple(") : len(t)-1]
+		parts := splitTopLevelCommas(inner)
+		canonParts := make([]string, 0, len(parts))
+		for _, p := range parts {
+			c, fail := translateType(strings.TrimSpace(p), aliases, ctx)
+			if fail != nil {
+				return "", fail
+			}
+			canonParts = append(canonParts, c)
+		}
+		return "tuple<" + strings.Join(canonParts, ",") + ">", nil
+	}
 	// Function type → callable<list<args>,ret>
 	if strings.HasPrefix(t, "func(") {
 		return translateFunc(t, aliases, ctx)
@@ -452,6 +859,15 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	// Direct alias hit
 	if v, ok := aliases[t]; ok {
 		return v, nil
+	}
+	// Lowercase generated REST scalar-format alias (docid/uuid/jwt): resolve to the
+	// folded gen-type class ref. Done BEFORE the generic/selector/uppercase paths
+	// (those all require an uppercase leading rune, so a lowercase alias would
+	// otherwise fall through to the unknown-type failure). A real SDK class never has
+	// a lowercase leading rune, so this cannot hijack one; uppercase generated names
+	// are resolved LAST (after StructTable) so a real SDK class of the same name wins.
+	if module, ok := genTypeModule[t]; ok && !(len(t) > 0 && t[0] >= 'A' && t[0] <= 'Z') {
+		return "class:" + module + "." + genLeaf(t), nil
 	}
 	// Generic instantiation: Foo[T,U] → translate Foo, drop type args
 	// (Python reference doesn't carry generic instantiations in signatures)
@@ -479,10 +895,23 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 			return "class:" + t, nil
 		}
 	}
-	// Bare identifier — could be a struct in the same package
+	// Bare identifier — could be a struct in the same package.
 	if len(t) > 0 && t[0] >= 'A' && t[0] <= 'Z' {
+		// A real SDK class (StructTable) wins — a generated REST type name that
+		// COLLIDES with an SDK class (e.g. the SWML-schema types AI/Cond/DataMap/
+		// Section that the fabric/calling specs embed AND that the hand SWML/agent
+		// surface also declares) must keep the SDK class ref when referenced from a
+		// hand method; the generated struct is a distinct same-named wire type only
+		// referenced from the (non-signature-enumerated) types module.
 		if classRef := lookupClassRefByShort(t); classRef != "" {
 			return classRef, nil
+		}
+		// Uppercase generated REST wire type not shadowed by any SDK class (e.g.
+		// SearchResponse, CallResponse, SWMLObject, ChunkListResponse): fold to its
+		// gen-type class ref so a resource method's typed return/param records the
+		// real complex type (→ gen:<Name>), matching the oracle.
+		if module, ok := genTypeModule[t]; ok {
+			return "class:" + module + "." + genLeaf(t), nil
 		}
 		return "class:" + t, nil
 	}
@@ -706,17 +1135,93 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 	if isMethod || isCtor {
 		params = append(params, canonicalParam{Name: "self", Kind: "self"})
 	}
-	for _, p := range sig.params {
+	for pi, p := range sig.params {
+		// A reconciliation-table method's FINAL bag param is the Python
+		// reference's `**kwargs`/`**params` var_keyword tail (stripped from the
+		// oracle by porting-sdk #58). Emit it as var_keyword required:false so the
+		// checker's drop-tail excusal applies — the Go trailing `params`/`extra`
+		// map is the idiomatic spelling of the reference `**kwargs`. Scoped to the
+		// LAST param and to a dict bag, so a leading positional dict is untouched.
+		if pi == len(sig.params)-1 && kwargsTailMethods[ctx] &&
+			(p.name == "params" || p.name == "extra" || p.name == "kwargs") &&
+			strings.HasPrefix(p.typeStr, "map[string]") {
+			params = append(params, canonicalParam{
+				Name: p.name, Kind: "var_keyword", Type: "any",
+				Required: boolPtr(false), Default: json.RawMessage("{}"),
+			})
+			continue
+		}
+		// A pause control's trailing variadic `...string` is the Go idiom for the
+		// reference's optional scalar `behavior: str | None = None`. Reclassify it
+		// to `optional<string>` required:false so it compares EQUAL (see
+		// optionalTailVariadicMethods). Scoped to the LAST param and to a `...string`.
+		if pi == len(sig.params)-1 && optionalTailVariadicMethods[ctx] &&
+			p.typeStr == "...string" {
+			params = append(params, canonicalParam{
+				Name: goNameToSnake(p.name), Type: "optional<string>",
+				Required: boolPtr(false),
+			})
+			continue
+		}
+		// §5/§4a: a generated-REST operation/command method takes its wire-body
+		// fields as a named params STRUCT (`params <Recv><Method>Params`) instead of
+		// flat positionals. UNFOLD that struct back into the flat keyword set the
+		// Python oracle records so port_signatures.json is byte-identical to the old
+		// flat form (pure call-site reshape → drift 0). Each non-Extras field →
+		// keyword; the `Extras` field → keyword + a synthetic `**kwargs` var_keyword
+		// tail (the exact shape the flat `extras map[string]any` param produced). A
+		// GET query `params map[string]string` is NOT a params struct — it still
+		// falls through to the `**params` var_keyword handling below.
+		if sig.restResource {
+			if fields, ok := paramsStructFields[p.typeStr]; ok {
+				for _, f := range fields {
+					fCanon, fail := translateType(f.typeStr, aliases, ctx+"["+f.name+"]")
+					if fail != nil {
+						failures = append(failures, *fail)
+						continue
+					}
+					if f.name == "Extras" {
+						params = append(params, canonicalParam{
+							Name: "extras", Kind: "keyword", Type: fCanon,
+							Required: boolPtr(true),
+						})
+						params = append(params, canonicalParam{
+							Name: "kwargs", Kind: "var_keyword", Type: "any",
+							Required: boolPtr(false), Default: json.RawMessage("{}"),
+						})
+						continue
+					}
+					params = append(params, canonicalParam{
+						Name: goNameToSnake(f.name), Kind: "keyword", Type: fCanon,
+						Required: boolPtr(true),
+					})
+				}
+				continue
+			}
+		}
 		canon, fail := translateType(p.typeStr, aliases, ctx+"["+p.name+"]")
 		if fail != nil {
 			failures = append(failures, *fail)
 			continue
 		}
-		params = append(params, canonicalParam{
+		cp := canonicalParam{
 			Name:     goNameToSnake(p.name),
 			Type:     canon,
 			Required: boolPtr(true), // Go has no defaults; every param is required
-		})
+		}
+		// §5: reclassify the remaining generated-REST params to the Python
+		// reference's kinds. Leading path-id positionals stay positional; a GET
+		// query `params` / set_methods `extra` object becomes a single `**params` /
+		// `**extra` (var_keyword) tail. This makes the loose Go surface compare
+		// COUNT + KIND clean against the closed Python reference.
+		if sig.restResource && (p.name == "params" || p.name == "extra") {
+			params = append(params, canonicalParam{
+				Name: p.name, Kind: "var_keyword", Type: "any",
+				Required: boolPtr(false), Default: json.RawMessage("{}"),
+			})
+			continue
+		}
+		params = append(params, cp)
 	}
 	returns := "void"
 	if isCtor {
@@ -732,7 +1237,7 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 	return canonicalSignature{Params: params, Returns: returns}, failures
 }
 
-func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases map[string]string) (sigDoc, []translationFailure) {
+func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts, aliases map[string]string) (sigDoc, []translationFailure) {
 	out := sigDoc{
 		Version: "2",
 		Modules: map[string]sigModuleInventory{},
@@ -786,12 +1291,49 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases 
 					}
 					continue
 				}
-				if mSig, present := facts.methods[goMethod]; present {
+				mSig, present := facts.methods[goMethod]
+				if !present {
+					// Not declared directly — resolve through the embed chain
+					// (promoted method). SCOPED to StructTable-listed methods:
+					// the Methods map is the allowlist of what to project; the
+					// embed resolution only SUPPLIES the promoted method's
+					// signature. Arbitrary promoted methods not listed here are
+					// never projected (no surface flood).
+					mSig = resolvePromotedMethod(structs, facts, goMethod)
+				}
+				if mSig != nil {
 					sig, fails := toCanonicalSignature(mSig, aliases, true, false, fmt.Sprintf("%s.%s.%s", target.Module, target.Class, pyMethod))
 					failures = append(failures, fails...)
 					addClassMethod(target.Module, target.Class, pyMethod, sig)
 				}
 			}
+			// Synthetic methods: Python members the port expresses through a
+			// package-level factory rather than a same-named Go method. The
+			// ``from_payload`` classmethod on every relay event is the canonical
+			// case — Go's ``New<Event>(params map[string]any)`` factory IS the
+			// from_payload constructor (build the typed event from the raw
+			// payload dict). We emit the reference-shaped classmethod signature
+			// ``(cls, payload: dict<string,any>) -> class:<Module>.<Class>`` so
+			// the signature audit sees the member the surface audit already
+			// projects via ClassTarget.SyntheticMethods. Other synthetics
+			// (``__init__``, ``from_json``, …) are covered by factoryInit /
+			// FreeFnTable or documented in PORT_SIGNATURE_OMISSIONS.md.
+			for _, syn := range target.SyntheticMethods {
+				if syn != "from_payload" {
+					continue
+				}
+				if _, already := target.Methods[syn]; already {
+					continue
+				}
+				addClassMethod(target.Module, target.Class, "from_payload", canonicalSignature{
+					Params: []canonicalParam{
+						{Name: "cls", Kind: "cls"},
+						{Name: "payload", Type: "dict<string,any>", Required: boolPtr(true)},
+					},
+					Returns: "class:" + target.Module + "." + target.Class,
+				})
+			}
+
 			// Auto-emit exported fields whose type is an SDK class
 			// (``*namespaces.FabricNamespace``, ``*FooClient``, etc.)
 			// as zero-arg accessor methods. Mirrors the Python reference
@@ -851,6 +1393,24 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, aliases 
 			sig, fails := toCanonicalSignature(fn, aliases, false, false, fmt.Sprintf("%s.%s", target.Module, target.Name))
 			failures = append(failures, fails...)
 			addFunction(target.Module, target.Name, sig)
+		}
+	}
+
+	// --- 4. Generated-payload interface fields (D3) ---
+	// Each class-typed field of a generated payload struct is a zero-arg member
+	// returning its canonical (gen: tag) type, under a module that folds to
+	// gen-payload in the shared diff tool. This is what makes the SWAIG + SWML
+	// read-side payloads (cmd/generate-payloads) visible to the drift gate.
+	if payloads != nil {
+		for module, classes := range payloads.members {
+			for class, members := range classes {
+				for member, ret := range members {
+					addClassMethod(module, class, member, canonicalSignature{
+						Params:  []canonicalParam{{Name: "self", Kind: "self"}},
+						Returns: ret,
+					})
+				}
+			}
 		}
 	}
 
@@ -934,7 +1494,6 @@ func run() error {
 		// Autodetect: try sibling porting-sdk
 		candidates := []string{
 			filepath.Join(repoRoot, "..", "porting-sdk", "type_aliases.yaml"),
-			"/usr/local/home/devuser/src/porting-sdk/type_aliases.yaml",
 		}
 		for _, c := range candidates {
 			if _, err := os.Stat(c); err == nil {
@@ -950,13 +1509,25 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("loadAliases: %w", err)
 	}
+	// Go-local named-type expansions the shared type_aliases.yaml doesn't carry.
+	// swml.RoutingCallback is `func(body, headers map[string]any) *string`; the
+	// reference types the routing callback_fn as
+	// callable<list<dict<string,any>,dict<string,any>>,optional<string>>. Expand
+	// the named type to that canonical callable so RegisterRoutingCallback's
+	// callback_fn param compares EQUAL to the reference (idiom reconciled in the
+	// alias table, not via an omission).
+	for k, v := range goLocalAliases {
+		if _, exists := aliases[k]; !exists {
+			aliases[k] = v
+		}
+	}
 
-	structs, funcs, err := walk(pkgRoot)
+	structs, funcs, payloads, err := walk(pkgRoot)
 	if err != nil {
 		return fmt.Errorf("walk: %w", err)
 	}
 
-	doc, failures := build(structs, funcs, aliases)
+	doc, failures := build(structs, funcs, payloads, aliases)
 	doc.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s (go/ast walker)", goSHA(repoRoot))
 
 	if len(failures) > 0 {

@@ -767,6 +767,129 @@ func TestRunValidationExampleMode(t *testing.T) {
 	})
 }
 
+// ---------------------------------------------------------------------------
+// --parse-only / --dry-run: position-independent arg validation
+// ---------------------------------------------------------------------------
+
+func TestStripParseOnly(t *testing.T) {
+	tests := []struct {
+		name          string
+		args          []string
+		wantRest      []string
+		wantParseOnly bool
+	}{
+		{
+			name:          "absent",
+			args:          []string{"--url", "http://localhost:3000/", "--list-tools"},
+			wantRest:      []string{"--url", "http://localhost:3000/", "--list-tools"},
+			wantParseOnly: false,
+		},
+		{
+			name:          "leading --parse-only",
+			args:          []string{"--parse-only", "--url", "http://localhost:3000/", "--list-tools"},
+			wantRest:      []string{"--url", "http://localhost:3000/", "--list-tools"},
+			wantParseOnly: true,
+		},
+		{
+			name:          "trailing --parse-only (after an --exec)",
+			args:          []string{"--url", "http://localhost:3000/", "--exec", "foo", "--param", "bar=1", "--parse-only"},
+			wantRest:      []string{"--url", "http://localhost:3000/", "--exec", "foo", "--param", "bar=1"},
+			wantParseOnly: true,
+		},
+		{
+			name:          "--dry-run alias",
+			args:          []string{"--dry-run", "--url", "http://localhost:3000/", "--list-tools"},
+			wantRest:      []string{"--url", "http://localhost:3000/", "--list-tools"},
+			wantParseOnly: true,
+		},
+		{
+			name:          "single-dash spelling",
+			args:          []string{"-parse-only", "--url", "http://localhost:3000/", "--list-tools"},
+			wantRest:      []string{"--url", "http://localhost:3000/", "--list-tools"},
+			wantParseOnly: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rest, parseOnly := stripParseOnly(tt.args)
+			if parseOnly != tt.wantParseOnly {
+				t.Errorf("parseOnly = %v, want %v", parseOnly, tt.wantParseOnly)
+			}
+			if len(rest) != len(tt.wantRest) {
+				t.Fatalf("rest = %v, want %v", rest, tt.wantRest)
+			}
+			for i := range rest {
+				if rest[i] != tt.wantRest[i] {
+					t.Errorf("rest[%d] = %q, want %q", i, rest[i], tt.wantRest[i])
+				}
+			}
+		})
+	}
+}
+
+// TestParseOnlyValidate exercises the full parse-only path (strip + strict
+// parse + validate) used by main() under --parse-only. A nil error means the
+// CLI would print "parse OK" and exit 0; a non-nil error maps to exit 2.
+// Crucially, none of these load an agent, spawn a subprocess, or hit the
+// network — parse-only is pure argument validation.
+func TestParseOnlyValidate(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string // already parse-only-stripped, as main() passes them
+		wantErr bool
+	}{
+		{
+			name:    "valid list-tools",
+			args:    []string{"--url", "http://user:pass@localhost:3000/", "--list-tools"},
+			wantErr: false,
+		},
+		{
+			name: "valid exec with params (position-independent: parse-only trailed the exec)",
+			args: []string{"--url", "http://localhost:3000/", "--exec", "foo", "--param", "bar=1"},
+			// NB: main() strips --parse-only from ANY position before this,
+			// so a trailing --parse-only after --exec still reaches here as a
+			// well-formed exec invocation.
+			wantErr: false,
+		},
+		{
+			name:    "valid example list-tools (no subprocess in parse-only)",
+			args:    []string{"--example", "some_agent", "--list-tools"},
+			wantErr: false,
+		},
+		{
+			name:    "invalid: no url and no example",
+			args:    []string{"--list-tools"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid: bad param",
+			args:    []string{"--url", "http://localhost:3000/", "--exec", "foo", "--param", "badnoequals"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid: unknown flag",
+			args:    []string{"--bogus-flag"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid: example and url mutually exclusive",
+			args:    []string{"--example", "foo", "--url", "http://localhost:3000/", "--list-tools"},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := parseOnlyValidate(tt.args)
+			if tt.wantErr && err == nil {
+				t.Errorf("expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 // contains is a minimal substring check that doesn't depend on
 // strings.Contains so we keep the test file's import surface narrow.
 func contains(s, sub string) bool {

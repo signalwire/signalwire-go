@@ -8,7 +8,7 @@ Real-time call control and messaging over WebSocket using Go's concurrency primi
 package main
 
 import (
-	"fmt"
+	"context"
 	"os"
 
 	"github.com/signalwire/signalwire-go/pkg/relay"

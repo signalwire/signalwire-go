@@ -1,7 +1,33 @@
 # RelayClient Reference
 
+<!-- snippet-setup -->
+```go
+import (
+	"context"
+	"fmt"
+
+	"github.com/signalwire/signalwire-go/pkg/relay"
+)
+
+// Shared context the fragments below assume.
+var client = relay.NewRelayClient()
+var call *relay.Call
+var message *relay.Message
+var err error
+
+var (
+	_ = client
+	_ = call
+	_ = message
+	_ = err
+	_ = context.Background
+	_ = fmt.Sprint
+)
+```
+
 ## Constructor
 
+<!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
 client := relay.NewRelayClient(opts ...ClientOption)
 ```
@@ -35,6 +61,8 @@ Signal a running client to tear down its WebSocket and exit `Run()`. Safe to
 call from another goroutine.
 
 ```go
+import "time"
+
 go func() {
 	time.Sleep(5 * time.Minute)
 	client.Stop()
@@ -58,9 +86,13 @@ client.OnCall(func(call *relay.Call) {
 Place an outbound call. Returns a `*Call` once the remote party answers.
 
 - `devices` -- nested slice of device objects (serial/parallel dial)
+- `relay.WithDialFromNumber(from)` -- caller ID
+- `relay.WithDialTag(tag)` -- optional correlation tag (auto-generated if omitted)
+- `relay.WithDialMaxDuration(minutes)` -- max call duration in minutes
+- `relay.WithDialClientTimeout(d)` -- how long to wait before returning `ErrDialTimeout` (default: 120s)
 
 ```go
-call, err := client.Dial(
+call, err = client.Dial(
 	[][]map[string]any{
 		{{"type": "phone", "params": map[string]any{
 			"to_number": "+15551234567", "from_number": "+15559876543",
@@ -73,7 +105,11 @@ if err != nil {
 	fmt.Printf("Dial failed: %v\n", err)
 	return
 }
+_ = call
 ```
+
+`DialContext(ctx, devices, opts...)` adds caller cancellation via a
+`context.Context`.
 
 ### `OnMessage(handler func(*relay.Message))`
 
@@ -81,7 +117,7 @@ Register the inbound message handler. The handler receives a `*Message` object.
 
 ```go
 client.OnMessage(func(message *relay.Message) {
-	fmt.Printf("SMS from %s: %s\n", message.FromNumber, message.Body)
+	fmt.Printf("SMS from %s: %s\n", message.FromNumber(), message.Body())
 })
 ```
 
@@ -92,7 +128,7 @@ The three required parameters are positional; additional `MessageOption`
 values configure media, region, and tags.
 
 ```go
-message, err := client.SendMessage(
+message, err = client.SendMessage(
 	"+15552222222",
 	"+15551111111",
 	"Hello!",
@@ -101,17 +137,62 @@ if err != nil {
 	fmt.Printf("Send failed: %v\n", err)
 	return
 }
-event := message.Wait(context.Background()) // block until delivered/failed
+event, _ := message.Wait(context.Background()) // block until delivered/failed
+_ = event
 ```
 
 See [Messaging](messaging.md) for full details.
 
+### `Connect() error` / `Stop()`
+
+Manual lifecycle control. `Connect()` connects and authenticates without
+blocking (unlike `Run()`), returning an error if the client fails to start;
+`Stop()` tears the connection down. Use these when you drive the client from
+your own loop instead of `Run()`.
+
+```go
+import "log"
+
+if err := client.Connect(); err != nil {
+	log.Fatal(err)
+}
+// ... use client ...
+client.Stop()
+```
+
+### `RunContext(ctx context.Context) error`
+
+Cancellable form of `Run()`: it runs the event loop until `ctx` is cancelled
+(or the client is stopped), then returns.
+
+### `Execute(method string, params map[string]any) (json.RawMessage, error)`
+
+Send a raw JSON-RPC request. Used internally by the `Call` methods, but
+exposed for custom RELAY commands.
+
 ## Context Subscriptions
 
-The RELAY contexts the client listens on are fixed at construction time via
-`WithContexts(...)`. Dynamic subscribe/unsubscribe is not currently exposed
-in the Go port — recreate the client with the desired contexts if they need
-to change.
+The client subscribes to the RELAY contexts (topics) passed at construction
+time via `WithContexts(...)`. You can also change the subscription set
+dynamically after connecting:
+
+### `Receive(contexts ...string) error` / `Unreceive(contexts ...string) error`
+
+Dynamically subscribe to or unsubscribe from contexts on a live client.
+
+```go
+client.Receive("new-context")
+client.Unreceive("old-context")
+```
+
+## Accessors
+
+| Method | Type | Description |
+|--------|------|-------------|
+| `RelayProtocol()` | `string` | Server-assigned protocol string from the connect response |
+| `ProjectID()` | `string` | Project ID |
+| `Space()` | `string` | Relay host |
+| `Contexts()` | `[]string` | Initial contexts passed at construction |
 
 ## Connection Behavior
 
@@ -128,15 +209,18 @@ Each inbound call handler runs in its own goroutine, so multiple calls are handl
 ## Error Handling
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/relay"
+import "errors"
 
-result, err := call.Play([]map[string]any{...}).Wait(context.Background())
+result, err := call.Play([]map[string]any{
+	{"type": "tts", "params": map[string]any{"text": "Hello"}},
+}).Wait(context.Background())
 if err != nil {
 	var relayErr *relay.RelayError
 	if errors.As(err, &relayErr) {
 		fmt.Printf("Error %d: %s\n", relayErr.Code, relayErr.Message)
 	}
 }
+_ = result
 ```
 
 `RelayError` carries the numeric `Code` and `Message` the RELAY server
@@ -151,10 +235,17 @@ Use a cancellable context or OS signal handler to call `client.Stop()` when
 the process should exit:
 
 ```go
+import (
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+)
+
 ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 defer cancel()
 
-client := relay.NewRelayClient(relay.WithContexts("default"))
+client = relay.NewRelayClient(relay.WithContexts("default"))
 
 client.OnCall(func(call *relay.Call) {
 	call.Answer()

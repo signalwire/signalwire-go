@@ -81,7 +81,7 @@ func WithServerPort(port int) ServerOption {
 // The parameter is the defined string type logging.LogLevel: the typed
 // constants give autocomplete + a compile-time typo check, while Go's
 // untyped-constant auto-conversion keeps a bare "debug" literal compiling —
-// parity with the Python reference's plain str log_level.
+// compatibility with the Python reference's plain str log_level.
 func WithLogLevel(level logging.LogLevel) ServerOption {
 	return func(s *AgentServer) {
 		logging.SetGlobalLevel(logging.ParseLevel(string(level)))
@@ -235,7 +235,7 @@ func (s *AgentServer) SetupSIPRouting(route string, autoMap bool) {
 			if len(username) > 1 && username[0] == '/' {
 				username = username[1:]
 			}
-			s.sipUsernames[username] = r
+			s.sipUsernames[strings.ToLower(username)] = r
 		}
 	}
 
@@ -243,12 +243,36 @@ func (s *AgentServer) SetupSIPRouting(route string, autoMap bool) {
 }
 
 // RegisterSIPUsername maps a SIP username to an agent route so that
-// inbound SIP calls for that username are routed to the correct agent.
+// inbound SIP calls for that username are routed to the correct agent. The
+// username is stored case-folded (lowercased) — matching Python's
+// register_sip_username, which stores self._sip_username_mapping[username.lower()]
+// — so lookups are case-insensitive.
 func (s *AgentServer) RegisterSIPUsername(username, route string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.sipUsernames[username] = route
+	s.sipUsernames[strings.ToLower(username)] = route
 	s.logger.Info("SIP username %q mapped to route %s", username, route)
+}
+
+// LookupSIPRoute returns the agent route mapped to the given SIP username, or
+// ("", false) if unmapped. Lookup is case-insensitive (mirrors Python's
+// _lookup_sip_route, which returns self._sip_username_mapping.get(username.lower())).
+func (s *AgentServer) LookupSIPRoute(username string) (string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	route, ok := s.sipUsernames[strings.ToLower(username)]
+	return route, ok
+}
+
+// SIPUsernameMapping returns a copy of the sip-username -> route mapping.
+func (s *AgentServer) SIPUsernameMapping() map[string]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make(map[string]string, len(s.sipUsernames))
+	for k, v := range s.sipUsernames {
+		out[k] = v
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------
@@ -268,9 +292,10 @@ func (s *AgentServer) ServeStaticFiles(directory, route string) {
 // ---------------------------------------------------------------------------
 
 // RegisterGlobalRoutingCallback registers a routing callback across all
-// currently-registered agents at the given path.  The callback fires on every
-// incoming request to that path and can return an SWML document override (or
-// nil to fall through to the agent's default response).
+// currently-registered agents at the given path. The callback fires on every
+// incoming POST request to that path as callback_fn(body, headers) and returns a
+// non-nil route string to redirect (HTTP 307) or nil to fall through to the
+// agent's default response.
 //
 // This is the Go equivalent of Python's
 // AgentServer.register_global_routing_callback(callback_fn, path).
@@ -531,19 +556,19 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 				return
 			}
 
-			agentRoute, ok := sipUsernames[username]
+			// Case-insensitive lookup (usernames are stored lowercased).
+			agentRoute, ok := sipUsernames[strings.ToLower(username)]
 			if !ok {
 				http.Error(w, fmt.Sprintf("no agent for SIP username %q", username), http.StatusNotFound)
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(map[string]string{
-				"action": "redirect",
-				"route":  agentRoute,
-			}); err != nil {
-				s.logger.Warn("failed to write SIP redirect response: %s", err)
-			}
+			// Cross-agent SIP match: redirect to the mapped agent's route.
+			// Matches Python's routing-callback semantics (swml_service:
+			// a route-string return => (307, {"Location": route}, "")).
+			// 307 (not 302) preserves the POST method + body on the redirect.
+			w.Header().Set("Location", agentRoute)
+			w.WriteHeader(http.StatusTemporaryRedirect)
 		})
 	}
 
@@ -601,22 +626,39 @@ func (s *AgentServer) buildMux() *http.ServeMux {
 // ---------------------------------------------------------------------------
 
 // extractSIPUsername extracts the SIP username from an inbound SIP routing
-// request body.  It checks common field paths used by SignalWire.
+// request body. It checks common field paths used by SignalWire and, crucially,
+// parses SIP/TEL URIs down to the bare username so a body like
+// {"call":{"to":"sip:support@host"}} yields "support" — matching the username
+// form that RegisterSIPUsername stores (and the reference
+// swml.ExtractSIPUsername / Python extract_sip_username). Returning the raw URI
+// here would make every real SIP body miss the mapping (stored-but-unmatchable).
 func extractSIPUsername(body map[string]any) string {
-	// Try top-level "sip_username"
+	// Try top-level "sip_username" (already a bare username by contract).
 	if u, ok := body["sip_username"].(string); ok && u != "" {
 		return u
 	}
-	// Try nested "call.to" or "to"
-	if to, ok := body["to"].(string); ok && to != "" {
-		return to
+	// Nested "call.to" is the canonical SignalWire SIP field; parse its URI via
+	// the shared reference implementation.
+	if u := swml.ExtractSIPUsername(body); u != "" {
+		return u
 	}
-	if call, ok := body["call"].(map[string]any); ok {
-		if to, ok := call["to"].(string); ok && to != "" {
-			return to
-		}
+	// Fall back to a top-level "to", parsing a SIP/TEL URI if present.
+	if to, ok := body["to"].(string); ok && to != "" {
+		return parseSIPURIUsername(to)
 	}
 	return ""
+}
+
+// parseSIPURIUsername extracts the username portion of a SIP/TEL URI, or
+// returns the value unchanged when it is already a bare username. Mirrors
+// swml.ExtractSIPUsername's URI handling for the top-level "to" field.
+func parseSIPURIUsername(to string) string {
+	to = strings.TrimPrefix(to, "sip:")
+	to = strings.TrimPrefix(to, "tel:")
+	if idx := strings.Index(to, "@"); idx > 0 {
+		return to[:idx]
+	}
+	return to
 }
 
 // addSecurityHeaders wraps an http.Handler to include standard security
