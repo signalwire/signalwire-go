@@ -32,7 +32,7 @@ func main() {
 	_ = agent
 
 	// Search for a phone number
-	results, err := client.PhoneNumbers.Search(map[string]string{"area_code": "512"})
+	results, err := client.PhoneNumbers.Search(map[string]string{"areacode": "512"})
 	_ = results
 
 	// Place a call via REST

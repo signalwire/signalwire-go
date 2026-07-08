@@ -40,7 +40,7 @@ func main() {
 
 	// Search for available phone numbers:
 	//   available, err := client.PhoneNumbers.Search(map[string]string{
-	//       "area_code": "312",
+	//       "areacode": "312",
 	//   })
 
 	// List recordings:

@@ -30,7 +30,7 @@ func main() {
 	})
 
 	// Search for a phone number
-	results, _ := client.PhoneNumbers.Search(map[string]string{"area_code": "512"})
+	results, _ := client.PhoneNumbers.Search(map[string]string{"areacode": "512"})
 
 	// Place a call via REST
 	_, _ = client.Calling.Dial(namespaces.CallingNamespaceDialParams{

@@ -39,7 +39,7 @@ All 13 resource types share the same methods:
 ```go
 // List all resources of this type
 items, err := client.Fabric.AIAgents.List(nil)
-items, err = client.Fabric.AIAgents.List(map[string]string{"page": "2", "page_size": "10"})
+items, err = client.Fabric.AIAgents.List(map[string]string{"page_number": "2", "page_size": "10"})
 
 // Create a new resource
 agent, err := client.Fabric.AIAgents.Create(map[string]any{

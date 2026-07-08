@@ -51,7 +51,9 @@ func main() {
 		playAction := call.Play([]map[string]any{
 			{
 				"type": "tts",
-				"text": "Hello! Thank you for calling. This is a demo of the SignalWire RELAY SDK for Go. Goodbye!",
+				"params": map[string]any{
+					"text": "Hello! Thank you for calling. This is a demo of the SignalWire RELAY SDK for Go. Goodbye!",
+				},
 			},
 		})
 
