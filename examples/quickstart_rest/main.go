@@ -36,7 +36,7 @@ func main() {
 		Url:  ptr("https://example.com/call-handler"),
 	})
 
-	results, _ := client.PhoneNumbers.Search(map[string]string{"area_code": "512"})
+	results, _ := client.PhoneNumbers.Search(map[string]string{"areacode": "512"})
 	fmt.Println(results)
 }
 
