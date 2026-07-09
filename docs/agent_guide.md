@@ -513,14 +513,15 @@ func main() {}
 You can test external webhook functions using the CLI tool:
 
 ```bash
+# Start the agent first, then drive it over HTTP via --url.
 # Test local function
-swaig-test ./cmd/my_agent --exec get_help
+swaig-test --url http://localhost:3000/ --exec get_help
 
-# Test external webhook function
-swaig-test ./cmd/my_agent --verbose --exec get_weather --location "New York"
+# Test external webhook function (pass args with --param key=value)
+swaig-test --url http://localhost:3000/ --verbose --exec get_weather --param location="New York"
 
 # List all functions with their types
-swaig-test ./cmd/my_agent --list-tools
+swaig-test --url http://localhost:3000/ --list-tools
 ```
 
 The CLI tool will automatically detect external webhook functions and make HTTP requests to the external services, simulating what SignalWire does in production.
@@ -2908,176 +2909,68 @@ The SDK provides several endpoints for different purposes:
 
 ## Testing
 
-The SignalWire AI Agent SDK provides comprehensive testing capabilities through the `swaig-test` CLI tool, which allows you to test agents locally and simulate serverless environments without deployment.
+The SignalWire AI Agent SDK provides testing capabilities through the `swaig-test`
+CLI tool. Unlike the Python tool (which loads an agent source file), the Go
+`swaig-test` drives a **running** agent over HTTP via `--url` — so start the agent
+in one terminal, then point the CLI at its URL. Function arguments are passed with
+repeatable `--param key=value` flags.
 
 ### Local Agent Testing
 
-Test your agents locally before deployment:
+Start the agent, then test it over HTTP:
 
 ```bash
-# Discover agents in a program
-swaig-test ./cmd/my_agent
+# Terminal 1: run the agent (serves on whatever host:port/route it configures)
+go run ./cmd/my_agent
 
+# Terminal 2: exercise it over HTTP
 # List available functions
-swaig-test ./cmd/my_agent --list-tools
+swaig-test --url http://localhost:3000/ --list-tools
 
-# Test SWAIG functions
-swaig-test ./cmd/my_agent --exec get_weather --location "New York"
+# Test a SWAIG function (pass args with --param key=value)
+swaig-test --url http://localhost:3000/ --exec get_weather --param location="New York"
 
-# Generate SWML documents
-swaig-test ./cmd/my_agent --dump-swml
+# Generate the SWML document
+swaig-test --url http://localhost:3000/ --dump-swml
 ```
 
 ### Serverless Environment Simulation
 
-Test your agents in simulated serverless environments to ensure they work correctly when deployed:
-
-#### AWS Lambda Testing
+The Go CLI implements Lambda simulation only. `--simulate-serverless lambda`
+applies the Lambda mode-detection env vars around the invocation (and clears
+`SWML_PROXY_URL_BASE`) so platform-specific URL generation is exercised. It
+requires `--url` — Go agents are compiled binaries, so the CLI simulates by
+running the live agent URL with the platform env applied. Other platforms
+(CGI / Cloud Functions / Azure) are not implemented by the Go CLI.
 
 ```bash
-# Basic Lambda environment simulation
-swaig-test ./cmd/my_agent --simulate-serverless lambda --dump-swml
+# Lambda environment simulation while dumping SWML
+swaig-test --url http://localhost:3000/ --simulate-serverless lambda --dump-swml
 
-# Test with custom Lambda configuration
-swaig-test ./cmd/my_agent --simulate-serverless lambda \
-  --aws-function-name my-production-function \
-  --aws-region us-west-2 \
-  --exec my_function --param value
-
-# Test function execution in Lambda context
-swaig-test ./cmd/my_agent --simulate-serverless lambda \
-  --exec get_weather --location "Miami" \
-  --full-request
+# Function execution in a simulated Lambda context
+swaig-test --url http://localhost:3000/ --simulate-serverless lambda \
+  --exec get_weather --param location="Miami"
 ```
 
-#### CGI Environment Testing
+For true in-process adapter dispatch (no running server), call
+`SimulateDumpSWMLViaLambda` / `SimulateExecToolViaLambda` from `package main`
+directly — see `cmd/swaig-test/simulate.go`.
+
+### Inspecting a Compiled Example
+
+To introspect a compiled example binary's tool registry without HTTP, use
+`--example NAME` (list-tools only):
 
 ```bash
-# Test CGI environment
-swaig-test ./cmd/my_agent --simulate-serverless cgi \
-  --cgi-host my-server.com \
-  --cgi-https \
-  --dump-swml
-
-# Test function in CGI context
-swaig-test ./cmd/my_agent --simulate-serverless cgi \
-  --cgi-host example.com \
-  --exec my_function --param value
-```
-
-#### Google Cloud Functions Testing
-
-```bash
-# Test Cloud Functions environment
-swaig-test ./cmd/my_agent --simulate-serverless cloud_function \
-  --gcp-project my-project \
-  --gcp-function-url https://my-function.cloudfunctions.net \
-  --dump-swml
-```
-
-#### Azure Functions Testing
-
-```bash
-# Test Azure Functions environment
-swaig-test ./cmd/my_agent --simulate-serverless azure_function \
-  --azure-env production \
-  --azure-function-url https://my-function.azurewebsites.net \
-  --exec my_function
-```
-
-### Environment Variable Management
-
-Use environment files for consistent testing across different platforms:
-
-```bash
-# Create environment file for production testing
-cat > production.env << EOF
-AWS_LAMBDA_FUNCTION_NAME=prod-my-agent
-AWS_REGION=us-east-1
-API_KEY=prod_api_key_123
-DEBUG=false
-TIMEOUT=60
-EOF
-
-# Test with environment file
-swaig-test ./cmd/my_agent --simulate-serverless lambda \
-  --env-file production.env \
-  --exec critical_function --input "test"
-
-# Override specific variables
-swaig-test ./cmd/my_agent --simulate-serverless lambda \
-  --env-file production.env \
-  --env DEBUG=true \
-  --dump-swml
-```
-
-### Cross-Platform Testing
-
-Test the same agent across multiple platforms to ensure compatibility:
-
-```bash
-# Test across all platforms
-for platform in lambda cgi cloud_function azure_function; do
-  echo "Testing $platform..."
-  swaig-test ./cmd/my_agent --simulate-serverless $platform \
-    --exec my_function --param value
-done
-
-# Compare SWML generation across platforms
-swaig-test ./cmd/my_agent --simulate-serverless lambda --dump-swml > lambda.swml
-swaig-test ./cmd/my_agent --simulate-serverless cgi --cgi-host example.com --dump-swml > cgi.swml
-diff lambda.swml cgi.swml
-```
-
-### Webhook URL Verification
-
-The serverless simulation automatically generates platform-appropriate webhook URLs:
-
-| Platform | Example Webhook URL |
-|----------|-------------------|
-| Lambda (Function URL) | `https://abc123.lambda-url.us-east-1.on.aws/swaig/` |
-| Lambda (API Gateway) | `https://api123.execute-api.us-east-1.amazonaws.com/prod/swaig/` |
-| CGI | `https://example.com/cgi-bin/agent.cgi/swaig/` |
-| Cloud Functions | `https://my-function-abc123.cloudfunctions.net/swaig/` |
-| Azure Functions | `https://my-function.azurewebsites.net/swaig/` |
-
-Verify webhook URLs are generated correctly:
-
-```bash
-# Check Lambda webhook URL
-swaig-test ./cmd/my_agent --simulate-serverless lambda \
-  --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.defaults.web_hook_url'
-
-# Check CGI webhook URL
-swaig-test ./cmd/my_agent --simulate-serverless cgi \
-  --cgi-host my-production-server.com \
-  --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.defaults.web_hook_url'
+swaig-test --example my_example --list-tools
 ```
 
 ### Testing Best Practices
 
-1. **Test locally first**: Always test your agent in local mode before serverless simulation
-2. **Test target platforms**: Test on all platforms where you plan to deploy
-3. **Use environment files**: Create reusable environment configurations for different stages
-4. **Verify webhook URLs**: Ensure URLs are generated correctly for your target platform
-5. **Test function execution**: Verify that functions work correctly in serverless context
-6. **Use verbose mode**: Enable `--verbose` for debugging environment setup and execution
-
-### Multi-Agent Testing
-
-For programs with multiple agents, specify which agent to test:
-
-```bash
-# Discover available agents
-swaig-test ./cmd/multi_agent --list-agents
-
-# Test specific agent
-swaig-test ./cmd/multi_agent --agent MyAgent --simulate-serverless lambda --dump-swml
-
-# Test different agents across platforms
-swaig-test ./cmd/multi_agent --agent AgentA --simulate-serverless lambda --exec function1
-swaig-test ./cmd/multi_agent --agent AgentB --simulate-serverless cgi --cgi-host example.com --exec function2
-```
+1. **Run the agent first**: the CLI drives a live server over `--url`.
+2. **Pass args as `--param key=value`**: repeat the flag for multiple arguments.
+3. **Use `--raw`**: emit compact JSON (e.g. to pipe into `jq`).
+4. **Use `--verbose`**: show request/response details for debugging.
 
 For more detailed testing documentation, see the [CLI Guide](cli_guide.md).
 

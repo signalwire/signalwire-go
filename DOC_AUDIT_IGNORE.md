@@ -103,7 +103,6 @@ error: Python logger.error level method in docs/agent_guide.md python block
 error_keys: Python DataMap keyword shown in docs/api_reference.md
 expression: Python DataMap.expression keyword shown in docs/api_reference.md
 foreach: Python DataMap.foreach keyword shown in docs/api_reference.md
-get_config: Python config helper illustrated in docs/configuration.md python block
 hangup: Python FunctionResult.hangup — Go FunctionResult.Hangup
 hold: Python FunctionResult.hold — Go FunctionResult.Hold
 info: Python logger.info level method in docs/agent_guide.md python block
