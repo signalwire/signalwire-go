@@ -306,17 +306,14 @@ sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-rej
 # (defer, blocking). SNIPPET-RUN is dynamic-ports-only; for go it self-skips
 # (SNIPPET-COMPILE covers the compiled port) — wired report-only so the self-skip
 # never fails the run.
-sched_gate SNIPPET-COMPILE desc="documented code snippets compile against the real SDK" \
-    -- python3 "$PORTING_SDK_DIR/scripts/snippet_compile.py" --port go --repo "$PORT_ROOT"
+sched_gate SNIPPET-COMPILE tier=nightly desc="documented code snippets compile against the real SDK" \    -- python3 "$PORTING_SDK_DIR/scripts/snippet_compile.py" --port go --repo "$PORT_ROOT"
 
 sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
     -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port go --repo "$PORT_ROOT"
 
-sched_gate EXAMPLES-RUN defer=1 desc="shipped examples load/compile (modulo EXAMPLES_RUN_ALLOW.md)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port go --repo "$PORT_ROOT"
+sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/compile (modulo EXAMPLES_RUN_ALLOW.md)" \    -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port go --repo "$PORT_ROOT"
 
-sched_gate SNIPPET-RUN defer=1 desc="dynamic-port doc snippets run to a zero exit (go: self-skips, SNIPPET-COMPILE covers it)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port go --repo "$PORT_ROOT" --report-only
+sched_gate SNIPPET-RUN tier=nightly defer=1 desc="dynamic-port doc snippets run to a zero exit (go: self-skips, SNIPPET-COMPILE covers it)" \    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port go --repo "$PORT_ROOT" --report-only
 
 # ---- §G anti-laundering ledger ----------------------------------------------
 sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions" \
