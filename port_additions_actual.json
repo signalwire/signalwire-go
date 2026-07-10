@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ b7ad3ea478b7cb8671aa7a09177ff04585aaa432",
+  "generated_from": "signalwire-go @ 40e2d9ae0405b8db6835a436ab157f82f97362d5",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
@@ -116,6 +116,7 @@
     "builtin.NewWikipediaSearch",
     "contexts.WithConfirm",
     "contexts.WithFunctions",
+    "contexts.WithIsolated",
     "contexts.WithPrompt",
     "contexts.WithType",
     "lambda.NewHandler",

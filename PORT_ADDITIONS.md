@@ -255,6 +255,7 @@ builtin.NewWebSearch: Go factory constructor for a port-only struct; Python equi
 builtin.NewWikipediaSearch: Go factory constructor for a port-only struct; Python equivalent does not exist
 contexts.WithConfirm: Go functional-options helper; encodes a Python kwarg for the matching constructor
 contexts.WithFunctions: Go functional-options helper; encodes a Python kwarg for the matching constructor
+contexts.WithIsolated: Go functional-options helper; encodes the per-question isolated kwarg (GatherQuestion.isolated) for AddGatherQuestion
 contexts.WithPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
 contexts.WithType: Go functional-options helper; encodes a Python kwarg for the matching constructor
 lambda.NewHandler: Go factory constructor for a port-only struct; Python equivalent does not exist

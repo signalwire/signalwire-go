@@ -88,6 +88,15 @@ func WithFunctions(f []string) GatherQuestionOption {
 	return func(q *GatherQuestion) { q.Functions = f }
 }
 
+// WithIsolated overrides the gather's isolated default for this one question.
+// It is tri-state: true hides the sibling Q&A while this question is asked;
+// false keeps it visible even inside an isolated gather; leaving it unset
+// (never calling WithIsolated) inherits the gather-level default. The hidden
+// turns remain in the call log.
+func WithIsolated(isolated bool) GatherQuestionOption {
+	return func(q *GatherQuestion) { q.Isolated = &isolated }
+}
+
 // GatherQuestion represents a single question in a gather_info configuration.
 type GatherQuestion struct {
 	Key       string
@@ -96,6 +105,10 @@ type GatherQuestion struct {
 	Confirm   bool
 	Prompt    string   // optional
 	Functions []string // optional
+	// Isolated is tri-state: nil means "inherit the gather_info default"; a
+	// non-nil value (even *false) is emitted on the wire so it can override an
+	// isolated gather.
+	Isolated *bool
 }
 
 // ToMap serialises the question to the SWML map format.
@@ -116,6 +129,11 @@ func (q *GatherQuestion) ToMap() map[string]any {
 	if len(q.Functions) > 0 {
 		m["functions"] = q.Functions
 	}
+	// Emitted even when *false, so it can override an isolated gather; omitted
+	// only when unset (nil).
+	if q.Isolated != nil {
+		m["isolated"] = *q.Isolated
+	}
 	return m
 }
 
@@ -129,6 +147,11 @@ type GatherInfo struct {
 	CompletionAction string
 	Prompt           string
 	Questions        []GatherQuestion
+	// Isolated is the default for every question in this gather. When true, a
+	// question is asked with the sibling Q&A hidden from the model, so it must
+	// ask rather than derive the answer. A question's own Isolated overrides
+	// this. Emitted on the wire only when true (a false default is omitted).
+	Isolated bool
 }
 
 // AddQuestion appends a question and returns the GatherInfo for chaining.
@@ -176,6 +199,10 @@ func (g *GatherInfo) ToMap() map[string]any {
 	}
 	if g.CompletionAction != "" {
 		m["completion_action"] = g.CompletionAction
+	}
+	// Gather-level default: emitted only when truthy (a false default is omitted).
+	if g.Isolated {
+		m["isolated"] = true
 	}
 	return m
 }
@@ -311,11 +338,18 @@ func (s *Step) SetSkipToNextStep(skip bool) *Step {
 //
 // To add questions to the gather info, use AddGatherQuestion on the same
 // *Step receiver.
-func (s *Step) SetGatherInfo(outputKey, completionAction, prompt string) *Step {
+//
+// isolated is the default visibility for every question in this gather. When
+// true, each question is asked with the sibling Q&A hidden from the model, so
+// it must ask rather than derive the answer from an earlier one. A question's
+// own isolated override (via WithIsolated on AddGatherQuestion) takes
+// precedence. The hidden turns remain in the call log.
+func (s *Step) SetGatherInfo(outputKey, completionAction, prompt string, isolated bool) *Step {
 	s.gatherInfo = &GatherInfo{
 		OutputKey:        outputKey,
 		CompletionAction: completionAction,
 		Prompt:           prompt,
+		Isolated:         isolated,
 	}
 	return s
 }

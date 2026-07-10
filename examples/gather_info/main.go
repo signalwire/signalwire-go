@@ -40,7 +40,7 @@ func main() {
 	// Step 1: Gather patient demographics
 	step1 := ctx.AddStep("demographics")
 	step1.SetText("Collect the patient's basic information.")
-	step1.SetGatherInfo("patient_demographics", "", "Please collect the following patient information.")
+	step1.SetGatherInfo("patient_demographics", "", "Please collect the following patient information.", false)
 	step1.AddGatherQuestion("full_name", "What is your full name?")
 	step1.AddGatherQuestion("date_of_birth", "What is your date of birth?")
 	step1.AddGatherQuestion("phone_number", "What is your phone number?", contexts.WithConfirm(true))
@@ -50,7 +50,7 @@ func main() {
 	// Step 2: Gather symptoms
 	step2 := ctx.AddStep("symptoms")
 	step2.SetText("Ask about the patient's current symptoms and reason for visit.")
-	step2.SetGatherInfo("patient_symptoms", "", "Now let's talk about why you're visiting today.")
+	step2.SetGatherInfo("patient_symptoms", "", "Now let's talk about why you're visiting today.", false)
 	step2.AddGatherQuestion("reason_for_visit", "What is the main reason for your visit today?")
 	step2.AddGatherQuestion("symptom_duration", "How long have you been experiencing these symptoms?")
 	step2.AddGatherQuestion("pain_level", "On a scale of 1 to 10, how would you rate your discomfort?")
