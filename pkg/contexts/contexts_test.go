@@ -863,3 +863,100 @@ func containsStr(s, sub string) bool {
 	}
 	return false
 }
+
+// ---------------------------------------------------------------------------
+// set_history — parity with Python Step.set_history / Context.set_history
+// ---------------------------------------------------------------------------
+
+// TestStepSetHistoryEmitsKey verifies each valid mode is emitted under the
+// "history" key on a step's serialized map.
+func TestStepSetHistoryEmitsKey(t *testing.T) {
+	for _, mode := range []string{"keep", "default", "hide"} {
+		step := &Step{name: "s"}
+		got := step.SetText("hi").SetHistory(mode).ToMap()
+		if got["history"] != mode {
+			t.Fatalf("mode %q: expected history=%q, got %v", mode, mode, got["history"])
+		}
+	}
+}
+
+// TestStepSetHistoryFluent verifies SetHistory returns the same *Step for
+// chaining.
+func TestStepSetHistoryFluent(t *testing.T) {
+	step := &Step{name: "s"}
+	if step.SetHistory("keep") != step {
+		t.Fatal("SetHistory must return the receiver for chaining")
+	}
+}
+
+// TestStepHistoryOmittedWhenUnset verifies the "history" key is absent when
+// SetHistory was never called.
+func TestStepHistoryOmittedWhenUnset(t *testing.T) {
+	step := &Step{name: "s"}
+	m := step.SetText("hi").ToMap()
+	if _, ok := m["history"]; ok {
+		t.Fatal("history key must be omitted when unset")
+	}
+}
+
+// TestContextSetHistoryEmitsKey verifies each valid mode is emitted under the
+// "history" key on a context's serialized map.
+func TestContextSetHistoryEmitsKey(t *testing.T) {
+	for _, mode := range []string{"keep", "default", "hide"} {
+		ctx := newContext("default")
+		ctx.AddStep("s").SetText("hi")
+		got := ctx.SetHistory(mode).ToMap()
+		if got["history"] != mode {
+			t.Fatalf("mode %q: expected history=%q, got %v", mode, mode, got["history"])
+		}
+	}
+}
+
+// TestContextSetHistoryFluent verifies SetHistory returns the same *Context.
+func TestContextSetHistoryFluent(t *testing.T) {
+	ctx := newContext("default")
+	if ctx.SetHistory("hide") != ctx {
+		t.Fatal("SetHistory must return the receiver for chaining")
+	}
+}
+
+// TestContextHistoryOmittedWhenUnset verifies the "history" key is absent when
+// SetHistory was never called on the context.
+func TestContextHistoryOmittedWhenUnset(t *testing.T) {
+	ctx := newContext("default")
+	ctx.AddStep("s").SetText("hi")
+	m := ctx.ToMap()
+	if _, ok := m["history"]; ok {
+		t.Fatal("history key must be omitted when unset")
+	}
+}
+
+// TestSetHistoryInvalidModeRejected verifies an invalid history mode is
+// rejected at validation time, on both the context and a step.
+func TestSetHistoryInvalidModeRejected(t *testing.T) {
+	// Invalid mode on a step.
+	cb := NewContextBuilder()
+	ctx := cb.AddContext("default")
+	ctx.AddStep("s").SetText("hi").SetHistory("bogus")
+	if err := cb.Validate(); err == nil {
+		t.Fatal("expected Validate() to reject invalid step history mode")
+	}
+
+	// Invalid mode on a context.
+	cb2 := NewContextBuilder()
+	ctx2 := cb2.AddContext("default")
+	ctx2.AddStep("s").SetText("hi")
+	ctx2.SetHistory("bogus")
+	if err := cb2.Validate(); err == nil {
+		t.Fatal("expected Validate() to reject invalid context history mode")
+	}
+
+	// A valid mode passes validation.
+	cb3 := NewContextBuilder()
+	ctx3 := cb3.AddContext("default")
+	ctx3.AddStep("s").SetText("hi").SetHistory("keep")
+	ctx3.SetHistory("hide")
+	if err := cb3.Validate(); err != nil {
+		t.Fatalf("unexpected error for valid history modes: %v", err)
+	}
+}

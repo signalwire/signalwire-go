@@ -20,6 +20,29 @@ const (
 	MaxStepsPerContext = 100
 )
 
+// HistoryModes is the set of valid values for a step's or context's history
+// visibility mode. It controls what the model still sees when a step is
+// entered:
+//
+//   - "keep":    clear nothing — every prior step's instructions and dialogue
+//     stay visible to the model.
+//   - "default": hide the prior step instructions, keep the user/assistant
+//     dialogue. This is the runtime default when unset.
+//   - "hide":    hide the prior instructions AND pull the prior dialogue out of
+//     the model's context. Pair it with a ${step_history.*} reference in the
+//     step text to choose exactly what comes back.
+var HistoryModes = [...]string{"keep", "default", "hide"}
+
+// validateHistory returns an error if mode is not one of HistoryModes.
+func validateHistory(mode string) error {
+	for _, m := range HistoryModes {
+		if mode == m {
+			return nil
+		}
+	}
+	return fmt.Errorf("history must be one of %v, got %q", HistoryModes, mode)
+}
+
 // ReservedNativeToolNames is the set of tool names the runtime auto-injects
 // when contexts/steps are present. User-defined SWAIG tools must not
 // collide with these names.
@@ -179,6 +202,7 @@ type Step struct {
 	resetUserPrompt   string
 	resetConsolidate  *bool
 	resetFullReset    *bool
+	history           string // "" means unset; one of HistoryModes when set
 }
 
 // Name returns the step's name.
@@ -332,6 +356,31 @@ func (s *Step) ClearSections() *Step {
 	return s
 }
 
+// SetHistory controls what the model still sees when this step is entered.
+//
+// The mode applies at the moment this step is entered and governs everything
+// that came before it — including the turn that triggered the transition. It
+// does not affect this step's own turns, which accumulate fresh. Nothing is
+// deleted: the call log keeps every message.
+//
+// history must be one of:
+//
+//   - "keep":    clear nothing. Every prior step's instructions and dialogue
+//     stay visible to the model.
+//   - "default": hide the prior step instructions, keep the user/assistant
+//     dialogue. This is the default when unset.
+//   - "hide":    hide the prior instructions AND pull the prior dialogue out of
+//     the model's context. Pair it with a ${step_history.*} reference in this
+//     step's text to choose exactly what comes back.
+//
+// An invalid mode is rejected by ContextBuilder.Validate() (and hence ToMap),
+// mirroring how the other validated configuration surfaces defer their errors
+// to validation time. Returns the Step for chaining.
+func (s *Step) SetHistory(history string) *Step {
+	s.history = history
+	return s
+}
+
 // SetResetSystemPrompt sets the system prompt for context switching.
 func (s *Step) SetResetSystemPrompt(prompt string) *Step {
 	s.resetSystemPrompt = prompt
@@ -410,6 +459,9 @@ func (s *Step) ToMap() map[string]any {
 	if s.skipToNextStep {
 		m["skip_to_next_step"] = true
 	}
+	if s.history != "" {
+		m["history"] = s.history
+	}
 
 	// Build reset object if any reset field is set.
 	reset := map[string]any{}
@@ -460,6 +512,7 @@ type Context struct {
 	systemSections []map[string]any
 	enterFillers   map[string][]string
 	exitFillers    map[string][]string
+	history        string // "" means unset; one of HistoryModes when set
 }
 
 // newContext creates a Context with the given name.
@@ -612,6 +665,17 @@ func (c *Context) SetIsolated(isolated bool) *Context {
 	return c
 }
 
+// SetHistory sets the default history visibility mode for every step in this
+// context. A step's own SetHistory overrides this. See Step.SetHistory for
+// what each mode does and the accepted values ("keep", "default", "hide").
+//
+// An invalid mode is rejected by ContextBuilder.Validate() (and hence ToMap).
+// Returns the Context for chaining.
+func (c *Context) SetHistory(history string) *Context {
+	c.history = history
+	return c
+}
+
 // AddSection adds a POM section to the context prompt.
 func (c *Context) AddSection(title, body string) *Context {
 	c.sections = append(c.sections, map[string]any{"title": title, "body": body})
@@ -745,6 +809,9 @@ func (c *Context) ToMap() map[string]any {
 	}
 	if c.exitFillers != nil {
 		m["exit_fillers"] = c.exitFillers
+	}
+	if c.history != "" {
+		m["history"] = c.history
 	}
 
 	return m
@@ -1006,6 +1073,24 @@ func (cb *ContextBuilder) Validate() error {
 						"(stay in the current step), or one of %v",
 					step.name, ctx.name, action, action, sortedAvailable,
 				)
+			}
+		}
+	}
+
+	// Validate history visibility modes on contexts and their steps. An unset
+	// history ("") is allowed and simply omitted from the wire; a non-empty
+	// value must be one of HistoryModes.
+	for _, ctx := range cb.contexts {
+		if ctx.history != "" {
+			if err := validateHistory(ctx.history); err != nil {
+				return fmt.Errorf("context %q: %w", ctx.name, err)
+			}
+		}
+		for _, step := range ctx.steps {
+			if step.history != "" {
+				if err := validateHistory(step.history); err != nil {
+					return fmt.Errorf("step %q in context %q: %w", step.name, ctx.name, err)
+				}
 			}
 		}
 	}

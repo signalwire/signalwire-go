@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ fe9816ef441830116e2b278342dfb036f57c85fc (go/ast walker)",
+  "generated_from": "signalwire-go @ b7ad3ea478b7cb8671aa7a09177ff04585aaa432 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -1316,6 +1316,20 @@
               ],
               "returns": "class:signalwire.core.contexts.Context"
             },
+            "set_history": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "history",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.contexts.Context"
+            },
             "set_initial_step": {
               "params": [
                 {
@@ -1676,6 +1690,20 @@
                 },
                 {
                   "name": "prompt",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.contexts.Step"
+            },
+            "set_history": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "history",
                   "type": "string",
                   "required": true
                 }
