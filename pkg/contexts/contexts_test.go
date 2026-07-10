@@ -1040,7 +1040,10 @@ func TestAddGatherQuestionIsolatedOverride(t *testing.T) {
 		AddGatherQuestion("inherits", "Q1?").
 		AddGatherQuestion("overrides", "Q2?", WithIsolated(false))
 
-	gi := step.ToMap()["gather_info"].(map[string]any)
+	gi, ok := step.ToMap()["gather_info"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected gather_info map, got %T", step.ToMap()["gather_info"])
+	}
 	questions, ok := gi["questions"].([]map[string]any)
 	if !ok {
 		t.Fatalf("expected questions slice, got %T", gi["questions"])
