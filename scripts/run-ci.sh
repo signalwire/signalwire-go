@@ -299,6 +299,33 @@ sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-rej
         --has-serverless \
         --serverless-argv='--url|http://user:pass@127.0.0.1:1/|--simulate-serverless|bogus-platform-xyz|--dump-swml'
 
+# ---- §C1 doc/example/CLI execution gates ------------------------------------
+# SNIPPET-COMPILE (typecheck doc code fences with the real SDK linked) + DOC-CLI
+# (probe documented swaig-test invocations against the real CLI's parser) are
+# cheap → cheap wave, blocking. EXAMPLES-RUN executes/loads the shipped examples
+# (defer, blocking). SNIPPET-RUN is dynamic-ports-only; for go it self-skips
+# (SNIPPET-COMPILE covers the compiled port) — wired report-only so the self-skip
+# never fails the run.
+sched_gate SNIPPET-COMPILE tier=nightly desc="documented code snippets compile against the real SDK" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_compile.py" --port go --repo "$PORT_ROOT"
+
+sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port go --repo "$PORT_ROOT"
+
+sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/compile (modulo EXAMPLES_RUN_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port go --repo "$PORT_ROOT"
+
+sched_gate SNIPPET-RUN tier=nightly defer=1 desc="dynamic-port doc snippets run to a zero exit (go: self-skips, SNIPPET-COMPILE covers it)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port go --repo "$PORT_ROOT" --report-only
+
+# ---- §G anti-laundering ledger ----------------------------------------------
+sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suppression_ledger.py" --port go --repo "$PORT_ROOT"
+
+# ---- §D1 packaging ----------------------------------------------------------
+sched_gate PACKAGE-SMOKE defer=1 desc="the real publishable module builds + imports from a clean env" \
+    -- python3 "$PORTING_SDK_DIR/scripts/package_smoke.py" --port go --repo "$PORT_ROOT"
+
 # ---- Day-one deterministic gates --------------------------------------------
 # ARTIFACT-DENY uses the git ls-files PROXY (not --listing): go publishes no
 # package artifact with an include/exclude manifest, so there is no authoritative

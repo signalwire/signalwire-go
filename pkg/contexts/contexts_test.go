@@ -253,7 +253,7 @@ func TestContextRemoveStep(t *testing.T) {
 func TestGatherInfo(t *testing.T) {
 	step := &Step{name: "gather"}
 	step.SetText("Collecting info")
-	step.SetGatherInfo("user_data", "next_step", "Let me ask you some questions").
+	step.SetGatherInfo("user_data", "next_step", "Let me ask you some questions", false).
 		AddGatherQuestion("name", "What is your name?").
 		AddGatherQuestion("email", "What is your email?", WithType("string"), WithConfirm(true))
 
@@ -808,7 +808,7 @@ func TestGatherInfoInBuilder(t *testing.T) {
 	ctx := cb.AddContext("default")
 	step := ctx.AddStep("collect")
 	step.SetText("Collecting info")
-	step.SetGatherInfo("answers", "process", "I need to ask a few things").
+	step.SetGatherInfo("answers", "process", "I need to ask a few things", false).
 		AddGatherQuestion("age", "How old are you?", WithType("integer")).
 		AddGatherQuestion("city", "Where do you live?")
 	// A completion_action of "process" must target a real step for
@@ -862,4 +862,205 @@ func containsStr(s, sub string) bool {
 		}
 	}
 	return false
+}
+
+// ---------------------------------------------------------------------------
+// set_history — parity with Python Step.set_history / Context.set_history
+// ---------------------------------------------------------------------------
+
+// TestStepSetHistoryEmitsKey verifies each valid mode is emitted under the
+// "history" key on a step's serialized map.
+func TestStepSetHistoryEmitsKey(t *testing.T) {
+	for _, mode := range []string{"keep", "default", "hide"} {
+		step := &Step{name: "s"}
+		got := step.SetText("hi").SetHistory(mode).ToMap()
+		if got["history"] != mode {
+			t.Fatalf("mode %q: expected history=%q, got %v", mode, mode, got["history"])
+		}
+	}
+}
+
+// TestStepSetHistoryFluent verifies SetHistory returns the same *Step for
+// chaining.
+func TestStepSetHistoryFluent(t *testing.T) {
+	step := &Step{name: "s"}
+	if step.SetHistory("keep") != step {
+		t.Fatal("SetHistory must return the receiver for chaining")
+	}
+}
+
+// TestStepHistoryOmittedWhenUnset verifies the "history" key is absent when
+// SetHistory was never called.
+func TestStepHistoryOmittedWhenUnset(t *testing.T) {
+	step := &Step{name: "s"}
+	m := step.SetText("hi").ToMap()
+	if _, ok := m["history"]; ok {
+		t.Fatal("history key must be omitted when unset")
+	}
+}
+
+// TestContextSetHistoryEmitsKey verifies each valid mode is emitted under the
+// "history" key on a context's serialized map.
+func TestContextSetHistoryEmitsKey(t *testing.T) {
+	for _, mode := range []string{"keep", "default", "hide"} {
+		ctx := newContext("default")
+		ctx.AddStep("s").SetText("hi")
+		got := ctx.SetHistory(mode).ToMap()
+		if got["history"] != mode {
+			t.Fatalf("mode %q: expected history=%q, got %v", mode, mode, got["history"])
+		}
+	}
+}
+
+// TestContextSetHistoryFluent verifies SetHistory returns the same *Context.
+func TestContextSetHistoryFluent(t *testing.T) {
+	ctx := newContext("default")
+	if ctx.SetHistory("hide") != ctx {
+		t.Fatal("SetHistory must return the receiver for chaining")
+	}
+}
+
+// TestContextHistoryOmittedWhenUnset verifies the "history" key is absent when
+// SetHistory was never called on the context.
+func TestContextHistoryOmittedWhenUnset(t *testing.T) {
+	ctx := newContext("default")
+	ctx.AddStep("s").SetText("hi")
+	m := ctx.ToMap()
+	if _, ok := m["history"]; ok {
+		t.Fatal("history key must be omitted when unset")
+	}
+}
+
+// TestSetHistoryInvalidModeRejected verifies an invalid history mode is
+// rejected at validation time, on both the context and a step.
+func TestSetHistoryInvalidModeRejected(t *testing.T) {
+	// Invalid mode on a step.
+	cb := NewContextBuilder()
+	ctx := cb.AddContext("default")
+	ctx.AddStep("s").SetText("hi").SetHistory("bogus")
+	if err := cb.Validate(); err == nil {
+		t.Fatal("expected Validate() to reject invalid step history mode")
+	}
+
+	// Invalid mode on a context.
+	cb2 := NewContextBuilder()
+	ctx2 := cb2.AddContext("default")
+	ctx2.AddStep("s").SetText("hi")
+	ctx2.SetHistory("bogus")
+	if err := cb2.Validate(); err == nil {
+		t.Fatal("expected Validate() to reject invalid context history mode")
+	}
+
+	// A valid mode passes validation.
+	cb3 := NewContextBuilder()
+	ctx3 := cb3.AddContext("default")
+	ctx3.AddStep("s").SetText("hi").SetHistory("keep")
+	ctx3.SetHistory("hide")
+	if err := cb3.Validate(); err != nil {
+		t.Fatalf("unexpected error for valid history modes: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// gather isolated flag — parity with Python (GatherQuestion.isolated,
+// GatherInfo.isolated, set_gather_info isolated, add_gather_question isolated)
+// ---------------------------------------------------------------------------
+
+// TestGatherQuestionIsolatedTristate verifies the per-question isolated flag is
+// tri-state on the wire: omitted when unset, emitted true when true, and
+// emitted even when explicitly false (so it can override an isolated gather).
+func TestGatherQuestionIsolatedTristate(t *testing.T) {
+	// Unset -> key omitted.
+	q := &GatherQuestion{Key: "k", Question: "Q?"}
+	if _, ok := q.ToMap()["isolated"]; ok {
+		t.Fatal("isolated must be omitted when unset")
+	}
+
+	// Explicit true -> emitted true.
+	qt := &GatherQuestion{Key: "k", Question: "Q?"}
+	WithIsolated(true)(qt)
+	if qt.ToMap()["isolated"] != true {
+		t.Fatalf("expected isolated=true, got %v", qt.ToMap()["isolated"])
+	}
+
+	// Explicit false -> emitted false (NOT omitted).
+	qf := &GatherQuestion{Key: "k", Question: "Q?"}
+	WithIsolated(false)(qf)
+	m := qf.ToMap()
+	v, ok := m["isolated"]
+	if !ok {
+		t.Fatal("explicit false isolated must be emitted, not omitted")
+	}
+	if v != false {
+		t.Fatalf("expected isolated=false, got %v", v)
+	}
+}
+
+// TestGatherInfoIsolatedGatherLevel verifies the gather-level isolated default
+// emits "isolated": true only when truthy.
+func TestGatherInfoIsolatedGatherLevel(t *testing.T) {
+	// False default -> omitted.
+	gi := &GatherInfo{}
+	gi.AddQuestion("k", "Q?")
+	if _, ok := gi.ToMap()["isolated"]; ok {
+		t.Fatal("gather-level isolated=false must be omitted")
+	}
+
+	// True -> emitted true.
+	giT := &GatherInfo{Isolated: true}
+	giT.AddQuestion("k", "Q?")
+	if giT.ToMap()["isolated"] != true {
+		t.Fatalf("expected gather isolated=true, got %v", giT.ToMap()["isolated"])
+	}
+}
+
+// TestSetGatherInfoIsolatedPassthrough verifies Step.SetGatherInfo threads the
+// isolated default into the built GatherInfo and onto the wire.
+func TestSetGatherInfoIsolatedPassthrough(t *testing.T) {
+	step := &Step{name: "g"}
+	step.SetText("collecting").
+		SetGatherInfo("out", "", "prompt", true).
+		AddGatherQuestion("k", "Q?")
+	gi, ok := step.ToMap()["gather_info"].(map[string]any)
+	if !ok {
+		t.Fatal("expected gather_info map")
+	}
+	if gi["isolated"] != true {
+		t.Fatalf("expected gather_info isolated=true, got %v", gi["isolated"])
+	}
+}
+
+// TestAddGatherQuestionIsolatedOverride verifies a per-question WithIsolated
+// override lands on that question's serialized map, independent of the
+// gather-level default.
+func TestAddGatherQuestionIsolatedOverride(t *testing.T) {
+	step := &Step{name: "g"}
+	step.SetText("collecting").
+		SetGatherInfo("out", "", "prompt", true).
+		AddGatherQuestion("inherits", "Q1?").
+		AddGatherQuestion("overrides", "Q2?", WithIsolated(false))
+
+	gi, ok := step.ToMap()["gather_info"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected gather_info map, got %T", step.ToMap()["gather_info"])
+	}
+	questions, ok := gi["questions"].([]map[string]any)
+	if !ok {
+		t.Fatalf("expected questions slice, got %T", gi["questions"])
+	}
+	if len(questions) != 2 {
+		t.Fatalf("expected 2 questions, got %d", len(questions))
+	}
+	// First question inherits the gather default -> no per-question key.
+	if _, ok := questions[0]["isolated"]; ok {
+		t.Fatal("inheriting question must not emit a per-question isolated key")
+	}
+	// Second question explicitly overrides to false -> emitted false.
+	v, ok := questions[1]["isolated"]
+	if !ok {
+		t.Fatal("overriding question must emit its isolated key")
+	}
+	if v != false {
+		t.Fatalf("expected override isolated=false, got %v", v)
+	}
 }

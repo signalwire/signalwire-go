@@ -76,19 +76,28 @@ func main() {
 }
 ```
 
-Test locally without running a server:
+Test an agent with the `swaig-test` CLI. Unlike the Python tool (which loads an
+agent source file), the Go tool drives a **running** agent over HTTP via `--url`,
+so start the agent first, then point `swaig-test` at its URL:
 
 ```bash
-go run ./cmd/swaig-test --list-tools ./examples/simple_agent/
-go run ./cmd/swaig-test --dump-swml ./examples/simple_agent/
-go run ./cmd/swaig-test --exec get_time ./examples/simple_agent/
+# Terminal 1: run the agent (this one serves on :3001/simple)
+go run ./examples/simple_agent/main.go
+
+# Terminal 2: introspect and exercise it over HTTP
+go run ./cmd/swaig-test --url http://localhost:3001/simple --list-tools
+go run ./cmd/swaig-test --url http://localhost:3001/simple --dump-swml
+go run ./cmd/swaig-test --url http://localhost:3001/simple --exec get_time
 ```
+
+See the [CLI Guide](docs/cli_guide.md) for the full flag set, including
+`--example NAME` to introspect a compiled example binary without HTTP.
 
 ### Agent Features
 
 - **Prompt Object Model (POM)** -- structured prompt composition via `PromptAddSection()`
 - **SWAIG tools** -- define functions with `DefineTool()` that the AI calls mid-conversation, with native access to the call's media stack
-- **Skills system** -- add capabilities with one-liners: `agent.AddSkill("datetime")`
+- **Skills system** -- add capabilities with one-liners: `a.AddSkill("datetime", nil)`
 - **Contexts and steps** -- structured multi-step workflows with navigation control
 - **DataMap tools** -- tools that execute on SignalWire's servers, calling REST APIs without your own webhook
 - **Dynamic configuration** -- per-request agent customization for multi-tenant deployments

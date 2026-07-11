@@ -563,24 +563,24 @@ Each of these would require understanding and manually constructing the correct 
 
 ## swaig-test CLI
 
-Test without deploying:
+The Go `swaig-test` drives a **running** agent over HTTP — start the agent, then
+point the CLI at its `--url`. Function args are passed with `--param key=value`.
 
 ```bash
 # List available tools
-swaig-test my_agent.go --list-tools
+swaig-test --url http://localhost:3000/ --list-tools
 
-# Execute a specific tool
-swaig-test my_agent.go --exec get_weather --city "San Francisco"
+# Execute a specific tool (args via --param key=value)
+swaig-test --url http://localhost:3000/ --exec get_weather --param city="San Francisco"
 
 # Dump generated SWML for inspection
-swaig-test my_agent.go --dump-swml
+swaig-test --url http://localhost:3000/ --dump-swml
 
-# Test with serverless environment simulation
-swaig-test my_agent.go --simulate-serverless lambda --dump-swml
+# Lambda serverless environment simulation (the only platform the Go CLI implements)
+swaig-test --url http://localhost:3000/ --simulate-serverless lambda --dump-swml
 
-# Multi-agent: select by route or class
-swaig-test multi_agent.go --route /support --list-tools
-swaig-test multi_agent.go --agent-class SalesAgent --exec check_inventory
+# Multi-agent: target a specific agent by its route in the URL path
+swaig-test --url http://localhost:3000/support --list-tools
 ```
 
 ---

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 65503e892e23fa49e25ab84bfa55adbcf4919124",
+  "generated_from": "signalwire-go (go-native) @ 40e2d9ae0405b8db6835a436ab157f82f97362d5",
   "modules": {
     "agent": {
       "classes": {
@@ -43,9 +43,11 @@
           "GetBasicAuthCredentialsWithSource",
           "GetContexts",
           "GetFullURL",
+          "GetGlobalData",
           "GetName",
           "GetPrompt",
           "GetRoute",
+          "GetSIPUsernames",
           "HandleRequest",
           "HasFunction",
           "HasSkill",
@@ -343,6 +345,7 @@
           "SetEnterFillers",
           "SetExitFillers",
           "SetFullReset",
+          "SetHistory",
           "SetInitialStep",
           "SetIsolated",
           "SetPostPrompt",
@@ -378,6 +381,7 @@
           "SetEnd",
           "SetFunctions",
           "SetGatherInfo",
+          "SetHistory",
           "SetResetConsolidate",
           "SetResetFullReset",
           "SetResetSystemPrompt",
@@ -396,6 +400,7 @@
         "NewContextBuilder",
         "WithConfirm",
         "WithFunctions",
+        "WithIsolated",
         "WithPrompt",
         "WithType"
       ]
@@ -1361,18 +1366,6 @@
     },
     "rest": {
       "classes": {
-        "CrudResource": [
-          "Create",
-          "CreateContext",
-          "Delete",
-          "DeleteContext",
-          "Get",
-          "GetContext",
-          "List",
-          "ListContext",
-          "Update",
-          "UpdateContext"
-        ],
         "HTTPClient": [
           "BaseURL",
           "Delete",
@@ -1402,8 +1395,6 @@
         ]
       },
       "functions": [
-        "NewCrudResource",
-        "NewCrudResourcePUT",
         "NewHTTPClient",
         "NewPaginatedIterator",
         "NewRestClient",
@@ -1461,12 +1452,14 @@
         "AgentServer": [
           "GetAgent",
           "GetAgents",
+          "LookupSIPRoute",
           "Register",
           "RegisterGlobalRoutingCallback",
           "RegisterGlobalSIPRoutingCallback",
           "RegisterSIPUsername",
           "Run",
           "RunContext",
+          "SIPUsernameMapping",
           "ServeStaticFiles",
           "SetupSIPRouting",
           "Shutdown",
@@ -1480,6 +1473,20 @@
         "WithRunPort",
         "WithServerHost",
         "WithServerPort"
+      ]
+    },
+    "serverless": {
+      "classes": {
+        "CGIResult": [],
+        "Handler": [
+          "DispatchCGI",
+          "ServeCGI",
+          "ServeHTTP"
+        ]
+      },
+      "functions": [
+        "NewHandler",
+        "WriteCGI"
       ]
     },
     "skills": {
@@ -1515,7 +1522,9 @@
         ],
         "SkillRegistry": [
           "AddSkillDirectory",
-          "ExternalPaths"
+          "ExternalPaths",
+          "RegisterSkill",
+          "RegisteredNames"
         ],
         "ToolRegistration": []
       },
@@ -1765,6 +1774,7 @@
           "Transfer",
           "Unset",
           "UserEvent",
+          "VerbHandlerNames",
           "VerifyAPIKey",
           "VerifyBasicAuth",
           "VerifyBearerToken"
