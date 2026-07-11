@@ -109,4 +109,8 @@ export GOOGLE_SEARCH_API_KEY=your-api-key       # web_search
 export GOOGLE_SEARCH_ENGINE_ID=your-engine-id   # web_search
 export DATASPHERE_DOCUMENT_ID=your-doc-id       # datasphere
 export MCP_GATEWAY_URL=http://localhost:8080     # mcp_gateway
+
+# Example-specific
+export SIGNALWIRE_CONTEXTS=support,sales          # relay_audit_harness (comma-separated)
+export SWML_WEBHOOK_URL=https://example.com/swml  # rest_bind_phone_to_swml_webhook
 ```

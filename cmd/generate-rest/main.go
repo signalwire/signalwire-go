@@ -443,11 +443,12 @@ var goStructName = map[string]string{
 // bare "<methodName>" fallback (the common CRUD verbs + shared spellings).
 var goMethodName = map[string]string{
 	// generic CRUD verbs (base-provided or explicit)
-	"list":   "List",
-	"create": "Create",
-	"get":    "Get",
-	"update": "Update",
-	"delete": "Delete",
+	"list":     "List",
+	"create":   "Create",
+	"get":      "Get",
+	"update":   "Update",
+	"delete":   "Delete",
+	"paginate": "Paginate",
 	// shared extras
 	"list_addresses":  "ListAddresses",
 	"list_events":     "ListEvents",
@@ -1029,6 +1030,12 @@ func emitResource(b *strings.Builder, rm *resourceMarkup, sd *specDoc, bases map
 	if rm.base == "ReadResource" {
 		fmt.Fprintf(b, "func (r *%s) List(params map[string]string) (map[string]any, error) {\n\treturn r.HTTP.Get(r.Base, params)\n}\n\n", goName)
 		fmt.Fprintf(b, "func (r *%s) Get(id string) (map[string]any, error) {\n\treturn r.HTTP.Get(r.Path(id), nil)\n}\n\n", goName)
+		// Paginate() is ReadResource.paginate()'s Go form: the Python oracle records
+		// paginate() on every concrete ReadResource subclass, so emit it here. These
+		// subclasses embed the method-less Resource (not CrudResource, which carries
+		// Paginate for the CRUD path), so it is synthesized directly, mirroring the
+		// CrudResource.Paginate body — a Paginator over the collection base path.
+		fmt.Fprintf(b, "func (r *%s) Paginate(params map[string]string) *Paginator {\n\treturn NewPaginator(r.HTTP, r.Base, params, \"data\")\n}\n\n", goName)
 	}
 
 	for _, mm := range extraMethods(rm, emb, sd) {
@@ -1953,15 +1960,23 @@ func implicitBaseMethods(base string) []string {
 		return []string{"create", "update"}
 	case "FabricResource":
 		return []string{"create", "update"}
-	default: // ReadResource, BaseResource (and command-dispatch, handled separately)
-		// ReadResource contributes NOTHING implicit: its list/get are untyped
-		// inherited base methods that the Python oracle records on the ReadResource
-		// BASE (see the internal/surface/tables.go rest.CrudResource->ReadResource
-		// adapter), NOT re-declared on the concrete subclass. Attributing them to
-		// the subclass over-counts vs the reference (which lists only __init__ on a
-		// pure ReadResource subclass) — same reason CrudResource.list/get are
-		// excluded above. A resource that genuinely re-surfaces get/list carries
-		// them in its explicit markup methods:, which flow in separately below.
+	case "ReadResource":
+		// ReadResource's list/get remain untyped inherited base methods the oracle
+		// records on the ReadResource BASE (see the tables.go rest.CrudResource->
+		// ReadResource adapter), NOT re-declared on the concrete subclass — so they
+		// stay excluded here (a subclass that re-surfaces get/list carries them in
+		// its explicit markup methods:, which flow in separately below).
+		//
+		// paginate() IS the exception: the Python oracle records ReadResource.
+		// paginate() ON each concrete ReadResource subclass (FabricAddresses,
+		// FaxLogs, MessageLogs, VideoRoomSessions, VoiceLogs) — verified against
+		// python_signatures.json — but NOT on the CrudResource/FabricResource
+		// subclasses. So paginate is a ReadResource-only implicit method. The Go
+		// subclasses embed CrudResource (which carries Paginate), so the method
+		// genuinely exists; emit its StructTable projection here to match the oracle.
+		return []string{"paginate"}
+	default: // BaseResource (and command-dispatch, handled separately)
+		// BaseResource contributes nothing implicit.
 		return nil
 	}
 }

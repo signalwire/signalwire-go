@@ -77,6 +77,12 @@ var registrySkip = map[string]string{
 	// returns a string and issues no HTTP request. It is exported because Go has
 	// no package-private-but-cross-file visibility; every resource inherits it.
 	"*.Path": "path-builder helper, not a route (issues no HTTP request)",
+
+	// Paginate is a client-side pagination helper — it returns a lazy paginator
+	// that follows the cursor via the already-covered list route on iteration and
+	// issues no HTTP request itself, so it is not a distinct wire route. Mirrors
+	// the python reference's paginate skip in porting-sdk python_route_registry.py.
+	"*.Paginate": "client-side pagination helper, not a route (issues no HTTP request; follows the covered list route lazily)",
 }
 
 func skipReason(key string) (string, bool) {

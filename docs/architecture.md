@@ -999,7 +999,7 @@ The contexts system integrates with the existing SWML generation pipeline:
 - All referenced contexts in navigation must exist
 
 **Step Content Rules:**
-- Cannot mix `set_text()` with `add_section()` in same step
+- Cannot mix `SetText()` with `AddSection()` in same step
 - POM sections support full feature set (bullets, numbering, etc.)
 - Direct text provides simpler prompt definition
 - Content is mandatory for each step
@@ -1125,7 +1125,7 @@ The SDK supports multiple deployment models:
    - Enable SSL termination at proxy level
 
 4. **Direct HTTPS Mode**
-   - Configure with SSL certificates via the `SWML_SSL_ENABLED` / `SWML_SSL_CERT` / `SWML_SSL_KEY` env vars
+   - Configure with SSL certificates via the `SWML_SSL_ENABLED` / `SWML_SSL_CERT_PATH` / `SWML_SSL_KEY_PATH` env vars
 
 ## Best Practices
 
@@ -1194,7 +1194,6 @@ Key environment variables:
 - `SWML_SSL_CERT_PATH`: Path to SSL certificate
 - `SWML_SSL_KEY_PATH`: Path to SSL key
 - `SWML_DOMAIN`: Domain name for the service
-- `SWML_SCHEMA_PATH`: Optional path to override the schema.json location
 
 ## Request Flow
 
@@ -1202,7 +1201,7 @@ Key environment variables:
 
 1. Client requests the root endpoint
 2. Authentication is validated 
-3. `on_swml_request()` is called to allow customization
+3. `OnSwmlRequest()` is called to allow customization
 4. Current SWML document is rendered and returned
 
 ### SWAIG Function Call (POST /swaig/)
@@ -1218,7 +1217,7 @@ Key environment variables:
 1. Client sends conversation summary data
 2. Authentication is validated
 3. Summary is extracted from request
-4. `on_summary()` is called to process the data
+4. `OnSummary()` is called to process the data
 
 ## Session Management
 

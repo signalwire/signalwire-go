@@ -67,6 +67,27 @@ func (r *CrudResource) List(params map[string]string) (map[string]any, error) {
 	return r.HTTP.Get(r.Base, params)
 }
 
+// Paginate returns a Paginator that walks EVERY page of this resource's list
+// endpoint, following the response's links.next cursor so callers no longer
+// hand-build the path + token loop. List returns a single raw page (the server's
+// first response); Paginate follows the cursor and yields each item.
+//
+// Equivalent to the Python SDK's ReadResource.paginate(**params); data_key is
+// fixed to "data".
+//
+//	it := client.Fabric.Addresses.Paginate(nil)
+//	for {
+//	    items, hasMore, err := it.Next()
+//	    if err != nil { return err }
+//	    // ... use items ...
+//	    if !hasMore { break }
+//	}
+//
+// (Or use it.ForEach for the item-at-a-time idiom.)
+func (r *CrudResource) Paginate(params map[string]string) *Paginator {
+	return NewPaginator(r.HTTP, r.Base, params, "data")
+}
+
 // Create sends a POST request to create a new resource.
 func (r *CrudResource) Create(data map[string]any) (map[string]any, error) {
 	return r.HTTP.Post(r.Base, data, nil)

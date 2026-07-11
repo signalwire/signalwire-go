@@ -408,6 +408,25 @@ signalwire.core.agent_base.AgentBase.pom: Go's Pom() method projects to Python's
 signalwire.core.swml_service.SWMLService.schema_utils: Go's SchemaUtils field projects to Python's schema_utils property; Python's signatures index includes it but the surface index drops it as an instance attribute
 signalwire.relay.call.Action.result: Go's Result() method projects to Python's result property; Python's signatures index includes it but the surface index drops it as an instance attribute
 
+# --- ReadResource.paginate() surfaced on the concrete read-only subclasses ---
+# The Python SIGNATURES oracle records ReadResource.paginate() ON each concrete
+# read-only subclass (FabricAddresses/FaxLogs/MessageLogs/VideoRoomSessions/
+# VoiceLogs — verified against python_signatures.json), so the port emits a real
+# Paginate() on each to keep DRIFT clean (paginate is NOT a _CRUD_METHODS verb, so
+# the crud_base structural excusal that covers list/get does NOT cover it). The
+# Python SURFACE oracle, however, records paginate() only on the _base.ReadResource
+# BASE (like list/get) and lists just __init__ on the subclass — so the subclass
+# copies read as port additions here. The port's _base.ReadResource surface already
+# carries paginate (via the CrudResource->ReadResource base-placement adapter),
+# matching the reference base; these five are the subclass projections the signature
+# audit requires, excused on the surface side. (Same shape as the pom/schema_utils
+# signatures-keeps/surface-drops entries above.)
+signalwire.rest.namespaces.fabric_resources_generated.FabricAddresses.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
+signalwire.rest.namespaces.fax_resources_generated.FaxLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
+signalwire.rest.namespaces.message_resources_generated.MessageLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
+signalwire.rest.namespaces.video_resources_generated.VideoRoomSessions.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
+signalwire.rest.namespaces.voice_resources_generated.VoiceLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
+
 ## SWML-verbs generated-payload reserved-word fields (port emits what the reference can't name)
 
 The reference's TypedDict generator cannot name a field that is a Python keyword, so it
@@ -423,3 +442,5 @@ gen-payload.CondReg.else: generated SWML-verb config field the Python reference 
 # --- Port-only helper structs (options/results) ---
 web.Options: Go options struct for web.NewWebService — the idiomatic Go constructor-options shape for the WebService static-file server (Python passes a flat kwarg list). Call-shape plumbing, not oracle surface.
 swml.ValidationResult: Go struct returned by swml schema validation — an idiomatic typed result the Python reference expresses as a (bool, errors) tuple. Port-only helper type.
+namespaces.Paginator: Go value returned by CrudResource.Paginate()/the ReadResource-subclass Paginate() — the concrete iterator that walks a list endpoint's links.next cursor. A namespaces-package import cycle (rest imports namespaces) forbids reusing the parent package's rest.PaginatedIterator here, so this is the self-contained namespaces-local form. Plays the same role as Python's _pagination.PaginatedIterator; the Paginate() return type folds to that class ref (enumerate-signatures goLocalAliases) so signatures compare EQUAL.
+namespaces.NewPaginator: constructor for namespaces.Paginator (above) — Go-idiom factory; Python constructs PaginatedIterator inline in ReadResource.paginate().

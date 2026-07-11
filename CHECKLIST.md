@@ -196,7 +196,7 @@ Agents completing this checklist have historically left gaps by treating ambiguo
 - [ ] CrudResource (List, Create, Get, Update, Delete)
 - [ ] Pagination support
 - [ ] SignalWireRestError
-- [ ] **All 21 REST namespaces** — exact stems below. Every one must be accessible as `client.<stem>` (Python) / `client.<CamelStem>` (Go/Java/etc.) in the port. Enforced by `scripts/audit_checklist.py`.
+- [ ] **All 20 REST namespaces** — exact stems below. Every one must be accessible as `client.<stem>` (Python) / `client.<CamelStem>` (Go/Java/etc.) in the port. Enforced by `scripts/audit_checklist.py`.
   - [ ] Fabric — **exactly 16 sub-resources**: `swml_scripts`, `swml_webhooks`, `ai_agents`, `relay_applications`, `call_flows`, `conference_rooms`, `freeswitch_connectors`, `subscribers`, `sip_endpoints`, `sip_gateways`, `cxml_scripts`, `cxml_webhooks`, `cxml_applications`, `resources`, `addresses`, `tokens`
   - [ ] Calling (**exactly 37 commands** — see the OpenAPI spec at `rest-apis/calling/openapi.yaml`)
   - [ ] PhoneNumbers — see § Phone-number binding below for the 7 typed helpers
@@ -316,10 +316,10 @@ Fill this in before starting the phase:
 - [ ] **`--list-tools` introspects the runtime tool registry in-process — never via HTTP.**
   - [ ] Dynamic langs (Python, Ruby, Perl, PHP, TypeScript): `--file PATH` (or positional path) loads the script in-process, finds the SWMLService subclass/instance, walks the registry directly. NO `/swaig` HTTP request.
   - [ ] Reflective langs (Java, .NET): `--class FQCN` (and `--assembly PATH` on .NET) loads via reflection, reads the SDK's public registry accessor (e.g. `getRegisteredTools()`, `Tools` property — add the accessor to Service if it doesn't exist).
-  - [ ] Compiled langs (Rust, Go, C++): `--example NAME` spawns the example binary with `SWAIG_LIST_TOOLS=1` set in the child env. The SDK's `serve()`/`run()` checks the env var at entry and dumps the runtime registry to stdout between `__SWAIG_TOOLS_BEGIN__` / `__SWAIG_TOOLS_END__` sentinels, then `exit(0)` — BEFORE any port is bound. CLI captures stdout, slices between markers, parses, displays.
+  - [ ] Compiled langs (Rust, Go, C++): `--example NAME` spawns the example binary with `SWAIG_LIST_TOOLS=1` set in the child env. The SDK's `Serve()`/`Run()` checks the env var at entry and dumps the runtime registry to stdout between `__SWAIG_TOOLS_BEGIN__` / `__SWAIG_TOOLS_END__` sentinels, then `exit(0)` — BEFORE any port is bound. CLI captures stdout, slices between markers, parses, displays.
   - [ ] CLI is permissive about field names: accepts both `function|name`, `description|purpose`, `parameters|argument` (each port emits whatever it natively stores; no normalization).
   - [ ] `--list-tools` against a SWMLService-only example (no `<ai>` verb) returns the registered tools — NOT "No tools found." Verified against `examples/swmlservice_swaig_standalone.*` and `examples/swmlservice_ai_sidecar.*`.
-- [ ] **Introspect contract for compiled-language SDKs:** the env-check in `serve()`/`run()` runs after user code populated the registry but before binding. Pull the JSON-build path into a separate testable helper (`build_tool_registry_json()` or equivalent) so tests can assert the payload without invoking `exit()`.
+- [ ] **Introspect contract for compiled-language SDKs:** the env-check in `Serve()`/`Run()` runs after user code populated the registry but before binding. Pull the JSON-build path into a separate testable helper (`build_tool_registry_json()` or equivalent) so tests can assert the payload without invoking `exit()`.
 - [ ] `--simulate-serverless <platform>` flag — conditional on Phase 9
   - [ ] Accepts only platforms the port actually implemented in Phase 9 (reject others with a clear error)
   - [ ] For each implemented platform: sets the mode-detection env vars (e.g. `AWS_LAMBDA_FUNCTION_NAME`, `LAMBDA_TASK_ROOT`) before loading the agent, and clears them on exit so tests in the same process don't leak
@@ -485,7 +485,7 @@ Tests are proof of implementation. The port must test **everything the Python SD
 - [ ] All 41 SwaigFunctionResult action methods present (plus the non-action basics: set_response, set_post_process, add_action, add_actions, to_dict, and the 3 payment helpers). **Proof:** grep the port's equivalent file for the 41 action names in SWAIG_FUNCTION_RESULT_REFERENCE.md; every one resolves, or the omission is justified in PORT_OMISSIONS.md.
 - [ ] All 38 SWML verb methods present and schema-validated
 - [ ] RELAY client: all 4 correlation mechanisms implemented (JSON-RPC id, call_id, control_id, tag)
-- [ ] REST client: all 21 namespaces initialized with correct paths (see Phase 8 for the enumerated list)
+- [ ] REST client: all 20 namespaces initialized with correct paths (see Phase 8 for the enumerated list)
 - [ ] Skills registry: all 17 built-in skills registered (per Phase 4 enumerated list)
 - [ ] agent.AddSkill() one-liner integration works (not just manual SkillManager)
 - [ ] SIP username extraction utility exists

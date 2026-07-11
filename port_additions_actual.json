@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 40e2d9ae0405b8db6835a436ab157f82f97362d5",
+  "generated_from": "signalwire-go @ d423f057013e8ec266f7d02b3a7428d48499c510",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
@@ -30,6 +30,7 @@
     "mocktest.Harness",
     "mocktest.InboundCallOpts",
     "mocktest.JournalEntry",
+    "namespaces.Paginator",
     "prefabs.Amenity",
     "prefabs.BedrockAgent",
     "prefabs.BedrockOptions",
@@ -133,6 +134,7 @@
     "namespaces.AllPhoneCallHandlers",
     "namespaces.NewCrudResourcePUT",
     "namespaces.NewCrudWithAddressesPUT",
+    "namespaces.NewPaginator",
     "pom.FromJSON",
     "pom.FromList",
     "pom.FromSections",

@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 40e2d9ae0405b8db6835a436ab157f82f97362d5 (go/ast walker)",
+  "generated_from": "signalwire-go @ d423f057013e8ec266f7d02b3a7428d48499c510 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -12033,6 +12033,22 @@
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest._pagination.PaginatedIterator"
             }
           }
         },
@@ -14845,6 +14861,22 @@
                 }
               ],
               "returns": "void"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest._pagination.PaginatedIterator"
             }
           }
         },
@@ -15831,6 +15863,22 @@
                 }
               ],
               "returns": "void"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest._pagination.PaginatedIterator"
             }
           }
         }
@@ -15891,6 +15939,22 @@
                 }
               ],
               "returns": "void"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest._pagination.PaginatedIterator"
             }
           }
         }
@@ -18109,6 +18173,22 @@
                 }
               ],
               "returns": "class:signalwire.rest.namespaces.video_types_generated.ListRoomSessionRecordingsResponse"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest._pagination.PaginatedIterator"
             }
           }
         },
@@ -18491,6 +18571,22 @@
                 }
               ],
               "returns": "class:signalwire.rest.namespaces.voice_types_generated.LogEventsListResponse"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest._pagination.PaginatedIterator"
             }
           }
         }

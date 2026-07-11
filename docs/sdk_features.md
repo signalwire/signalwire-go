@@ -258,7 +258,7 @@ step3.SetFunctions("none") // No tools -- just confirm and end
 
 This generates SWML with a complete contexts/steps structure. The platform enforces navigation rules, restricts which functions are available at each step, collects structured data with typed questions and confirmation, and tracks transitions with trigger attribution in the enriched call_log. The LLM can't skip steps, can't call restricted tools, and can't navigate to disallowed contexts -- not because it was told not to, but because the mechanisms don't exist in its world. This is PGI (Programmatically Governed Inference) in practice.
 
-**Multi-context** agents can define separate conversation modes (e.g., "sales" and "support") with isolated function sets, and use `set_valid_contexts()` to control switching. Context transitions support 4-mode reset (consolidate x full_reset) with conversation history summarization or archival.
+**Multi-context** agents can define separate conversation modes (e.g., "sales" and "support") with isolated function sets, and use `SetValidContexts()` to control switching. Context transitions support 4-mode reset (consolidate x full_reset) with conversation history summarization or archival.
 
 ---
 
@@ -376,7 +376,7 @@ Each mode handles authentication differently (HTTP Basic Auth, API Gateway autho
 
 For standalone mode, the SDK provides:
 - Kubernetes health (`/health`) and readiness (`/ready`) probes
-- SSL/TLS support via `SWML_SSL_ENABLED`, `SWML_SSL_CERT`, `SWML_SSL_KEY`
+- SSL/TLS support via `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH`, `SWML_SSL_KEY_PATH`
 - CORS configuration
 - Debug endpoint (`/debug`) for inspection
 
