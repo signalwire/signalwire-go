@@ -24,3 +24,7 @@ func (r *FaxLogs) List(params map[string]string) (map[string]any, error) {
 func (r *FaxLogs) Get(id string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id), nil)
 }
+
+func (r *FaxLogs) Paginate(params map[string]string) *Paginator {
+	return NewPaginator(r.HTTP, r.Base, params, "data")
+}

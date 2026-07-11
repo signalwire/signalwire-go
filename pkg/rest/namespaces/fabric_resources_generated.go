@@ -25,6 +25,10 @@ func (r *FabricAddresses) Get(id string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id), nil)
 }
 
+func (r *FabricAddresses) Paginate(params map[string]string) *Paginator {
+	return NewPaginator(r.HTTP, r.Base, params, "data")
+}
+
 // GenericResources is a client for the "GenericResources" resource of the SignalWire fabric API.
 type GenericResources struct {
 	Resource

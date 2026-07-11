@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 40e2d9ae0405b8db6835a436ab157f82f97362d5",
+  "generated_from": "signalwire-go @ d423f057013e8ec266f7d02b3a7428d48499c510",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1227,7 +1227,8 @@
         ],
         "ReadResource": [
           "get",
-          "list"
+          "list",
+          "paginate"
         ],
         "SignalWireRestError": [
           "__init__"
@@ -1470,7 +1471,8 @@
           "update"
         ],
         "FabricAddresses": [
-          "__init__"
+          "__init__",
+          "paginate"
         ],
         "FabricTokens": [
           "__init__",
@@ -1869,7 +1871,8 @@
     "signalwire.rest.namespaces.fax_resources_generated": {
       "classes": {
         "FaxLogs": [
-          "__init__"
+          "__init__",
+          "paginate"
         ]
       },
       "functions": []
@@ -1906,7 +1909,8 @@
     "signalwire.rest.namespaces.message_resources_generated": {
       "classes": {
         "MessageLogs": [
-          "__init__"
+          "__init__",
+          "paginate"
         ]
       },
       "functions": []
@@ -2200,7 +2204,8 @@
           "__init__",
           "list_events",
           "list_members",
-          "list_recordings"
+          "list_recordings",
+          "paginate"
         ],
         "VideoRoomTokens": [
           "__init__",
@@ -2264,7 +2269,8 @@
       "classes": {
         "VoiceLogs": [
           "__init__",
-          "list_events"
+          "list_events",
+          "paginate"
         ]
       },
       "functions": []

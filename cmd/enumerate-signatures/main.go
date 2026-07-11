@@ -80,6 +80,7 @@ var kwargsTailMethods = map[string]bool{
 	"signalwire.core.swml_handler.SWMLVerbHandler.build_config":                       true, // def build_config(self, **kwargs: Any)
 	"signalwire.core.swml_builder.SWMLBuilder.ai":                                     true, // def ai(self, ..., swaig=None, **kwargs)
 	"signalwire.rest._base.CrudWithAddresses.list_addresses":                          true, // def list_addresses(self, resource_id, **params: Any)
+	"signalwire.rest._base.ReadResource.paginate":                                     true, // def paginate(self, **params: Any) -> PaginatedIterator
 }
 
 // optionalTailVariadicMethods lists the fully-qualified Python reference methods
@@ -701,6 +702,15 @@ var goLocalAliases = map[string]string{
 	"swaig.ToolHandler":  "callable<list<any>,any>",
 	"TypedHandler":       "callable<list<any>,any>",
 	"swaig.TypedHandler": "callable<list<any>,any>",
+	// namespaces.Paginator is the value CrudResource.Paginate returns — the
+	// Go-idiom equivalent of Python ReadResource.paginate()'s PaginatedIterator.
+	// A namespaces-package import cycle forbids reusing rest.PaginatedIterator
+	// here (rest already imports namespaces), so Paginate returns a self-contained
+	// *Paginator in the namespaces package. It plays the SAME role as the
+	// reference's PaginatedIterator, so its return type folds to that class ref for
+	// the signature comparison (idiom reconciled in the alias table, not an omission).
+	"Paginator":            "class:signalwire.rest._pagination.PaginatedIterator",
+	"namespaces.Paginator": "class:signalwire.rest._pagination.PaginatedIterator",
 }
 
 // closedSetUnions maps the Go defined-string closed-set types (and their

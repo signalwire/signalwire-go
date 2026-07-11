@@ -149,6 +149,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "FabricAddresses",
 		Methods: map[string]string{
 			"NewFabricAddresses": "__init__",
+			"Paginate":           "paginate",
 		},
 	}},
 	"namespaces.FabricTokens": {{
@@ -166,6 +167,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.fax_resources_generated", Class: "FaxLogs",
 		Methods: map[string]string{
 			"NewFaxLogs": "__init__",
+			"Paginate":   "paginate",
 		},
 	}},
 	"namespaces.FreeSwitchConnectors": {{
@@ -215,6 +217,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.message_resources_generated", Class: "MessageLogs",
 		Methods: map[string]string{
 			"NewMessageLogs": "__init__",
+			"Paginate":       "paginate",
 		},
 	}},
 	"namespaces.NumberGroupsNamespace": {{
@@ -433,6 +436,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"ListMembers":          "list_members",
 			"ListRecordings":       "list_recordings",
 			"NewVideoRoomSessions": "__init__",
+			"Paginate":             "paginate",
 		},
 	}},
 	"namespaces.VideoRoomTokens": {{
@@ -466,6 +470,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"ListEvents":   "list_events",
 			"NewVoiceLogs": "__init__",
+			"Paginate":     "paginate",
 		},
 	}},
 }

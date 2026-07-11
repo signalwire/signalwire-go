@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 40e2d9ae0405b8db6835a436ab157f82f97362d5",
+  "generated_from": "signalwire-go (go-native) @ d423f057013e8ec266f7d02b3a7428d48499c510",
   "modules": {
     "agent": {
       "classes": {
@@ -608,6 +608,7 @@
           "Delete",
           "Get",
           "List",
+          "Paginate",
           "Update"
         ],
         "CrudWithAddresses": [
@@ -631,7 +632,8 @@
         "DatasphereNamespace": [],
         "FabricAddresses": [
           "Get",
-          "List"
+          "List",
+          "Paginate"
         ],
         "FabricNamespace": [],
         "FabricTokens": [
@@ -648,7 +650,8 @@
         "FabricTokensRefreshSubscriberTokenParams": [],
         "FaxLogs": [
           "Get",
-          "List"
+          "List",
+          "Paginate"
         ],
         "FreeSwitchConnectors": [],
         "GenericResources": [
@@ -679,7 +682,8 @@
         "MFANamespaceVerifyParams": [],
         "MessageLogs": [
           "Get",
-          "List"
+          "List",
+          "Paginate"
         ],
         "NumberGroupsNamespace": [
           "AddMembership",
@@ -688,6 +692,10 @@
           "ListMemberships"
         ],
         "NumberGroupsNamespaceAddMembershipParams": [],
+        "Paginator": [
+          "ForEach",
+          "Next"
+        ],
         "PhoneNumbersNamespace": [
           "Search",
           "SetAiAgent",
@@ -798,7 +806,8 @@
           "List",
           "ListEvents",
           "ListMembers",
-          "ListRecordings"
+          "ListRecordings",
+          "Paginate"
         ],
         "VideoRoomTokens": [
           "Create"
@@ -818,7 +827,8 @@
         "VoiceLogs": [
           "Get",
           "List",
-          "ListEvents"
+          "ListEvents",
+          "Paginate"
         ]
       },
       "functions": [
@@ -851,6 +861,7 @@
         "NewMFANamespace",
         "NewMessageLogs",
         "NewNumberGroupsNamespace",
+        "NewPaginator",
         "NewPhoneNumbersNamespace",
         "NewProjectNamespace",
         "NewProjectTokens",

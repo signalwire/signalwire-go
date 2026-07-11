@@ -785,8 +785,9 @@ var StructTable = map[string][]ClassTarget{
 		{
 			Module: "signalwire.rest._base", Class: "ReadResource",
 			Methods: map[string]string{
-				"List": "list",
-				"Get":  "get",
+				"List":     "list",
+				"Get":      "get",
+				"Paginate": "paginate",
 			},
 		},
 		{

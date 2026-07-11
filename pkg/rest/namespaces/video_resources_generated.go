@@ -100,6 +100,10 @@ func (r *VideoRoomSessions) Get(id string) (map[string]any, error) {
 	return r.HTTP.Get(r.Path(id), nil)
 }
 
+func (r *VideoRoomSessions) Paginate(params map[string]string) *Paginator {
+	return NewPaginator(r.HTTP, r.Base, params, "data")
+}
+
 func (r *VideoRoomSessions) ListEvents(id string, params map[string]string) (*ListRoomSessionEventsResponse, error) {
 	return decodeResult[ListRoomSessionEventsResponse](r.HTTP.Get(r.Path(id, "events"), params))
 }
