@@ -438,7 +438,7 @@ step.SetFunctions("none")
 
 ### Step Navigation Rules
 
-The `set_valid_steps()` method controls movement within a context:
+The `SetValidSteps()` method controls movement within a context:
 
 ```go
 // Explicit step list - can only go to these steps
@@ -453,7 +453,7 @@ step.SetValidSteps([]string{})
 
 ### Context Navigation Rules
 
-The `set_valid_contexts()` method controls switching between contexts:
+The `SetValidContexts()` method controls switching between contexts:
 
 ```go
 // Can switch to these contexts

@@ -290,6 +290,17 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SWML_SSL_ENABLED` | Agents | Enable HTTPS (`true`, `1`, `yes`) |
 | `SWML_SSL_CERT_PATH` | Agents | Path to SSL certificate |
 | `SWML_SSL_KEY_PATH` | Agents | Path to SSL private key |
+| `SWML_SSL_DOMAIN` | Agents | Domain used for TLS certificate / URL generation |
+| `SWML_SKIP_SCHEMA_VALIDATION` | Agents | Set truthy to skip SWML schema validation (`true`, `1`, `yes`) |
+| `SIGNALWIRE_SIGNING_KEY` | Agents | HMAC signing key for secure SWAIG function tokens |
+| `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host |
+| `SIGNALWIRE_RELAY_SCHEME` | RELAY | Override the RELAY WebSocket scheme (`ws` / `wss`) |
+| `SIGNALWIRE_JWT_TOKEN` | RELAY | JWT auth token (alternative to project+token) |
+| `SIGNALWIRE_RELAY_CA_FILE` | RELAY | Path to a PEM CA bundle to trust for the RELAY WebSocket TLS (private-CA convention) |
+| `SIGNALWIRE_REST_BASE_URL` | REST | Override the REST API base URL |
+| `SIGNALWIRE_REST_CA_FILE` | REST | Path to a PEM CA bundle to trust for REST HTTPS (private-CA convention) |
+| `SIGNALWIRE_SPACE_NAME` | Skills | Space name for Datasphere serverless skills |
+| `SIGNALWIRE_TOKEN` | Skills | API token for Datasphere serverless skills |
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
 

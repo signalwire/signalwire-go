@@ -233,8 +233,9 @@ import (
 
 ### Method 4: Introspection-Only Directory Tracking
 
-Go has no `SIGNALWIRE_SKILL_PATHS`-style dynamic loading — a static binary cannot
-load skill code from a directory at runtime. To make a skill available you must
+Go has no env-var-driven dynamic skill-path loading (the kind Python exposes via a
+skill-paths environment variable) — a static binary cannot load skill code from a
+directory at runtime. To make a skill available you must
 import its package (Methods 2 and 3). `skills.AddSkillDirectory` only records paths
 so tooling can report which external directories are in play:
 
