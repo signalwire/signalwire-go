@@ -72,8 +72,8 @@ func (r *CrudResource) List(params map[string]string) (map[string]any, error) {
 // hand-build the path + token loop. List returns a single raw page (the server's
 // first response); Paginate follows the cursor and yields each item.
 //
-// Parity: Python's ReadResource.paginate(**params) -> PaginatedIterator
-// (signalwire/rest/_base.py). data_key is fixed to "data", matching the reference.
+// Equivalent to the Python SDK's ReadResource.paginate(**params); data_key is
+// fixed to "data".
 //
 //	it := client.Fabric.Addresses.Paginate(nil)
 //	for {
