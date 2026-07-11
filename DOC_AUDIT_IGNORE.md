@@ -127,8 +127,6 @@ set_post_prompt_llm_params: Python AgentBase.set_post_prompt_llm_params — Go A
 set_prompt: Python PromptMixin.set_prompt — Go AgentBase.SetPromptText (renamed)
 set_prompt_llm_params: Python AgentBase.set_prompt_llm_params — Go AgentBase.SetPromptLlmParams
 set_text: Python Section.set_text — Go Section.SetText
-set_valid_contexts: Python Context.set_valid_contexts — Go Context.SetValidContexts
-set_valid_steps: Python Context.set_valid_steps — Go Context.SetValidSteps
 setup: Python skills system hook referenced in docs/architecture.md
 start: Python web-service start — FastAPI/uvicorn illustrated in docs/security.md
 stop: Python FunctionResult.stop — Go FunctionResult.Stop
