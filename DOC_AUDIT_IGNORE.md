@@ -66,12 +66,27 @@ Done: sync.WaitGroup.Done counter decrement
 As: errors.As typed unwrap
 Is: errors.Is sentinel comparison (docs/client-reference.md: errors.Is(err, relay.ErrDialTimeout)) — Go stdlib, sibling of errors.As
 
-## Port-only illustrative references
+## Comment text — illustrative references inside `//` comments
+
+Names that appear only inside a `//` code comment (not executable API surface a
+reader is told to call). audit_docs flags the bare identifier; the comment text
+merely mentions it.
 
 Publish: illustrative PubSub.Publish reference inside a comment in examples/rest_demo/main.go
-ToolHandler: swaig.ToolHandler and agent.ToolHandler type references inside a comment in examples/skills_demo/main.go
+
+## Go type-alias idiom — scalar/func aliases the surface enumerator does not record
+
+The surface enumerator records structs / marked-enums / methods / functions
+only, NOT scalar or func named-type aliases. The names below are REAL exported
+Go types (verified in source) that are consequently invisible to audit_docs —
+this is an enumerator limitation, not an absent symbol or a doc bug.
+
+ToolHandler: real exported func type `type ToolHandler func(...) *FunctionResult` (pkg/swaig/handler.go, pkg/agent/agent.go); referenced in a comment in examples/skills_demo/main.go
+Uuid: real exported scalar type `type Uuid string` (pkg/rest/namespaces/relay_rest_types_generated.go); it is the declared type of id fields such as CallingNamespaceUpdateParams.Id, so docs write namespaces.Uuid(callID) to convert a string variable
+
+## Anonymous-struct field name
+
 fn: anonymous-struct field name (op.fn()) used to iterate a table-driven operation list in rest/examples/rest_calling_play_and_record.go
-Uuid: real generated public type `type Uuid string` (pkg/rest/namespaces/relay_rest_types_generated.go); it is the declared type of id fields such as CallingNamespaceUpdateParams.Id, so docs must write namespaces.Uuid(callID) to convert a string variable. The surface enumerator records structs/marked-enums/methods/functions only, not scalar named-type aliases, so this real type is invisible to audit_docs — not a doc bug or an absent symbol.
 
 ## Python standard library referenced from legacy Python code blocks
 
@@ -79,18 +94,15 @@ The top-level `docs/*.md` files carry over Python code blocks from the
 upstream Python SDK while the Go-native rewrite is in progress. These
 references are Python stdlib methods that appear inside those blocks.
 
-## Python-SDK method names in legacy Python code blocks (top-level `docs/`)
+## Comment text — Python-name references inside `//` comments
 
-These are Python-SDK method names referenced in ```python``` fences inside
-the top-level `docs/*.md` files. The Go port implements the same behaviour
-under Go-idiomatic CamelCase identifiers (which the audit resolves against
-`port_surface_go.json`). Each line below documents that the snake_case
-name is the Python-reference equivalent of the corresponding Go method.
-The long-term fix is to rewrite each block to Go; see PORT_OMISSIONS.md for
-the subset deliberately not ported. Until that rewrite lands, these names
-are non-claims of Go API.
+The Go port implements these under Go-idiomatic CamelCase identifiers (which
+the audit resolves against `port_surface_go.json`). Each snake_case name below
+appears only inside a `//` comment that documents the Python-reference
+equivalent of the Go method invoked on the very next line — not an API surface
+claim. audit_docs flags the bare snake_case identifier in the comment text.
 
-register_routing_callback: Python SWMLService.register_routing_callback — Go Service.RegisterRoutingCallback
+register_routing_callback: Python SWMLService.register_routing_callback name in a `//` comment above the real Service.RegisterRoutingCallback call (examples/dynamic_swml_service/main.go, examples/swml_service_routing/main.go) — the Go method is in port_surface_go.json
 
 ## Go stdlib referenced by harness/example code
 

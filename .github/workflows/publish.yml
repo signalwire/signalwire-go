@@ -1,0 +1,95 @@
+name: Publish Release
+
+# Go modules publish by pushing a git tag (the module proxy serves `v*` tags);
+# there is no registry upload step. This workflow is the RELEASE GATE: it runs
+# the full CI gate set (`scripts/run-ci.sh`) and, only if green, creates a
+# GitHub Release for the tag it was dispatched against.
+#
+# It is MANUALLY triggered (`workflow_dispatch`) and does NOT create the tag
+# itself — a human tags the release commit, then dispatches this workflow with
+# the tag name. run-ci.sh is a REQUIRED step BEFORE the release step, so a
+# release can never be cut on a red tree (release_fresh.py GATES-FIRST).
+
+env:
+  # Opt into Node.js 24 ahead of GitHub's 2026-06-02 default switch.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing git tag to release (e.g. v3.0.2). Tag the commit first; this workflow does NOT create the tag."
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout signalwire-go (at the release tag)
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          path: signalwire-go
+
+      - name: Checkout porting-sdk (mock servers + audit scripts + EMISSION corpus)
+        uses: actions/checkout@v6
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
+
+      - name: Checkout signalwire-python (EMISSION oracle)
+        uses: actions/checkout@v6
+        with:
+          repository: signalwire/signalwire-python
+          path: signalwire-python
+          ref: main
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: signalwire-go/go.mod
+          cache: true
+          cache-dependency-path: signalwire-go/go.sum
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          install-only: true
+
+      - name: Set up Python (porting-sdk audit scripts + mock servers)
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install Python test harnesses (mock_relay + mock_signalwire)
+        run: |
+          pip install -e porting-sdk/test_harness/mock_relay
+          pip install -e porting-sdk/test_harness/mock_signalwire
+
+      - name: Install signalwire-python (EMISSION oracle) if not importable
+        run: |
+          if python -c "import signalwire.core.function_result" 2>/dev/null; then
+            echo "signalwire-python already importable; skipping install"
+          else
+            pip install ./signalwire-python
+          fi
+
+      # REQUIRED release gate — the full CI gate set must pass before releasing.
+      - name: Run CI gate script (full gate set)
+        working-directory: signalwire-go
+        env:
+          PORTING_SDK: ${{ github.workspace }}/porting-sdk
+        run: bash scripts/run-ci.sh
+
+      # No registry upload: `go get` resolves the tag via the module proxy.
+      # This publishes the GitHub Release for the already-pushed tag.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.tag }}
+          generate_release_notes: true
