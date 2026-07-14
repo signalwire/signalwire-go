@@ -18,6 +18,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -56,7 +57,7 @@ func main() {
 	// 1. Register a brand
 	fmt.Println("Registering 10DLC brand...")
 	brandID := safe("Register brand", func() (string, error) {
-		resp, err := client.Registry.Brands.Create(map[string]any{
+		resp, err := client.Registry.Brands.Create(context.Background(), map[string]any{
 			"company_name": "Acme Corp",
 			"ein":          "12-3456789",
 			"entity_type":  "PRIVATE_PROFIT",
@@ -67,24 +68,24 @@ func main() {
 		if err != nil {
 			return "", err
 		}
-		return string(resp.Id), nil
+		return string(resp.ID), nil
 	})
 
 	// 2. List brands
 	fmt.Println("\nListing brands...")
-	brands, err := client.Registry.Brands.List(nil)
+	brands, err := client.Registry.Brands.List(context.Background(), nil)
 	if err == nil {
 		for _, b := range brands.Data {
-			fmt.Printf("  - %s: %s\n", b.Id, deref(b.Name))
+			fmt.Printf("  - %s: %s\n", b.ID, deref(b.Name))
 			if brandID == "" {
-				brandID = string(b.Id)
+				brandID = string(b.ID)
 			}
 		}
 	}
 
 	// 3. Get brand details
 	if brandID != "" {
-		detail, err := client.Registry.Brands.Get(brandID, nil)
+		detail, err := client.Registry.Brands.Get(context.Background(), brandID, nil)
 		if err == nil {
 			fmt.Printf("\nBrand detail: %v (%v)\n", deref(detail.Name), deref(detail.State))
 		}
@@ -95,7 +96,7 @@ func main() {
 	if brandID != "" {
 		fmt.Println("\nCreating campaign...")
 		campaignID = safe("Create campaign", func() (string, error) {
-			resp, err := client.Registry.Brands.CreateCampaign(brandID, map[string]any{
+			resp, err := client.Registry.Brands.CreateCampaign(context.Background(), brandID, map[string]any{
 				"use_case":       "MIXED",
 				"description":    "Customer notifications and support messages",
 				"sample_message": "Your order #12345 has shipped.",
@@ -103,19 +104,19 @@ func main() {
 			if err != nil {
 				return "", err
 			}
-			return string(resp.Id), nil
+			return string(resp.ID), nil
 		})
 	}
 
 	// 5. List campaigns for the brand
 	if brandID != "" {
 		fmt.Println("\nListing brand campaigns...")
-		campaigns, err := client.Registry.Brands.ListCampaigns(brandID, nil)
+		campaigns, err := client.Registry.Brands.ListCampaigns(context.Background(), brandID, nil)
 		if err == nil {
 			for _, c := range campaigns.Data {
-				fmt.Printf("  - %s: %s\n", c.Id, deref(c.Name))
+				fmt.Printf("  - %s: %s\n", c.ID, deref(c.Name))
 				if campaignID == "" {
-					campaignID = string(c.Id)
+					campaignID = string(c.ID)
 				}
 			}
 		}
@@ -123,12 +124,12 @@ func main() {
 
 	// 6. Get and update campaign
 	if campaignID != "" {
-		campDetail, err := client.Registry.Campaigns.Get(campaignID, nil)
+		campDetail, err := client.Registry.Campaigns.Get(context.Background(), campaignID, nil)
 		if err == nil {
 			fmt.Printf("\nCampaign: %v (%v)\n", deref(campDetail.Name), deref(campDetail.State))
 		}
 
-		_, err = client.Registry.Campaigns.Update(campaignID, namespaces.RegistryCampaignsUpdateParams{Extras: map[string]any{
+		_, err = client.Registry.Campaigns.Update(context.Background(), campaignID, namespaces.RegistryCampaignsUpdateParams{Extras: map[string]any{
 			"description": "Updated: customer notifications",
 		}})
 		if err == nil {
@@ -143,19 +144,19 @@ func main() {
 	if campaignID != "" {
 		fmt.Println("\nCreating number assignment order...")
 		orderID = safe("Create order", func() (string, error) {
-			resp, err := client.Registry.Campaigns.CreateOrder(campaignID, namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{
+			resp, err := client.Registry.Campaigns.CreateOrder(context.Background(), campaignID, namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{
 				"phone_numbers": []string{"+15125551234"},
 			}})
 			if err != nil {
 				return "", err
 			}
-			return string(resp.Id), nil
+			return string(resp.ID), nil
 		})
 	}
 
 	// 8. Get order status
 	if orderID != "" {
-		orderDetail, err := client.Registry.Orders.Get(orderID, nil)
+		orderDetail, err := client.Registry.Orders.Get(context.Background(), orderID, nil)
 		if err == nil {
 			fmt.Printf("  Order status: %v\n", deref(orderDetail.State))
 		}
@@ -164,7 +165,7 @@ func main() {
 	// 9. List campaign numbers and orders
 	if campaignID != "" {
 		fmt.Println("\nListing campaign numbers...")
-		numbers, err := client.Registry.Campaigns.ListNumbers(campaignID, nil)
+		numbers, err := client.Registry.Campaigns.ListNumbers(context.Background(), campaignID, nil)
 		if err == nil {
 			for _, n := range numbers.Data {
 				if n.PhoneNumber != nil {
@@ -173,10 +174,10 @@ func main() {
 			}
 		}
 
-		orders, err := client.Registry.Campaigns.ListOrders(campaignID, nil)
+		orders, err := client.Registry.Campaigns.ListOrders(context.Background(), campaignID, nil)
 		if err == nil {
 			for _, o := range orders.Data {
-				fmt.Printf("  - Order %s: %v\n", o.Id, deref(o.State))
+				fmt.Printf("  - Order %s: %v\n", o.ID, deref(o.State))
 			}
 		}
 	}
@@ -184,11 +185,11 @@ func main() {
 	// 10. Unassign numbers (clean up)
 	if campaignID != "" {
 		fmt.Println("\nUnassigning numbers...")
-		nums, err := client.Registry.Campaigns.ListNumbers(campaignID, nil)
+		nums, err := client.Registry.Campaigns.ListNumbers(context.Background(), campaignID, nil)
 		if err == nil {
 			for _, n := range nums.Data {
-				nID := string(n.Id)
-				if _, delErr := client.Registry.Numbers.Delete(nID); delErr == nil {
+				nID := string(n.ID)
+				if _, delErr := client.Registry.Numbers.Delete(context.Background(), nID); delErr == nil {
 					fmt.Printf("  Unassigned number %s\n", nID)
 				} else if restErr, ok := delErr.(*rest.SignalWireRestError); ok {
 					fmt.Printf("  Unassign failed: %d\n", restErr.StatusCode)

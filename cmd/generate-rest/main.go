@@ -684,7 +684,14 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	// declares query parameters (spec-driven, not path-shape-guessed).
 	writeVerb := verb == "post" || verb == "put" || verb == "patch"
 
+	// ctx is threaded as the FIRST param of every generated resource method (the Go
+	// idiomatic deadline/cancellation carrier — PORT_PHILOSOPHY_GO ctx-first). It is
+	// passed straight to the ctx-first HTTPClient interface / base methods and is
+	// NEVER serialized, so the wire body is unchanged. The signature enumerator
+	// records it as an optional `optional<float>` timeout slot and diff_port_signatures
+	// absorbs the single leading ctx before the prefix compare, so DRIFT stays clean.
 	var params []string
+	params = append(params, "ctx context.Context")
 	for _, a := range idArgs {
 		params = append(params, a+" string")
 	}
@@ -832,18 +839,18 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	switch verb {
 	case "get":
 		if tail == "params" {
-			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(%s, params)", pathCode)))
+			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(ctx, %s, params)", pathCode)))
 		} else {
-			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(%s, nil)", pathCode)))
+			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(ctx, %s, nil)", pathCode)))
 		}
 	case "post":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Post(%s, %s, nil)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Post(ctx, %s, %s, nil)", pathCode, dataExpr)))
 	case "put":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Put(%s, %s)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Put(ctx, %s, %s)", pathCode, dataExpr)))
 	case "patch":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Patch(%s, %s)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Patch(ctx, %s, %s)", pathCode, dataExpr)))
 	case "delete":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Delete(%s)", pathCode)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Delete(ctx, %s)", pathCode)))
 	}
 	b.WriteString("}\n\n")
 	return nil
@@ -1028,14 +1035,14 @@ func emitResource(b *strings.Builder, rm *resourceMarkup, sd *specDoc, bases map
 	// ReadResource maps to the method-less Go `Resource` embed, so the base's
 	// list+get are synthesized here (the hand code writes them out explicitly).
 	if rm.base == "ReadResource" {
-		fmt.Fprintf(b, "func (r *%s) List(params map[string]string) (map[string]any, error) {\n\treturn r.HTTP.Get(r.Base, params)\n}\n\n", goName)
-		fmt.Fprintf(b, "func (r *%s) Get(id string) (map[string]any, error) {\n\treturn r.HTTP.Get(r.Path(id), nil)\n}\n\n", goName)
+		fmt.Fprintf(b, "func (r *%s) List(ctx context.Context, params map[string]string) (map[string]any, error) {\n\treturn r.HTTP.Get(ctx, r.Base, params)\n}\n\n", goName)
+		fmt.Fprintf(b, "func (r *%s) Get(ctx context.Context, id string) (map[string]any, error) {\n\treturn r.HTTP.Get(ctx, r.Path(id), nil)\n}\n\n", goName)
 		// Paginate() is ReadResource.paginate()'s Go form: the Python oracle records
 		// paginate() on every concrete ReadResource subclass, so emit it here. These
 		// subclasses embed the method-less Resource (not CrudResource, which carries
 		// Paginate for the CRUD path), so it is synthesized directly, mirroring the
 		// CrudResource.Paginate body — a Paginator over the collection base path.
-		fmt.Fprintf(b, "func (r *%s) Paginate(params map[string]string) *Paginator {\n\treturn NewPaginator(r.HTTP, r.Base, params, \"data\")\n}\n\n", goName)
+		fmt.Fprintf(b, "func (r *%s) Paginate(ctx context.Context, params map[string]string) *Paginator {\n\treturn NewPaginator(ctx, r.HTTP, r.Base, params, \"data\")\n}\n\n", goName)
 	}
 
 	for _, mm := range extraMethods(rm, emb, sd) {
@@ -1080,6 +1087,7 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 	// keyword shape. Both go before the ``extra ...map[string]any`` **kwargs
 	// door. Ordering: all required, then all optional, then extra.
 	var params []string
+	params = append(params, "ctx context.Context")
 	params = append(params, "sid string")
 	var bodyLines []string     // unconditional (required) body assignments
 	var optionalLines []string // conditional (optional) body assignments
@@ -1110,7 +1118,7 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 		b.WriteString(l)
 	}
 	b.WriteString("\tmergeExtra(body, extra)\n")
-	b.WriteString("\treturn r.Update(sid, body)\n}\n\n")
+	b.WriteString("\treturn r.Update(ctx, sid, body)\n}\n\n")
 	return nil
 }
 
@@ -1219,11 +1227,12 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 	// Constructor bakes the command endpoint base path (§4).
 	fmt.Fprintf(b, "// New%s constructs a %s bound to base path %q.\n", goName, goName, base)
 	fmt.Fprintf(b, "func New%s(client HTTPClient) *%s {\n\treturn &%s{Resource{HTTP: client, Base: %q}}\n}\n\n", goName, goName, goName, base)
-	// execute helper.
-	fmt.Fprintf(b, "func (c *%s) execute(command string, callID string, params map[string]any) (map[string]any, error) {\n", goName)
+	// execute helper (unexported → not enumerated for DRIFT; ctx threaded like the
+	// public methods so the whole command-dispatch call is cancellable).
+	fmt.Fprintf(b, "func (c *%s) execute(ctx context.Context, command string, callID string, params map[string]any) (map[string]any, error) {\n", goName)
 	b.WriteString("\tbody := map[string]any{\"command\": command, \"params\": params}\n")
 	b.WriteString("\tif callID != \"\" {\n\t\tbody[\"id\"] = callID\n\t}\n")
-	b.WriteString("\treturn c.HTTP.Post(c.Base, body, nil)\n}\n\n")
+	b.WriteString("\treturn c.HTTP.Post(ctx, c.Base, body, nil)\n}\n\n")
 
 	for _, cmd := range mapping {
 		mName, ok := callingMethodName[cmd]
@@ -1272,6 +1281,7 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		fmt.Fprintf(b, "// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 			structName, goName, mName, structName, strings.Join(fieldDefs, "\n"))
 		var sigParams []string
+		sigParams = append(sigParams, "ctx context.Context")
 		if withID {
 			sigParams = append(sigParams, "callID string")
 		}
@@ -1292,7 +1302,7 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		if withID {
 			callID = "callID"
 		}
-		fmt.Fprintf(b, "\treturn decodeResult[CallResponse](c.execute(%q, %s, body))\n}\n\n", cmd, callID)
+		fmt.Fprintf(b, "\treturn decodeResult[CallResponse](c.execute(ctx, %q, %s, body))\n}\n\n", cmd, callID)
 	}
 	return nil
 }
@@ -1563,44 +1573,58 @@ func commandFields(sd *specDoc, requestSchema string) (hasID bool, fields []stri
 	return hasID, fields, nil
 }
 
-// goParamName maps a wire field name to a Go parameter identifier: snake->camel,
-// with Go-keyword collisions escaped (§5). E.g. "from" -> "from_", "status_url"
-// -> "statusURL"-ish; here we keep it simple (camelCase) since the param name is
-// cosmetic — the enumerator snake_cases it back and the diff ignores names.
-func goParamName(field string) string {
+// commonInitialisms is the set of segments that idiomatic Go writes ALL-CAPS
+// (ST1003 acronym rule). A snake segment matching one of these (case-insensitively)
+// is emitted upper-cased in a Go identifier: "caller_id" -> "CallerID",
+// "fallback_url" -> "FallbackURL", "url_method" -> "URLMethod". This mirrors
+// staticcheck's own initialism set + the enumerator's reverse goNameToSnake, which
+// round-trips the all-caps form back to the identical snake wire key
+// ("CallerID" -> "caller_id"), so the wire body is byte-identical (drift 0).
+// Keep in lockstep with cmd/enumerate-signatures goNameToSnake's boundary rule and
+// the initialisms list in .golangci.yml's staticcheck settings.
+var commonInitialisms = map[string]bool{
+	"id": true, "url": true, "uri": true, "api": true, "http": true,
+	"https": true, "sip": true, "rpc": true, "json": true, "xml": true,
+	"sql": true, "tls": true, "tcp": true, "udp": true, "ip": true,
+	"uuid": true,
+}
+
+// segCase renders one snake segment as a Go identifier segment: an initialism
+// becomes all-caps (id->ID, url->URL), any other segment is title-cased
+// (caller->Caller). Non-alnum-free segments are handled by the caller (split on _).
+func segCase(seg string) string {
+	if seg == "" {
+		return ""
+	}
+	if commonInitialisms[strings.ToLower(seg)] {
+		return strings.ToUpper(seg)
+	}
+	return strings.ToUpper(seg[:1]) + seg[1:]
+}
+
+// structFieldName maps a wire field name to an EXPORTED, ST1003-idiomatic Go
+// struct-field identifier for a params/type struct (§5/§4a): each snake segment is
+// title-cased with initialisms all-caps ("caller_id" -> "CallerID", "fallback_url"
+// -> "FallbackURL", "url_method" -> "URLMethod"). Crucially the enumerator's
+// goNameToSnake round-trips this back to the SAME snake wire key ("CallerID" ->
+// "caller_id"), keeping port_signatures.json byte-identical (drift 0); the emitted
+// json tag / body[...] key comes from the SPEC property name, not this identifier,
+// so the wire body is unchanged. The exported (title-cased) result is never a Go
+// keyword, so escapeIdent is a defensive no-op here.
+func structFieldName(field string) string {
 	parts := strings.Split(field, "_")
 	var b strings.Builder
-	for i, p := range parts {
+	for _, p := range parts {
 		if p == "" {
 			continue
 		}
-		if i == 0 {
-			b.WriteString(p)
-		} else {
-			b.WriteString(strings.ToUpper(p[:1]) + p[1:])
-		}
+		b.WriteString(segCase(p))
 	}
 	s := b.String()
 	if s == "" {
-		s = "field"
+		s = "Field"
 	}
 	return escapeIdent(s)
-}
-
-// structFieldName maps a wire field name to an EXPORTED Go struct-field identifier
-// for a params struct (§5/§4a). It reuses goParamName (snake->camel, keyword-safe)
-// and upper-cases the first rune so the field is exported — e.g. "query_string" ->
-// "QueryString", "from" -> "From_" (goParamName escapes the keyword to "from_",
-// which pascals to "From_"). Crucially the enumerator's goNameToSnake round-trips
-// this back to the SAME wire/snake name the old flat-positional form recorded
-// ("From_" -> "from_"), keeping port_signatures.json byte-identical (drift 0).
-func structFieldName(field string) string {
-	s := goParamName(field)
-	r := []rune(s)
-	if len(r) > 0 && r[0] >= 'a' && r[0] <= 'z' {
-		r[0] -= 32
-	}
-	return string(r)
 }
 
 // ---------------------------------------------------------------------------
@@ -2149,17 +2173,14 @@ func resolvePortingSDK(repoRoot string) (string, error) {
 
 // emitSpecFile emits the generated resource file for one spec.
 func emitSpecFile(sd *specDoc, bases map[string]*baseSpec) (string, error) {
-	var b strings.Builder
-	fmt.Fprintf(&b, genHeader,
-		fmt.Sprintf("Generated REST resources for the %q namespace spec.", sd.name))
-	b.WriteString("\n")
+	var body strings.Builder
 	emitted := 0
 	for _, pi := range sd.paths {
 		rm := pi.res
 		if rm == nil || rm.exclude || rm.name == "" {
 			continue
 		}
-		if err := emitResource(&b, rm, sd, bases); err != nil {
+		if err := emitResource(&body, rm, sd, bases); err != nil {
 			return "", err
 		}
 		emitted++
@@ -2167,6 +2188,13 @@ func emitSpecFile(sd *specDoc, bases map[string]*baseSpec) (string, error) {
 	if emitted == 0 {
 		return "", nil
 	}
+	var b strings.Builder
+	fmt.Fprintf(&b, genHeader,
+		fmt.Sprintf("Generated REST resources for the %q namespace spec.", sd.name))
+	// Every generated resource method threads a leading context.Context (the Go
+	// ctx-first idiom), so the resources module always imports "context".
+	b.WriteString("\nimport \"context\"\n\n")
+	b.WriteString(body.String())
 	return b.String(), nil
 }
 

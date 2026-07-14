@@ -8,6 +8,7 @@
 package namespaces
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"testing"
@@ -47,23 +48,23 @@ func (m *callRecorder) Calls() []recordedCall {
 	return out
 }
 
-func (m *callRecorder) Get(path string, params map[string]string) (map[string]any, error) {
+func (m *callRecorder) Get(_ context.Context, path string, params map[string]string) (map[string]any, error) {
 	m.record(recordedCall{Method: "GET", Path: path, Params: params})
 	return m.resp, nil
 }
-func (m *callRecorder) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
+func (m *callRecorder) Post(_ context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error) {
 	m.record(recordedCall{Method: "POST", Path: path, Body: body, Params: params})
 	return m.resp, nil
 }
-func (m *callRecorder) Put(path string, body map[string]any) (map[string]any, error) {
+func (m *callRecorder) Put(_ context.Context, path string, body map[string]any) (map[string]any, error) {
 	m.record(recordedCall{Method: "PUT", Path: path, Body: body})
 	return m.resp, nil
 }
-func (m *callRecorder) Patch(path string, body map[string]any) (map[string]any, error) {
+func (m *callRecorder) Patch(_ context.Context, path string, body map[string]any) (map[string]any, error) {
 	m.record(recordedCall{Method: "PATCH", Path: path, Body: body})
 	return m.resp, nil
 }
-func (m *callRecorder) Delete(path string) (map[string]any, error) {
+func (m *callRecorder) Delete(_ context.Context, path string) (map[string]any, error) {
 	m.record(recordedCall{Method: "DELETE", Path: path})
 	return m.resp, nil
 }
@@ -134,7 +135,7 @@ func newPhoneNumbers() (*PhoneNumbersNamespace, *callRecorder) {
 
 func TestPhoneNumbers_Update_UsesPUT(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.Update("pn-1", map[string]any{"name": "Main"})
+	_, _ = pn.Update(context.Background(), "pn-1", map[string]any{"name": "Main"})
 	calls := mock.Calls()
 	if len(calls) != 1 {
 		t.Fatalf("calls = %d, want 1", len(calls))
@@ -149,7 +150,7 @@ func TestPhoneNumbers_Update_UsesPUT(t *testing.T) {
 
 func TestSetSwmlWebhook_HappyPath(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetSwmlWebhook("pn-1", "https://example.com/swml")
+	_, _ = pn.SetSwmlWebhook(context.Background(), "pn-1", "https://example.com/swml")
 	calls := mock.Calls()
 	if len(calls) != 1 {
 		t.Fatalf("calls = %d, want 1", len(calls))
@@ -168,7 +169,7 @@ func TestSetSwmlWebhook_HappyPath(t *testing.T) {
 
 func TestSetSwmlWebhook_Extra(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetSwmlWebhook("pn-1", "https://example.com/swml", map[string]any{
+	_, _ = pn.SetSwmlWebhook(context.Background(), "pn-1", "https://example.com/swml", map[string]any{
 		"name": "Support Line",
 	})
 	body := mock.Calls()[0].Body
@@ -182,7 +183,7 @@ func TestSetSwmlWebhook_Extra(t *testing.T) {
 
 func TestSetCxmlWebhook_Minimal(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", nil, nil)
+	_, _ = pn.SetCxmlWebhook(context.Background(), "pn-1", "https://example.com/voice.xml", nil, nil)
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "laml_webhooks" {
 		t.Errorf("call_handler = %v, want laml_webhooks", body["call_handler"])
@@ -202,7 +203,7 @@ func TestSetCxmlWebhook_WithFallbackAndStatus(t *testing.T) {
 	pn, mock := newPhoneNumbers()
 	fallback := "https://example.com/fallback.xml"
 	status := "https://example.com/status"
-	_, _ = pn.SetCxmlWebhook("pn-1", "https://example.com/voice.xml", &fallback, &status)
+	_, _ = pn.SetCxmlWebhook(context.Background(), "pn-1", "https://example.com/voice.xml", &fallback, &status)
 	body := mock.Calls()[0].Body
 	want := map[string]any{
 		"call_handler":             "laml_webhooks",
@@ -222,7 +223,7 @@ func TestSetCxmlWebhook_WithFallbackAndStatus(t *testing.T) {
 
 func TestSetCxmlApplication_HappyPath(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCxmlApplication("pn-1", "app-1")
+	_, _ = pn.SetCxmlApplication(context.Background(), "pn-1", "app-1")
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "laml_application" {
 		t.Errorf("call_handler = %v, want laml_application", body["call_handler"])
@@ -234,7 +235,7 @@ func TestSetCxmlApplication_HappyPath(t *testing.T) {
 
 func TestSetAiAgent_HappyPath(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetAiAgent("pn-1", "agent-1")
+	_, _ = pn.SetAiAgent(context.Background(), "pn-1", "agent-1")
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "ai_agent" {
 		t.Errorf("call_handler = %v, want ai_agent", body["call_handler"])
@@ -246,7 +247,7 @@ func TestSetAiAgent_HappyPath(t *testing.T) {
 
 func TestSetCallFlow_Minimal(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetCallFlow("pn-1", "cf-1", nil)
+	_, _ = pn.SetCallFlow(context.Background(), "pn-1", "cf-1", nil)
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "call_flow" {
 		t.Errorf("call_handler = %v, want call_flow", body["call_handler"])
@@ -262,7 +263,7 @@ func TestSetCallFlow_Minimal(t *testing.T) {
 func TestSetCallFlow_WithVersion(t *testing.T) {
 	pn, mock := newPhoneNumbers()
 	version := "current_deployed"
-	_, _ = pn.SetCallFlow("pn-1", "cf-1", &version)
+	_, _ = pn.SetCallFlow(context.Background(), "pn-1", "cf-1", &version)
 	body := mock.Calls()[0].Body
 	if body["call_flow_version"] != "current_deployed" {
 		t.Errorf("call_flow_version = %v, want current_deployed", body["call_flow_version"])
@@ -271,7 +272,7 @@ func TestSetCallFlow_WithVersion(t *testing.T) {
 
 func TestSetRelayApplication_HappyPath(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetRelayApplication("pn-1", "my-app")
+	_, _ = pn.SetRelayApplication(context.Background(), "pn-1", "my-app")
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "relay_application" {
 		t.Errorf("call_handler = %v, want relay_application", body["call_handler"])
@@ -283,7 +284,7 @@ func TestSetRelayApplication_HappyPath(t *testing.T) {
 
 func TestSetRelayTopic_Minimal(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetRelayTopic("pn-1", "office", nil)
+	_, _ = pn.SetRelayTopic(context.Background(), "pn-1", "office", nil)
 	body := mock.Calls()[0].Body
 	if body["call_handler"] != "relay_topic" {
 		t.Errorf("call_handler = %v, want relay_topic", body["call_handler"])
@@ -296,7 +297,7 @@ func TestSetRelayTopic_Minimal(t *testing.T) {
 func TestSetRelayTopic_WithStatusCallback(t *testing.T) {
 	pn, mock := newPhoneNumbers()
 	statusCB := "https://example.com/status"
-	_, _ = pn.SetRelayTopic("pn-1", "office", &statusCB)
+	_, _ = pn.SetRelayTopic(context.Background(), "pn-1", "office", &statusCB)
 	body := mock.Calls()[0].Body
 	if body["call_relay_topic_status_callback_url"] != "https://example.com/status" {
 		t.Errorf("call_relay_topic_status_callback_url = %v",
@@ -314,7 +315,7 @@ func TestSetRelayTopic_WithStatusCallback(t *testing.T) {
 // were the two traps found in the phone-binding post-mortem.
 func TestBindingRegression_NoFabricWebhookCreate(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.SetSwmlWebhook("pn-1", "https://example.com/swml")
+	_, _ = pn.SetSwmlWebhook(context.Background(), "pn-1", "https://example.com/swml")
 
 	calls := mock.Calls()
 	if len(calls) != 1 {
@@ -341,7 +342,7 @@ func TestBindingRegression_NoFabricWebhookCreate(t *testing.T) {
 // helpers and pass call_handler directly to Update get the same result.
 func TestBindingRegression_WireLevelFormStillWorks(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.Update("pn-1", map[string]any{
+	_, _ = pn.Update(context.Background(), "pn-1", map[string]any{
 		"call_handler":          "relay_script",
 		"call_relay_script_url": "https://example.com/swml",
 	})
@@ -358,7 +359,7 @@ func TestBindingRegression_WireLevelFormStillWorks(t *testing.T) {
 // typed constant produces the same wire value as the raw string.
 func TestBindingRegression_EnumConstantMatchesWireValue(t *testing.T) {
 	pn, mock := newPhoneNumbers()
-	_, _ = pn.Update("pn-1", map[string]any{
+	_, _ = pn.Update(context.Background(), "pn-1", map[string]any{
 		"call_handler":          string(PhoneCallHandlerRelayScript),
 		"call_relay_script_url": "https://example.com/swml",
 	})

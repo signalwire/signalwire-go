@@ -312,6 +312,22 @@ sched_gate SNIPPET-COMPILE tier=nightly desc="documented code snippets compile a
 sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
     -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port go --repo "$PORT_ROOT"
 
+# Wave-3 doc/API-truth gates — deterministic source/doc analysis (no build, no
+# mock, ~1.3s for all six). Per-PR tier: cheap enough to catch doc/API drift at
+# PR time rather than a day later in nightly.
+sched_gate ERROR-ENVELOPE desc="REST error carries the full (status,body,url,method) envelope + raised on >=400" \
+    -- python3 "$PORTING_SDK_DIR/scripts/error_envelope.py" --port go --repo "$PORT_ROOT"
+sched_gate DEAD-PUBLIC-ERROR desc="exported error types are raised/caught/user-signalled (no dead error surface)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/dead_public_error.py" --port go --repo "$PORT_ROOT"
+sched_gate PAGINATION-WIRED desc="shipped iterator-protocol paginator is wired into list()" \
+    -- python3 "$PORTING_SDK_DIR/scripts/pagination_wired.py" --port go --repo "$PORT_ROOT"
+sched_gate DOC-ENV desc="documented SIGNALWIRE_*/SWML_* env vars <=> code-read vars agree" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_env.py" --port go --repo "$PORT_ROOT"
+sched_gate COUNT-CLAIM desc="numeric doc claims (skills/namespaces) match reality" \
+    -- python3 "$PORTING_SDK_DIR/scripts/count_claim.py" --port go --repo "$PORT_ROOT"
+sched_gate ACCESSOR-TRUTH desc="documented backtick method() refs exist in source" \
+    -- python3 "$PORTING_SDK_DIR/scripts/accessor_truth.py" --port go --repo "$PORT_ROOT"
+
 sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/compile (modulo EXAMPLES_RUN_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port go --repo "$PORT_ROOT"
 
@@ -343,8 +359,8 @@ sched_gate README-INCLUDE res=dayone desc="doc code blocks are byte-identical to
 sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port go --repo "$PORT_ROOT"
 
-sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md" \
-    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port go --repo "$PORT_ROOT"
+sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md (strict: reason/approver/date required)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port go --repo "$PORT_ROOT" --require-fields
 
 sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
     -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port go --repo "$PORT_ROOT"
@@ -356,9 +372,9 @@ sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the published 
 # Blocking; backlog burned to zero and the GEN-TYPE-DEGENERACY / ROUTE-COLLISION
 # allowlists are user-approved (stamped 9cd5624). ROUTE-COLLISION builds go's
 # route-registry itself (`go run ./cmd/route-registry`, its built-in REGISTRY_CMD
-# — the same source the SPEC-PARITY gate uses). RELEASE-FRESH is report-only: go
-# has no publish/release workflow, so there is no publish path to gate (a gap to
-# flag, not a RED).
+# — the same source the SPEC-PARITY gate uses). RELEASE-FRESH is BLOCKING: go now
+# ships a gated publish workflow (.github/workflows/publish.yml runs run-ci.sh
+# before the release step), so the publish path is gated.
 
 sched_gate GEN-TYPE-DEGENERACY res=dayone desc="generated types aren't degenerate (modulo GEN_TYPE_DEGENERACY_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/gen_type_degeneracy.py" --port go --repo "$PORT_ROOT"
@@ -372,8 +388,17 @@ sched_gate ROUTE-COLLISION res=dayone desc="no route-split/crud-dup latent defec
 sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (idiomatic, gate-clean)" \
     -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port go --repo "$PORT_ROOT"
 
-sched_gate RELEASE-FRESH res=dayone desc="release hygiene (report-only: go has no publish workflow to gate)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port go --repo "$PORT_ROOT" --report-only
+sched_gate RELEASE-FRESH res=dayone desc="release hygiene: publish path must run run-ci before publishing (blocking)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port go --repo "$PORT_ROOT"
+
+# SEMVER-DIFF (§D3) — the public API surface change since the release FLOOR must
+# match the version bump. go has no in-tree version file (the git tag is the
+# version), so the floor is the committed port_signatures.baseline.json
+# (baseline_version 3.0.0); zero surface change vs the baseline → report-only
+# note + exit 0 (the "no version file" go path). Blocking on any surface DIFF
+# that the baseline doesn't already contain.
+sched_gate SEMVER-DIFF res=dayone deps=SIGNATURES desc="API surface change since the release floor matches the version bump" \
+    -- python3 "$PORTING_SDK_DIR/scripts/semver_diff.py" --port go --repo "$PORT_ROOT"
 
 # ---- summary ----------------------------------------------------------------
 

@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -30,7 +31,7 @@ func main() {
 
 	// 1. Create a subscriber
 	fmt.Println("Creating subscriber...")
-	subscriber, err := client.Fabric.Subscribers.Create(map[string]any{
+	subscriber, err := client.Fabric.Subscribers.Create(context.Background(), map[string]any{
 		"name":  "Alice Johnson",
 		"email": "alice@example.com",
 	})
@@ -49,7 +50,7 @@ func main() {
 
 	// 2. Add a SIP endpoint to the subscriber
 	fmt.Println("\nCreating SIP endpoint on subscriber...")
-	endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(subID, namespaces.SubscribersResourceCreateSIPEndpointParams{
+	endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(context.Background(), subID, namespaces.SubscribersResourceCreateSIPEndpointParams{
 		Username: "alice_sip",
 		Password: "SecurePass123!",
 	})
@@ -57,28 +58,28 @@ func main() {
 		fmt.Printf("  Create SIP endpoint failed: %v\n", err)
 		return
 	}
-	epID := string(endpoint.Id)
+	epID := string(endpoint.ID)
 	fmt.Printf("  Created SIP endpoint: %s\n", epID)
 
 	// 3. List SIP endpoints on the subscriber
 	fmt.Println("\nListing subscriber SIP endpoints...")
-	endpoints, err := client.Fabric.Subscribers.ListSIPEndpoints(subID, nil)
+	endpoints, err := client.Fabric.Subscribers.ListSIPEndpoints(context.Background(), subID, nil)
 	if err == nil {
 		for _, ep := range endpoints.Data {
-			fmt.Printf("  - %s: %v\n", ep.Id, ep.Username)
+			fmt.Printf("  - %s: %v\n", ep.ID, ep.Username)
 		}
 	}
 
 	// 4. Get specific SIP endpoint details
 	fmt.Printf("\nGetting SIP endpoint %s...\n", epID)
-	epDetail, err := client.Fabric.Subscribers.GetSIPEndpoint(subID, epID, nil)
+	epDetail, err := client.Fabric.Subscribers.GetSIPEndpoint(context.Background(), subID, epID, nil)
 	if err == nil {
 		fmt.Printf("  Username: %v\n", epDetail.Username)
 	}
 
 	// 5. Create a standalone SIP gateway
 	fmt.Println("\nCreating SIP gateway...")
-	gateway, err := client.Fabric.SIPGateways.Create(map[string]any{
+	gateway, err := client.Fabric.SIPGateways.Create(context.Background(), map[string]any{
 		"name":       "Office PBX Gateway",
 		"uri":        "sip:pbx.example.com",
 		"encryption": "required",
@@ -94,7 +95,7 @@ func main() {
 
 	// 6. List fabric addresses
 	fmt.Println("\nListing fabric addresses...")
-	addresses, err := client.Fabric.Addresses.List(nil)
+	addresses, err := client.Fabric.Addresses.List(context.Background(), nil)
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Fabric addresses failed: %d\n", restErr.StatusCode)
@@ -114,7 +115,7 @@ func main() {
 		if len(data) > 0 {
 			if first, ok := data[0].(map[string]any); ok {
 				if id, ok := first["id"].(string); ok {
-					addrDetail, err := client.Fabric.Addresses.Get(id)
+					addrDetail, err := client.Fabric.Addresses.Get(context.Background(), id)
 					if err == nil {
 						fmt.Printf("  Address detail: %v\n", addrDetail["display_name"])
 					}
@@ -125,7 +126,7 @@ func main() {
 
 	// 8. Generate a subscriber token
 	fmt.Println("\nGenerating subscriber token...")
-	token, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{
+	token, err := client.Fabric.Tokens.CreateSubscriberToken(context.Background(), namespaces.FabricTokensCreateSubscriberTokenParams{
 		Reference: innerSubID,
 		Extras:    map[string]any{"subscriber_id": innerSubID},
 	})
@@ -143,10 +144,10 @@ func main() {
 
 	// 9. Clean up
 	fmt.Println("\nCleaning up...")
-	client.Fabric.Subscribers.DeleteSIPEndpoint(subID, epID)
+	client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), subID, epID)
 	fmt.Printf("  Deleted SIP endpoint %s\n", epID)
-	client.Fabric.Subscribers.Delete(subID)
+	client.Fabric.Subscribers.Delete(context.Background(), subID)
 	fmt.Printf("  Deleted subscriber %s\n", subID)
-	client.Fabric.SIPGateways.Delete(gwID)
+	client.Fabric.SIPGateways.Delete(context.Background(), gwID)
 	fmt.Printf("  Deleted SIP gateway %s\n", gwID)
 }

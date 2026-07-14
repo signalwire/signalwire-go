@@ -24,6 +24,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
@@ -108,7 +109,7 @@ func TestReadResourcePaginate_WalksAllPages(t *testing.T) {
 	pushCursorPages(t, mock, fabricAddressesEndpointID,
 		"http://example.com/api/fabric/addresses?cursor=page2")
 
-	it := client.Fabric.Addresses.Paginate(nil)
+	it := client.Fabric.Addresses.Paginate(context.Background(), nil)
 	if it == nil {
 		t.Fatal("Paginate returned nil")
 	}
@@ -133,7 +134,7 @@ func TestCrudResourcePaginate_WalksAllPages(t *testing.T) {
 	pushCursorPages(t, mock, "fabric.list_ai_agents",
 		"http://example.com/api/fabric/resources/ai_agents?cursor=page2")
 
-	it := client.Fabric.AIAgents.Paginate(nil)
+	it := client.Fabric.AIAgents.Paginate(context.Background(), nil)
 	if it == nil {
 		t.Fatal("Paginate returned nil")
 	}

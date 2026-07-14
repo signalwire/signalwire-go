@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -33,7 +34,7 @@ func main() {
 	// 1. Create a queue
 	fmt.Println("Creating call queue...")
 	var queueID string
-	queue, err := client.Queues.Create(map[string]any{"name": "Support Queue", "max_size": 50})
+	queue, err := client.Queues.Create(context.Background(), map[string]any{"name": "Support Queue", "max_size": 50})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Queue creation failed (expected in demo): %d\n", restErr.StatusCode)
@@ -45,7 +46,7 @@ func main() {
 
 	// 2. List queues
 	fmt.Println("\nListing queues...")
-	queues, err := client.Queues.List(nil)
+	queues, err := client.Queues.List(context.Background(), nil)
 	if err == nil {
 		if data, ok := queues["data"].([]any); ok {
 			for _, q := range data {
@@ -62,7 +63,7 @@ func main() {
 
 	// 3. Get and update queue
 	if queueID != "" {
-		detail, err := client.Queues.Get(queueID)
+		detail, err := client.Queues.Get(context.Background(), queueID)
 		if err == nil {
 			name := detail["friendly_name"]
 			if name == nil {
@@ -71,7 +72,7 @@ func main() {
 			fmt.Printf("\nQueue detail: %v (max: %v)\n", name, detail["max_size"])
 		}
 
-		_, err = client.Queues.Update(queueID, map[string]any{"name": "Priority Support Queue"})
+		_, err = client.Queues.Update(context.Background(), queueID, map[string]any{"name": "Priority Support Queue"})
 		if err == nil {
 			fmt.Println("  Updated queue name")
 		}
@@ -80,18 +81,18 @@ func main() {
 	// 4. Queue members
 	if queueID != "" {
 		fmt.Println("\nListing queue members...")
-		members, err := client.Queues.ListMembers(queueID, nil)
+		members, err := client.Queues.ListMembers(context.Background(), queueID, nil)
 		if err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Member ops failed (expected if queue empty): %d\n", restErr.StatusCode)
 			}
 		} else {
 			for _, member := range members.Data {
-				fmt.Printf("  - Member: %v\n", member.CallId)
+				fmt.Printf("  - Member: %v\n", member.CallID)
 			}
 		}
 
-		next, err := client.Queues.GetNextMember(queueID, nil)
+		next, err := client.Queues.GetNextMember(context.Background(), queueID, nil)
 		if err == nil {
 			fmt.Printf("  Next member: %v\n", next)
 		}
@@ -101,7 +102,7 @@ func main() {
 
 	// 5. List recordings
 	fmt.Println("\nListing recordings...")
-	recordings, err := client.Recordings.List(nil)
+	recordings, err := client.Recordings.List(context.Background(), nil)
 	if err == nil {
 		data := recordings.Data
 		limit := 5
@@ -119,7 +120,7 @@ func main() {
 	if recordings != nil && len(recordings.Data) > 0 {
 		if first, ok := recordings.Data[0].(map[string]any); ok {
 			if id, ok := first["id"].(string); ok {
-				recDetail, err := client.Recordings.Get(id, nil)
+				recDetail, err := client.Recordings.Get(context.Background(), id, nil)
 				if err == nil {
 					fmt.Printf("  Recording: %vs, %v\n", recDetail["duration"], recDetail["format"])
 				}
@@ -132,7 +133,7 @@ func main() {
 	// 7. Send MFA via SMS
 	fmt.Println("\nSending MFA SMS code...")
 	var requestID string
-	smsResult, err := client.MFA.SMS(namespaces.MFANamespaceSMSParams{Extras: map[string]any{
+	smsResult, err := client.MFA.SMS(context.Background(), namespaces.MFANamespaceSMSParams{Extras: map[string]any{
 		"to":           "+15551234567",
 		"from":         "+15559876543",
 		"message":      "Your code is {{code}}",
@@ -143,13 +144,13 @@ func main() {
 			fmt.Printf("  MFA SMS failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		requestID = string(smsResult.Id)
+		requestID = string(smsResult.ID)
 		fmt.Printf("  MFA SMS sent: %s\n", requestID)
 	}
 
 	// 8. Send MFA via voice call
 	fmt.Println("\nSending MFA voice code...")
-	voiceResult, err := client.MFA.Call(namespaces.MFANamespaceCallParams{Extras: map[string]any{
+	voiceResult, err := client.MFA.Call(context.Background(), namespaces.MFANamespaceCallParams{Extras: map[string]any{
 		"to":           "+15551234567",
 		"from":         "+15559876543",
 		"message":      "Your verification code is {{code}}",
@@ -160,13 +161,13 @@ func main() {
 			fmt.Printf("  MFA call failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		fmt.Printf("  MFA call sent: %s\n", string(voiceResult.Id))
+		fmt.Printf("  MFA call sent: %s\n", string(voiceResult.ID))
 	}
 
 	// 9. Verify MFA token
 	if requestID != "" {
 		fmt.Println("\nVerifying MFA token...")
-		verify, err := client.MFA.Verify(requestID, namespaces.MFANamespaceVerifyParams{Extras: map[string]any{"token": "123456"}})
+		verify, err := client.MFA.Verify(context.Background(), requestID, namespaces.MFANamespaceVerifyParams{Extras: map[string]any{"token": "123456"}})
 		if err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Verify failed (expected in demo): %d\n", restErr.StatusCode)
@@ -179,7 +180,7 @@ func main() {
 	// 10. Clean up
 	fmt.Println("\nCleaning up...")
 	if queueID != "" {
-		client.Queues.Delete(queueID)
+		client.Queues.Delete(context.Background(), queueID)
 		fmt.Printf("  Deleted queue %s\n", queueID)
 	}
 }

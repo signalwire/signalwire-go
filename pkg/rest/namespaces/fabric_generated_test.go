@@ -13,6 +13,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestFabricGen_AIAgents_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.AIAgents.Create(map[string]any{"prompt": "x-1", "name": "x-1"})
+	_, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{"prompt": "x-1", "name": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -49,7 +50,7 @@ func TestFabricGen_AIAgents_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_ai_agent", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.AIAgents.Create(map[string]any{"prompt": "x-1", "name": "x-1"})
+	_, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{"prompt": "x-1", "name": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -66,7 +67,7 @@ func TestFabricGen_AIAgents_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.AIAgents.Delete("x-1")
+	_, err := client.Fabric.AIAgents.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestFabricGen_AIAgents_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_ai_agent", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.AIAgents.Delete("x-1")
+	_, err := client.Fabric.AIAgents.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -104,7 +105,7 @@ func TestFabricGen_AIAgents_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.AIAgents.Get("x-1")
+	_, err := client.Fabric.AIAgents.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -125,7 +126,7 @@ func TestFabricGen_AIAgents_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_ai_agent", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.AIAgents.Get("x-1")
+	_, err := client.Fabric.AIAgents.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -142,7 +143,7 @@ func TestFabricGen_AIAgents_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.AIAgents.ListAddresses("x-1", nil)
+	_, err := client.Fabric.AIAgents.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -163,7 +164,7 @@ func TestFabricGen_AIAgents_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_ai_agent_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.AIAgents.ListAddresses("x-1", nil)
+	_, err := client.Fabric.AIAgents.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -180,7 +181,7 @@ func TestFabricGen_AIAgents_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.AIAgents.List(nil)
+	_, err := client.Fabric.AIAgents.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -201,7 +202,7 @@ func TestFabricGen_AIAgents_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_ai_agents", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.AIAgents.List(nil)
+	_, err := client.Fabric.AIAgents.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -218,7 +219,7 @@ func TestFabricGen_AIAgents_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.AIAgents.Update("x-1", map[string]any{})
+	_, err := client.Fabric.AIAgents.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -239,7 +240,7 @@ func TestFabricGen_AIAgents_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_ai_agent", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.AIAgents.Update("x-1", map[string]any{})
+	_, err := client.Fabric.AIAgents.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -256,7 +257,7 @@ func TestFabricGen_Addresses_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Addresses.Get("x-1")
+	_, err := client.Fabric.Addresses.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -277,7 +278,7 @@ func TestFabricGen_Addresses_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_fabric_address", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Addresses.Get("x-1")
+	_, err := client.Fabric.Addresses.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -294,7 +295,7 @@ func TestFabricGen_Addresses_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Addresses.List(nil)
+	_, err := client.Fabric.Addresses.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -315,7 +316,7 @@ func TestFabricGen_Addresses_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_fabric_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Addresses.List(nil)
+	_, err := client.Fabric.Addresses.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -332,7 +333,7 @@ func TestFabricGen_CXMLApplications_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.Delete("x-1")
+	_, err := client.Fabric.CXMLApplications.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -353,7 +354,7 @@ func TestFabricGen_CXMLApplications_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_cxml_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLApplications.Delete("x-1")
+	_, err := client.Fabric.CXMLApplications.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -370,7 +371,7 @@ func TestFabricGen_CXMLApplications_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.Get("x-1", nil)
+	_, err := client.Fabric.CXMLApplications.Get(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -391,7 +392,7 @@ func TestFabricGen_CXMLApplications_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_cxml_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLApplications.Get("x-1", nil)
+	_, err := client.Fabric.CXMLApplications.Get(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -408,7 +409,7 @@ func TestFabricGen_CXMLApplications_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.ListAddresses("x-1", nil)
+	_, err := client.Fabric.CXMLApplications.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -429,7 +430,7 @@ func TestFabricGen_CXMLApplications_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_cxml_application_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLApplications.ListAddresses("x-1", nil)
+	_, err := client.Fabric.CXMLApplications.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -446,7 +447,7 @@ func TestFabricGen_CXMLApplications_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.List(nil)
+	_, err := client.Fabric.CXMLApplications.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -467,7 +468,7 @@ func TestFabricGen_CXMLApplications_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_cxml_applications", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLApplications.List(nil)
+	_, err := client.Fabric.CXMLApplications.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -484,7 +485,7 @@ func TestFabricGen_CXMLApplications_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLApplications.Update("x-1", namespaces.CxmlApplicationsResourceUpdateParams{})
+	_, err := client.Fabric.CXMLApplications.Update(context.Background(), "x-1", namespaces.CxmlApplicationsResourceUpdateParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -505,7 +506,7 @@ func TestFabricGen_CXMLApplications_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_cxml_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLApplications.Update("x-1", namespaces.CxmlApplicationsResourceUpdateParams{})
+	_, err := client.Fabric.CXMLApplications.Update(context.Background(), "x-1", namespaces.CxmlApplicationsResourceUpdateParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -522,7 +523,7 @@ func TestFabricGen_CXMLScripts_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLScripts.Create(map[string]any{"display_name": "x-1", "contents": "x-1"})
+	_, err := client.Fabric.CXMLScripts.Create(context.Background(), map[string]any{"display_name": "x-1", "contents": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -543,7 +544,7 @@ func TestFabricGen_CXMLScripts_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_cxml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLScripts.Create(map[string]any{"display_name": "x-1", "contents": "x-1"})
+	_, err := client.Fabric.CXMLScripts.Create(context.Background(), map[string]any{"display_name": "x-1", "contents": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -560,7 +561,7 @@ func TestFabricGen_CXMLScripts_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLScripts.Delete("x-1")
+	_, err := client.Fabric.CXMLScripts.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -581,7 +582,7 @@ func TestFabricGen_CXMLScripts_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_cxml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLScripts.Delete("x-1")
+	_, err := client.Fabric.CXMLScripts.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -598,7 +599,7 @@ func TestFabricGen_CXMLScripts_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLScripts.Get("x-1")
+	_, err := client.Fabric.CXMLScripts.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -619,7 +620,7 @@ func TestFabricGen_CXMLScripts_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_cxml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLScripts.Get("x-1")
+	_, err := client.Fabric.CXMLScripts.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -636,7 +637,7 @@ func TestFabricGen_CXMLScripts_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLScripts.ListAddresses("x-1", nil)
+	_, err := client.Fabric.CXMLScripts.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -657,7 +658,7 @@ func TestFabricGen_CXMLScripts_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_cxml_script_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLScripts.ListAddresses("x-1", nil)
+	_, err := client.Fabric.CXMLScripts.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -674,7 +675,7 @@ func TestFabricGen_CXMLScripts_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLScripts.List(nil)
+	_, err := client.Fabric.CXMLScripts.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -695,7 +696,7 @@ func TestFabricGen_CXMLScripts_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_cxml_scripts", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLScripts.List(nil)
+	_, err := client.Fabric.CXMLScripts.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -712,7 +713,7 @@ func TestFabricGen_CXMLScripts_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLScripts.Update("x-1", map[string]any{})
+	_, err := client.Fabric.CXMLScripts.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -733,7 +734,7 @@ func TestFabricGen_CXMLScripts_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_cxml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLScripts.Update("x-1", map[string]any{})
+	_, err := client.Fabric.CXMLScripts.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -750,7 +751,7 @@ func TestFabricGen_CXMLWebhooks_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLWebhooks.Create(map[string]any{"primary_request_url": "x-1"})
+	_, err := client.Fabric.CXMLWebhooks.Create(context.Background(), map[string]any{"primary_request_url": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -771,7 +772,7 @@ func TestFabricGen_CXMLWebhooks_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_cxml_webhook", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLWebhooks.Create(map[string]any{"primary_request_url": "x-1"})
+	_, err := client.Fabric.CXMLWebhooks.Create(context.Background(), map[string]any{"primary_request_url": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -788,7 +789,7 @@ func TestFabricGen_CXMLWebhooks_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLWebhooks.Delete("x-1")
+	_, err := client.Fabric.CXMLWebhooks.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -809,7 +810,7 @@ func TestFabricGen_CXMLWebhooks_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_cxml_webhook", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLWebhooks.Delete("x-1")
+	_, err := client.Fabric.CXMLWebhooks.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -826,7 +827,7 @@ func TestFabricGen_CXMLWebhooks_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLWebhooks.Get("x-1")
+	_, err := client.Fabric.CXMLWebhooks.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -847,7 +848,7 @@ func TestFabricGen_CXMLWebhooks_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_cxml_webhook", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLWebhooks.Get("x-1")
+	_, err := client.Fabric.CXMLWebhooks.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -864,7 +865,7 @@ func TestFabricGen_CXMLWebhooks_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLWebhooks.ListAddresses("x-1", nil)
+	_, err := client.Fabric.CXMLWebhooks.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -885,7 +886,7 @@ func TestFabricGen_CXMLWebhooks_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_cxml_webhook_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLWebhooks.ListAddresses("x-1", nil)
+	_, err := client.Fabric.CXMLWebhooks.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -902,7 +903,7 @@ func TestFabricGen_CXMLWebhooks_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLWebhooks.List(nil)
+	_, err := client.Fabric.CXMLWebhooks.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -923,7 +924,7 @@ func TestFabricGen_CXMLWebhooks_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_cxml_webhooks", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLWebhooks.List(nil)
+	_, err := client.Fabric.CXMLWebhooks.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -940,7 +941,7 @@ func TestFabricGen_CXMLWebhooks_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLWebhooks.Update("x-1", map[string]any{})
+	_, err := client.Fabric.CXMLWebhooks.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -961,7 +962,7 @@ func TestFabricGen_CXMLWebhooks_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_cxml_webhook", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLWebhooks.Update("x-1", map[string]any{})
+	_, err := client.Fabric.CXMLWebhooks.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -978,7 +979,7 @@ func TestFabricGen_CallFlows_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.Create(map[string]any{"title": "x-1"})
+	_, err := client.Fabric.CallFlows.Create(context.Background(), map[string]any{"title": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -999,7 +1000,7 @@ func TestFabricGen_CallFlows_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_call_flow", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.Create(map[string]any{"title": "x-1"})
+	_, err := client.Fabric.CallFlows.Create(context.Background(), map[string]any{"title": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1016,7 +1017,7 @@ func TestFabricGen_CallFlows_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.Delete("x-1")
+	_, err := client.Fabric.CallFlows.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1037,7 +1038,7 @@ func TestFabricGen_CallFlows_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_call_flow", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.Delete("x-1")
+	_, err := client.Fabric.CallFlows.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1054,7 +1055,7 @@ func TestFabricGen_CallFlows_DeployVersion(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.DeployVersion("x-1", map[string]any{})
+	_, err := client.Fabric.CallFlows.DeployVersion(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1075,7 +1076,7 @@ func TestFabricGen_CallFlows_DeployVersion_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.deploy_call_flow_version", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.DeployVersion("x-1", map[string]any{})
+	_, err := client.Fabric.CallFlows.DeployVersion(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1092,7 +1093,7 @@ func TestFabricGen_CallFlows_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.Get("x-1")
+	_, err := client.Fabric.CallFlows.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1113,7 +1114,7 @@ func TestFabricGen_CallFlows_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_call_flow", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.Get("x-1")
+	_, err := client.Fabric.CallFlows.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1130,7 +1131,7 @@ func TestFabricGen_CallFlows_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.ListAddresses("x-1", nil)
+	_, err := client.Fabric.CallFlows.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1151,7 +1152,7 @@ func TestFabricGen_CallFlows_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_call_flow_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.ListAddresses("x-1", nil)
+	_, err := client.Fabric.CallFlows.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1168,7 +1169,7 @@ func TestFabricGen_CallFlows_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.List(nil)
+	_, err := client.Fabric.CallFlows.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1189,7 +1190,7 @@ func TestFabricGen_CallFlows_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_call_flows", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.List(nil)
+	_, err := client.Fabric.CallFlows.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1206,7 +1207,7 @@ func TestFabricGen_CallFlows_ListVersions(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.ListVersions("x-1", nil)
+	_, err := client.Fabric.CallFlows.ListVersions(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1227,7 +1228,7 @@ func TestFabricGen_CallFlows_ListVersions_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_call_flow_versions", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.ListVersions("x-1", nil)
+	_, err := client.Fabric.CallFlows.ListVersions(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1244,7 +1245,7 @@ func TestFabricGen_CallFlows_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.Update("x-1", map[string]any{})
+	_, err := client.Fabric.CallFlows.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1265,7 +1266,7 @@ func TestFabricGen_CallFlows_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_call_flow", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.Update("x-1", map[string]any{})
+	_, err := client.Fabric.CallFlows.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1282,7 +1283,7 @@ func TestFabricGen_ConferenceRooms_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.ConferenceRooms.Create(map[string]any{"name": "x-1", "enable_room_previews": "x-1"})
+	_, err := client.Fabric.ConferenceRooms.Create(context.Background(), map[string]any{"name": "x-1", "enable_room_previews": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1303,7 +1304,7 @@ func TestFabricGen_ConferenceRooms_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_conference_room", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.ConferenceRooms.Create(map[string]any{"name": "x-1", "enable_room_previews": "x-1"})
+	_, err := client.Fabric.ConferenceRooms.Create(context.Background(), map[string]any{"name": "x-1", "enable_room_previews": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1320,7 +1321,7 @@ func TestFabricGen_ConferenceRooms_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.ConferenceRooms.Delete("x-1")
+	_, err := client.Fabric.ConferenceRooms.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1341,7 +1342,7 @@ func TestFabricGen_ConferenceRooms_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_conference_room", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.ConferenceRooms.Delete("x-1")
+	_, err := client.Fabric.ConferenceRooms.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1358,7 +1359,7 @@ func TestFabricGen_ConferenceRooms_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.ConferenceRooms.Get("x-1")
+	_, err := client.Fabric.ConferenceRooms.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1379,7 +1380,7 @@ func TestFabricGen_ConferenceRooms_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_conference_room", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.ConferenceRooms.Get("x-1")
+	_, err := client.Fabric.ConferenceRooms.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1396,7 +1397,7 @@ func TestFabricGen_ConferenceRooms_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.ConferenceRooms.ListAddresses("x-1", nil)
+	_, err := client.Fabric.ConferenceRooms.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1417,7 +1418,7 @@ func TestFabricGen_ConferenceRooms_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_conference_room_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.ConferenceRooms.ListAddresses("x-1", nil)
+	_, err := client.Fabric.ConferenceRooms.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1434,7 +1435,7 @@ func TestFabricGen_ConferenceRooms_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.ConferenceRooms.List(nil)
+	_, err := client.Fabric.ConferenceRooms.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1455,7 +1456,7 @@ func TestFabricGen_ConferenceRooms_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_conference_rooms", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.ConferenceRooms.List(nil)
+	_, err := client.Fabric.ConferenceRooms.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1472,7 +1473,7 @@ func TestFabricGen_ConferenceRooms_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.ConferenceRooms.Update("x-1", map[string]any{"enable_room_previews": "x-1", "sync_audio_video": "x-1"})
+	_, err := client.Fabric.ConferenceRooms.Update(context.Background(), "x-1", map[string]any{"enable_room_previews": "x-1", "sync_audio_video": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1493,7 +1494,7 @@ func TestFabricGen_ConferenceRooms_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_conference_room", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.ConferenceRooms.Update("x-1", map[string]any{"enable_room_previews": "x-1", "sync_audio_video": "x-1"})
+	_, err := client.Fabric.ConferenceRooms.Update(context.Background(), "x-1", map[string]any{"enable_room_previews": "x-1", "sync_audio_video": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1510,7 +1511,7 @@ func TestFabricGen_FreeSwitchConnectors_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.FreeSwitchConnectors.Create(map[string]any{"name": "x-1", "token": "x-1"})
+	_, err := client.Fabric.FreeSwitchConnectors.Create(context.Background(), map[string]any{"name": "x-1", "token": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1531,7 +1532,7 @@ func TestFabricGen_FreeSwitchConnectors_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_freeswitch_connector", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.FreeSwitchConnectors.Create(map[string]any{"name": "x-1", "token": "x-1"})
+	_, err := client.Fabric.FreeSwitchConnectors.Create(context.Background(), map[string]any{"name": "x-1", "token": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1548,7 +1549,7 @@ func TestFabricGen_FreeSwitchConnectors_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.FreeSwitchConnectors.Delete("x-1")
+	_, err := client.Fabric.FreeSwitchConnectors.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1569,7 +1570,7 @@ func TestFabricGen_FreeSwitchConnectors_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_freeswitch_connector", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.FreeSwitchConnectors.Delete("x-1")
+	_, err := client.Fabric.FreeSwitchConnectors.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1586,7 +1587,7 @@ func TestFabricGen_FreeSwitchConnectors_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.FreeSwitchConnectors.Get("x-1")
+	_, err := client.Fabric.FreeSwitchConnectors.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1607,7 +1608,7 @@ func TestFabricGen_FreeSwitchConnectors_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_freeswitch_connector", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.FreeSwitchConnectors.Get("x-1")
+	_, err := client.Fabric.FreeSwitchConnectors.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1624,7 +1625,7 @@ func TestFabricGen_FreeSwitchConnectors_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.FreeSwitchConnectors.ListAddresses("x-1", nil)
+	_, err := client.Fabric.FreeSwitchConnectors.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1645,7 +1646,7 @@ func TestFabricGen_FreeSwitchConnectors_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_freeswitch_connector_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.FreeSwitchConnectors.ListAddresses("x-1", nil)
+	_, err := client.Fabric.FreeSwitchConnectors.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1662,7 +1663,7 @@ func TestFabricGen_FreeSwitchConnectors_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.FreeSwitchConnectors.List(nil)
+	_, err := client.Fabric.FreeSwitchConnectors.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1683,7 +1684,7 @@ func TestFabricGen_FreeSwitchConnectors_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_freeswitch_connectors", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.FreeSwitchConnectors.List(nil)
+	_, err := client.Fabric.FreeSwitchConnectors.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1700,7 +1701,7 @@ func TestFabricGen_FreeSwitchConnectors_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.FreeSwitchConnectors.Update("x-1", map[string]any{})
+	_, err := client.Fabric.FreeSwitchConnectors.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1721,7 +1722,7 @@ func TestFabricGen_FreeSwitchConnectors_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_freeswitch_connector", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.FreeSwitchConnectors.Update("x-1", map[string]any{})
+	_, err := client.Fabric.FreeSwitchConnectors.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1738,7 +1739,7 @@ func TestFabricGen_RelayApplications_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.RelayApplications.Create(map[string]any{"name": "x-1", "topic": "x-1"})
+	_, err := client.Fabric.RelayApplications.Create(context.Background(), map[string]any{"name": "x-1", "topic": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1759,7 +1760,7 @@ func TestFabricGen_RelayApplications_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_relay_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.RelayApplications.Create(map[string]any{"name": "x-1", "topic": "x-1"})
+	_, err := client.Fabric.RelayApplications.Create(context.Background(), map[string]any{"name": "x-1", "topic": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1776,7 +1777,7 @@ func TestFabricGen_RelayApplications_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.RelayApplications.Delete("x-1")
+	_, err := client.Fabric.RelayApplications.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1797,7 +1798,7 @@ func TestFabricGen_RelayApplications_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_relay_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.RelayApplications.Delete("x-1")
+	_, err := client.Fabric.RelayApplications.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1814,7 +1815,7 @@ func TestFabricGen_RelayApplications_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.RelayApplications.Get("x-1")
+	_, err := client.Fabric.RelayApplications.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1835,7 +1836,7 @@ func TestFabricGen_RelayApplications_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_relay_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.RelayApplications.Get("x-1")
+	_, err := client.Fabric.RelayApplications.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1852,7 +1853,7 @@ func TestFabricGen_RelayApplications_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.RelayApplications.ListAddresses("x-1", nil)
+	_, err := client.Fabric.RelayApplications.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1873,7 +1874,7 @@ func TestFabricGen_RelayApplications_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_relay_application_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.RelayApplications.ListAddresses("x-1", nil)
+	_, err := client.Fabric.RelayApplications.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1890,7 +1891,7 @@ func TestFabricGen_RelayApplications_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.RelayApplications.List(nil)
+	_, err := client.Fabric.RelayApplications.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1911,7 +1912,7 @@ func TestFabricGen_RelayApplications_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_relay_applications", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.RelayApplications.List(nil)
+	_, err := client.Fabric.RelayApplications.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1928,7 +1929,7 @@ func TestFabricGen_RelayApplications_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.RelayApplications.Update("x-1", map[string]any{})
+	_, err := client.Fabric.RelayApplications.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1949,7 +1950,7 @@ func TestFabricGen_RelayApplications_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_relay_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.RelayApplications.Update("x-1", map[string]any{})
+	_, err := client.Fabric.RelayApplications.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1966,7 +1967,7 @@ func TestFabricGen_Resources_AssignDomainApplication(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignDomainApplication("x-1", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{"domain_application_id": "x-1"}})
+	_, err := client.Fabric.Resources.AssignDomainApplication(context.Background(), "x-1", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{"domain_application_id": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1987,7 +1988,7 @@ func TestFabricGen_Resources_AssignDomainApplication_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.assign_resource_domain_application", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Resources.AssignDomainApplication("x-1", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{"domain_application_id": "x-1"}})
+	_, err := client.Fabric.Resources.AssignDomainApplication(context.Background(), "x-1", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{"domain_application_id": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2004,7 +2005,7 @@ func TestFabricGen_Resources_AssignPhoneRoute(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignPhoneRoute("x-1", namespaces.GenericResourcesAssignPhoneRouteParams{Extras: map[string]any{"phone_route_id": "x-1", "handler": "x-1"}})
+	_, err := client.Fabric.Resources.AssignPhoneRoute(context.Background(), "x-1", namespaces.GenericResourcesAssignPhoneRouteParams{Extras: map[string]any{"phone_route_id": "x-1", "handler": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2025,7 +2026,7 @@ func TestFabricGen_Resources_AssignPhoneRoute_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.assign_resource_phone_route", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Resources.AssignPhoneRoute("x-1", namespaces.GenericResourcesAssignPhoneRouteParams{Extras: map[string]any{"phone_route_id": "x-1", "handler": "x-1"}})
+	_, err := client.Fabric.Resources.AssignPhoneRoute(context.Background(), "x-1", namespaces.GenericResourcesAssignPhoneRouteParams{Extras: map[string]any{"phone_route_id": "x-1", "handler": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2042,7 +2043,7 @@ func TestFabricGen_Resources_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.Delete("x-1")
+	_, err := client.Fabric.Resources.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2063,7 +2064,7 @@ func TestFabricGen_Resources_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_resource", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Resources.Delete("x-1")
+	_, err := client.Fabric.Resources.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2080,7 +2081,7 @@ func TestFabricGen_Resources_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.Get("x-1", nil)
+	_, err := client.Fabric.Resources.Get(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2101,7 +2102,7 @@ func TestFabricGen_Resources_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_resource", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Resources.Get("x-1", nil)
+	_, err := client.Fabric.Resources.Get(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2118,7 +2119,7 @@ func TestFabricGen_Resources_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.ListAddresses("x-1", nil)
+	_, err := client.Fabric.Resources.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2139,7 +2140,7 @@ func TestFabricGen_Resources_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_resource_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Resources.ListAddresses("x-1", nil)
+	_, err := client.Fabric.Resources.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2156,7 +2157,7 @@ func TestFabricGen_Resources_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.List(nil)
+	_, err := client.Fabric.Resources.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2177,7 +2178,7 @@ func TestFabricGen_Resources_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_resources", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Resources.List(nil)
+	_, err := client.Fabric.Resources.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2194,7 +2195,7 @@ func TestFabricGen_SIPEndpoints_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.Create(map[string]any{"username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Create(context.Background(), map[string]any{"username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2215,7 +2216,7 @@ func TestFabricGen_SIPEndpoints_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.Create(map[string]any{"username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Create(context.Background(), map[string]any{"username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2232,7 +2233,7 @@ func TestFabricGen_SIPEndpoints_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.Delete("x-1")
+	_, err := client.Fabric.SIPEndpoints.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2253,7 +2254,7 @@ func TestFabricGen_SIPEndpoints_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.Delete("x-1")
+	_, err := client.Fabric.SIPEndpoints.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2270,7 +2271,7 @@ func TestFabricGen_SIPEndpoints_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.Get("x-1")
+	_, err := client.Fabric.SIPEndpoints.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2291,7 +2292,7 @@ func TestFabricGen_SIPEndpoints_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.Get("x-1")
+	_, err := client.Fabric.SIPEndpoints.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2308,7 +2309,7 @@ func TestFabricGen_SIPEndpoints_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.ListAddresses("x-1", nil)
+	_, err := client.Fabric.SIPEndpoints.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2329,7 +2330,7 @@ func TestFabricGen_SIPEndpoints_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_sip_endpoint_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.ListAddresses("x-1", nil)
+	_, err := client.Fabric.SIPEndpoints.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2346,7 +2347,7 @@ func TestFabricGen_SIPEndpoints_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.List(nil)
+	_, err := client.Fabric.SIPEndpoints.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2367,7 +2368,7 @@ func TestFabricGen_SIPEndpoints_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_sip_endpoints", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.List(nil)
+	_, err := client.Fabric.SIPEndpoints.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2384,7 +2385,7 @@ func TestFabricGen_SIPEndpoints_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.Update("x-1", map[string]any{"calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Update(context.Background(), "x-1", map[string]any{"calling_handler_resource_id": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2405,7 +2406,7 @@ func TestFabricGen_SIPEndpoints_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.Update("x-1", map[string]any{"calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Update(context.Background(), "x-1", map[string]any{"calling_handler_resource_id": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2422,7 +2423,7 @@ func TestFabricGen_SIPGateways_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPGateways.Create(map[string]any{"name": "x-1", "uri": "x-1", "encryption": "x-1", "ciphers": "x-1", "codecs": "x-1"})
+	_, err := client.Fabric.SIPGateways.Create(context.Background(), map[string]any{"name": "x-1", "uri": "x-1", "encryption": "x-1", "ciphers": "x-1", "codecs": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2443,7 +2444,7 @@ func TestFabricGen_SIPGateways_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_sip_gateway", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPGateways.Create(map[string]any{"name": "x-1", "uri": "x-1", "encryption": "x-1", "ciphers": "x-1", "codecs": "x-1"})
+	_, err := client.Fabric.SIPGateways.Create(context.Background(), map[string]any{"name": "x-1", "uri": "x-1", "encryption": "x-1", "ciphers": "x-1", "codecs": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2460,7 +2461,7 @@ func TestFabricGen_SIPGateways_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPGateways.Delete("x-1")
+	_, err := client.Fabric.SIPGateways.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2481,7 +2482,7 @@ func TestFabricGen_SIPGateways_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_sip_gateway", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPGateways.Delete("x-1")
+	_, err := client.Fabric.SIPGateways.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2498,7 +2499,7 @@ func TestFabricGen_SIPGateways_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPGateways.Get("x-1")
+	_, err := client.Fabric.SIPGateways.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2519,7 +2520,7 @@ func TestFabricGen_SIPGateways_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_sip_gateway", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPGateways.Get("x-1")
+	_, err := client.Fabric.SIPGateways.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2536,7 +2537,7 @@ func TestFabricGen_SIPGateways_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPGateways.ListAddresses("x-1", nil)
+	_, err := client.Fabric.SIPGateways.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2557,7 +2558,7 @@ func TestFabricGen_SIPGateways_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_sip_gateway_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPGateways.ListAddresses("x-1", nil)
+	_, err := client.Fabric.SIPGateways.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2574,7 +2575,7 @@ func TestFabricGen_SIPGateways_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPGateways.List(nil)
+	_, err := client.Fabric.SIPGateways.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2595,7 +2596,7 @@ func TestFabricGen_SIPGateways_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_sip_gateways", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPGateways.List(nil)
+	_, err := client.Fabric.SIPGateways.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2612,7 +2613,7 @@ func TestFabricGen_SIPGateways_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPGateways.Update("x-1", map[string]any{})
+	_, err := client.Fabric.SIPGateways.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2633,7 +2634,7 @@ func TestFabricGen_SIPGateways_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_sip_gateway", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPGateways.Update("x-1", map[string]any{})
+	_, err := client.Fabric.SIPGateways.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2650,7 +2651,7 @@ func TestFabricGen_SWMLScripts_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLScripts.Create(map[string]any{"name": "x-1", "contents": "x-1"})
+	_, err := client.Fabric.SWMLScripts.Create(context.Background(), map[string]any{"name": "x-1", "contents": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2671,7 +2672,7 @@ func TestFabricGen_SWMLScripts_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_swml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLScripts.Create(map[string]any{"name": "x-1", "contents": "x-1"})
+	_, err := client.Fabric.SWMLScripts.Create(context.Background(), map[string]any{"name": "x-1", "contents": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2688,7 +2689,7 @@ func TestFabricGen_SWMLScripts_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLScripts.Delete("x-1")
+	_, err := client.Fabric.SWMLScripts.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2709,7 +2710,7 @@ func TestFabricGen_SWMLScripts_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_swml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLScripts.Delete("x-1")
+	_, err := client.Fabric.SWMLScripts.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2726,7 +2727,7 @@ func TestFabricGen_SWMLScripts_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLScripts.Get("x-1")
+	_, err := client.Fabric.SWMLScripts.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2747,7 +2748,7 @@ func TestFabricGen_SWMLScripts_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_swml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLScripts.Get("x-1")
+	_, err := client.Fabric.SWMLScripts.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2764,7 +2765,7 @@ func TestFabricGen_SWMLScripts_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLScripts.ListAddresses("x-1", nil)
+	_, err := client.Fabric.SWMLScripts.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2785,7 +2786,7 @@ func TestFabricGen_SWMLScripts_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_swml_script_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLScripts.ListAddresses("x-1", nil)
+	_, err := client.Fabric.SWMLScripts.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2802,7 +2803,7 @@ func TestFabricGen_SWMLScripts_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLScripts.List(nil)
+	_, err := client.Fabric.SWMLScripts.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2823,7 +2824,7 @@ func TestFabricGen_SWMLScripts_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_swml_scripts", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLScripts.List(nil)
+	_, err := client.Fabric.SWMLScripts.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2840,7 +2841,7 @@ func TestFabricGen_SWMLScripts_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLScripts.Update("x-1", map[string]any{})
+	_, err := client.Fabric.SWMLScripts.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2861,7 +2862,7 @@ func TestFabricGen_SWMLScripts_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_swml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLScripts.Update("x-1", map[string]any{})
+	_, err := client.Fabric.SWMLScripts.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2878,7 +2879,7 @@ func TestFabricGen_SWMLWebhooks_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLWebhooks.Create(map[string]any{"primary_request_url": "x-1"})
+	_, err := client.Fabric.SWMLWebhooks.Create(context.Background(), map[string]any{"primary_request_url": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2899,7 +2900,7 @@ func TestFabricGen_SWMLWebhooks_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_swml_webhook", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLWebhooks.Create(map[string]any{"primary_request_url": "x-1"})
+	_, err := client.Fabric.SWMLWebhooks.Create(context.Background(), map[string]any{"primary_request_url": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2916,7 +2917,7 @@ func TestFabricGen_SWMLWebhooks_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLWebhooks.Delete("x-1")
+	_, err := client.Fabric.SWMLWebhooks.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2937,7 +2938,7 @@ func TestFabricGen_SWMLWebhooks_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_swml_webhook", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLWebhooks.Delete("x-1")
+	_, err := client.Fabric.SWMLWebhooks.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2954,7 +2955,7 @@ func TestFabricGen_SWMLWebhooks_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLWebhooks.Get("x-1")
+	_, err := client.Fabric.SWMLWebhooks.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2975,7 +2976,7 @@ func TestFabricGen_SWMLWebhooks_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_swml_webhook", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLWebhooks.Get("x-1")
+	_, err := client.Fabric.SWMLWebhooks.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2992,7 +2993,7 @@ func TestFabricGen_SWMLWebhooks_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLWebhooks.ListAddresses("x-1", nil)
+	_, err := client.Fabric.SWMLWebhooks.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3013,7 +3014,7 @@ func TestFabricGen_SWMLWebhooks_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_swml_webhook_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLWebhooks.ListAddresses("x-1", nil)
+	_, err := client.Fabric.SWMLWebhooks.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3030,7 +3031,7 @@ func TestFabricGen_SWMLWebhooks_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLWebhooks.List(nil)
+	_, err := client.Fabric.SWMLWebhooks.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3051,7 +3052,7 @@ func TestFabricGen_SWMLWebhooks_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_swml_webhooks", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLWebhooks.List(nil)
+	_, err := client.Fabric.SWMLWebhooks.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3068,7 +3069,7 @@ func TestFabricGen_SWMLWebhooks_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SWMLWebhooks.Update("x-1", map[string]any{})
+	_, err := client.Fabric.SWMLWebhooks.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3089,7 +3090,7 @@ func TestFabricGen_SWMLWebhooks_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_swml_webhook", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SWMLWebhooks.Update("x-1", map[string]any{})
+	_, err := client.Fabric.SWMLWebhooks.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3106,7 +3107,7 @@ func TestFabricGen_Subscribers_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.Create(map[string]any{"email": "x-1"})
+	_, err := client.Fabric.Subscribers.Create(context.Background(), map[string]any{"email": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3127,7 +3128,7 @@ func TestFabricGen_Subscribers_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.Create(map[string]any{"email": "x-1"})
+	_, err := client.Fabric.Subscribers.Create(context.Background(), map[string]any{"email": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3144,7 +3145,7 @@ func TestFabricGen_Subscribers_CreateSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("x-1", namespaces.SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"username": "x-1", "password": "x-1"}})
+	_, err := client.Fabric.Subscribers.CreateSIPEndpoint(context.Background(), "x-1", namespaces.SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"username": "x-1", "password": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3165,7 +3166,7 @@ func TestFabricGen_Subscribers_CreateSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.CreateSIPEndpoint("x-1", namespaces.SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"username": "x-1", "password": "x-1"}})
+	_, err := client.Fabric.Subscribers.CreateSIPEndpoint(context.Background(), "x-1", namespaces.SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"username": "x-1", "password": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3182,7 +3183,7 @@ func TestFabricGen_Subscribers_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.Delete("x-1")
+	_, err := client.Fabric.Subscribers.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3203,7 +3204,7 @@ func TestFabricGen_Subscribers_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_subscriber", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.Delete("x-1")
+	_, err := client.Fabric.Subscribers.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3220,7 +3221,7 @@ func TestFabricGen_Subscribers_DeleteSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.DeleteSIPEndpoint("x-1", "x-1")
+	_, err := client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), "x-1", "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3241,7 +3242,7 @@ func TestFabricGen_Subscribers_DeleteSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.delete_subscriber_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.DeleteSIPEndpoint("x-1", "x-1")
+	_, err := client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), "x-1", "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3258,7 +3259,7 @@ func TestFabricGen_Subscribers_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.Get("x-1")
+	_, err := client.Fabric.Subscribers.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3279,7 +3280,7 @@ func TestFabricGen_Subscribers_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_subscriber", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.Get("x-1")
+	_, err := client.Fabric.Subscribers.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3296,7 +3297,7 @@ func TestFabricGen_Subscribers_GetSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.GetSIPEndpoint("x-1", "x-1", nil)
+	_, err := client.Fabric.Subscribers.GetSIPEndpoint(context.Background(), "x-1", "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3317,7 +3318,7 @@ func TestFabricGen_Subscribers_GetSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.get_subscriber_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.GetSIPEndpoint("x-1", "x-1", nil)
+	_, err := client.Fabric.Subscribers.GetSIPEndpoint(context.Background(), "x-1", "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3334,7 +3335,7 @@ func TestFabricGen_Subscribers_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.ListAddresses("x-1", nil)
+	_, err := client.Fabric.Subscribers.ListAddresses(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3355,7 +3356,7 @@ func TestFabricGen_Subscribers_ListAddresses_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_subscriber_addresses", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.ListAddresses("x-1", nil)
+	_, err := client.Fabric.Subscribers.ListAddresses(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3372,7 +3373,7 @@ func TestFabricGen_Subscribers_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.List(nil)
+	_, err := client.Fabric.Subscribers.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3393,7 +3394,7 @@ func TestFabricGen_Subscribers_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_subscribers", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.List(nil)
+	_, err := client.Fabric.Subscribers.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3410,7 +3411,7 @@ func TestFabricGen_Subscribers_ListSIPEndpoints(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.ListSIPEndpoints("x-1", nil)
+	_, err := client.Fabric.Subscribers.ListSIPEndpoints(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3431,7 +3432,7 @@ func TestFabricGen_Subscribers_ListSIPEndpoints_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_subscriber_sip_endpoints", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.ListSIPEndpoints("x-1", nil)
+	_, err := client.Fabric.Subscribers.ListSIPEndpoints(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3448,7 +3449,7 @@ func TestFabricGen_Subscribers_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.Update("x-1", map[string]any{"email": "x-1"})
+	_, err := client.Fabric.Subscribers.Update(context.Background(), "x-1", map[string]any{"email": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3469,7 +3470,7 @@ func TestFabricGen_Subscribers_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_subscriber", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.Update("x-1", map[string]any{"email": "x-1"})
+	_, err := client.Fabric.Subscribers.Update(context.Background(), "x-1", map[string]any{"email": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3486,7 +3487,7 @@ func TestFabricGen_Subscribers_UpdateSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("x-1", "x-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{})
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint(context.Background(), "x-1", "x-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3507,7 +3508,7 @@ func TestFabricGen_Subscribers_UpdateSIPEndpoint_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_subscriber_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("x-1", "x-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{})
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint(context.Background(), "x-1", "x-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3524,7 +3525,7 @@ func TestFabricGen_Tokens_CreateEmbedToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"token": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"token": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3545,7 +3546,7 @@ func TestFabricGen_Tokens_CreateEmbedToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_embeds_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"token": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"token": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3562,7 +3563,7 @@ func TestFabricGen_Tokens_CreateGuestToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"allowed_addresses": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"allowed_addresses": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3583,7 +3584,7 @@ func TestFabricGen_Tokens_CreateGuestToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_guest_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"allowed_addresses": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"allowed_addresses": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3600,7 +3601,7 @@ func TestFabricGen_Tokens_CreateInviteToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"address_id": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"address_id": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3621,7 +3622,7 @@ func TestFabricGen_Tokens_CreateInviteToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_invite_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"address_id": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"address_id": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3638,7 +3639,7 @@ func TestFabricGen_Tokens_CreateSubscriberToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"reference": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateSubscriberToken(context.Background(), namespaces.FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"reference": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3659,7 +3660,7 @@ func TestFabricGen_Tokens_CreateSubscriberToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"reference": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateSubscriberToken(context.Background(), namespaces.FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"reference": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3676,7 +3677,7 @@ func TestFabricGen_Tokens_RefreshSubscriberToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{"refresh_token": "x-1"}})
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(context.Background(), namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{"refresh_token": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3697,7 +3698,7 @@ func TestFabricGen_Tokens_RefreshSubscriberToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.refresh_subscriber_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{"refresh_token": "x-1"}})
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(context.Background(), namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{"refresh_token": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

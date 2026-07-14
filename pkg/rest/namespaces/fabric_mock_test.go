@@ -16,6 +16,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
@@ -31,7 +32,7 @@ func TestFabricAddresses_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.Addresses.List(nil)
+	bodyResp, err := client.Fabric.Addresses.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -66,7 +67,7 @@ func TestFabricAddresses_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.Addresses.Get("addr-9001")
+	bodyResp, err := client.Fabric.Addresses.Get(context.Background(), "addr-9001")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -95,7 +96,7 @@ func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.CallFlows.ListAddresses("cf-1", nil)
+	bodyResp, err := client.Fabric.CallFlows.ListAddresses(context.Background(), "cf-1", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
@@ -122,7 +123,7 @@ func TestFabricConferenceRooms_ListAddressesUsesSingularPath(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.ConferenceRooms.ListAddresses("cr-1", nil)
+	bodyResp, err := client.Fabric.ConferenceRooms.ListAddresses(context.Background(), "cr-1", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
@@ -149,7 +150,7 @@ func TestFabricSubscribers_GetSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.Subscribers.GetSIPEndpoint("sub-1", "ep-1", nil)
+	bodyResp, err := client.Fabric.Subscribers.GetSIPEndpoint(context.Background(), "sub-1", "ep-1", nil)
 	if err != nil {
 		t.Fatalf("GetSIPEndpoint: %v", err)
 	}
@@ -174,7 +175,7 @@ func TestFabricSubscribers_UpdateSIPEndpointUsesPATCH(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{Extras: map[string]any{
+	_, err := client.Fabric.Subscribers.UpdateSIPEndpoint(context.Background(), "sub-1", "ep-1", namespaces.SubscribersResourceUpdateSIPEndpointParams{Extras: map[string]any{
 		"username": "renamed",
 	}})
 	if err != nil {
@@ -204,7 +205,7 @@ func TestFabricSubscribers_DeleteSIPEndpoint(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.Subscribers.DeleteSIPEndpoint("sub-1", "ep-1")
+	bodyResp, err := client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), "sub-1", "ep-1")
 	if err != nil {
 		t.Fatalf("DeleteSIPEndpoint: %v", err)
 	}
@@ -231,7 +232,7 @@ func TestFabricTokens_CreateInviteToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{
+	_, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{
 		"email": "invitee@example.com",
 	}})
 	if err != nil {
@@ -260,7 +261,7 @@ func TestFabricTokens_CreateEmbedToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{
+	_, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{
 		"allowed_addresses": []string{"addr-1", "addr-2"},
 	}})
 	if err != nil {
@@ -290,7 +291,7 @@ func TestFabricTokens_RefreshSubscriberToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.RefreshSubscriberToken(namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{
+	_, err := client.Fabric.Tokens.RefreshSubscriberToken(context.Background(), namespaces.FabricTokensRefreshSubscriberTokenParams{Extras: map[string]any{
 		"refresh_token": "abc-123",
 	}})
 	if err != nil {
@@ -321,7 +322,7 @@ func TestFabricResources_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.Resources.List(nil)
+	bodyResp, err := client.Fabric.Resources.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -345,7 +346,7 @@ func TestFabricResources_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.Get("res-1", nil)
+	_, err := client.Fabric.Resources.Get(context.Background(), "res-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -365,7 +366,7 @@ func TestFabricResources_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.Resources.Delete("res-2")
+	bodyResp, err := client.Fabric.Resources.Delete(context.Background(), "res-2")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
@@ -389,7 +390,7 @@ func TestFabricResources_ListAddresses(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	bodyResp, err := client.Fabric.Resources.ListAddresses("res-3", nil)
+	bodyResp, err := client.Fabric.Resources.ListAddresses(context.Background(), "res-3", nil)
 	if err != nil {
 		t.Fatalf("ListAddresses: %v", err)
 	}
@@ -413,7 +414,7 @@ func TestFabricResources_AssignDomainApplication(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Resources.AssignDomainApplication("res-4", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{
+	_, err := client.Fabric.Resources.AssignDomainApplication(context.Background(), "res-4", namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{
 		"domain_application_id": "da-7",
 	}})
 	if err != nil {

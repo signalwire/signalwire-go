@@ -16,35 +16,35 @@
 package namespaces
 
 type DialogflowVoiceLog struct {
-	Id            Uuid           `json:"id,omitempty"`
+	ID            Uuid           `json:"id,omitempty"`
 	From          string         `json:"from,omitempty"`
 	To            string         `json:"to,omitempty"`
 	Source        VoiceSources   `json:"source,omitempty"`
 	Charge        float64        `json:"charge,omitempty"`
 	ChargeDetails []ChargeDetail `json:"charge_details,omitempty"`
 	CreatedAt     string         `json:"created_at,omitempty"`
-	Type_         string         `json:"type,omitempty"`
-	Url           any            `json:"url,omitempty"`
+	Type          string         `json:"type,omitempty"`
+	URL           any            `json:"url,omitempty"`
 	Status        VoiceLogStatus `json:"status,omitempty"`
 	Duration      any            `json:"duration,omitempty"`
 }
 
 type DiscardedVoiceLog struct {
-	Id          Uuid   `json:"id,omitempty"`
+	ID          Uuid   `json:"id,omitempty"`
 	DiscardedAt string `json:"discarded_at,omitempty"`
 	CreatedAt   string `json:"created_at,omitempty"`
 }
 
 type FabricVoiceLog struct {
-	Id            Uuid           `json:"id,omitempty"`
+	ID            Uuid           `json:"id,omitempty"`
 	From          string         `json:"from,omitempty"`
 	To            string         `json:"to,omitempty"`
 	Source        VoiceSources   `json:"source,omitempty"`
 	Charge        float64        `json:"charge,omitempty"`
 	ChargeDetails []ChargeDetail `json:"charge_details,omitempty"`
 	CreatedAt     string         `json:"created_at,omitempty"`
-	Type_         string         `json:"type,omitempty"`
-	Url           any            `json:"url,omitempty"`
+	Type          string         `json:"type,omitempty"`
+	URL           any            `json:"url,omitempty"`
 	Direction     VoiceDirection `json:"direction,omitempty"`
 	Status        any            `json:"status,omitempty"`
 }
@@ -54,8 +54,8 @@ type LogEvent struct {
 	Level     string         `json:"level,omitempty"`
 	Name      string         `json:"name,omitempty"`
 	Details   map[string]any `json:"details,omitempty"`
-	ProjectId Uuid           `json:"project_id,omitempty"`
-	LogId     Uuid           `json:"log_id,omitempty"`
+	ProjectID Uuid           `json:"project_id,omitempty"`
+	LogID     Uuid           `json:"log_id,omitempty"`
 }
 
 type LogEventsListResponse struct {
@@ -63,21 +63,21 @@ type LogEventsListResponse struct {
 }
 
 type RelayVoiceLog struct {
-	Id            Uuid           `json:"id,omitempty"`
+	ID            Uuid           `json:"id,omitempty"`
 	From          string         `json:"from,omitempty"`
 	To            string         `json:"to,omitempty"`
 	Source        VoiceSources   `json:"source,omitempty"`
 	Charge        float64        `json:"charge,omitempty"`
 	ChargeDetails []ChargeDetail `json:"charge_details,omitempty"`
 	CreatedAt     string         `json:"created_at,omitempty"`
-	Type_         RelayVoiceType `json:"type,omitempty"`
-	Url           any            `json:"url,omitempty"`
+	Type          RelayVoiceType `json:"type,omitempty"`
+	URL           any            `json:"url,omitempty"`
 	Direction     VoiceDirection `json:"direction,omitempty"`
 	Status        VoiceLogStatus `json:"status,omitempty"`
 	Duration      any            `json:"duration,omitempty"`
 	DurationMs    any            `json:"duration_ms,omitempty"`
 	BillingMs     any            `json:"billing_ms,omitempty"`
-	ParentId      any            `json:"parent_id,omitempty"`
+	ParentID      any            `json:"parent_id,omitempty"`
 }
 
 type RelayVoiceType string
@@ -90,15 +90,15 @@ const (
 )
 
 type VideoRoomVoiceLog struct {
-	Id            Uuid               `json:"id,omitempty"`
+	ID            Uuid               `json:"id,omitempty"`
 	From          string             `json:"from,omitempty"`
 	To            string             `json:"to,omitempty"`
 	Source        VoiceSources       `json:"source,omitempty"`
 	Charge        float64            `json:"charge,omitempty"`
 	ChargeDetails []ChargeDetail     `json:"charge_details,omitempty"`
 	CreatedAt     string             `json:"created_at,omitempty"`
-	Type_         VideoRoomVoiceType `json:"type,omitempty"`
-	Url           any                `json:"url,omitempty"`
+	Type          VideoRoomVoiceType `json:"type,omitempty"`
+	URL           any                `json:"url,omitempty"`
 	Direction     VoiceDirection     `json:"direction,omitempty"`
 	Status        VoiceLogStatus     `json:"status,omitempty"`
 	Duration      any                `json:"duration,omitempty"`

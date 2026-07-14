@@ -25,6 +25,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -68,9 +69,9 @@ func main() {
 	var opErr error
 	switch op {
 	case "phone_numbers.list":
-		result, opErr = client.PhoneNumbers.List(stringParams(args))
+		result, opErr = client.PhoneNumbers.List(context.Background(), stringParams(args))
 	case "fabric.subscribers.list":
-		result, opErr = client.Fabric.Subscribers.List(stringParams(args))
+		result, opErr = client.Fabric.Subscribers.List(context.Background(), stringParams(args))
 	default:
 		die(fmt.Sprintf("unknown REST_OPERATION: %s", op))
 	}

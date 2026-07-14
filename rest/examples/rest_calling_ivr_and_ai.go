@@ -18,6 +18,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -51,78 +52,78 @@ func main() {
 	// 1. Collect DTMF input
 	fmt.Println("Collecting DTMF input...")
 	safeCall("Collect", func() (*namespaces.CallResponse, error) {
-		return client.Calling.Collect(callID, namespaces.CallingNamespaceCollectParams{Extras: map[string]any{
+		return client.Calling.Collect(context.Background(), callID, namespaces.CallingNamespaceCollectParams{Extras: map[string]any{
 			"digits": map[string]any{"max": 4, "terminators": "#"},
 			"play":   []map[string]any{{"type": "tts", "text": "Enter your PIN followed by pound."}},
 		}})
 	})
 	safeCall("Start input timers", func() (*namespaces.CallResponse, error) {
-		return client.Calling.CollectStartInputTimers(callID, namespaces.CallingNamespaceCollectStartInputTimersParams{})
+		return client.Calling.CollectStartInputTimers(context.Background(), callID, namespaces.CallingNamespaceCollectStartInputTimersParams{})
 	})
 	safeCall("Stop collect", func() (*namespaces.CallResponse, error) {
-		return client.Calling.CollectStop(callID, namespaces.CallingNamespaceCollectStopParams{})
+		return client.Calling.CollectStop(context.Background(), callID, namespaces.CallingNamespaceCollectStopParams{})
 	})
 
 	// 2. Answering machine detection
 	fmt.Println("\nDetecting answering machine...")
 	safeCall("Detect", func() (*namespaces.CallResponse, error) {
-		return client.Calling.Detect(callID, namespaces.CallingNamespaceDetectParams{Extras: map[string]any{"type": "machine"}})
+		return client.Calling.Detect(context.Background(), callID, namespaces.CallingNamespaceDetectParams{Extras: map[string]any{"type": "machine"}})
 	})
 	safeCall("Stop detect", func() (*namespaces.CallResponse, error) {
-		return client.Calling.DetectStop(callID, namespaces.CallingNamespaceDetectStopParams{})
+		return client.Calling.DetectStop(context.Background(), callID, namespaces.CallingNamespaceDetectStopParams{})
 	})
 
 	// 3. AI operations
 	fmt.Println("\nAI agent operations...")
 	safeCall("AI message", func() (*namespaces.CallResponse, error) {
-		return client.Calling.AIMessage(callID, namespaces.CallingNamespaceAIMessageParams{Extras: map[string]any{
+		return client.Calling.AIMessage(context.Background(), callID, namespaces.CallingNamespaceAIMessageParams{Extras: map[string]any{
 			"message": "The customer wants to check their balance.",
 		}})
 	})
 	safeCall("AI hold", func() (*namespaces.CallResponse, error) {
-		return client.Calling.AIHold(callID, namespaces.CallingNamespaceAIHoldParams{})
+		return client.Calling.AIHold(context.Background(), callID, namespaces.CallingNamespaceAIHoldParams{})
 	})
 	safeCall("AI unhold", func() (*namespaces.CallResponse, error) {
-		return client.Calling.AIUnhold(callID, namespaces.CallingNamespaceAIUnholdParams{})
+		return client.Calling.AIUnhold(context.Background(), callID, namespaces.CallingNamespaceAIUnholdParams{})
 	})
 	safeCall("AI stop", func() (*namespaces.CallResponse, error) {
-		return client.Calling.AIStop(callID, namespaces.CallingNamespaceAIStopParams{})
+		return client.Calling.AIStop(context.Background(), callID, namespaces.CallingNamespaceAIStopParams{})
 	})
 
 	// 4. Live transcription and translation
 	fmt.Println("\nLive transcription and translation...")
 	safeCall("Live transcribe", func() (*namespaces.CallResponse, error) {
-		return client.Calling.LiveTranscribe(callID, namespaces.CallingNamespaceLiveTranscribeParams{Extras: map[string]any{"language": "en-US"}})
+		return client.Calling.LiveTranscribe(context.Background(), callID, namespaces.CallingNamespaceLiveTranscribeParams{Extras: map[string]any{"language": "en-US"}})
 	})
 	safeCall("Live translate", func() (*namespaces.CallResponse, error) {
-		return client.Calling.LiveTranslate(callID, namespaces.CallingNamespaceLiveTranslateParams{Extras: map[string]any{"language": "es"}})
+		return client.Calling.LiveTranslate(context.Background(), callID, namespaces.CallingNamespaceLiveTranslateParams{Extras: map[string]any{"language": "es"}})
 	})
 
 	// 5. Tap (media fork)
 	fmt.Println("\nTap (media fork)...")
 	safeCall("Tap start", func() (*namespaces.CallResponse, error) {
-		return client.Calling.Tap(callID, namespaces.CallingNamespaceTapParams{Extras: map[string]any{
+		return client.Calling.Tap(context.Background(), callID, namespaces.CallingNamespaceTapParams{Extras: map[string]any{
 			"tap":    map[string]any{"type": "audio", "direction": "both"},
 			"device": map[string]any{"type": "rtp", "addr": "192.168.1.100", "port": 9000},
 		}})
 	})
 	safeCall("Tap stop", func() (*namespaces.CallResponse, error) {
-		return client.Calling.TapStop(callID, namespaces.CallingNamespaceTapStopParams{})
+		return client.Calling.TapStop(context.Background(), callID, namespaces.CallingNamespaceTapStopParams{})
 	})
 
 	// 6. Stream (WebSocket)
 	fmt.Println("\nStream (WebSocket)...")
 	safeCall("Stream start", func() (*namespaces.CallResponse, error) {
-		return client.Calling.Stream(callID, namespaces.CallingNamespaceStreamParams{Extras: map[string]any{"url": "wss://example.com/audio-stream"}})
+		return client.Calling.Stream(context.Background(), callID, namespaces.CallingNamespaceStreamParams{Extras: map[string]any{"url": "wss://example.com/audio-stream"}})
 	})
 	safeCall("Stream stop", func() (*namespaces.CallResponse, error) {
-		return client.Calling.StreamStop(callID, namespaces.CallingNamespaceStreamStopParams{})
+		return client.Calling.StreamStop(context.Background(), callID, namespaces.CallingNamespaceStreamStopParams{})
 	})
 
 	// 7. User event
 	fmt.Println("\nSending user event...")
 	safeCall("User event", func() (*namespaces.CallResponse, error) {
-		return client.Calling.UserEvent(callID, namespaces.CallingNamespaceUserEventParams{Extras: map[string]any{
+		return client.Calling.UserEvent(context.Background(), callID, namespaces.CallingNamespaceUserEventParams{Extras: map[string]any{
 			"event_name": "agent_note",
 			"data":       map[string]any{"note": "VIP caller"},
 		}})
@@ -131,30 +132,30 @@ func main() {
 	// 8. SIP refer
 	fmt.Println("\nSIP refer...")
 	safeCall("SIP refer", func() (*namespaces.CallResponse, error) {
-		return client.Calling.Refer(callID, namespaces.CallingNamespaceReferParams{Extras: map[string]any{"sip_uri": "sip:support@example.com"}})
+		return client.Calling.Refer(context.Background(), callID, namespaces.CallingNamespaceReferParams{Extras: map[string]any{"sip_uri": "sip:support@example.com"}})
 	})
 
 	// 9. Fax stop commands
 	fmt.Println("\nFax stop commands...")
 	safeCall("Send fax stop", func() (*namespaces.CallResponse, error) {
-		return client.Calling.SendFaxStop(callID, namespaces.CallingNamespaceSendFaxStopParams{})
+		return client.Calling.SendFaxStop(context.Background(), callID, namespaces.CallingNamespaceSendFaxStopParams{})
 	})
 	safeCall("Receive fax stop", func() (*namespaces.CallResponse, error) {
-		return client.Calling.ReceiveFaxStop(callID, namespaces.CallingNamespaceReceiveFaxStopParams{})
+		return client.Calling.ReceiveFaxStop(context.Background(), callID, namespaces.CallingNamespaceReceiveFaxStopParams{})
 	})
 
 	// 10. Transfer and disconnect
 	fmt.Println("\nTransfer and disconnect...")
 	safeCall("Transfer", func() (*namespaces.CallResponse, error) {
-		return client.Calling.Transfer(callID, namespaces.CallingNamespaceTransferParams{Extras: map[string]any{"dest": "+15559999999"}})
+		return client.Calling.Transfer(context.Background(), callID, namespaces.CallingNamespaceTransferParams{Extras: map[string]any{"dest": "+15559999999"}})
 	})
 	safeCall("Update call", func() (*namespaces.CallResponse, error) {
-		return client.Calling.Update(namespaces.CallingNamespaceUpdateParams{Extras: map[string]any{
+		return client.Calling.Update(context.Background(), namespaces.CallingNamespaceUpdateParams{Extras: map[string]any{
 			"id":       callID,
 			"metadata": map[string]any{"priority": "high"},
 		}})
 	})
 	safeCall("Disconnect", func() (*namespaces.CallResponse, error) {
-		return client.Calling.Disconnect(callID, namespaces.CallingNamespaceDisconnectParams{})
+		return client.Calling.Disconnect(context.Background(), callID, namespaces.CallingNamespaceDisconnectParams{})
 	})
 }

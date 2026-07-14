@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // FaxLogs is a client for the "FaxLogs" resource of the SignalWire fax API.
 type FaxLogs struct {
 	Resource
@@ -17,14 +19,14 @@ func NewFaxLogs(client HTTPClient) *FaxLogs {
 	return &FaxLogs{Resource{HTTP: client, Base: "/api/fax/logs"}}
 }
 
-func (r *FaxLogs) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *FaxLogs) List(ctx context.Context, params map[string]string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params)
 }
 
-func (r *FaxLogs) Get(id string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), nil)
+func (r *FaxLogs) Get(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil)
 }
 
-func (r *FaxLogs) Paginate(params map[string]string) *Paginator {
-	return NewPaginator(r.HTTP, r.Base, params, "data")
+func (r *FaxLogs) Paginate(ctx context.Context, params map[string]string) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
 }

@@ -17,6 +17,7 @@ load-bearing, not clutter.
 - audit_coverage_baseline.json — required audit-contract file read by porting-sdk audit_coverage_map.py (orchestrator, 2026-07-06)
 - port_additions_actual.json — regenerated + read at root by scripts/run-ci.sh SURFACE-FRESH and porting-sdk diff_port_surface.py (orchestrator, 2026-07-06)
 - port_signatures.json — regenerated + read at root by scripts/run-ci.sh and porting-sdk diff_port_signatures.py (orchestrator, 2026-07-06)
+- port_signatures.baseline.json — release-floor snapshot read at root by scripts/run-ci.sh SEMVER-DIFF and porting-sdk semver_diff.py (BASELINE_FILE), the authoritative SemVer floor (orchestrator, 2026-07-13)
 - port_surface.json — regenerated + read at root by scripts/run-ci.sh and porting-sdk audit_docs.py/ignore_ledger_verify.py (orchestrator, 2026-07-06)
 - port_surface_go.json — regenerated + read at root by scripts/run-ci.sh DOC-AUDIT (orchestrator, 2026-07-06)
 - ROOT_HYGIENE_ALLOW.md — this allowlist itself, required at root by porting-sdk root_hygiene.py (orchestrator, 2026-07-06)

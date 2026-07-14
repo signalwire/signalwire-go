@@ -14,6 +14,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
@@ -32,7 +33,7 @@ func TestRegistryBrands_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Brands.List(nil)
+	bodyResp, err := client.Registry.Brands.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -61,7 +62,7 @@ func TestRegistryBrands_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Brands.Get("brand-77", nil)
+	bodyResp, err := client.Registry.Brands.Get(context.Background(), "brand-77", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestRegistryBrands_ListCampaigns_UsesBrandSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Brands.ListCampaigns("brand-1", nil)
+	bodyResp, err := client.Registry.Brands.ListCampaigns(context.Background(), "brand-1", nil)
 	if err != nil {
 		t.Fatalf("ListCampaigns: %v", err)
 	}
@@ -116,7 +117,7 @@ func TestRegistryBrands_CreateCampaign_PostsToBrandSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Brands.CreateCampaign("brand-2", map[string]any{
+	bodyResp, err := client.Registry.Brands.CreateCampaign(context.Background(), "brand-2", map[string]any{
 		"usecase":     "LOW_VOLUME",
 		"description": "MFA",
 	})
@@ -157,7 +158,7 @@ func TestRegistryCampaigns_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Campaigns.Get("camp-1", nil)
+	bodyResp, err := client.Registry.Campaigns.Get(context.Background(), "camp-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -183,7 +184,7 @@ func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Campaigns.Update("camp-2", namespaces.RegistryCampaignsUpdateParams{Extras: map[string]any{
+	bodyResp, err := client.Registry.Campaigns.Update(context.Background(), "camp-2", namespaces.RegistryCampaignsUpdateParams{Extras: map[string]any{
 		"description": "Updated",
 	}})
 	if err != nil {
@@ -218,7 +219,7 @@ func TestRegistryCampaigns_ListNumbers_UsesNumbersSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Campaigns.ListNumbers("camp-3", nil)
+	bodyResp, err := client.Registry.Campaigns.ListNumbers(context.Background(), "camp-3", nil)
 	if err != nil {
 		t.Fatalf("ListNumbers: %v", err)
 	}
@@ -247,7 +248,7 @@ func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Campaigns.CreateOrder("camp-4", namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{
+	bodyResp, err := client.Registry.Campaigns.CreateOrder(context.Background(), "camp-4", namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{
 		"numbers": []string{"pn-1", "pn-2"},
 	}})
 	if err != nil {
@@ -288,7 +289,7 @@ func TestRegistryOrders_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Orders.Get("order-1", nil)
+	bodyResp, err := client.Registry.Orders.Get(context.Background(), "order-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -319,7 +320,7 @@ func TestRegistryNumbers_Delete_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Numbers.Delete("num-1")
+	bodyResp, err := client.Registry.Numbers.Delete(context.Background(), "num-1")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}

@@ -18,7 +18,7 @@ package namespaces
 type CreateTokenRequest struct {
 	Name         string            `json:"name,omitempty"`
 	Permissions  []TokenPermission `json:"permissions,omitempty"`
-	SubprojectId *string           `json:"subproject_id,omitempty"`
+	SubprojectID *string           `json:"subproject_id,omitempty"`
 }
 
 type TokenPermission string
@@ -38,7 +38,7 @@ const (
 )
 
 type TokenResponse struct {
-	Id          string            `json:"id,omitempty"`
+	ID          string            `json:"id,omitempty"`
 	Name        string            `json:"name,omitempty"`
 	Permissions []TokenPermission `json:"permissions,omitempty"`
 	Token       string            `json:"token,omitempty"`

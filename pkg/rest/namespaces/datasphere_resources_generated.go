@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // DatasphereDocuments is a client for the "DatasphereDocuments" resource of the SignalWire datasphere API.
 type DatasphereDocuments struct {
 	*CrudResource
@@ -21,7 +23,7 @@ func NewDatasphereDocuments(client HTTPClient) *DatasphereDocuments {
 type DatasphereDocumentsSearchParams struct {
 	QueryString string
 	Tags        []string
-	DocumentId  *Docid
+	DocumentID  *Docid
 	Distance    *float64
 	Count       *int
 	Language    *string
@@ -30,14 +32,14 @@ type DatasphereDocumentsSearchParams struct {
 	Extras      map[string]any
 }
 
-func (r *DatasphereDocuments) Search(params DatasphereDocumentsSearchParams) (*SearchResponse, error) {
+func (r *DatasphereDocuments) Search(ctx context.Context, params DatasphereDocumentsSearchParams) (*SearchResponse, error) {
 	body := map[string]any{}
 	body["query_string"] = params.QueryString
 	if params.Tags != nil {
 		body["tags"] = params.Tags
 	}
-	if params.DocumentId != nil {
-		body["document_id"] = params.DocumentId
+	if params.DocumentID != nil {
+		body["document_id"] = params.DocumentID
 	}
 	if params.Distance != nil {
 		body["distance"] = params.Distance
@@ -55,17 +57,17 @@ func (r *DatasphereDocuments) Search(params DatasphereDocumentsSearchParams) (*S
 		body["max_synonyms"] = params.MaxSynonyms
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SearchResponse](r.HTTP.Post(r.Path("search"), body, nil))
+	return decodeResult[SearchResponse](r.HTTP.Post(ctx, r.Path("search"), body, nil))
 }
 
-func (r *DatasphereDocuments) ListChunks(documentID string, params map[string]string) (*ChunkListResponse, error) {
-	return decodeResult[ChunkListResponse](r.HTTP.Get(r.Path(documentID, "chunks"), params))
+func (r *DatasphereDocuments) ListChunks(ctx context.Context, documentID string, params map[string]string) (*ChunkListResponse, error) {
+	return decodeResult[ChunkListResponse](r.HTTP.Get(ctx, r.Path(documentID, "chunks"), params))
 }
 
-func (r *DatasphereDocuments) GetChunk(documentID string, chunkID string, params map[string]string) (*ChunkResponse, error) {
-	return decodeResult[ChunkResponse](r.HTTP.Get(r.Path(documentID, "chunks", chunkID), params))
+func (r *DatasphereDocuments) GetChunk(ctx context.Context, documentID string, chunkID string, params map[string]string) (*ChunkResponse, error) {
+	return decodeResult[ChunkResponse](r.HTTP.Get(ctx, r.Path(documentID, "chunks", chunkID), params))
 }
 
-func (r *DatasphereDocuments) DeleteChunk(documentID string, chunkID string) (map[string]any, error) {
-	return r.HTTP.Delete(r.Path(documentID, "chunks", chunkID))
+func (r *DatasphereDocuments) DeleteChunk(ctx context.Context, documentID string, chunkID string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(documentID, "chunks", chunkID))
 }

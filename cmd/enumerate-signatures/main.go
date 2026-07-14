@@ -1219,6 +1219,17 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			Type:     canon,
 			Required: boolPtr(true), // Go has no defaults; every param is required
 		}
+		// A leading `ctx context.Context` (translated to optional<float>, the
+		// reference's timeout=None slot) is OPTIONAL, not required: a caller can pass
+		// context.Background() for the no-deadline case, exactly like the Python
+		// reference omits its optional `timeout`. Recording it required:false lets
+		// diff_port_signatures absorb the single leading ctx before the prefix compare
+		// (the Go ctx-first idiom reconciliation), so a ctx-first generated method
+		// compares EQUAL to the ctx-free Python reference. The ctx is never serialized,
+		// so this is a pure signature-shape reconciliation, not a wire change.
+		if p.typeStr == "context.Context" {
+			cp.Required = boolPtr(false)
+		}
 		// §5: reclassify the remaining generated-REST params to the Python
 		// reference's kinds. Leading path-id positionals stay positional; a GET
 		// query `params` / set_methods `extra` object becomes a single `**params` /

@@ -12,7 +12,11 @@ func rest.NewRestClient(project, token, space string) (*rest.RestClient, error)
 
 <!-- snippet-setup -->
 ```go
-import "github.com/signalwire/signalwire-go/pkg/rest"
+import (
+	"context"
+
+	"github.com/signalwire/signalwire-go/pkg/rest"
+)
 
 // Shared context assumed by the fragments below: a constructed REST client.
 var client, err = rest.NewRestClient("project", "token", "space")
@@ -20,6 +24,7 @@ var client, err = rest.NewRestClient("project", "token", "space")
 var (
 	_ = client
 	_ = err
+	_ = context.Background
 )
 ```
 
@@ -102,7 +107,7 @@ import (
 	"fmt"
 )
 
-agent, err := client.Fabric.AIAgents.Get("bad-id")
+agent, err := client.Fabric.AIAgents.Get(context.Background(), "bad-id")
 if err != nil {
 	var restErr *rest.SignalWireRestError
 	if errors.As(err, &restErr) {
@@ -152,12 +157,12 @@ var numbers map[string]any
 
 go func() {
 	defer wg.Done()
-	agents, _ = client.Fabric.AIAgents.List(nil)
+	agents, _ = client.Fabric.AIAgents.List(context.Background(), nil)
 }()
 
 go func() {
 	defer wg.Done()
-	numbers, _ = client.PhoneNumbers.List(nil)
+	numbers, _ = client.PhoneNumbers.List(context.Background(), nil)
 }()
 
 wg.Wait()
@@ -176,7 +181,7 @@ var result map[string]any
 var getErr error
 
 for attempt := 0; attempt < 3; attempt++ {
-	result, getErr = client.Fabric.AIAgents.Get("agent-uuid")
+	result, getErr = client.Fabric.AIAgents.Get(context.Background(), "agent-uuid")
 	if getErr == nil {
 		break
 	}

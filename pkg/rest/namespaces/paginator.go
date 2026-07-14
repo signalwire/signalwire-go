@@ -7,7 +7,10 @@
 
 package namespaces
 
-import "net/url"
+import (
+	"context"
+	"net/url"
+)
 
 // Paginator walks every page of a list endpoint, following the response's
 // links.next cursor. It is the value returned by CrudResource.Paginate and is
@@ -20,6 +23,7 @@ import "net/url"
 // resource uses), so it lives in this package without importing the parent rest
 // package (which would create an import cycle: rest already imports namespaces).
 type Paginator struct {
+	ctx     context.Context
 	http    HTTPClient
 	path    string
 	params  map[string]string
@@ -29,15 +33,19 @@ type Paginator struct {
 
 // NewPaginator builds a Paginator for path against client. dataKey is the JSON
 // key holding the page's item array (defaults to "data"). params seeds the first
-// request's query (nil is fine).
-func NewPaginator(client HTTPClient, path string, params map[string]string, dataKey string) *Paginator {
+// request's query (nil is fine). ctx is threaded onto every page fetch so the
+// whole walk is cancellable; a nil ctx falls back to context.Background().
+func NewPaginator(ctx context.Context, client HTTPClient, path string, params map[string]string, dataKey string) *Paginator {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if params == nil {
 		params = map[string]string{}
 	}
 	if dataKey == "" {
 		dataKey = "data"
 	}
-	return &Paginator{http: client, path: path, params: params, dataKey: dataKey}
+	return &Paginator{ctx: ctx, http: client, path: path, params: params, dataKey: dataKey}
 }
 
 // Next fetches the next page. It returns the page's items, hasMore (true when a
@@ -49,7 +57,7 @@ func (p *Paginator) Next() ([]map[string]any, bool, error) {
 		return nil, false, nil
 	}
 
-	resp, err := p.http.Get(p.path, p.params)
+	resp, err := p.http.Get(p.ctx, p.path, p.params)
 	if err != nil {
 		return nil, false, err
 	}

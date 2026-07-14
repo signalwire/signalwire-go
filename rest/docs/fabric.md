@@ -14,6 +14,8 @@ func ptr[T any](v T) *T { return &v }
 <!-- snippet-setup -->
 ```go
 import (
+	"context"
+
 	"github.com/signalwire/signalwire-go/pkg/rest"
 	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 )
@@ -29,6 +31,7 @@ var (
 	_ = err
 	_ = pnID
 	_ = namespaces.Uuid("")
+	_ = context.Background
 )
 ```
 
@@ -38,26 +41,26 @@ All 13 resource types share the same methods:
 
 ```go
 // List all resources of this type
-items, err := client.Fabric.AIAgents.List(nil)
-items, err = client.Fabric.AIAgents.List(map[string]string{"page_number": "2", "page_size": "10"})
+items, err := client.Fabric.AIAgents.List(context.Background(), nil)
+items, err = client.Fabric.AIAgents.List(context.Background(), map[string]string{"page_number": "2", "page_size": "10"})
 
 // Create a new resource
-agent, err := client.Fabric.AIAgents.Create(map[string]any{
+agent, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{
 	"name":   "Support Bot",
 	"prompt": map[string]any{"text": "You are a helpful support agent."},
 })
 
 // Get a resource by ID
-agent, err = client.Fabric.AIAgents.Get("agent-uuid")
+agent, err = client.Fabric.AIAgents.Get(context.Background(), "agent-uuid")
 
 // Update a resource
-_, err = client.Fabric.AIAgents.Update("agent-uuid", map[string]any{"name": "Updated Name"})
+_, err = client.Fabric.AIAgents.Update(context.Background(), "agent-uuid", map[string]any{"name": "Updated Name"})
 
 // Delete a resource
-_, err = client.Fabric.AIAgents.Delete("agent-uuid")
+_, err = client.Fabric.AIAgents.Delete(context.Background(), "agent-uuid")
 
 // List addresses assigned to this resource
-addresses, err := client.Fabric.AIAgents.ListAddresses("agent-uuid", nil)
+addresses, err := client.Fabric.AIAgents.ListAddresses(context.Background(), "agent-uuid", nil)
 
 _, _, _ = items, agent, addresses
 ```
@@ -97,10 +100,10 @@ Call flows support version management:
 
 ```go
 // List all versions of a call flow
-versions, err := client.Fabric.CallFlows.ListVersions("call-flow-uuid", nil)
+versions, err := client.Fabric.CallFlows.ListVersions(context.Background(), "call-flow-uuid", nil)
 
 // Deploy a new version
-_, err = client.Fabric.CallFlows.DeployVersion("call-flow-uuid", map[string]any{"document_version": 3})
+_, err = client.Fabric.CallFlows.DeployVersion(context.Background(), "call-flow-uuid", map[string]any{"document_version": 3})
 
 _ = versions
 ```
@@ -111,33 +114,33 @@ Subscribers have nested SIP endpoint management:
 
 ```go
 // List subscriber's SIP endpoints
-endpoints, err := client.Fabric.Subscribers.ListSIPEndpoints("subscriber-uuid", nil)
+endpoints, err := client.Fabric.Subscribers.ListSIPEndpoints(context.Background(), "subscriber-uuid", nil)
 
 // Create a SIP endpoint for a subscriber
 callerId := "+15551234567"
-endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(
+endpoint, err := client.Fabric.Subscribers.CreateSIPEndpoint(context.Background(), 
 	"subscriber-uuid",
 	namespaces.SubscribersResourceCreateSIPEndpointParams{
 		Username: "user1",
 		Password: "secret",
-		CallerId: &callerId,
+		CallerID: &callerId,
 	},
 )
 
 // Get a specific SIP endpoint
-endpoint, err = client.Fabric.Subscribers.GetSIPEndpoint("subscriber-uuid", "endpoint-uuid", nil)
+endpoint, err = client.Fabric.Subscribers.GetSIPEndpoint(context.Background(), "subscriber-uuid", "endpoint-uuid", nil)
 
 // Update a SIP endpoint (uses PATCH)
 newCallerId := "+15559876543"
-_, err = client.Fabric.Subscribers.UpdateSIPEndpoint(
+_, err = client.Fabric.Subscribers.UpdateSIPEndpoint(context.Background(), 
 	"subscriber-uuid", "endpoint-uuid",
 	namespaces.SubscribersResourceUpdateSIPEndpointParams{
-		CallerId: &newCallerId,
+		CallerID: &newCallerId,
 	},
 )
 
 // Delete a SIP endpoint
-_, err = client.Fabric.Subscribers.DeleteSIPEndpoint("subscriber-uuid", "endpoint-uuid")
+_, err = client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), "subscriber-uuid", "endpoint-uuid")
 
 _, _ = endpoints, endpoint
 ```
@@ -147,13 +150,13 @@ _, _ = endpoints, endpoint
 cXML applications support list/get/update/delete but not create:
 
 ```go
-apps, err := client.Fabric.CXMLApplications.List(nil)
-app, err := client.Fabric.CXMLApplications.Get("app-uuid", nil)
+apps, err := client.Fabric.CXMLApplications.List(context.Background(), nil)
+app, err := client.Fabric.CXMLApplications.Get(context.Background(), "app-uuid", nil)
 voiceUrl := "https://example.com/voice"
-_, err = client.Fabric.CXMLApplications.Update("app-uuid", namespaces.CxmlApplicationsResourceUpdateParams{
-	VoiceUrl: &voiceUrl,
+_, err = client.Fabric.CXMLApplications.Update(context.Background(), "app-uuid", namespaces.CxmlApplicationsResourceUpdateParams{
+	VoiceURL: &voiceUrl,
 })
-_, err = client.Fabric.CXMLApplications.Delete("app-uuid")
+_, err = client.Fabric.CXMLApplications.Delete(context.Background(), "app-uuid")
 
 // There is no Create method on CXMLApplications -- creation is not supported.
 
@@ -166,21 +169,21 @@ Operate on any resource type by ID:
 
 ```go
 // List all resources across all types
-allResources, err := client.Fabric.Resources.List(nil)
+allResources, err := client.Fabric.Resources.List(context.Background(), nil)
 
 // Get any resource by ID
-resource, err := client.Fabric.Resources.Get("resource-uuid", nil)
+resource, err := client.Fabric.Resources.Get(context.Background(), "resource-uuid", nil)
 
 // Delete any resource
-_, err = client.Fabric.Resources.Delete("resource-uuid")
+_, err = client.Fabric.Resources.Delete(context.Background(), "resource-uuid")
 
 // List addresses for any resource
-addresses, err := client.Fabric.Resources.ListAddresses("resource-uuid", nil)
+addresses, err := client.Fabric.Resources.ListAddresses(context.Background(), "resource-uuid", nil)
 
 // Assign a resource as a domain application handler
-_, err = client.Fabric.Resources.AssignDomainApplication(
+_, err = client.Fabric.Resources.AssignDomainApplication(context.Background(), 
 	"resource-uuid",
-	namespaces.GenericResourcesAssignDomainApplicationParams{DomainApplicationId: "da-uuid"},
+	namespaces.GenericResourcesAssignDomainApplicationParams{DomainApplicationID: "da-uuid"},
 )
 
 _, _, _ = allResources, resource, addresses
@@ -204,28 +207,28 @@ Use the typed helpers on `client.PhoneNumbers`:
 
 ```go
 // SWML webhook (your backend returns SWML per call)
-_, err = client.PhoneNumbers.SetSwmlWebhook(pnID, "https://example.com/swml")
+_, err = client.PhoneNumbers.SetSwmlWebhook(context.Background(), pnID, "https://example.com/swml")
 
 // cXML / LAML webhook (Twilio-compat); optional fallback + status URLs
 fallbackURL := "https://example.com/fallback.xml"
 statusURL := "https://example.com/status"
-_, err = client.PhoneNumbers.SetCxmlWebhook(pnID, "https://example.com/voice.xml", &fallbackURL, &statusURL)
+_, err = client.PhoneNumbers.SetCxmlWebhook(context.Background(), pnID, "https://example.com/voice.xml", &fallbackURL, &statusURL)
 
 // Existing cXML application by ID
-_, err = client.PhoneNumbers.SetCxmlApplication(pnID, "app-uuid")
+_, err = client.PhoneNumbers.SetCxmlApplication(context.Background(), pnID, "app-uuid")
 
 // AI Agent by ID
-_, err = client.PhoneNumbers.SetAiAgent(pnID, "agent-uuid")
+_, err = client.PhoneNumbers.SetAiAgent(context.Background(), pnID, "agent-uuid")
 
 // Call flow (optionally pin a version)
 version := "current_deployed"
-_, err = client.PhoneNumbers.SetCallFlow(pnID, "flow-uuid", &version)
+_, err = client.PhoneNumbers.SetCallFlow(context.Background(), pnID, "flow-uuid", &version)
 
 // Relay application (named routing)
-_, err = client.PhoneNumbers.SetRelayApplication(pnID, "my-relay-app")
+_, err = client.PhoneNumbers.SetRelayApplication(context.Background(), pnID, "my-relay-app")
 
 // Relay topic (RELAY client subscription)
-_, err = client.PhoneNumbers.SetRelayTopic(pnID, "office", nil)
+_, err = client.PhoneNumbers.SetRelayTopic(context.Background(), pnID, "office", nil)
 ```
 
 The `namespaces.PhoneCallHandler` type exposes the full enum of wire values
@@ -244,10 +247,10 @@ Read-only access to all fabric addresses:
 
 ```go
 // List all addresses (filter by type or display_name)
-addresses, err := client.Fabric.Addresses.List(map[string]string{"type": "room"})
+addresses, err := client.Fabric.Addresses.List(context.Background(), map[string]string{"type": "room"})
 
 // Get a specific address
-address, err := client.Fabric.Addresses.Get("address-uuid")
+address, err := client.Fabric.Addresses.Get(context.Background(), "address-uuid")
 
 _, _ = addresses, address
 ```
@@ -261,30 +264,30 @@ through the `Extras` map:
 ```go
 // Subscriber token
 password := "secret"
-token, err := client.Fabric.Tokens.CreateSubscriberToken(namespaces.FabricTokensCreateSubscriberTokenParams{
+token, err := client.Fabric.Tokens.CreateSubscriberToken(context.Background(), namespaces.FabricTokensCreateSubscriberTokenParams{
 	Reference: "user@example.com",
 	Password:  &password,
 })
 
 // Refresh a subscriber token
-refreshed, err := client.Fabric.Tokens.RefreshSubscriberToken(namespaces.FabricTokensRefreshSubscriberTokenParams{
+refreshed, err := client.Fabric.Tokens.RefreshSubscriberToken(context.Background(), namespaces.FabricTokensRefreshSubscriberTokenParams{
 	Extras: map[string]any{"refresh_token": "existing-refresh-token"},
 })
 
 // Guest token
-guestToken, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{
+guestToken, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{
 	Extras: map[string]any{
 		"allowed_addresses": []string{"address-uuid-1", "address-uuid-2"},
 	},
 })
 
 // Subscriber invite token
-inviteToken, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{
+inviteToken, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{
 	Extras: map[string]any{"address_id": "address-uuid"},
 })
 
 // Click-to-call embed token
-embedToken, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{
+embedToken, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{
 	Token: "embed-source-token",
 })
 

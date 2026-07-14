@@ -1,6 +1,7 @@
 package namespaces
 
 import (
+	"context"
 	"fmt"
 	"testing"
 )
@@ -18,14 +19,14 @@ type mockHTTP struct {
 	err        error
 }
 
-func (m *mockHTTP) Get(path string, params map[string]string) (map[string]any, error) {
+func (m *mockHTTP) Get(_ context.Context, path string, params map[string]string) (map[string]any, error) {
 	m.lastMethod = "GET"
 	m.lastPath = path
 	m.lastParams = params
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
+func (m *mockHTTP) Post(_ context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error) {
 	m.lastMethod = "POST"
 	m.lastPath = path
 	m.lastBody = body
@@ -33,21 +34,21 @@ func (m *mockHTTP) Post(path string, body map[string]any, params map[string]stri
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Put(path string, body map[string]any) (map[string]any, error) {
+func (m *mockHTTP) Put(_ context.Context, path string, body map[string]any) (map[string]any, error) {
 	m.lastMethod = "PUT"
 	m.lastPath = path
 	m.lastBody = body
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Patch(path string, body map[string]any) (map[string]any, error) {
+func (m *mockHTTP) Patch(_ context.Context, path string, body map[string]any) (map[string]any, error) {
 	m.lastMethod = "PATCH"
 	m.lastPath = path
 	m.lastBody = body
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Delete(path string) (map[string]any, error) {
+func (m *mockHTTP) Delete(_ context.Context, path string) (map[string]any, error) {
 	m.lastMethod = "DELETE"
 	m.lastPath = path
 	return m.response, m.err
@@ -88,7 +89,7 @@ func TestResource_Path_MultipleArgs(t *testing.T) {
 func TestCrudResource_List(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
 	r := NewCrudResource(mock, "/api/test")
-	_, _ = r.List(map[string]string{"page": "1"})
+	_, _ = r.List(context.Background(), map[string]string{"page": "1"})
 	if mock.lastMethod != "GET" {
 		t.Errorf("method = %q, want GET", mock.lastMethod)
 	}
@@ -100,7 +101,7 @@ func TestCrudResource_List(t *testing.T) {
 func TestCrudResource_Create(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"id": "new-1"}}
 	r := NewCrudResource(mock, "/api/test")
-	_, _ = r.Create(map[string]any{"name": "item"})
+	_, _ = r.Create(context.Background(), map[string]any{"name": "item"})
 	if mock.lastMethod != "POST" {
 		t.Errorf("method = %q, want POST", mock.lastMethod)
 	}
@@ -112,7 +113,7 @@ func TestCrudResource_Create(t *testing.T) {
 func TestCrudResource_Get(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"id": "abc"}}
 	r := NewCrudResource(mock, "/api/test")
-	_, _ = r.Get("abc")
+	_, _ = r.Get(context.Background(), "abc")
 	if mock.lastPath != "/api/test/abc" {
 		t.Errorf("path = %q, want /api/test/abc", mock.lastPath)
 	}
@@ -121,7 +122,7 @@ func TestCrudResource_Get(t *testing.T) {
 func TestCrudResource_Update_PATCH(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	r := NewCrudResource(mock, "/api/test")
-	_, _ = r.Update("abc", map[string]any{"name": "updated"})
+	_, _ = r.Update(context.Background(), "abc", map[string]any{"name": "updated"})
 	if mock.lastMethod != "PATCH" {
 		t.Errorf("method = %q, want PATCH", mock.lastMethod)
 	}
@@ -133,7 +134,7 @@ func TestCrudResource_Update_PATCH(t *testing.T) {
 func TestCrudResource_Update_PUT(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	r := NewCrudResourcePUT(mock, "/api/test")
-	_, _ = r.Update("abc", map[string]any{"name": "updated"})
+	_, _ = r.Update(context.Background(), "abc", map[string]any{"name": "updated"})
 	if mock.lastMethod != "PUT" {
 		t.Errorf("method = %q, want PUT", mock.lastMethod)
 	}
@@ -142,7 +143,7 @@ func TestCrudResource_Update_PUT(t *testing.T) {
 func TestCrudResource_Delete(t *testing.T) {
 	mock := &mockHTTP{}
 	r := NewCrudResource(mock, "/api/test")
-	_, _ = r.Delete("abc")
+	_, _ = r.Delete(context.Background(), "abc")
 	if mock.lastMethod != "DELETE" {
 		t.Errorf("method = %q, want DELETE", mock.lastMethod)
 	}
@@ -154,7 +155,7 @@ func TestCrudResource_Delete(t *testing.T) {
 func TestCrudWithAddresses_ListAddresses(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
 	r := NewCrudWithAddresses(mock, "/api/test")
-	_, _ = r.ListAddresses("abc", nil)
+	_, _ = r.ListAddresses(context.Background(), "abc", nil)
 	if mock.lastPath != "/api/test/abc/addresses" {
 		t.Errorf("path = %q, want /api/test/abc/addresses", mock.lastPath)
 	}
@@ -163,7 +164,7 @@ func TestCrudWithAddresses_ListAddresses(t *testing.T) {
 func TestCrudResource_ErrorPropagation(t *testing.T) {
 	mock := &mockHTTP{err: fmt.Errorf("network error")}
 	r := NewCrudResource(mock, "/api/test")
-	_, err := r.List(nil)
+	_, err := r.List(context.Background(), nil)
 	if err == nil {
 		t.Error("expected error")
 	}
@@ -176,7 +177,7 @@ func TestCrudResource_ErrorPropagation(t *testing.T) {
 func TestCallingNamespace_Dial(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Dial(CallingNamespaceDialParams{Extras: map[string]any{"to": "+1555"}})
+	_, _ = c.Dial(context.Background(), CallingNamespaceDialParams{Extras: map[string]any{"to": "+1555"}})
 	if mock.lastMethod != "POST" {
 		t.Errorf("method = %q, want POST", mock.lastMethod)
 	}
@@ -191,7 +192,7 @@ func TestCallingNamespace_Dial(t *testing.T) {
 func TestCallingNamespace_End(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.End("call-1", CallingNamespaceEndParams{})
+	_, _ = c.End(context.Background(), "call-1", CallingNamespaceEndParams{})
 	if mock.lastBody["command"] != "calling.end" {
 		t.Errorf("command = %v, want calling.end", mock.lastBody["command"])
 	}
@@ -203,7 +204,7 @@ func TestCallingNamespace_End(t *testing.T) {
 func TestCallingNamespace_Play(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Play("call-1", CallingNamespacePlayParams{Extras: map[string]any{"url": "audio.mp3"}})
+	_, _ = c.Play(context.Background(), "call-1", CallingNamespacePlayParams{Extras: map[string]any{"url": "audio.mp3"}})
 	if mock.lastBody["command"] != "calling.play" {
 		t.Errorf("command = %v, want calling.play", mock.lastBody["command"])
 	}
@@ -212,7 +213,7 @@ func TestCallingNamespace_Play(t *testing.T) {
 func TestCallingNamespace_PlayPause(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.PlayPause("call-1", CallingNamespacePlayPauseParams{})
+	_, _ = c.PlayPause(context.Background(), "call-1", CallingNamespacePlayPauseParams{})
 	if mock.lastBody["command"] != "calling.play.pause" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -221,7 +222,7 @@ func TestCallingNamespace_PlayPause(t *testing.T) {
 func TestCallingNamespace_Record(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Record("call-1", CallingNamespaceRecordParams{Extras: map[string]any{"format": "mp3"}})
+	_, _ = c.Record(context.Background(), "call-1", CallingNamespaceRecordParams{Extras: map[string]any{"format": "mp3"}})
 	if mock.lastBody["command"] != "calling.record" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -230,7 +231,7 @@ func TestCallingNamespace_Record(t *testing.T) {
 func TestCallingNamespace_Transfer(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Transfer("call-1", CallingNamespaceTransferParams{})
+	_, _ = c.Transfer(context.Background(), "call-1", CallingNamespaceTransferParams{})
 	if mock.lastBody["command"] != "calling.transfer" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -239,7 +240,7 @@ func TestCallingNamespace_Transfer(t *testing.T) {
 func TestCallingNamespace_AIMessage(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.AIMessage("call-1", CallingNamespaceAIMessageParams{Extras: map[string]any{"text": "hello"}})
+	_, _ = c.AIMessage(context.Background(), "call-1", CallingNamespaceAIMessageParams{Extras: map[string]any{"text": "hello"}})
 	if mock.lastBody["command"] != "calling.ai_message" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -248,7 +249,7 @@ func TestCallingNamespace_AIMessage(t *testing.T) {
 func TestCallingNamespace_Stream(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Stream("call-1", CallingNamespaceStreamParams{Extras: map[string]any{"url": "wss://example.com"}})
+	_, _ = c.Stream(context.Background(), "call-1", CallingNamespaceStreamParams{Extras: map[string]any{"url": "wss://example.com"}})
 	if mock.lastBody["command"] != "calling.stream" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -257,7 +258,7 @@ func TestCallingNamespace_Stream(t *testing.T) {
 func TestCallingNamespace_Denoise(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Denoise("call-1", CallingNamespaceDenoiseParams{})
+	_, _ = c.Denoise(context.Background(), "call-1", CallingNamespaceDenoiseParams{})
 	if mock.lastBody["command"] != "calling.denoise" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -266,7 +267,7 @@ func TestCallingNamespace_Denoise(t *testing.T) {
 func TestCallingNamespace_Transcribe(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Transcribe("call-1", CallingNamespaceTranscribeParams{})
+	_, _ = c.Transcribe(context.Background(), "call-1", CallingNamespaceTranscribeParams{})
 	if mock.lastBody["command"] != "calling.transcribe" {
 		t.Errorf("command = %v", mock.lastBody["command"])
 	}
@@ -275,7 +276,7 @@ func TestCallingNamespace_Transcribe(t *testing.T) {
 func TestCallingNamespace_NoCallID(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	c := NewCallingNamespace(mock)
-	_, _ = c.Dial(CallingNamespaceDialParams{})
+	_, _ = c.Dial(context.Background(), CallingNamespaceDialParams{})
 	if _, ok := mock.lastBody["id"]; ok {
 		t.Error("Dial should not include id field")
 	}
@@ -321,7 +322,7 @@ func TestFabricNamespace_Init(t *testing.T) {
 func TestCallFlowsResource_ListVersions(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
 	f := NewFabricNamespace(mock)
-	_, _ = f.CallFlows.ListVersions("flow-1", nil)
+	_, _ = f.CallFlows.ListVersions(context.Background(), "flow-1", nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("method = %q, want GET", mock.lastMethod)
 	}
@@ -333,7 +334,7 @@ func TestCallFlowsResource_ListVersions(t *testing.T) {
 func TestCallFlowsResource_DeployVersion(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	f := NewFabricNamespace(mock)
-	_, _ = f.CallFlows.DeployVersion("flow-1", map[string]any{"swml": "{}"})
+	_, _ = f.CallFlows.DeployVersion(context.Background(), "flow-1", map[string]any{"swml": "{}"})
 	if mock.lastMethod != "POST" {
 		t.Errorf("method = %q, want POST", mock.lastMethod)
 	}
@@ -342,7 +343,7 @@ func TestCallFlowsResource_DeployVersion(t *testing.T) {
 func TestSubscribersResource_ListSIPEndpoints(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"data": []any{}}}
 	f := NewFabricNamespace(mock)
-	_, _ = f.Subscribers.ListSIPEndpoints("sub-1", nil)
+	_, _ = f.Subscribers.ListSIPEndpoints(context.Background(), "sub-1", nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("method = %q", mock.lastMethod)
 	}
@@ -352,22 +353,22 @@ func TestSubscribersResource_CRUD_SIPEndpoint(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	f := NewFabricNamespace(mock)
 
-	_, _ = f.Subscribers.CreateSIPEndpoint("sub-1", SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"name": "ep"}})
+	_, _ = f.Subscribers.CreateSIPEndpoint(context.Background(), "sub-1", SubscribersResourceCreateSIPEndpointParams{Extras: map[string]any{"name": "ep"}})
 	if mock.lastMethod != "POST" {
 		t.Errorf("create method = %q, want POST", mock.lastMethod)
 	}
 
-	_, _ = f.Subscribers.GetSIPEndpoint("sub-1", "ep-1", nil)
+	_, _ = f.Subscribers.GetSIPEndpoint(context.Background(), "sub-1", "ep-1", nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("get method = %q, want GET", mock.lastMethod)
 	}
 
-	_, _ = f.Subscribers.UpdateSIPEndpoint("sub-1", "ep-1", SubscribersResourceUpdateSIPEndpointParams{Extras: map[string]any{"name": "new"}})
+	_, _ = f.Subscribers.UpdateSIPEndpoint(context.Background(), "sub-1", "ep-1", SubscribersResourceUpdateSIPEndpointParams{Extras: map[string]any{"name": "new"}})
 	if mock.lastMethod != "PATCH" {
 		t.Errorf("update method = %q, want PATCH", mock.lastMethod)
 	}
 
-	_, _ = f.Subscribers.DeleteSIPEndpoint("sub-1", "ep-1")
+	_, _ = f.Subscribers.DeleteSIPEndpoint(context.Background(), "sub-1", "ep-1")
 	if mock.lastMethod != "DELETE" {
 		t.Errorf("delete method = %q, want DELETE", mock.lastMethod)
 	}
@@ -376,7 +377,7 @@ func TestSubscribersResource_CRUD_SIPEndpoint(t *testing.T) {
 func TestFabricTokens_CreateSubscriberToken(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"token": "xyz"}}
 	f := NewFabricNamespace(mock)
-	_, _ = f.Tokens.CreateSubscriberToken(FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"subscriber_id": "sub-1"}})
+	_, _ = f.Tokens.CreateSubscriberToken(context.Background(), FabricTokensCreateSubscriberTokenParams{Extras: map[string]any{"subscriber_id": "sub-1"}})
 	if mock.lastMethod != "POST" {
 		t.Errorf("method = %q, want POST", mock.lastMethod)
 	}
@@ -385,7 +386,7 @@ func TestFabricTokens_CreateSubscriberToken(t *testing.T) {
 func TestFabricTokens_CreateGuestToken(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{"token": "abc"}}
 	f := NewFabricNamespace(mock)
-	_, _ = f.Tokens.CreateGuestToken(FabricTokensCreateGuestTokenParams{})
+	_, _ = f.Tokens.CreateGuestToken(context.Background(), FabricTokensCreateGuestTokenParams{})
 	if mock.lastMethod != "POST" {
 		t.Errorf("method = %q, want POST", mock.lastMethod)
 	}
@@ -395,27 +396,27 @@ func TestGenericResources_Operations(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	f := NewFabricNamespace(mock)
 
-	_, _ = f.Resources.List(nil)
+	_, _ = f.Resources.List(context.Background(), nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("list method = %q", mock.lastMethod)
 	}
 
-	_, _ = f.Resources.Get("res-1", nil)
+	_, _ = f.Resources.Get(context.Background(), "res-1", nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("get method = %q", mock.lastMethod)
 	}
 
-	_, _ = f.Resources.Delete("res-1")
+	_, _ = f.Resources.Delete(context.Background(), "res-1")
 	if mock.lastMethod != "DELETE" {
 		t.Errorf("delete method = %q", mock.lastMethod)
 	}
 
-	_, _ = f.Resources.ListAddresses("res-1", nil)
+	_, _ = f.Resources.ListAddresses(context.Background(), "res-1", nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("list addresses method = %q", mock.lastMethod)
 	}
 
-	_, _ = f.Resources.AssignPhoneRoute("res-1", GenericResourcesAssignPhoneRouteParams{})
+	_, _ = f.Resources.AssignPhoneRoute(context.Background(), "res-1", GenericResourcesAssignPhoneRouteParams{})
 	if mock.lastMethod != "POST" {
 		t.Errorf("assign phone route method = %q", mock.lastMethod)
 	}
@@ -425,12 +426,12 @@ func TestFabricAddresses_Operations(t *testing.T) {
 	mock := &mockHTTP{response: map[string]any{}}
 	f := NewFabricNamespace(mock)
 
-	_, _ = f.Addresses.List(nil)
+	_, _ = f.Addresses.List(context.Background(), nil)
 	if mock.lastMethod != "GET" {
 		t.Errorf("list method = %q", mock.lastMethod)
 	}
 
-	_, _ = f.Addresses.Get("addr-1")
+	_, _ = f.Addresses.Get(context.Background(), "addr-1")
 	if mock.lastMethod != "GET" {
 		t.Errorf("get method = %q", mock.lastMethod)
 	}

@@ -22,6 +22,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
@@ -38,7 +39,7 @@ func TestShortCodes_List(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.ShortCodes.List(map[string]string{"page_size": "20"})
+	bodyResp, err := client.ShortCodes.List(context.Background(), map[string]string{"page_size": "20"})
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -68,7 +69,7 @@ func TestShortCodes_Get(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.ShortCodes.Get("sc-1", nil)
+	bodyResp, err := client.ShortCodes.Get(context.Background(), "sc-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -94,7 +95,7 @@ func TestShortCodes_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.ShortCodes.Update("sc-1", namespaces.ShortCodesNamespaceUpdateParams{Extras: map[string]any{
+	bodyResp, err := client.ShortCodes.Update(context.Background(), "sc-1", namespaces.ShortCodesNamespaceUpdateParams{Extras: map[string]any{
 		"name": "Marketing SMS",
 	}})
 	if err != nil {
@@ -132,7 +133,7 @@ func TestImportedNumbers_Create(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.ImportedNumbers.Create(namespaces.ImportedNumbersNamespaceCreateParams{Extras: map[string]any{
+	bodyResp, err := client.ImportedNumbers.Create(context.Background(), namespaces.ImportedNumbersNamespaceCreateParams{Extras: map[string]any{
 		"number":       "+15551234567",
 		"sip_username": "alice",
 		"sip_password": "secret",
@@ -178,7 +179,7 @@ func TestMFA_Call(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.MFA.Call(namespaces.MFANamespaceCallParams{Extras: map[string]any{
+	bodyResp, err := client.MFA.Call(context.Background(), namespaces.MFANamespaceCallParams{Extras: map[string]any{
 		"to":      "+15551234567",
 		"from_":   "+15559876543",
 		"message": "Your code is {code}",
@@ -223,7 +224,7 @@ func TestSipProfile_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.SIPProfile.Update(namespaces.SIPProfileNamespaceUpdateParams{Extras: map[string]any{
+	bodyResp, err := client.SIPProfile.Update(context.Background(), namespaces.SIPProfileNamespaceUpdateParams{Extras: map[string]any{
 		"domain":         "myco.sip.signalwire.com",
 		"default_codecs": []string{"PCMU", "PCMA"},
 	}})
@@ -270,7 +271,7 @@ func TestNumberGroups_ListMemberships(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.NumberGroups.ListMemberships("ng-1", map[string]string{
+	bodyResp, err := client.NumberGroups.ListMemberships(context.Background(), "ng-1", map[string]string{
 		"page_size": "10",
 	})
 	if err != nil {
@@ -305,7 +306,7 @@ func TestNumberGroups_DeleteMembership(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.NumberGroups.DeleteMembership("mem-1")
+	bodyResp, err := client.NumberGroups.DeleteMembership(context.Background(), "mem-1")
 	if err != nil {
 		t.Fatalf("DeleteMembership: %v", err)
 	}
@@ -338,7 +339,7 @@ func TestProjectTokens_Update(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Project.Tokens.Update("tok-1", namespaces.ProjectTokensUpdateParams{Extras: map[string]any{
+	bodyResp, err := client.Project.Tokens.Update(context.Background(), "tok-1", namespaces.ProjectTokensUpdateParams{Extras: map[string]any{
 		"name": "renamed-token",
 	}})
 	if err != nil {
@@ -373,7 +374,7 @@ func TestProjectTokens_Delete(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Project.Tokens.Delete("tok-1")
+	bodyResp, err := client.Project.Tokens.Delete(context.Background(), "tok-1")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
@@ -406,7 +407,7 @@ func TestDatasphere_GetChunk(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Datasphere.Documents.GetChunk("doc-1", "chunk-99", nil)
+	bodyResp, err := client.Datasphere.Documents.GetChunk(context.Background(), "doc-1", "chunk-99", nil)
 	if err != nil {
 		t.Fatalf("GetChunk: %v", err)
 	}
@@ -434,7 +435,7 @@ func TestQueues_GetMember(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Queues.GetMember("q-1", "mem-7", nil)
+	bodyResp, err := client.Queues.GetMember(context.Background(), "q-1", "mem-7", nil)
 	if err != nil {
 		t.Fatalf("GetMember: %v", err)
 	}

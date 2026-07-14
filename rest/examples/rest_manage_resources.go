@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -30,7 +31,7 @@ func main() {
 
 	// 1. Create an AI agent
 	fmt.Println("Creating AI agent...")
-	agent, err := client.Fabric.AIAgents.Create(map[string]any{
+	agent, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{
 		"name":   "Demo Support Bot",
 		"prompt": map[string]any{"text": "You are a friendly support agent for Acme Corp."},
 	})
@@ -43,7 +44,7 @@ func main() {
 
 	// 2. List all AI agents
 	fmt.Println("\nListing AI agents...")
-	agents, err := client.Fabric.AIAgents.List(nil)
+	agents, err := client.Fabric.AIAgents.List(context.Background(), nil)
 	if err != nil {
 		fmt.Printf("  List agents failed: %v\n", err)
 	} else if data, ok := agents["data"].([]any); ok {
@@ -56,7 +57,7 @@ func main() {
 
 	// 3. Search for a phone number
 	fmt.Println("\nSearching for available phone numbers...")
-	available, err := client.PhoneNumbers.Search(map[string]string{
+	available, err := client.PhoneNumbers.Search(context.Background(), map[string]string{
 		"areacode":    "512",
 		"max_results": "3",
 	})
@@ -71,10 +72,10 @@ func main() {
 	// 4. Place a test call (requires valid numbers)
 	fmt.Println("\nPlacing a test call...")
 	callURL := "https://example.com/call-handler"
-	result, err := client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+	result, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
 		To:   "+15551234567",
-		Url:  &callURL,
+		URL:  &callURL,
 	})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
@@ -88,7 +89,7 @@ func main() {
 
 	// 5. Clean up: delete the agent
 	fmt.Printf("\nDeleting agent %s...\n", agentID)
-	if _, err := client.Fabric.AIAgents.Delete(agentID); err != nil {
+	if _, err := client.Fabric.AIAgents.Delete(context.Background(), agentID); err != nil {
 		fmt.Printf("  Delete failed: %v\n", err)
 	} else {
 		fmt.Println("  Deleted.")

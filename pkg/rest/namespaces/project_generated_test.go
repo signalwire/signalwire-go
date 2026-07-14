@@ -13,6 +13,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestProjectGen_Tokens_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Project.Tokens.Create(namespaces.ProjectTokensCreateParams{Extras: map[string]any{"name": "x-1", "permissions": "x-1"}})
+	_, err := client.Project.Tokens.Create(context.Background(), namespaces.ProjectTokensCreateParams{Extras: map[string]any{"name": "x-1", "permissions": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -49,7 +50,7 @@ func TestProjectGen_Tokens_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "project.create_token", 500, map[string]any{"error": "x"})
-	_, err := client.Project.Tokens.Create(namespaces.ProjectTokensCreateParams{Extras: map[string]any{"name": "x-1", "permissions": "x-1"}})
+	_, err := client.Project.Tokens.Create(context.Background(), namespaces.ProjectTokensCreateParams{Extras: map[string]any{"name": "x-1", "permissions": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -66,7 +67,7 @@ func TestProjectGen_Tokens_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Project.Tokens.Delete("x-1")
+	_, err := client.Project.Tokens.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestProjectGen_Tokens_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "project.delete_token", 500, map[string]any{"error": "x"})
-	_, err := client.Project.Tokens.Delete("x-1")
+	_, err := client.Project.Tokens.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -104,7 +105,7 @@ func TestProjectGen_Tokens_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Project.Tokens.Update("x-1", namespaces.ProjectTokensUpdateParams{})
+	_, err := client.Project.Tokens.Update(context.Background(), "x-1", namespaces.ProjectTokensUpdateParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -125,7 +126,7 @@ func TestProjectGen_Tokens_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "project.update_token", 500, map[string]any{"error": "x"})
-	_, err := client.Project.Tokens.Update("x-1", namespaces.ProjectTokensUpdateParams{})
+	_, err := client.Project.Tokens.Update(context.Background(), "x-1", namespaces.ProjectTokensUpdateParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

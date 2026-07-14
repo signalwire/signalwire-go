@@ -96,6 +96,13 @@ linters:
         #     embedded `Service` qualifier is a readability downgrade, not a fix.
         - -QF1001
         - -QF1008
+        # ST1003 (naming idiom): initialisms all-caps (ID/URL/API/HTTP/SIP/RPC),
+        # no underscores in Go names. Enabled to hold the generated REST surface
+        # to idiomatic Go. Staticcheck's ST checks are OFF by default under `all`
+        # (all = SA + simplifications + QF, not ST); ST1003 is added explicitly.
+        # The other ST naming checks are NOT added: some conflict with parity
+        # (ST1005 error-string capitalization mirrors Python's ValueError text).
+        - ST1003
     exhaustive:
       # A switch with a `default:` is treated as exhaustive. Every flagged
       # switch here deliberately handles a SUBSET of its enum and routes the

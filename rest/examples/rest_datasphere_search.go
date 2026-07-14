@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -31,7 +32,7 @@ func main() {
 
 	// 1. Upload a document (a publicly accessible text file)
 	fmt.Println("Uploading document to Datasphere...")
-	doc, err := client.Datasphere.Documents.Create(map[string]any{
+	doc, err := client.Datasphere.Documents.Create(context.Background(), map[string]any{
 		"url":  "https://filesamples.com/samples/document/txt/sample3.txt",
 		"tags": []string{"support", "demo"},
 	})
@@ -46,7 +47,7 @@ func main() {
 	fmt.Println("\nWaiting for document to be vectorized...")
 	for i := 0; i < 30; i++ {
 		time.Sleep(2 * time.Second)
-		docStatus, err := client.Datasphere.Documents.Get(docID)
+		docStatus, err := client.Datasphere.Documents.Get(context.Background(), docID)
 		if err != nil {
 			fmt.Printf("  Poll error: %v\n", err)
 			continue
@@ -59,19 +60,19 @@ func main() {
 		}
 		if status == "error" || status == "failed" {
 			fmt.Printf("  Document processing failed: %s\n", status)
-			client.Datasphere.Documents.Delete(docID)
+			client.Datasphere.Documents.Delete(context.Background(), docID)
 			return
 		}
 		if i == 29 {
 			fmt.Println("  Timed out waiting for vectorization.")
-			client.Datasphere.Documents.Delete(docID)
+			client.Datasphere.Documents.Delete(context.Background(), docID)
 			return
 		}
 	}
 
 	// 3. List chunks
 	fmt.Printf("\nListing chunks for document %s...\n", docID)
-	chunks, err := client.Datasphere.Documents.ListChunks(docID, nil)
+	chunks, err := client.Datasphere.Documents.ListChunks(context.Background(), docID, nil)
 	if err != nil {
 		fmt.Printf("  List chunks failed: %v\n", err)
 	} else {
@@ -85,14 +86,14 @@ func main() {
 			if len(content) > 80 {
 				content = content[:80]
 			}
-			fmt.Printf("  - Chunk %v: %s...\n", c.Id, content)
+			fmt.Printf("  - Chunk %v: %s...\n", c.ID, content)
 		}
 	}
 
 	// 4. Semantic search across all documents
 	fmt.Println("\nSearching Datasphere...")
 	count := 3
-	results, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{
+	results, err := client.Datasphere.Documents.Search(context.Background(), namespaces.DatasphereDocumentsSearchParams{
 		QueryString: "lorem ipsum dolor sit amet",
 		Count:       &count,
 	})
@@ -110,7 +111,7 @@ func main() {
 
 	// 5. Clean up
 	fmt.Printf("\nDeleting document %s...\n", docID)
-	if _, err := client.Datasphere.Documents.Delete(docID); err != nil {
+	if _, err := client.Datasphere.Documents.Delete(context.Background(), docID); err != nil {
 		fmt.Printf("  Delete failed: %v\n", err)
 	} else {
 		fmt.Println("  Deleted.")

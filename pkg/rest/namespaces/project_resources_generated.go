@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // ProjectTokens is a client for the "ProjectTokens" resource of the SignalWire project API.
 type ProjectTokens struct {
 	Resource
@@ -21,21 +23,21 @@ func NewProjectTokens(client HTTPClient) *ProjectTokens {
 type ProjectTokensCreateParams struct {
 	Name         string
 	Permissions  []TokenPermission
-	SubprojectId *string
+	SubprojectID *string
 	Extras       map[string]any
 }
 
-func (r *ProjectTokens) Create(params ProjectTokensCreateParams) (*TokenResponse, error) {
+func (r *ProjectTokens) Create(ctx context.Context, params ProjectTokensCreateParams) (*TokenResponse, error) {
 	body := map[string]any{}
 	body["name"] = params.Name
 	if params.Permissions != nil {
 		body["permissions"] = params.Permissions
 	}
-	if params.SubprojectId != nil {
-		body["subproject_id"] = params.SubprojectId
+	if params.SubprojectID != nil {
+		body["subproject_id"] = params.SubprojectID
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[TokenResponse](r.HTTP.Post(r.Base, body, nil))
+	return decodeResult[TokenResponse](r.HTTP.Post(ctx, r.Base, body, nil))
 }
 
 // ProjectTokensUpdateParams holds the named optional parameters for ProjectTokens.Update.
@@ -45,7 +47,7 @@ type ProjectTokensUpdateParams struct {
 	Extras      map[string]any
 }
 
-func (r *ProjectTokens) Update(tokenID string, params ProjectTokensUpdateParams) (*TokenResponse, error) {
+func (r *ProjectTokens) Update(ctx context.Context, tokenID string, params ProjectTokensUpdateParams) (*TokenResponse, error) {
 	body := map[string]any{}
 	if params.Name != nil {
 		body["name"] = params.Name
@@ -54,9 +56,9 @@ func (r *ProjectTokens) Update(tokenID string, params ProjectTokensUpdateParams)
 		body["permissions"] = params.Permissions
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[TokenResponse](r.HTTP.Patch(r.Path(tokenID), body))
+	return decodeResult[TokenResponse](r.HTTP.Patch(ctx, r.Path(tokenID), body))
 }
 
-func (r *ProjectTokens) Delete(tokenID string) (map[string]any, error) {
-	return r.HTTP.Delete(r.Path(tokenID))
+func (r *ProjectTokens) Delete(ctx context.Context, tokenID string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(tokenID))
 }

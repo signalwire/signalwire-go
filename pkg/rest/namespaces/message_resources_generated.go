@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // MessageLogs is a client for the "MessageLogs" resource of the SignalWire message API.
 type MessageLogs struct {
 	Resource
@@ -17,14 +19,14 @@ func NewMessageLogs(client HTTPClient) *MessageLogs {
 	return &MessageLogs{Resource{HTTP: client, Base: "/api/messaging/logs"}}
 }
 
-func (r *MessageLogs) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *MessageLogs) List(ctx context.Context, params map[string]string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params)
 }
 
-func (r *MessageLogs) Get(id string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), nil)
+func (r *MessageLogs) Get(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil)
 }
 
-func (r *MessageLogs) Paginate(params map[string]string) *Paginator {
-	return NewPaginator(r.HTTP, r.Base, params, "data")
+func (r *MessageLogs) Paginate(ctx context.Context, params map[string]string) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
 }

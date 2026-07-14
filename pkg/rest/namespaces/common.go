@@ -10,6 +10,7 @@
 package namespaces
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 )
@@ -17,12 +18,18 @@ import (
 // HTTPClient is the interface that namespace implementations use to make HTTP
 // requests. It is satisfied by the httpAdapter in the parent rest package,
 // which prevents an import cycle.
+//
+// Every method takes a leading context.Context (Go's idiomatic deadline/
+// cancellation carrier): the resource methods thread the caller's ctx down to
+// the HTTP request, so a call like client.Fabric.Addresses.List(ctx, nil) is
+// cancellable. ctx is compile-time-only plumbing — it is NEVER serialized into
+// the request body or query, so the wire bytes are unchanged.
 type HTTPClient interface {
-	Get(path string, params map[string]string) (map[string]any, error)
-	Post(path string, body map[string]any, params map[string]string) (map[string]any, error)
-	Put(path string, body map[string]any) (map[string]any, error)
-	Patch(path string, body map[string]any) (map[string]any, error)
-	Delete(path string) (map[string]any, error)
+	Get(ctx context.Context, path string, params map[string]string) (map[string]any, error)
+	Post(ctx context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error)
+	Put(ctx context.Context, path string, body map[string]any) (map[string]any, error)
+	Patch(ctx context.Context, path string, body map[string]any) (map[string]any, error)
+	Delete(ctx context.Context, path string) (map[string]any, error)
 }
 
 // Resource is a helper for building sub-paths from a base path.
@@ -63,8 +70,8 @@ func NewCrudResourcePUT(client HTTPClient, path string) *CrudResource {
 }
 
 // List retrieves all items from the collection.
-func (r *CrudResource) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *CrudResource) List(ctx context.Context, params map[string]string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params)
 }
 
 // Paginate returns a Paginator that walks EVERY page of this resource's list
@@ -84,33 +91,33 @@ func (r *CrudResource) List(params map[string]string) (map[string]any, error) {
 //	}
 //
 // (Or use it.ForEach for the item-at-a-time idiom.)
-func (r *CrudResource) Paginate(params map[string]string) *Paginator {
-	return NewPaginator(r.HTTP, r.Base, params, "data")
+func (r *CrudResource) Paginate(ctx context.Context, params map[string]string) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
 }
 
 // Create sends a POST request to create a new resource.
-func (r *CrudResource) Create(data map[string]any) (map[string]any, error) {
-	return r.HTTP.Post(r.Base, data, nil)
+func (r *CrudResource) Create(ctx context.Context, data map[string]any) (map[string]any, error) {
+	return r.HTTP.Post(ctx, r.Base, data, nil)
 }
 
 // Get retrieves a single resource by ID.
-func (r *CrudResource) Get(id string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), nil)
+func (r *CrudResource) Get(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil)
 }
 
 // Update modifies an existing resource by ID.
-func (r *CrudResource) Update(id string, data map[string]any) (map[string]any, error) {
+func (r *CrudResource) Update(ctx context.Context, id string, data map[string]any) (map[string]any, error) {
 	p := r.Path(id)
 	if r.UpdateMethod == "PUT" {
-		return r.HTTP.Put(p, data)
+		return r.HTTP.Put(ctx, p, data)
 	}
-	return r.HTTP.Patch(p, data)
+	return r.HTTP.Patch(ctx, p, data)
 }
 
 // Delete removes a resource by ID. It returns the parsed response body
 // (or an empty map for 204 No Content) and any error.
-func (r *CrudResource) Delete(id string) (map[string]any, error) {
-	return r.HTTP.Delete(r.Path(id))
+func (r *CrudResource) Delete(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id))
 }
 
 // CrudWithAddresses extends CrudResource with the nested addresses endpoint.
@@ -134,8 +141,8 @@ func NewCrudWithAddressesPUT(client HTTPClient, path string) *CrudWithAddresses 
 }
 
 // ListAddresses lists addresses associated with the resource identified by id.
-func (r *CrudWithAddresses) ListAddresses(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id, "addresses"), params)
+func (r *CrudWithAddresses) ListAddresses(ctx context.Context, id string, params map[string]string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id, "addresses"), params)
 }
 
 // decodeResult re-marshals a base-method map[string]any response into a typed

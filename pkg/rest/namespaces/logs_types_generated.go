@@ -32,40 +32,40 @@ type ConferencesResponse struct {
 }
 
 type CxmlConference struct {
-	Id                  string `json:"id,omitempty"`
+	ID                  string `json:"id,omitempty"`
 	CreatedAt           string `json:"created_at,omitempty"`
-	ProjectId           Uuid   `json:"project_id,omitempty"`
+	ProjectID           Uuid   `json:"project_id,omitempty"`
 	Region              string `json:"region,omitempty"`
 	Name                any    `json:"name,omitempty"`
 	Status              any    `json:"status,omitempty"`
 	MaxSize             any    `json:"max_size,omitempty"`
 	CurrentParticipants int    `json:"current_participants,omitempty"`
 	UpdatedAt           string `json:"updated_at,omitempty"`
-	Type_               string `json:"type,omitempty"`
+	Type                string `json:"type,omitempty"`
 }
 
 type RelayConference struct {
-	Id                  string `json:"id,omitempty"`
+	ID                  string `json:"id,omitempty"`
 	CreatedAt           string `json:"created_at,omitempty"`
-	ProjectId           Uuid   `json:"project_id,omitempty"`
+	ProjectID           Uuid   `json:"project_id,omitempty"`
 	Region              string `json:"region,omitempty"`
 	Name                any    `json:"name,omitempty"`
 	Status              any    `json:"status,omitempty"`
 	MaxSize             any    `json:"max_size,omitempty"`
 	CurrentParticipants int    `json:"current_participants,omitempty"`
 	UpdatedAt           string `json:"updated_at,omitempty"`
-	Type_               string `json:"type,omitempty"`
-	RecordingUrl        any    `json:"recording_url,omitempty"`
+	Type                string `json:"type,omitempty"`
+	RecordingURL        any    `json:"recording_url,omitempty"`
 	RecordingDuration   any    `json:"recording_duration,omitempty"`
 	RecordingFileSize   any    `json:"recording_file_size,omitempty"`
 }
 
 type VideoRoomSessionConference struct {
-	Id            string          `json:"id,omitempty"`
+	ID            string          `json:"id,omitempty"`
 	CreatedAt     string          `json:"created_at,omitempty"`
 	Source        string          `json:"source,omitempty"`
-	Type_         string          `json:"type,omitempty"`
-	Url           string          `json:"url,omitempty"`
+	Type          string          `json:"type,omitempty"`
+	URL           string          `json:"url,omitempty"`
 	RoomName      any             `json:"room_name,omitempty"`
 	Status        any             `json:"status,omitempty"`
 	Locked        bool            `json:"locked,omitempty"`

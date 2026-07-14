@@ -13,6 +13,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestChatGen_Chat_CreateToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Chat.CreateToken(namespaces.ChatNamespaceCreateTokenParams{Extras: map[string]any{"ttl": "x-1", "channels": "x-1"}})
+	_, err := client.Chat.CreateToken(context.Background(), namespaces.ChatNamespaceCreateTokenParams{Extras: map[string]any{"ttl": "x-1", "channels": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -49,7 +50,7 @@ func TestChatGen_Chat_CreateToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "chat.create_chat_token", 500, map[string]any{"error": "x"})
-	_, err := client.Chat.CreateToken(namespaces.ChatNamespaceCreateTokenParams{Extras: map[string]any{"ttl": "x-1", "channels": "x-1"}})
+	_, err := client.Chat.CreateToken(context.Background(), namespaces.ChatNamespaceCreateTokenParams{Extras: map[string]any{"ttl": "x-1", "channels": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

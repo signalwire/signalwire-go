@@ -29,6 +29,7 @@ Audit-contract data files (read in-place by porting-sdk audit scripts):
 - audit_coverage.json — porting audit-contract file read by porting-sdk audit_coverage_map.py (orchestrator, 2026-07-06)
 - audit_coverage_baseline.json — porting audit-contract file read by porting-sdk audit_coverage_map.py (orchestrator, 2026-07-06)
 - port_signatures.json — porting audit-contract file regenerated + read by scripts/run-ci.sh and porting-sdk diff scripts (orchestrator, 2026-07-06)
+- port_signatures.baseline.json — porting release-floor snapshot read by scripts/run-ci.sh SEMVER-DIFF and porting-sdk semver_diff.py; audit-pipeline artifact, not shipped library code (orchestrator, 2026-07-13)
 - port_surface.json — porting audit-contract file regenerated + read by scripts/run-ci.sh and porting-sdk audit scripts (orchestrator, 2026-07-06)
 - port_surface_go.json — porting audit-contract file regenerated + read by scripts/run-ci.sh DOC-AUDIT (orchestrator, 2026-07-06)
 

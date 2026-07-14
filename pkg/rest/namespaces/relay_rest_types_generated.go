@@ -16,11 +16,11 @@
 package namespaces
 
 type AddNumberGroupMembershipRequest struct {
-	PhoneNumberId Uuid `json:"phone_number_id,omitempty"`
+	PhoneNumberID Uuid `json:"phone_number_id,omitempty"`
 }
 
 type Address struct {
-	Id            Uuid   `json:"id,omitempty"`
+	ID            Uuid   `json:"id,omitempty"`
 	Label         string `json:"label,omitempty"`
 	Country       string `json:"country,omitempty"`
 	FirstName     string `json:"first_name,omitempty"`
@@ -41,7 +41,7 @@ type AddressListResponse struct {
 }
 
 type AddressResponse struct {
-	Id            Uuid   `json:"id,omitempty"`
+	ID            Uuid   `json:"id,omitempty"`
 	Label         string `json:"label,omitempty"`
 	Country       string `json:"country,omitempty"`
 	FirstName     string `json:"first_name,omitempty"`
@@ -72,9 +72,9 @@ const (
 )
 
 type AssignedNumber struct {
-	Id          Uuid                 `json:"id,omitempty"`
+	ID          Uuid                 `json:"id,omitempty"`
 	State       *string              `json:"state,omitempty"`
-	CampaignId  *Uuid                `json:"campaign_id,omitempty"`
+	CampaignID  *Uuid                `json:"campaign_id,omitempty"`
 	PhoneNumber *AssignedPhoneNumber `json:"phone_number,omitempty"`
 	CreatedAt   *string              `json:"created_at,omitempty"`
 	UpdatedAt   *string              `json:"updated_at,omitempty"`
@@ -86,10 +86,10 @@ type AssignedNumberListResponse struct {
 }
 
 type AssignedPhoneNumber struct {
-	Id                *Uuid   `json:"id,omitempty"`
+	ID                *Uuid   `json:"id,omitempty"`
 	Name              *string `json:"name,omitempty"`
 	Number            *string `json:"number,omitempty"`
-	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
 }
 
 type AvailablePhoneNumber struct {
@@ -107,7 +107,7 @@ type AvailablePhoneNumbersResponse struct {
 }
 
 type Brand struct {
-	Id                Uuid    `json:"id,omitempty"`
+	ID                Uuid    `json:"id,omitempty"`
 	State             *string `json:"state,omitempty"`
 	Name              *string `json:"name,omitempty"`
 	CompanyName       *string `json:"company_name,omitempty"`
@@ -121,7 +121,7 @@ type Brand struct {
 	CompanyWebsite    *string `json:"company_website,omitempty"`
 	CspBrandReference *string `json:"csp_brand_reference,omitempty"`
 	CspSelfRegistered *bool   `json:"csp_self_registered,omitempty"`
-	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
 	CreatedAt         *string `json:"created_at,omitempty"`
 	UpdatedAt         *string `json:"updated_at,omitempty"`
 }
@@ -132,7 +132,7 @@ type BrandListResponse struct {
 }
 
 type BrandResponse struct {
-	Id                Uuid    `json:"id,omitempty"`
+	ID                Uuid    `json:"id,omitempty"`
 	State             *string `json:"state,omitempty"`
 	Name              *string `json:"name,omitempty"`
 	CompanyName       *string `json:"company_name,omitempty"`
@@ -146,7 +146,7 @@ type BrandResponse struct {
 	CompanyWebsite    *string `json:"company_website,omitempty"`
 	CspBrandReference *string `json:"csp_brand_reference,omitempty"`
 	CspSelfRegistered *bool   `json:"csp_self_registered,omitempty"`
-	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
 	CreatedAt         *string `json:"created_at,omitempty"`
 	UpdatedAt         *string `json:"updated_at,omitempty"`
 }
@@ -159,7 +159,7 @@ const (
 )
 
 type Campaign struct {
-	Id                       Uuid     `json:"id,omitempty"`
+	ID                       Uuid     `json:"id,omitempty"`
 	Name                     *string  `json:"name,omitempty"`
 	State                    *string  `json:"state,omitempty"`
 	SmsUseCase               *string  `json:"sms_use_case,omitempty"`
@@ -187,7 +187,7 @@ type Campaign struct {
 	AgeGatedContent          *bool    `json:"age_gated_content,omitempty"`
 	LeadGeneration           *bool    `json:"lead_generation,omitempty"`
 	CspCampaignReference     *string  `json:"csp_campaign_reference,omitempty"`
-	StatusCallbackUrl        *string  `json:"status_callback_url,omitempty"`
+	StatusCallbackURL        *string  `json:"status_callback_url,omitempty"`
 	CreatedAt                *string  `json:"created_at,omitempty"`
 	UpdatedAt                *string  `json:"updated_at,omitempty"`
 }
@@ -198,7 +198,7 @@ type CampaignListResponse struct {
 }
 
 type CampaignResponse struct {
-	Id                       Uuid     `json:"id,omitempty"`
+	ID                       Uuid     `json:"id,omitempty"`
 	Name                     *string  `json:"name,omitempty"`
 	State                    *string  `json:"state,omitempty"`
 	SmsUseCase               *string  `json:"sms_use_case,omitempty"`
@@ -226,7 +226,7 @@ type CampaignResponse struct {
 	AgeGatedContent          *bool    `json:"age_gated_content,omitempty"`
 	LeadGeneration           *bool    `json:"lead_generation,omitempty"`
 	CspCampaignReference     *string  `json:"csp_campaign_reference,omitempty"`
-	StatusCallbackUrl        *string  `json:"status_callback_url,omitempty"`
+	StatusCallbackURL        *string  `json:"status_callback_url,omitempty"`
 	CreatedAt                *string  `json:"created_at,omitempty"`
 	UpdatedAt                *string  `json:"updated_at,omitempty"`
 }
@@ -244,7 +244,7 @@ type CarrierLookupInfo struct {
 }
 
 type CnamInfo struct {
-	CallerId *string `json:"caller_id,omitempty"`
+	CallerID *string `json:"caller_id,omitempty"`
 }
 
 type CompanyVertical string
@@ -293,37 +293,37 @@ type CreateCspBrandRequest struct {
 	CspSelfRegistered bool    `json:"csp_self_registered,omitempty"`
 	Name              string  `json:"name,omitempty"`
 	CspBrandReference string  `json:"csp_brand_reference,omitempty"`
-	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
 }
 
 type CreateDomainApplicationRequest struct {
 	Name                              string                       `json:"name,omitempty"`
 	Identifier                        string                       `json:"identifier,omitempty"`
 	User                              *string                      `json:"user,omitempty"`
-	IpAuthEnabled                     *bool                        `json:"ip_auth_enabled,omitempty"`
-	IpAuth                            []string                     `json:"ip_auth,omitempty"`
+	IPAuthEnabled                     *bool                        `json:"ip_auth_enabled,omitempty"`
+	IPAuth                            []string                     `json:"ip_auth,omitempty"`
 	Encryption                        *string                      `json:"encryption,omitempty"`
 	Codecs                            []string                     `json:"codecs,omitempty"`
 	Ciphers                           []string                     `json:"ciphers,omitempty"`
 	CallHandler                       *DomainAppCallHandlerRequest `json:"call_handler,omitempty"`
 	CallRelayTopic                    *string                      `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   *string                      `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   *string                      `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayApplication              *string                      `json:"call_relay_application,omitempty"`
-	CallRequestUrl                    *string                      `json:"call_request_url,omitempty"`
+	CallRequestURL                    *string                      `json:"call_request_url,omitempty"`
 	CallRequestMethod                 *string                      `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   *string                      `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   *string                      `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                *string                      `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             *string                      `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             *string                      `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          *string                      `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             *string                      `json:"call_laml_application_id,omitempty"`
-	CallVideoRoomId                   *Uuid                        `json:"call_video_room_id,omitempty"`
-	CallRelayScriptUrl                *string                      `json:"call_relay_script_url,omitempty"`
-	CallDialogflowAgentId             *Uuid                        `json:"call_dialogflow_agent_id,omitempty"`
-	CallAiAgentId                     *Uuid                        `json:"call_ai_agent_id,omitempty"`
-	CallFlowId                        *Uuid                        `json:"call_flow_id,omitempty"`
+	CallLamlApplicationID             *string                      `json:"call_laml_application_id,omitempty"`
+	CallVideoRoomID                   *Uuid                        `json:"call_video_room_id,omitempty"`
+	CallRelayScriptURL                *string                      `json:"call_relay_script_url,omitempty"`
+	CallDialogflowAgentID             *Uuid                        `json:"call_dialogflow_agent_id,omitempty"`
+	CallAiAgentID                     *Uuid                        `json:"call_ai_agent_id,omitempty"`
+	CallFlowID                        *Uuid                        `json:"call_flow_id,omitempty"`
 	CallFlowVersion                   *string                      `json:"call_flow_version,omitempty"`
 	CallRelayContext                  *string                      `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl *string                      `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL *string                      `json:"call_relay_context_status_callback_url,omitempty"`
 }
 
 type CreateManagedBrandRequest struct {
@@ -337,12 +337,12 @@ type CreateManagedBrandRequest struct {
 	CompanyAddress    string           `json:"company_address,omitempty"`
 	CompanyVertical   *CompanyVertical `json:"company_vertical,omitempty"`
 	CompanyWebsite    string           `json:"company_website,omitempty"`
-	StatusCallbackUrl *string          `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string          `json:"status_callback_url,omitempty"`
 }
 
 type CreateManagedCampaignRequest struct {
 	Name                     string   `json:"name,omitempty"`
-	BrandId                  Uuid     `json:"brand_id,omitempty"`
+	BrandID                  Uuid     `json:"brand_id,omitempty"`
 	SmsUseCase               string   `json:"sms_use_case,omitempty"`
 	SubUseCases              []string `json:"sub_use_cases,omitempty"`
 	CampaignVerifyToken      *string  `json:"campaign_verify_token,omitempty"`
@@ -368,7 +368,7 @@ type CreateManagedCampaignRequest struct {
 	AgeGatedContent          bool     `json:"age_gated_content,omitempty"`
 	LeadGeneration           bool     `json:"lead_generation,omitempty"`
 	TermsAndConditions       bool     `json:"terms_and_conditions,omitempty"`
-	StatusCallbackUrl        *string  `json:"status_callback_url,omitempty"`
+	StatusCallbackURL        *string  `json:"status_callback_url,omitempty"`
 }
 
 type CreateNumberGroupRequest struct {
@@ -378,14 +378,14 @@ type CreateNumberGroupRequest struct {
 
 type CreateOrderRequest struct {
 	PhoneNumbers      []string `json:"phone_numbers,omitempty"`
-	StatusCallbackUrl *string  `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string  `json:"status_callback_url,omitempty"`
 }
 
 type CreatePartnerCampaignRequest struct {
 	Name                 string  `json:"name,omitempty"`
-	BrandId              Uuid    `json:"brand_id,omitempty"`
+	BrandID              Uuid    `json:"brand_id,omitempty"`
 	CspCampaignReference string  `json:"csp_campaign_reference,omitempty"`
-	StatusCallbackUrl    *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
 }
 
 type CreateQueueRequest struct {
@@ -396,30 +396,30 @@ type CreateQueueRequest struct {
 type CreateSipEndpointRequest struct {
 	Username                          string   `json:"username,omitempty"`
 	Password                          string   `json:"password,omitempty"`
-	CallerId                          *string  `json:"caller_id,omitempty"`
+	CallerID                          *string  `json:"caller_id,omitempty"`
 	SendAs                            *string  `json:"send_as,omitempty"`
 	Ciphers                           []string `json:"ciphers,omitempty"`
 	Codecs                            []string `json:"codecs,omitempty"`
 	Encryption                        *string  `json:"encryption,omitempty"`
 	CallHandler                       *string  `json:"call_handler,omitempty"`
-	CallRequestUrl                    *string  `json:"call_request_url,omitempty"`
+	CallRequestURL                    *string  `json:"call_request_url,omitempty"`
 	CallRequestMethod                 *string  `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   *string  `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   *string  `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                *string  `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             *string  `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             *string  `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          *string  `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             *string  `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentId             *string  `json:"call_dialogflow_agent_id,omitempty"`
+	CallLamlApplicationID             *string  `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             *string  `json:"call_dialogflow_agent_id,omitempty"`
 	CallRelayTopic                    *string  `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   *string  `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   *string  `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayContext                  *string  `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl *string  `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL *string  `json:"call_relay_context_status_callback_url,omitempty"`
 	CallRelayApplication              *string  `json:"call_relay_application,omitempty"`
-	CallVideoRoomId                   *string  `json:"call_video_room_id,omitempty"`
-	CallFlowId                        *string  `json:"call_flow_id,omitempty"`
+	CallVideoRoomID                   *string  `json:"call_video_room_id,omitempty"`
+	CallFlowID                        *string  `json:"call_flow_id,omitempty"`
 	CallFlowVersion                   *string  `json:"call_flow_version,omitempty"`
-	CallAiAgentId                     *string  `json:"call_ai_agent_id,omitempty"`
-	CallRelayScriptUrl                *string  `json:"call_relay_script_url,omitempty"`
+	CallAiAgentID                     *string  `json:"call_ai_agent_id,omitempty"`
+	CallRelayScriptURL                *string  `json:"call_relay_script_url,omitempty"`
 }
 
 type CreateVerifiedCallerIDRequest struct {
@@ -463,29 +463,29 @@ const (
 )
 
 type DomainApplication struct {
-	Id                                Uuid     `json:"id,omitempty"`
-	Type_                             string   `json:"type,omitempty"`
+	ID                                Uuid     `json:"id,omitempty"`
+	Type                              string   `json:"type,omitempty"`
 	Domain                            string   `json:"domain,omitempty"`
 	Name                              any      `json:"name,omitempty"`
 	Identifier                        string   `json:"identifier,omitempty"`
 	User                              string   `json:"user,omitempty"`
-	IpAuthEnabled                     bool     `json:"ip_auth_enabled,omitempty"`
-	IpAuth                            []string `json:"ip_auth,omitempty"`
+	IPAuthEnabled                     bool     `json:"ip_auth_enabled,omitempty"`
+	IPAuth                            []string `json:"ip_auth,omitempty"`
 	CallHandler                       any      `json:"call_handler,omitempty"`
-	CallingHandlerResourceId          any      `json:"calling_handler_resource_id,omitempty"`
+	CallingHandlerResourceID          any      `json:"calling_handler_resource_id,omitempty"`
 	CallRelayTopic                    any      `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   any      `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   any      `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayContext                  any      `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl any      `json:"call_relay_context_status_callback_url,omitempty"`
-	CallRequestUrl                    any      `json:"call_request_url,omitempty"`
+	CallRelayContextStatusCallbackURL any      `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRequestURL                    any      `json:"call_request_url,omitempty"`
 	CallRequestMethod                 any      `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   any      `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   any      `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                any      `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             any      `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             any      `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          any      `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             any      `json:"call_laml_application_id,omitempty"`
-	CallVideoRoomId                   any      `json:"call_video_room_id,omitempty"`
-	CallRelayScriptUrl                any      `json:"call_relay_script_url,omitempty"`
+	CallLamlApplicationID             any      `json:"call_laml_application_id,omitempty"`
+	CallVideoRoomID                   any      `json:"call_video_room_id,omitempty"`
+	CallRelayScriptURL                any      `json:"call_relay_script_url,omitempty"`
 	Encryption                        string   `json:"encryption,omitempty"`
 	Codecs                            []string `json:"codecs,omitempty"`
 	Ciphers                           []string `json:"ciphers,omitempty"`
@@ -497,29 +497,29 @@ type DomainApplicationListResponse struct {
 }
 
 type DomainApplicationResponse struct {
-	Id                                Uuid     `json:"id,omitempty"`
-	Type_                             string   `json:"type,omitempty"`
+	ID                                Uuid     `json:"id,omitempty"`
+	Type                              string   `json:"type,omitempty"`
 	Domain                            string   `json:"domain,omitempty"`
 	Name                              any      `json:"name,omitempty"`
 	Identifier                        string   `json:"identifier,omitempty"`
 	User                              string   `json:"user,omitempty"`
-	IpAuthEnabled                     bool     `json:"ip_auth_enabled,omitempty"`
-	IpAuth                            []string `json:"ip_auth,omitempty"`
+	IPAuthEnabled                     bool     `json:"ip_auth_enabled,omitempty"`
+	IPAuth                            []string `json:"ip_auth,omitempty"`
 	CallHandler                       any      `json:"call_handler,omitempty"`
-	CallingHandlerResourceId          any      `json:"calling_handler_resource_id,omitempty"`
+	CallingHandlerResourceID          any      `json:"calling_handler_resource_id,omitempty"`
 	CallRelayTopic                    any      `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   any      `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   any      `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayContext                  any      `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl any      `json:"call_relay_context_status_callback_url,omitempty"`
-	CallRequestUrl                    any      `json:"call_request_url,omitempty"`
+	CallRelayContextStatusCallbackURL any      `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRequestURL                    any      `json:"call_request_url,omitempty"`
 	CallRequestMethod                 any      `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   any      `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   any      `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                any      `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             any      `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             any      `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          any      `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             any      `json:"call_laml_application_id,omitempty"`
-	CallVideoRoomId                   any      `json:"call_video_room_id,omitempty"`
-	CallRelayScriptUrl                any      `json:"call_relay_script_url,omitempty"`
+	CallLamlApplicationID             any      `json:"call_laml_application_id,omitempty"`
+	CallVideoRoomID                   any      `json:"call_video_room_id,omitempty"`
+	CallRelayScriptURL                any      `json:"call_relay_script_url,omitempty"`
 	Encryption                        string   `json:"encryption,omitempty"`
 	Codecs                            []string `json:"codecs,omitempty"`
 	Ciphers                           []string `json:"ciphers,omitempty"`
@@ -548,7 +548,7 @@ const (
 )
 
 type MembershipPhoneNumber struct {
-	Id           *Uuid    `json:"id,omitempty"`
+	ID           *Uuid    `json:"id,omitempty"`
 	Name         *string  `json:"name,omitempty"`
 	Number       *string  `json:"number,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
@@ -565,7 +565,7 @@ type MfaRequest struct {
 }
 
 type MfaResponse struct {
-	Id      Uuid   `json:"id,omitempty"`
+	ID      Uuid   `json:"id,omitempty"`
 	Success bool   `json:"success,omitempty"`
 	To      string `json:"to,omitempty"`
 	Channel string `json:"channel,omitempty"`
@@ -580,7 +580,7 @@ type MfaVerifyResponse struct {
 }
 
 type NumberGroup struct {
-	Id               Uuid   `json:"id,omitempty"`
+	ID               Uuid   `json:"id,omitempty"`
 	Name             string `json:"name,omitempty"`
 	StickySender     bool   `json:"sticky_sender,omitempty"`
 	PhoneNumberCount int    `json:"phone_number_count,omitempty"`
@@ -592,8 +592,8 @@ type NumberGroupListResponse struct {
 }
 
 type NumberGroupMembership struct {
-	Id            Uuid                  `json:"id,omitempty"`
-	NumberGroupId Uuid                  `json:"number_group_id,omitempty"`
+	ID            Uuid                  `json:"id,omitempty"`
+	NumberGroupID Uuid                  `json:"number_group_id,omitempty"`
 	PhoneNumber   MembershipPhoneNumber `json:"phone_number,omitempty"`
 	CreatedAt     string                `json:"created_at,omitempty"`
 	UpdatedAt     string                `json:"updated_at,omitempty"`
@@ -605,27 +605,27 @@ type NumberGroupMembershipListResponse struct {
 }
 
 type NumberGroupMembershipResponse struct {
-	Id            Uuid                  `json:"id,omitempty"`
-	NumberGroupId Uuid                  `json:"number_group_id,omitempty"`
+	ID            Uuid                  `json:"id,omitempty"`
+	NumberGroupID Uuid                  `json:"number_group_id,omitempty"`
 	PhoneNumber   MembershipPhoneNumber `json:"phone_number,omitempty"`
 	CreatedAt     string                `json:"created_at,omitempty"`
 	UpdatedAt     string                `json:"updated_at,omitempty"`
 }
 
 type NumberGroupResponse struct {
-	Id               Uuid   `json:"id,omitempty"`
+	ID               Uuid   `json:"id,omitempty"`
 	Name             string `json:"name,omitempty"`
 	StickySender     bool   `json:"sticky_sender,omitempty"`
 	PhoneNumberCount int    `json:"phone_number_count,omitempty"`
 }
 
 type Order struct {
-	Id                Uuid    `json:"id,omitempty"`
+	ID                Uuid    `json:"id,omitempty"`
 	State             *string `json:"state,omitempty"`
 	ProcessedAt       *string `json:"processed_at,omitempty"`
 	CreatedAt         *string `json:"created_at,omitempty"`
 	UpdatedAt         *string `json:"updated_at,omitempty"`
-	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
 }
 
 type OrderListResponse struct {
@@ -634,12 +634,12 @@ type OrderListResponse struct {
 }
 
 type OrderResponse struct {
-	Id                Uuid    `json:"id,omitempty"`
+	ID                Uuid    `json:"id,omitempty"`
 	State             *string `json:"state,omitempty"`
 	ProcessedAt       *string `json:"processed_at,omitempty"`
 	CreatedAt         *string `json:"created_at,omitempty"`
 	UpdatedAt         *string `json:"updated_at,omitempty"`
-	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
 }
 
 type PaginationLinks struct {
@@ -650,43 +650,43 @@ type PaginationLinks struct {
 }
 
 type PhoneNumber struct {
-	Id                                Uuid                    `json:"id,omitempty"`
+	ID                                Uuid                    `json:"id,omitempty"`
 	Number                            string                  `json:"number,omitempty"`
 	Name                              any                     `json:"name,omitempty"`
 	Capabilities                      []PhoneNumberCapability `json:"capabilities,omitempty"`
 	NumberType                        PhoneNumberType         `json:"number_type,omitempty"`
-	E911AddressId                     any                     `json:"e911_address_id,omitempty"`
+	E911AddressID                     any                     `json:"e911_address_id,omitempty"`
 	CreatedAt                         string                  `json:"created_at,omitempty"`
 	UpdatedAt                         string                  `json:"updated_at,omitempty"`
 	NextBilledAt                      any                     `json:"next_billed_at,omitempty"`
 	CallHandler                       any                     `json:"call_handler,omitempty"`
-	CallingHandlerResourceId          any                     `json:"calling_handler_resource_id,omitempty"`
+	CallingHandlerResourceID          any                     `json:"calling_handler_resource_id,omitempty"`
 	CallReceiveMode                   CallReceiveMode         `json:"call_receive_mode,omitempty"`
-	CallRequestUrl                    any                     `json:"call_request_url,omitempty"`
+	CallRequestURL                    any                     `json:"call_request_url,omitempty"`
 	CallRequestMethod                 any                     `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   any                     `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   any                     `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                any                     `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             any                     `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             any                     `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          any                     `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             any                     `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentId             any                     `json:"call_dialogflow_agent_id,omitempty"`
+	CallLamlApplicationID             any                     `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             any                     `json:"call_dialogflow_agent_id,omitempty"`
 	CallRelayTopic                    any                     `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   any                     `json:"call_relay_topic_status_callback_url,omitempty"`
-	CallRelayScriptUrl                any                     `json:"call_relay_script_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   any                     `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayScriptURL                any                     `json:"call_relay_script_url,omitempty"`
 	CallRelayContext                  any                     `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl any                     `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL any                     `json:"call_relay_context_status_callback_url,omitempty"`
 	CallRelayApplication              any                     `json:"call_relay_application,omitempty"`
-	CallRelayConnectorId              any                     `json:"call_relay_connector_id,omitempty"`
-	CallSipEndpointId                 any                     `json:"call_sip_endpoint_id,omitempty"`
+	CallRelayConnectorID              any                     `json:"call_relay_connector_id,omitempty"`
+	CallSIPEndpointID                 any                     `json:"call_sip_endpoint_id,omitempty"`
 	CallVertoResource                 any                     `json:"call_verto_resource,omitempty"`
-	CallVideoRoomId                   any                     `json:"call_video_room_id,omitempty"`
+	CallVideoRoomID                   any                     `json:"call_video_room_id,omitempty"`
 	MessageHandler                    any                     `json:"message_handler,omitempty"`
-	MessagingHandlerResourceId        any                     `json:"messaging_handler_resource_id,omitempty"`
-	MessageRequestUrl                 any                     `json:"message_request_url,omitempty"`
+	MessagingHandlerResourceID        any                     `json:"messaging_handler_resource_id,omitempty"`
+	MessageRequestURL                 any                     `json:"message_request_url,omitempty"`
 	MessageRequestMethod              any                     `json:"message_request_method,omitempty"`
-	MessageFallbackUrl                any                     `json:"message_fallback_url,omitempty"`
+	MessageFallbackURL                any                     `json:"message_fallback_url,omitempty"`
 	MessageFallbackMethod             any                     `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationId          any                     `json:"message_laml_application_id,omitempty"`
+	MessageLamlApplicationID          any                     `json:"message_laml_application_id,omitempty"`
 	MessageRelayTopic                 any                     `json:"message_relay_topic,omitempty"`
 	MessageRelayContext               any                     `json:"message_relay_context,omitempty"`
 	CountryCode                       any                     `json:"country_code,omitempty"`
@@ -779,43 +779,43 @@ const (
 )
 
 type PhoneNumberResponse struct {
-	Id                                Uuid                    `json:"id,omitempty"`
+	ID                                Uuid                    `json:"id,omitempty"`
 	Number                            string                  `json:"number,omitempty"`
 	Name                              any                     `json:"name,omitempty"`
 	Capabilities                      []PhoneNumberCapability `json:"capabilities,omitempty"`
 	NumberType                        PhoneNumberType         `json:"number_type,omitempty"`
-	E911AddressId                     any                     `json:"e911_address_id,omitempty"`
+	E911AddressID                     any                     `json:"e911_address_id,omitempty"`
 	CreatedAt                         string                  `json:"created_at,omitempty"`
 	UpdatedAt                         string                  `json:"updated_at,omitempty"`
 	NextBilledAt                      any                     `json:"next_billed_at,omitempty"`
 	CallHandler                       any                     `json:"call_handler,omitempty"`
-	CallingHandlerResourceId          any                     `json:"calling_handler_resource_id,omitempty"`
+	CallingHandlerResourceID          any                     `json:"calling_handler_resource_id,omitempty"`
 	CallReceiveMode                   CallReceiveMode         `json:"call_receive_mode,omitempty"`
-	CallRequestUrl                    any                     `json:"call_request_url,omitempty"`
+	CallRequestURL                    any                     `json:"call_request_url,omitempty"`
 	CallRequestMethod                 any                     `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   any                     `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   any                     `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                any                     `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             any                     `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             any                     `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          any                     `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             any                     `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentId             any                     `json:"call_dialogflow_agent_id,omitempty"`
+	CallLamlApplicationID             any                     `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             any                     `json:"call_dialogflow_agent_id,omitempty"`
 	CallRelayTopic                    any                     `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   any                     `json:"call_relay_topic_status_callback_url,omitempty"`
-	CallRelayScriptUrl                any                     `json:"call_relay_script_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   any                     `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayScriptURL                any                     `json:"call_relay_script_url,omitempty"`
 	CallRelayContext                  any                     `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl any                     `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL any                     `json:"call_relay_context_status_callback_url,omitempty"`
 	CallRelayApplication              any                     `json:"call_relay_application,omitempty"`
-	CallRelayConnectorId              any                     `json:"call_relay_connector_id,omitempty"`
-	CallSipEndpointId                 any                     `json:"call_sip_endpoint_id,omitempty"`
+	CallRelayConnectorID              any                     `json:"call_relay_connector_id,omitempty"`
+	CallSIPEndpointID                 any                     `json:"call_sip_endpoint_id,omitempty"`
 	CallVertoResource                 any                     `json:"call_verto_resource,omitempty"`
-	CallVideoRoomId                   any                     `json:"call_video_room_id,omitempty"`
+	CallVideoRoomID                   any                     `json:"call_video_room_id,omitempty"`
 	MessageHandler                    any                     `json:"message_handler,omitempty"`
-	MessagingHandlerResourceId        any                     `json:"messaging_handler_resource_id,omitempty"`
-	MessageRequestUrl                 any                     `json:"message_request_url,omitempty"`
+	MessagingHandlerResourceID        any                     `json:"messaging_handler_resource_id,omitempty"`
+	MessageRequestURL                 any                     `json:"message_request_url,omitempty"`
 	MessageRequestMethod              any                     `json:"message_request_method,omitempty"`
-	MessageFallbackUrl                any                     `json:"message_fallback_url,omitempty"`
+	MessageFallbackURL                any                     `json:"message_fallback_url,omitempty"`
 	MessageFallbackMethod             any                     `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationId          any                     `json:"message_laml_application_id,omitempty"`
+	MessageLamlApplicationID          any                     `json:"message_laml_application_id,omitempty"`
 	MessageRelayTopic                 any                     `json:"message_relay_topic,omitempty"`
 	MessageRelayContext               any                     `json:"message_relay_context,omitempty"`
 	CountryCode                       any                     `json:"country_code,omitempty"`
@@ -829,8 +829,8 @@ const (
 )
 
 type PstnRecording struct {
-	Id                Uuid    `json:"id,omitempty"`
-	ProjectId         Uuid    `json:"project_id,omitempty"`
+	ID                Uuid    `json:"id,omitempty"`
+	ProjectID         Uuid    `json:"project_id,omitempty"`
 	CreatedAt         string  `json:"created_at,omitempty"`
 	UpdatedAt         string  `json:"updated_at,omitempty"`
 	DurationInSeconds int     `json:"duration_in_seconds,omitempty"`
@@ -838,11 +838,11 @@ type PstnRecording struct {
 	Price             float64 `json:"price,omitempty"`
 	PriceUnit         string  `json:"price_unit,omitempty"`
 	Status            string  `json:"status,omitempty"`
-	Url               string  `json:"url,omitempty"`
+	URL               string  `json:"url,omitempty"`
 	Stereo            bool    `json:"stereo,omitempty"`
 	ByteSize          *int    `json:"byte_size,omitempty"`
 	Track             string  `json:"track,omitempty"`
-	RelayPstnLegId    Uuid    `json:"relay_pstn_leg_id,omitempty"`
+	RelayPstnLegID    Uuid    `json:"relay_pstn_leg_id,omitempty"`
 }
 
 type PurchasePhoneNumberRequest struct {
@@ -850,13 +850,13 @@ type PurchasePhoneNumberRequest struct {
 }
 
 type Queue struct {
-	Id              Uuid    `json:"id,omitempty"`
-	ProjectId       Uuid    `json:"project_id,omitempty"`
+	ID              Uuid    `json:"id,omitempty"`
+	ProjectID       Uuid    `json:"project_id,omitempty"`
 	FriendlyName    string  `json:"friendly_name,omitempty"`
 	MaxSize         *int    `json:"max_size,omitempty"`
 	CurrentSize     *int    `json:"current_size,omitempty"`
 	AverageWaitTime *int    `json:"average_wait_time,omitempty"`
-	Uri             *string `json:"uri,omitempty"`
+	URI             *string `json:"uri,omitempty"`
 	DateCreated     *string `json:"date_created,omitempty"`
 	DateUpdated     *string `json:"date_updated,omitempty"`
 }
@@ -867,11 +867,11 @@ type QueueListResponse struct {
 }
 
 type QueueMember struct {
-	CallId       Uuid    `json:"call_id,omitempty"`
-	ProjectId    string  `json:"project_id,omitempty"`
-	QueueId      string  `json:"queue_id,omitempty"`
+	CallID       Uuid    `json:"call_id,omitempty"`
+	ProjectID    string  `json:"project_id,omitempty"`
+	QueueID      string  `json:"queue_id,omitempty"`
 	Position     int     `json:"position,omitempty"`
-	Uri          string  `json:"uri,omitempty"`
+	URI          string  `json:"uri,omitempty"`
 	WaitTime     *int    `json:"wait_time,omitempty"`
 	DateEnqueued *string `json:"date_enqueued,omitempty"`
 }
@@ -882,23 +882,23 @@ type QueueMemberListResponse struct {
 }
 
 type QueueMemberResponse struct {
-	CallId       Uuid    `json:"call_id,omitempty"`
-	ProjectId    string  `json:"project_id,omitempty"`
-	QueueId      string  `json:"queue_id,omitempty"`
+	CallID       Uuid    `json:"call_id,omitempty"`
+	ProjectID    string  `json:"project_id,omitempty"`
+	QueueID      string  `json:"queue_id,omitempty"`
 	Position     int     `json:"position,omitempty"`
-	Uri          string  `json:"uri,omitempty"`
+	URI          string  `json:"uri,omitempty"`
 	WaitTime     *int    `json:"wait_time,omitempty"`
 	DateEnqueued *string `json:"date_enqueued,omitempty"`
 }
 
 type QueueResponse struct {
-	Id              Uuid    `json:"id,omitempty"`
-	ProjectId       Uuid    `json:"project_id,omitempty"`
+	ID              Uuid    `json:"id,omitempty"`
+	ProjectID       Uuid    `json:"project_id,omitempty"`
 	FriendlyName    string  `json:"friendly_name,omitempty"`
 	MaxSize         *int    `json:"max_size,omitempty"`
 	CurrentSize     *int    `json:"current_size,omitempty"`
 	AverageWaitTime *int    `json:"average_wait_time,omitempty"`
-	Uri             *string `json:"uri,omitempty"`
+	URI             *string `json:"uri,omitempty"`
 	DateCreated     *string `json:"date_created,omitempty"`
 	DateUpdated     *string `json:"date_updated,omitempty"`
 }
@@ -911,7 +911,7 @@ type RecordingListResponse struct {
 }
 
 type ShortCode struct {
-	Id                       Uuid                  `json:"id,omitempty"`
+	ID                       Uuid                  `json:"id,omitempty"`
 	Name                     any                   `json:"name,omitempty"`
 	Number                   string                `json:"number,omitempty"`
 	Capabilities             []ShortCodeCapability `json:"capabilities,omitempty"`
@@ -923,11 +923,11 @@ type ShortCode struct {
 	NextBilledAt             any                   `json:"next_billed_at,omitempty"`
 	LeaseDuration            any                   `json:"lease_duration,omitempty"`
 	MessageHandler           any                   `json:"message_handler,omitempty"`
-	MessageRequestUrl        any                   `json:"message_request_url,omitempty"`
+	MessageRequestURL        any                   `json:"message_request_url,omitempty"`
 	MessageRequestMethod     any                   `json:"message_request_method,omitempty"`
-	MessageFallbackUrl       any                   `json:"message_fallback_url,omitempty"`
+	MessageFallbackURL       any                   `json:"message_fallback_url,omitempty"`
 	MessageFallbackMethod    any                   `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationId any                   `json:"message_laml_application_id,omitempty"`
+	MessageLamlApplicationID any                   `json:"message_laml_application_id,omitempty"`
 	MessageRelayContext      any                   `json:"message_relay_context,omitempty"`
 }
 
@@ -952,7 +952,7 @@ const (
 )
 
 type ShortCodeResponse struct {
-	Id                       Uuid                  `json:"id,omitempty"`
+	ID                       Uuid                  `json:"id,omitempty"`
 	Name                     any                   `json:"name,omitempty"`
 	Number                   string                `json:"number,omitempty"`
 	Capabilities             []ShortCodeCapability `json:"capabilities,omitempty"`
@@ -964,11 +964,11 @@ type ShortCodeResponse struct {
 	NextBilledAt             any                   `json:"next_billed_at,omitempty"`
 	LeaseDuration            any                   `json:"lease_duration,omitempty"`
 	MessageHandler           any                   `json:"message_handler,omitempty"`
-	MessageRequestUrl        any                   `json:"message_request_url,omitempty"`
+	MessageRequestURL        any                   `json:"message_request_url,omitempty"`
 	MessageRequestMethod     any                   `json:"message_request_method,omitempty"`
-	MessageFallbackUrl       any                   `json:"message_fallback_url,omitempty"`
+	MessageFallbackURL       any                   `json:"message_fallback_url,omitempty"`
 	MessageFallbackMethod    any                   `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationId any                   `json:"message_laml_application_id,omitempty"`
+	MessageLamlApplicationID any                   `json:"message_laml_application_id,omitempty"`
 	MessageRelayContext      any                   `json:"message_relay_context,omitempty"`
 }
 
@@ -980,31 +980,31 @@ const (
 )
 
 type SipEndpoint struct {
-	Type_                             string   `json:"type,omitempty"`
-	Id                                Uuid     `json:"id,omitempty"`
+	Type                              string   `json:"type,omitempty"`
+	ID                                Uuid     `json:"id,omitempty"`
 	Username                          string   `json:"username,omitempty"`
-	CallerId                          any      `json:"caller_id,omitempty"`
+	CallerID                          any      `json:"caller_id,omitempty"`
 	SendAs                            string   `json:"send_as,omitempty"`
 	Ciphers                           []string `json:"ciphers,omitempty"`
 	Codecs                            []string `json:"codecs,omitempty"`
 	Encryption                        string   `json:"encryption,omitempty"`
 	CallHandler                       any      `json:"call_handler,omitempty"`
-	CallingHandlerResourceId          any      `json:"calling_handler_resource_id,omitempty"`
-	CallRequestUrl                    any      `json:"call_request_url,omitempty"`
+	CallingHandlerResourceID          any      `json:"calling_handler_resource_id,omitempty"`
+	CallRequestURL                    any      `json:"call_request_url,omitempty"`
 	CallRequestMethod                 any      `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   any      `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   any      `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                any      `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             any      `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             any      `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          any      `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             any      `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentId             any      `json:"call_dialogflow_agent_id,omitempty"`
+	CallLamlApplicationID             any      `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             any      `json:"call_dialogflow_agent_id,omitempty"`
 	CallRelayTopic                    any      `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   any      `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   any      `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayContext                  any      `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl any      `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL any      `json:"call_relay_context_status_callback_url,omitempty"`
 	CallRelayApplication              any      `json:"call_relay_application,omitempty"`
-	CallVideoRoomId                   any      `json:"call_video_room_id,omitempty"`
-	CallRelayScriptUrl                any      `json:"call_relay_script_url,omitempty"`
+	CallVideoRoomID                   any      `json:"call_video_room_id,omitempty"`
+	CallRelayScriptURL                any      `json:"call_relay_script_url,omitempty"`
 }
 
 type SipEndpointCallHandler string
@@ -1029,31 +1029,31 @@ type SipEndpointListResponse struct {
 }
 
 type SipEndpointResponse struct {
-	Type_                             string   `json:"type,omitempty"`
-	Id                                Uuid     `json:"id,omitempty"`
+	Type                              string   `json:"type,omitempty"`
+	ID                                Uuid     `json:"id,omitempty"`
 	Username                          string   `json:"username,omitempty"`
-	CallerId                          any      `json:"caller_id,omitempty"`
+	CallerID                          any      `json:"caller_id,omitempty"`
 	SendAs                            string   `json:"send_as,omitempty"`
 	Ciphers                           []string `json:"ciphers,omitempty"`
 	Codecs                            []string `json:"codecs,omitempty"`
 	Encryption                        string   `json:"encryption,omitempty"`
 	CallHandler                       any      `json:"call_handler,omitempty"`
-	CallingHandlerResourceId          any      `json:"calling_handler_resource_id,omitempty"`
-	CallRequestUrl                    any      `json:"call_request_url,omitempty"`
+	CallingHandlerResourceID          any      `json:"calling_handler_resource_id,omitempty"`
+	CallRequestURL                    any      `json:"call_request_url,omitempty"`
 	CallRequestMethod                 any      `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   any      `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   any      `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                any      `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             any      `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             any      `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          any      `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             any      `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentId             any      `json:"call_dialogflow_agent_id,omitempty"`
+	CallLamlApplicationID             any      `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             any      `json:"call_dialogflow_agent_id,omitempty"`
 	CallRelayTopic                    any      `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   any      `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   any      `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayContext                  any      `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl any      `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL any      `json:"call_relay_context_status_callback_url,omitempty"`
 	CallRelayApplication              any      `json:"call_relay_application,omitempty"`
-	CallVideoRoomId                   any      `json:"call_video_room_id,omitempty"`
-	CallRelayScriptUrl                any      `json:"call_relay_script_url,omitempty"`
+	CallVideoRoomID                   any      `json:"call_video_room_id,omitempty"`
+	CallRelayScriptURL                any      `json:"call_relay_script_url,omitempty"`
 }
 
 type SipProfileResponse struct {
@@ -1066,8 +1066,8 @@ type SipProfileResponse struct {
 }
 
 type SipRecording struct {
-	Id                Uuid    `json:"id,omitempty"`
-	ProjectId         Uuid    `json:"project_id,omitempty"`
+	ID                Uuid    `json:"id,omitempty"`
+	ProjectID         Uuid    `json:"project_id,omitempty"`
 	CreatedAt         string  `json:"created_at,omitempty"`
 	UpdatedAt         string  `json:"updated_at,omitempty"`
 	DurationInSeconds int     `json:"duration_in_seconds,omitempty"`
@@ -1075,11 +1075,11 @@ type SipRecording struct {
 	Price             float64 `json:"price,omitempty"`
 	PriceUnit         string  `json:"price_unit,omitempty"`
 	Status            string  `json:"status,omitempty"`
-	Url               string  `json:"url,omitempty"`
+	URL               string  `json:"url,omitempty"`
 	Stereo            bool    `json:"stereo,omitempty"`
 	ByteSize          *int    `json:"byte_size,omitempty"`
 	Track             string  `json:"track,omitempty"`
-	RelaySipLegId     Uuid    `json:"relay_sip_leg_id,omitempty"`
+	RelaySIPLegID     Uuid    `json:"relay_sip_leg_id,omitempty"`
 }
 
 type Types_StatusCodes_SpaceApiErrorItem struct {
@@ -1117,30 +1117,30 @@ type UpdateDomainApplicationRequest struct {
 	Name                              *string                      `json:"name,omitempty"`
 	Identifier                        *string                      `json:"identifier,omitempty"`
 	User                              *string                      `json:"user,omitempty"`
-	IpAuthEnabled                     *bool                        `json:"ip_auth_enabled,omitempty"`
-	IpAuth                            []string                     `json:"ip_auth,omitempty"`
+	IPAuthEnabled                     *bool                        `json:"ip_auth_enabled,omitempty"`
+	IPAuth                            []string                     `json:"ip_auth,omitempty"`
 	Encryption                        *string                      `json:"encryption,omitempty"`
 	Codecs                            []string                     `json:"codecs,omitempty"`
 	Ciphers                           []string                     `json:"ciphers,omitempty"`
 	CallHandler                       *DomainAppCallHandlerRequest `json:"call_handler,omitempty"`
 	CallRelayTopic                    *string                      `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   *string                      `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   *string                      `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayApplication              *string                      `json:"call_relay_application,omitempty"`
-	CallRequestUrl                    *string                      `json:"call_request_url,omitempty"`
+	CallRequestURL                    *string                      `json:"call_request_url,omitempty"`
 	CallRequestMethod                 *string                      `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   *string                      `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   *string                      `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                *string                      `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             *string                      `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             *string                      `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          *string                      `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             *string                      `json:"call_laml_application_id,omitempty"`
-	CallVideoRoomId                   *Uuid                        `json:"call_video_room_id,omitempty"`
-	CallRelayScriptUrl                *string                      `json:"call_relay_script_url,omitempty"`
-	CallDialogflowAgentId             *Uuid                        `json:"call_dialogflow_agent_id,omitempty"`
-	CallAiAgentId                     *Uuid                        `json:"call_ai_agent_id,omitempty"`
-	CallFlowId                        *Uuid                        `json:"call_flow_id,omitempty"`
+	CallLamlApplicationID             *string                      `json:"call_laml_application_id,omitempty"`
+	CallVideoRoomID                   *Uuid                        `json:"call_video_room_id,omitempty"`
+	CallRelayScriptURL                *string                      `json:"call_relay_script_url,omitempty"`
+	CallDialogflowAgentID             *Uuid                        `json:"call_dialogflow_agent_id,omitempty"`
+	CallAiAgentID                     *Uuid                        `json:"call_ai_agent_id,omitempty"`
+	CallFlowID                        *Uuid                        `json:"call_flow_id,omitempty"`
 	CallFlowVersion                   *string                      `json:"call_flow_version,omitempty"`
 	CallRelayContext                  *string                      `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl *string                      `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL *string                      `json:"call_relay_context_status_callback_url,omitempty"`
 }
 
 type UpdateNumberGroupRequest struct {
@@ -1152,33 +1152,33 @@ type UpdatePhoneNumberRequest struct {
 	Name                              *string                        `json:"name,omitempty"`
 	CallHandler                       *PhoneNumberCallHandlerRequest `json:"call_handler,omitempty"`
 	CallReceiveMode                   *string                        `json:"call_receive_mode,omitempty"`
-	CallRequestUrl                    *string                        `json:"call_request_url,omitempty"`
+	CallRequestURL                    *string                        `json:"call_request_url,omitempty"`
 	CallRequestMethod                 *string                        `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   *string                        `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   *string                        `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                *string                        `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             *string                        `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             *string                        `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          *string                        `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             *string                        `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentId             *string                        `json:"call_dialogflow_agent_id,omitempty"`
+	CallLamlApplicationID             *string                        `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             *string                        `json:"call_dialogflow_agent_id,omitempty"`
 	CallRelayTopic                    *string                        `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   *string                        `json:"call_relay_topic_status_callback_url,omitempty"`
-	CallRelayScriptUrl                *string                        `json:"call_relay_script_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   *string                        `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayScriptURL                *string                        `json:"call_relay_script_url,omitempty"`
 	CallRelayContext                  *string                        `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl *string                        `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL *string                        `json:"call_relay_context_status_callback_url,omitempty"`
 	CallRelayApplication              *string                        `json:"call_relay_application,omitempty"`
-	CallRelayConnectorId              *string                        `json:"call_relay_connector_id,omitempty"`
-	CallSipEndpointId                 *string                        `json:"call_sip_endpoint_id,omitempty"`
+	CallRelayConnectorID              *string                        `json:"call_relay_connector_id,omitempty"`
+	CallSIPEndpointID                 *string                        `json:"call_sip_endpoint_id,omitempty"`
 	CallVertoResource                 *string                        `json:"call_verto_resource,omitempty"`
-	CallVideoRoomId                   *Uuid                          `json:"call_video_room_id,omitempty"`
-	CallAiAgentId                     *Uuid                          `json:"call_ai_agent_id,omitempty"`
-	CallFlowId                        *Uuid                          `json:"call_flow_id,omitempty"`
+	CallVideoRoomID                   *Uuid                          `json:"call_video_room_id,omitempty"`
+	CallAiAgentID                     *Uuid                          `json:"call_ai_agent_id,omitempty"`
+	CallFlowID                        *Uuid                          `json:"call_flow_id,omitempty"`
 	CallFlowVersion                   *string                        `json:"call_flow_version,omitempty"`
 	MessageHandler                    *PhoneNumberMessageHandler     `json:"message_handler,omitempty"`
-	MessageRequestUrl                 *string                        `json:"message_request_url,omitempty"`
+	MessageRequestURL                 *string                        `json:"message_request_url,omitempty"`
 	MessageRequestMethod              *string                        `json:"message_request_method,omitempty"`
-	MessageFallbackUrl                *string                        `json:"message_fallback_url,omitempty"`
+	MessageFallbackURL                *string                        `json:"message_fallback_url,omitempty"`
 	MessageFallbackMethod             *string                        `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationId          *string                        `json:"message_laml_application_id,omitempty"`
+	MessageLamlApplicationID          *string                        `json:"message_laml_application_id,omitempty"`
 	MessageRelayTopic                 *string                        `json:"message_relay_topic,omitempty"`
 	MessageRelayContext               *string                        `json:"message_relay_context,omitempty"`
 	MessageRelayApplication           *string                        `json:"message_relay_application,omitempty"`
@@ -1192,41 +1192,41 @@ type UpdateQueueRequest struct {
 type UpdateShortCodeRequest struct {
 	Name                     string                  `json:"name,omitempty"`
 	MessageHandler           ShortCodeMessageHandler `json:"message_handler,omitempty"`
-	MessageRequestUrl        *string                 `json:"message_request_url,omitempty"`
+	MessageRequestURL        *string                 `json:"message_request_url,omitempty"`
 	MessageRequestMethod     *HttpMethod             `json:"message_request_method,omitempty"`
-	MessageFallbackUrl       *string                 `json:"message_fallback_url,omitempty"`
+	MessageFallbackURL       *string                 `json:"message_fallback_url,omitempty"`
 	MessageFallbackMethod    *HttpMethod             `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationId *Uuid                   `json:"message_laml_application_id,omitempty"`
+	MessageLamlApplicationID *Uuid                   `json:"message_laml_application_id,omitempty"`
 	MessageRelayContext      *string                 `json:"message_relay_context,omitempty"`
 }
 
 type UpdateSipEndpointRequest struct {
 	Username                          *string  `json:"username,omitempty"`
 	Password                          *string  `json:"password,omitempty"`
-	CallerId                          *string  `json:"caller_id,omitempty"`
+	CallerID                          *string  `json:"caller_id,omitempty"`
 	SendAs                            *string  `json:"send_as,omitempty"`
 	Ciphers                           []string `json:"ciphers,omitempty"`
 	Codecs                            []string `json:"codecs,omitempty"`
 	Encryption                        *string  `json:"encryption,omitempty"`
 	CallHandler                       *string  `json:"call_handler,omitempty"`
-	CallRequestUrl                    *string  `json:"call_request_url,omitempty"`
+	CallRequestURL                    *string  `json:"call_request_url,omitempty"`
 	CallRequestMethod                 *string  `json:"call_request_method,omitempty"`
-	CallFallbackUrl                   *string  `json:"call_fallback_url,omitempty"`
+	CallFallbackURL                   *string  `json:"call_fallback_url,omitempty"`
 	CallFallbackMethod                *string  `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackUrl             *string  `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL             *string  `json:"call_status_callback_url,omitempty"`
 	CallStatusCallbackMethod          *string  `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationId             *string  `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentId             *string  `json:"call_dialogflow_agent_id,omitempty"`
+	CallLamlApplicationID             *string  `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             *string  `json:"call_dialogflow_agent_id,omitempty"`
 	CallRelayTopic                    *string  `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackUrl   *string  `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayTopicStatusCallbackURL   *string  `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayContext                  *string  `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackUrl *string  `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayContextStatusCallbackURL *string  `json:"call_relay_context_status_callback_url,omitempty"`
 	CallRelayApplication              *string  `json:"call_relay_application,omitempty"`
-	CallVideoRoomId                   *string  `json:"call_video_room_id,omitempty"`
-	CallFlowId                        *string  `json:"call_flow_id,omitempty"`
+	CallVideoRoomID                   *string  `json:"call_video_room_id,omitempty"`
+	CallFlowID                        *string  `json:"call_flow_id,omitempty"`
 	CallFlowVersion                   *string  `json:"call_flow_version,omitempty"`
-	CallAiAgentId                     *string  `json:"call_ai_agent_id,omitempty"`
-	CallRelayScriptUrl                *string  `json:"call_relay_script_url,omitempty"`
+	CallAiAgentID                     *string  `json:"call_ai_agent_id,omitempty"`
+	CallRelayScriptURL                *string  `json:"call_relay_script_url,omitempty"`
 }
 
 type UpdateSipProfileRequest struct {
@@ -1242,8 +1242,8 @@ type UpdateVerifiedCallerIDRequest struct {
 }
 
 type VerifiedCallerID struct {
-	Type_      *string `json:"type,omitempty"`
-	Id         Uuid    `json:"id,omitempty"`
+	Type       *string `json:"type,omitempty"`
+	ID         Uuid    `json:"id,omitempty"`
 	Number     string  `json:"number,omitempty"`
 	Name       *string `json:"name,omitempty"`
 	Extension  *string `json:"extension,omitempty"`
@@ -1258,8 +1258,8 @@ type VerifiedCallerIDListResponse struct {
 }
 
 type VerifiedCallerIDResponse struct {
-	Type_      *string `json:"type,omitempty"`
-	Id         Uuid    `json:"id,omitempty"`
+	Type       *string `json:"type,omitempty"`
+	ID         Uuid    `json:"id,omitempty"`
 	Number     string  `json:"number,omitempty"`
 	Name       *string `json:"name,omitempty"`
 	Extension  *string `json:"extension,omitempty"`
@@ -1273,8 +1273,8 @@ type VerifyCallerIDRequest struct {
 }
 
 type WebRtcRecording struct {
-	Id                Uuid    `json:"id,omitempty"`
-	ProjectId         Uuid    `json:"project_id,omitempty"`
+	ID                Uuid    `json:"id,omitempty"`
+	ProjectID         Uuid    `json:"project_id,omitempty"`
 	CreatedAt         string  `json:"created_at,omitempty"`
 	UpdatedAt         string  `json:"updated_at,omitempty"`
 	DurationInSeconds int     `json:"duration_in_seconds,omitempty"`
@@ -1282,11 +1282,11 @@ type WebRtcRecording struct {
 	Price             float64 `json:"price,omitempty"`
 	PriceUnit         string  `json:"price_unit,omitempty"`
 	Status            string  `json:"status,omitempty"`
-	Url               string  `json:"url,omitempty"`
+	URL               string  `json:"url,omitempty"`
 	Stereo            bool    `json:"stereo,omitempty"`
 	ByteSize          *int    `json:"byte_size,omitempty"`
 	Track             string  `json:"track,omitempty"`
-	RelayWebrtcLegId  Uuid    `json:"relay_webrtc_leg_id,omitempty"`
+	RelayWebrtcLegID  Uuid    `json:"relay_webrtc_leg_id,omitempty"`
 }
 
 type Uuid string

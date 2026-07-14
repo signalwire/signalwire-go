@@ -13,6 +13,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestVoiceGen_Voice_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Logs.Voice.Get("x-1")
+	_, err := client.Logs.Voice.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestVoiceGen_Voice_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "voice.get_voice_log", 500, map[string]any{"error": "x"})
-	_, err := client.Logs.Voice.Get("x-1")
+	_, err := client.Logs.Voice.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -65,7 +66,7 @@ func TestVoiceGen_Voice_ListEvents(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Logs.Voice.ListEvents("x-1", nil)
+	_, err := client.Logs.Voice.ListEvents(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -86,7 +87,7 @@ func TestVoiceGen_Voice_ListEvents_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "voice.list_voice_log_events", 500, map[string]any{"error": "x"})
-	_, err := client.Logs.Voice.ListEvents("x-1", nil)
+	_, err := client.Logs.Voice.ListEvents(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -103,7 +104,7 @@ func TestVoiceGen_Voice_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Logs.Voice.List(nil)
+	_, err := client.Logs.Voice.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -124,7 +125,7 @@ func TestVoiceGen_Voice_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "voice.list_voice_logs", 500, map[string]any{"error": "x"})
-	_, err := client.Logs.Voice.List(nil)
+	_, err := client.Logs.Voice.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

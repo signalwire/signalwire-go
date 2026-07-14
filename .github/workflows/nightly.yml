@@ -138,28 +138,11 @@ jobs:
             pip install ./signalwire-python
           fi
 
-      - name: Select gate tier (promote to nightly if PR touches docs/examples)
-        id: tier
-        working-directory: signalwire-go
-        run: |
-          tier=pr
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base="${{ github.event.pull_request.base.sha }}"
-            if git fetch --no-tags --depth=1 origin "$base" 2>/dev/null \
-               && git diff --name-only "$base"...HEAD 2>/dev/null \
-                  | grep -qE '^(docs/|examples/|README|.*\.md$)'; then
-              tier=nightly
-              echo "PR touches docs/examples -> running heavy doc gates (tier=nightly)"
-            fi
-          fi
-          echo "tier=$tier" >> "$GITHUB_OUTPUT"
-
       - name: "Run CI gate script (10 gates: TEST, SIGNATURES, DRIFT, SURFACE-FRESH, NO-CHEAT, EMISSION, FMT, LINT, DOC-AUDIT, SURFACE-DIFF)"
         working-directory: signalwire-go
         env:
           PORTING_SDK: ${{ github.workspace }}/porting-sdk
           SW_CI_TIER: nightly
-          SW_CI_TIER: ${{ steps.tier.outputs.tier }}
         run: bash scripts/run-ci.sh
 
   # Windows portability guard. The full run-ci.sh gate set is Linux-only (the
