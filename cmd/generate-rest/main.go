@@ -401,6 +401,8 @@ var goStructName = map[string]string{
 	"DatasphereDocuments": "DatasphereDocuments",
 	// project
 	"ProjectTokens": "ProjectTokens",
+	// projects (plural — /api/projects full-CRUD, client.Projects)
+	"Projects": "Projects",
 	// video
 	"VideoRooms":            "VideoRooms",
 	"VideoRoomTokens":       "VideoRoomTokens",
@@ -480,6 +482,7 @@ var goMethodName = map[string]string{
 	"ProjectTokens.create":                       "Create",
 	"ProjectTokens.update":                       "Update",
 	"ProjectTokens.delete":                       "Delete",
+	"Projects.rotate_signing_key":                "RotateSigningKey",
 	"VideoRooms.list_streams":                    "ListStreams",
 	"VideoRooms.create_stream":                   "CreateStream",
 	"VideoRoomTokens.create":                     "Create",
@@ -1768,7 +1771,7 @@ var clientFieldOrder = []string{
 	"Fabric", "Calling",
 	"PhoneNumbers", "Addresses", "Queues", "Recordings", "NumberGroups",
 	"VerifiedCallers", "SIPProfile", "Lookup", "ShortCodes", "ImportedNumbers", "MFA",
-	"Registry", "Datasphere", "Video", "Logs", "Project", "PubSub", "Chat",
+	"Registry", "Datasphere", "Video", "Logs", "Project", "Projects", "PubSub", "Chat",
 }
 
 // emitClientTree emits the generated REST client tree (§8) as TWO source files.
@@ -2145,7 +2148,7 @@ package %s
 // fail-loud error (a spec removed/renamed without updating this order hint).
 var resourceSpecEmitOrder = []string{
 	"relay-rest", "fabric", "calling", "video", "datasphere",
-	"logs", "message", "voice", "fax", "project", "chat", "pubsub",
+	"logs", "message", "voice", "fax", "project", "projects", "chat", "pubsub",
 }
 
 // discoverSpecs scans <psdk>/rest-apis/*/openapi.yaml and classifies each spec dir
@@ -2160,12 +2163,12 @@ var resourceSpecEmitOrder = []string{
 //     components/schemas — a webhook/payload contract (swml-webhooks) the reference
 //     emits as a <ns>_types_generated.go types module with no resource surface.
 //
-// A dir with schemas + servers but NO x-sdk-resource (e.g. the staged `projects`
-// project-management API, intentionally not yet in the canonical SPEC_NAMES set —
-// see porting-sdk mock_signalwire/specs.py) is neither: it is a staged REST surface
-// no SDK implements, so it is SKIPPED (matches the committed tree, which emits no
-// projects module). When `projects` graduates (gains x-sdk-resource markup) the scan
-// picks it up automatically as a resource spec.
+// A dir with schemas + servers but NO x-sdk-resource is neither a resource nor a
+// types-only spec: it is a staged REST surface no SDK implements, so it is SKIPPED.
+// (The `projects` project-management API has since graduated — it carries
+// x-sdk-resource markup and is in the canonical SPEC_NAMES set — so the scan now
+// discovers it as a resource spec and emits its module. See porting-sdk
+// mock_signalwire/specs.py.)
 //
 // resourceSpecs is returned in resourceSpecEmitOrder (pinned prefix, then any new
 // discovered spec alphabetically); typesOnlySpecs is returned sorted.
