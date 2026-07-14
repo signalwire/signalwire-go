@@ -45,13 +45,13 @@ func (r *VideoConferences) ListStreams(id string, params map[string]string) (*Li
 
 // VideoConferencesCreateStreamParams holds the named optional parameters for VideoConferences.CreateStream.
 type VideoConferencesCreateStreamParams struct {
-	Url    string
+	URL    string
 	Extras map[string]any
 }
 
 func (r *VideoConferences) CreateStream(id string, params VideoConferencesCreateStreamParams) (*Stream, error) {
 	body := map[string]any{}
-	body["url"] = params.Url
+	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[Stream](r.HTTP.Post(r.Path(id, "streams"), body, nil))
 }
@@ -223,13 +223,13 @@ func (r *VideoRooms) ListStreams(id string, params map[string]string) (*ListStre
 
 // VideoRoomsCreateStreamParams holds the named optional parameters for VideoRooms.CreateStream.
 type VideoRoomsCreateStreamParams struct {
-	Url    string
+	URL    string
 	Extras map[string]any
 }
 
 func (r *VideoRooms) CreateStream(id string, params VideoRoomsCreateStreamParams) (*Stream, error) {
 	body := map[string]any{}
-	body["url"] = params.Url
+	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[Stream](r.HTTP.Post(r.Path(id, "streams"), body, nil))
 }
@@ -250,13 +250,13 @@ func (r *VideoStreams) Get(id string, params map[string]string) (*Stream, error)
 
 // VideoStreamsUpdateParams holds the named optional parameters for VideoStreams.Update.
 type VideoStreamsUpdateParams struct {
-	Url    string
+	URL    string
 	Extras map[string]any
 }
 
 func (r *VideoStreams) Update(id string, params VideoStreamsUpdateParams) (*Stream, error) {
 	body := map[string]any{}
-	body["url"] = params.Url
+	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[Stream](r.HTTP.Put(r.Path(id), body))
 }

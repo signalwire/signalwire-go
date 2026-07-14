@@ -21,7 +21,7 @@ func NewProjectTokens(client HTTPClient) *ProjectTokens {
 type ProjectTokensCreateParams struct {
 	Name         string
 	Permissions  []TokenPermission
-	SubprojectId *string
+	SubprojectID *string
 	Extras       map[string]any
 }
 
@@ -31,8 +31,8 @@ func (r *ProjectTokens) Create(params ProjectTokensCreateParams) (*TokenResponse
 	if params.Permissions != nil {
 		body["permissions"] = params.Permissions
 	}
-	if params.SubprojectId != nil {
-		body["subproject_id"] = params.SubprojectId
+	if params.SubprojectID != nil {
+		body["subproject_id"] = params.SubprojectID
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[TokenResponse](r.HTTP.Post(r.Base, body, nil))

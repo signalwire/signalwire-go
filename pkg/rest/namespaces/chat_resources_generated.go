@@ -21,7 +21,7 @@ func NewChatNamespace(client HTTPClient) *ChatNamespace {
 type ChatNamespaceCreateTokenParams struct {
 	Ttl      int
 	Channels ChatChannel
-	MemberId *string
+	MemberID *string
 	State    *ChatState
 	Extras   map[string]any
 }
@@ -30,8 +30,8 @@ func (r *ChatNamespace) CreateToken(params ChatNamespaceCreateTokenParams) (*Cha
 	body := map[string]any{}
 	body["ttl"] = params.Ttl
 	body["channels"] = params.Channels
-	if params.MemberId != nil {
-		body["member_id"] = params.MemberId
+	if params.MemberID != nil {
+		body["member_id"] = params.MemberID
 	}
 	if params.State != nil {
 		body["state"] = params.State

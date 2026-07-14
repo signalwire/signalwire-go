@@ -1,5 +1,31 @@
 # Plan: ST1003 initialism renames (idiomatic Go acronym capitalization)
 
+## STATUS: DONE (2026-07-14)
+- **23 public-symbol renames**: DONE (HTTPClient/SIPProfileNamespace/…, verified all-caps; DRIFT clean).
+- **Generated REST field surface**: DONE — the generator's name-minting
+  (`structFieldName`/`segCase`/`commonInitialisms` in `cmd/generate-rest/main.go`) now
+  emits ST1003-idiomatic struct field names (`CallerId`→`CallerID`, `FallbackUrl`→
+  `FallbackURL`, `url_method`→`URLMethod`). Regenerated the whole REST surface.
+  Wire-safety proven: the multiset of all `body["…"]` keys + `json:"…"` tags is
+  byte-identical before/after (696 tokens each side, zero net change) — the wire key
+  derives from the SPEC property name, not the Go field name — and `port_signatures.json`
+  is byte-identical (goNameToSnake round-trips `CallerID`→`caller_id`), so DRIFT stayed 0.
+- **ST1003 ENABLED** in `.golangci.yml` (staticcheck `checks: +ST1003`). `run-lint.sh`
+  clean. NOTE: staticcheck's ST1003 has an internal generated-file skip that
+  golangci-lint's `generated: disable` does NOT override — so ST1003 lints only
+  hand-written code; the generated names were made idiomatic anyway so they are correct
+  regardless of linter visibility.
+- **Type names LEFT as-is**: `Play_url` and `Types_StatusCodes_*` carry underscores but
+  are PARITY-LOCKED — the Python oracle's own `ref_name` uses the identical underscore
+  spellings (`python_surface.json`: `Types_StatusCodes_*`; `play_url`), so renaming the
+  Go type would break DRIFT/SURFACE-DIFF. (They're generated types, which ST1003 skips
+  anyway, so no lint conflict.)
+- Full `bash scripts/run-ci.sh` = CI PASS (TEST/FMT/LINT-with-ST1003/DRIFT/SURFACE-DIFF/
+  REST-COVERAGE/SEMVER-DIFF/GEN-FRESH/GEN-IDIOM all green). SEMVER-DIFF green with no
+  baseline regen (struct field names aren't enumerated surface).
+
+---
+
 **Goal:** rename the 23 public Go symbols flagged by staticcheck ST1003 so embedded
 acronyms are all-caps (Go convention: `URL`/`HTTP`/`SIP`/`API`/`RPC`, not `Url`/`Http`/`Sip`/…),
 WITHOUT breaking Python-parity drift. Then ST1003 can stay ENABLED in the lint gate.

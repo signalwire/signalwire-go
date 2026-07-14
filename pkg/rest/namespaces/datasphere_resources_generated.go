@@ -21,7 +21,7 @@ func NewDatasphereDocuments(client HTTPClient) *DatasphereDocuments {
 type DatasphereDocumentsSearchParams struct {
 	QueryString string
 	Tags        []string
-	DocumentId  *Docid
+	DocumentID  *Docid
 	Distance    *float64
 	Count       *int
 	Language    *string
@@ -36,8 +36,8 @@ func (r *DatasphereDocuments) Search(params DatasphereDocumentsSearchParams) (*S
 	if params.Tags != nil {
 		body["tags"] = params.Tags
 	}
-	if params.DocumentId != nil {
-		body["document_id"] = params.DocumentId
+	if params.DocumentID != nil {
+		body["document_id"] = params.DocumentID
 	}
 	if params.Distance != nil {
 		body["distance"] = params.Distance

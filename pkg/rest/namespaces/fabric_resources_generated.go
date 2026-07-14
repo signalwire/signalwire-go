@@ -57,14 +57,14 @@ func (r *GenericResources) ListAddresses(id string, params map[string]string) (*
 
 // GenericResourcesAssignPhoneRouteParams holds the named optional parameters for GenericResources.AssignPhoneRoute.
 type GenericResourcesAssignPhoneRouteParams struct {
-	PhoneRouteId Uuid
+	PhoneRouteID Uuid
 	Handler      UsedForType
 	Extras       map[string]any
 }
 
 func (r *GenericResources) AssignPhoneRoute(id string, params GenericResourcesAssignPhoneRouteParams) (*PhoneRouteResponse, error) {
 	body := map[string]any{}
-	body["phone_route_id"] = params.PhoneRouteId
+	body["phone_route_id"] = params.PhoneRouteID
 	body["handler"] = params.Handler
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[PhoneRouteResponse](r.HTTP.Post(r.Path(id, "phone_routes"), body, nil))
@@ -72,13 +72,13 @@ func (r *GenericResources) AssignPhoneRoute(id string, params GenericResourcesAs
 
 // GenericResourcesAssignDomainApplicationParams holds the named optional parameters for GenericResources.AssignDomainApplication.
 type GenericResourcesAssignDomainApplicationParams struct {
-	DomainApplicationId Uuid
+	DomainApplicationID Uuid
 	Extras              map[string]any
 }
 
 func (r *GenericResources) AssignDomainApplication(id string, params GenericResourcesAssignDomainApplicationParams) (*DomainApplicationResponse, error) {
 	body := map[string]any{}
-	body["domain_application_id"] = params.DomainApplicationId
+	body["domain_application_id"] = params.DomainApplicationID
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[DomainApplicationResponse](r.HTTP.Post(r.Path(id, "domain_applications"), body, nil))
 }
@@ -151,15 +151,15 @@ func (r *CxmlApplicationsResource) Get(id string, params map[string]string) (*Cx
 type CxmlApplicationsResourceUpdateParams struct {
 	DisplayName             *string
 	AccountSid              *Uuid
-	VoiceUrl                *string
+	VoiceURL                *string
 	VoiceMethod             any
-	VoiceFallbackUrl        *string
+	VoiceFallbackURL        *string
 	VoiceFallbackMethod     any
 	StatusCallback          *string
 	StatusCallbackMethod    any
-	SmsUrl                  *string
+	SmsURL                  *string
 	SmsMethod               any
-	SmsFallbackUrl          *string
+	SmsFallbackURL          *string
 	SmsFallbackMethod       any
 	SmsStatusCallback       *string
 	SmsStatusCallbackMethod any
@@ -174,14 +174,14 @@ func (r *CxmlApplicationsResource) Update(id string, params CxmlApplicationsReso
 	if params.AccountSid != nil {
 		body["account_sid"] = params.AccountSid
 	}
-	if params.VoiceUrl != nil {
-		body["voice_url"] = params.VoiceUrl
+	if params.VoiceURL != nil {
+		body["voice_url"] = params.VoiceURL
 	}
 	if params.VoiceMethod != nil {
 		body["voice_method"] = params.VoiceMethod
 	}
-	if params.VoiceFallbackUrl != nil {
-		body["voice_fallback_url"] = params.VoiceFallbackUrl
+	if params.VoiceFallbackURL != nil {
+		body["voice_fallback_url"] = params.VoiceFallbackURL
 	}
 	if params.VoiceFallbackMethod != nil {
 		body["voice_fallback_method"] = params.VoiceFallbackMethod
@@ -192,14 +192,14 @@ func (r *CxmlApplicationsResource) Update(id string, params CxmlApplicationsReso
 	if params.StatusCallbackMethod != nil {
 		body["status_callback_method"] = params.StatusCallbackMethod
 	}
-	if params.SmsUrl != nil {
-		body["sms_url"] = params.SmsUrl
+	if params.SmsURL != nil {
+		body["sms_url"] = params.SmsURL
 	}
 	if params.SmsMethod != nil {
 		body["sms_method"] = params.SmsMethod
 	}
-	if params.SmsFallbackUrl != nil {
-		body["sms_fallback_url"] = params.SmsFallbackUrl
+	if params.SmsFallbackURL != nil {
+		body["sms_fallback_url"] = params.SmsFallbackURL
 	}
 	if params.SmsFallbackMethod != nil {
 		body["sms_fallback_method"] = params.SmsFallbackMethod
@@ -300,7 +300,7 @@ func (r *SubscribersResource) ListSIPEndpoints(subscriberID string, params map[s
 type SubscribersResourceCreateSIPEndpointParams struct {
 	Username   string
 	Password   string
-	CallerId   *string
+	CallerID   *string
 	SendAs     *string
 	Ciphers    []Ciphers
 	Codecs     []Codecs
@@ -312,8 +312,8 @@ func (r *SubscribersResource) CreateSIPEndpoint(subscriberID string, params Subs
 	body := map[string]any{}
 	body["username"] = params.Username
 	body["password"] = params.Password
-	if params.CallerId != nil {
-		body["caller_id"] = params.CallerId
+	if params.CallerID != nil {
+		body["caller_id"] = params.CallerID
 	}
 	if params.SendAs != nil {
 		body["send_as"] = params.SendAs
@@ -339,7 +339,7 @@ func (r *SubscribersResource) GetSIPEndpoint(subscriberID string, id string, par
 type SubscribersResourceUpdateSIPEndpointParams struct {
 	Username   *string
 	Password   *string
-	CallerId   *string
+	CallerID   *string
 	SendAs     *string
 	Ciphers    []Ciphers
 	Codecs     []Codecs
@@ -355,8 +355,8 @@ func (r *SubscribersResource) UpdateSIPEndpoint(subscriberID string, id string, 
 	if params.Password != nil {
 		body["password"] = params.Password
 	}
-	if params.CallerId != nil {
-		body["caller_id"] = params.CallerId
+	if params.CallerID != nil {
+		body["caller_id"] = params.CallerID
 	}
 	if params.SendAs != nil {
 		body["send_as"] = params.SendAs
@@ -412,7 +412,7 @@ func NewFabricTokens(client HTTPClient) *FabricTokens {
 type FabricTokensCreateSubscriberTokenParams struct {
 	Reference     string
 	ExpireAt      *int
-	ApplicationId *Uuid
+	ApplicationID *Uuid
 	Password      *string
 	FirstName     *string
 	LastName      *string
@@ -431,8 +431,8 @@ func (r *FabricTokens) CreateSubscriberToken(params FabricTokensCreateSubscriber
 	if params.ExpireAt != nil {
 		body["expire_at"] = params.ExpireAt
 	}
-	if params.ApplicationId != nil {
-		body["application_id"] = params.ApplicationId
+	if params.ApplicationID != nil {
+		body["application_id"] = params.ApplicationID
 	}
 	if params.Password != nil {
 		body["password"] = params.Password
@@ -480,14 +480,14 @@ func (r *FabricTokens) RefreshSubscriberToken(params FabricTokensRefreshSubscrib
 
 // FabricTokensCreateInviteTokenParams holds the named optional parameters for FabricTokens.CreateInviteToken.
 type FabricTokensCreateInviteTokenParams struct {
-	AddressId Uuid
+	AddressID Uuid
 	ExpiresAt *int
 	Extras    map[string]any
 }
 
 func (r *FabricTokens) CreateInviteToken(params FabricTokensCreateInviteTokenParams) (*SubscriberInviteTokenCreateResponse, error) {
 	body := map[string]any{}
-	body["address_id"] = params.AddressId
+	body["address_id"] = params.AddressID
 	if params.ExpiresAt != nil {
 		body["expires_at"] = params.ExpiresAt
 	}

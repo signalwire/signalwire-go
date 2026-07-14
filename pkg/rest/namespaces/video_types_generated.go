@@ -16,8 +16,8 @@
 package namespaces
 
 type ActiveSession struct {
-	Id                        *string            `json:"id,omitempty"`
-	RoomId                    *string            `json:"room_id,omitempty"`
+	ID                        *string            `json:"id,omitempty"`
+	RoomID                    *string            `json:"room_id,omitempty"`
 	Name                      *string            `json:"name,omitempty"`
 	DisplayName               *string            `json:"display_name,omitempty"`
 	JoinFrom                  *string            `json:"join_from,omitempty"`
@@ -34,7 +34,7 @@ type ActiveSession struct {
 	Status                    *RoomSessionStatus `json:"status,omitempty"`
 	RecordOnStart             *bool              `json:"record_on_start,omitempty"`
 	EnableRoomPreviews        *bool              `json:"enable_room_previews,omitempty"`
-	PreviewUrl                *string            `json:"preview_url,omitempty"`
+	PreviewURL                *string            `json:"preview_url,omitempty"`
 	AudioVideoSync            *bool              `json:"audio_video_sync,omitempty"`
 }
 
@@ -44,7 +44,7 @@ type ChargeDetail struct {
 }
 
 type Conference struct {
-	Id                 string         `json:"id,omitempty"`
+	ID                 string         `json:"id,omitempty"`
 	Name               string         `json:"name,omitempty"`
 	DisplayName        any            `json:"display_name,omitempty"`
 	Description        any            `json:"description,omitempty"`
@@ -84,7 +84,7 @@ const (
 )
 
 type ConferenceToken struct {
-	Id     string   `json:"id,omitempty"`
+	ID     string   `json:"id,omitempty"`
 	Name   any      `json:"name,omitempty"`
 	Token  string   `json:"token,omitempty"`
 	Scopes []string `json:"scopes,omitempty"`
@@ -153,11 +153,11 @@ type CreateRoomTokenRequest struct {
 }
 
 type CreateStreamRequest struct {
-	Url string `json:"url,omitempty"`
+	URL string `json:"url,omitempty"`
 }
 
 type DiscardedLog struct {
-	Id          string `json:"id,omitempty"`
+	ID          string `json:"id,omitempty"`
 	DiscardedAt string `json:"discarded_at,omitempty"`
 	CreatedAt   string `json:"created_at,omitempty"`
 }
@@ -225,10 +225,10 @@ type ListStreamsResponse struct {
 }
 
 type Log struct {
-	Id            string         `json:"id,omitempty"`
+	ID            string         `json:"id,omitempty"`
 	Source        LogSource      `json:"source,omitempty"`
-	Type_         LogType        `json:"type,omitempty"`
-	Url           string         `json:"url,omitempty"`
+	Type          LogType        `json:"type,omitempty"`
+	URL           string         `json:"url,omitempty"`
 	RoomName      any            `json:"room_name,omitempty"`
 	Status        any            `json:"status,omitempty"`
 	Locked        bool           `json:"locked,omitempty"`
@@ -286,8 +286,8 @@ const (
 )
 
 type RoomRecording struct {
-	Id            string  `json:"id,omitempty"`
-	RoomSessionId string  `json:"room_session_id,omitempty"`
+	ID            string  `json:"id,omitempty"`
+	RoomSessionID string  `json:"room_session_id,omitempty"`
 	Status        any     `json:"status,omitempty"`
 	StartedAt     any     `json:"started_at,omitempty"`
 	FinishedAt    any     `json:"finished_at,omitempty"`
@@ -295,7 +295,7 @@ type RoomRecording struct {
 	SizeInBytes   any     `json:"size_in_bytes,omitempty"`
 	Format        any     `json:"format,omitempty"`
 	CostInDollars float64 `json:"cost_in_dollars,omitempty"`
-	Uri           any     `json:"uri,omitempty"`
+	URI           any     `json:"uri,omitempty"`
 	CreatedAt     string  `json:"created_at,omitempty"`
 	UpdatedAt     string  `json:"updated_at,omitempty"`
 }
@@ -310,7 +310,7 @@ const (
 )
 
 type RoomResponse struct {
-	Id                        string         `json:"id,omitempty"`
+	ID                        string         `json:"id,omitempty"`
 	Name                      string         `json:"name,omitempty"`
 	DisplayName               any            `json:"display_name,omitempty"`
 	Description               any            `json:"description,omitempty"`
@@ -336,8 +336,8 @@ type RoomResponse struct {
 }
 
 type RoomSession struct {
-	Id                        string  `json:"id,omitempty"`
-	RoomId                    any     `json:"room_id,omitempty"`
+	ID                        string  `json:"id,omitempty"`
+	RoomID                    any     `json:"room_id,omitempty"`
 	Name                      any     `json:"name,omitempty"`
 	DisplayName               any     `json:"display_name,omitempty"`
 	MaxMembers                any     `json:"max_members,omitempty"`
@@ -359,7 +359,7 @@ type RoomSession struct {
 	Status                    any     `json:"status,omitempty"`
 	CreatedAt                 string  `json:"created_at,omitempty"`
 	UpdatedAt                 string  `json:"updated_at,omitempty"`
-	PreviewUrl                any     `json:"preview_url,omitempty"`
+	PreviewURL                any     `json:"preview_url,omitempty"`
 	PrioritizeHandraise       any     `json:"prioritize_handraise,omitempty"`
 	SyncAudioVideo            any     `json:"sync_audio_video,omitempty"`
 	CostInDollars             float64 `json:"cost_in_dollars,omitempty"`
@@ -368,12 +368,12 @@ type RoomSession struct {
 }
 
 type RoomSessionEvent struct {
-	Id                string         `json:"id,omitempty"`
-	ProjectId         string         `json:"project_id,omitempty"`
-	RoomId            string         `json:"room_id,omitempty"`
-	RoomSessionId     string         `json:"room_session_id,omitempty"`
-	RoomRecordingId   *string        `json:"room_recording_id,omitempty"`
-	RoomParticipantId *string        `json:"room_participant_id,omitempty"`
+	ID                string         `json:"id,omitempty"`
+	ProjectID         string         `json:"project_id,omitempty"`
+	RoomID            string         `json:"room_id,omitempty"`
+	RoomSessionID     string         `json:"room_session_id,omitempty"`
+	RoomRecordingID   *string        `json:"room_recording_id,omitempty"`
+	RoomParticipantID *string        `json:"room_participant_id,omitempty"`
 	Level             string         `json:"level,omitempty"`
 	Name              string         `json:"name,omitempty"`
 	Payload           map[string]any `json:"payload,omitempty"`
@@ -381,8 +381,8 @@ type RoomSessionEvent struct {
 }
 
 type RoomSessionMember struct {
-	Id            string  `json:"id,omitempty"`
-	RoomSessionId string  `json:"room_session_id,omitempty"`
+	ID            string  `json:"id,omitempty"`
+	RoomSessionID string  `json:"room_session_id,omitempty"`
 	Name          any     `json:"name,omitempty"`
 	JoinTime      any     `json:"join_time,omitempty"`
 	LeaveTime     any     `json:"leave_time,omitempty"`
@@ -398,8 +398,8 @@ const (
 )
 
 type RoomSessionSummary struct {
-	Id                        string `json:"id,omitempty"`
-	RoomId                    any    `json:"room_id,omitempty"`
+	ID                        string `json:"id,omitempty"`
+	RoomID                    any    `json:"room_id,omitempty"`
 	Name                      any    `json:"name,omitempty"`
 	DisplayName               any    `json:"display_name,omitempty"`
 	MaxMembers                any    `json:"max_members,omitempty"`
@@ -421,7 +421,7 @@ type RoomSessionSummary struct {
 	Status                    any    `json:"status,omitempty"`
 	CreatedAt                 string `json:"created_at,omitempty"`
 	UpdatedAt                 string `json:"updated_at,omitempty"`
-	PreviewUrl                any    `json:"preview_url,omitempty"`
+	PreviewURL                any    `json:"preview_url,omitempty"`
 	PrioritizeHandraise       any    `json:"prioritize_handraise,omitempty"`
 	SyncAudioVideo            any    `json:"sync_audio_video,omitempty"`
 }
@@ -480,8 +480,8 @@ type RoomTokenResponse struct {
 }
 
 type Stream struct {
-	Id         string `json:"id,omitempty"`
-	Url        any    `json:"url,omitempty"`
+	ID         string `json:"id,omitempty"`
+	URL        any    `json:"url,omitempty"`
 	StreamType any    `json:"stream_type,omitempty"`
 	Width      any    `json:"width,omitempty"`
 	Height     any    `json:"height,omitempty"`
@@ -533,7 +533,7 @@ type UpdateRoomRequest struct {
 }
 
 type UpdateStreamRequest struct {
-	Url string `json:"url,omitempty"`
+	URL string `json:"url,omitempty"`
 }
 
 type VideoFps float64

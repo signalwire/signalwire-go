@@ -21,7 +21,7 @@ func NewPubSubNamespace(client HTTPClient) *PubSubNamespace {
 type PubSubNamespaceCreateTokenParams struct {
 	Ttl      int
 	Channels PubSubChannels
-	MemberId *string
+	MemberID *string
 	State    *PubSubState
 	Extras   map[string]any
 }
@@ -30,8 +30,8 @@ func (r *PubSubNamespace) CreateToken(params PubSubNamespaceCreateTokenParams) (
 	body := map[string]any{}
 	body["ttl"] = params.Ttl
 	body["channels"] = params.Channels
-	if params.MemberId != nil {
-		body["member_id"] = params.MemberId
+	if params.MemberID != nil {
+		body["member_id"] = params.MemberID
 	}
 	if params.State != nil {
 		body["state"] = params.State

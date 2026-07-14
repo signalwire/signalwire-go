@@ -18,7 +18,7 @@ package namespaces
 type NewPubSubToken struct {
 	Ttl      int            `json:"ttl,omitempty"`
 	Channels PubSubChannels `json:"channels,omitempty"`
-	MemberId *string        `json:"member_id,omitempty"`
+	MemberID *string        `json:"member_id,omitempty"`
 	State    *PubSubState   `json:"state,omitempty"`
 }
 

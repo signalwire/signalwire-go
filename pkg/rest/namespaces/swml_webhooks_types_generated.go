@@ -16,16 +16,16 @@
 package namespaces
 
 type SwaigRequestData struct {
-	CallId         string         `json:"call_id,omitempty"`
-	AiSessionId    string         `json:"ai_session_id,omitempty"`
+	CallID         string         `json:"call_id,omitempty"`
+	AiSessionID    string         `json:"ai_session_id,omitempty"`
 	AppName        *string        `json:"app_name,omitempty"`
-	ProjectId      string         `json:"project_id,omitempty"`
-	SpaceId        string         `json:"space_id,omitempty"`
+	ProjectID      string         `json:"project_id,omitempty"`
+	SpaceID        string         `json:"space_id,omitempty"`
 	Action         string         `json:"action,omitempty"`
 	Function       string         `json:"function,omitempty"`
 	Argument       SwaigArgument  `json:"argument,omitempty"`
 	MetaData       map[string]any `json:"meta_data,omitempty"`
-	ConversationId *string        `json:"conversation_id,omitempty"`
+	ConversationID *string        `json:"conversation_id,omitempty"`
 	ContentType    *string        `json:"content_type,omitempty"`
 	Version        *string        `json:"version,omitempty"`
 }
@@ -40,14 +40,14 @@ type PostPromptData struct {
 	EventType    *string          `json:"event_type,omitempty"`
 	EventChannel *string          `json:"event_channel,omitempty"`
 	Timestamp    *float64         `json:"timestamp,omitempty"`
-	ProjectId    *string          `json:"project_id,omitempty"`
-	SpaceId      *string          `json:"space_id,omitempty"`
+	ProjectID    *string          `json:"project_id,omitempty"`
+	SpaceID      *string          `json:"space_id,omitempty"`
 	Params       PostPromptParams `json:"params,omitempty"`
 }
 
 type PostPromptParams struct {
-	CallId           string                       `json:"call_id,omitempty"`
-	AiSessionId      string                       `json:"ai_session_id,omitempty"`
+	CallID           string                       `json:"call_id,omitempty"`
+	AiSessionID      string                       `json:"ai_session_id,omitempty"`
 	Summary          *string                      `json:"summary,omitempty"`
 	PostPromptResult any                          `json:"post_prompt_result,omitempty"`
 	EndReason        *string                      `json:"end_reason,omitempty"`
@@ -74,14 +74,14 @@ type SwmlRequestData struct {
 }
 
 type SwmlRequestCall struct {
-	CallId     string           `json:"call_id,omitempty"`
-	NodeId     *string          `json:"node_id,omitempty"`
-	SegmentId  *string          `json:"segment_id,omitempty"`
-	ProjectId  string           `json:"project_id,omitempty"`
-	SpaceId    string           `json:"space_id,omitempty"`
+	CallID     string           `json:"call_id,omitempty"`
+	NodeID     *string          `json:"node_id,omitempty"`
+	SegmentID  *string          `json:"segment_id,omitempty"`
+	ProjectID  string           `json:"project_id,omitempty"`
+	SpaceID    string           `json:"space_id,omitempty"`
 	CallState  *string          `json:"call_state,omitempty"`
 	Direction  *string          `json:"direction,omitempty"`
-	Type_      *string          `json:"type,omitempty"`
+	Type       *string          `json:"type,omitempty"`
 	From       *string          `json:"from,omitempty"`
 	To         *string          `json:"to,omitempty"`
 	FromNumber *string          `json:"from_number,omitempty"`

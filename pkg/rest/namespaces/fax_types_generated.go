@@ -16,14 +16,14 @@
 package namespaces
 
 type FaxLog struct {
-	Id            Uuid           `json:"id,omitempty"`
+	ID            Uuid           `json:"id,omitempty"`
 	From          any            `json:"from,omitempty"`
 	To            any            `json:"to,omitempty"`
 	Status        string         `json:"status,omitempty"`
 	Direction     any            `json:"direction,omitempty"`
 	Source        string         `json:"source,omitempty"`
-	Type_         string         `json:"type,omitempty"`
-	Url           string         `json:"url,omitempty"`
+	Type          string         `json:"type,omitempty"`
+	URL           string         `json:"url,omitempty"`
 	RemoteStation any            `json:"remote_station,omitempty"`
 	Charge        float64        `json:"charge,omitempty"`
 	NumberOfPages any            `json:"number_of_pages,omitempty"`
@@ -43,14 +43,14 @@ type FaxLogsListStatusCode422 struct {
 }
 
 type LogResponse struct {
-	Id            Uuid           `json:"id,omitempty"`
+	ID            Uuid           `json:"id,omitempty"`
 	From          any            `json:"from,omitempty"`
 	To            any            `json:"to,omitempty"`
 	Status        string         `json:"status,omitempty"`
 	Direction     any            `json:"direction,omitempty"`
 	Source        string         `json:"source,omitempty"`
-	Type_         string         `json:"type,omitempty"`
-	Url           string         `json:"url,omitempty"`
+	Type          string         `json:"type,omitempty"`
+	URL           string         `json:"url,omitempty"`
 	RemoteStation any            `json:"remote_station,omitempty"`
 	Charge        float64        `json:"charge,omitempty"`
 	NumberOfPages any            `json:"number_of_pages,omitempty"`

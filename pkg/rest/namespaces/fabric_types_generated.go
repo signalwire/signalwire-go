@@ -32,11 +32,11 @@ type AIAgent struct {
 	Languages     []Languages    `json:"languages,omitempty"`
 	Params        *AIParams      `json:"params,omitempty"`
 	PostPrompt    *AIPostPrompt  `json:"post_prompt,omitempty"`
-	PostPromptUrl *string        `json:"post_prompt_url,omitempty"`
+	PostPromptURL *string        `json:"post_prompt_url,omitempty"`
 	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
 	Prompt        AIPrompt       `json:"prompt,omitempty"`
 	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
-	AgentId       Uuid           `json:"agent_id,omitempty"`
+	AgentID       Uuid           `json:"agent_id,omitempty"`
 	Name          string         `json:"name,omitempty"`
 }
 
@@ -51,11 +51,11 @@ type AIAgentCreateRequest struct {
 	Languages     []Languages    `json:"languages,omitempty"`
 	Params        *AIParams      `json:"params,omitempty"`
 	PostPrompt    *AIPostPrompt  `json:"post_prompt,omitempty"`
-	PostPromptUrl *string        `json:"post_prompt_url,omitempty"`
+	PostPromptURL *string        `json:"post_prompt_url,omitempty"`
 	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
 	Prompt        AIPrompt       `json:"prompt,omitempty"`
 	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
-	AgentId       *Uuid          `json:"agent_id,omitempty"`
+	AgentID       *Uuid          `json:"agent_id,omitempty"`
 	Name          string         `json:"name,omitempty"`
 }
 
@@ -76,10 +76,10 @@ type AIAgentPaginationResponse struct {
 }
 
 type AIAgentResponse struct {
-	Id          Uuid    `json:"id,omitempty"`
-	ProjectId   Uuid    `json:"project_id,omitempty"`
+	ID          Uuid    `json:"id,omitempty"`
+	ProjectID   Uuid    `json:"project_id,omitempty"`
 	DisplayName string  `json:"display_name,omitempty"`
-	Type_       string  `json:"type,omitempty"`
+	Type        string  `json:"type,omitempty"`
 	CreatedAt   string  `json:"created_at,omitempty"`
 	UpdatedAt   string  `json:"updated_at,omitempty"`
 	AiAgent     AIAgent `json:"ai_agent,omitempty"`
@@ -91,11 +91,11 @@ type AIAgentUpdateRequest struct {
 	Languages     []Languages         `json:"languages,omitempty"`
 	Params        *AIParams           `json:"params,omitempty"`
 	PostPrompt    *AIPostPromptUpdate `json:"post_prompt,omitempty"`
-	PostPromptUrl *string             `json:"post_prompt_url,omitempty"`
+	PostPromptURL *string             `json:"post_prompt_url,omitempty"`
 	Pronounce     []Pronounce         `json:"pronounce,omitempty"`
 	Prompt        *AIPromptUpdate     `json:"prompt,omitempty"`
 	SWAIG         *SWAIGUpdate        `json:"SWAIG,omitempty"`
-	AgentId       *Uuid               `json:"agent_id,omitempty"`
+	AgentID       *Uuid               `json:"agent_id,omitempty"`
 	Name          *string             `json:"name,omitempty"`
 }
 
@@ -109,7 +109,7 @@ type AIObject struct {
 	Languages     []Languages    `json:"languages,omitempty"`
 	Params        *AIParams      `json:"params,omitempty"`
 	PostPrompt    *AIPostPrompt  `json:"post_prompt,omitempty"`
-	PostPromptUrl *string        `json:"post_prompt_url,omitempty"`
+	PostPromptURL *string        `json:"post_prompt_url,omitempty"`
 	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
 	Prompt        AIPrompt       `json:"prompt,omitempty"`
 	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
@@ -138,10 +138,10 @@ type AIParams struct {
 	BargeFunctions            any                   `json:"barge_functions,omitempty"`
 	Conscience                *string               `json:"conscience,omitempty"`
 	Convo                     []ConversationMessage `json:"convo,omitempty"`
-	ConversationId            *string               `json:"conversation_id,omitempty"`
+	ConversationID            *string               `json:"conversation_id,omitempty"`
 	ConversationSlidingWindow any                   `json:"conversation_sliding_window,omitempty"`
 	DebugWebhookLevel         any                   `json:"debug_webhook_level,omitempty"`
-	DebugWebhookUrl           *string               `json:"debug_webhook_url,omitempty"`
+	DebugWebhookURL           *string               `json:"debug_webhook_url,omitempty"`
 	Debug                     any                   `json:"debug,omitempty"`
 	Direction                 any                   `json:"direction,omitempty"`
 	DigitTerminators          *string               `json:"digit_terminators,omitempty"`
@@ -314,7 +314,7 @@ type AmazonBedrockObject struct {
 	GlobalData    map[string]any     `json:"global_data,omitempty"`
 	Params        *BedrockParams     `json:"params,omitempty"`
 	PostPrompt    *BedrockPostPrompt `json:"post_prompt,omitempty"`
-	PostPromptUrl *string            `json:"post_prompt_url,omitempty"`
+	PostPromptURL *string            `json:"post_prompt_url,omitempty"`
 	Prompt        BedrockPrompt      `json:"prompt,omitempty"`
 	SWAIG         *BedrockSWAIG      `json:"SWAIG,omitempty"`
 }
@@ -330,8 +330,8 @@ type AnyOfProperty struct {
 type ArrayProperty struct {
 	Description *string          `json:"description,omitempty"`
 	Nullable    any              `json:"nullable,omitempty"`
-	Type_       string           `json:"type,omitempty"`
-	Default_    []map[string]any `json:"default,omitempty"`
+	Type        string           `json:"type,omitempty"`
+	Default     []map[string]any `json:"default,omitempty"`
 	Items       SchemaType       `json:"items,omitempty"`
 }
 
@@ -367,19 +367,19 @@ type BedrockSWAIGFunction any
 type BooleanProperty struct {
 	Description *string `json:"description,omitempty"`
 	Nullable    any     `json:"nullable,omitempty"`
-	Type_       string  `json:"type,omitempty"`
-	Default_    any     `json:"default,omitempty"`
+	Type        string  `json:"type,omitempty"`
+	Default     any     `json:"default,omitempty"`
 }
 
 type CXMLScript struct {
-	Id                   Uuid   `json:"id,omitempty"`
+	ID                   Uuid   `json:"id,omitempty"`
 	Contents             string `json:"contents,omitempty"`
 	RequestCount         int    `json:"request_count,omitempty"`
 	LastAccessedAt       any    `json:"last_accessed_at,omitempty"`
-	RequestUrl           string `json:"request_url,omitempty"`
+	RequestURL           string `json:"request_url,omitempty"`
 	ScriptType           string `json:"script_type,omitempty"`
 	DisplayName          string `json:"display_name,omitempty"`
-	StatusCallbackUrl    any    `json:"status_callback_url,omitempty"`
+	StatusCallbackURL    any    `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod any    `json:"status_callback_method,omitempty"`
 }
 
@@ -398,7 +398,7 @@ type CXMLScriptAddressPaginationResponse struct {
 type CXMLScriptCreateRequest struct {
 	DisplayName          string  `json:"display_name,omitempty"`
 	Contents             string  `json:"contents,omitempty"`
-	StatusCallbackUrl    *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod any     `json:"status_callback_method,omitempty"`
 }
 
@@ -412,10 +412,10 @@ type CXMLScriptListResponse struct {
 }
 
 type CXMLScriptResponse struct {
-	Id         Uuid       `json:"id,omitempty"`
-	ProjectId  Uuid       `json:"project_id,omitempty"`
+	ID         Uuid       `json:"id,omitempty"`
+	ProjectID  Uuid       `json:"project_id,omitempty"`
 	Name       string     `json:"name,omitempty"`
-	Type_      string     `json:"type,omitempty"`
+	Type       string     `json:"type,omitempty"`
 	CreatedAt  string     `json:"created_at,omitempty"`
 	UpdatedAt  string     `json:"updated_at,omitempty"`
 	CxmlScript CXMLScript `json:"cxml_script,omitempty"`
@@ -424,7 +424,7 @@ type CXMLScriptResponse struct {
 type CXMLScriptUpdateRequest struct {
 	DisplayName          *string `json:"display_name,omitempty"`
 	Contents             *string `json:"contents,omitempty"`
-	StatusCallbackUrl    *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod any     `json:"status_callback_method,omitempty"`
 }
 
@@ -433,14 +433,14 @@ type CXMLScriptUpdateStatusCode422 struct {
 }
 
 type CXMLWebhook struct {
-	Id                    Uuid        `json:"id,omitempty"`
+	ID                    Uuid        `json:"id,omitempty"`
 	Name                  string      `json:"name,omitempty"`
 	UsedFor               UsedForType `json:"used_for,omitempty"`
-	PrimaryRequestUrl     string      `json:"primary_request_url,omitempty"`
+	PrimaryRequestURL     string      `json:"primary_request_url,omitempty"`
 	PrimaryRequestMethod  any         `json:"primary_request_method,omitempty"`
-	FallbackRequestUrl    any         `json:"fallback_request_url,omitempty"`
+	FallbackRequestURL    any         `json:"fallback_request_url,omitempty"`
 	FallbackRequestMethod any         `json:"fallback_request_method,omitempty"`
-	StatusCallbackUrl     any         `json:"status_callback_url,omitempty"`
+	StatusCallbackURL     any         `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod  any         `json:"status_callback_method,omitempty"`
 }
 
@@ -459,11 +459,11 @@ type CXMLWebhookAddressPaginationResponse struct {
 type CXMLWebhookCreateRequest struct {
 	Name                  *string      `json:"name,omitempty"`
 	UsedFor               *UsedForType `json:"used_for,omitempty"`
-	PrimaryRequestUrl     string       `json:"primary_request_url,omitempty"`
+	PrimaryRequestURL     string       `json:"primary_request_url,omitempty"`
 	PrimaryRequestMethod  any          `json:"primary_request_method,omitempty"`
-	FallbackRequestUrl    *string      `json:"fallback_request_url,omitempty"`
+	FallbackRequestURL    *string      `json:"fallback_request_url,omitempty"`
 	FallbackRequestMethod any          `json:"fallback_request_method,omitempty"`
-	StatusCallbackUrl     *string      `json:"status_callback_url,omitempty"`
+	StatusCallbackURL     *string      `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod  any          `json:"status_callback_method,omitempty"`
 }
 
@@ -484,10 +484,10 @@ type CXMLWebhookPaginationResponse struct {
 }
 
 type CXMLWebhookResponse struct {
-	Id          Uuid        `json:"id,omitempty"`
-	ProjectId   Uuid        `json:"project_id,omitempty"`
+	ID          Uuid        `json:"id,omitempty"`
+	ProjectID   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
-	Type_       string      `json:"type,omitempty"`
+	Type        string      `json:"type,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
 	UpdatedAt   string      `json:"updated_at,omitempty"`
 	CxmlWebhook CXMLWebhook `json:"cxml_webhook,omitempty"`
@@ -496,11 +496,11 @@ type CXMLWebhookResponse struct {
 type CXMLWebhookUpdateRequest struct {
 	Name                  *string      `json:"name,omitempty"`
 	UsedFor               *UsedForType `json:"used_for,omitempty"`
-	PrimaryRequestUrl     *string      `json:"primary_request_url,omitempty"`
+	PrimaryRequestURL     *string      `json:"primary_request_url,omitempty"`
 	PrimaryRequestMethod  any          `json:"primary_request_method,omitempty"`
-	FallbackRequestUrl    *string      `json:"fallback_request_url,omitempty"`
+	FallbackRequestURL    *string      `json:"fallback_request_url,omitempty"`
 	FallbackRequestMethod any          `json:"fallback_request_method,omitempty"`
-	StatusCallbackUrl     *string      `json:"status_callback_url,omitempty"`
+	StatusCallbackURL     *string      `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod  any          `json:"status_callback_method,omitempty"`
 }
 
@@ -509,7 +509,7 @@ type CXMLWebhookUpdateStatusCode422 struct {
 }
 
 type CallFlow struct {
-	Id              Uuid    `json:"id,omitempty"`
+	ID              Uuid    `json:"id,omitempty"`
 	Title           string  `json:"title,omitempty"`
 	FlowData        *string `json:"flow_data,omitempty"`
 	Relayml         *string `json:"relayml,omitempty"`
@@ -542,10 +542,10 @@ type CallFlowListResponse struct {
 }
 
 type CallFlowResponse struct {
-	Id          Uuid     `json:"id,omitempty"`
-	ProjectId   Uuid     `json:"project_id,omitempty"`
+	ID          Uuid     `json:"id,omitempty"`
+	ProjectID   Uuid     `json:"project_id,omitempty"`
 	DisplayName string   `json:"display_name,omitempty"`
-	Type_       string   `json:"type,omitempty"`
+	Type        string   `json:"type,omitempty"`
 	CreatedAt   string   `json:"created_at,omitempty"`
 	UpdatedAt   string   `json:"updated_at,omitempty"`
 	CallFlow    CallFlow `json:"call_flow,omitempty"`
@@ -561,7 +561,7 @@ type CallFlowUpdateStatusCode422 struct {
 }
 
 type CallFlowVersion struct {
-	Id        Uuid    `json:"id,omitempty"`
+	ID        Uuid    `json:"id,omitempty"`
 	Version   string  `json:"version,omitempty"`
 	CreatedAt string  `json:"created_at,omitempty"`
 	UpdatedAt string  `json:"updated_at,omitempty"`
@@ -574,13 +574,13 @@ type CallFlowVersionDeployByDocumentVersion struct {
 }
 
 type CallFlowVersionDeployByVersionId struct {
-	CallFlowVersionId Uuid `json:"call_flow_version_id,omitempty"`
+	CallFlowVersionID Uuid `json:"call_flow_version_id,omitempty"`
 }
 
 type CallFlowVersionDeployRequest any
 
 type CallFlowVersionDeployResponse struct {
-	Id              Uuid    `json:"id,omitempty"`
+	ID              Uuid    `json:"id,omitempty"`
 	CreatedAt       string  `json:"created_at,omitempty"`
 	UpdatedAt       string  `json:"updated_at,omitempty"`
 	DocumentVersion int     `json:"document_version,omitempty"`
@@ -653,19 +653,19 @@ type Cond struct {
 }
 
 type CondElse struct {
-	Else_ []SWMLMethod `json:"else,omitempty"`
+	Else []SWMLMethod `json:"else,omitempty"`
 }
 
 type CondParams any
 
 type CondReg struct {
-	When  string       `json:"when,omitempty"`
-	Then  []SWMLMethod `json:"then,omitempty"`
-	Else_ []SWMLMethod `json:"else,omitempty"`
+	When string       `json:"when,omitempty"`
+	Then []SWMLMethod `json:"then,omitempty"`
+	Else []SWMLMethod `json:"else,omitempty"`
 }
 
 type ConferenceRoom struct {
-	Id                        Uuid           `json:"id,omitempty"`
+	ID                        Uuid           `json:"id,omitempty"`
 	Name                      string         `json:"name,omitempty"`
 	Description               string         `json:"description,omitempty"`
 	DisplayName               string         `json:"display_name,omitempty"`
@@ -729,10 +729,10 @@ type ConferenceRoomListResponse struct {
 }
 
 type ConferenceRoomResponse struct {
-	Id             Uuid           `json:"id,omitempty"`
-	ProjectId      Uuid           `json:"project_id,omitempty"`
+	ID             Uuid           `json:"id,omitempty"`
+	ProjectID      Uuid           `json:"project_id,omitempty"`
 	DisplayName    string         `json:"display_name,omitempty"`
-	Type_          string         `json:"type,omitempty"`
+	Type           string         `json:"type,omitempty"`
 	CreatedAt      string         `json:"created_at,omitempty"`
 	UpdatedAt      string         `json:"updated_at,omitempty"`
 	ConferenceRoom ConferenceRoom `json:"conference_room,omitempty"`
@@ -782,10 +782,10 @@ type ConnectDeviceParallel struct {
 	Username            *string               `json:"username,omitempty"`
 	Password            *string               `json:"password,omitempty"`
 	Encryption          *string               `json:"encryption,omitempty"`
-	CallStateUrl        *string               `json:"call_state_url,omitempty"`
+	CallStateURL        *string               `json:"call_state_url,omitempty"`
 	TransferAfterBridge any                   `json:"transfer_after_bridge,omitempty"`
 	CallStateEvents     []CallStatus          `json:"call_state_events,omitempty"`
-	StatusUrl           *string               `json:"status_url,omitempty"`
+	StatusURL           *string               `json:"status_url,omitempty"`
 	Parallel            []ConnectDeviceSingle `json:"parallel,omitempty"`
 }
 
@@ -805,10 +805,10 @@ type ConnectDeviceSerial struct {
 	Username            *string               `json:"username,omitempty"`
 	Password            *string               `json:"password,omitempty"`
 	Encryption          *string               `json:"encryption,omitempty"`
-	CallStateUrl        *string               `json:"call_state_url,omitempty"`
+	CallStateURL        *string               `json:"call_state_url,omitempty"`
 	TransferAfterBridge any                   `json:"transfer_after_bridge,omitempty"`
 	CallStateEvents     []CallStatus          `json:"call_state_events,omitempty"`
-	StatusUrl           *string               `json:"status_url,omitempty"`
+	StatusURL           *string               `json:"status_url,omitempty"`
 	Serial              []ConnectDeviceSingle `json:"serial,omitempty"`
 }
 
@@ -828,10 +828,10 @@ type ConnectDeviceSerialParallel struct {
 	Username            *string                 `json:"username,omitempty"`
 	Password            *string                 `json:"password,omitempty"`
 	Encryption          *string                 `json:"encryption,omitempty"`
-	CallStateUrl        *string                 `json:"call_state_url,omitempty"`
+	CallStateURL        *string                 `json:"call_state_url,omitempty"`
 	TransferAfterBridge any                     `json:"transfer_after_bridge,omitempty"`
 	CallStateEvents     []CallStatus            `json:"call_state_events,omitempty"`
-	StatusUrl           *string                 `json:"status_url,omitempty"`
+	StatusURL           *string                 `json:"status_url,omitempty"`
 	SerialParallel      [][]ConnectDeviceSingle `json:"serial_parallel,omitempty"`
 }
 
@@ -851,15 +851,15 @@ type ConnectDeviceSingle struct {
 	Username                 *string          `json:"username,omitempty"`
 	Password                 *string          `json:"password,omitempty"`
 	Encryption               *string          `json:"encryption,omitempty"`
-	CallStateUrl             *string          `json:"call_state_url,omitempty"`
+	CallStateURL             *string          `json:"call_state_url,omitempty"`
 	TransferAfterBridge      any              `json:"transfer_after_bridge,omitempty"`
 	CallStateEvents          []CallStatus     `json:"call_state_events,omitempty"`
-	StatusUrl                *string          `json:"status_url,omitempty"`
+	StatusURL                *string          `json:"status_url,omitempty"`
 	To                       string           `json:"to,omitempty"`
 	Name                     *string          `json:"name,omitempty"`
 	Codec                    *string          `json:"codec,omitempty"`
 	Realtime                 any              `json:"realtime,omitempty"`
-	StatusUrlMethod          *string          `json:"status_url_method,omitempty"`
+	StatusURLMethod          *string          `json:"status_url_method,omitempty"`
 	AuthorizationBearerToken *string          `json:"authorization_bearer_token,omitempty"`
 	CustomParameters         map[string]any   `json:"custom_parameters,omitempty"`
 }
@@ -871,12 +871,12 @@ type ConnectHeaders struct {
 
 type ConnectSwitch struct {
 	Variable *string        `json:"variable,omitempty"`
-	Case_    map[string]any `json:"case,omitempty"`
-	Default_ []SWMLMethod   `json:"default,omitempty"`
+	Case     map[string]any `json:"case,omitempty"`
+	Default  []SWMLMethod   `json:"default,omitempty"`
 }
 
 type ConstProperty struct {
-	Const_ map[string]any `json:"const,omitempty"`
+	Const map[string]any `json:"const,omitempty"`
 }
 
 type ContextPOMSteps struct {
@@ -908,7 +908,7 @@ type ContextTextSteps struct {
 }
 
 type Contexts struct {
-	Default_ ContextsObject `json:"default,omitempty"`
+	Default ContextsObject `json:"default,omitempty"`
 }
 
 type ContextsObject any
@@ -948,7 +948,7 @@ type ContextsTextObjectUpdate struct {
 }
 
 type ContextsUpdate struct {
-	Default_ *ContextsObjectUpdate `json:"default,omitempty"`
+	Default *ContextsObjectUpdate `json:"default,omitempty"`
 }
 
 type ConversationMessage struct {
@@ -968,18 +968,18 @@ const (
 type CustomTranslationFilter string
 
 type CxmlApplication struct {
-	Id                      Uuid   `json:"id,omitempty"`
-	ProjectId               Uuid   `json:"project_id,omitempty"`
+	ID                      Uuid   `json:"id,omitempty"`
+	ProjectID               Uuid   `json:"project_id,omitempty"`
 	FriendlyName            string `json:"friendly_name,omitempty"`
-	VoiceUrl                any    `json:"voice_url,omitempty"`
+	VoiceURL                any    `json:"voice_url,omitempty"`
 	VoiceMethod             any    `json:"voice_method,omitempty"`
-	VoiceFallbackUrl        any    `json:"voice_fallback_url,omitempty"`
+	VoiceFallbackURL        any    `json:"voice_fallback_url,omitempty"`
 	VoiceFallbackMethod     any    `json:"voice_fallback_method,omitempty"`
 	StatusCallback          any    `json:"status_callback,omitempty"`
 	StatusCallbackMethod    any    `json:"status_callback_method,omitempty"`
-	SmsUrl                  any    `json:"sms_url,omitempty"`
+	SmsURL                  any    `json:"sms_url,omitempty"`
 	SmsMethod               any    `json:"sms_method,omitempty"`
-	SmsFallbackUrl          any    `json:"sms_fallback_url,omitempty"`
+	SmsFallbackURL          any    `json:"sms_fallback_url,omitempty"`
 	SmsFallbackMethod       any    `json:"sms_fallback_method,omitempty"`
 	SmsStatusCallback       any    `json:"sms_status_callback,omitempty"`
 	SmsStatusCallbackMethod any    `json:"sms_status_callback_method,omitempty"`
@@ -1010,10 +1010,10 @@ type CxmlApplicationPaginationResponse struct {
 }
 
 type CxmlApplicationResponse struct {
-	Id              Uuid            `json:"id,omitempty"`
-	ProjectId       Uuid            `json:"project_id,omitempty"`
+	ID              Uuid            `json:"id,omitempty"`
+	ProjectID       Uuid            `json:"project_id,omitempty"`
 	DisplayName     string          `json:"display_name,omitempty"`
-	Type_           string          `json:"type,omitempty"`
+	Type            string          `json:"type,omitempty"`
 	CreatedAt       string          `json:"created_at,omitempty"`
 	UpdatedAt       string          `json:"updated_at,omitempty"`
 	CxmlApplication CxmlApplication `json:"cxml_application,omitempty"`
@@ -1022,15 +1022,15 @@ type CxmlApplicationResponse struct {
 type CxmlApplicationUpdateRequest struct {
 	DisplayName             *string `json:"display_name,omitempty"`
 	AccountSid              *Uuid   `json:"account_sid,omitempty"`
-	VoiceUrl                *string `json:"voice_url,omitempty"`
+	VoiceURL                *string `json:"voice_url,omitempty"`
 	VoiceMethod             any     `json:"voice_method,omitempty"`
-	VoiceFallbackUrl        *string `json:"voice_fallback_url,omitempty"`
+	VoiceFallbackURL        *string `json:"voice_fallback_url,omitempty"`
 	VoiceFallbackMethod     any     `json:"voice_fallback_method,omitempty"`
 	StatusCallback          *string `json:"status_callback,omitempty"`
 	StatusCallbackMethod    any     `json:"status_callback_method,omitempty"`
-	SmsUrl                  *string `json:"sms_url,omitempty"`
+	SmsURL                  *string `json:"sms_url,omitempty"`
 	SmsMethod               any     `json:"sms_method,omitempty"`
-	SmsFallbackUrl          *string `json:"sms_fallback_url,omitempty"`
+	SmsFallbackURL          *string `json:"sms_fallback_url,omitempty"`
 	SmsFallbackMethod       any     `json:"sms_fallback_method,omitempty"`
 	SmsStatusCallback       *string `json:"sms_status_callback,omitempty"`
 	SmsStatusCallbackMethod any     `json:"sms_status_callback_method,omitempty"`
@@ -1062,12 +1062,12 @@ type DialogFlowPaginationResponse struct {
 }
 
 type DialogflowAgent struct {
-	Id                      Uuid    `json:"id,omitempty"`
+	ID                      Uuid    `json:"id,omitempty"`
 	SayEnabled              *bool   `json:"say_enabled,omitempty"`
 	Say                     *string `json:"say,omitempty"`
 	Voice                   *string `json:"voice,omitempty"`
 	DisplayName             *string `json:"display_name,omitempty"`
-	DialogflowReferenceId   *Uuid   `json:"dialogflow_reference_id,omitempty"`
+	DialogflowReferenceID   *Uuid   `json:"dialogflow_reference_id,omitempty"`
 	DialogflowReferenceName *string `json:"dialogflow_reference_name,omitempty"`
 }
 
@@ -1089,10 +1089,10 @@ type DialogflowAgentListResponse struct {
 }
 
 type DialogflowAgentResponse struct {
-	Id              Uuid            `json:"id,omitempty"`
-	ProjectId       Uuid            `json:"project_id,omitempty"`
+	ID              Uuid            `json:"id,omitempty"`
+	ProjectID       Uuid            `json:"project_id,omitempty"`
 	DisplayName     string          `json:"display_name,omitempty"`
-	Type_           string          `json:"type,omitempty"`
+	Type            string          `json:"type,omitempty"`
 	CreatedAt       string          `json:"created_at,omitempty"`
 	UpdatedAt       string          `json:"updated_at,omitempty"`
 	DialogflowAgent DialogflowAgent `json:"dialogflow_agent,omitempty"`
@@ -1126,7 +1126,7 @@ const (
 )
 
 type DomainApplicationAssignRequest struct {
-	DomainApplicationId Uuid `json:"domain_application_id,omitempty"`
+	DomainApplicationID Uuid `json:"domain_application_id,omitempty"`
 }
 
 type DomainApplicationCreateStatusCode422 struct {
@@ -1160,8 +1160,8 @@ type EnterQueue struct {
 type EnterQueueObject struct {
 	QueueName           string  `json:"queue_name,omitempty"`
 	TransferAfterBridge any     `json:"transfer_after_bridge,omitempty"`
-	StatusUrl           *string `json:"status_url,omitempty"`
-	WaitUrl             any     `json:"wait_url,omitempty"`
+	StatusURL           *string `json:"status_url,omitempty"`
+	WaitURL             any     `json:"wait_url,omitempty"`
 	WaitTime            any     `json:"wait_time,omitempty"`
 }
 
@@ -1171,8 +1171,8 @@ type Execute struct {
 
 type ExecuteSwitch struct {
 	Variable *string        `json:"variable,omitempty"`
-	Case_    map[string]any `json:"case,omitempty"`
-	Default_ []SWMLMethod   `json:"default,omitempty"`
+	Case     map[string]any `json:"case,omitempty"`
+	Default  []SWMLMethod   `json:"default,omitempty"`
 }
 
 type Expression struct {
@@ -1182,39 +1182,39 @@ type Expression struct {
 }
 
 type FabricAddress struct {
-	Id          Uuid           `json:"id,omitempty"`
+	ID          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
-	CoverUrl    string         `json:"cover_url,omitempty"`
-	PreviewUrl  string         `json:"preview_url,omitempty"`
+	CoverURL    string         `json:"cover_url,omitempty"`
+	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
 	CreatedAt   string         `json:"created_at,omitempty"`
-	Type_       DisplayTypes   `json:"type,omitempty"`
+	Type        DisplayTypes   `json:"type,omitempty"`
 }
 
 type FabricAddressApp struct {
-	Id          Uuid           `json:"id,omitempty"`
+	ID          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
-	CoverUrl    string         `json:"cover_url,omitempty"`
-	PreviewUrl  string         `json:"preview_url,omitempty"`
+	CoverURL    string         `json:"cover_url,omitempty"`
+	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
 	CreatedAt   string         `json:"created_at,omitempty"`
-	Type_       string         `json:"type,omitempty"`
+	Type        string         `json:"type,omitempty"`
 }
 
 type FabricAddressCall struct {
-	Id          Uuid           `json:"id,omitempty"`
+	ID          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
-	CoverUrl    string         `json:"cover_url,omitempty"`
-	PreviewUrl  string         `json:"preview_url,omitempty"`
+	CoverURL    string         `json:"cover_url,omitempty"`
+	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
 	CreatedAt   string         `json:"created_at,omitempty"`
-	Type_       string         `json:"type,omitempty"`
+	Type        string         `json:"type,omitempty"`
 }
 
 type FabricAddressPaginationResponse struct {
@@ -1225,27 +1225,27 @@ type FabricAddressPaginationResponse struct {
 }
 
 type FabricAddressRoom struct {
-	Id          Uuid           `json:"id,omitempty"`
+	ID          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
-	CoverUrl    string         `json:"cover_url,omitempty"`
-	PreviewUrl  string         `json:"preview_url,omitempty"`
+	CoverURL    string         `json:"cover_url,omitempty"`
+	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
 	CreatedAt   string         `json:"created_at,omitempty"`
-	Type_       string         `json:"type,omitempty"`
+	Type        string         `json:"type,omitempty"`
 }
 
 type FabricAddressSubscriber struct {
-	Id          Uuid           `json:"id,omitempty"`
+	ID          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
-	CoverUrl    string         `json:"cover_url,omitempty"`
-	PreviewUrl  string         `json:"preview_url,omitempty"`
+	CoverURL    string         `json:"cover_url,omitempty"`
+	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
 	CreatedAt   string         `json:"created_at,omitempty"`
-	Type_       string         `json:"type,omitempty"`
+	Type        string         `json:"type,omitempty"`
 }
 
 type FabricAddressesResponse struct {
@@ -1261,9 +1261,9 @@ type FreeswitchConectorPaginationResponse struct {
 }
 
 type FreeswitchConnector struct {
-	Id       Uuid    `json:"id,omitempty"`
+	ID       Uuid    `json:"id,omitempty"`
 	Name     *string `json:"name,omitempty"`
-	CallerId any     `json:"caller_id,omitempty"`
+	CallerID any     `json:"caller_id,omitempty"`
 	SendAs   any     `json:"send_as,omitempty"`
 }
 
@@ -1294,10 +1294,10 @@ type FreeswitchConnectorListResponse struct {
 }
 
 type FreeswitchConnectorResponse struct {
-	Id                  Uuid                `json:"id,omitempty"`
-	ProjectId           Uuid                `json:"project_id,omitempty"`
+	ID                  Uuid                `json:"id,omitempty"`
+	ProjectID           Uuid                `json:"project_id,omitempty"`
 	DisplayName         string              `json:"display_name,omitempty"`
-	Type_               string              `json:"type,omitempty"`
+	Type                string              `json:"type,omitempty"`
 	CreatedAt           string              `json:"created_at,omitempty"`
 	UpdatedAt           string              `json:"updated_at,omitempty"`
 	FreeswitchConnector FreeswitchConnector `json:"freeswitch_connector,omitempty"`
@@ -1305,7 +1305,7 @@ type FreeswitchConnectorResponse struct {
 
 type FreeswitchConnectorUpdateRequest struct {
 	Name     *string `json:"name,omitempty"`
-	CallerId *string `json:"caller_id,omitempty"`
+	CallerID *string `json:"caller_id,omitempty"`
 	SendAs   *string `json:"send_as,omitempty"`
 }
 
@@ -1318,13 +1318,13 @@ type FunctionFillers any
 type FunctionFillersUpdate any
 
 type FunctionParameters struct {
-	Type_      string         `json:"type,omitempty"`
+	Type       string         `json:"type,omitempty"`
 	Properties map[string]any `json:"properties,omitempty"`
 	Required   []string       `json:"required,omitempty"`
 }
 
 type Goto struct {
-	Goto_ map[string]any `json:"goto,omitempty"`
+	Goto map[string]any `json:"goto,omitempty"`
 }
 
 type GuestTokenCreateStatusCode422 struct {
@@ -1342,7 +1342,7 @@ type HangUpHookSWAIGFunction struct {
 	MetaDataToken  *string             `json:"meta_data_token,omitempty"`
 	DataMap        *DataMap            `json:"data_map,omitempty"`
 	SkipFillers    any                 `json:"skip_fillers,omitempty"`
-	WebHookUrl     *string             `json:"web_hook_url,omitempty"`
+	WebHookURL     *string             `json:"web_hook_url,omitempty"`
 	WaitFile       *string             `json:"wait_file,omitempty"`
 	WaitFileLoops  any                 `json:"wait_file_loops,omitempty"`
 	WaitForFillers any                 `json:"wait_for_fillers,omitempty"`
@@ -1375,9 +1375,9 @@ type InjectAction struct {
 type IntegerProperty struct {
 	Description *string `json:"description,omitempty"`
 	Nullable    any     `json:"nullable,omitempty"`
-	Type_       string  `json:"type,omitempty"`
+	Type        string  `json:"type,omitempty"`
 	Enum        []int   `json:"enum,omitempty"`
-	Default_    any     `json:"default,omitempty"`
+	Default     any     `json:"default,omitempty"`
 }
 
 type InviteTokenCreateStatusCode422 struct {
@@ -1394,7 +1394,7 @@ type JoinConferenceObject struct {
 	Beep                          *string `json:"beep,omitempty"`
 	StartOnEnter                  any     `json:"start_on_enter,omitempty"`
 	EndOnExit                     any     `json:"end_on_exit,omitempty"`
-	WaitUrl                       any     `json:"wait_url,omitempty"`
+	WaitURL                       any     `json:"wait_url,omitempty"`
 	MaxParticipants               any     `json:"max_participants,omitempty"`
 	Record                        *string `json:"record,omitempty"`
 	Region                        *string `json:"region,omitempty"`
@@ -1480,23 +1480,23 @@ type MessagingChannel struct {
 }
 
 type NullProperty struct {
-	Type_       string `json:"type,omitempty"`
+	Type        string `json:"type,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
 type NumberProperty struct {
 	Description *string `json:"description,omitempty"`
 	Nullable    any     `json:"nullable,omitempty"`
-	Type_       string  `json:"type,omitempty"`
+	Type        string  `json:"type,omitempty"`
 	Enum        any     `json:"enum,omitempty"`
-	Default_    any     `json:"default,omitempty"`
+	Default     any     `json:"default,omitempty"`
 }
 
 type ObjectProperty struct {
 	Description *string        `json:"description,omitempty"`
 	Nullable    any            `json:"nullable,omitempty"`
-	Type_       string         `json:"type,omitempty"`
-	Default_    map[string]any `json:"default,omitempty"`
+	Type        string         `json:"type,omitempty"`
+	Default     map[string]any `json:"default,omitempty"`
 	Properties  map[string]any `json:"properties,omitempty"`
 	Required    []string       `json:"required,omitempty"`
 }
@@ -1524,25 +1524,25 @@ type PayParameters struct {
 type PayPromptAction any
 
 type PayPromptPlayAction struct {
-	Type_  string `json:"type,omitempty"`
+	Type   string `json:"type,omitempty"`
 	Phrase string `json:"phrase,omitempty"`
 }
 
 type PayPromptSayAction struct {
-	Type_  string `json:"type,omitempty"`
+	Type   string `json:"type,omitempty"`
 	Phrase string `json:"phrase,omitempty"`
 }
 
 type PayPrompts struct {
 	Actions   []PayPromptAction `json:"actions,omitempty"`
-	For_      string            `json:"for,omitempty"`
+	For       string            `json:"for,omitempty"`
 	Attempts  *string           `json:"attempts,omitempty"`
 	CardType  *string           `json:"card_type,omitempty"`
 	ErrorType *string           `json:"error_type,omitempty"`
 }
 
 type PhoneRouteAssignRequest struct {
-	PhoneRouteId Uuid        `json:"phone_route_id,omitempty"`
+	PhoneRouteID Uuid        `json:"phone_route_id,omitempty"`
 	Handler      UsedForType `json:"handler,omitempty"`
 }
 
@@ -1551,15 +1551,15 @@ type PhoneRouteCreateStatusCode422 struct {
 }
 
 type PhoneRouteResponse struct {
-	Id          Uuid           `json:"id,omitempty"`
+	ID          Uuid           `json:"id,omitempty"`
 	Name        string         `json:"name,omitempty"`
 	DisplayName string         `json:"display_name,omitempty"`
-	CoverUrl    string         `json:"cover_url,omitempty"`
-	PreviewUrl  string         `json:"preview_url,omitempty"`
+	CoverURL    string         `json:"cover_url,omitempty"`
+	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
 	CreatedAt   string         `json:"created_at,omitempty"`
-	Type_       string         `json:"type,omitempty"`
+	Type        string         `json:"type,omitempty"`
 }
 
 type Play struct {
@@ -1572,8 +1572,8 @@ type PlayWithURL struct {
 	SayVoice    *string `json:"say_voice,omitempty"`
 	SayLanguage *string `json:"say_language,omitempty"`
 	SayGender   *string `json:"say_gender,omitempty"`
-	StatusUrl   *string `json:"status_url,omitempty"`
-	Url         any     `json:"url,omitempty"`
+	StatusURL   *string `json:"status_url,omitempty"`
+	URL         any     `json:"url,omitempty"`
 }
 
 type PlayWithURLS struct {
@@ -1582,7 +1582,7 @@ type PlayWithURLS struct {
 	SayVoice    *string `json:"say_voice,omitempty"`
 	SayLanguage *string `json:"say_language,omitempty"`
 	SayGender   *string `json:"say_gender,omitempty"`
-	StatusUrl   *string `json:"status_url,omitempty"`
+	StatusURL   *string `json:"status_url,omitempty"`
 	Urls        any     `json:"urls,omitempty"`
 }
 
@@ -1635,10 +1635,10 @@ type RefreshTokenStatusCode422 struct {
 }
 
 type RelayApplication struct {
-	Id                    Uuid   `json:"id,omitempty"`
+	ID                    Uuid   `json:"id,omitempty"`
 	Name                  string `json:"name,omitempty"`
 	Topic                 string `json:"topic,omitempty"`
-	CallStatusCallbackUrl any    `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL any    `json:"call_status_callback_url,omitempty"`
 }
 
 type RelayApplicationAddressListResponse struct {
@@ -1656,7 +1656,7 @@ type RelayApplicationAddressPaginationResponse struct {
 type RelayApplicationCreateRequest struct {
 	Name                  string  `json:"name,omitempty"`
 	Topic                 string  `json:"topic,omitempty"`
-	CallStatusCallbackUrl *string `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL *string `json:"call_status_callback_url,omitempty"`
 }
 
 type RelayApplicationCreateStatusCode422 struct {
@@ -1669,10 +1669,10 @@ type RelayApplicationListResponse struct {
 }
 
 type RelayApplicationResponse struct {
-	Id               Uuid             `json:"id,omitempty"`
-	ProjectId        Uuid             `json:"project_id,omitempty"`
+	ID               Uuid             `json:"id,omitempty"`
+	ProjectID        Uuid             `json:"project_id,omitempty"`
 	DisplayName      string           `json:"display_name,omitempty"`
-	Type_            string           `json:"type,omitempty"`
+	Type             string           `json:"type,omitempty"`
 	CreatedAt        string           `json:"created_at,omitempty"`
 	UpdatedAt        string           `json:"updated_at,omitempty"`
 	RelayApplication RelayApplication `json:"relay_application,omitempty"`
@@ -1681,7 +1681,7 @@ type RelayApplicationResponse struct {
 type RelayApplicationUpdateRequest struct {
 	Name                  *string `json:"name,omitempty"`
 	Topic                 *string `json:"topic,omitempty"`
-	CallStatusCallbackUrl *string `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackURL *string `json:"call_status_callback_url,omitempty"`
 }
 
 type RelayApplicationUpdateStatusCode422 struct {
@@ -1719,147 +1719,147 @@ type ResourcePaginationResponse struct {
 type ResourceResponse any
 
 type ResourceResponseAI struct {
-	Id          Uuid    `json:"id,omitempty"`
-	ProjectId   Uuid    `json:"project_id,omitempty"`
+	ID          Uuid    `json:"id,omitempty"`
+	ProjectID   Uuid    `json:"project_id,omitempty"`
 	DisplayName string  `json:"display_name,omitempty"`
 	CreatedAt   string  `json:"created_at,omitempty"`
 	UpdatedAt   string  `json:"updated_at,omitempty"`
-	Type_       string  `json:"type,omitempty"`
+	Type        string  `json:"type,omitempty"`
 	AiAgent     AIAgent `json:"ai_agent,omitempty"`
 }
 
 type ResourceResponseCXMLApplication struct {
-	Id              Uuid            `json:"id,omitempty"`
-	ProjectId       Uuid            `json:"project_id,omitempty"`
+	ID              Uuid            `json:"id,omitempty"`
+	ProjectID       Uuid            `json:"project_id,omitempty"`
 	DisplayName     string          `json:"display_name,omitempty"`
 	CreatedAt       string          `json:"created_at,omitempty"`
 	UpdatedAt       string          `json:"updated_at,omitempty"`
-	Type_           string          `json:"type,omitempty"`
+	Type            string          `json:"type,omitempty"`
 	CxmlApplication CxmlApplication `json:"cxml_application,omitempty"`
 }
 
 type ResourceResponseCXMLScript struct {
-	Id          Uuid       `json:"id,omitempty"`
-	ProjectId   Uuid       `json:"project_id,omitempty"`
+	ID          Uuid       `json:"id,omitempty"`
+	ProjectID   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
-	Type_       string     `json:"type,omitempty"`
+	Type        string     `json:"type,omitempty"`
 	CxmlScript  CXMLScript `json:"cxml_script,omitempty"`
 }
 
 type ResourceResponseCXMLWebhook struct {
-	Id          Uuid        `json:"id,omitempty"`
-	ProjectId   Uuid        `json:"project_id,omitempty"`
+	ID          Uuid        `json:"id,omitempty"`
+	ProjectID   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
 	UpdatedAt   string      `json:"updated_at,omitempty"`
-	Type_       string      `json:"type,omitempty"`
+	Type        string      `json:"type,omitempty"`
 	CxmlWebhook CXMLWebhook `json:"cxml_webhook,omitempty"`
 }
 
 type ResourceResponseCallFlow struct {
-	Id          Uuid     `json:"id,omitempty"`
-	ProjectId   Uuid     `json:"project_id,omitempty"`
+	ID          Uuid     `json:"id,omitempty"`
+	ProjectID   Uuid     `json:"project_id,omitempty"`
 	DisplayName string   `json:"display_name,omitempty"`
 	CreatedAt   string   `json:"created_at,omitempty"`
 	UpdatedAt   string   `json:"updated_at,omitempty"`
-	Type_       string   `json:"type,omitempty"`
+	Type        string   `json:"type,omitempty"`
 	CallFlow    CallFlow `json:"call_flow,omitempty"`
 }
 
 type ResourceResponseConferenceRoom struct {
-	Id             Uuid           `json:"id,omitempty"`
-	ProjectId      Uuid           `json:"project_id,omitempty"`
+	ID             Uuid           `json:"id,omitempty"`
+	ProjectID      Uuid           `json:"project_id,omitempty"`
 	DisplayName    string         `json:"display_name,omitempty"`
 	CreatedAt      string         `json:"created_at,omitempty"`
 	UpdatedAt      string         `json:"updated_at,omitempty"`
-	Type_          string         `json:"type,omitempty"`
+	Type           string         `json:"type,omitempty"`
 	ConferenceRoom ConferenceRoom `json:"conference_room,omitempty"`
 }
 
 type ResourceResponseDialogFlowAgent struct {
-	Id              Uuid            `json:"id,omitempty"`
-	ProjectId       Uuid            `json:"project_id,omitempty"`
+	ID              Uuid            `json:"id,omitempty"`
+	ProjectID       Uuid            `json:"project_id,omitempty"`
 	DisplayName     string          `json:"display_name,omitempty"`
 	CreatedAt       string          `json:"created_at,omitempty"`
 	UpdatedAt       string          `json:"updated_at,omitempty"`
-	Type_           string          `json:"type,omitempty"`
+	Type            string          `json:"type,omitempty"`
 	DialogflowAgent DialogflowAgent `json:"dialogflow_agent,omitempty"`
 }
 
 type ResourceResponseFSConnector struct {
-	Id                  Uuid                `json:"id,omitempty"`
-	ProjectId           Uuid                `json:"project_id,omitempty"`
+	ID                  Uuid                `json:"id,omitempty"`
+	ProjectID           Uuid                `json:"project_id,omitempty"`
 	DisplayName         string              `json:"display_name,omitempty"`
 	CreatedAt           string              `json:"created_at,omitempty"`
 	UpdatedAt           string              `json:"updated_at,omitempty"`
-	Type_               string              `json:"type,omitempty"`
+	Type                string              `json:"type,omitempty"`
 	FreeswitchConnector FreeswitchConnector `json:"freeswitch_connector,omitempty"`
 }
 
 type ResourceResponseRelayApp struct {
-	Id               Uuid             `json:"id,omitempty"`
-	ProjectId        Uuid             `json:"project_id,omitempty"`
+	ID               Uuid             `json:"id,omitempty"`
+	ProjectID        Uuid             `json:"project_id,omitempty"`
 	DisplayName      string           `json:"display_name,omitempty"`
 	CreatedAt        string           `json:"created_at,omitempty"`
 	UpdatedAt        string           `json:"updated_at,omitempty"`
-	Type_            string           `json:"type,omitempty"`
+	Type             string           `json:"type,omitempty"`
 	RelayApplication RelayApplication `json:"relay_application,omitempty"`
 }
 
 type ResourceResponseSWMLScript struct {
-	Id          Uuid       `json:"id,omitempty"`
-	ProjectId   Uuid       `json:"project_id,omitempty"`
+	ID          Uuid       `json:"id,omitempty"`
+	ProjectID   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
-	Type_       string     `json:"type,omitempty"`
+	Type        string     `json:"type,omitempty"`
 	SwmlScript  SwmlScript `json:"swml_script,omitempty"`
 }
 
 type ResourceResponseSWMLWebhook struct {
-	Id          Uuid        `json:"id,omitempty"`
-	ProjectId   Uuid        `json:"project_id,omitempty"`
+	ID          Uuid        `json:"id,omitempty"`
+	ProjectID   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
 	UpdatedAt   string      `json:"updated_at,omitempty"`
-	Type_       string      `json:"type,omitempty"`
+	Type        string      `json:"type,omitempty"`
 	SwmlWebhook SWMLWebhook `json:"swml_webhook,omitempty"`
 }
 
 type ResourceResponseSipEndpoint struct {
-	Id          Uuid        `json:"id,omitempty"`
-	ProjectId   Uuid        `json:"project_id,omitempty"`
+	ID          Uuid        `json:"id,omitempty"`
+	ProjectID   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
 	UpdatedAt   string      `json:"updated_at,omitempty"`
-	Type_       string      `json:"type,omitempty"`
-	SipEndpoint SipEndpoint `json:"sip_endpoint,omitempty"`
+	Type        string      `json:"type,omitempty"`
+	SIPEndpoint SipEndpoint `json:"sip_endpoint,omitempty"`
 }
 
 type ResourceResponseSipGateway struct {
-	Id          Uuid       `json:"id,omitempty"`
-	ProjectId   Uuid       `json:"project_id,omitempty"`
+	ID          Uuid       `json:"id,omitempty"`
+	ProjectID   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
-	Type_       string     `json:"type,omitempty"`
-	SipGateway  SipGateway `json:"sip_gateway,omitempty"`
+	Type        string     `json:"type,omitempty"`
+	SIPGateway  SipGateway `json:"sip_gateway,omitempty"`
 }
 
 type ResourceResponseSubscriber struct {
-	Id          Uuid       `json:"id,omitempty"`
-	ProjectId   Uuid       `json:"project_id,omitempty"`
+	ID          Uuid       `json:"id,omitempty"`
+	ProjectID   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
-	Type_       string     `json:"type,omitempty"`
+	Type        string     `json:"type,omitempty"`
 	Subscriber  Subscriber `json:"subscriber,omitempty"`
 }
 
 type ResourceSipEndpointAssignRequest struct {
-	SipEndpointId Uuid `json:"sip_endpoint_id,omitempty"`
+	SIPEndpointID Uuid `json:"sip_endpoint_id,omitempty"`
 }
 
 type ResourceSipEndpointCreateStatusCode422 struct {
@@ -1867,11 +1867,11 @@ type ResourceSipEndpointCreateStatusCode422 struct {
 }
 
 type ResourceSipEndpointResponse struct {
-	Id         Uuid           `json:"id,omitempty"`
+	ID         Uuid           `json:"id,omitempty"`
 	Name       string         `json:"name,omitempty"`
-	Type_      string         `json:"type,omitempty"`
-	CoverUrl   any            `json:"cover_url,omitempty"`
-	PreviewUrl any            `json:"preview_url,omitempty"`
+	Type       string         `json:"type,omitempty"`
+	CoverURL   any            `json:"cover_url,omitempty"`
+	PreviewURL any            `json:"preview_url,omitempty"`
 	Channels   AddressChannel `json:"channels,omitempty"`
 }
 
@@ -1884,11 +1884,11 @@ type ResourceSubSipEndpointCreateStatusCode422 struct {
 }
 
 type Return struct {
-	Return_ map[string]any `json:"return,omitempty"`
+	Return map[string]any `json:"return,omitempty"`
 }
 
 type SIPRefer struct {
-	SipRefer map[string]any `json:"sip_refer,omitempty"`
+	SIPRefer map[string]any `json:"sip_refer,omitempty"`
 }
 
 type SMSWithBody struct {
@@ -1917,14 +1917,14 @@ type SWAIG struct {
 }
 
 type SWAIGDefaults struct {
-	WebHookUrl *string `json:"web_hook_url,omitempty"`
+	WebHookURL *string `json:"web_hook_url,omitempty"`
 }
 
 type SWAIGFunction any
 
 type SWAIGIncludes struct {
 	Functions []string       `json:"functions,omitempty"`
-	Url       string         `json:"url,omitempty"`
+	URL       string         `json:"url,omitempty"`
 	MetaData  map[string]any `json:"meta_data,omitempty"`
 }
 
@@ -1995,14 +1995,14 @@ type SWMLScriptAddressPaginationResponse struct {
 type SWMLVar string
 
 type SWMLWebhook struct {
-	Id                    Uuid   `json:"id,omitempty"`
+	ID                    Uuid   `json:"id,omitempty"`
 	Name                  string `json:"name,omitempty"`
 	UsedFor               string `json:"used_for,omitempty"`
-	PrimaryRequestUrl     string `json:"primary_request_url,omitempty"`
+	PrimaryRequestURL     string `json:"primary_request_url,omitempty"`
 	PrimaryRequestMethod  any    `json:"primary_request_method,omitempty"`
-	FallbackRequestUrl    any    `json:"fallback_request_url,omitempty"`
+	FallbackRequestURL    any    `json:"fallback_request_url,omitempty"`
 	FallbackRequestMethod any    `json:"fallback_request_method,omitempty"`
-	StatusCallbackUrl     any    `json:"status_callback_url,omitempty"`
+	StatusCallbackURL     any    `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod  any    `json:"status_callback_method,omitempty"`
 }
 
@@ -2021,11 +2021,11 @@ type SWMLWebhookAddressPaginationResponse struct {
 type SWMLWebhookCreateRequest struct {
 	Name                  *string `json:"name,omitempty"`
 	UsedFor               *string `json:"used_for,omitempty"`
-	PrimaryRequestUrl     string  `json:"primary_request_url,omitempty"`
+	PrimaryRequestURL     string  `json:"primary_request_url,omitempty"`
 	PrimaryRequestMethod  any     `json:"primary_request_method,omitempty"`
-	FallbackRequestUrl    *string `json:"fallback_request_url,omitempty"`
+	FallbackRequestURL    *string `json:"fallback_request_url,omitempty"`
 	FallbackRequestMethod any     `json:"fallback_request_method,omitempty"`
-	StatusCallbackUrl     *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL     *string `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod  any     `json:"status_callback_method,omitempty"`
 }
 
@@ -2042,10 +2042,10 @@ type SWMLWebhookPaginationResponse struct {
 }
 
 type SWMLWebhookResponse struct {
-	Id          Uuid        `json:"id,omitempty"`
-	ProjectId   Uuid        `json:"project_id,omitempty"`
+	ID          Uuid        `json:"id,omitempty"`
+	ProjectID   Uuid        `json:"project_id,omitempty"`
 	DisplayName string      `json:"display_name,omitempty"`
-	Type_       string      `json:"type,omitempty"`
+	Type        string      `json:"type,omitempty"`
 	CreatedAt   string      `json:"created_at,omitempty"`
 	UpdatedAt   string      `json:"updated_at,omitempty"`
 	SwmlWebhook SWMLWebhook `json:"swml_webhook,omitempty"`
@@ -2054,11 +2054,11 @@ type SWMLWebhookResponse struct {
 type SWMLWebhookUpdateRequest struct {
 	Name                  *string `json:"name,omitempty"`
 	UsedFor               *string `json:"used_for,omitempty"`
-	PrimaryRequestUrl     *string `json:"primary_request_url,omitempty"`
+	PrimaryRequestURL     *string `json:"primary_request_url,omitempty"`
 	PrimaryRequestMethod  any     `json:"primary_request_method,omitempty"`
-	FallbackRequestUrl    *string `json:"fallback_request_url,omitempty"`
+	FallbackRequestURL    *string `json:"fallback_request_url,omitempty"`
 	FallbackRequestMethod any     `json:"fallback_request_method,omitempty"`
-	StatusCallbackUrl     *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL     *string `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod  any     `json:"status_callback_method,omitempty"`
 }
 
@@ -2109,15 +2109,15 @@ type SipEndpointAddressPaginationResponse struct {
 }
 
 type SipEndpointCreateRequest struct {
-	Id                       *Uuid           `json:"id,omitempty"`
+	ID                       *Uuid           `json:"id,omitempty"`
 	Username                 string          `json:"username,omitempty"`
-	CallerId                 string          `json:"caller_id,omitempty"`
+	CallerID                 string          `json:"caller_id,omitempty"`
 	SendAs                   string          `json:"send_as,omitempty"`
 	Ciphers                  []Ciphers       `json:"ciphers,omitempty"`
 	Codecs                   []Codecs        `json:"codecs,omitempty"`
 	Encryption               Encryption      `json:"encryption,omitempty"`
 	CallHandler              CallHandlerType `json:"call_handler,omitempty"`
-	CallingHandlerResourceId any             `json:"calling_handler_resource_id,omitempty"`
+	CallingHandlerResourceID any             `json:"calling_handler_resource_id,omitempty"`
 }
 
 type SipEndpointCreateStatusCode422 struct {
@@ -2133,13 +2133,13 @@ type SipEndpointPaginationResponse struct {
 
 type SipEndpointUpdateRequest struct {
 	Username                 *string          `json:"username,omitempty"`
-	CallerId                 *string          `json:"caller_id,omitempty"`
+	CallerID                 *string          `json:"caller_id,omitempty"`
 	SendAs                   *string          `json:"send_as,omitempty"`
 	Ciphers                  []Ciphers        `json:"ciphers,omitempty"`
 	Codecs                   []Codecs         `json:"codecs,omitempty"`
 	Encryption               *Encryption      `json:"encryption,omitempty"`
 	CallHandler              *CallHandlerType `json:"call_handler,omitempty"`
-	CallingHandlerResourceId any              `json:"calling_handler_resource_id,omitempty"`
+	CallingHandlerResourceID any              `json:"calling_handler_resource_id,omitempty"`
 }
 
 type SipEndpointUpdateStatusCode422 struct {
@@ -2147,8 +2147,8 @@ type SipEndpointUpdateStatusCode422 struct {
 }
 
 type SipGateway struct {
-	Id         string     `json:"id,omitempty"`
-	Uri        string     `json:"uri,omitempty"`
+	ID         string     `json:"id,omitempty"`
+	URI        string     `json:"uri,omitempty"`
 	Name       string     `json:"name,omitempty"`
 	Ciphers    []Ciphers  `json:"ciphers,omitempty"`
 	Codecs     []Codecs   `json:"codecs,omitempty"`
@@ -2185,7 +2185,7 @@ type SipGatewayPaginationResponse struct {
 
 type SipGatewayRequest struct {
 	Name       string     `json:"name,omitempty"`
-	Uri        string     `json:"uri,omitempty"`
+	URI        string     `json:"uri,omitempty"`
 	Encryption Encryption `json:"encryption,omitempty"`
 	Ciphers    []Ciphers  `json:"ciphers,omitempty"`
 	Codecs     []Codecs   `json:"codecs,omitempty"`
@@ -2193,20 +2193,20 @@ type SipGatewayRequest struct {
 
 type SipGatewayRequestUpdate struct {
 	Name       *string     `json:"name,omitempty"`
-	Uri        *string     `json:"uri,omitempty"`
+	URI        *string     `json:"uri,omitempty"`
 	Encryption *Encryption `json:"encryption,omitempty"`
 	Ciphers    []Ciphers   `json:"ciphers,omitempty"`
 	Codecs     []Codecs    `json:"codecs,omitempty"`
 }
 
 type SipGatewayResponse struct {
-	Id          string     `json:"id,omitempty"`
-	ProjectId   string     `json:"project_id,omitempty"`
+	ID          string     `json:"id,omitempty"`
+	ProjectID   string     `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
-	Type_       string     `json:"type,omitempty"`
+	Type        string     `json:"type,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
-	SipGateway  SipGateway `json:"sip_gateway,omitempty"`
+	SIPGateway  SipGateway `json:"sip_gateway,omitempty"`
 }
 
 type Sleep struct {
@@ -2235,7 +2235,7 @@ type StartUpHookSWAIGFunction struct {
 	MetaDataToken  *string             `json:"meta_data_token,omitempty"`
 	DataMap        *DataMap            `json:"data_map,omitempty"`
 	SkipFillers    any                 `json:"skip_fillers,omitempty"`
-	WebHookUrl     *string             `json:"web_hook_url,omitempty"`
+	WebHookURL     *string             `json:"web_hook_url,omitempty"`
 	WaitFile       *string             `json:"wait_file,omitempty"`
 	WaitFileLoops  any                 `json:"wait_file_loops,omitempty"`
 	WaitForFillers any                 `json:"wait_for_fillers,omitempty"`
@@ -2280,15 +2280,15 @@ const (
 type StringProperty struct {
 	Description *string       `json:"description,omitempty"`
 	Nullable    any           `json:"nullable,omitempty"`
-	Type_       string        `json:"type,omitempty"`
+	Type        string        `json:"type,omitempty"`
 	Enum        []string      `json:"enum,omitempty"`
-	Default_    *string       `json:"default,omitempty"`
+	Default     *string       `json:"default,omitempty"`
 	Pattern     *string       `json:"pattern,omitempty"`
 	Format      *StringFormat `json:"format,omitempty"`
 }
 
 type Subscriber struct {
-	Id          Uuid   `json:"id,omitempty"`
+	ID          Uuid   `json:"id,omitempty"`
 	Email       string `json:"email,omitempty"`
 	FirstName   string `json:"first_name,omitempty"`
 	LastName    string `json:"last_name,omitempty"`
@@ -2327,7 +2327,7 @@ type SubscriberGuestTokenCreateResponse struct {
 }
 
 type SubscriberInviteTokenCreateRequest struct {
-	AddressId Uuid `json:"address_id,omitempty"`
+	AddressID Uuid `json:"address_id,omitempty"`
 	ExpiresAt *int `json:"expires_at,omitempty"`
 }
 
@@ -2370,19 +2370,19 @@ type SubscriberRequest struct {
 }
 
 type SubscriberResponse struct {
-	Id          string     `json:"id,omitempty"`
-	ProjectId   string     `json:"project_id,omitempty"`
+	ID          string     `json:"id,omitempty"`
+	ProjectID   string     `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
-	Type_       string     `json:"type,omitempty"`
+	Type        string     `json:"type,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
 	Subscriber  Subscriber `json:"subscriber,omitempty"`
 }
 
 type SubscriberSIPEndpoint struct {
-	Id         Uuid       `json:"id,omitempty"`
+	ID         Uuid       `json:"id,omitempty"`
 	Username   string     `json:"username,omitempty"`
-	CallerId   string     `json:"caller_id,omitempty"`
+	CallerID   string     `json:"caller_id,omitempty"`
 	SendAs     string     `json:"send_as,omitempty"`
 	Ciphers    []Ciphers  `json:"ciphers,omitempty"`
 	Codecs     []Codecs   `json:"codecs,omitempty"`
@@ -2404,7 +2404,7 @@ type SubscriberSipEndpointPaginationResponse struct {
 type SubscriberSipEndpointRequest struct {
 	Username   string      `json:"username,omitempty"`
 	Password   string      `json:"password,omitempty"`
-	CallerId   *string     `json:"caller_id,omitempty"`
+	CallerID   *string     `json:"caller_id,omitempty"`
 	SendAs     *string     `json:"send_as,omitempty"`
 	Ciphers    []Ciphers   `json:"ciphers,omitempty"`
 	Codecs     []Codecs    `json:"codecs,omitempty"`
@@ -2414,7 +2414,7 @@ type SubscriberSipEndpointRequest struct {
 type SubscriberSipEndpointRequestUpdate struct {
 	Username   *string     `json:"username,omitempty"`
 	Password   *string     `json:"password,omitempty"`
-	CallerId   *string     `json:"caller_id,omitempty"`
+	CallerID   *string     `json:"caller_id,omitempty"`
 	SendAs     *string     `json:"send_as,omitempty"`
 	Ciphers    []Ciphers   `json:"ciphers,omitempty"`
 	Codecs     []Codecs    `json:"codecs,omitempty"`
@@ -2424,7 +2424,7 @@ type SubscriberSipEndpointRequestUpdate struct {
 type SubscriberTokenRequest struct {
 	Reference     string  `json:"reference,omitempty"`
 	ExpireAt      *int    `json:"expire_at,omitempty"`
-	ApplicationId *Uuid   `json:"application_id,omitempty"`
+	ApplicationID *Uuid   `json:"application_id,omitempty"`
 	Password      *string `json:"password,omitempty"`
 	FirstName     *string `json:"first_name,omitempty"`
 	LastName      *string `json:"last_name,omitempty"`
@@ -2437,7 +2437,7 @@ type SubscriberTokenRequest struct {
 }
 
 type SubscriberTokenResponse struct {
-	SubscriberId Uuid `json:"subscriber_id,omitempty"`
+	SubscriberID Uuid `json:"subscriber_id,omitempty"`
 	Token        Jwt  `json:"token,omitempty"`
 	RefreshToken Jwt  `json:"refresh_token,omitempty"`
 }
@@ -2467,7 +2467,7 @@ type SummarizeConversationSWAIGFunction struct {
 	MetaDataToken  *string             `json:"meta_data_token,omitempty"`
 	DataMap        *DataMap            `json:"data_map,omitempty"`
 	SkipFillers    any                 `json:"skip_fillers,omitempty"`
-	WebHookUrl     *string             `json:"web_hook_url,omitempty"`
+	WebHookURL     *string             `json:"web_hook_url,omitempty"`
 	WaitFile       *string             `json:"wait_file,omitempty"`
 	WaitFileLoops  any                 `json:"wait_file_loops,omitempty"`
 	WaitForFillers any                 `json:"wait_for_fillers,omitempty"`
@@ -2475,22 +2475,22 @@ type SummarizeConversationSWAIGFunction struct {
 }
 
 type Switch struct {
-	Switch_ map[string]any `json:"switch,omitempty"`
+	Switch map[string]any `json:"switch,omitempty"`
 }
 
 type SwmlScript struct {
-	Id                   Uuid    `json:"id,omitempty"`
+	ID                   Uuid    `json:"id,omitempty"`
 	Contents             string  `json:"contents,omitempty"`
-	RequestUrl           string  `json:"request_url,omitempty"`
+	RequestURL           string  `json:"request_url,omitempty"`
 	DisplayName          string  `json:"display_name,omitempty"`
-	StatusCallbackUrl    *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod *string `json:"status_callback_method,omitempty"`
 }
 
 type SwmlScriptCreateRequest struct {
 	Name              string  `json:"name,omitempty"`
 	Contents          string  `json:"contents,omitempty"`
-	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
 }
 
 type SwmlScriptCreateStatusCode422 struct {
@@ -2510,10 +2510,10 @@ type SwmlScriptPaginationresponse struct {
 }
 
 type SwmlScriptResponse struct {
-	Id          Uuid       `json:"id,omitempty"`
-	ProjectId   Uuid       `json:"project_id,omitempty"`
+	ID          Uuid       `json:"id,omitempty"`
+	ProjectID   Uuid       `json:"project_id,omitempty"`
 	DisplayName string     `json:"display_name,omitempty"`
-	Type_       string     `json:"type,omitempty"`
+	Type        string     `json:"type,omitempty"`
 	CreatedAt   string     `json:"created_at,omitempty"`
 	UpdatedAt   string     `json:"updated_at,omitempty"`
 	SwmlScript  SwmlScript `json:"swml_script,omitempty"`
@@ -2522,7 +2522,7 @@ type SwmlScriptResponse struct {
 type SwmlScriptUpdateRequest struct {
 	DisplayName       *string `json:"display_name,omitempty"`
 	Contents          *string `json:"contents,omitempty"`
-	StatusCallbackUrl *string `json:"status_callback_url,omitempty"`
+	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
 }
 
 type SwmlScriptUpdateStatusCode422 struct {
@@ -2588,11 +2588,11 @@ const (
 )
 
 type Types_StatusCodes_RestApiErrorItem struct {
-	Type_     string `json:"type,omitempty"`
+	Type      string `json:"type,omitempty"`
 	Code      string `json:"code,omitempty"`
 	Message   string `json:"message,omitempty"`
 	Attribute any    `json:"attribute,omitempty"`
-	Url       string `json:"url,omitempty"`
+	URL       string `json:"url,omitempty"`
 }
 
 type Types_StatusCodes_StatusCode403 struct {
@@ -2641,7 +2641,7 @@ type UserSWAIGFunction struct {
 	MetaDataToken  *string             `json:"meta_data_token,omitempty"`
 	DataMap        *DataMap            `json:"data_map,omitempty"`
 	SkipFillers    any                 `json:"skip_fillers,omitempty"`
-	WebHookUrl     *string             `json:"web_hook_url,omitempty"`
+	WebHookURL     *string             `json:"web_hook_url,omitempty"`
 	WaitFile       *string             `json:"wait_file,omitempty"`
 	WaitFileLoops  any                 `json:"wait_file_loops,omitempty"`
 	WaitForFillers any                 `json:"wait_for_fillers,omitempty"`
@@ -2657,7 +2657,7 @@ type VideoChannel struct {
 type Webhook struct {
 	Expressions       []Expression   `json:"expressions,omitempty"`
 	ErrorKeys         any            `json:"error_keys,omitempty"`
-	Url               string         `json:"url,omitempty"`
+	URL               string         `json:"url,omitempty"`
 	Foreach           map[string]any `json:"foreach,omitempty"`
 	Headers           map[string]any `json:"headers,omitempty"`
 	Method            *string        `json:"method,omitempty"`

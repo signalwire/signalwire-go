@@ -222,13 +222,13 @@ func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[strin
 
 // NumberGroupsNamespaceAddMembershipParams holds the named optional parameters for NumberGroupsNamespace.AddMembership.
 type NumberGroupsNamespaceAddMembershipParams struct {
-	PhoneNumberId Uuid
+	PhoneNumberID Uuid
 	Extras        map[string]any
 }
 
 func (r *NumberGroupsNamespace) AddMembership(groupID string, params NumberGroupsNamespaceAddMembershipParams) (*NumberGroupMembershipResponse, error) {
 	body := map[string]any{}
-	body["phone_number_id"] = params.PhoneNumberId
+	body["phone_number_id"] = params.PhoneNumberID
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[NumberGroupMembershipResponse](r.HTTP.Post(r.Path(groupID, "number_group_memberships"), body, nil))
 }
@@ -444,7 +444,7 @@ func (r *RegistryCampaigns) ListOrders(id string, params map[string]string) (*Or
 // RegistryCampaignsCreateOrderParams holds the named optional parameters for RegistryCampaigns.CreateOrder.
 type RegistryCampaignsCreateOrderParams struct {
 	PhoneNumbers      []string
-	StatusCallbackUrl *string
+	StatusCallbackURL *string
 	Extras            map[string]any
 }
 
@@ -453,8 +453,8 @@ func (r *RegistryCampaigns) CreateOrder(id string, params RegistryCampaignsCreat
 	if params.PhoneNumbers != nil {
 		body["phone_numbers"] = params.PhoneNumbers
 	}
-	if params.StatusCallbackUrl != nil {
-		body["status_callback_url"] = params.StatusCallbackUrl
+	if params.StatusCallbackURL != nil {
+		body["status_callback_url"] = params.StatusCallbackURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[OrderResponse](r.HTTP.Post(r.Path(id, "orders"), body, nil))
@@ -510,11 +510,11 @@ func (r *ShortCodesNamespace) Get(id string, params map[string]string) (*ShortCo
 type ShortCodesNamespaceUpdateParams struct {
 	Name                     string
 	MessageHandler           ShortCodeMessageHandler
-	MessageRequestUrl        *string
+	MessageRequestURL        *string
 	MessageRequestMethod     *HttpMethod
-	MessageFallbackUrl       *string
+	MessageFallbackURL       *string
 	MessageFallbackMethod    *HttpMethod
-	MessageLamlApplicationId *Uuid
+	MessageLamlApplicationID *Uuid
 	MessageRelayContext      *string
 	Extras                   map[string]any
 }
@@ -523,20 +523,20 @@ func (r *ShortCodesNamespace) Update(id string, params ShortCodesNamespaceUpdate
 	body := map[string]any{}
 	body["name"] = params.Name
 	body["message_handler"] = params.MessageHandler
-	if params.MessageRequestUrl != nil {
-		body["message_request_url"] = params.MessageRequestUrl
+	if params.MessageRequestURL != nil {
+		body["message_request_url"] = params.MessageRequestURL
 	}
 	if params.MessageRequestMethod != nil {
 		body["message_request_method"] = params.MessageRequestMethod
 	}
-	if params.MessageFallbackUrl != nil {
-		body["message_fallback_url"] = params.MessageFallbackUrl
+	if params.MessageFallbackURL != nil {
+		body["message_fallback_url"] = params.MessageFallbackURL
 	}
 	if params.MessageFallbackMethod != nil {
 		body["message_fallback_method"] = params.MessageFallbackMethod
 	}
-	if params.MessageLamlApplicationId != nil {
-		body["message_laml_application_id"] = params.MessageLamlApplicationId
+	if params.MessageLamlApplicationID != nil {
+		body["message_laml_application_id"] = params.MessageLamlApplicationID
 	}
 	if params.MessageRelayContext != nil {
 		body["message_relay_context"] = params.MessageRelayContext

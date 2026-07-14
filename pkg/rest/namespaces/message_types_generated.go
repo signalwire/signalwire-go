@@ -28,15 +28,15 @@ type LogPaginationResponse struct {
 }
 
 type LogRetrieveResponse struct {
-	Id               Uuid           `json:"id,omitempty"`
+	ID               Uuid           `json:"id,omitempty"`
 	From             string         `json:"from,omitempty"`
 	To               string         `json:"to,omitempty"`
 	Status           string         `json:"status,omitempty"`
 	Direction        string         `json:"direction,omitempty"`
 	Kind             string         `json:"kind,omitempty"`
 	Source           string         `json:"source,omitempty"`
-	Type_            string         `json:"type,omitempty"`
-	Url              any            `json:"url,omitempty"`
+	Type             string         `json:"type,omitempty"`
+	URL              any            `json:"url,omitempty"`
 	NumberOfSegments int            `json:"number_of_segments,omitempty"`
 	Charge           float64        `json:"charge,omitempty"`
 	ChargeDetails    []ChargeDetail `json:"charge_details,omitempty"`
@@ -44,15 +44,15 @@ type LogRetrieveResponse struct {
 }
 
 type MessageLog struct {
-	Id               Uuid           `json:"id,omitempty"`
+	ID               Uuid           `json:"id,omitempty"`
 	From             string         `json:"from,omitempty"`
 	To               string         `json:"to,omitempty"`
 	Status           string         `json:"status,omitempty"`
 	Direction        string         `json:"direction,omitempty"`
 	Kind             string         `json:"kind,omitempty"`
 	Source           string         `json:"source,omitempty"`
-	Type_            string         `json:"type,omitempty"`
-	Url              any            `json:"url,omitempty"`
+	Type             string         `json:"type,omitempty"`
+	URL              any            `json:"url,omitempty"`
 	NumberOfSegments int            `json:"number_of_segments,omitempty"`
 	Charge           float64        `json:"charge,omitempty"`
 	ChargeDetails    []ChargeDetail `json:"charge_details,omitempty"`

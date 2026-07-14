@@ -40,6 +40,6 @@ type ChatToken422Error struct {
 type NewChatToken struct {
 	Ttl      int         `json:"ttl,omitempty"`
 	Channels ChatChannel `json:"channels,omitempty"`
-	MemberId *string     `json:"member_id,omitempty"`
+	MemberID *string     `json:"member_id,omitempty"`
 	State    *ChatState  `json:"state,omitempty"`
 }

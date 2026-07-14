@@ -1563,44 +1563,58 @@ func commandFields(sd *specDoc, requestSchema string) (hasID bool, fields []stri
 	return hasID, fields, nil
 }
 
-// goParamName maps a wire field name to a Go parameter identifier: snake->camel,
-// with Go-keyword collisions escaped (§5). E.g. "from" -> "from_", "status_url"
-// -> "statusURL"-ish; here we keep it simple (camelCase) since the param name is
-// cosmetic — the enumerator snake_cases it back and the diff ignores names.
-func goParamName(field string) string {
+// commonInitialisms is the set of segments that idiomatic Go writes ALL-CAPS
+// (ST1003 acronym rule). A snake segment matching one of these (case-insensitively)
+// is emitted upper-cased in a Go identifier: "caller_id" -> "CallerID",
+// "fallback_url" -> "FallbackURL", "url_method" -> "URLMethod". This mirrors
+// staticcheck's own initialism set + the enumerator's reverse goNameToSnake, which
+// round-trips the all-caps form back to the identical snake wire key
+// ("CallerID" -> "caller_id"), so the wire body is byte-identical (drift 0).
+// Keep in lockstep with cmd/enumerate-signatures goNameToSnake's boundary rule and
+// the initialisms list in .golangci.yml's staticcheck settings.
+var commonInitialisms = map[string]bool{
+	"id": true, "url": true, "uri": true, "api": true, "http": true,
+	"https": true, "sip": true, "rpc": true, "json": true, "xml": true,
+	"sql": true, "tls": true, "tcp": true, "udp": true, "ip": true,
+	"uuid": true,
+}
+
+// segCase renders one snake segment as a Go identifier segment: an initialism
+// becomes all-caps (id->ID, url->URL), any other segment is title-cased
+// (caller->Caller). Non-alnum-free segments are handled by the caller (split on _).
+func segCase(seg string) string {
+	if seg == "" {
+		return ""
+	}
+	if commonInitialisms[strings.ToLower(seg)] {
+		return strings.ToUpper(seg)
+	}
+	return strings.ToUpper(seg[:1]) + seg[1:]
+}
+
+// structFieldName maps a wire field name to an EXPORTED, ST1003-idiomatic Go
+// struct-field identifier for a params/type struct (§5/§4a): each snake segment is
+// title-cased with initialisms all-caps ("caller_id" -> "CallerID", "fallback_url"
+// -> "FallbackURL", "url_method" -> "URLMethod"). Crucially the enumerator's
+// goNameToSnake round-trips this back to the SAME snake wire key ("CallerID" ->
+// "caller_id"), keeping port_signatures.json byte-identical (drift 0); the emitted
+// json tag / body[...] key comes from the SPEC property name, not this identifier,
+// so the wire body is unchanged. The exported (title-cased) result is never a Go
+// keyword, so escapeIdent is a defensive no-op here.
+func structFieldName(field string) string {
 	parts := strings.Split(field, "_")
 	var b strings.Builder
-	for i, p := range parts {
+	for _, p := range parts {
 		if p == "" {
 			continue
 		}
-		if i == 0 {
-			b.WriteString(p)
-		} else {
-			b.WriteString(strings.ToUpper(p[:1]) + p[1:])
-		}
+		b.WriteString(segCase(p))
 	}
 	s := b.String()
 	if s == "" {
-		s = "field"
+		s = "Field"
 	}
 	return escapeIdent(s)
-}
-
-// structFieldName maps a wire field name to an EXPORTED Go struct-field identifier
-// for a params struct (§5/§4a). It reuses goParamName (snake->camel, keyword-safe)
-// and upper-cases the first rune so the field is exported — e.g. "query_string" ->
-// "QueryString", "from" -> "From_" (goParamName escapes the keyword to "from_",
-// which pascals to "From_"). Crucially the enumerator's goNameToSnake round-trips
-// this back to the SAME wire/snake name the old flat-positional form recorded
-// ("From_" -> "from_"), keeping port_signatures.json byte-identical (drift 0).
-func structFieldName(field string) string {
-	s := goParamName(field)
-	r := []rune(s)
-	if len(r) > 0 && r[0] >= 'a' && r[0] <= 'z' {
-		r[0] -= 32
-	}
-	return string(r)
 }
 
 // ---------------------------------------------------------------------------

@@ -17,7 +17,7 @@ package namespaces
 
 type Chunk struct {
 	Text       string `json:"text,omitempty"`
-	DocumentId Docid  `json:"document_id,omitempty"`
+	DocumentID Docid  `json:"document_id,omitempty"`
 }
 
 type ChunkListResponse struct {
@@ -33,9 +33,9 @@ type ChunkPaginationResponse struct {
 }
 
 type ChunkResponse struct {
-	Id                   Uuid        `json:"id,omitempty"`
-	DatasphereDocumentId Uuid        `json:"datasphere_document_id,omitempty"`
-	ProjectId            Uuid        `json:"project_id,omitempty"`
+	ID                   Uuid        `json:"id,omitempty"`
+	DatasphereDocumentID Uuid        `json:"datasphere_document_id,omitempty"`
+	ProjectID            Uuid        `json:"project_id,omitempty"`
 	Status               ChunkStatus `json:"status,omitempty"`
 	Tags                 []string    `json:"tags,omitempty"`
 	Content              string      `json:"content,omitempty"`
@@ -66,7 +66,7 @@ type CreateStatusCode422 struct {
 }
 
 type Document struct {
-	Id                   Docid            `json:"id,omitempty"`
+	ID                   Docid            `json:"id,omitempty"`
 	Filename             string           `json:"filename,omitempty"`
 	Status               DocumentStatus   `json:"status,omitempty"`
 	Tags                 []string         `json:"tags,omitempty"`
@@ -76,7 +76,7 @@ type Document struct {
 	OverlapSize          any              `json:"overlap_size,omitempty"`
 	ChunkSize            any              `json:"chunk_size,omitempty"`
 	NumberOfChunks       int              `json:"number_of_chunks,omitempty"`
-	ChunksUri            string           `json:"chunks_uri,omitempty"`
+	ChunksURI            string           `json:"chunks_uri,omitempty"`
 	CreatedAt            string           `json:"created_at,omitempty"`
 	UpdatedAt            string           `json:"updated_at,omitempty"`
 }
@@ -88,7 +88,7 @@ type DocumentCreateParagraphRequest DocumentCreateRequestBase
 type DocumentCreateRequest any
 
 type DocumentCreateRequestBase struct {
-	Url  string   `json:"url,omitempty"`
+	URL  string   `json:"url,omitempty"`
 	Tags []string `json:"tags,omitempty"`
 }
 
@@ -103,7 +103,7 @@ type DocumentListResponse struct {
 
 type DocumentSearchRequest struct {
 	Tags        []string `json:"tags,omitempty"`
-	DocumentId  *Docid   `json:"document_id,omitempty"`
+	DocumentID  *Docid   `json:"document_id,omitempty"`
 	QueryString string   `json:"query_string,omitempty"`
 	Distance    *float64 `json:"distance,omitempty"`
 	Count       *int     `json:"count,omitempty"`
