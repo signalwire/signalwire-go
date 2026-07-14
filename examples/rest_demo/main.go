@@ -9,6 +9,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -29,7 +30,7 @@ func main() {
 
 	// ---- List phone numbers ----
 	fmt.Println("\n--- Phone Numbers ---")
-	result, err := client.PhoneNumbers.List(nil)
+	result, err := client.PhoneNumbers.List(context.Background(), nil)
 	if err != nil {
 		fmt.Printf("Error listing phone numbers: %v\n", err)
 	} else {
@@ -39,39 +40,39 @@ func main() {
 	// ---- Other namespace usage patterns (commented for reference) ----
 
 	// Search for available phone numbers:
-	//   available, err := client.PhoneNumbers.Search(map[string]string{
+	//   available, err := client.PhoneNumbers.Search(context.Background(), map[string]string{
 	//       "areacode": "312",
 	//   })
 
 	// List recordings:
-	//   recordings, err := client.Recordings.List(nil)
+	//   recordings, err := client.Recordings.List(context.Background(), nil)
 
 	// Get a specific recording:
-	//   recording, err := client.Recordings.Get("recording-id")
+	//   recording, err := client.Recordings.Get(context.Background(), "recording-id")
 
 	// Fabric AI Agents:
-	//   agents, err := client.Fabric.AIAgents.List(nil)
-	//   newAgent, err := client.Fabric.AIAgents.Create(map[string]any{
+	//   agents, err := client.Fabric.AIAgents.List(context.Background(), nil)
+	//   newAgent, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{
 	//       "name": "My Agent",
 	//   })
 
 	// Datasphere documents:
-	//   docs, err := client.Datasphere.Documents.List(nil)
+	//   docs, err := client.Datasphere.Documents.List(context.Background(), nil)
 
 	// SIP profiles:
-	//   profiles, err := client.SIPProfile.List(nil)
+	//   profiles, err := client.SIPProfile.List(context.Background(), nil)
 
 	// Verified callers:
-	//   callers, err := client.VerifiedCallers.List(nil)
+	//   callers, err := client.VerifiedCallers.List(context.Background(), nil)
 
 	// Video rooms:
-	//   rooms, err := client.Video.Rooms.List(nil)
+	//   rooms, err := client.Video.Rooms.List(context.Background(), nil)
 
 	// Logs:
-	//   logs, err := client.Logs.List(nil)
+	//   logs, err := client.Logs.List(context.Background(), nil)
 
 	// PubSub:
-	//   client.PubSub.Publish("channel", map[string]any{"message": "hello"})
+	//   client.PubSub.Publish(context.Background(), "channel", map[string]any{"message": "hello"})
 
 	fmt.Println("\nREST demo complete.")
 }

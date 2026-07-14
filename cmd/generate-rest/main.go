@@ -684,7 +684,14 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	// declares query parameters (spec-driven, not path-shape-guessed).
 	writeVerb := verb == "post" || verb == "put" || verb == "patch"
 
+	// ctx is threaded as the FIRST param of every generated resource method (the Go
+	// idiomatic deadline/cancellation carrier — PORT_PHILOSOPHY_GO ctx-first). It is
+	// passed straight to the ctx-first HTTPClient interface / base methods and is
+	// NEVER serialized, so the wire body is unchanged. The signature enumerator
+	// records it as an optional `optional<float>` timeout slot and diff_port_signatures
+	// absorbs the single leading ctx before the prefix compare, so DRIFT stays clean.
 	var params []string
+	params = append(params, "ctx context.Context")
 	for _, a := range idArgs {
 		params = append(params, a+" string")
 	}
@@ -832,18 +839,18 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	switch verb {
 	case "get":
 		if tail == "params" {
-			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(%s, params)", pathCode)))
+			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(ctx, %s, params)", pathCode)))
 		} else {
-			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(%s, nil)", pathCode)))
+			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(ctx, %s, nil)", pathCode)))
 		}
 	case "post":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Post(%s, %s, nil)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Post(ctx, %s, %s, nil)", pathCode, dataExpr)))
 	case "put":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Put(%s, %s)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Put(ctx, %s, %s)", pathCode, dataExpr)))
 	case "patch":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Patch(%s, %s)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Patch(ctx, %s, %s)", pathCode, dataExpr)))
 	case "delete":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Delete(%s)", pathCode)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Delete(ctx, %s)", pathCode)))
 	}
 	b.WriteString("}\n\n")
 	return nil
@@ -1028,14 +1035,14 @@ func emitResource(b *strings.Builder, rm *resourceMarkup, sd *specDoc, bases map
 	// ReadResource maps to the method-less Go `Resource` embed, so the base's
 	// list+get are synthesized here (the hand code writes them out explicitly).
 	if rm.base == "ReadResource" {
-		fmt.Fprintf(b, "func (r *%s) List(params map[string]string) (map[string]any, error) {\n\treturn r.HTTP.Get(r.Base, params)\n}\n\n", goName)
-		fmt.Fprintf(b, "func (r *%s) Get(id string) (map[string]any, error) {\n\treturn r.HTTP.Get(r.Path(id), nil)\n}\n\n", goName)
+		fmt.Fprintf(b, "func (r *%s) List(ctx context.Context, params map[string]string) (map[string]any, error) {\n\treturn r.HTTP.Get(ctx, r.Base, params)\n}\n\n", goName)
+		fmt.Fprintf(b, "func (r *%s) Get(ctx context.Context, id string) (map[string]any, error) {\n\treturn r.HTTP.Get(ctx, r.Path(id), nil)\n}\n\n", goName)
 		// Paginate() is ReadResource.paginate()'s Go form: the Python oracle records
 		// paginate() on every concrete ReadResource subclass, so emit it here. These
 		// subclasses embed the method-less Resource (not CrudResource, which carries
 		// Paginate for the CRUD path), so it is synthesized directly, mirroring the
 		// CrudResource.Paginate body — a Paginator over the collection base path.
-		fmt.Fprintf(b, "func (r *%s) Paginate(params map[string]string) *Paginator {\n\treturn NewPaginator(r.HTTP, r.Base, params, \"data\")\n}\n\n", goName)
+		fmt.Fprintf(b, "func (r *%s) Paginate(ctx context.Context, params map[string]string) *Paginator {\n\treturn NewPaginator(ctx, r.HTTP, r.Base, params, \"data\")\n}\n\n", goName)
 	}
 
 	for _, mm := range extraMethods(rm, emb, sd) {
@@ -1080,6 +1087,7 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 	// keyword shape. Both go before the ``extra ...map[string]any`` **kwargs
 	// door. Ordering: all required, then all optional, then extra.
 	var params []string
+	params = append(params, "ctx context.Context")
 	params = append(params, "sid string")
 	var bodyLines []string     // unconditional (required) body assignments
 	var optionalLines []string // conditional (optional) body assignments
@@ -1110,7 +1118,7 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 		b.WriteString(l)
 	}
 	b.WriteString("\tmergeExtra(body, extra)\n")
-	b.WriteString("\treturn r.Update(sid, body)\n}\n\n")
+	b.WriteString("\treturn r.Update(ctx, sid, body)\n}\n\n")
 	return nil
 }
 
@@ -1219,11 +1227,12 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 	// Constructor bakes the command endpoint base path (§4).
 	fmt.Fprintf(b, "// New%s constructs a %s bound to base path %q.\n", goName, goName, base)
 	fmt.Fprintf(b, "func New%s(client HTTPClient) *%s {\n\treturn &%s{Resource{HTTP: client, Base: %q}}\n}\n\n", goName, goName, goName, base)
-	// execute helper.
-	fmt.Fprintf(b, "func (c *%s) execute(command string, callID string, params map[string]any) (map[string]any, error) {\n", goName)
+	// execute helper (unexported → not enumerated for DRIFT; ctx threaded like the
+	// public methods so the whole command-dispatch call is cancellable).
+	fmt.Fprintf(b, "func (c *%s) execute(ctx context.Context, command string, callID string, params map[string]any) (map[string]any, error) {\n", goName)
 	b.WriteString("\tbody := map[string]any{\"command\": command, \"params\": params}\n")
 	b.WriteString("\tif callID != \"\" {\n\t\tbody[\"id\"] = callID\n\t}\n")
-	b.WriteString("\treturn c.HTTP.Post(c.Base, body, nil)\n}\n\n")
+	b.WriteString("\treturn c.HTTP.Post(ctx, c.Base, body, nil)\n}\n\n")
 
 	for _, cmd := range mapping {
 		mName, ok := callingMethodName[cmd]
@@ -1272,6 +1281,7 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		fmt.Fprintf(b, "// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 			structName, goName, mName, structName, strings.Join(fieldDefs, "\n"))
 		var sigParams []string
+		sigParams = append(sigParams, "ctx context.Context")
 		if withID {
 			sigParams = append(sigParams, "callID string")
 		}
@@ -1292,7 +1302,7 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		if withID {
 			callID = "callID"
 		}
-		fmt.Fprintf(b, "\treturn decodeResult[CallResponse](c.execute(%q, %s, body))\n}\n\n", cmd, callID)
+		fmt.Fprintf(b, "\treturn decodeResult[CallResponse](c.execute(ctx, %q, %s, body))\n}\n\n", cmd, callID)
 	}
 	return nil
 }
@@ -2163,17 +2173,14 @@ func resolvePortingSDK(repoRoot string) (string, error) {
 
 // emitSpecFile emits the generated resource file for one spec.
 func emitSpecFile(sd *specDoc, bases map[string]*baseSpec) (string, error) {
-	var b strings.Builder
-	fmt.Fprintf(&b, genHeader,
-		fmt.Sprintf("Generated REST resources for the %q namespace spec.", sd.name))
-	b.WriteString("\n")
+	var body strings.Builder
 	emitted := 0
 	for _, pi := range sd.paths {
 		rm := pi.res
 		if rm == nil || rm.exclude || rm.name == "" {
 			continue
 		}
-		if err := emitResource(&b, rm, sd, bases); err != nil {
+		if err := emitResource(&body, rm, sd, bases); err != nil {
 			return "", err
 		}
 		emitted++
@@ -2181,6 +2188,13 @@ func emitSpecFile(sd *specDoc, bases map[string]*baseSpec) (string, error) {
 	if emitted == 0 {
 		return "", nil
 	}
+	var b strings.Builder
+	fmt.Fprintf(&b, genHeader,
+		fmt.Sprintf("Generated REST resources for the %q namespace spec.", sd.name))
+	// Every generated resource method threads a leading context.Context (the Go
+	// ctx-first idiom), so the resources module always imports "context".
+	b.WriteString("\nimport \"context\"\n\n")
+	b.WriteString(body.String())
 	return b.String(), nil
 }
 

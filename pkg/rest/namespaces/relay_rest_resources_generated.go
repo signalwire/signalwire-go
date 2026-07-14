@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // AddressesNamespace is a client for the "Addresses" resource of the SignalWire relay-rest API.
 type AddressesNamespace struct {
 	Resource
@@ -17,8 +19,8 @@ func NewAddressesNamespace(client HTTPClient) *AddressesNamespace {
 	return &AddressesNamespace{Resource{HTTP: client, Base: "/api/relay/rest/addresses"}}
 }
 
-func (r *AddressesNamespace) List(params map[string]string) (*AddressListResponse, error) {
-	return decodeResult[AddressListResponse](r.HTTP.Get(r.Base, params))
+func (r *AddressesNamespace) List(ctx context.Context, params map[string]string) (*AddressListResponse, error) {
+	return decodeResult[AddressListResponse](r.HTTP.Get(ctx, r.Base, params))
 }
 
 // AddressesNamespaceCreateParams holds the named optional parameters for AddressesNamespace.Create.
@@ -37,7 +39,7 @@ type AddressesNamespaceCreateParams struct {
 	Extras        map[string]any
 }
 
-func (r *AddressesNamespace) Create(params AddressesNamespaceCreateParams) (*AddressResponse, error) {
+func (r *AddressesNamespace) Create(ctx context.Context, params AddressesNamespaceCreateParams) (*AddressResponse, error) {
 	body := map[string]any{}
 	body["label"] = params.Label
 	body["country"] = params.Country
@@ -55,15 +57,15 @@ func (r *AddressesNamespace) Create(params AddressesNamespaceCreateParams) (*Add
 		body["address_number"] = params.AddressNumber
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[AddressResponse](r.HTTP.Post(r.Base, body, nil))
+	return decodeResult[AddressResponse](r.HTTP.Post(ctx, r.Base, body, nil))
 }
 
-func (r *AddressesNamespace) Get(id string, params map[string]string) (*AddressResponse, error) {
-	return decodeResult[AddressResponse](r.HTTP.Get(r.Path(id), params))
+func (r *AddressesNamespace) Get(ctx context.Context, id string, params map[string]string) (*AddressResponse, error) {
+	return decodeResult[AddressResponse](r.HTTP.Get(ctx, r.Path(id), params))
 }
 
-func (r *AddressesNamespace) Delete(id string) (map[string]any, error) {
-	return r.HTTP.Delete(r.Path(id))
+func (r *AddressesNamespace) Delete(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id))
 }
 
 // ImportedNumbersNamespace is a client for the "ImportedNumbers" resource of the SignalWire relay-rest API.
@@ -84,7 +86,7 @@ type ImportedNumbersNamespaceCreateParams struct {
 	Extras       map[string]any
 }
 
-func (r *ImportedNumbersNamespace) Create(params ImportedNumbersNamespaceCreateParams) (*PhoneNumberResponse, error) {
+func (r *ImportedNumbersNamespace) Create(ctx context.Context, params ImportedNumbersNamespaceCreateParams) (*PhoneNumberResponse, error) {
 	body := map[string]any{}
 	body["number"] = params.Number
 	body["number_type"] = params.NumberType
@@ -92,7 +94,7 @@ func (r *ImportedNumbersNamespace) Create(params ImportedNumbersNamespaceCreateP
 		body["capabilities"] = params.Capabilities
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[PhoneNumberResponse](r.HTTP.Post(r.Base, body, nil))
+	return decodeResult[PhoneNumberResponse](r.HTTP.Post(ctx, r.Base, body, nil))
 }
 
 // LookupNamespace is a client for the "Lookup" resource of the SignalWire relay-rest API.
@@ -105,8 +107,8 @@ func NewLookupNamespace(client HTTPClient) *LookupNamespace {
 	return &LookupNamespace{Resource{HTTP: client, Base: "/api/relay/rest/lookup"}}
 }
 
-func (r *LookupNamespace) PhoneNumber(e164 string, params map[string]string) (*PhoneNumberLookupResponse, error) {
-	return decodeResult[PhoneNumberLookupResponse](r.HTTP.Get(r.Path("phone_number", e164), params))
+func (r *LookupNamespace) PhoneNumber(ctx context.Context, e164 string, params map[string]string) (*PhoneNumberLookupResponse, error) {
+	return decodeResult[PhoneNumberLookupResponse](r.HTTP.Get(ctx, r.Path("phone_number", e164), params))
 }
 
 // MFANamespace is a client for the "Mfa" resource of the SignalWire relay-rest API.
@@ -131,7 +133,7 @@ type MFANamespaceSMSParams struct {
 	Extras      map[string]any
 }
 
-func (r *MFANamespace) SMS(params MFANamespaceSMSParams) (*MfaResponse, error) {
+func (r *MFANamespace) SMS(ctx context.Context, params MFANamespaceSMSParams) (*MfaResponse, error) {
 	body := map[string]any{}
 	body["to"] = params.To
 	if params.From != nil {
@@ -153,7 +155,7 @@ func (r *MFANamespace) SMS(params MFANamespaceSMSParams) (*MfaResponse, error) {
 		body["allow_alphas"] = params.AllowAlphas
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[MfaResponse](r.HTTP.Post(r.Path("sms"), body, nil))
+	return decodeResult[MfaResponse](r.HTTP.Post(ctx, r.Path("sms"), body, nil))
 }
 
 // MFANamespaceCallParams holds the named optional parameters for MFANamespace.Call.
@@ -168,7 +170,7 @@ type MFANamespaceCallParams struct {
 	Extras      map[string]any
 }
 
-func (r *MFANamespace) Call(params MFANamespaceCallParams) (*MfaResponse, error) {
+func (r *MFANamespace) Call(ctx context.Context, params MFANamespaceCallParams) (*MfaResponse, error) {
 	body := map[string]any{}
 	body["to"] = params.To
 	if params.From != nil {
@@ -190,7 +192,7 @@ func (r *MFANamespace) Call(params MFANamespaceCallParams) (*MfaResponse, error)
 		body["allow_alphas"] = params.AllowAlphas
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[MfaResponse](r.HTTP.Post(r.Path("call"), body, nil))
+	return decodeResult[MfaResponse](r.HTTP.Post(ctx, r.Path("call"), body, nil))
 }
 
 // MFANamespaceVerifyParams holds the named optional parameters for MFANamespace.Verify.
@@ -199,11 +201,11 @@ type MFANamespaceVerifyParams struct {
 	Extras map[string]any
 }
 
-func (r *MFANamespace) Verify(requestID string, params MFANamespaceVerifyParams) (*MfaVerifyResponse, error) {
+func (r *MFANamespace) Verify(ctx context.Context, requestID string, params MFANamespaceVerifyParams) (*MfaVerifyResponse, error) {
 	body := map[string]any{}
 	body["token"] = params.Token
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[MfaVerifyResponse](r.HTTP.Post(r.Path(requestID, "verify"), body, nil))
+	return decodeResult[MfaVerifyResponse](r.HTTP.Post(ctx, r.Path(requestID, "verify"), body, nil))
 }
 
 // NumberGroupsNamespace is a client for the "NumberGroups" resource of the SignalWire relay-rest API.
@@ -216,8 +218,8 @@ func NewNumberGroupsNamespace(client HTTPClient) *NumberGroupsNamespace {
 	return &NumberGroupsNamespace{NewCrudResourcePUT(client, "/api/relay/rest/number_groups")}
 }
 
-func (r *NumberGroupsNamespace) ListMemberships(groupID string, params map[string]string) (*NumberGroupMembershipListResponse, error) {
-	return decodeResult[NumberGroupMembershipListResponse](r.HTTP.Get(r.Path(groupID, "number_group_memberships"), params))
+func (r *NumberGroupsNamespace) ListMemberships(ctx context.Context, groupID string, params map[string]string) (*NumberGroupMembershipListResponse, error) {
+	return decodeResult[NumberGroupMembershipListResponse](r.HTTP.Get(ctx, r.Path(groupID, "number_group_memberships"), params))
 }
 
 // NumberGroupsNamespaceAddMembershipParams holds the named optional parameters for NumberGroupsNamespace.AddMembership.
@@ -226,19 +228,19 @@ type NumberGroupsNamespaceAddMembershipParams struct {
 	Extras        map[string]any
 }
 
-func (r *NumberGroupsNamespace) AddMembership(groupID string, params NumberGroupsNamespaceAddMembershipParams) (*NumberGroupMembershipResponse, error) {
+func (r *NumberGroupsNamespace) AddMembership(ctx context.Context, groupID string, params NumberGroupsNamespaceAddMembershipParams) (*NumberGroupMembershipResponse, error) {
 	body := map[string]any{}
 	body["phone_number_id"] = params.PhoneNumberID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[NumberGroupMembershipResponse](r.HTTP.Post(r.Path(groupID, "number_group_memberships"), body, nil))
+	return decodeResult[NumberGroupMembershipResponse](r.HTTP.Post(ctx, r.Path(groupID, "number_group_memberships"), body, nil))
 }
 
-func (r *NumberGroupsNamespace) GetMembership(id string, params map[string]string) (*NumberGroupMembershipResponse, error) {
-	return decodeResult[NumberGroupMembershipResponse](r.HTTP.Get("/api/relay/rest/number_group_memberships/"+id, params))
+func (r *NumberGroupsNamespace) GetMembership(ctx context.Context, id string, params map[string]string) (*NumberGroupMembershipResponse, error) {
+	return decodeResult[NumberGroupMembershipResponse](r.HTTP.Get(ctx, "/api/relay/rest/number_group_memberships/"+id, params))
 }
 
-func (r *NumberGroupsNamespace) DeleteMembership(id string) (map[string]any, error) {
-	return r.HTTP.Delete("/api/relay/rest/number_group_memberships/" + id)
+func (r *NumberGroupsNamespace) DeleteMembership(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, "/api/relay/rest/number_group_memberships/"+id)
 }
 
 // PhoneNumbersNamespace is a client for the "PhoneNumbers" resource of the SignalWire relay-rest API.
@@ -251,20 +253,20 @@ func NewPhoneNumbersNamespace(client HTTPClient) *PhoneNumbersNamespace {
 	return &PhoneNumbersNamespace{NewCrudResourcePUT(client, "/api/relay/rest/phone_numbers")}
 }
 
-func (r *PhoneNumbersNamespace) Search(params map[string]string) (*AvailablePhoneNumbersResponse, error) {
-	return decodeResult[AvailablePhoneNumbersResponse](r.HTTP.Get(r.Path("search"), params))
+func (r *PhoneNumbersNamespace) Search(ctx context.Context, params map[string]string) (*AvailablePhoneNumbersResponse, error) {
+	return decodeResult[AvailablePhoneNumbersResponse](r.HTTP.Get(ctx, r.Path("search"), params))
 }
 
-func (r *PhoneNumbersNamespace) SetSwmlWebhook(sid string, url string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetSwmlWebhook(ctx context.Context, sid string, url string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":          "relay_script",
 		"call_relay_script_url": url,
 	}
 	mergeExtra(body, extra)
-	return r.Update(sid, body)
+	return r.Update(ctx, sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetCxmlWebhook(sid string, url string, fallback_url *string, status_callback_url *string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetCxmlWebhook(ctx context.Context, sid string, url string, fallback_url *string, status_callback_url *string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":     "laml_webhooks",
 		"call_request_url": url,
@@ -276,28 +278,28 @@ func (r *PhoneNumbersNamespace) SetCxmlWebhook(sid string, url string, fallback_
 		body["call_status_callback_url"] = *status_callback_url
 	}
 	mergeExtra(body, extra)
-	return r.Update(sid, body)
+	return r.Update(ctx, sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetCxmlApplication(sid string, application_id string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetCxmlApplication(ctx context.Context, sid string, application_id string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":             "laml_application",
 		"call_laml_application_id": application_id,
 	}
 	mergeExtra(body, extra)
-	return r.Update(sid, body)
+	return r.Update(ctx, sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetAiAgent(sid string, agent_id string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetAiAgent(ctx context.Context, sid string, agent_id string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":     "ai_agent",
 		"call_ai_agent_id": agent_id,
 	}
 	mergeExtra(body, extra)
-	return r.Update(sid, body)
+	return r.Update(ctx, sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetCallFlow(sid string, flow_id string, version *string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetCallFlow(ctx context.Context, sid string, flow_id string, version *string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler": "call_flow",
 		"call_flow_id": flow_id,
@@ -306,19 +308,19 @@ func (r *PhoneNumbersNamespace) SetCallFlow(sid string, flow_id string, version 
 		body["call_flow_version"] = *version
 	}
 	mergeExtra(body, extra)
-	return r.Update(sid, body)
+	return r.Update(ctx, sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetRelayApplication(sid string, name string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetRelayApplication(ctx context.Context, sid string, name string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":           "relay_application",
 		"call_relay_application": name,
 	}
 	mergeExtra(body, extra)
-	return r.Update(sid, body)
+	return r.Update(ctx, sid, body)
 }
 
-func (r *PhoneNumbersNamespace) SetRelayTopic(sid string, topic string, status_callback_url *string, extra ...map[string]any) (map[string]any, error) {
+func (r *PhoneNumbersNamespace) SetRelayTopic(ctx context.Context, sid string, topic string, status_callback_url *string, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":     "relay_topic",
 		"call_relay_topic": topic,
@@ -327,7 +329,7 @@ func (r *PhoneNumbersNamespace) SetRelayTopic(sid string, topic string, status_c
 		body["call_relay_topic_status_callback_url"] = *status_callback_url
 	}
 	mergeExtra(body, extra)
-	return r.Update(sid, body)
+	return r.Update(ctx, sid, body)
 }
 
 // QueuesNamespace is a client for the "Queues" resource of the SignalWire relay-rest API.
@@ -340,16 +342,16 @@ func NewQueuesNamespace(client HTTPClient) *QueuesNamespace {
 	return &QueuesNamespace{NewCrudResourcePUT(client, "/api/relay/rest/queues")}
 }
 
-func (r *QueuesNamespace) ListMembers(queueID string, params map[string]string) (*QueueMemberListResponse, error) {
-	return decodeResult[QueueMemberListResponse](r.HTTP.Get(r.Path(queueID, "members"), params))
+func (r *QueuesNamespace) ListMembers(ctx context.Context, queueID string, params map[string]string) (*QueueMemberListResponse, error) {
+	return decodeResult[QueueMemberListResponse](r.HTTP.Get(ctx, r.Path(queueID, "members"), params))
 }
 
-func (r *QueuesNamespace) GetNextMember(queueID string, params map[string]string) (*QueueMemberResponse, error) {
-	return decodeResult[QueueMemberResponse](r.HTTP.Get(r.Path(queueID, "members", "next"), params))
+func (r *QueuesNamespace) GetNextMember(ctx context.Context, queueID string, params map[string]string) (*QueueMemberResponse, error) {
+	return decodeResult[QueueMemberResponse](r.HTTP.Get(ctx, r.Path(queueID, "members", "next"), params))
 }
 
-func (r *QueuesNamespace) GetMember(queueID string, id string, params map[string]string) (*QueueMemberResponse, error) {
-	return decodeResult[QueueMemberResponse](r.HTTP.Get(r.Path(queueID, "members", id), params))
+func (r *QueuesNamespace) GetMember(ctx context.Context, queueID string, id string, params map[string]string) (*QueueMemberResponse, error) {
+	return decodeResult[QueueMemberResponse](r.HTTP.Get(ctx, r.Path(queueID, "members", id), params))
 }
 
 // RecordingsNamespace is a client for the "Recordings" resource of the SignalWire relay-rest API.
@@ -362,16 +364,16 @@ func NewRecordingsNamespace(client HTTPClient) *RecordingsNamespace {
 	return &RecordingsNamespace{Resource{HTTP: client, Base: "/api/relay/rest/recordings"}}
 }
 
-func (r *RecordingsNamespace) List(params map[string]string) (*RecordingListResponse, error) {
-	return decodeResult[RecordingListResponse](r.HTTP.Get(r.Base, params))
+func (r *RecordingsNamespace) List(ctx context.Context, params map[string]string) (*RecordingListResponse, error) {
+	return decodeResult[RecordingListResponse](r.HTTP.Get(ctx, r.Base, params))
 }
 
-func (r *RecordingsNamespace) Get(id string, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), params)
+func (r *RecordingsNamespace) Get(ctx context.Context, id string, params map[string]string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), params)
 }
 
-func (r *RecordingsNamespace) Delete(id string) (map[string]any, error) {
-	return r.HTTP.Delete(r.Path(id))
+func (r *RecordingsNamespace) Delete(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id))
 }
 
 // RegistryBrands is a client for the "RegistryBrands" resource of the SignalWire relay-rest API.
@@ -384,24 +386,24 @@ func NewRegistryBrands(client HTTPClient) *RegistryBrands {
 	return &RegistryBrands{Resource{HTTP: client, Base: "/api/relay/rest/registry/beta/brands"}}
 }
 
-func (r *RegistryBrands) List(params map[string]string) (*BrandListResponse, error) {
-	return decodeResult[BrandListResponse](r.HTTP.Get(r.Base, params))
+func (r *RegistryBrands) List(ctx context.Context, params map[string]string) (*BrandListResponse, error) {
+	return decodeResult[BrandListResponse](r.HTTP.Get(ctx, r.Base, params))
 }
 
-func (r *RegistryBrands) Create(data map[string]any) (*BrandResponse, error) {
-	return decodeResult[BrandResponse](r.HTTP.Post(r.Base, data, nil))
+func (r *RegistryBrands) Create(ctx context.Context, data map[string]any) (*BrandResponse, error) {
+	return decodeResult[BrandResponse](r.HTTP.Post(ctx, r.Base, data, nil))
 }
 
-func (r *RegistryBrands) Get(id string, params map[string]string) (*BrandResponse, error) {
-	return decodeResult[BrandResponse](r.HTTP.Get(r.Path(id), params))
+func (r *RegistryBrands) Get(ctx context.Context, id string, params map[string]string) (*BrandResponse, error) {
+	return decodeResult[BrandResponse](r.HTTP.Get(ctx, r.Path(id), params))
 }
 
-func (r *RegistryBrands) ListCampaigns(id string, params map[string]string) (*CampaignListResponse, error) {
-	return decodeResult[CampaignListResponse](r.HTTP.Get(r.Path(id, "campaigns"), params))
+func (r *RegistryBrands) ListCampaigns(ctx context.Context, id string, params map[string]string) (*CampaignListResponse, error) {
+	return decodeResult[CampaignListResponse](r.HTTP.Get(ctx, r.Path(id, "campaigns"), params))
 }
 
-func (r *RegistryBrands) CreateCampaign(id string, data map[string]any) (*CampaignResponse, error) {
-	return decodeResult[CampaignResponse](r.HTTP.Post(r.Path(id, "campaigns"), data, nil))
+func (r *RegistryBrands) CreateCampaign(ctx context.Context, id string, data map[string]any) (*CampaignResponse, error) {
+	return decodeResult[CampaignResponse](r.HTTP.Post(ctx, r.Path(id, "campaigns"), data, nil))
 }
 
 // RegistryCampaigns is a client for the "RegistryCampaigns" resource of the SignalWire relay-rest API.
@@ -414,8 +416,8 @@ func NewRegistryCampaigns(client HTTPClient) *RegistryCampaigns {
 	return &RegistryCampaigns{Resource{HTTP: client, Base: "/api/relay/rest/registry/beta/campaigns"}}
 }
 
-func (r *RegistryCampaigns) Get(id string, params map[string]string) (*CampaignResponse, error) {
-	return decodeResult[CampaignResponse](r.HTTP.Get(r.Path(id), params))
+func (r *RegistryCampaigns) Get(ctx context.Context, id string, params map[string]string) (*CampaignResponse, error) {
+	return decodeResult[CampaignResponse](r.HTTP.Get(ctx, r.Path(id), params))
 }
 
 // RegistryCampaignsUpdateParams holds the named optional parameters for RegistryCampaigns.Update.
@@ -424,21 +426,21 @@ type RegistryCampaignsUpdateParams struct {
 	Extras map[string]any
 }
 
-func (r *RegistryCampaigns) Update(id string, params RegistryCampaignsUpdateParams) (*CampaignResponse, error) {
+func (r *RegistryCampaigns) Update(ctx context.Context, id string, params RegistryCampaignsUpdateParams) (*CampaignResponse, error) {
 	body := map[string]any{}
 	if params.Name != nil {
 		body["name"] = params.Name
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CampaignResponse](r.HTTP.Put(r.Path(id), body))
+	return decodeResult[CampaignResponse](r.HTTP.Put(ctx, r.Path(id), body))
 }
 
-func (r *RegistryCampaigns) ListNumbers(id string, params map[string]string) (*AssignedNumberListResponse, error) {
-	return decodeResult[AssignedNumberListResponse](r.HTTP.Get(r.Path(id, "numbers"), params))
+func (r *RegistryCampaigns) ListNumbers(ctx context.Context, id string, params map[string]string) (*AssignedNumberListResponse, error) {
+	return decodeResult[AssignedNumberListResponse](r.HTTP.Get(ctx, r.Path(id, "numbers"), params))
 }
 
-func (r *RegistryCampaigns) ListOrders(id string, params map[string]string) (*OrderListResponse, error) {
-	return decodeResult[OrderListResponse](r.HTTP.Get(r.Path(id, "orders"), params))
+func (r *RegistryCampaigns) ListOrders(ctx context.Context, id string, params map[string]string) (*OrderListResponse, error) {
+	return decodeResult[OrderListResponse](r.HTTP.Get(ctx, r.Path(id, "orders"), params))
 }
 
 // RegistryCampaignsCreateOrderParams holds the named optional parameters for RegistryCampaigns.CreateOrder.
@@ -448,7 +450,7 @@ type RegistryCampaignsCreateOrderParams struct {
 	Extras            map[string]any
 }
 
-func (r *RegistryCampaigns) CreateOrder(id string, params RegistryCampaignsCreateOrderParams) (*OrderResponse, error) {
+func (r *RegistryCampaigns) CreateOrder(ctx context.Context, id string, params RegistryCampaignsCreateOrderParams) (*OrderResponse, error) {
 	body := map[string]any{}
 	if params.PhoneNumbers != nil {
 		body["phone_numbers"] = params.PhoneNumbers
@@ -457,7 +459,7 @@ func (r *RegistryCampaigns) CreateOrder(id string, params RegistryCampaignsCreat
 		body["status_callback_url"] = params.StatusCallbackURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[OrderResponse](r.HTTP.Post(r.Path(id, "orders"), body, nil))
+	return decodeResult[OrderResponse](r.HTTP.Post(ctx, r.Path(id, "orders"), body, nil))
 }
 
 // RegistryNumbers is a client for the "RegistryNumbers" resource of the SignalWire relay-rest API.
@@ -470,8 +472,8 @@ func NewRegistryNumbers(client HTTPClient) *RegistryNumbers {
 	return &RegistryNumbers{Resource{HTTP: client, Base: "/api/relay/rest/registry/beta/numbers"}}
 }
 
-func (r *RegistryNumbers) Delete(id string) (map[string]any, error) {
-	return r.HTTP.Delete(r.Path(id))
+func (r *RegistryNumbers) Delete(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id))
 }
 
 // RegistryOrders is a client for the "RegistryOrders" resource of the SignalWire relay-rest API.
@@ -484,8 +486,8 @@ func NewRegistryOrders(client HTTPClient) *RegistryOrders {
 	return &RegistryOrders{Resource{HTTP: client, Base: "/api/relay/rest/registry/beta/orders"}}
 }
 
-func (r *RegistryOrders) Get(id string, params map[string]string) (*OrderResponse, error) {
-	return decodeResult[OrderResponse](r.HTTP.Get(r.Path(id), params))
+func (r *RegistryOrders) Get(ctx context.Context, id string, params map[string]string) (*OrderResponse, error) {
+	return decodeResult[OrderResponse](r.HTTP.Get(ctx, r.Path(id), params))
 }
 
 // ShortCodesNamespace is a client for the "ShortCodes" resource of the SignalWire relay-rest API.
@@ -498,12 +500,12 @@ func NewShortCodesNamespace(client HTTPClient) *ShortCodesNamespace {
 	return &ShortCodesNamespace{Resource{HTTP: client, Base: "/api/relay/rest/short_codes"}}
 }
 
-func (r *ShortCodesNamespace) List(params map[string]string) (*ShortCodeListResponse, error) {
-	return decodeResult[ShortCodeListResponse](r.HTTP.Get(r.Base, params))
+func (r *ShortCodesNamespace) List(ctx context.Context, params map[string]string) (*ShortCodeListResponse, error) {
+	return decodeResult[ShortCodeListResponse](r.HTTP.Get(ctx, r.Base, params))
 }
 
-func (r *ShortCodesNamespace) Get(id string, params map[string]string) (*ShortCodeResponse, error) {
-	return decodeResult[ShortCodeResponse](r.HTTP.Get(r.Path(id), params))
+func (r *ShortCodesNamespace) Get(ctx context.Context, id string, params map[string]string) (*ShortCodeResponse, error) {
+	return decodeResult[ShortCodeResponse](r.HTTP.Get(ctx, r.Path(id), params))
 }
 
 // ShortCodesNamespaceUpdateParams holds the named optional parameters for ShortCodesNamespace.Update.
@@ -519,7 +521,7 @@ type ShortCodesNamespaceUpdateParams struct {
 	Extras                   map[string]any
 }
 
-func (r *ShortCodesNamespace) Update(id string, params ShortCodesNamespaceUpdateParams) (*ShortCodeResponse, error) {
+func (r *ShortCodesNamespace) Update(ctx context.Context, id string, params ShortCodesNamespaceUpdateParams) (*ShortCodeResponse, error) {
 	body := map[string]any{}
 	body["name"] = params.Name
 	body["message_handler"] = params.MessageHandler
@@ -542,7 +544,7 @@ func (r *ShortCodesNamespace) Update(id string, params ShortCodesNamespaceUpdate
 		body["message_relay_context"] = params.MessageRelayContext
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[ShortCodeResponse](r.HTTP.Put(r.Path(id), body))
+	return decodeResult[ShortCodeResponse](r.HTTP.Put(ctx, r.Path(id), body))
 }
 
 // SIPProfileNamespace is a client for the "SipProfile" resource of the SignalWire relay-rest API.
@@ -555,8 +557,8 @@ func NewSIPProfileNamespace(client HTTPClient) *SIPProfileNamespace {
 	return &SIPProfileNamespace{Resource{HTTP: client, Base: "/api/relay/rest/sip_profile"}}
 }
 
-func (r *SIPProfileNamespace) Get(params map[string]string) (*SipProfileResponse, error) {
-	return decodeResult[SipProfileResponse](r.HTTP.Get(r.Base, params))
+func (r *SIPProfileNamespace) Get(ctx context.Context, params map[string]string) (*SipProfileResponse, error) {
+	return decodeResult[SipProfileResponse](r.HTTP.Get(ctx, r.Base, params))
 }
 
 // SIPProfileNamespaceUpdateParams holds the named optional parameters for SIPProfileNamespace.Update.
@@ -569,7 +571,7 @@ type SIPProfileNamespaceUpdateParams struct {
 	Extras            map[string]any
 }
 
-func (r *SIPProfileNamespace) Update(params SIPProfileNamespaceUpdateParams) (*SipProfileResponse, error) {
+func (r *SIPProfileNamespace) Update(ctx context.Context, params SIPProfileNamespaceUpdateParams) (*SipProfileResponse, error) {
 	body := map[string]any{}
 	if params.DomainIdentifier != nil {
 		body["domain_identifier"] = params.DomainIdentifier
@@ -587,7 +589,7 @@ func (r *SIPProfileNamespace) Update(params SIPProfileNamespaceUpdateParams) (*S
 		body["default_send_as"] = params.DefaultSendAs
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SipProfileResponse](r.HTTP.Put(r.Base, body))
+	return decodeResult[SipProfileResponse](r.HTTP.Put(ctx, r.Base, body))
 }
 
 // VerifiedCallersNamespace is a client for the "VerifiedCallers" resource of the SignalWire relay-rest API.
@@ -600,8 +602,8 @@ func NewVerifiedCallersNamespace(client HTTPClient) *VerifiedCallersNamespace {
 	return &VerifiedCallersNamespace{NewCrudResourcePUT(client, "/api/relay/rest/verified_caller_ids")}
 }
 
-func (r *VerifiedCallersNamespace) RedialVerification(id string) (*VerifiedCallerIDResponse, error) {
-	return decodeResult[VerifiedCallerIDResponse](r.HTTP.Post(r.Path(id, "verification"), nil, nil))
+func (r *VerifiedCallersNamespace) RedialVerification(ctx context.Context, id string) (*VerifiedCallerIDResponse, error) {
+	return decodeResult[VerifiedCallerIDResponse](r.HTTP.Post(ctx, r.Path(id, "verification"), nil, nil))
 }
 
 // VerifiedCallersNamespaceSubmitVerificationParams holds the named optional parameters for VerifiedCallersNamespace.SubmitVerification.
@@ -610,9 +612,9 @@ type VerifiedCallersNamespaceSubmitVerificationParams struct {
 	Extras           map[string]any
 }
 
-func (r *VerifiedCallersNamespace) SubmitVerification(id string, params VerifiedCallersNamespaceSubmitVerificationParams) (*VerifiedCallerIDResponse, error) {
+func (r *VerifiedCallersNamespace) SubmitVerification(ctx context.Context, id string, params VerifiedCallersNamespaceSubmitVerificationParams) (*VerifiedCallerIDResponse, error) {
 	body := map[string]any{}
 	body["verification_code"] = params.VerificationCode
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[VerifiedCallerIDResponse](r.HTTP.Put(r.Path(id, "verification"), body))
+	return decodeResult[VerifiedCallerIDResponse](r.HTTP.Put(ctx, r.Path(id, "verification"), body))
 }

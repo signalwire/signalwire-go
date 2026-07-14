@@ -188,6 +188,7 @@ Synchronous REST client for managing SignalWire resources and controlling calls 
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -203,18 +204,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	client.Fabric.AIAgents.Create(map[string]any{
+	client.Fabric.AIAgents.Create(context.Background(), map[string]any{
 		"name":   "Support Bot",
 		"prompt": map[string]any{"text": "You are helpful."},
 	})
 
-	client.Calling.Dial(namespaces.CallingNamespaceDialParams{
+	client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
 		To:   "+15551234567",
-		Url:  ptr("https://example.com/call-handler"),
+		URL:  ptr("https://example.com/call-handler"),
 	})
 
-	results, _ := client.PhoneNumbers.Search(map[string]string{"areacode": "512"})
+	results, _ := client.PhoneNumbers.Search(context.Background(), map[string]string{"areacode": "512"})
 	fmt.Println(results)
 }
 

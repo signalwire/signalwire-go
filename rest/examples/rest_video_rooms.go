@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -32,7 +33,7 @@ func main() {
 
 	// 1. Create a video room
 	fmt.Println("Creating video room...")
-	room, err := client.Video.Rooms.Create(map[string]any{
+	room, err := client.Video.Rooms.Create(context.Background(), map[string]any{
 		"name":         "daily-standup",
 		"display_name": "Daily Standup",
 		"max_members":  10,
@@ -47,7 +48,7 @@ func main() {
 
 	// 2. List video rooms
 	fmt.Println("\nListing video rooms...")
-	rooms, err := client.Video.Rooms.List(nil)
+	rooms, err := client.Video.Rooms.List(context.Background(), nil)
 	if err == nil {
 		if data, ok := rooms["data"].([]any); ok {
 			limit := 5
@@ -64,7 +65,7 @@ func main() {
 
 	// 3. Generate a join token
 	fmt.Println("\nGenerating room token...")
-	token, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{
+	token, err := client.Video.RoomTokens.Create(context.Background(), namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{
 		"room_name":   "daily-standup",
 		"user_name":   "alice",
 		"permissions": []string{"room.self.audio_mute", "room.self.video_mute"},
@@ -85,7 +86,7 @@ func main() {
 
 	// 4. List room sessions
 	fmt.Println("\nListing room sessions...")
-	sessions, err := client.Video.RoomSessions.List(nil)
+	sessions, err := client.Video.RoomSessions.List(context.Background(), nil)
 	if err == nil {
 		if data, ok := sessions["data"].([]any); ok {
 			limit := 3
@@ -105,22 +106,22 @@ func main() {
 		if data, ok := sessions["data"].([]any); ok && len(data) > 0 {
 			if first, ok := data[0].(map[string]any); ok {
 				if sid, ok := first["id"].(string); ok {
-					detail, err := client.Video.RoomSessions.Get(sid)
+					detail, err := client.Video.RoomSessions.Get(context.Background(), sid)
 					if err == nil {
 						fmt.Printf("  Session: %v (%v)\n", detail["name"], detail["status"])
 					}
 
-					members, err := client.Video.RoomSessions.ListMembers(sid, nil)
+					members, err := client.Video.RoomSessions.ListMembers(context.Background(), sid, nil)
 					if err == nil {
 						fmt.Printf("  Members: %d\n", len(members.Data))
 					}
 
-					events, err := client.Video.RoomSessions.ListEvents(sid, nil)
+					events, err := client.Video.RoomSessions.ListEvents(context.Background(), sid, nil)
 					if err == nil {
 						fmt.Printf("  Events: %d\n", len(events.Data))
 					}
 
-					recs, err := client.Video.RoomSessions.ListRecordings(sid, nil)
+					recs, err := client.Video.RoomSessions.ListRecordings(context.Background(), sid, nil)
 					if err == nil {
 						fmt.Printf("  Recordings: %d\n", len(recs.Data))
 					}
@@ -133,7 +134,7 @@ func main() {
 
 	// 6. List and get room recordings
 	fmt.Println("\nListing room recordings...")
-	roomRecs, err := client.Video.RoomRecordings.List(nil)
+	roomRecs, err := client.Video.RoomRecordings.List(context.Background(), nil)
 	if err == nil {
 		data := roomRecs.Data
 		limit := 3
@@ -141,17 +142,17 @@ func main() {
 			limit = len(data)
 		}
 		for _, rr := range data[:limit] {
-			fmt.Printf("  - Recording %s: %vs\n", rr.Id, rr.Duration)
+			fmt.Printf("  - Recording %s: %vs\n", rr.ID, rr.Duration)
 		}
 
 		if len(data) > 0 {
-			recID := data[0].Id
-			recDetail, err := client.Video.RoomRecordings.Get(recID, nil)
+			recID := data[0].ID
+			recDetail, err := client.Video.RoomRecordings.Get(context.Background(), recID, nil)
 			if err == nil {
 				fmt.Printf("  Recording detail: %vs\n", recDetail.Duration)
 			}
 
-			recEvents, err := client.Video.RoomRecordings.ListEvents(recID, nil)
+			recEvents, err := client.Video.RoomRecordings.ListEvents(context.Background(), recID, nil)
 			if err == nil {
 				fmt.Printf("  Recording events: %d\n", len(recEvents.Data))
 			}
@@ -163,7 +164,7 @@ func main() {
 	// 7. Create a video conference
 	fmt.Println("\nCreating video conference...")
 	var confID string
-	conf, err := client.Video.Conferences.Create(map[string]any{
+	conf, err := client.Video.Conferences.Create(context.Background(), map[string]any{
 		"name":         "all-hands-stream",
 		"display_name": "All Hands Meeting",
 	})
@@ -179,14 +180,14 @@ func main() {
 	// 8. List conference tokens
 	if confID != "" {
 		fmt.Println("\nListing conference tokens...")
-		tokens, err := client.Video.Conferences.ListConferenceTokens(confID, nil)
+		tokens, err := client.Video.Conferences.ListConferenceTokens(context.Background(), confID, nil)
 		if err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Conference tokens failed: %d\n", restErr.StatusCode)
 			}
 		} else {
 			for _, t := range tokens.Data {
-				fmt.Printf("  - Token: %v\n", t.Id)
+				fmt.Printf("  - Token: %v\n", t.ID)
 			}
 		}
 	}
@@ -195,7 +196,7 @@ func main() {
 	var streamID string
 	if confID != "" {
 		fmt.Println("\nCreating stream on conference...")
-		stream, err := client.Video.Conferences.CreateStream(confID, namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{
+		stream, err := client.Video.Conferences.CreateStream(context.Background(), confID, namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{
 			"url": "rtmp://live.example.com/stream-key",
 		}})
 		if err != nil {
@@ -203,7 +204,7 @@ func main() {
 				fmt.Printf("  Stream creation failed (expected in demo): %d\n", restErr.StatusCode)
 			}
 		} else {
-			streamID = stream.Id
+			streamID = stream.ID
 			fmt.Printf("  Created stream: %s\n", streamID)
 		}
 	}
@@ -211,12 +212,12 @@ func main() {
 	// 10. Get and update stream
 	if streamID != "" {
 		fmt.Printf("\nManaging stream %s...\n", streamID)
-		sDetail, err := client.Video.Streams.Get(streamID, nil)
+		sDetail, err := client.Video.Streams.Get(context.Background(), streamID, nil)
 		if err == nil {
-			fmt.Printf("  Stream URL: %v\n", sDetail.Url)
+			fmt.Printf("  Stream URL: %v\n", sDetail.URL)
 		}
 
-		_, err = client.Video.Streams.Update(streamID, namespaces.VideoStreamsUpdateParams{Extras: map[string]any{
+		_, err = client.Video.Streams.Update(context.Background(), streamID, namespaces.VideoStreamsUpdateParams{Extras: map[string]any{
 			"url": "rtmp://backup.example.com/stream-key",
 		}})
 		if err == nil {
@@ -229,16 +230,16 @@ func main() {
 	// 11. Clean up
 	fmt.Println("\nCleaning up...")
 	if streamID != "" {
-		if _, err := client.Video.Streams.Delete(streamID); err == nil {
+		if _, err := client.Video.Streams.Delete(context.Background(), streamID); err == nil {
 			fmt.Printf("  Deleted stream %s\n", streamID)
 		} else if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Stream delete failed: %d\n", restErr.StatusCode)
 		}
 	}
 	if confID != "" {
-		client.Video.Conferences.Delete(confID)
+		client.Video.Conferences.Delete(context.Background(), confID)
 		fmt.Printf("  Deleted conference %s\n", confID)
 	}
-	client.Video.Rooms.Delete(roomID)
+	client.Video.Rooms.Delete(context.Background(), roomID)
 	fmt.Printf("  Deleted room %s\n", roomID)
 }

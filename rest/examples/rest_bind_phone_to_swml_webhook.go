@@ -18,6 +18,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -40,7 +41,7 @@ func main() {
 
 	// The typed helper — one line:
 	fmt.Printf("Binding %s to %s ...\n", pnSID, webhookURL)
-	if _, err := client.PhoneNumbers.SetSwmlWebhook(pnSID, webhookURL); err != nil {
+	if _, err := client.PhoneNumbers.SetSwmlWebhook(context.Background(), pnSID, webhookURL); err != nil {
 		fmt.Printf("  Binding failed: %v\n", err)
 		os.Exit(1)
 	}
@@ -49,13 +50,13 @@ func main() {
 	//
 	//	import "github.com/signalwire/signalwire-go/pkg/rest/namespaces"
 	//
-	//	client.PhoneNumbers.Update(pnSID, map[string]any{
+	//	client.PhoneNumbers.Update(context.Background(), pnSID, map[string]any{
 	//	    "call_handler":          string(namespaces.PhoneCallHandlerRelayScript),
 	//	    "call_relay_script_url": webhookURL,
 	//	})
 
 	// Verify: the server auto-created a swml_webhook Fabric resource.
-	pn, err := client.PhoneNumbers.Get(pnSID)
+	pn, err := client.PhoneNumbers.Get(context.Background(), pnSID)
 	if err != nil {
 		fmt.Printf("  Verify failed: %v\n", err)
 		os.Exit(1)
@@ -67,9 +68,9 @@ func main() {
 
 	// To route to something other than an SWML webhook, use:
 	//
-	//	client.PhoneNumbers.SetCxmlWebhook(sid, url, nil)            // LAML / Twilio-compat
-	//	client.PhoneNumbers.SetAiAgent(sid, agentID)                 // AI Agent
-	//	client.PhoneNumbers.SetCallFlow(sid, flowID, nil)            // Call Flow
-	//	client.PhoneNumbers.SetRelayApplication(sid, name)           // Named RELAY app
-	//	client.PhoneNumbers.SetRelayTopic(sid, topic, nil)           // RELAY topic
+	//	client.PhoneNumbers.SetCxmlWebhook(context.Background(), sid, url, nil)            // LAML / Twilio-compat
+	//	client.PhoneNumbers.SetAiAgent(context.Background(), sid, agentID)                 // AI Agent
+	//	client.PhoneNumbers.SetCallFlow(context.Background(), sid, flowID, nil)            // Call Flow
+	//	client.PhoneNumbers.SetRelayApplication(context.Background(), sid, name)           // Named RELAY app
+	//	client.PhoneNumbers.SetRelayTopic(context.Background(), sid, topic, nil)           // RELAY topic
 }

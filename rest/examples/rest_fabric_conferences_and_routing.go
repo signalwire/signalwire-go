@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -30,7 +31,7 @@ func main() {
 
 	// 1. Create a conference room
 	fmt.Println("Creating conference room...")
-	room, err := client.Fabric.ConferenceRooms.Create(map[string]any{"name": "team-standup"})
+	room, err := client.Fabric.ConferenceRooms.Create(context.Background(), map[string]any{"name": "team-standup"})
 	if err != nil {
 		fmt.Printf("  Create conference room failed: %v\n", err)
 		return
@@ -40,7 +41,7 @@ func main() {
 
 	// 2. List conference room addresses
 	fmt.Println("\nListing conference room addresses...")
-	addrs, err := client.Fabric.ConferenceRooms.ListAddresses(roomID, nil)
+	addrs, err := client.Fabric.ConferenceRooms.ListAddresses(context.Background(), roomID, nil)
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  List addresses failed: %d\n", restErr.StatusCode)
@@ -53,7 +54,7 @@ func main() {
 
 	// 3. Create a cXML script
 	fmt.Println("\nCreating cXML script...")
-	cxml, err := client.Fabric.CXMLScripts.Create(map[string]any{
+	cxml, err := client.Fabric.CXMLScripts.Create(context.Background(), map[string]any{
 		"name":     "Hold Music Script",
 		"contents": "<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>",
 	})
@@ -66,7 +67,7 @@ func main() {
 
 	// 4. Create a cXML webhook
 	fmt.Println("\nCreating cXML webhook...")
-	cxmlWH, err := client.Fabric.CXMLWebhooks.Create(map[string]any{
+	cxmlWH, err := client.Fabric.CXMLWebhooks.Create(context.Background(), map[string]any{
 		"name":                "External cXML Handler",
 		"primary_request_url": "https://example.com/cxml-handler",
 	})
@@ -79,7 +80,7 @@ func main() {
 
 	// 5. Create a relay application
 	fmt.Println("\nCreating relay application...")
-	relayApp, err := client.Fabric.RelayApplications.Create(map[string]any{
+	relayApp, err := client.Fabric.RelayApplications.Create(context.Background(), map[string]any{
 		"name":  "Inbound Handler",
 		"topic": "office",
 	})
@@ -92,7 +93,7 @@ func main() {
 
 	// 6. Generic resources: list all
 	fmt.Println("\nListing all fabric resources...")
-	resources, err := client.Fabric.Resources.List(nil)
+	resources, err := client.Fabric.Resources.List(context.Background(), nil)
 	if err == nil {
 		data := resources.Data
 		limit := 5
@@ -110,7 +111,7 @@ func main() {
 	if resources != nil && len(resources.Data) > 0 {
 		if first, ok := resources.Data[0].(map[string]any); ok {
 			if id, ok := first["id"].(string); ok {
-				detail, err := client.Fabric.Resources.Get(id, nil)
+				detail, err := client.Fabric.Resources.Get(context.Background(), id, nil)
 				if err == nil {
 					if m, ok := (*detail).(map[string]any); ok {
 						fmt.Printf("  Resource detail: %v (%v)\n", m["display_name"], m["type"])
@@ -126,7 +127,7 @@ func main() {
 
 	// 8. Assign a domain application (demo)
 	fmt.Println("\nAssigning domain application (demo)...")
-	_, err = client.Fabric.Resources.AssignDomainApplication(relayID, namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{
+	_, err = client.Fabric.Resources.AssignDomainApplication(context.Background(), relayID, namespaces.GenericResourcesAssignDomainApplicationParams{Extras: map[string]any{
 		"domain": "app.example.com",
 	}})
 	if err != nil {
@@ -139,7 +140,7 @@ func main() {
 
 	// 9. Generate tokens
 	fmt.Println("\nGenerating tokens...")
-	guest, err := client.Fabric.Tokens.CreateGuestToken(namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"resource_id": relayID}})
+	guest, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Guest token failed (expected in demo): %d\n", restErr.StatusCode)
@@ -152,7 +153,7 @@ func main() {
 		fmt.Printf("  Guest token: %s...\n", token)
 	}
 
-	invite, err := client.Fabric.Tokens.CreateInviteToken(namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"resource_id": relayID}})
+	invite, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Invite token failed (expected in demo): %d\n", restErr.StatusCode)
@@ -165,7 +166,7 @@ func main() {
 		fmt.Printf("  Invite token: %s...\n", token)
 	}
 
-	embed, err := client.Fabric.Tokens.CreateEmbedToken(namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"resource_id": relayID}})
+	embed, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Embed token failed (expected in demo): %d\n", restErr.StatusCode)
@@ -180,12 +181,12 @@ func main() {
 
 	// 10. Clean up
 	fmt.Println("\nCleaning up...")
-	client.Fabric.RelayApplications.Delete(relayID)
+	client.Fabric.RelayApplications.Delete(context.Background(), relayID)
 	fmt.Printf("  Deleted relay application %s\n", relayID)
-	client.Fabric.CXMLWebhooks.Delete(cxmlWHID)
+	client.Fabric.CXMLWebhooks.Delete(context.Background(), cxmlWHID)
 	fmt.Printf("  Deleted cXML webhook %s\n", cxmlWHID)
-	client.Fabric.CXMLScripts.Delete(cxmlID)
+	client.Fabric.CXMLScripts.Delete(context.Background(), cxmlID)
 	fmt.Printf("  Deleted cXML script %s\n", cxmlID)
-	client.Fabric.ConferenceRooms.Delete(roomID)
+	client.Fabric.ConferenceRooms.Delete(context.Background(), roomID)
 	fmt.Printf("  Deleted conference room %s\n", roomID)
 }

@@ -666,7 +666,7 @@ No tool_call/tool_result entries anywhere. Clean conversation history.
 ```go
 ctx.AddStep("collect_info").
 	SetText("Help the caller with their request.").
-	SetGatherInfo("caller_info", "", ""). // outputKey, completionAction, prompt
+	SetGatherInfo("caller_info", "", "", false). // outputKey, completionAction, prompt
 	AddGatherQuestion("first_name", "What is your first name?").
 	AddGatherQuestion("last_name", "What is your last name?").
 	AddGatherQuestion("email", "What is your email address?")
@@ -687,6 +687,7 @@ ctx.AddStep("collect_profile").
 		"Welcome the caller and introduce yourself as a product specialist. "+
 			"Explain that you need to ask a few quick questions to find the "+
 			"best products for them. Be friendly and conversational.", // prompt
+		false, // isolated
 	).
 	AddGatherQuestion("name", "What is your name?").
 	AddGatherQuestion("budget", "What is your budget?", contexts.WithType("number"))
@@ -756,12 +757,12 @@ Answers are stored in `global_data`, which is available in prompt variable expan
 
 ```go
 // Store under a namespace
-step.SetGatherInfo("profile", "", "")
+step.SetGatherInfo("profile", "", "", false)
 // Results in: global_data.profile.first_name, global_data.profile.last_name, etc.
 // Accessible in prompts as: ${profile}
 
 // Store at top level (empty output key)
-step.SetGatherInfo("", "", "")
+step.SetGatherInfo("", "", "", false)
 // Results in: global_data.first_name, global_data.last_name, etc.
 ```
 
@@ -787,6 +788,7 @@ ctx.AddStep("collect_profile").
 		"profile",   // outputKey
 		"next_step", // completionAction
 		"Welcome the caller. You need to collect a few details.", // prompt
+		false, // isolated
 	).
 	AddGatherQuestion("name", "What is your name?").
 	AddGatherQuestion("email", "What is your email?")
@@ -805,6 +807,7 @@ ctx.AddStep("collect_info").
 		"info",   // outputKey
 		"review", // completionAction — jump directly to "review" step
 		"",       // prompt
+		false, // isolated
 	).
 	AddGatherQuestion("name", "What is your name?").
 	AddGatherQuestion("issue", "What is your issue?")
@@ -828,7 +831,7 @@ ctx.AddStep("intake").
 		"Review the caller's information in ${intake_data}. " +
 			"Confirm everything looks correct, then proceed to scheduling.",
 	).
-	SetGatherInfo("intake_data", "", ""). // outputKey, completionAction, prompt
+	SetGatherInfo("intake_data", "", "", false). // outputKey, completionAction, prompt
 	AddGatherQuestion("name", "What is your name?").
 	AddGatherQuestion("dob", "What is your date of birth?").
 	AddGatherQuestion("reason", "What is the reason for your visit?").
@@ -844,13 +847,14 @@ Flow:
 
 #### Gather Info API Reference
 
-**`SetGatherInfo(outputKey, completionAction, prompt string)` Parameters** (positional):
+**`SetGatherInfo(outputKey, completionAction, prompt string, isolated bool)` Parameters** (positional):
 
 | Parameter | Type | Empty value | Description |
 |-----------|------|-------------|-------------|
 | `outputKey` | string | `""` | Key in global_data to store answers under. If `""`, answers stored at top level. |
 | `completionAction` | string | `""` | Where to go when all questions are answered: `"next_step"` to advance sequentially, or a specific step name (e.g. `"process_results"`) to jump to that step. If `""`, returns to normal step mode. The target is validated — `"next_step"` requires a following step, and named steps must exist in the context. |
 | `prompt` | string | `""` | Preamble text injected once as a persistent message when entering the gather step. |
+| `isolated` | bool | `false` | Default visibility for every question in this gather. When `true`, each question is asked with the sibling Q&A hidden from the model (it must ask, not derive from an earlier answer); a question's own `WithIsolated` override wins. `false` is the normal, non-isolated behavior. |
 
 **`AddGatherQuestion(key, question string, opts ...GatherQuestionOption)` Parameters:**
 
@@ -1535,6 +1539,7 @@ func main() {
 			"Welcome the caller and introduce yourself as a travel "+
 				"booking assistant. You need to collect a few details "+
 				"to build their travel profile. Be warm and conversational.", // prompt
+			false, // isolated
 		).
 		AddGatherQuestion("first_name", "What is your first name?").
 		AddGatherQuestion("last_name", "What is your last name?", contexts.WithConfirm(true)).
@@ -1595,6 +1600,7 @@ func main() {
 			"",       // completionAction (empty = return to normal mode)
 			"Thank the caller for contacting support. "+
 				"You need to collect some details about their issue.", // prompt
+			false, // isolated
 		).
 		AddGatherQuestion("name", "What is your name?").
 		AddGatherQuestion("account_id", "What is your account ID?", contexts.WithConfirm(true)).

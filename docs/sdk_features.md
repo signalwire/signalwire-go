@@ -246,7 +246,7 @@ step1.SetFunctions([]string{"check_hours"}) // Only this tool available here
 step2 := greeting.AddStep("collect_info")
 step2.SetText("Collect the user's name and email.")
 step2.SetStepCriteria("User has provided both name and email")
-step2.SetGatherInfo("user_profile", "", "")
+step2.SetGatherInfo("user_profile", "", "", false)
 step2.AddGatherQuestion("name", "What is your name?")
 step2.AddGatherQuestion("email", "What is your email?")
 step2.SetValidSteps([]string{"confirm"})

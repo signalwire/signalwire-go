@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // PubSubNamespace is a client for the "PubSub" resource of the SignalWire pubsub API.
 type PubSubNamespace struct {
 	Resource
@@ -26,7 +28,7 @@ type PubSubNamespaceCreateTokenParams struct {
 	Extras   map[string]any
 }
 
-func (r *PubSubNamespace) CreateToken(params PubSubNamespaceCreateTokenParams) (*PubSubToken, error) {
+func (r *PubSubNamespace) CreateToken(ctx context.Context, params PubSubNamespaceCreateTokenParams) (*PubSubToken, error) {
 	body := map[string]any{}
 	body["ttl"] = params.Ttl
 	body["channels"] = params.Channels
@@ -37,5 +39,5 @@ func (r *PubSubNamespace) CreateToken(params PubSubNamespaceCreateTokenParams) (
 		body["state"] = params.State
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[PubSubToken](r.HTTP.Post(r.Base, body, nil))
+	return decodeResult[PubSubToken](r.HTTP.Post(ctx, r.Base, body, nil))
 }

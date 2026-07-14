@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // VoiceLogs is a client for the "VoiceLogs" resource of the SignalWire voice API.
 type VoiceLogs struct {
 	Resource
@@ -17,18 +19,18 @@ func NewVoiceLogs(client HTTPClient) *VoiceLogs {
 	return &VoiceLogs{Resource{HTTP: client, Base: "/api/voice/logs"}}
 }
 
-func (r *VoiceLogs) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *VoiceLogs) List(ctx context.Context, params map[string]string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params)
 }
 
-func (r *VoiceLogs) Get(id string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), nil)
+func (r *VoiceLogs) Get(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil)
 }
 
-func (r *VoiceLogs) Paginate(params map[string]string) *Paginator {
-	return NewPaginator(r.HTTP, r.Base, params, "data")
+func (r *VoiceLogs) Paginate(ctx context.Context, params map[string]string) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
 }
 
-func (r *VoiceLogs) ListEvents(id string, params map[string]string) (*LogEventsListResponse, error) {
-	return decodeResult[LogEventsListResponse](r.HTTP.Get(r.Path(id, "events"), params))
+func (r *VoiceLogs) ListEvents(ctx context.Context, id string, params map[string]string) (*LogEventsListResponse, error) {
+	return decodeResult[LogEventsListResponse](r.HTTP.Get(ctx, r.Path(id, "events"), params))
 }

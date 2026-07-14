@@ -13,6 +13,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestDatasphereGen_Documents_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.Create(map[string]any{})
+	_, err := client.Datasphere.Documents.Create(context.Background(), map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -49,7 +50,7 @@ func TestDatasphereGen_Documents_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.create_document", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.Create(map[string]any{})
+	_, err := client.Datasphere.Documents.Create(context.Background(), map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -66,7 +67,7 @@ func TestDatasphereGen_Documents_DeleteChunk(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.DeleteChunk("x-1", "x-1")
+	_, err := client.Datasphere.Documents.DeleteChunk(context.Background(), "x-1", "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestDatasphereGen_Documents_DeleteChunk_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.delete_document_chunk", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.DeleteChunk("x-1", "x-1")
+	_, err := client.Datasphere.Documents.DeleteChunk(context.Background(), "x-1", "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -104,7 +105,7 @@ func TestDatasphereGen_Documents_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.Delete("x-1")
+	_, err := client.Datasphere.Documents.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -125,7 +126,7 @@ func TestDatasphereGen_Documents_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.delete_document", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.Delete("x-1")
+	_, err := client.Datasphere.Documents.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -142,7 +143,7 @@ func TestDatasphereGen_Documents_GetChunk(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.GetChunk("x-1", "x-1", nil)
+	_, err := client.Datasphere.Documents.GetChunk(context.Background(), "x-1", "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -163,7 +164,7 @@ func TestDatasphereGen_Documents_GetChunk_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.get_document_chunk", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.GetChunk("x-1", "x-1", nil)
+	_, err := client.Datasphere.Documents.GetChunk(context.Background(), "x-1", "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -180,7 +181,7 @@ func TestDatasphereGen_Documents_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.Get("x-1")
+	_, err := client.Datasphere.Documents.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -201,7 +202,7 @@ func TestDatasphereGen_Documents_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.get_document", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.Get("x-1")
+	_, err := client.Datasphere.Documents.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -218,7 +219,7 @@ func TestDatasphereGen_Documents_ListChunks(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.ListChunks("x-1", nil)
+	_, err := client.Datasphere.Documents.ListChunks(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -239,7 +240,7 @@ func TestDatasphereGen_Documents_ListChunks_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.list_document_chunks", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.ListChunks("x-1", nil)
+	_, err := client.Datasphere.Documents.ListChunks(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -256,7 +257,7 @@ func TestDatasphereGen_Documents_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.List(nil)
+	_, err := client.Datasphere.Documents.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -277,7 +278,7 @@ func TestDatasphereGen_Documents_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.list_documents", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.List(nil)
+	_, err := client.Datasphere.Documents.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -294,7 +295,7 @@ func TestDatasphereGen_Documents_Search(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{Extras: map[string]any{"query_string": "x-1"}})
+	_, err := client.Datasphere.Documents.Search(context.Background(), namespaces.DatasphereDocumentsSearchParams{Extras: map[string]any{"query_string": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -315,7 +316,7 @@ func TestDatasphereGen_Documents_Search_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.search_documents", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.Search(namespaces.DatasphereDocumentsSearchParams{Extras: map[string]any{"query_string": "x-1"}})
+	_, err := client.Datasphere.Documents.Search(context.Background(), namespaces.DatasphereDocumentsSearchParams{Extras: map[string]any{"query_string": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -332,7 +333,7 @@ func TestDatasphereGen_Documents_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.Update("x-1", map[string]any{"tags": "x-1"})
+	_, err := client.Datasphere.Documents.Update(context.Background(), "x-1", map[string]any{"tags": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -353,7 +354,7 @@ func TestDatasphereGen_Documents_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.update_document", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.Update("x-1", map[string]any{"tags": "x-1"})
+	_, err := client.Datasphere.Documents.Update(context.Background(), "x-1", map[string]any{"tags": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

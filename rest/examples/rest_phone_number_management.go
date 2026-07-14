@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -30,7 +31,7 @@ func main() {
 
 	// 1. Search for available phone numbers
 	fmt.Println("Searching available numbers...")
-	available, err := client.PhoneNumbers.Search(map[string]string{
+	available, err := client.PhoneNumbers.Search(context.Background(), map[string]string{
 		"areacode":    "512",
 		"max_results": "3",
 	})
@@ -49,7 +50,7 @@ func main() {
 	if available != nil && len(available.Data) > 0 {
 		numberE164 = available.Data[0].Number
 	}
-	number, err := client.PhoneNumbers.Create(map[string]any{"number": numberE164})
+	number, err := client.PhoneNumbers.Create(context.Background(), map[string]any{"number": numberE164})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Purchase failed (expected in demo): %d\n", restErr.StatusCode)
@@ -61,7 +62,7 @@ func main() {
 
 	// 3. List and get owned numbers
 	fmt.Println("\nListing owned numbers...")
-	owned, err := client.PhoneNumbers.List(nil)
+	owned, err := client.PhoneNumbers.List(context.Background(), nil)
 	if err == nil {
 		if data, ok := owned["data"].([]any); ok {
 			limit := 5
@@ -77,7 +78,7 @@ func main() {
 	}
 
 	if numID != "" {
-		detail, err := client.PhoneNumbers.Get(numID)
+		detail, err := client.PhoneNumbers.Get(context.Background(), numID)
 		if err == nil {
 			fmt.Printf("  Detail: %v\n", detail["number"])
 		}
@@ -86,7 +87,7 @@ func main() {
 	// 4. Update a number
 	if numID != "" {
 		fmt.Printf("\nUpdating number %s...\n", numID)
-		_, err := client.PhoneNumbers.Update(numID, map[string]any{"name": "Main Line"})
+		_, err := client.PhoneNumbers.Update(context.Background(), numID, map[string]any{"name": "Main Line"})
 		if err == nil {
 			fmt.Println("  Updated name to 'Main Line'")
 		}
@@ -95,7 +96,7 @@ func main() {
 	// 5. Create a number group
 	fmt.Println("\nCreating number group...")
 	var groupID string
-	group, err := client.NumberGroups.Create(map[string]any{"name": "Sales Pool"})
+	group, err := client.NumberGroups.Create(context.Background(), map[string]any{"name": "Sales Pool"})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Group creation failed (expected in demo): %d\n", restErr.StatusCode)
@@ -107,7 +108,7 @@ func main() {
 
 	// 6. Lookup carrier info
 	fmt.Println("\nLooking up carrier info...")
-	info, err := client.Lookup.PhoneNumber("+15125551234", nil)
+	info, err := client.Lookup.PhoneNumber(context.Background(), "+15125551234", nil)
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Lookup failed (expected in demo): %d\n", restErr.StatusCode)
@@ -119,7 +120,7 @@ func main() {
 	// 7. Create a verified caller
 	fmt.Println("\nCreating verified caller...")
 	var callerID string
-	caller, err := client.VerifiedCallers.Create(map[string]any{"phone_number": "+15125559999"})
+	caller, err := client.VerifiedCallers.Create(context.Background(), map[string]any{"phone_number": "+15125559999"})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Verified caller failed (expected in demo): %d\n", restErr.StatusCode)
@@ -131,7 +132,7 @@ func main() {
 
 	// 8. Get SIP profile
 	fmt.Println("\nGetting SIP profile...")
-	profile, err := client.SIPProfile.Get(nil)
+	profile, err := client.SIPProfile.Get(context.Background(), nil)
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  SIP profile failed (expected in demo): %d\n", restErr.StatusCode)
@@ -142,7 +143,7 @@ func main() {
 
 	// 9. List short codes
 	fmt.Println("\nListing short codes...")
-	codes, err := client.ShortCodes.List(nil)
+	codes, err := client.ShortCodes.List(context.Background(), nil)
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {
 			fmt.Printf("  Short codes failed (expected in demo): %d\n", restErr.StatusCode)
@@ -156,7 +157,7 @@ func main() {
 	// 10. Create an address
 	fmt.Println("\nCreating address...")
 	var addrID string
-	addr, err := client.Addresses.Create(namespaces.AddressesNamespaceCreateParams{Extras: map[string]any{
+	addr, err := client.Addresses.Create(context.Background(), namespaces.AddressesNamespaceCreateParams{Extras: map[string]any{
 		"friendly_name": "HQ Address",
 		"street":        "123 Main St",
 		"city":          "Austin",
@@ -169,18 +170,18 @@ func main() {
 			fmt.Printf("  Address creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		addrID = string(addr.Id)
+		addrID = string(addr.ID)
 		fmt.Printf("  Created address: %s\n", addrID)
 	}
 
 	// 11. Clean up
 	fmt.Println("\nCleaning up...")
 	if addrID != "" {
-		client.Addresses.Delete(addrID)
+		client.Addresses.Delete(context.Background(), addrID)
 		fmt.Printf("  Deleted address %s\n", addrID)
 	}
 	if callerID != "" {
-		if _, err := client.VerifiedCallers.Delete(callerID); err != nil {
+		if _, err := client.VerifiedCallers.Delete(context.Background(), callerID); err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Verified caller delete failed: %d\n", restErr.StatusCode)
 			}
@@ -189,11 +190,11 @@ func main() {
 		}
 	}
 	if groupID != "" {
-		client.NumberGroups.Delete(groupID)
+		client.NumberGroups.Delete(context.Background(), groupID)
 		fmt.Printf("  Deleted number group %s\n", groupID)
 	}
 	if numID != "" {
-		if _, err := client.PhoneNumbers.Delete(numID); err != nil {
+		if _, err := client.PhoneNumbers.Delete(context.Background(), numID); err != nil {
 			if restErr, ok := err.(*rest.SignalWireRestError); ok {
 				fmt.Printf("  Release number failed (recently purchased): %d\n", restErr.StatusCode)
 			}

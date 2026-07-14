@@ -14,6 +14,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
@@ -29,7 +30,7 @@ func TestMessageLogs_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Logs.Messages.List(nil)
+	bodyResp, err := client.Logs.Messages.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -62,7 +63,7 @@ func TestMessageLogs_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Logs.Messages.Get("ml-42")
+	bodyResp, err := client.Logs.Messages.Get(context.Background(), "ml-42")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -93,7 +94,7 @@ func TestVoiceLogs_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Logs.Voice.List(nil)
+	bodyResp, err := client.Logs.Voice.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -126,7 +127,7 @@ func TestVoiceLogs_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Logs.Voice.Get("vl-99")
+	bodyResp, err := client.Logs.Voice.Get(context.Background(), "vl-99")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -154,7 +155,7 @@ func TestFaxLogs_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Logs.Fax.List(nil)
+	bodyResp, err := client.Logs.Fax.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -187,7 +188,7 @@ func TestFaxLogs_Get_UsesIDInPath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Logs.Fax.Get("fl-7")
+	bodyResp, err := client.Logs.Fax.Get(context.Background(), "fl-7")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -215,7 +216,7 @@ func TestConferenceLogs_List_ReturnsDict(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Logs.Conferences.List(nil)
+	bodyResp, err := client.Logs.Conferences.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}

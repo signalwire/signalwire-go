@@ -13,6 +13,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestFaxGen_Fax_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Logs.Fax.Get("x-1")
+	_, err := client.Logs.Fax.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestFaxGen_Fax_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fax.get_fax_log", 500, map[string]any{"error": "x"})
-	_, err := client.Logs.Fax.Get("x-1")
+	_, err := client.Logs.Fax.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -65,7 +66,7 @@ func TestFaxGen_Fax_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Logs.Fax.List(nil)
+	_, err := client.Logs.Fax.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -86,7 +87,7 @@ func TestFaxGen_Fax_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fax.list_fax_logs", 500, map[string]any{"error": "x"})
-	_, err := client.Logs.Fax.List(nil)
+	_, err := client.Logs.Fax.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

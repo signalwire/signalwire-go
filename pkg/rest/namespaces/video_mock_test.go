@@ -15,6 +15,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
@@ -31,7 +32,7 @@ func TestVideoRooms_ListStreams_ReturnsDataCollection(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.Rooms.ListStreams("room-1", nil)
+	bodyResp, err := client.Video.Rooms.ListStreams(context.Background(), "room-1", nil)
 	if err != nil {
 		t.Fatalf("ListStreams: %v", err)
 	}
@@ -64,7 +65,7 @@ func TestVideoRooms_CreateStream_PostsKwargsInBody(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.Rooms.CreateStream("room-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{
+	bodyResp, err := client.Video.Rooms.CreateStream(context.Background(), "room-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{
 		"url": "rtmp://example.com/live",
 	}})
 	if err != nil {
@@ -101,7 +102,7 @@ func TestVideoRoomSessions_List_ReturnsDataCollection(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.RoomSessions.List(nil)
+	bodyResp, err := client.Video.RoomSessions.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -131,7 +132,7 @@ func TestVideoRoomSessions_Get_ReturnsSessionObject(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.RoomSessions.Get("sess-abc")
+	bodyResp, err := client.Video.RoomSessions.Get(context.Background(), "sess-abc")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -160,7 +161,7 @@ func TestVideoRoomSessions_ListEvents_UsesEventsSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.RoomSessions.ListEvents("sess-1", nil)
+	bodyResp, err := client.Video.RoomSessions.ListEvents(context.Background(), "sess-1", nil)
 	if err != nil {
 		t.Fatalf("ListEvents: %v", err)
 	}
@@ -190,7 +191,7 @@ func TestVideoRoomSessions_ListRecordings_UsesRecordingsSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.RoomSessions.ListRecordings("sess-2", nil)
+	bodyResp, err := client.Video.RoomSessions.ListRecordings(context.Background(), "sess-2", nil)
 	if err != nil {
 		t.Fatalf("ListRecordings: %v", err)
 	}
@@ -218,7 +219,7 @@ func TestVideoRoomRecordings_List_ReturnsDataCollection(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.RoomRecordings.List(nil)
+	bodyResp, err := client.Video.RoomRecordings.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -248,7 +249,7 @@ func TestVideoRoomRecordings_Get_ReturnsSingleRecording(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.RoomRecordings.Get("rec-xyz", nil)
+	bodyResp, err := client.Video.RoomRecordings.Get(context.Background(), "rec-xyz", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -274,7 +275,7 @@ func TestVideoRoomRecordings_Delete_ReturnsEmptyDictFor204(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.RoomRecordings.Delete("rec-del")
+	bodyResp, err := client.Video.RoomRecordings.Delete(context.Background(), "rec-del")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
@@ -303,7 +304,7 @@ func TestVideoRoomRecordings_ListEvents_UsesEventsSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.RoomRecordings.ListEvents("rec-1", nil)
+	bodyResp, err := client.Video.RoomRecordings.ListEvents(context.Background(), "rec-1", nil)
 	if err != nil {
 		t.Fatalf("ListEvents: %v", err)
 	}
@@ -331,7 +332,7 @@ func TestVideoConferences_ListConferenceTokens(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.Conferences.ListConferenceTokens("conf-1", nil)
+	bodyResp, err := client.Video.Conferences.ListConferenceTokens(context.Background(), "conf-1", nil)
 	if err != nil {
 		t.Fatalf("ListConferenceTokens: %v", err)
 	}
@@ -361,7 +362,7 @@ func TestVideoConferences_ListStreams(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.Conferences.ListStreams("conf-2", nil)
+	bodyResp, err := client.Video.Conferences.ListStreams(context.Background(), "conf-2", nil)
 	if err != nil {
 		t.Fatalf("ListStreams: %v", err)
 	}
@@ -393,7 +394,7 @@ func TestVideoConferenceTokens_Get_ReturnsSingleToken(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.ConferenceTokens.Get("tok-1", nil)
+	bodyResp, err := client.Video.ConferenceTokens.Get(context.Background(), "tok-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -422,7 +423,7 @@ func TestVideoConferenceTokens_Reset_PostsToResetSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.ConferenceTokens.Reset("tok-2")
+	bodyResp, err := client.Video.ConferenceTokens.Reset(context.Background(), "tok-2")
 	if err != nil {
 		t.Fatalf("Reset: %v", err)
 	}
@@ -465,7 +466,7 @@ func TestVideoStreams_Get_ReturnsStream(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.Streams.Get("stream-1", nil)
+	bodyResp, err := client.Video.Streams.Get(context.Background(), "stream-1", nil)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -491,7 +492,7 @@ func TestVideoStreams_Update_UsesPutWithKwargs(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.Streams.Update("stream-2", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{
+	bodyResp, err := client.Video.Streams.Update(context.Background(), "stream-2", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{
 		"url": "rtmp://example.com/new",
 	}})
 	if err != nil {
@@ -526,7 +527,7 @@ func TestVideoStreams_Delete(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Video.Streams.Delete("stream-3")
+	bodyResp, err := client.Video.Streams.Delete(context.Background(), "stream-3")
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}

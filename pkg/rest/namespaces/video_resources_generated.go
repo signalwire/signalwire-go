@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // VideoConferenceTokens is a client for the "VideoConferenceTokens" resource of the SignalWire video API.
 type VideoConferenceTokens struct {
 	Resource
@@ -17,12 +19,12 @@ func NewVideoConferenceTokens(client HTTPClient) *VideoConferenceTokens {
 	return &VideoConferenceTokens{Resource{HTTP: client, Base: "/api/video/conference_tokens"}}
 }
 
-func (r *VideoConferenceTokens) Get(id string, params map[string]string) (*ConferenceToken, error) {
-	return decodeResult[ConferenceToken](r.HTTP.Get(r.Path(id), params))
+func (r *VideoConferenceTokens) Get(ctx context.Context, id string, params map[string]string) (*ConferenceToken, error) {
+	return decodeResult[ConferenceToken](r.HTTP.Get(ctx, r.Path(id), params))
 }
 
-func (r *VideoConferenceTokens) Reset(id string) (*ConferenceToken, error) {
-	return decodeResult[ConferenceToken](r.HTTP.Post(r.Path(id, "reset"), nil, nil))
+func (r *VideoConferenceTokens) Reset(ctx context.Context, id string) (*ConferenceToken, error) {
+	return decodeResult[ConferenceToken](r.HTTP.Post(ctx, r.Path(id, "reset"), nil, nil))
 }
 
 // VideoConferences is a client for the "VideoConferences" resource of the SignalWire video API.
@@ -35,12 +37,12 @@ func NewVideoConferences(client HTTPClient) *VideoConferences {
 	return &VideoConferences{NewCrudResourcePUT(client, "/api/video/conferences")}
 }
 
-func (r *VideoConferences) ListConferenceTokens(id string, params map[string]string) (*ListConferenceTokensResponse, error) {
-	return decodeResult[ListConferenceTokensResponse](r.HTTP.Get(r.Path(id, "conference_tokens"), params))
+func (r *VideoConferences) ListConferenceTokens(ctx context.Context, id string, params map[string]string) (*ListConferenceTokensResponse, error) {
+	return decodeResult[ListConferenceTokensResponse](r.HTTP.Get(ctx, r.Path(id, "conference_tokens"), params))
 }
 
-func (r *VideoConferences) ListStreams(id string, params map[string]string) (*ListStreamsResponse, error) {
-	return decodeResult[ListStreamsResponse](r.HTTP.Get(r.Path(id, "streams"), params))
+func (r *VideoConferences) ListStreams(ctx context.Context, id string, params map[string]string) (*ListStreamsResponse, error) {
+	return decodeResult[ListStreamsResponse](r.HTTP.Get(ctx, r.Path(id, "streams"), params))
 }
 
 // VideoConferencesCreateStreamParams holds the named optional parameters for VideoConferences.CreateStream.
@@ -49,11 +51,11 @@ type VideoConferencesCreateStreamParams struct {
 	Extras map[string]any
 }
 
-func (r *VideoConferences) CreateStream(id string, params VideoConferencesCreateStreamParams) (*Stream, error) {
+func (r *VideoConferences) CreateStream(ctx context.Context, id string, params VideoConferencesCreateStreamParams) (*Stream, error) {
 	body := map[string]any{}
 	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Post(r.Path(id, "streams"), body, nil))
+	return decodeResult[Stream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil))
 }
 
 // VideoRoomRecordings is a client for the "VideoRoomRecordings" resource of the SignalWire video API.
@@ -66,20 +68,20 @@ func NewVideoRoomRecordings(client HTTPClient) *VideoRoomRecordings {
 	return &VideoRoomRecordings{Resource{HTTP: client, Base: "/api/video/room_recordings"}}
 }
 
-func (r *VideoRoomRecordings) List(params map[string]string) (*ListRoomRecordingsResponse, error) {
-	return decodeResult[ListRoomRecordingsResponse](r.HTTP.Get(r.Base, params))
+func (r *VideoRoomRecordings) List(ctx context.Context, params map[string]string) (*ListRoomRecordingsResponse, error) {
+	return decodeResult[ListRoomRecordingsResponse](r.HTTP.Get(ctx, r.Base, params))
 }
 
-func (r *VideoRoomRecordings) Get(id string, params map[string]string) (*RoomRecording, error) {
-	return decodeResult[RoomRecording](r.HTTP.Get(r.Path(id), params))
+func (r *VideoRoomRecordings) Get(ctx context.Context, id string, params map[string]string) (*RoomRecording, error) {
+	return decodeResult[RoomRecording](r.HTTP.Get(ctx, r.Path(id), params))
 }
 
-func (r *VideoRoomRecordings) Delete(id string) (map[string]any, error) {
-	return r.HTTP.Delete(r.Path(id))
+func (r *VideoRoomRecordings) Delete(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id))
 }
 
-func (r *VideoRoomRecordings) ListEvents(id string, params map[string]string) (*ListRoomRecordingEventsResponse, error) {
-	return decodeResult[ListRoomRecordingEventsResponse](r.HTTP.Get(r.Path(id, "events"), params))
+func (r *VideoRoomRecordings) ListEvents(ctx context.Context, id string, params map[string]string) (*ListRoomRecordingEventsResponse, error) {
+	return decodeResult[ListRoomRecordingEventsResponse](r.HTTP.Get(ctx, r.Path(id, "events"), params))
 }
 
 // VideoRoomSessions is a client for the "VideoRoomSessions" resource of the SignalWire video API.
@@ -92,28 +94,28 @@ func NewVideoRoomSessions(client HTTPClient) *VideoRoomSessions {
 	return &VideoRoomSessions{Resource{HTTP: client, Base: "/api/video/room_sessions"}}
 }
 
-func (r *VideoRoomSessions) List(params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(r.Base, params)
+func (r *VideoRoomSessions) List(ctx context.Context, params map[string]string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params)
 }
 
-func (r *VideoRoomSessions) Get(id string) (map[string]any, error) {
-	return r.HTTP.Get(r.Path(id), nil)
+func (r *VideoRoomSessions) Get(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil)
 }
 
-func (r *VideoRoomSessions) Paginate(params map[string]string) *Paginator {
-	return NewPaginator(r.HTTP, r.Base, params, "data")
+func (r *VideoRoomSessions) Paginate(ctx context.Context, params map[string]string) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
 }
 
-func (r *VideoRoomSessions) ListEvents(id string, params map[string]string) (*ListRoomSessionEventsResponse, error) {
-	return decodeResult[ListRoomSessionEventsResponse](r.HTTP.Get(r.Path(id, "events"), params))
+func (r *VideoRoomSessions) ListEvents(ctx context.Context, id string, params map[string]string) (*ListRoomSessionEventsResponse, error) {
+	return decodeResult[ListRoomSessionEventsResponse](r.HTTP.Get(ctx, r.Path(id, "events"), params))
 }
 
-func (r *VideoRoomSessions) ListMembers(id string, params map[string]string) (*ListRoomSessionMembersResponse, error) {
-	return decodeResult[ListRoomSessionMembersResponse](r.HTTP.Get(r.Path(id, "members"), params))
+func (r *VideoRoomSessions) ListMembers(ctx context.Context, id string, params map[string]string) (*ListRoomSessionMembersResponse, error) {
+	return decodeResult[ListRoomSessionMembersResponse](r.HTTP.Get(ctx, r.Path(id, "members"), params))
 }
 
-func (r *VideoRoomSessions) ListRecordings(id string, params map[string]string) (*ListRoomSessionRecordingsResponse, error) {
-	return decodeResult[ListRoomSessionRecordingsResponse](r.HTTP.Get(r.Path(id, "recordings"), params))
+func (r *VideoRoomSessions) ListRecordings(ctx context.Context, id string, params map[string]string) (*ListRoomSessionRecordingsResponse, error) {
+	return decodeResult[ListRoomSessionRecordingsResponse](r.HTTP.Get(ctx, r.Path(id, "recordings"), params))
 }
 
 // VideoRoomTokens is a client for the "VideoRoomTokens" resource of the SignalWire video API.
@@ -149,7 +151,7 @@ type VideoRoomTokensCreateParams struct {
 	Extras                    map[string]any
 }
 
-func (r *VideoRoomTokens) Create(params VideoRoomTokensCreateParams) (*RoomTokenResponse, error) {
+func (r *VideoRoomTokens) Create(ctx context.Context, params VideoRoomTokensCreateParams) (*RoomTokenResponse, error) {
 	body := map[string]any{}
 	body["room_name"] = params.RoomName
 	if params.UserName != nil {
@@ -204,7 +206,7 @@ func (r *VideoRoomTokens) Create(params VideoRoomTokensCreateParams) (*RoomToken
 		body["sync_audio_video"] = params.SyncAudioVideo
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[RoomTokenResponse](r.HTTP.Post(r.Base, body, nil))
+	return decodeResult[RoomTokenResponse](r.HTTP.Post(ctx, r.Base, body, nil))
 }
 
 // VideoRooms is a client for the "VideoRooms" resource of the SignalWire video API.
@@ -217,8 +219,8 @@ func NewVideoRooms(client HTTPClient) *VideoRooms {
 	return &VideoRooms{NewCrudResourcePUT(client, "/api/video/rooms")}
 }
 
-func (r *VideoRooms) ListStreams(id string, params map[string]string) (*ListStreamsResponse, error) {
-	return decodeResult[ListStreamsResponse](r.HTTP.Get(r.Path(id, "streams"), params))
+func (r *VideoRooms) ListStreams(ctx context.Context, id string, params map[string]string) (*ListStreamsResponse, error) {
+	return decodeResult[ListStreamsResponse](r.HTTP.Get(ctx, r.Path(id, "streams"), params))
 }
 
 // VideoRoomsCreateStreamParams holds the named optional parameters for VideoRooms.CreateStream.
@@ -227,11 +229,11 @@ type VideoRoomsCreateStreamParams struct {
 	Extras map[string]any
 }
 
-func (r *VideoRooms) CreateStream(id string, params VideoRoomsCreateStreamParams) (*Stream, error) {
+func (r *VideoRooms) CreateStream(ctx context.Context, id string, params VideoRoomsCreateStreamParams) (*Stream, error) {
 	body := map[string]any{}
 	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Post(r.Path(id, "streams"), body, nil))
+	return decodeResult[Stream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil))
 }
 
 // VideoStreams is a client for the "VideoStreams" resource of the SignalWire video API.
@@ -244,8 +246,8 @@ func NewVideoStreams(client HTTPClient) *VideoStreams {
 	return &VideoStreams{Resource{HTTP: client, Base: "/api/video/streams"}}
 }
 
-func (r *VideoStreams) Get(id string, params map[string]string) (*Stream, error) {
-	return decodeResult[Stream](r.HTTP.Get(r.Path(id), params))
+func (r *VideoStreams) Get(ctx context.Context, id string, params map[string]string) (*Stream, error) {
+	return decodeResult[Stream](r.HTTP.Get(ctx, r.Path(id), params))
 }
 
 // VideoStreamsUpdateParams holds the named optional parameters for VideoStreams.Update.
@@ -254,13 +256,13 @@ type VideoStreamsUpdateParams struct {
 	Extras map[string]any
 }
 
-func (r *VideoStreams) Update(id string, params VideoStreamsUpdateParams) (*Stream, error) {
+func (r *VideoStreams) Update(ctx context.Context, id string, params VideoStreamsUpdateParams) (*Stream, error) {
 	body := map[string]any{}
 	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Put(r.Path(id), body))
+	return decodeResult[Stream](r.HTTP.Put(ctx, r.Path(id), body))
 }
 
-func (r *VideoStreams) Delete(id string) (map[string]any, error) {
-	return r.HTTP.Delete(r.Path(id))
+func (r *VideoStreams) Delete(ctx context.Context, id string) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id))
 }

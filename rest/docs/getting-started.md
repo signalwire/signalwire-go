@@ -23,6 +23,7 @@ You need three things to connect:
 <!-- snippet-setup -->
 ```go
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -39,6 +40,7 @@ var (
 	_ = errors.New
 	_ = fmt.Sprint
 	_ = os.Getenv
+	_ = context.Background
 )
 ```
 
@@ -48,6 +50,7 @@ var (
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -66,7 +69,7 @@ func main() {
 	}
 
 	// List your AI agents
-	agents, err := client.Fabric.AIAgents.List(nil)
+	agents, err := client.Fabric.AIAgents.List(context.Background(), nil)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
@@ -87,6 +90,7 @@ export SIGNALWIRE_SPACE=example.signalwire.com
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -100,7 +104,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	agents, _ := client.Fabric.AIAgents.List(nil)
+	agents, _ := client.Fabric.AIAgents.List(context.Background(), nil)
 	fmt.Println(agents)
 }
 ```
@@ -111,22 +115,22 @@ Most resources follow the same CRUD pattern:
 
 ```go
 // List
-items, err := client.Fabric.AIAgents.List(nil)
+items, err := client.Fabric.AIAgents.List(context.Background(), nil)
 
 // Create
-agent, err := client.Fabric.AIAgents.Create(map[string]any{
+agent, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{
 	"name":   "Support",
 	"prompt": map[string]any{"text": "Be helpful"},
 })
 
 // Get by ID
-agent, err = client.Fabric.AIAgents.Get("agent-uuid")
+agent, err = client.Fabric.AIAgents.Get(context.Background(), "agent-uuid")
 
 // Update
-_, err = client.Fabric.AIAgents.Update("agent-uuid", map[string]any{"name": "Updated Name"})
+_, err = client.Fabric.AIAgents.Update(context.Background(), "agent-uuid", map[string]any{"name": "Updated Name"})
 
 // Delete
-_, err = client.Fabric.AIAgents.Delete("agent-uuid")
+_, err = client.Fabric.AIAgents.Delete(context.Background(), "agent-uuid")
 
 _, _ = items, agent
 ```
@@ -134,7 +138,7 @@ _, _ = items, agent
 Fabric resources also support listing addresses:
 
 ```go
-addresses, err := client.Fabric.AIAgents.ListAddresses("agent-uuid", nil)
+addresses, err := client.Fabric.AIAgents.ListAddresses(context.Background(), "agent-uuid", nil)
 _ = addresses
 ```
 
@@ -143,7 +147,7 @@ _ = addresses
 ```go
 client, _ = rest.NewRestClient("", "", "")
 
-agent, err := client.Fabric.AIAgents.Get("nonexistent-id")
+agent, err := client.Fabric.AIAgents.Get(context.Background(), "nonexistent-id")
 if err != nil {
 	var restErr *rest.SignalWireRestError
 	if errors.As(err, &restErr) {

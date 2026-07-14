@@ -7,6 +7,8 @@
 
 package namespaces
 
+import "context"
+
 // ConferenceLogs is a client for the "ConferenceLogs" resource of the SignalWire logs API.
 type ConferenceLogs struct {
 	Resource
@@ -17,6 +19,6 @@ func NewConferenceLogs(client HTTPClient) *ConferenceLogs {
 	return &ConferenceLogs{Resource{HTTP: client, Base: "/api/logs/conferences"}}
 }
 
-func (r *ConferenceLogs) List(params map[string]string) (*ConferencesResponse, error) {
-	return decodeResult[ConferencesResponse](r.HTTP.Get(r.Base, params))
+func (r *ConferenceLogs) List(ctx context.Context, params map[string]string) (*ConferencesResponse, error) {
+	return decodeResult[ConferencesResponse](r.HTTP.Get(ctx, r.Base, params))
 }

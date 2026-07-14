@@ -8,6 +8,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"os"
 )
@@ -21,8 +22,8 @@ import (
 //	// or use environment variables SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
 //	client, err := rest.NewRestClient("", "", "")
 //
-//	agents, err := client.Fabric.AIAgents.List(nil)
-//	client.Calling.Play("call-id", map[string]any{"play": [...]})
+//	agents, err := client.Fabric.AIAgents.List(context.Background(), nil)
+//	client.Calling.Play(context.Background(), "call-id", namespaces.CallingNamespacePlayParams{...})
 type RestClient struct {
 	http      *HTTPClient
 	projectID string
@@ -103,18 +104,18 @@ type httpAdapter struct {
 	c *HTTPClient
 }
 
-func (a *httpAdapter) Get(path string, params map[string]string) (map[string]any, error) {
-	return a.c.Get(path, params)
+func (a *httpAdapter) Get(ctx context.Context, path string, params map[string]string) (map[string]any, error) {
+	return a.c.GetContext(ctx, path, params)
 }
-func (a *httpAdapter) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
-	return a.c.Post(path, body, params)
+func (a *httpAdapter) Post(ctx context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error) {
+	return a.c.PostContext(ctx, path, body, params)
 }
-func (a *httpAdapter) Put(path string, body map[string]any) (map[string]any, error) {
-	return a.c.Put(path, body)
+func (a *httpAdapter) Put(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
+	return a.c.PutContext(ctx, path, body)
 }
-func (a *httpAdapter) Patch(path string, body map[string]any) (map[string]any, error) {
-	return a.c.Patch(path, body)
+func (a *httpAdapter) Patch(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
+	return a.c.PatchContext(ctx, path, body)
 }
-func (a *httpAdapter) Delete(path string) (map[string]any, error) {
-	return a.c.Delete(path)
+func (a *httpAdapter) Delete(ctx context.Context, path string) (map[string]any, error) {
+	return a.c.DeleteContext(ctx, path)
 }

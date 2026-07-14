@@ -13,6 +13,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestLogsGen_Conferences_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Logs.Conferences.List(nil)
+	_, err := client.Logs.Conferences.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestLogsGen_Conferences_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "logs.list_conferences", 500, map[string]any{"error": "x"})
-	_, err := client.Logs.Conferences.List(nil)
+	_, err := client.Logs.Conferences.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

@@ -13,6 +13,7 @@
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestVideoGen_ConferenceTokens_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.ConferenceTokens.Get("x-1", nil)
+	_, err := client.Video.ConferenceTokens.Get(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -49,7 +50,7 @@ func TestVideoGen_ConferenceTokens_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_conference_token", 500, map[string]any{"error": "x"})
-	_, err := client.Video.ConferenceTokens.Get("x-1", nil)
+	_, err := client.Video.ConferenceTokens.Get(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -66,7 +67,7 @@ func TestVideoGen_ConferenceTokens_Reset(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.ConferenceTokens.Reset("x-1")
+	_, err := client.Video.ConferenceTokens.Reset(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestVideoGen_ConferenceTokens_Reset_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.reset_conference_token", 500, map[string]any{"error": "x"})
-	_, err := client.Video.ConferenceTokens.Reset("x-1")
+	_, err := client.Video.ConferenceTokens.Reset(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -104,7 +105,7 @@ func TestVideoGen_Conferences_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.Create(map[string]any{"display_name": "x-1"})
+	_, err := client.Video.Conferences.Create(context.Background(), map[string]any{"display_name": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -125,7 +126,7 @@ func TestVideoGen_Conferences_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_video_conference", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.Create(map[string]any{"display_name": "x-1"})
+	_, err := client.Video.Conferences.Create(context.Background(), map[string]any{"display_name": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -142,7 +143,7 @@ func TestVideoGen_Conferences_CreateStream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.CreateStream("x-1", namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
+	_, err := client.Video.Conferences.CreateStream(context.Background(), "x-1", namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -163,7 +164,7 @@ func TestVideoGen_Conferences_CreateStream_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_conference_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.CreateStream("x-1", namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
+	_, err := client.Video.Conferences.CreateStream(context.Background(), "x-1", namespaces.VideoConferencesCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -180,7 +181,7 @@ func TestVideoGen_Conferences_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.Delete("x-1")
+	_, err := client.Video.Conferences.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -201,7 +202,7 @@ func TestVideoGen_Conferences_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.delete_video_conference", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.Delete("x-1")
+	_, err := client.Video.Conferences.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -218,7 +219,7 @@ func TestVideoGen_Conferences_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.Get("x-1")
+	_, err := client.Video.Conferences.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -239,7 +240,7 @@ func TestVideoGen_Conferences_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_video_conference", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.Get("x-1")
+	_, err := client.Video.Conferences.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -256,7 +257,7 @@ func TestVideoGen_Conferences_ListConferenceTokens(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.ListConferenceTokens("x-1", nil)
+	_, err := client.Video.Conferences.ListConferenceTokens(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -277,7 +278,7 @@ func TestVideoGen_Conferences_ListConferenceTokens_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_conference_tokens", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.ListConferenceTokens("x-1", nil)
+	_, err := client.Video.Conferences.ListConferenceTokens(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -294,7 +295,7 @@ func TestVideoGen_Conferences_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.List(nil)
+	_, err := client.Video.Conferences.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -315,7 +316,7 @@ func TestVideoGen_Conferences_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_video_conferences", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.List(nil)
+	_, err := client.Video.Conferences.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -332,7 +333,7 @@ func TestVideoGen_Conferences_ListStreams(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.ListStreams("x-1", nil)
+	_, err := client.Video.Conferences.ListStreams(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -353,7 +354,7 @@ func TestVideoGen_Conferences_ListStreams_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_conference_streams", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.ListStreams("x-1", nil)
+	_, err := client.Video.Conferences.ListStreams(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -370,7 +371,7 @@ func TestVideoGen_Conferences_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.Update("x-1", map[string]any{"display_name": "x-1"})
+	_, err := client.Video.Conferences.Update(context.Background(), "x-1", map[string]any{"display_name": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -391,7 +392,7 @@ func TestVideoGen_Conferences_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.update_video_conference", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.Update("x-1", map[string]any{"display_name": "x-1"})
+	_, err := client.Video.Conferences.Update(context.Background(), "x-1", map[string]any{"display_name": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -408,7 +409,7 @@ func TestVideoGen_RoomRecordings_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomRecordings.Delete("x-1")
+	_, err := client.Video.RoomRecordings.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -429,7 +430,7 @@ func TestVideoGen_RoomRecordings_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.delete_room_recording", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomRecordings.Delete("x-1")
+	_, err := client.Video.RoomRecordings.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -446,7 +447,7 @@ func TestVideoGen_RoomRecordings_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomRecordings.Get("x-1", nil)
+	_, err := client.Video.RoomRecordings.Get(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -467,7 +468,7 @@ func TestVideoGen_RoomRecordings_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_room_recording", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomRecordings.Get("x-1", nil)
+	_, err := client.Video.RoomRecordings.Get(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -484,7 +485,7 @@ func TestVideoGen_RoomRecordings_ListEvents(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomRecordings.ListEvents("x-1", nil)
+	_, err := client.Video.RoomRecordings.ListEvents(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -505,7 +506,7 @@ func TestVideoGen_RoomRecordings_ListEvents_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_room_recording_events", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomRecordings.ListEvents("x-1", nil)
+	_, err := client.Video.RoomRecordings.ListEvents(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -522,7 +523,7 @@ func TestVideoGen_RoomRecordings_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomRecordings.List(nil)
+	_, err := client.Video.RoomRecordings.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -543,7 +544,7 @@ func TestVideoGen_RoomRecordings_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_room_recordings", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomRecordings.List(nil)
+	_, err := client.Video.RoomRecordings.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -560,7 +561,7 @@ func TestVideoGen_RoomSessions_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomSessions.Get("x-1")
+	_, err := client.Video.RoomSessions.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -581,7 +582,7 @@ func TestVideoGen_RoomSessions_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_room_session", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomSessions.Get("x-1")
+	_, err := client.Video.RoomSessions.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -598,7 +599,7 @@ func TestVideoGen_RoomSessions_ListEvents(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomSessions.ListEvents("x-1", nil)
+	_, err := client.Video.RoomSessions.ListEvents(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -619,7 +620,7 @@ func TestVideoGen_RoomSessions_ListEvents_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_room_session_events", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomSessions.ListEvents("x-1", nil)
+	_, err := client.Video.RoomSessions.ListEvents(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -636,7 +637,7 @@ func TestVideoGen_RoomSessions_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomSessions.List(nil)
+	_, err := client.Video.RoomSessions.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -657,7 +658,7 @@ func TestVideoGen_RoomSessions_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_room_sessions", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomSessions.List(nil)
+	_, err := client.Video.RoomSessions.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -674,7 +675,7 @@ func TestVideoGen_RoomSessions_ListMembers(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomSessions.ListMembers("x-1", nil)
+	_, err := client.Video.RoomSessions.ListMembers(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -695,7 +696,7 @@ func TestVideoGen_RoomSessions_ListMembers_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_room_session_members", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomSessions.ListMembers("x-1", nil)
+	_, err := client.Video.RoomSessions.ListMembers(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -712,7 +713,7 @@ func TestVideoGen_RoomSessions_ListRecordings(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomSessions.ListRecordings("x-1", nil)
+	_, err := client.Video.RoomSessions.ListRecordings(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -733,7 +734,7 @@ func TestVideoGen_RoomSessions_ListRecordings_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_room_session_recordings", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomSessions.ListRecordings("x-1", nil)
+	_, err := client.Video.RoomSessions.ListRecordings(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -750,7 +751,7 @@ func TestVideoGen_RoomTokens_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{"room_name": "x-1"}})
+	_, err := client.Video.RoomTokens.Create(context.Background(), namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{"room_name": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -771,7 +772,7 @@ func TestVideoGen_RoomTokens_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_room_token", 500, map[string]any{"error": "x"})
-	_, err := client.Video.RoomTokens.Create(namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{"room_name": "x-1"}})
+	_, err := client.Video.RoomTokens.Create(context.Background(), namespaces.VideoRoomTokensCreateParams{Extras: map[string]any{"room_name": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -788,7 +789,7 @@ func TestVideoGen_Rooms_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Rooms.Create(map[string]any{"name": "x-1"})
+	_, err := client.Video.Rooms.Create(context.Background(), map[string]any{"name": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -809,7 +810,7 @@ func TestVideoGen_Rooms_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_room", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.Create(map[string]any{"name": "x-1"})
+	_, err := client.Video.Rooms.Create(context.Background(), map[string]any{"name": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -826,7 +827,7 @@ func TestVideoGen_Rooms_CreateStream(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Rooms.CreateStream("x-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
+	_, err := client.Video.Rooms.CreateStream(context.Background(), "x-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -847,7 +848,7 @@ func TestVideoGen_Rooms_CreateStream_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.create_room_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.CreateStream("x-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
+	_, err := client.Video.Rooms.CreateStream(context.Background(), "x-1", namespaces.VideoRoomsCreateStreamParams{Extras: map[string]any{"url": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -864,7 +865,7 @@ func TestVideoGen_Rooms_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Rooms.Delete("x-1")
+	_, err := client.Video.Rooms.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -885,7 +886,7 @@ func TestVideoGen_Rooms_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.delete_room", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.Delete("x-1")
+	_, err := client.Video.Rooms.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -902,7 +903,7 @@ func TestVideoGen_Rooms_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Rooms.Get("x-1")
+	_, err := client.Video.Rooms.Get(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -923,7 +924,7 @@ func TestVideoGen_Rooms_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_room_by_name", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.Get("x-1")
+	_, err := client.Video.Rooms.Get(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -940,7 +941,7 @@ func TestVideoGen_Rooms_List(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Rooms.List(nil)
+	_, err := client.Video.Rooms.List(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -961,7 +962,7 @@ func TestVideoGen_Rooms_List_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_rooms", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.List(nil)
+	_, err := client.Video.Rooms.List(context.Background(), nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -978,7 +979,7 @@ func TestVideoGen_Rooms_ListStreams(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Rooms.ListStreams("x-1", nil)
+	_, err := client.Video.Rooms.ListStreams(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -999,7 +1000,7 @@ func TestVideoGen_Rooms_ListStreams_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.list_room_streams", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.ListStreams("x-1", nil)
+	_, err := client.Video.Rooms.ListStreams(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1016,7 +1017,7 @@ func TestVideoGen_Rooms_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Rooms.Update("x-1", map[string]any{})
+	_, err := client.Video.Rooms.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1037,7 +1038,7 @@ func TestVideoGen_Rooms_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.update_room", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Rooms.Update("x-1", map[string]any{})
+	_, err := client.Video.Rooms.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1054,7 +1055,7 @@ func TestVideoGen_Streams_Delete(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Streams.Delete("x-1")
+	_, err := client.Video.Streams.Delete(context.Background(), "x-1")
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1075,7 +1076,7 @@ func TestVideoGen_Streams_Delete_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.delete_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Streams.Delete("x-1")
+	_, err := client.Video.Streams.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1092,7 +1093,7 @@ func TestVideoGen_Streams_Get(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Streams.Get("x-1", nil)
+	_, err := client.Video.Streams.Get(context.Background(), "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1113,7 +1114,7 @@ func TestVideoGen_Streams_Get_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.get_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Streams.Get("x-1", nil)
+	_, err := client.Video.Streams.Get(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1130,7 +1131,7 @@ func TestVideoGen_Streams_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Streams.Update("x-1", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{"url": "x-1"}})
+	_, err := client.Video.Streams.Update(context.Background(), "x-1", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{"url": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1151,7 +1152,7 @@ func TestVideoGen_Streams_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.update_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Streams.Update("x-1", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{"url": "x-1"}})
+	_, err := client.Video.Streams.Update(context.Background(), "x-1", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{"url": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
