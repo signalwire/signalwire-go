@@ -51,10 +51,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out signalwire-go
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check out porting-sdk (audit script)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
