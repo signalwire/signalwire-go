@@ -3,7 +3,7 @@
 Reference for every namespace beyond Fabric and Calling (which have their own pages).
 
 The examples below import the resource-parameter structs from
-`github.com/signalwire/signalwire-go/pkg/rest/namespaces` and use a small helper
+`github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces` and use a small helper
 to set optional pointer fields:
 
 <!-- snippet: no-compile illustrative API signature (reference only) -->
@@ -16,8 +16,8 @@ func ptr[T any](v T) *T { return &v }
 import (
 	"context"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 )
 
 // Shared context the fragments below assume: a constructed REST client.

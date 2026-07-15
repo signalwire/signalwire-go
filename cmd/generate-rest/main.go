@@ -44,7 +44,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/cmd/internal/overlay"
+	"github.com/signalwire/signalwire-go/v3/cmd/internal/overlay"
 	"gopkg.in/yaml.v3"
 )
 
@@ -1876,7 +1876,7 @@ func emitClientTree(placed []placedResource) (namespacesFile, restFile string) {
 	fmt.Fprintf(&r, genHeaderPkg,
 		"The generated REST resource tree (§8): the _GeneratedResourceTree the hand\n// RestClient embeds + its wireGeneratedTree method. Lives in package rest (not\n// namespaces) so the hand RestClient can embed the underscore-unexported tree —\n// Go forbids embedding a cross-package underscore-unexported type. The leading\n// underscore keeps it off the client's public API surface.",
 		"rest")
-	r.WriteString("\nimport \"github.com/signalwire/signalwire-go/pkg/rest/namespaces\"\n\n")
+	r.WriteString("\nimport \"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces\"\n\n")
 
 	// Build lookup: field -> namespaces-qualified Go type expression.
 	fieldType := map[string]string{}

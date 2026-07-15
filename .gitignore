@@ -48,6 +48,7 @@ debug
 /enumerate-surface
 /route-registry
 /swaig-test
+/wait-liveness-dump
 
 # Python audit-script bytecode (scripts/enumerate_*.py invocations)
 __pycache__/

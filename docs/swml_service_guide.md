@@ -15,7 +15,7 @@
 
 ## Introduction
 
-The `swml.Service` type (package `github.com/signalwire/signalwire-go/pkg/swml`) provides a foundation for creating and serving SignalWire Markup Language (SWML) documents. It underpins all SignalWire services, including AI Agents, and handles common tasks such as:
+The `swml.Service` type (package `github.com/signalwire/signalwire-go/v3/pkg/swml`) provides a foundation for creating and serving SignalWire Markup Language (SWML) documents. It underpins all SignalWire services, including AI Agents, and handles common tasks such as:
 
 - SWML document creation and manipulation
 - Schema validation
@@ -30,14 +30,14 @@ The type is designed to be embedded or configured for specific use cases, while 
 The `swml.Service` type is part of the SignalWire AI Agents Go SDK. Add it to your module with `go get`:
 
 ```bash
-go get github.com/signalwire/signalwire-go
+go get github.com/signalwire/signalwire-go/v3
 ```
 
 Then import the `swml` package:
 
 <!-- snippet: no-compile illustrative import statement only -->
 ```go
-import "github.com/signalwire/signalwire-go/pkg/swml"
+import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 ```
 
 ## Basic Usage
@@ -48,7 +48,7 @@ functional options and its document is built with typed verb methods:
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/swml"
+import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 
 func main() {
 	svc := swml.NewService(
@@ -78,7 +78,7 @@ For any verb without a dedicated typed method, use the generic
 
 <!-- snippet-setup -->
 ```go
-import "github.com/signalwire/signalwire-go/pkg/swml"
+import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 
 // Shared service established in prose above.
 var svc = swml.NewService(swml.WithName("svc"))
@@ -100,7 +100,7 @@ svc.ExecuteVerb("hangup", map[string]any{})
 
 ## Centralized Logging System
 
-The `swml.Service` type includes a centralized structured logging system (package `github.com/signalwire/signalwire-go/pkg/logging`) that provides consistent, level-based logs. The logger is configured automatically, so you don't need to set it up in each service or example.
+The `swml.Service` type includes a centralized structured logging system (package `github.com/signalwire/signalwire-go/v3/pkg/logging`) that provides consistent, level-based logs. The logger is configured automatically, so you don't need to set it up in each service or example.
 
 ### How It Works
 
@@ -217,7 +217,7 @@ You can register custom verb handlers for specialized verb processing. A handler
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/swml"
+import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 
 // CustomPlayHandler implements swml.VerbHandler for the "play" verb.
 type CustomPlayHandler struct{}
@@ -283,7 +283,7 @@ the request body and rebuild the document before serving:
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/swml"
+import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 
 // buildDocument (re)builds the SWML document from the parsed request body.
 func buildDocument(svc *swml.Service, requestData map[string]any) {
@@ -370,7 +370,7 @@ based on the request body:
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/swml"
+import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 
 func main() {
 	svc := swml.NewService(
@@ -487,7 +487,7 @@ environment variables rather than a constructor option.
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/swml"
+import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 
 func main() {
 	svc := swml.NewService(
@@ -552,7 +552,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 func main() {

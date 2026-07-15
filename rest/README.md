@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 )
 
 func main() {
@@ -90,14 +90,19 @@ func main() {
 
 ```
 pkg/rest/
-    client.go             // HttpClient -- HTTP transport, Basic Auth, JSON encoding
-    signalwire_client.go  // RestClient -- namespace wiring, env var resolution
+    client.go                          // HTTPClient -- HTTP transport, Basic Auth, JSON encoding
+    rest_client.go                     // RestClient -- namespace wiring, env var resolution
+    rest_tree_generated.go             // generated namespace accessor tree on RestClient
     namespaces/
-        common.go         // HTTPClient interface, Resource, CrudResource
-        fabric.go         // 13 resource types + generic resources + addresses + tokens
-        calling.go        // 37 command dispatch methods via single POST
-        phone_numbers.go  // Search, purchase, update, release
-        video.go          // Rooms, sessions, recordings, conferences
-        datasphere.go     // Documents, search, chunks
-        ... and 15 more
+        common.go                      // HTTPClient interface, Resource, CrudResource
+        paginator.go                   // list() pagination iterator
+        call_handler.go                // calling command dispatch (single POST)
+        client_tree_generated.go       // generated per-namespace resource containers
+        fabric_resources_generated.go  // fabric resource types + addresses + tokens
+        calling_resources_generated.go // calling command-dispatch resources
+        video_resources_generated.go   // rooms, sessions, recordings, conferences
+        datasphere_resources_generated.go // documents, search, chunks
+        <ns>_resources_generated.go    // one per namespace (chat/fax/logs/message/
+                                       //   messages/project/projects/pubsub/relay_rest/voice)
+        <ns>_types_generated.go        // generated *Params / *Response types per namespace
 ```

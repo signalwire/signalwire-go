@@ -19,7 +19,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/cmd/internal/overlay"
+	"github.com/signalwire/signalwire-go/v3/cmd/internal/overlay"
 	"gopkg.in/yaml.v3"
 )
 

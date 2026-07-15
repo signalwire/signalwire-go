@@ -37,7 +37,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 func TestTLS_RelayClient_WSS(t *testing.T) {

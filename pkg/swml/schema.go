@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
 )
 
 //go:embed schema.json

@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 func main() {

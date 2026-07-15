@@ -17,8 +17,8 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/antchfx/htmlquery"
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 	"golang.org/x/net/html"
 )
 

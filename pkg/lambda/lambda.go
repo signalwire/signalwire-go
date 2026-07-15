@@ -28,8 +28,8 @@
 //
 //	import (
 //	    "github.com/aws/aws-lambda-go/lambda"
-//	    swlambda "github.com/signalwire/signalwire-go/pkg/lambda"
-//	    "github.com/signalwire/signalwire-go/pkg/agent"
+//	    swlambda "github.com/signalwire/signalwire-go/v3/pkg/lambda"
+//	    "github.com/signalwire/signalwire-go/v3/pkg/agent"
 //	)
 //
 //	var a = agent.NewAgentBase(agent.WithName("MyAgent"), agent.WithRoute("/my-agent"))

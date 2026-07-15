@@ -10,7 +10,7 @@ package agent
 import (
 	"testing"
 
-	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 // Tests guarding the SWAIG wire-format key renames this PR adopted

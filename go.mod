@@ -1,4 +1,4 @@
-module github.com/signalwire/signalwire-go
+module github.com/signalwire/signalwire-go/v3
 
 go 1.25.0
 

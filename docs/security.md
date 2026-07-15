@@ -73,7 +73,7 @@ SWML-based services automatically use the unified security configuration:
 <!-- snippet-setup -->
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 // Shared context the fragments below assume.

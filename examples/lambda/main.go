@@ -22,10 +22,10 @@ import (
 
 	awslambda "github.com/aws/aws-lambda-go/lambda"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/lambda"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/lambda"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 // Create the agent once at package load so it survives across Lambda

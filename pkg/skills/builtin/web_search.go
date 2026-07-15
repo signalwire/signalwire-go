@@ -16,8 +16,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // WebSearchSkill searches the web using Google Custom Search API.

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 func TestMathSkill_Addition(t *testing.T) {

@@ -3,8 +3,8 @@ package builtin
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // InfoGathererSkill guides an AI agent through a series of questions,

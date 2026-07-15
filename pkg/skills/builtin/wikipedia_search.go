@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // WikipediaSearchSkill searches Wikipedia for information.

@@ -78,8 +78,8 @@ Contexts can have their own prompts (separate from entry parameters):
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/contexts"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/contexts"
 )
 
 // Shared context the fragments below assume.
@@ -144,7 +144,7 @@ The system provides fine-grained control over conversation flow:
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -192,7 +192,7 @@ func main() {
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -532,7 +532,7 @@ step.SetFunctions("none")
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -874,7 +874,7 @@ Flow:
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -964,7 +964,7 @@ func main() {
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -1046,7 +1046,7 @@ func main() {
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -1302,7 +1302,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/contexts"
+	"github.com/signalwire/signalwire-go/v3/pkg/contexts"
 )
 
 func createStepWithLogging(ctx *contexts.Context, name string) *contexts.Step {
@@ -1351,7 +1351,7 @@ step.SetFunctions("none")
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -1375,7 +1375,7 @@ func main() {
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -1407,7 +1407,7 @@ You can use both traditional prompts and contexts in the same agent:
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
 	a := agent.NewAgentBase(
@@ -1454,8 +1454,8 @@ To switch contexts dynamically during a conversation, use a `swaig.FunctionResul
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 func main() {
@@ -1515,8 +1515,8 @@ Collects a travel profile with typed questions and confirmation, then recommends
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/contexts"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/contexts"
 )
 
 func main() {
@@ -1573,8 +1573,8 @@ Gathers issue details, then routes to the right team using normal mode navigatio
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/contexts"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/contexts"
 )
 
 func main() {

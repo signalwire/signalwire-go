@@ -56,7 +56,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 	"gopkg.in/yaml.v3"
 )
 
@@ -592,14 +592,14 @@ import (
 	"errors"
 	"testing"
 %s
-	"github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/internal/mocktest"
 )
 `
 
 // namespacesImport is the extra import line emitted when a spec's generated tests
 // reference a params-struct composite literal (`namespaces.<...>Params{…}`).
-const namespacesImport = "\n\t\"github.com/signalwire/signalwire-go/pkg/rest/namespaces\""
+const namespacesImport = "\n\t\"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces\""
 
 // slug is the resource.method tail of the via, non-alnum→"_", trailing "_"
 // trimmed — for deterministic, stable test names.

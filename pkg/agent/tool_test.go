@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // ---------------------------------------------------------------------------

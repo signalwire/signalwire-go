@@ -11,12 +11,12 @@ _Build AI voice agents, control live calls over WebSocket, and manage every Sign
 <p align="center">
   <a href="https://developer.signalwire.com/sdks/agents-sdk" target="_blank">Documentation</a> &middot;
   <a href="https://github.com/signalwire/signalwire-docs/issues/new/choose" target="_blank">Report an Issue</a> &middot;
-  <a href="https://pkg.go.dev/github.com/signalwire/signalwire-go" target="_blank">pkg.go.dev</a>
+  <a href="https://pkg.go.dev/github.com/signalwire/signalwire-go/v3" target="_blank">pkg.go.dev</a>
 </p>
 
 <a href="https://discord.com/invite/F2WNYTNjuF" target="_blank"><img src="https://img.shields.io/badge/Discord%20Community-5865F2" alt="Discord" /></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/MIT-License-blue" alt="MIT License" /></a>
-<a href="https://github.com/signalwire/signalwire-go" target="_blank"><img src="https://img.shields.io/github/stars/signalwire/signalwire-go" alt="GitHub Stars" /></a>
+<a href="https://github.com/signalwire/signalwire-go/v3" target="_blank"><img src="https://img.shields.io/github/stars/signalwire/signalwire-go" alt="GitHub Stars" /></a>
 
 </div>
 
@@ -31,7 +31,7 @@ _Build AI voice agents, control live calls over WebSocket, and manage every Sign
 | **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 18+ API namespaces | [REST docs](rest/README.md) |
 
 ```bash
-go get github.com/signalwire/signalwire-go
+go get github.com/signalwire/signalwire-go/v3
 ```
 
 ---
@@ -48,8 +48,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 func main() {
@@ -107,7 +107,7 @@ See the [CLI Guide](docs/cli_guide.md) for the full flag set, including
 - **SIP routing** -- route SIP calls to agents based on usernames
 - **Session state** -- persistent conversation state with global data and post-prompt summaries
 - **Security** -- auto-generated basic auth, function-specific HMAC tokens, SSL support
-- **Serverless** -- deploy to Lambda, Cloud Functions, Azure Functions
+- **Serverless** -- deploy to AWS Lambda (`pkg/lambda`), Google Cloud Functions and CGI (`pkg/serverless`)
 
 ### Agent Examples
 
@@ -143,7 +143,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 func main() {
@@ -192,8 +192,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 )
 
 func main() {
@@ -223,7 +223,7 @@ func main() {
 func ptr[T any](v T) *T { return &v }
 ```
 
-- 20 namespaced API surfaces: Fabric (13 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
+- 22 namespaced API surfaces: Fabric (16 sub-resources), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, Messages, Projects, and more
 - Shared `http.Client` for connection pooling
 - Typed params and responses -- generated `*Params` structs and `*Response` wrapper types per operation (from the spec-driven REST generator)
 
@@ -234,7 +234,7 @@ See the **[REST documentation](rest/README.md)** for the full guide, API referen
 ## Installation
 
 ```bash
-go get github.com/signalwire/signalwire-go
+go get github.com/signalwire/signalwire-go/v3
 ```
 
 Requires Go 1.25 or later.

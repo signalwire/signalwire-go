@@ -12,9 +12,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/lambda"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/lambda"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // ---------------------------------------------------------------------------
@@ -87,18 +87,15 @@ func TestValidateSimulatePlatform_LambdaAccepted(t *testing.T) {
 	}
 }
 
-func TestValidateSimulatePlatform_UnimplementedPlatformsRejected(t *testing.T) {
+func TestValidateSimulatePlatform_UnwiredPlatformsRejected(t *testing.T) {
 	for _, platform := range []string{"gcf", "cloud_function", "azure", "azure_function", "cgi"} {
 		t.Run(platform, func(t *testing.T) {
 			err := validateSimulatePlatform(platform)
 			if err == nil {
-				t.Fatalf("expected error for unimplemented platform %q", platform)
+				t.Fatalf("expected error for platform %q not wired into the simulator", platform)
 			}
-			if !strings.Contains(err.Error(), "not implemented") {
-				t.Errorf("error for %q should say 'not implemented'; got: %v", platform, err)
-			}
-			if !strings.Contains(err.Error(), "Phase 9") {
-				t.Errorf("error for %q should reference Phase 9; got: %v", platform, err)
+			if !strings.Contains(err.Error(), "not wired into the swaig-test") {
+				t.Errorf("error for %q should say 'not wired into the swaig-test'; got: %v", platform, err)
 			}
 		})
 	}
@@ -596,8 +593,8 @@ func TestRun_SimulateServerless_RejectsUnimplementedPlatform(t *testing.T) {
 			if err == nil {
 				t.Fatalf("expected error for --simulate-serverless %s", platform)
 			}
-			if !strings.Contains(err.Error(), "Phase 9") && !strings.Contains(err.Error(), "not implemented") {
-				t.Errorf("error for %s should reference Phase 9 or 'not implemented'; got: %v", platform, err)
+			if !strings.Contains(err.Error(), "not wired into the swaig-test") {
+				t.Errorf("error for %s should say 'not wired into the swaig-test'; got: %v", platform, err)
 			}
 		})
 	}

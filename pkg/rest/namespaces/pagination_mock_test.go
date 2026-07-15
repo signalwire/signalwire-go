@@ -24,8 +24,8 @@ import (
 	"errors"
 	"testing"
 
-	rest "github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	rest "github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/internal/mocktest"
 )
 
 // fabric_addresses_path is stable across spec revisions and the mock

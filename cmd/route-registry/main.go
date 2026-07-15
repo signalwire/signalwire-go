@@ -51,7 +51,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
 // sentinel stands in for any path parameter (resource id, sid, etc.). It is one

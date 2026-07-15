@@ -3,7 +3,7 @@
 // "everything works" convenience import: a consumer who wants the full skill
 // set writes a single
 //
-//	import _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+//	import _ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 //
 // and every built-in skill — including the ones that carry heavier external
 // dependencies (the spider skill pulls goquery/htmlquery/x/net) — is available
@@ -23,6 +23,6 @@
 package all
 
 import (
-	_ "github.com/signalwire/signalwire-go/pkg/skills/builtin"        // 16 light skills (no external deps)
-	_ "github.com/signalwire/signalwire-go/pkg/skills/builtin/spider" // spider (goquery/htmlquery/x/net)
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/builtin"        // 16 light skills (no external deps)
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/builtin/spider" // spider (goquery/htmlquery/x/net)
 )

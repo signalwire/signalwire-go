@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func main() {

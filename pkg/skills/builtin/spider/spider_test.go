@@ -3,7 +3,7 @@ package spider
 import (
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 // TestSpiderSetup tests SpiderSkill. The skill registers itself via this

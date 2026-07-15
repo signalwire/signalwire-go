@@ -16,7 +16,7 @@ Sets LLM parameters for the main agent prompt. Accepts any parameters that will 
 
 <!-- snippet-setup -->
 ```go
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 // Shared agent established in prose above.
 var a = agent.NewAgentBase()

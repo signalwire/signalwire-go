@@ -147,8 +147,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // Shared agent established in prose above.
@@ -2332,7 +2332,7 @@ For common patterns, convenience functions simplify DataMap creation:
 #### Simple API Tool
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/datamap"
+import "github.com/signalwire/signalwire-go/v3/pkg/datamap"
 
 weather := datamap.CreateSimpleAPITool(
 	"get_weather",
@@ -2357,7 +2357,7 @@ _ = weather
 
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/datamap"
+	"github.com/signalwire/signalwire-go/v3/pkg/datamap"
 )
 
 // Each entry pairs the test value (evaluated against the args) with the

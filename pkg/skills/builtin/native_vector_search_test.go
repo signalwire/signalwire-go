@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 // TestNativeVectorSearch_RemoteHTTP is Tier-2 behavioral contract #4:

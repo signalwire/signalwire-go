@@ -24,7 +24,7 @@ Agents completing this checklist have historically left gaps by treating ambiguo
 4. **Doc↔code alignment is required.** Every method or class referenced in a `docs/`, `rest/docs/`, `relay/docs/`, or `examples/` file must exist in the port's source. Phase 13 audits this. A port that ships `assign_phone_route` in a doc without implementing it fails Phase 13.
 5. **"Commit to git" means a named feature branch, not `main`.** Every `- [ ] Commit to git` means committing on a descriptive `feat/<topic>` branch (e.g. `feat/swml-core`, `feat/lambda-support`, `feat/phone-binding-helpers`). Direct commits to `main` fail review.
 6. **"No tests skipped" means no tests skipped.** `pytest -m "not slow"`, `go test -short`, `rspec --tag ~integration`, etc. are not allowed when reporting a phase complete. Run the full suite, 0 failures, 0 skips.
-7. **No stubs anywhere.** Every artifact in this port — SDK source, examples, skills, CLIs, transports, prefabs — is production code. A function body that returns `"would call X in production"`, `"not implemented"`, hardcoded fake-data shaped to look real, or any value that bypasses the documented upstream call IS A BUG and IS NOT EXEMPT BY ANY TEST. If `audit_stubs.py` (Phase 13) finds a hit, the port is not done. See PORTING_GUIDE.md → "Production Code Discipline" for the full rule and the small allow-list (optional-extra guards, abstract methods, documented platform restrictions). Tests are NOT allowed to assert stub behavior — a test like `assert err.contains("not available")` against a transport stub is itself a violation.
+7. **No stubs anywhere.** Every artifact in this port — SDK source, examples, skills, CLIs, transports, prefabs — is production code. A function body that returns `"would call X in production"`, `"not implemented"`, hardcoded fake-data shaped to look real, or any value that bypasses the documented upstream call IS A BUG and IS NOT EXEMPT BY ANY TEST. If `audit_stubs.py` (Phase 13) finds a hit, the port is not done. See PORTING_GUIDE.md → "Production Code Discipline" for the full rule and the small allow-list (optional-extra guards, abstract methods, documented platform restrictions). Tests are NOT allowed to assert stub behavior — a test that asserts an error message like `"not available"` against a transport stub is itself a violation.
 8. **Tests prove behavior, not shape.** A test that says "the symbol exists" or "the response is non-empty" against a stub passes against canned data. Tests must drive the documented user-visible behavior end-to-end: the function is called, the upstream is contacted (live with credentials, or via a recorded cassette of real upstream output), the parsed response matches what a live caller would see. A mock that removes the requirement that a transport exist at all is wrong — the transport's existence and basic correctness must be tested separately.
 9. **Every example runs.** Every file in `examples/` must do exactly what its docstring says when invoked. `audit_examples_run.py` (Phase 13) drives each one and asserts the documented behavior. Compile-pass is not acceptance — behavior-pass is.
 
@@ -196,7 +196,7 @@ Agents completing this checklist have historically left gaps by treating ambiguo
 - [ ] CrudResource (List, Create, Get, Update, Delete)
 - [ ] Pagination support
 - [ ] SignalWireRestError
-- [ ] **All 20 REST namespaces** — exact stems below. Every one must be accessible as `client.<stem>` (Python) / `client.<CamelStem>` (Go/Java/etc.) in the port. Enforced by `scripts/audit_checklist.py`.
+- [ ] **All 22 REST namespaces** — exact stems below. Every one must be accessible as `client.<stem>` (Python) / `client.<CamelStem>` (Go/Java/etc.) in the port. Enforced by `scripts/audit_checklist.py`.
   - [ ] Fabric — **exactly 16 sub-resources**: `swml_scripts`, `swml_webhooks`, `ai_agents`, `relay_applications`, `call_flows`, `conference_rooms`, `freeswitch_connectors`, `subscribers`, `sip_endpoints`, `sip_gateways`, `cxml_scripts`, `cxml_webhooks`, `cxml_applications`, `resources`, `addresses`, `tokens`
   - [ ] Calling (**exactly 37 commands** — see the OpenAPI spec at `rest-apis/calling/openapi.yaml`)
   - [ ] PhoneNumbers — see § Phone-number binding below for the 7 typed helpers
@@ -215,6 +215,8 @@ Agents completing this checklist have historically left gaps by treating ambiguo
   - [ ] Registry
   - [ ] Logs
   - [ ] Project
+  - [ ] Projects
+  - [ ] Messages
   - [ ] PubSub
   - [ ] Chat
 - [ ] Tests: client creation, all namespaces initialized (non-nil), CRUD path construction, error formatting, sub-resource verification
@@ -485,7 +487,7 @@ Tests are proof of implementation. The port must test **everything the Python SD
 - [ ] All 41 SwaigFunctionResult action methods present (plus the non-action basics: set_response, set_post_process, add_action, add_actions, to_dict, and the 3 payment helpers). **Proof:** grep the port's equivalent file for the 41 action names in SWAIG_FUNCTION_RESULT_REFERENCE.md; every one resolves, or the omission is justified in PORT_OMISSIONS.md.
 - [ ] All 38 SWML verb methods present and schema-validated
 - [ ] RELAY client: all 4 correlation mechanisms implemented (JSON-RPC id, call_id, control_id, tag)
-- [ ] REST client: all 20 namespaces initialized with correct paths (see Phase 8 for the enumerated list)
+- [ ] REST client: all 22 namespaces initialized with correct paths (see Phase 8 for the enumerated list)
 - [ ] Skills registry: all 17 built-in skills registered (per Phase 4 enumerated list)
 - [ ] agent.AddSkill() one-liner integration works (not just manual SkillManager)
 - [ ] SIP username extraction utility exists

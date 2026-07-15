@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
-	"github.com/signalwire/signalwire-go/pkg/relay/internal/mocktest"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay/internal/mocktest"
 )
 
 // ---------------------------------------------------------------------------

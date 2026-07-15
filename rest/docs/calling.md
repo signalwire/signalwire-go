@@ -32,8 +32,8 @@ Any parameter not modeled as a typed field can be passed through the
 import (
 	"context"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 )
 
 // Shared context the fragments below assume: a constructed REST client and a

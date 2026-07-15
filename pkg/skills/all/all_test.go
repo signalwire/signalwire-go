@@ -3,7 +3,7 @@ package all
 import (
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 // allSkillNames is the full built-in set: the 17 light skills (registered by

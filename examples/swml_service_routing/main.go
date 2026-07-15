@@ -11,7 +11,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 func main() {

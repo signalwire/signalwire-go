@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/logging"
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 // ErrServerNotRunning is returned (wrapped) by Shutdown when no HTTP server is

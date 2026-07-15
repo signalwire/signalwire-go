@@ -11,7 +11,7 @@ Instead of manually implementing every agent capability, you can now:
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 // Shared context the fragments below assume.
@@ -26,7 +26,7 @@ var (
 ```go
 import (
     // Blank-import the built-in skills so their init() functions register them.
-    _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+    _ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 // Create an agent
@@ -57,7 +57,7 @@ The skills system consists of:
 
 ### Discovery & Registry
 - **Skill registry** - Built-in and third-party skills register themselves via `skills.RegisterSkill` from their package `init()`
-- **Blank-import registration** - Skills become available when their package is blank-imported (e.g. `_ "github.com/signalwire/signalwire-go/pkg/skills/all"` for the built-ins)
+- **Blank-import registration** - Skills become available when their package is blank-imported (e.g. `_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"` for the built-ins)
 - **Validation** - Checks required environment variables
 
 ### Built-in Skills
@@ -246,7 +246,7 @@ a.AddSkill("swml_transfer", map[string]any{
 ```go
 import (
     // Blank-import the built-in skills so their init() functions register them.
-    _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+    _ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 // Create agent and add skills
@@ -302,7 +302,7 @@ a.AddSkill("web_search", map[string]any{
 ### Check Available Skills
 ```go
 import (
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 // List all discovered skills with their parameter schemas. The schema for each
@@ -349,8 +349,8 @@ package myskill // mymodule/myskill/skill.go
 import (
     "fmt"
 
-    "github.com/signalwire/signalwire-go/pkg/skills"
-    "github.com/signalwire/signalwire-go/pkg/swaig"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 type MyCustomSkill struct {
@@ -440,7 +440,7 @@ a.AddSkill("my_skill", map[string]any{
 
 1. **Add the SDK to your module:**
    ```bash
-   go get github.com/signalwire/signalwire-go
+   go get github.com/signalwire/signalwire-go/v3
    ```
 
 2. **Run the demo:**
@@ -465,10 +465,10 @@ package main
 import (
     "fmt"
 
-    "github.com/signalwire/signalwire-go/pkg/agent"
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 
-    _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+    _ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 func main() {

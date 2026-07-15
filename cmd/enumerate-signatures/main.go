@@ -47,7 +47,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	surfacepkg "github.com/signalwire/signalwire-go/internal/surface"
+	surfacepkg "github.com/signalwire/signalwire-go/v3/internal/surface"
 )
 
 var (

@@ -42,7 +42,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 // setProcessGroup configures the spawned mock-server process to run in its own

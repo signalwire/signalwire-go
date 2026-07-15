@@ -22,7 +22,7 @@ The `mcp_gateway` skill ships with the SignalWire AI Agents Go SDK. Add the SDK 
 module:
 
 ```bash
-go get github.com/signalwire/signalwire-go
+go get github.com/signalwire/signalwire-go/v3
 ```
 
 Skills self-register in their `init()` function, so blank-import the built-in skill set to
@@ -32,10 +32,10 @@ make `mcp_gateway` available to `AgentBase.AddSkill` by name:
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 	// Import built-in skills so their init() functions register them.
-	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 func main() {
@@ -116,9 +116,9 @@ The skill's `Setup()` reads the following parameters from the `map[string]any` p
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 
-	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 func main() {

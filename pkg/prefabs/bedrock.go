@@ -3,8 +3,8 @@ package prefabs
 import (
 	"sort"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
 )
 
 // ---------------------------------------------------------------------------

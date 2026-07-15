@@ -5,21 +5,26 @@ platforms.
 
 ## Platform Support
 
-The Go SDK ships a serverless adapter for **AWS Lambda** only (package
-`github.com/signalwire/signalwire-go/pkg/lambda`).
+The Go SDK ships serverless adapters for **AWS Lambda** (package
+`github.com/signalwire/signalwire-go/v3/pkg/lambda`), **Google Cloud Functions** and
+**CGI** (both via package `github.com/signalwire/signalwire-go/v3/pkg/serverless`).
 
 - **AWS Lambda** — Supported via `pkg/lambda` (Function URLs and API Gateway HTTP API v2).
-- **Google Cloud Functions** — Not yet implemented in the Go SDK. There is no GCF
-  adapter package. (`swaig-test --simulate-serverless cloud_function` returns a
-  "not implemented in this port" error.)
+- **Google Cloud Functions** — Supported via `pkg/serverless`: wrap
+  `agent.AsRouter()` in `serverless.NewHandler(...)` and register its `ServeHTTP`
+  as the GCF HTTP function (2nd-gen / Cloud Run functions). See
+  [Google Cloud Functions](#google-cloud-functions) below.
+- **CGI** — Supported via `pkg/serverless` and auto-detected: when the process runs
+  under a CGI environment, `agent.Run()` dispatches through `serverless.ServeCGI`
+  automatically (no adapter wiring required).
 - **Azure Functions** — Not yet implemented in the Go SDK. There is no Azure adapter
   package. (`swaig-test --simulate-serverless azure_function` returns a "not
   implemented in this port" error.)
 
-> The Python SDK supports GCF and Azure deployment; the Go port does not yet. If you
-> need GCF or Azure today, run the agent as a normal HTTP server (see
-> [web_service.md](web_service.md)) behind the platform's HTTP trigger, or use AWS
-> Lambda with the adapter below.
+> The `swaig-test --simulate-serverless` harness currently simulates the **lambda**
+> platform end-to-end; GCF/CGI/Azure are not yet wired into the CLI simulator even
+> where an adapter ships. If you need Azure today, run the agent as a normal HTTP
+> server (see [web_service.md](web_service.md)) behind the platform's HTTP trigger.
 
 ## AWS Lambda
 
@@ -40,8 +45,8 @@ package main
 
 import (
 	awslambda "github.com/aws/aws-lambda-go/lambda"
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	swlambda "github.com/signalwire/signalwire-go/pkg/lambda"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	swlambda "github.com/signalwire/signalwire-go/v3/pkg/lambda"
 )
 
 var a = agent.NewAgentBase(
@@ -97,6 +102,47 @@ The SDK detects the Lambda environment from standard Lambda environment variable
 Function URLs) and generates webhook URLs accordingly. Setting `SWML_PROXY_URL_BASE`
 overrides URL generation with a fixed base; clear it if you want the platform-derived
 URLs.
+
+## Google Cloud Functions
+
+The GCF adapter lives in `pkg/serverless`. Wrap the `http.Handler` from
+`agent.AsRouter()` in `serverless.NewHandler(...)` and register the resulting
+`ServeHTTP` as your 2nd-gen (Cloud Run) HTTP function's entry point:
+
+<!-- snippet: no-compile requires third-party module github.com/GoogleCloudPlatform/functions-framework-go/functions (not part of the SDK-linked snippet module) -->
+```go
+package function
+
+import (
+	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/serverless"
+)
+
+var a = agent.NewAgentBase(
+	agent.WithName("MyAgent"),
+	agent.WithRoute("/my-agent"),
+)
+
+func init() {
+	functions.HTTP("Agent", serverless.NewHandler(a.AsRouter()).ServeHTTP)
+}
+```
+
+`ServeHTTP` mounts the agent at the request root, dispatches SWAIG at `/swaig`, and
+enforces the agent's auth — the same request-handling core the Lambda and CGI
+adapters use.
+
+## CGI
+
+The CGI adapter is auto-detected: when the process runs under a CGI environment
+`agent.Run()` dispatches through `serverless.ServeCGI` without any adapter wiring.
+To dispatch CGI explicitly:
+
+<!-- snippet: no-compile illustrative one-line fragment (a / serverless / context are from the surrounding program, not in scope here) -->
+```go
+serverless.NewHandler(a.AsRouter()).ServeCGI(context.Background())
+```
 
 ## Testing Lambda locally
 

@@ -4,7 +4,7 @@ Go has no package-manifest file-exclusion mechanism. Unlike Cargo (`include`/
 `exclude`), npm (`.npmignore` / `files`), or a gemspec's `s.files`, a published
 Go module is simply its committed tree at the tagged version — there is no
 manifest that selects which files enter the "package." A consumer that
-`go get`s `github.com/signalwire/signalwire-go` compiles only the packages it
+`go get`s `github.com/signalwire/signalwire-go/v3` compiles only the packages it
 imports (the library lives under `pkg/...`); the files below impose no build or
 dependency cost on that consumer.
 

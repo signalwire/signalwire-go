@@ -31,7 +31,7 @@ var (
 ```
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/skills"
+import "github.com/signalwire/signalwire-go/v3/pkg/skills"
 
 // Get complete schema for all skills.
 // Returns map[string]map[string]map[string]any keyed by skill name.
@@ -103,7 +103,7 @@ import (
     "fmt"
     "strings"
 
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 // generateFormField builds an HTML form field from a parameter's schema info.
@@ -189,8 +189,8 @@ package main
 import (
     "fmt"
 
-    "github.com/signalwire/signalwire-go/pkg/agent"
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 func newMyAgent() (*agent.AgentBase, error) {
@@ -250,7 +250,7 @@ method and merge in the base schema (which supplies the common parameters):
 package mycustomskill
 
 import (
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 type MyCustomSkill struct {
@@ -411,7 +411,7 @@ base schema. Since `skills.BaseSkill` already provides `GetParameterSchema()`, y
 don't override it at all:
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/skills"
+import "github.com/signalwire/signalwire-go/v3/pkg/skills"
 
 // No GetParameterSchema override needed — the embedded skills.BaseSkill
 // supplies the base schema (swaig_fields, tool_name).

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
 )
 
 var log = logging.New("swaig")

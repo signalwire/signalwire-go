@@ -188,6 +188,7 @@ Seconds: time.Duration.Seconds — Go stdlib
 Since: time.Since — Go stdlib
 Setenv: os.Setenv — Go stdlib
 Stat: os.Stat — Go stdlib
+HTTP: functions.HTTP — GoogleCloudPlatform/functions-framework-go registration call in the no-compile GCF deploy snippet (docs/cloud_functions_guide.md); external framework, not an SDK symbol
 go: Go `go` keyword highlighted in a code block — false-positive, not an identifier
 init: Go language built-in package-init function referenced in a comment ("// Each imported package registers its skill via init().") in docs/third_party_skills.md — not an SDK symbol
 SkillName: skills.SkillName typed-string conversion (e.g. skills.SkillName("weather")) — real port type used in AddSkill examples

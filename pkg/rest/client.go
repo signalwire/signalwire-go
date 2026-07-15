@@ -24,7 +24,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
 )
 
 // userAgent is the User-Agent header sent with every request.
