@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ d423f057013e8ec266f7d02b3a7428d48499c510",
+  "generated_from": "signalwire-go (go-native) @ 97febfc537132e7179e332d5e0d8646e7fbf241d",
   "modules": {
     "agent": {
       "classes": {
@@ -714,6 +714,9 @@
         ],
         "ProjectTokensCreateParams": [],
         "ProjectTokensUpdateParams": [],
+        "Projects": [
+          "RotateSigningKey"
+        ],
         "PubSubNamespace": [
           "CreateToken"
         ],
@@ -865,6 +868,7 @@
         "NewPhoneNumbersNamespace",
         "NewProjectNamespace",
         "NewProjectTokens",
+        "NewProjects",
         "NewPubSubNamespace",
         "NewQueuesNamespace",
         "NewRecordingsNamespace",

@@ -257,6 +257,15 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"Update":           "update",
 		},
 	}},
+	"namespaces.Projects": {{
+		Module: "signalwire.rest.namespaces.projects_resources_generated", Class: "Projects",
+		Methods: map[string]string{
+			"Create":           "create",
+			"NewProjects":      "__init__",
+			"RotateSigningKey": "rotate_signing_key",
+			"Update":           "update",
+		},
+	}},
 	"namespaces.PubSubNamespace": {{
 		Module: "signalwire.rest.namespaces.pubsub_resources_generated", Class: "PubSub",
 		Methods: map[string]string{

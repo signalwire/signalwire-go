@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ bca0628622443a725c237876fcd679d2d102f820 (go/ast walker)",
+  "generated_from": "signalwire-go @ 49e3fd1167ab4d4a749949eb5cb29682c771e232 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -16605,6 +16605,90 @@
                 }
               ],
               "returns": "class:signalwire.rest.namespaces.project_types_generated.TokenResponse"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.rest.namespaces.projects_resources_generated": {
+      "classes": {
+        "Projects": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "client",
+                  "type": "class:signalwire.rest._base.HttpClient",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "rotate_signing_key": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.projects_types_generated.ProjectWithSigningKey"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
             }
           }
         }

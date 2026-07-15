@@ -35,6 +35,7 @@ type _GeneratedResourceTree struct {
 	Video           *namespaces.VideoNamespace
 	Logs            *namespaces.LogsNamespace
 	Project         *namespaces.ProjectNamespace
+	Projects        *namespaces.Projects
 	PubSub          *namespaces.PubSubNamespace
 	Chat            *namespaces.ChatNamespace
 }
@@ -60,6 +61,7 @@ func (t *_GeneratedResourceTree) wireGeneratedTree(client namespaces.HTTPClient)
 	t.Video = namespaces.NewVideoNamespace(client)
 	t.Logs = namespaces.NewLogsNamespace(client)
 	t.Project = namespaces.NewProjectNamespace(client)
+	t.Projects = namespaces.NewProjects(client)
 	t.PubSub = namespaces.NewPubSubNamespace(client)
 	t.Chat = namespaces.NewChatNamespace(client)
 }

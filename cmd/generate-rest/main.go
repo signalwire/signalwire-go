@@ -401,6 +401,8 @@ var goStructName = map[string]string{
 	"DatasphereDocuments": "DatasphereDocuments",
 	// project
 	"ProjectTokens": "ProjectTokens",
+	// projects (plural — /api/projects full-CRUD, client.Projects)
+	"Projects": "Projects",
 	// video
 	"VideoRooms":            "VideoRooms",
 	"VideoRoomTokens":       "VideoRoomTokens",
@@ -480,6 +482,7 @@ var goMethodName = map[string]string{
 	"ProjectTokens.create":                       "Create",
 	"ProjectTokens.update":                       "Update",
 	"ProjectTokens.delete":                       "Delete",
+	"Projects.rotate_signing_key":                "RotateSigningKey",
 	"VideoRooms.list_streams":                    "ListStreams",
 	"VideoRooms.create_stream":                   "CreateStream",
 	"VideoRoomTokens.create":                     "Create",
@@ -1768,7 +1771,7 @@ var clientFieldOrder = []string{
 	"Fabric", "Calling",
 	"PhoneNumbers", "Addresses", "Queues", "Recordings", "NumberGroups",
 	"VerifiedCallers", "SIPProfile", "Lookup", "ShortCodes", "ImportedNumbers", "MFA",
-	"Registry", "Datasphere", "Video", "Logs", "Project", "PubSub", "Chat",
+	"Registry", "Datasphere", "Video", "Logs", "Project", "Projects", "PubSub", "Chat",
 }
 
 // emitClientTree emits the generated REST client tree (§8) as TWO source files.
@@ -2129,11 +2132,127 @@ package %s
 // Driver.
 // ---------------------------------------------------------------------------
 
-// actualSpecDirs are the 12 real REST spec directories (registry has no own
-// dir — its resources live inside relay-rest via namespace: registry).
-var actualSpecDirs = []string{
+// resourceSpecEmitOrder pins the EMISSION order of the resource specs the scan
+// discovers (see discoverSpecs). It is NOT the membership list — membership is
+// scanned from the filesystem — but a Go-specific ORDERING artifact: the whole
+// REST types surface lives in ONE Go package, so a type NAME shared across specs
+// is declared once, by whichever spec emits FIRST (emittedTypeNames, first-spec-
+// wins). That "first" is this slice's order. It is otherwise arbitrary/historical
+// and carries no membership information — discoverSpecs is the source of truth for
+// WHICH specs exist; this only fixes their relative order so the cross-spec type
+// dedup lands each shared type in the same file it lands in today (GEN-FRESH byte-
+// identity). A spec the scan finds that is NOT pinned here appends in alphabetical
+// order after the pinned prefix (a newly-added spec auto-participates without a
+// hand edit; its own new type names can't collide with an already-emitted name, so
+// existing files stay byte-identical). A pinned name the scan does NOT find is a
+// fail-loud error (a spec removed/renamed without updating this order hint).
+var resourceSpecEmitOrder = []string{
 	"relay-rest", "fabric", "calling", "video", "datasphere",
-	"logs", "message", "voice", "fax", "project", "chat", "pubsub",
+	"logs", "message", "voice", "fax", "project", "projects", "chat", "pubsub",
+}
+
+// discoverSpecs scans <psdk>/rest-apis/*/openapi.yaml and classifies each spec dir
+// into the two generator inputs — replacing the old hand-maintained namespace list.
+// Two derivable rules (mirroring REST_GENERATOR_RULES.md + the Python reference):
+//
+//   - RESOURCE spec: its openapi.yaml carries x-sdk-resource markup (one or more
+//     generate-able resources). These get the full loadSpec path (servers + paths +
+//     resources) and emit both <ns>_resources_generated.go and <ns>_types_generated.go.
+//
+//   - TYPES-ONLY spec: no x-sdk-resource markup, no servers block, but a non-empty
+//     components/schemas — a webhook/payload contract (swml-webhooks) the reference
+//     emits as a <ns>_types_generated.go types module with no resource surface.
+//
+// A dir with schemas + servers but NO x-sdk-resource is neither a resource nor a
+// types-only spec: it is a staged REST surface no SDK implements, so it is SKIPPED.
+// (The `projects` project-management API has since graduated — it carries
+// x-sdk-resource markup and is in the canonical SPEC_NAMES set — so the scan now
+// discovers it as a resource spec and emits its module. See porting-sdk
+// mock_signalwire/specs.py.)
+//
+// resourceSpecs is returned in resourceSpecEmitOrder (pinned prefix, then any new
+// discovered spec alphabetically); typesOnlySpecs is returned sorted.
+func discoverSpecs(psdk string) (resourceSpecs, typesOnlySpecs []string, err error) {
+	restAPIs := filepath.Join(psdk, "rest-apis")
+	entries, err := os.ReadDir(restAPIs)
+	if err != nil {
+		return nil, nil, fmt.Errorf("discoverSpecs: %w", err)
+	}
+	resourceSet := map[string]bool{}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		ns := e.Name()
+		specPath := filepath.Join(restAPIs, ns, "openapi.yaml")
+		raw, rerr := os.ReadFile(specPath)
+		if rerr != nil {
+			continue // dir without an openapi.yaml is not a spec
+		}
+		var doc yaml.Node
+		if uerr := yaml.Unmarshal(raw, &doc); uerr != nil {
+			return nil, nil, fmt.Errorf("discoverSpecs: %s: %w", specPath, uerr)
+		}
+		root := rootOf(&doc)
+		hasResource := docHasResourceMarkup(root)
+		hasServers := mapChild(root, "servers") != nil
+		hasSchemas := schemasNonEmpty(root)
+		switch {
+		case hasResource:
+			resourceSet[ns] = true
+		case hasSchemas && !hasServers:
+			// types-only payload spec (swml-webhooks).
+			typesOnlySpecs = append(typesOnlySpecs, ns)
+		default:
+			// schemas + servers but no x-sdk-resource (staged `projects`), or a spec
+			// with neither resources nor schemas — not a generator input. Skipped.
+		}
+	}
+
+	// Order resource specs: the pinned prefix first (validated against the scan),
+	// then any newly-discovered spec alphabetically.
+	seen := map[string]bool{}
+	for _, ns := range resourceSpecEmitOrder {
+		if !resourceSet[ns] {
+			return nil, nil, fmt.Errorf(
+				"discoverSpecs: pinned resource spec %q (resourceSpecEmitOrder) not found by the "+
+					"rest-apis scan — a spec was removed/renamed; update resourceSpecEmitOrder", ns)
+		}
+		resourceSpecs = append(resourceSpecs, ns)
+		seen[ns] = true
+	}
+	var extra []string
+	for ns := range resourceSet {
+		if !seen[ns] {
+			extra = append(extra, ns)
+		}
+	}
+	sort.Strings(extra)
+	resourceSpecs = append(resourceSpecs, extra...)
+	sort.Strings(typesOnlySpecs)
+	return resourceSpecs, typesOnlySpecs, nil
+}
+
+// docHasResourceMarkup reports whether any path item in the doc carries an
+// x-sdk-resource block (the RESOURCE-spec discovery rule).
+func docHasResourceMarkup(root *yaml.Node) bool {
+	paths := mapChild(root, "paths")
+	if paths == nil || paths.Kind != yaml.MappingNode {
+		return false
+	}
+	for i := 0; i+1 < len(paths.Content); i += 2 {
+		if mapChild(paths.Content[i+1], "x-sdk-resource") != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// schemasNonEmpty reports whether the doc has a non-empty components/schemas map
+// (the TYPES-spec discovery rule).
+func schemasNonEmpty(root *yaml.Node) bool {
+	schemas := mapChild(mapChild(root, "components"), "schemas")
+	return schemas != nil && schemas.Kind == yaml.MappingNode && len(schemas.Content) > 0
 }
 
 func gofmtSrc(src string) ([]byte, error) {
@@ -2230,8 +2349,13 @@ func run() error {
 		return err
 	}
 
+	resourceSpecs, typesOnlySpecs, err := discoverSpecs(psdk)
+	if err != nil {
+		return err
+	}
+
 	var specs []*specDoc
-	for _, ns := range actualSpecDirs {
+	for _, ns := range resourceSpecs {
 		sd, err := loadSpec(psdk, ns)
 		if err != nil {
 			return err
@@ -2282,23 +2406,23 @@ func run() error {
 			outs = append(outs, outFile{path: filepath.Join(dir(nsDir), tfn), src: typesSrc})
 		}
 	}
-	// swml-webhooks: a types-ONLY namespace (its openapi.yaml declares no servers
-	// and paths:{}, so it has no x-sdk-resource resources — but it DOES carry
-	// components/schemas the reference emits as swml_webhooks_types_generated types).
-	// The full loadSpec path requires servers/paths, so emit its types module via a
-	// minimal types-only spec doc (emitTypesFile only needs name + rawPath). Matches
-	// the reference (python swml_webhooks_types_generated.py, TS PlatformContracts).
-	swmlWebhooksSpec := &specDoc{
-		name:    "swml-webhooks",
-		rawPath: filepath.Join(psdk, "rest-apis", "swml-webhooks", "openapi.yaml"),
-	}
-	if _, err := os.Stat(swmlWebhooksSpec.rawPath); err == nil {
-		swSrc, err := emitTypesFile(swmlWebhooksSpec)
+	// Types-ONLY namespaces (discovered by discoverSpecs: schemas present, no servers,
+	// no x-sdk-resource) — e.g. swml-webhooks, a webhook/payload contract with no REST
+	// resource surface. Its openapi.yaml declares no servers and paths:{}, so the full
+	// loadSpec path (which requires servers/paths) can't parse it; emit its types module
+	// via a minimal types-only spec doc (emitTypesFile only needs name + rawPath).
+	// Matches the reference (python swml_webhooks_types_generated.py, TS PlatformContracts).
+	for _, ns := range typesOnlySpecs {
+		tspec := &specDoc{
+			name:    ns,
+			rawPath: filepath.Join(psdk, "rest-apis", ns, "openapi.yaml"),
+		}
+		swSrc, err := emitTypesFile(tspec)
 		if err != nil {
 			return err
 		}
 		if swSrc != "" {
-			tfn := strings.ReplaceAll(swmlWebhooksSpec.name, "-", "_") + "_types_generated.go"
+			tfn := strings.ReplaceAll(ns, "-", "_") + "_types_generated.go"
 			outs = append(outs, outFile{path: filepath.Join(dir(nsDir), tfn), src: swSrc})
 		}
 	}
