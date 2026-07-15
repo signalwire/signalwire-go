@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 97febfc537132e7179e332d5e0d8646e7fbf241d",
+  "generated_from": "signalwire-go (go-native) @ d6b33e63453fbc00213b4f020458a7530f4138cd",
   "modules": {
     "agent": {
       "classes": {
@@ -685,6 +685,12 @@
           "List",
           "Paginate"
         ],
+        "Messages": [
+          "Create",
+          "Update"
+        ],
+        "MessagesCreateParams": [],
+        "MessagesUpdateParams": [],
         "NumberGroupsNamespace": [
           "AddMembership",
           "DeleteMembership",
@@ -863,6 +869,7 @@
         "NewLookupNamespace",
         "NewMFANamespace",
         "NewMessageLogs",
+        "NewMessages",
         "NewNumberGroupsNamespace",
         "NewPaginator",
         "NewPhoneNumbersNamespace",

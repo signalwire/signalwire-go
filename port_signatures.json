@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 49e3fd1167ab4d4a749949eb5cb29682c771e232 (go/ast walker)",
+  "generated_from": "signalwire-go @ d6b33e63453fbc00213b4f020458a7530f4138cd (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -16475,6 +16475,135 @@
                 }
               ],
               "returns": "class:signalwire.rest._pagination.PaginatedIterator"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.rest.namespaces.messages_resources_generated": {
+      "classes": {
+        "Messages": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "client",
+                  "type": "class:signalwire.rest._base.HttpClient",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "to",
+                  "kind": "keyword",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "from",
+                  "kind": "keyword",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "kind": "keyword",
+                  "type": "optional\u003cstring\u003e",
+                  "required": true
+                },
+                {
+                  "name": "media",
+                  "kind": "keyword",
+                  "type": "list\u003cstring\u003e",
+                  "required": true
+                },
+                {
+                  "name": "send_as_mms",
+                  "kind": "keyword",
+                  "type": "optional\u003cbool\u003e",
+                  "required": true
+                },
+                {
+                  "name": "status_callback",
+                  "kind": "keyword",
+                  "type": "optional\u003cstring\u003e",
+                  "required": true
+                },
+                {
+                  "name": "custom_variables",
+                  "kind": "keyword",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "kind": "keyword",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.message.Message"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "kind": "keyword",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "kind": "keyword",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.message.Message"
             }
           }
         }
