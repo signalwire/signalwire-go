@@ -397,6 +397,9 @@ var goStructName = map[string]string{
 	// chat / pubsub
 	"Chat":   "ChatNamespace",
 	"PubSub": "PubSubNamespace",
+	// messages (plural — /api/messaging/messages send/redact, client.Messages;
+	// DISTINCT from the message-logs MessageLogs under the Logs container)
+	"Messages": "Messages",
 	// datasphere
 	"DatasphereDocuments": "DatasphereDocuments",
 	// project
@@ -1770,7 +1773,7 @@ var flatClientField = map[string]string{
 var clientFieldOrder = []string{
 	"Fabric", "Calling",
 	"PhoneNumbers", "Addresses", "Queues", "Recordings", "NumberGroups",
-	"VerifiedCallers", "SIPProfile", "Lookup", "ShortCodes", "ImportedNumbers", "MFA",
+	"VerifiedCallers", "SIPProfile", "Lookup", "Messages", "ShortCodes", "ImportedNumbers", "MFA",
 	"Registry", "Datasphere", "Video", "Logs", "Project", "Projects", "PubSub", "Chat",
 }
 
@@ -2148,7 +2151,7 @@ package %s
 // fail-loud error (a spec removed/renamed without updating this order hint).
 var resourceSpecEmitOrder = []string{
 	"relay-rest", "fabric", "calling", "video", "datasphere",
-	"logs", "message", "voice", "fax", "project", "projects", "chat", "pubsub",
+	"logs", "message", "messages", "voice", "fax", "project", "projects", "chat", "pubsub",
 }
 
 // discoverSpecs scans <psdk>/rest-apis/*/openapi.yaml and classifies each spec dir

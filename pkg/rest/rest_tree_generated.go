@@ -27,6 +27,7 @@ type _GeneratedResourceTree struct {
 	VerifiedCallers *namespaces.VerifiedCallersNamespace
 	SIPProfile      *namespaces.SIPProfileNamespace
 	Lookup          *namespaces.LookupNamespace
+	Messages        *namespaces.Messages
 	ShortCodes      *namespaces.ShortCodesNamespace
 	ImportedNumbers *namespaces.ImportedNumbersNamespace
 	MFA             *namespaces.MFANamespace
@@ -53,6 +54,7 @@ func (t *_GeneratedResourceTree) wireGeneratedTree(client namespaces.HTTPClient)
 	t.VerifiedCallers = namespaces.NewVerifiedCallersNamespace(client)
 	t.SIPProfile = namespaces.NewSIPProfileNamespace(client)
 	t.Lookup = namespaces.NewLookupNamespace(client)
+	t.Messages = namespaces.NewMessages(client)
 	t.ShortCodes = namespaces.NewShortCodesNamespace(client)
 	t.ImportedNumbers = namespaces.NewImportedNumbersNamespace(client)
 	t.MFA = namespaces.NewMFANamespace(client)

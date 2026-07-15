@@ -220,6 +220,14 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"Paginate":       "paginate",
 		},
 	}},
+	"namespaces.Messages": {{
+		Module: "signalwire.rest.namespaces.messages_resources_generated", Class: "Messages",
+		Methods: map[string]string{
+			"Create":      "create",
+			"NewMessages": "__init__",
+			"Update":      "update",
+		},
+	}},
 	"namespaces.NumberGroupsNamespace": {{
 		Module: "signalwire.rest.namespaces.relay_rest_resources_generated", Class: "NumberGroups",
 		Methods: map[string]string{
