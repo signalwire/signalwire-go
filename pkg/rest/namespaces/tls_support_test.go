@@ -139,12 +139,29 @@ type tlsJournalEntry struct {
 
 func (m *tlsMockSignalwire) lastJournal(t *testing.T) tlsJournalEntry {
 	t.Helper()
-	resp, err := m.client.Get(m.baseURL + "/__mock__/journal")
-	if err != nil {
-		t.Fatalf("tls mock_signalwire journal GET: %v", err)
+	// The journal control plane is a separate HTTPS request to the mock sidecar;
+	// under CI load its TLS session can be dropped mid-handshake (a transient
+	// `EOF`/connection reset), which a single-shot GET would surface as a hard
+	// test failure. Retry a few times on a transport-level error before giving
+	// up — the journal is idempotent, so a retry is safe. (A non-empty successful
+	// response, or a decode/assert failure, returns/fails immediately.)
+	var body []byte
+	var lastErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		resp, err := m.client.Get(m.baseURL + "/__mock__/journal")
+		if err != nil {
+			lastErr = err
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		body, _ = io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		lastErr = nil
+		break
 	}
-	defer func() { _ = resp.Body.Close() }()
-	body, _ := io.ReadAll(resp.Body)
+	if lastErr != nil {
+		t.Fatalf("tls mock_signalwire journal GET (after retries): %v", lastErr)
+	}
 	var entries []tlsJournalEntry
 	if err := json.Unmarshal(body, &entries); err != nil {
 		t.Fatalf("tls mock_signalwire journal decode: %v (body=%q)", err, body)
