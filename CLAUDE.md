@@ -51,7 +51,7 @@ scripts above, plus the drift/surface/coverage gates).
 
 ### Module Layout
 ```
-github.com/signalwire/signalwire-go/
+github.com/signalwire/signalwire-go/v3/
 ├── pkg/
 │   ├── swml/           # SWML document model, builder, schema validation
 │   ├── agent/          # AgentBase, AI config, prompts, dynamic config

@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
 )
 
 // SessionManager creates and validates HMAC-SHA256 tokens for SWAIG function

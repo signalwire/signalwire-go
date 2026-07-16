@@ -1,6 +1,6 @@
 # WebService Documentation
 
-The `WebService` type (package `github.com/signalwire/signalwire-go/pkg/web`) provides static file serving capabilities for the SignalWire AI Agents Go SDK. It can run as a standalone service or alongside your AI agents.
+The `WebService` type (package `github.com/signalwire/signalwire-go/v3/pkg/web`) provides static file serving capabilities for the SignalWire AI Agents Go SDK. It can run as a standalone service or alongside your AI agents.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -36,20 +36,20 @@ WebService is designed to serve static files with configurable security features
 WebService is included in the core SignalWire AI Agents Go SDK. Add it to your module:
 
 ```bash
-go get github.com/signalwire/signalwire-go
+go get github.com/signalwire/signalwire-go/v3
 ```
 
 Then import the `web` package:
 
 <!-- snippet: no-compile illustrative import statement (reference only) -->
 ```go
-import "github.com/signalwire/signalwire-go/pkg/web"
+import "github.com/signalwire/signalwire-go/v3/pkg/web"
 ```
 
 <!-- snippet-setup -->
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/web"
+	"github.com/signalwire/signalwire-go/v3/pkg/web"
 )
 
 // Shared context the fragments below assume.
@@ -65,7 +65,7 @@ var (
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/web"
+import "github.com/signalwire/signalwire-go/v3/pkg/web"
 
 func main() {
 	// Create a service to serve files
@@ -292,7 +292,7 @@ Serve files from mounted directories
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/web"
+import "github.com/signalwire/signalwire-go/v3/pkg/web"
 
 func main() {
 	// Serve documentation
@@ -410,7 +410,7 @@ Run WebService as a dedicated static file server:
 ```go
 package main // web_server.go
 
-import "github.com/signalwire/signalwire-go/pkg/web"
+import "github.com/signalwire/signalwire-go/v3/pkg/web"
 
 func main() {
 	service := web.NewWebService(web.Options{
@@ -434,8 +434,8 @@ blocks, run the WebService in its own goroutine:
 package main // main.go
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/web"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/web"
 )
 
 func main() {
@@ -570,7 +570,7 @@ server {
 **Issue: Build errors — module not found**
 ```bash
 # Ensure the SDK is in your go.mod
-go get github.com/signalwire/signalwire-go
+go get github.com/signalwire/signalwire-go/v3
 go mod tidy
 ```
 
@@ -702,9 +702,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
-	"github.com/signalwire/signalwire-go/pkg/web"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/web"
 )
 
 func main() {

@@ -4,8 +4,8 @@
 package skills
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/logging"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // SkillBase defines the interface that all skills must implement.

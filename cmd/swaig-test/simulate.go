@@ -41,7 +41,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/signalwire/signalwire-go/pkg/lambda"
+	"github.com/signalwire/signalwire-go/v3/pkg/lambda"
 )
 
 // supportedSimulatePlatforms is the set of platforms that `swaig-test
@@ -53,18 +53,22 @@ var supportedSimulatePlatforms = map[string]bool{
 	"lambda": true,
 }
 
-// notYetImplementedSimulatePlatforms enumerates platforms the porting
-// guide mentions but the Go port has not yet shipped. Listing them
-// explicitly lets the CLI give a targeted error ("not yet implemented")
-// instead of a generic "unknown platform" — matches the guide's
-// requirement that unimplemented platforms surface a clear error rather
-// than silently falling back to the server path.
-var notYetImplementedSimulatePlatforms = map[string]bool{
-	"gcf":            true, // Google Cloud Functions
-	"cloud_function": true, // alternate Python name
-	"azure":          true,
-	"azure_function": true,
-	"cgi":            true,
+// notWiredSimulatePlatforms enumerates platforms the porting guide
+// mentions that the `--simulate-serverless` CLI harness does not yet
+// drive end-to-end. This is a CLI-simulator limitation, NOT a statement
+// about SDK adapter support: GCF and CGI DO ship adapters in
+// pkg/serverless (serverless.NewHandler(...).ServeHTTP / .ServeCGI);
+// azure ships no adapter at all. Listing them here lets the CLI give a
+// targeted "not wired into the simulator" error instead of a generic
+// "unknown platform" — matching the guide's requirement that these
+// surface a clear error rather than silently falling back to the server
+// path.
+var notWiredSimulatePlatforms = map[string]bool{
+	"gcf":            true, // adapter ships (pkg/serverless.ServeHTTP); simulator not wired
+	"cloud_function": true, // alternate Python name for gcf
+	"cgi":            true, // adapter ships (pkg/serverless.ServeCGI); simulator not wired
+	"azure":          true, // no adapter shipped
+	"azure_function": true, // no adapter shipped
 }
 
 // validateSimulatePlatform checks that the given platform name is
@@ -79,13 +83,14 @@ func validateSimulatePlatform(platform string) error {
 	if supportedSimulatePlatforms[platform] {
 		return nil
 	}
-	if notYetImplementedSimulatePlatforms[platform] {
+	if notWiredSimulatePlatforms[platform] {
 		return fmt.Errorf(
-			"--simulate-serverless %s: platform not implemented in this port. "+
-				"Phase 9 of the porting guide has only been completed for: %s. "+
-				"To use --simulate-serverless %s, implement the corresponding "+
-				"adapter under pkg/ first",
-			platform, supportedPlatformList(), platform,
+			"--simulate-serverless %s: platform not wired into the swaig-test "+
+				"simulator. The CLI simulator currently drives only: %s. "+
+				"(gcf/cgi DO ship SDK adapters in pkg/serverless — see "+
+				"docs/cloud_functions_guide.md — they are just not exercised by "+
+				"this CLI harness yet; azure ships no adapter.)",
+			platform, supportedPlatformList(),
 		)
 	}
 	return fmt.Errorf(

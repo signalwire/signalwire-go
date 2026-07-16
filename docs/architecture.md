@@ -7,10 +7,10 @@ The SignalWire AI Agents SDK provides a Go framework for building, deploying, an
 <!-- snippet-setup -->
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/datamap"
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/datamap"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // Shared context the fragments below assume (established in prose above).
@@ -307,7 +307,7 @@ Parameters are passed to the skill factory and accessed via the `BaseSkill` type
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/skills"
+import "github.com/signalwire/signalwire-go/v3/pkg/skills"
 
 type WebSearchSkill struct {
     skills.BaseSkill
@@ -417,7 +417,7 @@ The SDK is designed to be highly extensible:
    ```go
    package main
 
-   import "github.com/signalwire/signalwire-go/pkg/agent"
+   import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
    func NewMyPrefab(configParam1 string) *agent.AgentBase {
        a := agent.NewAgentBase(agent.WithName("my-prefab"))
@@ -463,7 +463,7 @@ The SDK is designed to be highly extensible:
    ```go
    package main
 
-   import "github.com/signalwire/signalwire-go/pkg/skills"
+   import "github.com/signalwire/signalwire-go/v3/pkg/skills"
 
    type MyCustomSkill struct {
        skills.BaseSkill

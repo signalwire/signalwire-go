@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 )
 
 func main() {
@@ -60,7 +60,7 @@ func main() {
 	// 2. Play TTS audio
 	fmt.Println("\nPlaying TTS on call...")
 	_, err = client.Calling.Play(context.Background(), callID, namespaces.CallingNamespacePlayParams{
-		Play: []map[string]any{{"type": "tts", "text": "Welcome to SignalWire."}},
+		Play: []map[string]any{{"type": "tts", "params": map[string]any{"text": "Welcome to SignalWire."}}},
 	})
 	if err != nil {
 		if restErr, ok := err.(*rest.SignalWireRestError); ok {

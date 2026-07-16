@@ -32,7 +32,7 @@ import (
 	"testing"
 	"time"
 
-	rest "github.com/signalwire/signalwire-go/pkg/rest"
+	rest "github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
 func TestTLS_RestClient_HTTPS(t *testing.T) {

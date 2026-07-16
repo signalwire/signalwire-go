@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // newAgent constructs a demo AgentBase (name "demo", route "/demo") with POM

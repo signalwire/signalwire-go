@@ -5,7 +5,7 @@ Real-time call control and messaging over WebSocket. The RELAY client connects t
 ## Installation
 
 ```bash
-go get github.com/signalwire/signalwire-go
+go get github.com/signalwire/signalwire-go/v3
 ```
 
 ## Quick Start
@@ -17,7 +17,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 func main() {

@@ -45,7 +45,7 @@ it with the Go toolchain (Go 1.25 or later):
 go run ./cmd/swaig-test --help
 
 # Or install the binary onto your PATH
-go install github.com/signalwire/signalwire-go/cmd/swaig-test@latest
+go install github.com/signalwire/signalwire-go/v3/cmd/swaig-test@latest
 swaig-test --help
 ```
 

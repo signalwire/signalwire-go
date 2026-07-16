@@ -11,7 +11,7 @@
 
 package rest
 
-import "github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+import "github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 
 // _GeneratedResourceTree holds every flat REST resource plus the namespace
 // containers. The hand RestClient embeds it and calls wireGeneratedTree; the

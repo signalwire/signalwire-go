@@ -29,9 +29,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/signalwire/signalwire-go/cmd/internal/gen"
-	"github.com/signalwire/signalwire-go/cmd/internal/overlay"
-	"github.com/signalwire/signalwire-go/cmd/internal/payloadgen"
+	"github.com/signalwire/signalwire-go/v3/cmd/internal/gen"
+	"github.com/signalwire/signalwire-go/v3/cmd/internal/overlay"
+	"github.com/signalwire/signalwire-go/v3/cmd/internal/payloadgen"
 )
 
 func run() error {

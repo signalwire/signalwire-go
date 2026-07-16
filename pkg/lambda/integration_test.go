@@ -17,9 +17,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/lambda"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/lambda"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // clearAWSEnv wipes the AWS env vars that would otherwise leak between

@@ -32,7 +32,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // entry pairs a stable corpus id with the FunctionResult it produces. Building

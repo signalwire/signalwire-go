@@ -24,7 +24,7 @@
   `goquery` + `htmlquery` + `golang.org/x/net/html`. (`claude_skills.go` imports `yaml.v3`, but yaml.v3
   is already a core dep via pom/swml — so it adds nothing.) The other 16 skills are stdlib + internal.
 - **Registration is already a side-effect import**: every example does
-  `_ "github.com/signalwire/signalwire-go/pkg/skills/builtin"` (e.g. `examples/web_search/main.go:17`).
+  `_ "github.com/signalwire/signalwire-go/v3/pkg/skills/builtin"` (e.g. `examples/web_search/main.go:17`).
   `AddSkill(name)` resolves via `GetSkillFactory(name)`, which returns nil (logs "unknown skill") if the
   owning package's `init()` never ran (`agent.go:2249`).
 

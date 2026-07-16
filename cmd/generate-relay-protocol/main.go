@@ -38,7 +38,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/cmd/internal/gen"
+	"github.com/signalwire/signalwire-go/v3/cmd/internal/gen"
 	"gopkg.in/yaml.v3"
 )
 

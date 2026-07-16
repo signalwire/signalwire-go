@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/security"
+	"github.com/signalwire/signalwire-go/v3/pkg/security"
 )
 
 // SECRET mirrors wire_crypto_corpus.SECRET ("a" * 64).

@@ -1,6 +1,6 @@
 # SwaigFunctionResult Methods Reference
 
-SWAIG (SignalWire AI Gateway) is the platform's AI tool-calling system -- it connects the AI's decisions to actions like call transfers, SMS, recordings, and API calls, with native access to the media stack. This document provides a complete reference for all methods available on the `swaig.FunctionResult` type (package `github.com/signalwire/signalwire-go/pkg/swaig`). These methods provide convenient abstractions for SWAIG actions, eliminating the need to manually construct action JSON objects.
+SWAIG (SignalWire AI Gateway) is the platform's AI tool-calling system -- it connects the AI's decisions to actions like call transfers, SMS, recordings, and API calls, with native access to the media stack. This document provides a complete reference for all methods available on the `swaig.FunctionResult` type (package `github.com/signalwire/signalwire-go/v3/pkg/swaig`). These methods provide convenient abstractions for SWAIG actions, eliminating the need to manually construct action JSON objects.
 
 Construct a result with `swaig.NewFunctionResult(response string)`. Every action method returns the receiver (`*swaig.FunctionResult`) so calls can be chained.
 
@@ -9,8 +9,8 @@ Construct a result with `swaig.NewFunctionResult(response string)`. Every action
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // Shared context the fragments below assume.

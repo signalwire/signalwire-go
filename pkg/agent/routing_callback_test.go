@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 // Tests for the routing-callback dispatch. Mirrors Python

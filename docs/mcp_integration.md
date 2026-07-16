@@ -14,7 +14,7 @@ Use `AddMcpServer()` to connect your agent to remote MCP servers. Tools are disc
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {
     a := agent.NewAgentBase(
@@ -47,8 +47,8 @@ MCP servers can expose read-only data as resources. When enabled, resources are 
 <!-- snippet-setup -->
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // Shared context the fragments below assume.
@@ -94,8 +94,8 @@ Use `EnableMcpServer()` to add an MCP endpoint at `/mcp` on your agent's server.
 package main
 
 import (
-    "github.com/signalwire/signalwire-go/pkg/agent"
-    "github.com/signalwire/signalwire-go/pkg/swaig"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 func main() {

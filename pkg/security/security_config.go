@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
 )
 
 // SecurityConfig centralises the SDK's HTTP security settings (SSL, allowed

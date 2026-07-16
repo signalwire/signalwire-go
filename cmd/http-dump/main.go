@@ -34,11 +34,11 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/lambda"
-	"github.com/signalwire/signalwire-go/pkg/security"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/lambda"
+	"github.com/signalwire/signalwire-go/v3/pkg/security"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 const (

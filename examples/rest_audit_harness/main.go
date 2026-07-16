@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
 func main() {

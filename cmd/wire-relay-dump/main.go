@@ -42,7 +42,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 const (

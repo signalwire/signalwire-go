@@ -43,11 +43,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
 	// Side-effect import: registers all built-in skills with the
 	// shared registry. Without this the registry is empty and the
 	// harness can't construct any skill.
-	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 func main() {

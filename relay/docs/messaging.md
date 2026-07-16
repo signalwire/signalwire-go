@@ -14,7 +14,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 // Shared context the fragments below assume.
@@ -133,7 +133,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 func main() {

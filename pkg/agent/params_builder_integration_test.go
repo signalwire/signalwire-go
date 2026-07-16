@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // Integration tests for the typed swaig.Params builder used through a REAL

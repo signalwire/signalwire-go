@@ -11,7 +11,7 @@ All SignalWire services (SWML-based agents, Search, MCP Gateway) now support opt
 ### Zero Configuration (Default)
 <!-- snippet-setup -->
 ```go
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 var _ = agent.NewAgentBase
 ```

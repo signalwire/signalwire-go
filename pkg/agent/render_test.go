@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 
-	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 // ---------------------------------------------------------------------------

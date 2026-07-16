@@ -43,7 +43,7 @@ This guide explains how to create and customize your own AI agents, with example
 Add the SDK to your module with:
 
 ```bash
-go get github.com/signalwire/signalwire-go
+go get github.com/signalwire/signalwire-go/v3
 ```
 
 ## Architecture Overview
@@ -78,7 +78,7 @@ Unlike the Python SDK (which uses subclassing), the Go SDK composes an agent usi
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func main() {
@@ -125,9 +125,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // Shared context the fragments below assume (established in prose above):
@@ -457,8 +457,8 @@ You can mix both types of functions in the same agent:
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 func newHybridAgent() *agent.AgentBase {
@@ -694,8 +694,8 @@ Skills are referenced by typed `skills.SkillName` constants (e.g. `skills.SkillW
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 func main() {}
@@ -1222,7 +1222,7 @@ There are two main approaches to agent configuration:
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func newStaticAgent() *agent.AgentBase {
@@ -1248,7 +1248,7 @@ func main() {}
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func newDynamicAgent() *agent.AgentBase {
@@ -1292,7 +1292,7 @@ Use the `SetDynamicConfigCallback()` method to register a callback function that
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func newMyDynamicAgent() *agent.AgentBase {
@@ -1407,7 +1407,7 @@ package main
 
 import (
 	"strings"
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
@@ -1440,7 +1440,7 @@ func main() {}
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
@@ -1473,7 +1473,7 @@ package main
 
 import (
 	"strings"
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
@@ -1504,7 +1504,7 @@ func main() {}
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
@@ -1542,7 +1542,7 @@ func main() {}
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
@@ -1594,7 +1594,7 @@ func main() {}
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
@@ -1626,7 +1626,7 @@ func main() {}
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func configureAgentDynamically(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, ep *agent.AgentBase) {
@@ -1750,7 +1750,7 @@ Before (Static):
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func newMyAgent() *agent.AgentBase {
@@ -1773,7 +1773,7 @@ After (Dynamic):
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func newMyAgent() *agent.AgentBase {
@@ -1825,7 +1825,7 @@ You can support both static and dynamic patterns during migration by branching a
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func newMyAgent(useDynamic bool) *agent.AgentBase {
@@ -1871,7 +1871,7 @@ a.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[st
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func main() {}
 
@@ -1973,7 +1973,7 @@ a.SetDynamicConfigCallback(func(queryParams map[string]string, bodyParams map[st
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 // customerConfigCache stands in for your own memoizing cache.
 type customerConfigCache struct{}
@@ -2276,7 +2276,7 @@ For multi-agent setups, centralized routing is more efficient. Use `server.NewAg
 
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/server"
+	"github.com/signalwire/signalwire-go/v3/pkg/server"
 )
 
 // Create an AgentServer
@@ -2321,7 +2321,7 @@ package main
 import (
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func main() {
@@ -2491,7 +2491,7 @@ This endpoint is useful for implementing asynchronous conversations where users 
 
 ## Prefab Agents
 
-Prefab agents are pre-configured agent implementations designed for specific use cases. They provide ready-to-use functionality with customization options, saving development time and ensuring consistent patterns. In Go they live in `github.com/signalwire/signalwire-go/pkg/prefabs` and each is constructed from an options struct.
+Prefab agents are pre-configured agent implementations designed for specific use cases. They provide ready-to-use functionality with customization options, saving development time and ensuring consistent patterns. In Go they live in `github.com/signalwire/signalwire-go/v3/pkg/prefabs` and each is constructed from an options struct.
 
 ### Built-in Prefabs
 
@@ -2504,7 +2504,7 @@ Collects structured information from users. Each `Question` has a `KeyName` (whe
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/prefabs"
+import "github.com/signalwire/signalwire-go/v3/pkg/prefabs"
 
 func main() {
 	questions := []prefabs.Question{
@@ -2530,7 +2530,7 @@ Answers questions based on a set of FAQ entries. Each `FAQ` has a `Question`, `A
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/prefabs"
+import "github.com/signalwire/signalwire-go/v3/pkg/prefabs"
 
 func main() {
 	a := prefabs.NewFAQBotAgent(prefabs.FAQBotOptions{
@@ -2557,7 +2557,7 @@ Acts as a virtual concierge for a venue, answering questions about amenities, se
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/prefabs"
+import "github.com/signalwire/signalwire-go/v3/pkg/prefabs"
 
 func main() {
 	a := prefabs.NewConciergeAgent(prefabs.ConciergeOptions{
@@ -2584,7 +2584,7 @@ Conducts structured surveys with different question types. Build questions with 
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/prefabs"
+import "github.com/signalwire/signalwire-go/v3/pkg/prefabs"
 
 func main() {
 	a := prefabs.NewSurveyAgent(prefabs.SurveyOptions{
@@ -2619,7 +2619,7 @@ Handles call routing and department transfers. Each `Department` has a `Name`, `
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/prefabs"
+import "github.com/signalwire/signalwire-go/v3/pkg/prefabs"
 
 func main() {
 	a := prefabs.NewReceptionistAgent(prefabs.ReceptionistOptions{
@@ -2660,8 +2660,8 @@ package supportprefab
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // CustomerSupportOptions configures a CustomerSupportAgent.
@@ -2753,9 +2753,9 @@ You can also wrap a built-in prefab to customize it — embed it and add configu
 package enhancedgatherer
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/prefabs"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/prefabs"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 type EnhancedGatherer struct {
@@ -2985,8 +2985,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 func newSimpleAgent() *agent.AgentBase {
@@ -3036,8 +3036,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 func newCustomerServiceAgent() *agent.AgentBase {

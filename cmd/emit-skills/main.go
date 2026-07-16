@@ -32,8 +32,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	_ "github.com/signalwire/signalwire-go/pkg/skills/all" // register all built-in skills via init()
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all" // register all built-in skills via init()
 )
 
 // corpusEntry mirrors one entry of skill_contract_corpus.py's CORPUS.

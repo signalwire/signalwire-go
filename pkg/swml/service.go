@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
 )
 
 var swaigFnNameRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)

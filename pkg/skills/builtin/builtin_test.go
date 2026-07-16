@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 // allSkillNames contains the built-in skill names THIS package registers (the

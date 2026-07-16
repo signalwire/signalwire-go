@@ -22,8 +22,8 @@ parameter schemas.
 <!-- snippet-setup -->
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 // Shared context the fragments below assume.
@@ -47,8 +47,8 @@ package weather // mymodule/weather/skill.go
 import (
     "strings"
 
-    "github.com/signalwire/signalwire-go/pkg/skills"
-    "github.com/signalwire/signalwire-go/pkg/swaig"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // WeatherSkill is a custom weather information skill.
@@ -157,8 +157,8 @@ you build agents):
 <!-- snippet: no-compile imports a hypothetical user module (github.com/you/mymodule/weather) that does not exist -->
 ```go
 import (
-    "github.com/signalwire/signalwire-go/pkg/agent"
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 
     "github.com/you/mymodule/weather" // exports NewWeatherSkill
 )
@@ -275,7 +275,7 @@ package has been imported:
 import (
     "fmt"
 
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 
     _ "github.com/you/my-signalwire-skills/weather" // registers "weather"
 )
@@ -442,7 +442,7 @@ package main
 import (
     "fmt"
 
-    "github.com/signalwire/signalwire-go/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 func addWeather(a *agent.AgentBase) error {
@@ -470,8 +470,8 @@ package weather
 import (
     "testing"
 
-    "github.com/signalwire/signalwire-go/pkg/agent"
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 func TestSkillRegistration(t *testing.T) {
@@ -537,7 +537,7 @@ package main
 import (
     "fmt"
 
-    "github.com/signalwire/signalwire-go/pkg/skills"
+    "github.com/signalwire/signalwire-go/v3/pkg/skills"
 )
 
 func printRegisteredSkills() {
@@ -571,7 +571,7 @@ module github.com/yourname/my-signalwire-skills
 
 go 1.22
 
-require github.com/signalwire/signalwire-go v1.0.12
+require github.com/signalwire/signalwire-go/v3 v1.0.12
 ```
 
 Each package registers its skill from `init()`, e.g. in `weather/skill.go`:
@@ -593,10 +593,10 @@ go get github.com/yourname/my-signalwire-skills@latest
 package main
 
 import (
-    "github.com/signalwire/signalwire-go/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
     // Blank-import the built-in skills and the third-party ones.
-    _ "github.com/signalwire/signalwire-go/pkg/skills/all"
+    _ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
     _ "github.com/yourname/my-signalwire-skills/translation"
     _ "github.com/yourname/my-signalwire-skills/weather"
 )

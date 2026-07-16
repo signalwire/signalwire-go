@@ -17,8 +17,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/internal/mocktest"
 )
 
 func TestVoiceGen_Voice_Get(t *testing.T) {

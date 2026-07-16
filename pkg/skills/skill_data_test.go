@@ -10,7 +10,7 @@ package skills
 import (
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // Tests for the SkillBase accessor surface added in this PR

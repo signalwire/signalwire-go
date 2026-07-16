@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // SWMLTransferSkill transfers calls between agents using DataMap pattern matching.

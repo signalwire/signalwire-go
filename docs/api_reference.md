@@ -2,7 +2,7 @@
 
 This document provides a comprehensive reference for all public APIs in the SignalWire AI Agents SDK for Go.
 
-Add the SDK to your module with `go get github.com/signalwire/signalwire-go`, then import the packages you need (`pkg/agent`, `pkg/swaig`, `pkg/datamap`, `pkg/contexts`, `pkg/skills`, `pkg/prefabs`, `pkg/server`).
+Add the SDK to your module with `go get github.com/signalwire/signalwire-go/v3`, then import the packages you need (`pkg/agent`, `pkg/swaig`, `pkg/datamap`, `pkg/contexts`, `pkg/skills`, `pkg/prefabs`, `pkg/server`).
 
 <!-- snippet-setup -->
 ```go
@@ -11,12 +11,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/contexts"
-	"github.com/signalwire/signalwire-go/pkg/datamap"
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/contexts"
+	"github.com/signalwire/signalwire-go/v3/pkg/datamap"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 // Shared context the fragments below assume (established in prose above).
@@ -774,7 +774,7 @@ Register custom routing logic for calls. `swml.RoutingCallback` is `func(body ma
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/pkg/agent"
+import "github.com/signalwire/signalwire-go/v3/pkg/agent"
 
 func routeCall(body map[string]any, headers map[string]any) *string {
 	sipUsername, _ := body["sip_username"].(string)
@@ -2200,10 +2200,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/datamap"
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/datamap"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 func newComprehensiveAgent() *agent.AgentBase {

@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 
-	_ "github.com/signalwire/signalwire-go/pkg/skills/all"
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
 )
 
 func main() {

@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
 func main() {
@@ -48,7 +48,7 @@ func main() {
 
 	// The equivalent wire-level form (use this if you need unusual fields):
 	//
-	//	import "github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+	//	import "github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 	//
 	//	client.PhoneNumbers.Update(context.Background(), pnSID, map[string]any{
 	//	    "call_handler":          string(namespaces.PhoneCallHandlerRelayScript),

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/security"
+	"github.com/signalwire/signalwire-go/v3/pkg/security"
 )
 
 // WebService serves static files from mounted directories over HTTP.

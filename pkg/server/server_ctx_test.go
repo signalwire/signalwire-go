@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
 )
 
 // freePort returns an OS-assigned free TCP port on 127.0.0.1.

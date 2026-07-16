@@ -30,7 +30,7 @@ import (
 	"sort"
 	"strings"
 
-	surfacepkg "github.com/signalwire/signalwire-go/internal/surface"
+	surfacepkg "github.com/signalwire/signalwire-go/v3/internal/surface"
 )
 
 // Re-export internal/surface package symbols under the previous local

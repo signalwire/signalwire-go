@@ -12,9 +12,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/lambda"
-	"github.com/signalwire/signalwire-go/pkg/serverless"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/lambda"
+	"github.com/signalwire/signalwire-go/v3/pkg/serverless"
 )
 
 const (

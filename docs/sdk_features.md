@@ -30,8 +30,8 @@ The agent auto-detects its own public URL -- including behind ngrok, load balanc
 package main
 
 import (
-    "github.com/signalwire/signalwire-go/pkg/agent"
-    "github.com/signalwire/signalwire-go/pkg/swaig"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 func main() {
@@ -70,9 +70,9 @@ Raw SWML prompts are flat strings. The SDK provides structured prompt building:
 <!-- snippet-setup -->
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/datamap"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/datamap"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // Shared agent established in prose above.
@@ -111,8 +111,8 @@ POM sections are rendered by the platform into a format the LLM understands with
 package main
 
 import (
-    "github.com/signalwire/signalwire-go/pkg/agent"
-    "github.com/signalwire/signalwire-go/pkg/swaig"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // order + db stand in for your own data layer.
@@ -154,8 +154,8 @@ A tool's `Parameters` map is the JSON Schema `properties` object; `Required` lis
 package main
 
 import (
-    "github.com/signalwire/signalwire-go/pkg/agent"
-    "github.com/signalwire/signalwire-go/pkg/swaig"
+    "github.com/signalwire/signalwire-go/v3/pkg/agent"
+    "github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // order + db stand in for your own data layer.
@@ -224,7 +224,7 @@ Skills are self-contained modules that package tools, prompts, hints, and config
 - Can contribute global data via `GetGlobalData()`
 - Supports multiple instances with different configs (e.g., two `web_search` skills with different engines) by overriding `SupportsMultipleInstances()`
 
-**Built-in skills:** `datetime`, `math`, `web_search`, `wikipedia_search`, `weather_api`, `google_maps`, `datasphere`, `datasphere_serverless`, `native_vector_search`, `spider`, `mcp_gateway`, `swml_transfer`, `play_background_file`, `info_gatherer`, `api_ninjas_trivia`, `joke`, `claude_skills`, `custom_skills`. Blank-import `_ "github.com/signalwire/signalwire-go/pkg/skills/all"` so each skill's `init()` registers it.
+**Built-in skills:** `datetime`, `math`, `web_search`, `wikipedia_search`, `weather_api`, `google_maps`, `datasphere`, `datasphere_serverless`, `native_vector_search`, `spider`, `mcp_gateway`, `swml_transfer`, `play_background_file`, `info_gatherer`, `api_ninjas_trivia`, `joke`, `claude_skills`, `custom_skills`. Blank-import `_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"` so each skill's `init()` registers it.
 
 The elegance is composability: skills don't know about each other, but they all register cleanly into the same agent. A single agent can combine web search, datetime, a custom booking tool, and a DataMap stock checker -- all declared during construction, all generating correct SWML with proper function definitions, all routed to the right handler.
 
@@ -308,7 +308,7 @@ package main
 import (
     "fmt"
 
-    "github.com/signalwire/signalwire-go/pkg/swaig"
+    "github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // drawCard, calculateHand, formatCard stand in for your own game logic.
@@ -385,7 +385,7 @@ For standalone mode, the SDK provides:
 ## Multi-Agent Hosting
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/server"
+import "github.com/signalwire/signalwire-go/v3/pkg/server"
 
 salesAgent := agent.NewAgentBase(agent.WithName("sales"))
 supportAgent := agent.NewAgentBase(agent.WithName("support"))
@@ -476,7 +476,7 @@ the remote search server, not the Go SDK.
 Production-ready patterns for common use cases:
 
 ```go
-import "github.com/signalwire/signalwire-go/pkg/prefabs"
+import "github.com/signalwire/signalwire-go/v3/pkg/prefabs"
 
 // Collect structured data
 questions := []prefabs.Question{

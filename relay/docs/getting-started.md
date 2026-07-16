@@ -5,7 +5,7 @@ The RELAY client connects to SignalWire via WebSocket and gives you real-time, i
 ## Installation
 
 ```bash
-go get github.com/signalwire/signalwire-go/pkg/relay
+go get github.com/signalwire/signalwire-go/v3/pkg/relay
 ```
 
 No additional dependencies beyond the Go standard library and `gorilla/websocket`.
@@ -31,7 +31,7 @@ Alternatively, you can authenticate with a JWT token:
 <!-- snippet-setup -->
 ```go
 import (
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 // Shared context the fragments below assume.
@@ -51,7 +51,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 func main() {
@@ -87,7 +87,7 @@ export SIGNALWIRE_SPACE=example.signalwire.com
 package main
 
 import (
-	"github.com/signalwire/signalwire-go/pkg/relay"
+	"github.com/signalwire/signalwire-go/v3/pkg/relay"
 )
 
 func main() {

@@ -15,7 +15,7 @@ func rest.NewRestClient(project, token, space string) (*rest.RestClient, error)
 import (
 	"context"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
 // Shared context assumed by the fragments below: a constructed REST client.

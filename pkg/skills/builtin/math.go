@@ -8,8 +8,8 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // MathSkill provides basic mathematical calculation capabilities.

@@ -17,7 +17,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
 // paramDef describes a single function parameter.

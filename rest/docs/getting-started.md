@@ -5,7 +5,7 @@ The REST client provides synchronous access to all SignalWire APIs using standar
 ## Installation
 
 ```bash
-go get github.com/signalwire/signalwire-go/pkg/rest
+go get github.com/signalwire/signalwire-go/v3/pkg/rest
 ```
 
 The only dependency beyond the Go standard library is the `net/http` package (built-in).
@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
 // Shared context assumed by the fragments below: a constructed REST client.
@@ -54,7 +54,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
 func main() {
@@ -94,7 +94,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
 func main() {

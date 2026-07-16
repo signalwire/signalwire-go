@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
 )
 
 // TestWithLogLevel_EnumOrString proves the user-facing WithLogLevel option sets

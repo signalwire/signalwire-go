@@ -21,14 +21,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/signalwire/signalwire-go/pkg/contexts"
-	"github.com/signalwire/signalwire-go/pkg/logging"
-	"github.com/signalwire/signalwire-go/pkg/pom"
-	"github.com/signalwire/signalwire-go/pkg/security"
-	"github.com/signalwire/signalwire-go/pkg/serverless"
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swaig"
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/contexts"
+	"github.com/signalwire/signalwire-go/v3/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/pom"
+	"github.com/signalwire/signalwire-go/v3/pkg/security"
+	"github.com/signalwire/signalwire-go/v3/pkg/serverless"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 // ---------------------------------------------------------------------------

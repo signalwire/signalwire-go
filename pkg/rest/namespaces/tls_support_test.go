@@ -139,20 +139,36 @@ type tlsJournalEntry struct {
 
 func (m *tlsMockSignalwire) lastJournal(t *testing.T) tlsJournalEntry {
 	t.Helper()
-	resp, err := m.client.Get(m.baseURL + "/__mock__/journal")
-	if err != nil {
-		t.Fatalf("tls mock_signalwire journal GET: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	body, _ := io.ReadAll(resp.Body)
+	// The journal control plane is a separate HTTPS request to the mock sidecar.
+	// Under CI load two transient conditions can each surface as a hard failure
+	// for a single-shot GET: (a) the TLS session is dropped mid-handshake (an
+	// `EOF`/connection reset), and (b) the mock hasn't finished recording the
+	// preceding SDK request yet, so the journal reads back empty. Both are timing
+	// races, not real failures — retry on either (the journal is idempotent) and
+	// only fail after exhausting the attempts. A decode failure fails immediately.
 	var entries []tlsJournalEntry
-	if err := json.Unmarshal(body, &entries); err != nil {
-		t.Fatalf("tls mock_signalwire journal decode: %v (body=%q)", err, body)
+	var lastErr error
+	for range 10 {
+		resp, err := m.client.Get(m.baseURL + "/__mock__/journal")
+		if err != nil {
+			lastErr = err
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		entries = nil
+		if err := json.Unmarshal(body, &entries); err != nil {
+			t.Fatalf("tls mock_signalwire journal decode: %v (body=%q)", err, body)
+		}
+		if len(entries) > 0 {
+			return entries[len(entries)-1]
+		}
+		lastErr = fmt.Errorf("journal empty (request not yet recorded)")
+		time.Sleep(100 * time.Millisecond)
 	}
-	if len(entries) == 0 {
-		t.Fatal("tls mock_signalwire journal empty - HTTPS request did not reach the mock")
-	}
-	return entries[len(entries)-1]
+	t.Fatalf("tls mock_signalwire journal not ready after retries: %v", lastErr)
+	return tlsJournalEntry{}
 }
 
 // startTLSMockSignalwire spawns `python -m mock_signalwire --tls` on a

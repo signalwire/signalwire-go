@@ -16,7 +16,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 // Regression tests for #192 — Run() auto-detects serverless environments.

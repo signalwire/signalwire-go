@@ -17,9 +17,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/signalwire/signalwire-go/pkg/rest"
-	"github.com/signalwire/signalwire-go/pkg/rest/internal/mocktest"
-	"github.com/signalwire/signalwire-go/pkg/rest/namespaces"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/internal/mocktest"
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 )
 
 func TestVideoGen_ConferenceTokens_Get(t *testing.T) {

@@ -21,12 +21,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/signalwire/signalwire-go/pkg/agent"
-	"github.com/signalwire/signalwire-go/pkg/contexts"
-	"github.com/signalwire/signalwire-go/pkg/prefabs"
-	"github.com/signalwire/signalwire-go/pkg/server"
-	"github.com/signalwire/signalwire-go/pkg/skills"
-	"github.com/signalwire/signalwire-go/pkg/swml"
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/contexts"
+	"github.com/signalwire/signalwire-go/v3/pkg/prefabs"
+	"github.com/signalwire/signalwire-go/v3/pkg/server"
+	"github.com/signalwire/signalwire-go/v3/pkg/skills"
+	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
 
 // greetVerbHandler is a minimal custom VerbHandler for the "greet" verb — the Go
