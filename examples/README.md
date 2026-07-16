@@ -101,7 +101,7 @@ Examples that require environment variables:
 # SignalWire credentials (relay_demo, rest_demo, datasphere)
 export SIGNALWIRE_PROJECT_ID=your-project-id
 export SIGNALWIRE_API_TOKEN=your-api-token
-export SIGNALWIRE_SPACE_URL=your-space.signalwire.com
+export SIGNALWIRE_SPACE=your-space.signalwire.com
 
 # Skill-specific credentials
 export API_NINJAS_KEY=your-api-key              # joke_agent
@@ -110,7 +110,9 @@ export GOOGLE_SEARCH_ENGINE_ID=your-engine-id   # web_search
 export DATASPHERE_DOCUMENT_ID=your-doc-id       # datasphere
 export MCP_GATEWAY_URL=http://localhost:8080     # mcp_gateway
 
-# Example-specific
-export SIGNALWIRE_CONTEXTS=support,sales          # relay_audit_harness (comma-separated)
-export SWML_WEBHOOK_URL=https://example.com/swml  # rest_bind_phone_to_swml_webhook
 ```
+
+A few examples read one extra program-specific variable of their own (not an SDK
+configuration knob) — `relay_audit_harness` and `rest_bind_phone_to_swml_webhook`.
+Each such variable is documented in that example's own file-header comment; read the
+header of the example you want to run for its exact name and expected value.

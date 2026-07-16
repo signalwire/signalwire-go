@@ -81,11 +81,11 @@ This document tracks the complete port of the SignalWire AI Agents SDK from Pyth
 - [x] `ToggleFunctions()` / `EnableFunctionsOnTimeout()`, `EnableExtensiveData()`, `UpdateSettings()`
 
 #### Advanced Features
-- [x] `ExecuteSwml()`, `JoinConference()` / `JoinRoom()`, `SipRefer()`
+- [x] `ExecuteSwml()`, `JoinConference()` / `JoinRoom()`, `SIPRefer()`
 - [x] `Tap()` / `StopTap()`, `SendSms()`, `Pay()`
 
 #### RPC Actions
-- [x] `ExecuteRpc()`, `RpcDial()`, `RpcAiMessage()`, `RpcAiUnhold()`, `SimulateUserInput()`
+- [x] `ExecuteRPC()`, `RPCDial()`, `RPCAiMessage()`, `RPCAiUnhold()`, `SimulateUserInput()`
 
 ### DataMap (Server-side Tools)
 - [x] Fluent builder: `New("name")`
@@ -93,7 +93,7 @@ This document tracks the complete port of the SignalWire AI Agents SDK from Pyth
 - [x] `Webhook()` / `WebhookExpressions()` / `Body()` / `Params()` / `Foreach()`
 - [x] `Output()` / `FallbackOutput()` / `ErrorKeys()` / `GlobalErrorKeys()`
 - [x] `ToSwaigFunction()` serialization
-- [x] `CreateSimpleApiTool()` / `CreateExpressionTool()` helpers
+- [x] `CreateSimpleAPITool()` / `CreateExpressionTool()` helpers
 
 ### Contexts & Steps System
 - [x] `ContextBuilder` with `AddContext()` / `GetContext()` / `Validate()`
@@ -111,7 +111,7 @@ This document tracks the complete port of the SignalWire AI Agents SDK from Pyth
 - [x] Pre-answer, answer, post-answer, post-AI verb management with clear methods
 
 ### SIP Routing
-- [x] `EnableSipRouting()`, `RegisterSipUsername()`
+- [x] `EnableSIPRouting()`, `RegisterSIPUsername()`
 
 ### Web/HTTP
 - [x] Dynamic config callback, proxy URL, webhook URL, post-prompt URL, query params
@@ -152,7 +152,7 @@ This document tracks the complete port of the SignalWire AI Agents SDK from Pyth
 
 - [x] `Register()` / `Unregister()` agents by route
 - [x] `GetAgents()` / `GetAgent()`
-- [x] `SetupSipRouting()` / `RegisterSipUsername()`
+- [x] `SetupSIPRouting()` / `RegisterSIPUsername()`
 - [x] `Run()` with HTTP server
 - [x] Health/readiness endpoints
 - [x] Security headers
