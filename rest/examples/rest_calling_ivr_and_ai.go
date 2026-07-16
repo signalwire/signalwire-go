@@ -54,7 +54,7 @@ func main() {
 	safeCall("Collect", func() (*namespaces.CallResponse, error) {
 		return client.Calling.Collect(context.Background(), callID, namespaces.CallingNamespaceCollectParams{Extras: map[string]any{
 			"digits": map[string]any{"max": 4, "terminators": "#"},
-			"play":   []map[string]any{{"type": "tts", "text": "Enter your PIN followed by pound."}},
+			"play":   []map[string]any{{"type": "tts", "params": map[string]any{"text": "Enter your PIN followed by pound."}}},
 		}})
 	})
 	safeCall("Start input timers", func() (*namespaces.CallResponse, error) {

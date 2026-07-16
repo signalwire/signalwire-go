@@ -116,7 +116,7 @@ Play audio, TTS, silence, or ringtone.
 ```go
 vol := 5.0
 _, err = client.Calling.Play(context.Background(), callID, namespaces.CallingNamespacePlayParams{
-	Play:   []map[string]any{{"type": "tts", "text": "Hello!"}},
+	Play:   []map[string]any{{"type": "tts", "params": map[string]any{"text": "Hello!"}}},
 	Volume: &vol,
 })
 ```

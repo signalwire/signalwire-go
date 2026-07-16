@@ -58,10 +58,10 @@ func TestDocWireFixtures(t *testing.T) {
 	_, _ = client.PhoneNumbers.Search(ctx, map[string]string{"areacode": "512"})
 	_, _ = client.PhoneNumbers.Search(ctx, map[string]string{"areacode": "312", "max_results": "5"})
 
-	// --- Calling.Play: flat-tts `{type, text}` play body ----------------------
+	// --- Calling.Play: nested `{type, params:{text}}` play body ----------------------
 	// rest/examples/rest_calling_play_and_record.go:63.
 	_, _ = client.Calling.Play(ctx, callID, namespaces.CallingNamespacePlayParams{
-		Play: []map[string]any{{"type": "tts", "text": "Welcome to SignalWire."}},
+		Play: []map[string]any{{"type": "tts", "params": map[string]any{"text": "Welcome to SignalWire."}}},
 	})
 
 	// --- Calling.Record: beep/format extras -----------------------------------
@@ -84,7 +84,7 @@ func TestDocWireFixtures(t *testing.T) {
 	_, _ = client.Calling.Collect(ctx, callID, namespaces.CallingNamespaceCollectParams{
 		Extras: map[string]any{
 			"digits": map[string]any{"max": 4, "terminators": "#"},
-			"play":   []map[string]any{{"type": "tts", "text": "Enter your PIN followed by pound."}},
+			"play":   []map[string]any{{"type": "tts", "params": map[string]any{"text": "Enter your PIN followed by pound."}}},
 		},
 	})
 
