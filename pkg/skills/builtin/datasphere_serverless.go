@@ -50,7 +50,7 @@ func (s *DataSphereServerlessSkill) RequiredEnvVars() []string {
 			return nil
 		}
 	}
-	return []string{"SIGNALWIRE_PROJECT_ID", "SIGNALWIRE_TOKEN", "SIGNALWIRE_SPACE_NAME"}
+	return []string{"SIGNALWIRE_PROJECT_ID", "SIGNALWIRE_API_TOKEN", "SIGNALWIRE_SPACE_NAME"}
 }
 
 func (s *DataSphereServerlessSkill) SupportsMultipleInstances() bool { return true }
@@ -63,7 +63,7 @@ func (s *DataSphereServerlessSkill) GetInstanceKey() string {
 func (s *DataSphereServerlessSkill) Setup() bool {
 	s.spaceName = s.GetParamString("space_name", os.Getenv("SIGNALWIRE_SPACE_NAME"))
 	s.projectID = s.GetParamString("project_id", os.Getenv("SIGNALWIRE_PROJECT_ID"))
-	s.token = s.GetParamString("token", os.Getenv("SIGNALWIRE_TOKEN"))
+	s.token = s.GetParamString("token", os.Getenv("SIGNALWIRE_API_TOKEN"))
 	s.documentID = s.GetParamString("document_id", "")
 
 	if s.spaceName == "" || s.projectID == "" || s.token == "" || s.documentID == "" {
@@ -201,7 +201,7 @@ func (s *DataSphereServerlessSkill) GetParameterSchema() map[string]map[string]a
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["space_name"] = map[string]any{"type": "string", "description": "SignalWire space name", "required": true}
 	schema["project_id"] = map[string]any{"type": "string", "description": "SignalWire project ID", "required": true, "env_var": "SIGNALWIRE_PROJECT_ID"}
-	schema["token"] = map[string]any{"type": "string", "description": "SignalWire API token", "required": true, "hidden": true, "env_var": "SIGNALWIRE_TOKEN"}
+	schema["token"] = map[string]any{"type": "string", "description": "SignalWire API token", "required": true, "hidden": true, "env_var": "SIGNALWIRE_API_TOKEN"}
 	schema["document_id"] = map[string]any{"type": "string", "description": "DataSphere document ID", "required": true}
 	schema["count"] = map[string]any{"type": "integer", "description": "Number of results", "default": 1, "required": false, "minimum": 1, "maximum": 10}
 	schema["distance"] = map[string]any{"type": "number", "description": "Maximum distance threshold for results (lower is more relevant)", "default": 3.0, "required": false, "minimum": 0.0, "maximum": 10.0}

@@ -301,7 +301,7 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_REST_BASE_URL` | REST | Override the REST API base URL |
 | `SIGNALWIRE_REST_CA_FILE` | REST | Path to a PEM CA bundle to trust for REST HTTPS (private-CA convention) |
 | `SIGNALWIRE_SPACE_NAME` | Skills | Space name for Datasphere serverless skills |
-| `SIGNALWIRE_TOKEN` | Skills | API token for Datasphere serverless skills |
+| `SIGNALWIRE_API_TOKEN` | Skills | API token for Datasphere serverless skills |
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
 
