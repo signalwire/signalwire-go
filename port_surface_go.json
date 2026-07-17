@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ d6b33e63453fbc00213b4f020458a7530f4138cd",
+  "generated_from": "signalwire-go (go-native) @ 883f813d03542c227764c9be8e0f79f7a81d85bd",
   "modules": {
     "agent": {
       "classes": {
@@ -1413,14 +1413,16 @@
           "SetBaseURL"
         ],
         "SignalWireRestError": [
-          "Error"
+          "Error",
+          "Unwrap"
         ]
       },
       "functions": [
         "NewHTTPClient",
         "NewPaginatedIterator",
         "NewRestClient",
-        "NewSignalWireRestError"
+        "NewSignalWireRestError",
+        "NewSignalWireRestTransportError"
       ]
     },
     "security": {

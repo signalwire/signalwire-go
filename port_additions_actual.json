@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ d6b33e63453fbc00213b4f020458a7530f4138cd",
+  "generated_from": "signalwire-go @ 883f813d03542c227764c9be8e0f79f7a81d85bd",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
@@ -270,6 +270,7 @@
     "relay.WithTTSVoice",
     "relay.WithTTSVolume",
     "relay.WithToken",
+    "rest.NewSignalWireRestTransportError",
     "security.RawBodyFromContext",
     "security.ValidateRequestE",
     "security.ValidateWebhookSignatureE",

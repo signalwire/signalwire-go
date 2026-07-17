@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ d6b33e63453fbc00213b4f020458a7530f4138cd (go/ast walker)",
+  "generated_from": "signalwire-go @ 883f813d03542c227764c9be8e0f79f7a81d85bd (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -12098,6 +12098,39 @@
                 {
                   "name": "status_code",
                   "type": "int",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "method",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            }
+          }
+        },
+        "SignalWireRestTransportError": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "cause",
+                  "type": "any",
                   "required": true
                 },
                 {
