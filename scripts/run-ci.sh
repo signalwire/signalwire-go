@@ -243,6 +243,12 @@ sched_gate STRICT-MOCKS tier=nightly defer=1 desc="RELAY suite passes with the m
 sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port go --repo "$PORT_ROOT"
 
+# DUP-TREE (plan 3.3): go keeps a top-level rest/ docs tree alongside pkg/rest/. The
+# duplicate-basename README pairs declared in DUP_TREE_PAIRS.md must stay in sync —
+# byte-identical or a pointer stub — so the two trees can't silently re-diverge.
+sched_gate DUP-TREE res=dayone desc="parallel doc trees stay in sync (rest/ vs pkg/rest/ README pairs — identical or pointer)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/dup_tree.py" --port go --repo "$PORT_ROOT"
+
 sched_gate PUBLIC-JARGON res=dayone desc="no porting/internal jargon in the public API surface" \
     -- python3 "$PORTING_SDK_DIR/scripts/public_jargon.py" --port go --repo "$PORT_ROOT"
 
