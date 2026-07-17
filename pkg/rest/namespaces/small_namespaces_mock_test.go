@@ -133,12 +133,11 @@ func TestImportedNumbers_Create(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.ImportedNumbers.Create(context.Background(), namespaces.ImportedNumbersNamespaceCreateParams{Extras: map[string]any{
-		"number":       "+15551234567",
-		"sip_username": "alice",
-		"sip_password": "secret",
-		"sip_proxy":    "sip.example.com",
-	}})
+	bodyResp, err := client.ImportedNumbers.Create(context.Background(), namespaces.ImportedNumbersNamespaceCreateParams{
+		Number:       "+15551234567",
+		NumberType:   "longcode",
+		Capabilities: []string{"sms", "voice"},
+	})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -161,11 +160,12 @@ func TestImportedNumbers_Create(t *testing.T) {
 	if sent["number"] != "+15551234567" {
 		t.Errorf("number = %v", sent["number"])
 	}
-	if sent["sip_username"] != "alice" {
-		t.Errorf("sip_username = %v", sent["sip_username"])
+	if sent["number_type"] != "longcode" {
+		t.Errorf("number_type = %v", sent["number_type"])
 	}
-	if sent["sip_proxy"] != "sip.example.com" {
-		t.Errorf("sip_proxy = %v", sent["sip_proxy"])
+	caps, ok := sent["capabilities"].([]any)
+	if !ok || len(caps) != 2 || caps[0] != "sms" || caps[1] != "voice" {
+		t.Errorf("capabilities = %v, want [sms voice]", sent["capabilities"])
 	}
 }
 
@@ -181,7 +181,7 @@ func TestMFA_Call(t *testing.T) {
 
 	bodyResp, err := client.MFA.Call(context.Background(), namespaces.MFANamespaceCallParams{Extras: map[string]any{
 		"to":      "+15551234567",
-		"from_":   "+15559876543",
+		"from":    "+15559876543",
 		"message": "Your code is {code}",
 	}})
 	if err != nil {
@@ -206,8 +206,8 @@ func TestMFA_Call(t *testing.T) {
 	if sent["to"] != "+15551234567" {
 		t.Errorf("to = %v", sent["to"])
 	}
-	if sent["from_"] != "+15559876543" {
-		t.Errorf("from_ = %v", sent["from_"])
+	if sent["from"] != "+15559876543" {
+		t.Errorf("from = %v", sent["from"])
 	}
 	if sent["message"] != "Your code is {code}" {
 		t.Errorf("message = %v", sent["message"])
@@ -225,17 +225,17 @@ func TestSipProfile_Update(t *testing.T) {
 	mock.Reset(t)
 
 	bodyResp, err := client.SIPProfile.Update(context.Background(), namespaces.SIPProfileNamespaceUpdateParams{Extras: map[string]any{
-		"domain":         "myco.sip.signalwire.com",
-		"default_codecs": []string{"PCMU", "PCMA"},
+		"domain_identifier": "myco",
+		"default_codecs":    []string{"PCMU", "PCMA"},
 	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 	body := respMap(t, bodyResp)
-	_, hasDomain := body["domain"]
+	_, hasDomain := body["domain_identifier"]
 	_, hasCodecs := body["default_codecs"]
 	if !hasDomain && !hasCodecs {
-		t.Errorf("expected domain or default_codecs, got %v", keys(body))
+		t.Errorf("expected domain_identifier or default_codecs, got %v", keys(body))
 	}
 
 	j := mock.Last(t)
@@ -249,8 +249,8 @@ func TestSipProfile_Update(t *testing.T) {
 	if !ok {
 		t.Fatalf("body type = %T", j.Body)
 	}
-	if sent["domain"] != "myco.sip.signalwire.com" {
-		t.Errorf("domain = %v", sent["domain"])
+	if sent["domain_identifier"] != "myco" {
+		t.Errorf("domain_identifier = %v", sent["domain_identifier"])
 	}
 	codecs, ok := sent["default_codecs"].([]any)
 	if !ok {

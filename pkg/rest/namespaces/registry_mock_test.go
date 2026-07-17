@@ -118,8 +118,22 @@ func TestRegistryBrands_CreateCampaign_PostsToBrandSubpath(t *testing.T) {
 	mock.Reset(t)
 
 	bodyResp, err := client.Registry.Brands.CreateCampaign(context.Background(), "brand-2", map[string]any{
-		"usecase":     "LOW_VOLUME",
-		"description": "MFA",
+		"name":                    "My Campaign",
+		"brand_id":                "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+		"sms_use_case":            "LOW_VOLUME",
+		"description":             "MFA",
+		"sample1":                 "Hi John, your appointment is tomorrow. Reply STOP to unsubscribe.",
+		"sample2":                 "Your prescription is ready for pickup. Reply STOP to unsubscribe.",
+		"message_flow":            "Users opt in via a written form and receive an opt-in message.",
+		"opt_out_message":         "You have successfully been opted out. Reply START to opt back in.",
+		"help_message":            "For help contact support@example.com. Reply STOP to unsubscribe.",
+		"number_pooling_required": false,
+		"direct_lending":          false,
+		"embedded_link":           false,
+		"embedded_phone":          false,
+		"age_gated_content":       false,
+		"lead_generation":         false,
+		"terms_and_conditions":    true,
 	})
 	if err != nil {
 		t.Fatalf("CreateCampaign: %v", err)
@@ -140,8 +154,8 @@ func TestRegistryBrands_CreateCampaign_PostsToBrandSubpath(t *testing.T) {
 	if !ok {
 		t.Fatalf("body type = %T", j.Body)
 	}
-	if sent["usecase"] != "LOW_VOLUME" {
-		t.Errorf("usecase = %v", sent["usecase"])
+	if sent["sms_use_case"] != "LOW_VOLUME" {
+		t.Errorf("sms_use_case = %v", sent["sms_use_case"])
 	}
 	if sent["description"] != "MFA" {
 		t.Errorf("description = %v", sent["description"])
@@ -185,7 +199,7 @@ func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
 	mock.Reset(t)
 
 	bodyResp, err := client.Registry.Campaigns.Update(context.Background(), "camp-2", namespaces.RegistryCampaignsUpdateParams{Extras: map[string]any{
-		"description": "Updated",
+		"name": "Updated Campaign",
 	}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
@@ -206,8 +220,8 @@ func TestRegistryCampaigns_Update_UsesPut(t *testing.T) {
 	if !ok {
 		t.Fatalf("body type = %T", j.Body)
 	}
-	if sent["description"] != "Updated" {
-		t.Errorf("description = %v", sent["description"])
+	if sent["name"] != "Updated Campaign" {
+		t.Errorf("name = %v", sent["name"])
 	}
 }
 
@@ -248,9 +262,9 @@ func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	bodyResp, err := client.Registry.Campaigns.CreateOrder(context.Background(), "camp-4", namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{
-		"numbers": []string{"pn-1", "pn-2"},
-	}})
+	bodyResp, err := client.Registry.Campaigns.CreateOrder(context.Background(), "camp-4", namespaces.RegistryCampaignsCreateOrderParams{
+		PhoneNumbers: []string{"pn-1", "pn-2"},
+	})
 	if err != nil {
 		t.Fatalf("CreateOrder: %v", err)
 	}
@@ -270,12 +284,12 @@ func TestRegistryCampaigns_CreateOrder_PostsToOrdersSubpath(t *testing.T) {
 	if !ok {
 		t.Fatalf("body type = %T", j.Body)
 	}
-	rawNumbers, ok := sent["numbers"].([]any)
+	rawNumbers, ok := sent["phone_numbers"].([]any)
 	if !ok {
-		t.Fatalf("numbers type = %T", sent["numbers"])
+		t.Fatalf("phone_numbers type = %T", sent["phone_numbers"])
 	}
 	if len(rawNumbers) != 2 || rawNumbers[0] != "pn-1" || rawNumbers[1] != "pn-2" {
-		t.Errorf("numbers = %v, want [pn-1 pn-2]", rawNumbers)
+		t.Errorf("phone_numbers = %v, want [pn-1 pn-2]", rawNumbers)
 	}
 }
 
