@@ -343,6 +343,17 @@ func captureFrames(mock *mockRelay, out map[string]any) error {
 	settle()
 	out["relay_send_fax"] = frame("calling.send_fax", mock.lastFrame("calling.send_fax"))
 
+	// relay_live_transcribe
+	_ = c.LiveTranscribe(map[string]any{"start": map[string]any{"lang": "en"}})
+	settle()
+	out["relay_live_transcribe"] = frame("calling.live_transcribe", mock.lastFrame("calling.live_transcribe"))
+
+	// relay_live_translate
+	_ = c.LiveTranslate(map[string]any{"start": map[string]any{"from_lang": "en", "to_lang": "es"}},
+		"https://x/cb")
+	settle()
+	out["relay_live_translate"] = frame("calling.live_translate", mock.lastFrame("calling.live_translate"))
+
 	// ---- control-ops (Action methods) ----
 	// relay_play_stop
 	pa := c.Play([]map[string]any{{"type": "audio", "params": map[string]any{"url": "https://x/a.mp3"}}},

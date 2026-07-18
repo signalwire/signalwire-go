@@ -17,9 +17,10 @@
 //   - the base CrudResource.Paginate form, inherited by every CRUD resource
 //     (client.Fabric.AIAgents embeds CrudWithAddresses -> CrudResource).
 //
-// Each test stages two FIFO pages — the first carrying a links.next cursor, the
+// Each test stages two FIFO pages — the first carrying a links.next page_token
+// (the real wire cursor token the server round-trips, PA/PB-prefixed), the
 // second terminal — pages through, and asserts every item is yielded in order and
-// that the second fetch carried the cursor parsed from the first response.
+// that the second fetch carried the page_token parsed from the first response.
 
 package namespaces_test
 
@@ -32,8 +33,8 @@ import (
 
 const aiAgentsPath = "/api/fabric/resources/ai_agents"
 
-// pushCursorPages stages a cursor page then a terminal page on endpointID, whose
-// links.next points at nextURL (parsed for the second fetch's query).
+// pushCursorPages stages a page_token page then a terminal page on endpointID,
+// whose links.next points at nextURL (parsed for the second fetch's query).
 func pushCursorPages(t *testing.T, mock *mocktest.Harness, endpointID, nextURL string) {
 	t.Helper()
 	mock.PushScenario(t, endpointID, 200, map[string]any{
@@ -92,8 +93,8 @@ func assertRowsAndCursor(t *testing.T, ids []string, mock *mocktest.Harness, pat
 	if len(gets) != 2 {
 		t.Fatalf("expected 2 paginated GETs at %s, got %d", path, len(gets))
 	}
-	if cv := gets[1].QueryParams["cursor"]; len(cv) != 1 || cv[0] != "page2" {
-		t.Errorf("second fetch missing cursor=page2: %v", gets[1].QueryParams)
+	if cv := gets[1].QueryParams["page_token"]; len(cv) != 1 || cv[0] != "PA_page2" {
+		t.Errorf("second fetch missing page_token=PA_page2: %v", gets[1].QueryParams)
 	}
 }
 
@@ -107,7 +108,7 @@ func TestReadResourcePaginate_WalksAllPages(t *testing.T) {
 	}
 	mock.Reset(t)
 	pushCursorPages(t, mock, fabricAddressesEndpointID,
-		"http://example.com/api/fabric/addresses?cursor=page2")
+		"http://example.com/api/fabric/addresses?page_token=PA_page2")
 
 	it := client.Fabric.Addresses.Paginate(context.Background(), nil)
 	if it == nil {
@@ -132,7 +133,7 @@ func TestCrudResourcePaginate_WalksAllPages(t *testing.T) {
 	}
 	mock.Reset(t)
 	pushCursorPages(t, mock, "fabric.list_ai_agents",
-		"http://example.com/api/fabric/resources/ai_agents?cursor=page2")
+		"http://example.com/api/fabric/resources/ai_agents?page_token=PA_page2")
 
 	it := client.Fabric.AIAgents.Paginate(context.Background(), nil)
 	if it == nil {

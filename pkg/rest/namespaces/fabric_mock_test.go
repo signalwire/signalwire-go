@@ -232,9 +232,9 @@ func TestFabricTokens_CreateInviteToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{
-		"email": "invitee@example.com",
-	}})
+	_, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{
+		AddressID: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+	})
 	if err != nil {
 		t.Fatalf("CreateInviteToken: %v", err)
 	}
@@ -249,8 +249,8 @@ func TestFabricTokens_CreateInviteToken(t *testing.T) {
 	if !ok {
 		t.Fatalf("body type = %T", j.Body)
 	}
-	if body["email"] != "invitee@example.com" {
-		t.Errorf("email = %v", body["email"])
+	if body["address_id"] != "3fa85f64-5717-4562-b3fc-2c963f66afa6" {
+		t.Errorf("address_id = %v", body["address_id"])
 	}
 }
 
@@ -261,9 +261,9 @@ func TestFabricTokens_CreateEmbedToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{
-		"allowed_addresses": []string{"addr-1", "addr-2"},
-	}})
+	_, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{
+		Token: "c2c_7acc0e5e968706a032983cd80cdca219",
+	})
 	if err != nil {
 		t.Fatalf("CreateEmbedToken: %v", err)
 	}
@@ -278,9 +278,8 @@ func TestFabricTokens_CreateEmbedToken(t *testing.T) {
 	if !ok {
 		t.Fatalf("body type = %T", j.Body)
 	}
-	addrs, ok := body["allowed_addresses"].([]any)
-	if !ok || len(addrs) != 2 || addrs[0] != "addr-1" || addrs[1] != "addr-2" {
-		t.Errorf("allowed_addresses = %v", body["allowed_addresses"])
+	if body["token"] != "c2c_7acc0e5e968706a032983cd80cdca219" {
+		t.Errorf("token = %v", body["token"])
 	}
 }
 

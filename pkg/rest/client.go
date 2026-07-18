@@ -32,27 +32,78 @@ const userAgent = "signalwire-go-rest/1.0"
 
 // ---------- SignalWireRestError ----------
 
-// SignalWireRestError is returned when the SignalWire REST API responds with a
-// non-2xx status code.
+// SignalWireRestError is returned when a SignalWire REST request fails. It covers
+// two failure modes with one typed family so a caller unwraps a single type:
+//
+//   - an HTTP error: the server responded with a non-2xx status. StatusCode is the
+//     HTTP code (>= 400), Transport is false.
+//   - a TRANSPORT failure: the request never reached a response (connection
+//     refused, DNS failure, connection reset, TLS error). Go has no HTTP status in
+//     that case, so StatusCode is 0 and Transport is true — the equivalent of the
+//     Python reference's status_code=None. Body carries the underlying transport
+//     error message.
+//
+// Because both modes are the SAME type, a caller catching *SignalWireRestError via
+// errors.As handles HTTP and transport failures with one branch, instead of a bare
+// net/url error leaking out.
 type SignalWireRestError struct {
 	StatusCode int
 	Body       string
 	URL        string
 	Method     string
+	// Transport is true when this error represents a transport-level failure (the
+	// request never reached a response), in which case StatusCode is 0. It is false
+	// for an HTTP-status error (a real >= 400 response).
+	Transport bool
+	// cause is the underlying transport error (net/url error, context cancellation,
+	// TLS error) for a Transport failure, preserved so errors.Is/errors.As still
+	// unwrap to it — the Go equivalent of Python's ``raise ... from exc``. nil for
+	// an HTTP-status error.
+	cause error
 }
+
+// Unwrap returns the underlying transport error (or nil for an HTTP-status error),
+// so errors.Is / errors.As see through a transport-wrapped *SignalWireRestError to
+// the original cause (e.g. context.Canceled, a *net.OpError). This preserves the
+// error chain the way Python's “raise SignalWireRestTransportError(...) from exc“
+// does, while still presenting the typed REST error family at the top.
+func (e *SignalWireRestError) Unwrap() error { return e.cause }
 
 // Error implements the error interface.
 func (e *SignalWireRestError) Error() string {
+	if e.Transport {
+		return fmt.Sprintf("%s %s failed to reach the server: %s", e.Method, e.URL, e.Body)
+	}
 	return fmt.Sprintf("%s %s returned %d: %s", e.Method, e.URL, e.StatusCode, e.Body)
 }
 
-// NewSignalWireRestError constructs a SignalWireRestError, substituting
-// "GET" as the method when method is empty — matches Python's default.
+// NewSignalWireRestError constructs a SignalWireRestError for an HTTP-status
+// failure, substituting "GET" as the method when method is empty — matches
+// Python's default.
 func NewSignalWireRestError(statusCode int, body, url, method string) *SignalWireRestError {
 	if method == "" {
 		method = "GET"
 	}
 	return &SignalWireRestError{StatusCode: statusCode, Body: body, URL: url, Method: method}
+}
+
+// NewSignalWireRestTransportError constructs a SignalWireRestError for a
+// TRANSPORT-level failure — the request never reached a response (connection
+// refused, DNS failure, connection reset, TLS error, context cancellation).
+// StatusCode is 0 (Go's idiom for "no HTTP status", the equivalent of the Python
+// reference's status_code=None) and Transport is true, so the same
+// *SignalWireRestError family a caller already unwraps for HTTP errors also carries
+// transport failures — no bare net/url error escapes the REST client. cause is the
+// underlying error, preserved for errors.Is/errors.As (may be nil); Body defaults
+// to cause.Error() when body is empty.
+func NewSignalWireRestTransportError(cause error, body, url, method string) *SignalWireRestError {
+	if method == "" {
+		method = "GET"
+	}
+	if body == "" && cause != nil {
+		body = cause.Error()
+	}
+	return &SignalWireRestError{StatusCode: 0, Body: body, URL: url, Method: method, Transport: true, cause: cause}
 }
 
 // ---------- HTTPClient ----------
@@ -238,7 +289,12 @@ func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, 
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("http do: %w", err)
+		// Transport failure (connection refused / DNS / reset / TLS / context
+		// cancellation): the request never produced a response. Wrap it in the typed
+		// error family so a caller unwrapping *SignalWireRestError handles it too,
+		// instead of a bare net/url error leaking out. The underlying error is kept
+		// as the cause so errors.Is (e.g. context.Canceled) still sees through it.
+		return nil, NewSignalWireRestTransportError(err, "", path, method)
 	}
 	defer func() { _ = resp.Body.Close() }()
 

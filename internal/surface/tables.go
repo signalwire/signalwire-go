@@ -764,12 +764,29 @@ var StructTable = map[string][]ClassTarget{
 			"Delete":        "delete",
 		},
 	}},
-	"rest.SignalWireRestError": {{
-		Module: "signalwire.rest._base", Class: "SignalWireRestError",
-		Methods: map[string]string{
-			"NewSignalWireRestError": "__init__",
+	// The one Go rest.SignalWireRestError struct projects onto BOTH Python REST
+	// error classes. Python models a transport failure as a SUBCLASS
+	// SignalWireRestTransportError(SignalWireRestError); Go folds it into this same
+	// struct with a Transport bool discriminator (StatusCode 0 == status_code=None)
+	// + the NewSignalWireRestTransportError constructor. Mapping the two
+	// constructors onto the two classes' __init__ keeps the reference's
+	// SignalWireRestTransportError comparing EQUAL (rename-not-omission) instead of
+	// surfacing as a missing-port, while NewSignalWireRestTransportError stays a
+	// PORT_ADDITION (Go's spelling of the transport error).
+	"rest.SignalWireRestError": {
+		{
+			Module: "signalwire.rest._base", Class: "SignalWireRestError",
+			Methods: map[string]string{
+				"NewSignalWireRestError": "__init__",
+			},
 		},
-	}},
+		{
+			Module: "signalwire.rest._base", Class: "SignalWireRestTransportError",
+			Methods: map[string]string{
+				"NewSignalWireRestTransportError": "__init__",
+			},
+		},
+	},
 	// ADAPTER (base-placement rename): the Go `namespaces.CrudResource` struct (the
 	// single CRUD base every generated REST resource embeds — pkg/rest/namespaces/
 	// common.go) provides all five CRUD verbs on one base, but the Python reference

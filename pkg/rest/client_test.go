@@ -10,6 +10,8 @@ package rest
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -347,5 +349,81 @@ func TestHttpClient_BasicFields(t *testing.T) {
 	}
 	if c.logger == nil {
 		t.Error("logger is nil")
+	}
+}
+
+// freeDeadPort binds a loopback TCP port, then releases it, returning the port
+// number. Nothing listens there afterward, so a connection to it is refused —
+// the connection-refused transport-failure path.
+func freeDeadPort(t *testing.T) int {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("reserve free port: %v", err)
+	}
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	if !ok {
+		_ = ln.Close()
+		t.Fatalf("listener addr is %T, want *net.TCPAddr", ln.Addr())
+	}
+	port := addr.Port
+	_ = ln.Close()
+	return port
+}
+
+// TestHttpClient_TransportErrorWrapped pins plan 1.3b: a connection-refused
+// request must surface the TYPED error family (*SignalWireRestError with
+// Transport==true, StatusCode==0), NOT a bare net/url error. A caller unwrapping
+// *SignalWireRestError then handles HTTP and transport failures with one branch.
+func TestHttpClient_TransportErrorWrapped(t *testing.T) {
+	dead := freeDeadPort(t)
+	c := NewHTTPClient("proj", "tok", "unused.invalid")
+	c.SetBaseURL(fmt.Sprintf("http://127.0.0.1:%d", dead))
+
+	_, err := c.Get("/api/fabric/addresses", nil)
+	if err == nil {
+		t.Fatal("expected a connection-refused error, got nil")
+	}
+
+	var restErr *SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("transport failure leaked a bare error %T (%v); want the typed *SignalWireRestError family", err, err)
+	}
+	if !restErr.Transport {
+		t.Errorf("Transport = false, want true for a transport-level failure")
+	}
+	if restErr.StatusCode != 0 {
+		t.Errorf("StatusCode = %d, want 0 (no HTTP status on a transport failure)", restErr.StatusCode)
+	}
+	if restErr.Body == "" {
+		t.Errorf("Body is empty; want the underlying transport error message")
+	}
+}
+
+// TestNewSignalWireRestTransportError_Fields pins the transport constructor's
+// shape: StatusCode 0, Transport true, method defaulting to GET, Body falling back
+// to the cause message, the transport-flavored Error() message, and that the cause
+// remains unwrappable via errors.Is.
+func TestNewSignalWireRestTransportError_Fields(t *testing.T) {
+	cause := errors.New("connection refused")
+	e := NewSignalWireRestTransportError(cause, "", "/api/x", "")
+	if e.StatusCode != 0 {
+		t.Errorf("StatusCode = %d, want 0", e.StatusCode)
+	}
+	if !e.Transport {
+		t.Error("Transport = false, want true")
+	}
+	if e.Method != "GET" {
+		t.Errorf("Method = %q, want GET (empty default)", e.Method)
+	}
+	if e.Body != "connection refused" {
+		t.Errorf("Body = %q, want the cause message (empty-body fallback)", e.Body)
+	}
+	want := "GET /api/x failed to reach the server: connection refused"
+	if e.Error() != want {
+		t.Errorf("Error() = %q, want %q", e.Error(), want)
+	}
+	if !errors.Is(e, cause) {
+		t.Error("errors.Is(e, cause) = false; want the cause unwrappable via Unwrap")
 	}
 }
