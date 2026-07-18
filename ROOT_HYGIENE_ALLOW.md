@@ -25,3 +25,4 @@ load-bearing, not clutter.
 - GEN_TYPE_DEGENERACY_ALLOW.md — required at root by porting-sdk gen_type_degeneracy.py (user-approved 2026-07-07)
 - ROUTE_COLLISION_ALLOW.md — required at root by porting-sdk route_collision.py (user-approved 2026-07-07)
 - WIRE_VIOLATIONS_ALLOW.md — STRICT-MOCKS signed-exception ledger read by porting-sdk assert_no_wire_violations.py / examples_run.py / snippet_run.py at repo root (mike@signalwire.com, 2026-07-18)
+- DUP_TREE_PAIRS.md — DUP-TREE gate manifest declaring rest/ vs pkg/rest/ doc pairs, read by porting-sdk dup_tree.py at repo root (plan 3.3, 2026-07-18)
