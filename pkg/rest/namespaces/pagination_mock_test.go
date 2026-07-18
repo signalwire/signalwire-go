@@ -71,14 +71,18 @@ func TestPaginatedIterator_NextPagesThroughAllItems(t *testing.T) {
 	}
 	mock.Reset(t)
 
-	// Stage two FIFO scenarios. First page has next cursor; second is terminal.
+	// Stage two FIFO scenarios. First page's links.next carries the real wire
+	// param the fabric list endpoint round-trips: page_token (a cursor token
+	// that starts with PA/PB), NOT a cursor param (no SignalWire REST endpoint
+	// accepts that — see rest-apis/fabric/openapi.yaml ListFabricAddressesQuery).
+	// Second page is terminal.
 	mock.PushScenario(t, fabricAddressesEndpointID, 200, map[string]any{
 		"data": []any{
 			map[string]any{"id": "addr-1", "name": "first"},
 			map[string]any{"id": "addr-2", "name": "second"},
 		},
 		"links": map[string]any{
-			"next": "http://example.com/api/fabric/addresses?cursor=page2",
+			"next": "http://example.com/api/fabric/addresses?page_token=PA_page2",
 		},
 	})
 	mock.PushScenario(t, fabricAddressesEndpointID, 200, map[string]any{
@@ -125,10 +129,11 @@ func TestPaginatedIterator_NextPagesThroughAllItems(t *testing.T) {
 	if len(gets) != 2 {
 		t.Fatalf("expected 2 paginated GETs, got %d entries: %v", len(gets), gets)
 	}
-	// The second fetch carries cursor=page2 from the first response's links.next.
-	cursorVals := gets[1].QueryParams["cursor"]
-	if len(cursorVals) != 1 || cursorVals[0] != "page2" {
-		t.Errorf("second fetch missing cursor=page2: %v", gets[1].QueryParams)
+	// The second fetch carries the page_token param parsed from the first
+	// response's links.next — the real wire token the server round-trips.
+	pageTokenVals := gets[1].QueryParams["page_token"]
+	if len(pageTokenVals) != 1 || pageTokenVals[0] != "PA_page2" {
+		t.Errorf("second fetch missing page_token=PA_page2: %v", gets[1].QueryParams)
 	}
 }
 

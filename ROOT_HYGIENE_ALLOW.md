@@ -24,3 +24,4 @@ load-bearing, not clutter.
 - ARTIFACT_DENY_ALLOW.md — required at root by porting-sdk artifact_deny.py (orchestrator, 2026-07-06)
 - GEN_TYPE_DEGENERACY_ALLOW.md — required at root by porting-sdk gen_type_degeneracy.py (user-approved 2026-07-07)
 - ROUTE_COLLISION_ALLOW.md — required at root by porting-sdk route_collision.py (user-approved 2026-07-07)
+- WIRE_VIOLATIONS_ALLOW.md — STRICT-MOCKS signed-exception ledger read by porting-sdk assert_no_wire_violations.py / examples_run.py / snippet_run.py at repo root (mike@signalwire.com, 2026-07-18)

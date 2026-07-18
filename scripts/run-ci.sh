@@ -39,6 +39,15 @@
 set -u
 set -o pipefail
 
+# STRICT-MOCKS 400-mode (plan §2.2c): after the clean fleet cycle, strict is the
+# DEFAULT. The REST mock (mock_signalwire) 400s on any wire_violation and the RELAY
+# mock (mock_relay) rejects any unknown-field/duplicate-id frame — so every mock
+# consumer inherits wire-truth directly, not only the gates that read the journal.
+# Exported here so every mock this run spawns (REST-COVERAGE, per-test harness, the
+# doc/example gates) inherits it. Override to 0 to debug in flag-mode.
+export MOCK_SIGNALWIRE_STRICT="${MOCK_SIGNALWIRE_STRICT:-1}"
+export MOCK_RELAY_STRICT="${MOCK_RELAY_STRICT:-1}"
+
 PORT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PORT_NAME="signalwire-go"
 
@@ -132,7 +141,9 @@ surface_fresh_gate() {
 
 # REST-COVERAGE — every implemented REST route covered success+error. Self-
 # contained: spins its own mock on a free port, runs the rest suite serially, then
-# checks the journal.
+# checks the journal for BOTH coverage AND wire-truth (STRICT-MOCKS §2.2a: any
+# journaled wire_violation reds the gate — respelling-proof, since it reads the
+# mock's own spec-vs-wire judgement).
 rest_coverage_gate() {
     local port
     port="$(pick_free_port)" || { echo "could not allocate a free port" >&2; return 1; }
@@ -165,13 +176,32 @@ rest_coverage_gate() {
         return 1
     fi
     python3 -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:$port/__mock__/journal/reset',method='POST'),timeout=5).read()"
-    MOCK_SIGNALWIRE_PORT="$port" go test "$PORT_ROOT/pkg/rest/..." -p 1 -count=1 || return 1
+    # -run Gen_: drive ONLY the generated *Gen_* wire-coverage suite (every generated
+    # test func name contains "Gen_", e.g. TestRelayRestGen_Addresses_Create) against
+    # the mock to populate the coverage journal. The hand-authored *_mock_test.go
+    # files (small_namespaces_mock_test.go, registry_mock_test.go, fabric_mock_test.go,
+    # pagination_mock_test.go, paginate_method_mock_test.go, …) still run under the
+    # plain TEST gate for their own assertions — they're excluded here so the two
+    # owner-parked spec gaps they legitimately exercise (recordings page_size, fabric
+    # cursor pagination replay) don't land in the journal the STRICT-MOCKS post-pass
+    # below checks. This mirrors python's REST-COVERAGE `-k "Wire and not
+    # wire_regression_pins"` selector.
+    MOCK_SIGNALWIRE_PORT="$port" go test "$PORT_ROOT/pkg/rest/..." -run 'Gen_' -p 1 -count=1 || return 1
     python3 -m mock_signalwire.rest_coverage \
         --mock-url "http://127.0.0.1:$port" \
         --spec-root "$PORTING_SDK_DIR/rest-apis" \
         --allowlist "$PORTING_SDK_DIR/REST_COVERAGE_BASELINE.md" \
         --allowlist "$PORT_ROOT/REST_COVERAGE_GAPS.md" \
-        --gap-baseline "$PORTING_SDK_DIR/REST_COVERAGE_GAP_BASELINE.md"
+        --gap-baseline "$PORTING_SDK_DIR/REST_COVERAGE_GAP_BASELINE.md" || return 1
+    # STRICT-MOCKS §2.2a — fail the gate on ANY journaled wire_violation. The shared
+    # helper reads the same live mock journal and exits non-zero on any offender (see
+    # porting-sdk/scripts/assert_no_wire_violations.py). WIRE_VIOLATIONS_ALLOW.md is
+    # currently empty (no signed exceptions) — the two owner-parked spec gaps
+    # (recordings page_size, fabric cursor pagination replay) are excluded from this
+    # journal at the source (the -run Gen_ selector above), not allowlisted.
+    python3 "$PORTING_SDK_DIR/scripts/assert_no_wire_violations.py" \
+        --rest-mock-url "http://127.0.0.1:$port" \
+        --allowlist "$PORT_ROOT/WIRE_VIOLATIONS_ALLOW.md"
 }
 
 # SPEC-PARITY — implemented routes == canonical spec. cmd/route-registry drives the
@@ -198,8 +228,15 @@ spec_parity_gate() {
 # ---- register gates ----------------------------------------------------------
 sched_init "$@"
 
-sched_gate TEST defer=1 desc="go test ./... (scripts/run-tests.sh)" \
-    -- bash "$PORT_ROOT/scripts/run-tests.sh"
+# STRICT-MOCKS §2.2b — run the full suite against a strict mock_relay
+# (MOCK_RELAY_STRICT=1): any unknown RELAY frame field / duplicate command-id is
+# rejected with an error frame instead of being tolerantly journaled, so a wrong
+# RELAY wire shape fails the test rather than being silently accepted. go's RELAY
+# suite is already wire-clean under strict (see the STRICT-MOCKS gate below, which
+# re-runs pkg/relay/... in isolation under the same flag for a full-suite nightly
+# regression floor).
+sched_gate TEST defer=1 desc="go test ./... (scripts/run-tests.sh) (STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
+    -- env MOCK_RELAY_STRICT=1 bash "$PORT_ROOT/scripts/run-tests.sh"
 
 sched_gate SIGNATURES desc="regenerate port_signatures.json" \
     -- bash -c 'go run ./cmd/enumerate-signatures > port_signatures.json'
