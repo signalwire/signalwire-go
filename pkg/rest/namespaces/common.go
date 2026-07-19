@@ -169,17 +169,32 @@ func decodeResult[T any](m map[string]any, err error) (*T, error) {
 	return &out, nil
 }
 
-// mergeExtra merges optional extra-fields maps into body. It is used by the
-// generated Set* wrappers (SetSwmlWebhook, SetCxmlWebhook, …) to funnel their
-// variadic extra-map tail into the update body. Kept here (a hand base file) so
-// the generated resource files can call it without owning it.
+// mergeExtra funnels the optional Extras escape-hatch map(s) into body. The
+// generated Create/Update/Set* wrappers write their TYPED params into body first,
+// then call mergeExtra with the caller's Extras tail.
+//
+// Teaching — the typed params ARE the intended surface (PORT_PHILOSOPHY_GO.md's
+// Extras-over-typed teaching / PORT_ADDITIONS.md). Reach for a typed field when
+// one exists; Extras is the escape hatch for genuinely-open / forward-compat wire
+// fields the typed surface does not (yet) model.
+//
+// Collision contract — LAST writer wins, and Extras is applied last, so an Extras
+// key DOES override a typed param that set the same key. This is deliberate: the
+// generated wrappers write each typed param unconditionally, including its Go
+// ZERO value (e.g. body["to"] = params.To even when To == ""), so an Extras entry
+// is the ONLY way to supply a wire value the caller chose to leave on the typed
+// zero — the override is the escape hatch working as designed, not a footgun the
+// hatch should block. (A key set only via Extras, or a typo'd/off-contract one,
+// still reaches the wire and is caught by the strict mock's 400-on-unknown-key in
+// the test lanes.) Prefer the typed field; if you must both set a typed field and
+// an Extras key of the same name, know the Extras value wins.
+//
+// Kept here (a hand base file) so the generated resource files can call it
+// without owning it.
 func mergeExtra(body map[string]any, extra []map[string]any) {
-	if len(extra) == 0 {
-		return
-	}
 	for _, m := range extra {
 		for k, v := range m {
-			body[k] = v
+			body[k] = v // last-writer-wins; Extras is applied after the typed params
 		}
 	}
 }

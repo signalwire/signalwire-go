@@ -2,6 +2,12 @@
 
 Real-time call control and messaging over WebSocket using Go's concurrency primitives. The RELAY client connects to SignalWire via the Blade protocol (JSON-RPC 2.0 over WebSocket) and gives you imperative control over live phone calls and SMS/MMS messaging.
 
+## Installation
+
+```bash
+go get github.com/signalwire/signalwire-go/v3
+```
+
 ## Quick Start
 
 ```go
