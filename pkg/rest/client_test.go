@@ -16,6 +16,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -319,6 +320,81 @@ func TestSignalWireRestError_URLIsFullWithQuery(t *testing.T) {
 	}
 	if got := parsed.Query().Get("page_size"); got != "2" {
 		t.Errorf("error.URL must preserve the query (page_size=2); got query %q in %q", parsed.RawQuery, restErr.URL)
+	}
+}
+
+// TestSignalWireRestError_RequestIDFromHeader pins plan 6.6: an HTTP error captures
+// the response headers and exposes the platform request-id (client-side
+// observability, no wire change). Mirrors the Python reference's
+// SignalWireRestError.request_id/.headers.
+func TestSignalWireRestError_RequestIDFromHeader(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("X-Request-Id", "req-abc-123")
+		w.WriteHeader(400)
+		_, _ = w.Write([]byte(`{"error":"bad"}`))
+	}))
+	defer srv.Close()
+
+	c := NewHTTPClient("proj", "tok", "mock.invalid")
+	c.SetBaseURL(srv.URL)
+
+	_, err := c.Get("/api/test", nil, nil)
+	var restErr *SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.RequestID != "req-abc-123" {
+		t.Errorf("RequestID = %q, want req-abc-123", restErr.RequestID)
+	}
+	if restErr.Headers.Get("X-Request-Id") != "req-abc-123" {
+		t.Errorf("Headers must capture the response headers; got %v", restErr.Headers)
+	}
+	// The request-id is appended to the message, matching the Python reference.
+	if !strings.Contains(restErr.Error(), "req-abc-123") {
+		t.Errorf("Error() should include the request-id; got %q", restErr.Error())
+	}
+}
+
+// TestSignalWireRestError_RequestIDAlternateHeaders checks the other accepted
+// request-id header names (matching the Python reference's precedence list).
+func TestSignalWireRestError_RequestIDAlternateHeaders(t *testing.T) {
+	for _, h := range []string{"X-Signalwire-Request-Id", "Request-Id", "X-Amzn-Requestid"} {
+		header := h
+		t.Run(header, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set(header, "rid-"+header)
+				w.WriteHeader(500)
+			}))
+			defer srv.Close()
+			c := NewHTTPClient("proj", "tok", "mock.invalid")
+			c.SetBaseURL(srv.URL)
+			_, err := c.Get("/api/test", nil, nil)
+			var restErr *SignalWireRestError
+			if !errors.As(err, &restErr) {
+				t.Fatalf("want *SignalWireRestError, got %v", err)
+			}
+			if restErr.RequestID != "rid-"+header {
+				t.Errorf("RequestID from %s = %q, want rid-%s", header, restErr.RequestID, header)
+			}
+		})
+	}
+}
+
+// TestSignalWireRestError_TransportHasNoRequestID: a transport failure produced no
+// response, so RequestID is empty and Headers is nil (matches Python's None).
+func TestSignalWireRestError_TransportHasNoRequestID(t *testing.T) {
+	c := NewHTTPClient("proj", "tok", "mock.invalid")
+	c.SetBaseURL("http://127.0.0.1:1") // nothing listening
+	_, err := c.Get("/api/test", nil, nil)
+	var restErr *SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if !restErr.Transport {
+		t.Fatalf("expected a transport error")
+	}
+	if restErr.RequestID != "" || restErr.Headers != nil {
+		t.Errorf("transport error must have empty RequestID + nil Headers; got %q / %v", restErr.RequestID, restErr.Headers)
 	}
 }
 

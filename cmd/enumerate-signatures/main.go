@@ -1501,6 +1501,16 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 				if ret == "context.Context" {
 					continue
 				}
+				// http.Header is a stdlib type (the captured response headers on
+				// SignalWireRestError, plan 6.6), NOT an SDK class — it is a data
+				// field like the URL/Body/StatusCode primitives, not a sub-resource
+				// accessor. Python models it as the instance attribute `.headers`
+				// (not a method), which the surface oracle does not record, so the Go
+				// field must not project as an accessor either (same reasoning as the
+				// context.Context exclusion above).
+				if ret == "http.Header" {
+					continue
+				}
 				if !strings.Contains(ret, ".") && !(ret[0] >= 'A' && ret[0] <= 'Z') {
 					continue
 				}

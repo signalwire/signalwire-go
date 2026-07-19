@@ -58,6 +58,15 @@ type SignalWireRestError struct {
 	// request never reached a response), in which case StatusCode is 0. It is false
 	// for an HTTP-status error (a real >= 400 response).
 	Transport bool
+	// Headers is the response header map captured on an HTTP-status error (client-
+	// side observability — plan 6.6; no wire change). nil for a transport failure
+	// (no response was produced), matching the Python reference's headers=None.
+	Headers http.Header
+	// RequestID is the platform request-id extracted from the response headers
+	// (x-request-id / x-signalwire-request-id / request-id / x-amzn-requestid, first
+	// match wins — the Python reference's precedence). Empty for a transport failure
+	// or when no such header is present. Appended to Error() for observability.
+	RequestID string
 	// cause is the underlying transport error (net/url error, context cancellation,
 	// TLS error) for a Transport failure, preserved so errors.Is/errors.As still
 	// unwrap to it — the Go equivalent of Python's ``raise ... from exc``. nil for
@@ -72,12 +81,38 @@ type SignalWireRestError struct {
 // does, while still presenting the typed REST error family at the top.
 func (e *SignalWireRestError) Unwrap() error { return e.cause }
 
-// Error implements the error interface.
+// Error implements the error interface. When a platform RequestID was captured it
+// is appended for observability, matching the Python reference (plan 6.6).
 func (e *SignalWireRestError) Error() string {
+	var msg string
 	if e.Transport {
-		return fmt.Sprintf("%s %s failed to reach the server: %s", e.Method, e.URL, e.Body)
+		msg = fmt.Sprintf("%s %s failed to reach the server: %s", e.Method, e.URL, e.Body)
+	} else {
+		msg = fmt.Sprintf("%s %s returned %d: %s", e.Method, e.URL, e.StatusCode, e.Body)
 	}
-	return fmt.Sprintf("%s %s returned %d: %s", e.Method, e.URL, e.StatusCode, e.Body)
+	if e.RequestID != "" {
+		msg += fmt.Sprintf(" (request-id: %s)", e.RequestID)
+	}
+	return msg
+}
+
+// requestIDHeaders is the precedence-ordered set of response header names that
+// carry the platform request-id (first match wins), mirroring the Python
+// reference (_extract_request_id in signalwire/rest/_base.py).
+var requestIDHeaders = []string{
+	"X-Request-Id", "X-Signalwire-Request-Id", "Request-Id", "X-Amzn-Requestid",
+}
+
+// extractRequestID returns the platform request-id from a response header map, or
+// "" when none of the known headers is present. http.Header.Get is
+// case-insensitive (canonicalized), so the caller's header casing is irrelevant.
+func extractRequestID(h http.Header) string {
+	for _, name := range requestIDHeaders {
+		if v := h.Get(name); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // NewSignalWireRestError constructs a SignalWireRestError for an HTTP-status
@@ -423,11 +458,15 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		// URL = the FULL request URL (scheme+host+path+query, plan D1), not the
 		// bare path — a caller logging error.URL can replay the exact request.
+		// Headers + RequestID capture the response headers + platform request-id
+		// for client-side observability (plan 6.6; no wire change).
 		return nil, resp.StatusCode, retryAfterSeconds(resp), &SignalWireRestError{
 			StatusCode: resp.StatusCode,
 			Body:       string(respBody),
 			URL:        reqURL,
 			Method:     method,
+			Headers:    resp.Header,
+			RequestID:  extractRequestID(resp.Header),
 		}
 	}
 
