@@ -117,12 +117,21 @@ func extractRequestID(h http.Header) string {
 
 // NewSignalWireRestError constructs a SignalWireRestError for an HTTP-status
 // failure, substituting "GET" as the method when method is empty — matches
-// Python's default.
-func NewSignalWireRestError(statusCode int, body, url, method string) *SignalWireRestError {
+// Python's default. headers is the response header map (may be nil — e.g. a
+// hand-built error); when present the platform request-id is extracted from it
+// (plan 6.6 error-observability, mirroring the reference's optional headers param).
+func NewSignalWireRestError(statusCode int, body, url, method string, headers http.Header) *SignalWireRestError {
 	if method == "" {
 		method = "GET"
 	}
-	return &SignalWireRestError{StatusCode: statusCode, Body: body, URL: url, Method: method}
+	return &SignalWireRestError{
+		StatusCode: statusCode,
+		Body:       body,
+		URL:        url,
+		Method:     method,
+		Headers:    headers,
+		RequestID:  extractRequestID(headers),
+	}
 }
 
 // NewSignalWireRestTransportError constructs a SignalWireRestError for a

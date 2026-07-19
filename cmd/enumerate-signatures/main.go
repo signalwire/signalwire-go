@@ -821,6 +821,13 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	if canon, ok := closedSetUnions[t]; ok {
 		return canon, nil
 	}
+	// http.Header is Go's (nil-able) response-header map. The reference spells the
+	// 6.6 `headers` ctor param `optional<dict<string,string>>`; fold the stdlib type
+	// to that canonical spelling (a pure type-fold reconciled at the adapter, per
+	// RULES — never an omission).
+	if t == "http.Header" || t == "net/http.Header" {
+		return "optional<dict<string,string>>", nil
+	}
 	// context.Context is Go's idiomatic deadline/cancellation carrier — the
 	// idiomatic Go expression of "this call may take an optional timeout" (the
 	// PORT_PHILOSOPHY_GO ctx-cancelled-loop idiom). Where the Python reference
