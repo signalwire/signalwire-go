@@ -14,7 +14,7 @@
 // mock sees N attempts and honors the backoff/delay ordering, so the contract is
 // proven over the real mock, NOT a transport mock/patch.
 //
-// Contract pinned here (the oracle):
+// Contract pinned here (the reference):
 //   - Retries: a retryable failure is retried up to Retries extra times; the mock
 //     sees Retries+1 attempts; the final success is returned.
 //   - idempotency asymmetry: GET/PUT/DELETE retry on the full retry_on_status set;

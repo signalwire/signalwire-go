@@ -20,7 +20,7 @@
 //	  "status_code": int|null, "body_error_code": string|null,
 //	  "request_count": int }
 //
-// The differ builds the golden oracle by running the same corpus against the
+// The differ builds the golden reference by running the same corpus against the
 // Python reference client, then byte-compares each artifact this program emits
 // against Python's. See the differ's module docstring for the contract.
 //
@@ -99,7 +99,7 @@ func floatPtr(f float64) *float64 { return &f }
 
 // corpus mirrors porting-sdk/scripts/envelope_corpus.CORPUS. Keep the id set and
 // the armed scenarios in lockstep with the Python source — the differ compares
-// each artifact against Python's oracle for the same id.
+// each artifact against Python's reference for the same id.
 var corpus = []envCase{
 	// 200 success baseline: no scenario -> a synthesized 200 list body.
 	{id: "envelope_200_success"},
@@ -289,7 +289,7 @@ func runCase(c envCase) artifact {
 
 	// The FIFO scenario queue: the armed override repeated scenarioRepeat times,
 	// then exhausted (nil) so subsequent attempts fall through to the synthesized
-	// success. This mirrors the mock_signalwire ScenarioStore the Python oracle
+	// success. This mirrors the mock_signalwire ScenarioStore the Python reference
 	// arms via scenario_repeat.
 	repeat := c.scenarioRepeat
 	if repeat < 1 {
