@@ -103,6 +103,19 @@ var optionalTailVariadicMethods = map[string]bool{
 	"signalwire.relay.call.CollectAction.pause": true,
 }
 
+// optionalRequestOptionsTailMethods lists the fully-qualified Python reference
+// methods whose LAST param is the optional `request_options: RequestOptions |
+// None = None`, which the Go constructors spell as a trailing variadic
+// `opts ...*RequestOptions` (so an existing 3-arg call compiles unchanged while
+// a caller can pass a client-default envelope). Reclassify that `...*RequestOptions`
+// tail to the reference's optional RequestOptions param so the ctor compares
+// EQUAL (idiom reconciled in the enumerator, not an omission). Scoped to these
+// two ctors + a `...*RequestOptions` tail.
+var optionalRequestOptionsTailMethods = map[string]bool{
+	"signalwire.rest._base.HttpClient.__init__":  true,
+	"signalwire.rest.client.RestClient.__init__": true,
+}
+
 // paramsStructField is one field of a generated-REST params struct (§5/§4a).
 type paramsStructField struct {
 	name    string // exported Go field name (e.g. "QueryString", "Extras")
@@ -711,6 +724,12 @@ var goLocalAliases = map[string]string{
 	// the signature comparison (idiom reconciled in the alias table, not an omission).
 	"Paginator":            "class:signalwire.rest._pagination.PaginatedIterator",
 	"namespaces.Paginator": "class:signalwire.rest._pagination.PaginatedIterator",
+	// rest.EffectiveOptions is the Go public spelling of the reference's
+	// private _EffectiveOptions (the fully-resolved options returned by
+	// Resolve and consumed by StatusIsRetryable). Fold it to that class ref so
+	// the two functions' signatures compare EQUAL (idiom in the alias table).
+	"EffectiveOptions":      "class:signalwire.rest._request_options._EffectiveOptions",
+	"rest.EffectiveOptions": "class:signalwire.rest._request_options._EffectiveOptions",
 }
 
 // closedSetUnions maps the Go defined-string closed-set types (and their
@@ -1173,6 +1192,20 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			})
 			continue
 		}
+		// A ctor's trailing variadic `...*RequestOptions` is the Go idiom for the
+		// reference's optional `request_options: RequestOptions | None = None`.
+		// Reclassify it to the single optional class param so it compares EQUAL
+		// (see optionalRequestOptionsTailMethods). Scoped to the LAST param and to
+		// a `...*RequestOptions`.
+		if pi == len(sig.params)-1 && optionalRequestOptionsTailMethods[ctx] &&
+			p.typeStr == "...*RequestOptions" {
+			params = append(params, canonicalParam{
+				Name:     goNameToSnake(p.name),
+				Type:     "optional<class:signalwire.rest._request_options.RequestOptions>",
+				Required: boolPtr(false),
+			})
+			continue
+		}
 		// §5/§4a: a generated-REST operation/command method takes its wire-body
 		// fields as a named params STRUCT (`params <Recv><Method>Params`) instead of
 		// flat positionals. UNFOLD that struct back into the flat keyword set the
@@ -1375,6 +1408,15 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 				// leading uppercase).
 				ret := strings.TrimPrefix(fSig.returns, "*")
 				if ret == "" {
+					continue
+				}
+				// context.Context is not an SDK class — it is the abort-signal
+				// primitive (RequestOptions.AbortSignal, plan 4.2). A ctx-typed
+				// field must not be projected as an accessor (the ctx->timeout
+				// type fold would misreport its return); the reference abort_signal
+				// accessor is a signature-only idiom divergence
+				// (PORT_SIGNATURE_OMISSIONS.md).
+				if ret == "context.Context" {
 					continue
 				}
 				if !strings.Contains(ret, ".") && !(ret[0] >= 'A' && ret[0] <= 'Z') {

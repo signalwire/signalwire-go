@@ -753,6 +753,19 @@ var StructTable = map[string][]ClassTarget{
 			"NewRestClient": "__init__",
 		},
 	}},
+	// RequestOptions (plan 4.2): the per-request transport envelope. Go models
+	// it as a value struct with public fields (Timeout/Retries/RetryOnStatus/
+	// RetryBackoff/AbortSignal) plus a Merge method — the reference
+	// RequestOptions with its merge(). Construction is a Go struct literal (no
+	// NewRequestOptions factory), so __init__ + the abort_signal accessor are
+	// signature-only idiom divergences (PORT_SIGNATURE_OMISSIONS.md); the SURFACE
+	// oracle records only merge(), which this mapping projects.
+	"rest.RequestOptions": {{
+		Module: "signalwire.rest._request_options", Class: "RequestOptions",
+		Methods: map[string]string{
+			"Merge": "merge",
+		},
+	}},
 	"rest.HTTPClient": {{
 		Module: "signalwire.rest._base", Class: "HttpClient",
 		Methods: map[string]string{
@@ -1254,6 +1267,13 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"skills.ListSkills":           {Module: "signalwire", Name: "list_skills"},
 	"skills.ListSkillsWithParams": {Module: "signalwire", Name: "list_skills_with_params"},
 	"rest.NewRestClient":          {Module: "signalwire", Name: "RestClient"},
+
+	// RequestOptions resolution helpers (plan 4.2). Python exposes resolve()
+	// and status_is_retryable() as module-level functions of
+	// signalwire.rest._request_options; Go exposes the same two as package-level
+	// rest.Resolve / rest.StatusIsRetryable (rename-not-omission).
+	"rest.Resolve":           {Module: "signalwire.rest._request_options", Name: "resolve"},
+	"rest.StatusIsRetryable": {Module: "signalwire.rest._request_options", Name: "status_is_retryable"},
 
 	// Typed-handler schema inference. Python's signalwire.core.agent.tools.
 	// type_inference reflects a handler's signature at runtime; Go builds the

@@ -25,9 +25,11 @@
 // against Python's. See the differ's module docstring for the contract.
 //
 // Each case is exercised against an in-process httptest mock that honors the
-// case's scenario (status / response body / Retry-After header / delay). A case
-// flagged transport=true instead points the client at a DEAD port (a free port we
-// bind then immediately release, so nothing is listening) — the connection-refused
+// case's scenario (status / response body / Retry-After header / delay), and — for
+// the RequestOptions retry cases (plan 4.2) — the FIFO scenario_repeat queue and
+// the case's RequestOptions (retries / retry_backoff / timeout). A case flagged
+// transport=true instead points the client at a DEAD port (a free port we bind
+// then immediately release, so nothing is listening) — the connection-refused
 // path. A correct client raises its TYPED transport error (the *SignalWireRestError
 // family with StatusCode 0), which this program reports as error_kind "typed" with
 // status_code null and request_count 0; a client leaking a bare net/url error would
@@ -52,7 +54,7 @@ import (
 	"github.com/signalwire/signalwire-go/v3/pkg/rest"
 )
 
-// scenario is the armed mock override for a case (nil => a synthesized 200 list).
+// scenario is one armed mock override (nil => a synthesized 200 list / 201).
 type scenario struct {
 	status   int
 	response any    // a JSON-encodable value
@@ -61,15 +63,39 @@ type scenario struct {
 	delayMs  int
 }
 
-// envCase is the Go-native mirror of one porting-sdk envelope_corpus._case entry.
-type envCase struct {
-	id        string
-	scenario  *scenario
-	transport bool
+// requestOptionsSpec mirrors a corpus case's request_options block. A nil field
+// means "unset" (the port's default applies).
+type requestOptionsSpec struct {
+	retries      *int
+	retryBackoff *float64
+	timeout      *float64
 }
 
-// The path every case targets (envelope_corpus.CALL — a GET list route).
+// envCase is the Go-native mirror of one porting-sdk envelope_corpus._case entry.
+type envCase struct {
+	id string
+	// scenario is the armed override; scenarioRepeat arms it N times (FIFO) so a
+	// retry-armed case sees the failure on every attempt before the default 200.
+	scenario       *scenario
+	scenarioRepeat int
+	transport      bool
+	// method + path + body drive the request. Defaults to GET callPath; the POST
+	// idempotency cases set method=POST + createPath + a body.
+	method string
+	path   string
+	body   map[string]any
+	// requestOptions, when set, is passed as the port's RequestOptions for the call.
+	requestOptions *requestOptionsSpec
+}
+
+// The GET list route every default case targets (envelope_corpus.CALL).
 const callPath = "/api/fabric/addresses"
+
+// The POST route the idempotency-asymmetry cases target (envelope_corpus.CREATE_CALL).
+const createPath = "/api/relay/rest/addresses"
+
+func intPtr(i int) *int           { return &i }
+func floatPtr(f float64) *float64 { return &f }
 
 // corpus mirrors porting-sdk/scripts/envelope_corpus.CORPUS. Keep the id set and
 // the armed scenarios in lockstep with the Python source — the differ compares
@@ -82,13 +108,13 @@ var corpus = []envCase{
 		status:   404,
 		response: map[string]any{"errors": []any{map[string]any{"code": "NOT_FOUND", "message": "no such address"}}},
 	}},
-	// 429 + Retry-After: pinned NO retry.
+	// 429 + Retry-After with DEFAULT options: pinned NO retry (request_count 1).
 	{id: "envelope_429_retry_after", scenario: &scenario{
 		status:   429,
 		response: map[string]any{"errors": []any{map[string]any{"code": "RATE_LIMITED", "message": "slow down"}}},
 		retry:    "2",
 	}},
-	// 503 service-unavailable: no retry.
+	// 503 service-unavailable with DEFAULT options: no retry.
 	{id: "envelope_503_unavailable", scenario: &scenario{
 		status:   503,
 		response: map[string]any{"errors": []any{map[string]any{"code": "UNAVAILABLE", "message": "maintenance"}}},
@@ -111,6 +137,46 @@ var corpus = []envCase{
 	}},
 	// connection refused (dead port): typed transport error, status null, count 0.
 	{id: "envelope_transport_refused", transport: true},
+
+	// ================= RequestOptions envelope (plan 4.2) =================
+	// retry_backoff=0 so the differ never waits on wall-clock; the observable is
+	// the attempt COUNT.
+
+	// GET + retries=1: the single armed 503 is retried into the default 200 =>
+	// raised=false, request_count=2.
+	{
+		id:             "envelope_get_retry_once_succeeds",
+		scenario:       &scenario{status: 503, response: map[string]any{"errors": []any{map[string]any{"code": "UNAVAILABLE", "message": "transient"}}}},
+		requestOptions: &requestOptionsSpec{retries: intPtr(1), retryBackoff: floatPtr(0)},
+	},
+	// GET + retries=1 with the 503 armed on BOTH attempts: retries exhausted =>
+	// typed 503 raised, request_count=2.
+	{
+		id:             "envelope_get_retry_exhausted",
+		scenario:       &scenario{status: 503, response: map[string]any{"errors": []any{map[string]any{"code": "UNAVAILABLE", "message": "down"}}}},
+		scenarioRepeat: 2,
+		requestOptions: &requestOptionsSpec{retries: intPtr(1), retryBackoff: floatPtr(0)},
+	},
+	// POST + retries=2 with a 500: non-idempotent must NOT retry 500 =>
+	// request_count=1, typed 500 raised.
+	{
+		id:             "envelope_post_500_not_retried",
+		method:         "POST",
+		path:           createPath,
+		body:           map[string]any{"label": "x"},
+		scenario:       &scenario{status: 500, response: map[string]any{"errors": []any{map[string]any{"code": "SERVER_ERROR", "message": "boom"}}}},
+		requestOptions: &requestOptionsSpec{retries: intPtr(2), retryBackoff: floatPtr(0)},
+	},
+	// POST + retries=1 with a 503: a throttle IS safe to retry => retried into the
+	// default 201/200, request_count=2.
+	{
+		id:             "envelope_post_503_retried",
+		method:         "POST",
+		path:           createPath,
+		body:           map[string]any{"label": "x"},
+		scenario:       &scenario{status: 503, response: map[string]any{"errors": []any{map[string]any{"code": "UNAVAILABLE", "message": "throttled"}}}},
+		requestOptions: &requestOptionsSpec{retries: intPtr(1), retryBackoff: floatPtr(0)},
+	},
 }
 
 // artifact is the shared cross-port reduction the differ byte-compares.
@@ -163,12 +229,52 @@ func decodeBodyErrorCode(body string) *string {
 	return &code
 }
 
+// caseMethod / casePath resolve a case's request verb + path, defaulting to the
+// GET list route when unset.
+func caseMethod(c envCase) string {
+	if c.method != "" {
+		return c.method
+	}
+	return "GET"
+}
+
+func casePath(c envCase) string {
+	if c.path != "" {
+		return c.path
+	}
+	return callPath
+}
+
+// buildRequestOptions maps a case's requestOptions spec to a *rest.RequestOptions
+// (nil when the case pins no options => the client's default: retries 0).
+func buildRequestOptions(spec *requestOptionsSpec) *rest.RequestOptions {
+	if spec == nil {
+		return nil
+	}
+	opts := &rest.RequestOptions{}
+	if spec.retries != nil {
+		opts.Retries = spec.retries
+	}
+	if spec.retryBackoff != nil {
+		opts.RetryBackoff = spec.retryBackoff
+	}
+	if spec.timeout != nil {
+		opts.Timeout = spec.timeout
+	}
+	return opts
+}
+
 // runCase exercises one corpus case and returns its artifact. It stands up an
-// in-process httptest mock honoring the scenario (or, for a transport case, points
-// the client at a dead port), makes the request, and reduces the outcome.
+// in-process httptest mock honoring the scenario queue (scenarioRepeat armed
+// entries served FIFO, then the synthesized success), or — for a transport case —
+// points the client at a dead port, makes the request with the case's
+// RequestOptions, and reduces the outcome.
 func runCase(c envCase) artifact {
 	var art artifact
 	client := rest.NewHTTPClient("envelope_proj", "envelope_tok", "mock.invalid")
+	method := caseMethod(c)
+	path := casePath(c)
+	reqOpts := buildRequestOptions(c.requestOptions)
 
 	if c.transport {
 		// Dead port: nothing listening -> connection refused. request_count stays 0.
@@ -177,20 +283,46 @@ func runCase(c envCase) artifact {
 			panic(fmt.Sprintf("reserve dead port: %v", err))
 		}
 		client.SetBaseURL(fmt.Sprintf("http://127.0.0.1:%d", dead))
-		_, reqErr := client.Get(callPath, nil)
-		reduceError(&art, reqErr)
+		reduceError(&art, doCall(client, method, path, c.body, reqOpts))
 		return art
 	}
 
+	// The FIFO scenario queue: the armed override repeated scenarioRepeat times,
+	// then exhausted (nil) so subsequent attempts fall through to the synthesized
+	// success. This mirrors the mock_signalwire ScenarioStore the Python oracle
+	// arms via scenario_repeat.
+	repeat := c.scenarioRepeat
+	if repeat < 1 {
+		repeat = 1
+	}
+	var queue []*scenario
+	if c.scenario != nil {
+		for range repeat {
+			queue = append(queue, c.scenario)
+		}
+	}
+	var qi int32 = -1
+
 	var hits int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == callPath {
+		if r.URL.Path == path {
 			atomic.AddInt32(&hits, 1)
 		}
-		sc := c.scenario
+		// Pop the next armed scenario (FIFO); nil once the queue is exhausted.
+		var sc *scenario
+		idx := int(atomic.AddInt32(&qi, 1))
+		if idx < len(queue) {
+			sc = queue[idx]
+		}
 		if sc == nil {
-			// Synthesized 200 list body (the no-scenario happy path).
+			// Synthesized success (the no-scenario / exhausted-queue happy path):
+			// 200 for GET, 201 for POST — a body every port decodes as success.
 			w.Header().Set("Content-Type", "application/json")
+			if method == "POST" {
+				w.WriteHeader(201)
+				_, _ = w.Write([]byte(`{"id":"addr_created"}`))
+				return
+			}
 			w.WriteHeader(200)
 			_, _ = w.Write([]byte(`{"data":[]}`))
 			return
@@ -218,10 +350,23 @@ func runCase(c envCase) artifact {
 	defer srv.Close()
 
 	client.SetBaseURL(srv.URL)
-	_, reqErr := client.Get(callPath, nil)
-	reduceError(&art, reqErr)
+	reduceError(&art, doCall(client, method, path, c.body, reqOpts))
 	art.RequestCount = int(atomic.LoadInt32(&hits))
 	return art
+}
+
+// doCall issues the case's REST verb through the SDK's request-options-aware HTTP
+// client, returning only the request error (the body is irrelevant to the
+// artifact).
+func doCall(client *rest.HTTPClient, method, path string, body map[string]any, opts *rest.RequestOptions) error {
+	switch method {
+	case "POST":
+		_, err := client.Post(path, body, nil, opts)
+		return err
+	default:
+		_, err := client.Get(path, nil, opts)
+		return err
+	}
 }
 
 // reduceError fills the raised/error_kind/status_code/body_error_code fields from

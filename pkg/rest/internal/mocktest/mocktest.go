@@ -201,6 +201,35 @@ func (h *Harness) PushScenario(t *testing.T, endpointID string, status int, body
 	_ = resp.Body.Close()
 }
 
+// PushScenarioFull is PushScenario with optional response headers and a
+// server-side delay (milliseconds) applied BEFORE the response is sent — so a
+// test can arm a Retry-After header or a slow response (the RequestOptions
+// timeout case, plan 4.2). Pass nil headers / delayMs=0 for none. Same FIFO /
+// auth-scoping semantics as PushScenario.
+func (h *Harness) PushScenarioFull(t *testing.T, endpointID string, status int, body any, headers map[string]string, delayMs int) {
+	t.Helper()
+	payload := map[string]any{"status": status, "response": body}
+	if len(headers) > 0 {
+		payload["headers"] = headers
+	}
+	if delayMs > 0 {
+		payload["delay_ms"] = delayMs
+	}
+	enc, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("mocktest: marshal scenario: %v", err)
+	}
+	urlStr := h.URL + "/__mock__/scenarios/" + endpointID
+	if h.authHeader != "" {
+		urlStr += "?session_id=" + url.QueryEscape(h.authHeader)
+	}
+	resp, err := h.httpClient.Post(urlStr, "application/json", bytes.NewReader(enc))
+	if err != nil {
+		t.Fatalf("mocktest: push scenario (full): %v", err)
+	}
+	_ = resp.Body.Close()
+}
+
 // ---------------------------------------------------------------------------
 // Server lifecycle
 // ---------------------------------------------------------------------------
@@ -447,6 +476,35 @@ func New(t *testing.T) (*rest.RestClient, *Harness) {
 	client.SetBaseURL(shared.URL)
 
 	// Per-test harness view scoped to this client's auth header + project.
+	h := &Harness{
+		URL:        shared.URL,
+		Port:       shared.Port,
+		Project:    project,
+		authHeader: authHeader,
+		httpClient: shared.httpClient,
+	}
+	t.Cleanup(func() { h.Reset(t) })
+	return client, h
+}
+
+// NewWithOptions is New with a CLIENT-DEFAULT RequestOptions envelope (plan
+// 4.2) applied to the returned client — every request inherits it unless a
+// per-request *RequestOptions overrides it. Used to prove the two-level
+// resolution (per-request over client-default over built-in) over the real
+// mock. Same per-test project + journal scoping + cleanup as New.
+func NewWithOptions(t *testing.T, opts *rest.RequestOptions) (*rest.RestClient, *Harness) {
+	t.Helper()
+	shared := ensureServer(t)
+	if shared == nil {
+		return nil, nil
+	}
+	project := randomProject(t)
+	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(project+":"+restToken))
+	client, err := rest.NewRestClient(project, restToken, fmt.Sprintf("127.0.0.1:%d", shared.Port), opts)
+	if err != nil {
+		t.Fatalf("mocktest: NewRestClient: %v", err)
+	}
+	client.SetBaseURL(shared.URL)
 	h := &Harness{
 		URL:        shared.URL,
 		Port:       shared.Port,
