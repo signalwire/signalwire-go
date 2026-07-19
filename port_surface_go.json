@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 883f813d03542c227764c9be8e0f79f7a81d85bd",
+  "generated_from": "signalwire-go (go-native) @ 98a2fe0560faaea7fef5f3b85246a04c6cc89231",
   "modules": {
     "agent": {
       "classes": {
@@ -481,6 +481,7 @@
           "Last",
           "Push",
           "PushScenario",
+          "PushScenarioFull",
           "RelayHost",
           "Reset",
           "ScenarioPlay",
@@ -497,7 +498,8 @@
       },
       "functions": [
         "New",
-        "NewClientOnly"
+        "NewClientOnly",
+        "NewWithOptions"
       ]
     },
     "namespaces": {
@@ -1388,6 +1390,7 @@
     },
     "rest": {
       "classes": {
+        "EffectiveOptions": [],
         "HTTPClient": [
           "BaseURL",
           "Delete",
@@ -1408,6 +1411,9 @@
           "Next",
           "NextContext"
         ],
+        "RequestOptions": [
+          "Merge"
+        ],
         "RestClient": [
           "HTTPClient",
           "SetBaseURL"
@@ -1422,7 +1428,9 @@
         "NewPaginatedIterator",
         "NewRestClient",
         "NewSignalWireRestError",
-        "NewSignalWireRestTransportError"
+        "NewSignalWireRestTransportError",
+        "Resolve",
+        "StatusIsRetryable"
       ]
     },
     "security": {

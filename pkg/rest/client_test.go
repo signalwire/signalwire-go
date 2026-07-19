@@ -380,7 +380,7 @@ func TestHttpClient_TransportErrorWrapped(t *testing.T) {
 	c := NewHTTPClient("proj", "tok", "unused.invalid")
 	c.SetBaseURL(fmt.Sprintf("http://127.0.0.1:%d", dead))
 
-	_, err := c.Get("/api/fabric/addresses", nil)
+	_, err := c.Get("/api/fabric/addresses", nil, nil)
 	if err == nil {
 		t.Fatal("expected a connection-refused error, got nil")
 	}

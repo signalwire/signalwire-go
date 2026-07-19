@@ -17,11 +17,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/signalwire/signalwire-go/v3/pkg/logging"
@@ -116,6 +119,12 @@ type HTTPClient struct {
 	token      string
 	httpClient *http.Client
 	logger     *logging.Logger
+	// requestOptions is the CLIENT-DEFAULT request-options envelope (plan 4.2):
+	// timeout / retries / backoff / abort applied to every request unless a
+	// per-request *RequestOptions overrides it. nil => the built-in defaults
+	// (30s timeout, 0 retries). Set via the trailing variadic option on
+	// NewHTTPClient / NewRestClient.
+	requestOptions *RequestOptions
 }
 
 // NewHTTPClient creates a new HTTPClient configured for the given SignalWire
@@ -123,12 +132,17 @@ type HTTPClient struct {
 // SIGNALWIRE_REST_BASE_URL environment variable overrides it when set —
 // pointing the client at a loopback fixture for the the shared test harness
 // audit_rest_transport.py harness, or at any non-default endpoint.
-func NewHTTPClient(projectID, token, space string) *HTTPClient {
+func NewHTTPClient(projectID, token, space string, opts ...*RequestOptions) *HTTPClient {
 	baseURL := os.Getenv("SIGNALWIRE_REST_BASE_URL")
 	if baseURL == "" {
 		baseURL = "https://" + space
 	}
-	httpClient := &http.Client{Timeout: 30 * time.Second}
+	// The per-attempt deadline lives in the request-options retry loop
+	// (resolveOptions => effectiveOptions.timeout), applied per attempt via a
+	// context.WithTimeout. The underlying http.Client carries NO fixed Timeout
+	// so the loop is the sole owner of the deadline (a client-level Timeout
+	// would double-cap and defeat a per-request override).
+	httpClient := &http.Client{}
 	// When SIGNALWIRE_REST_CA_FILE names a PEM CA bundle, trust it for HTTPS by
 	// building a RootCAs pool and a custom transport. This matches the
 	// cross-port convention (rust honors SIGNALWIRE_REST_CA_FILE, ruby a
@@ -141,12 +155,17 @@ func NewHTTPClient(projectID, token, space string) *HTTPClient {
 			TLSClientConfig: &tls.Config{RootCAs: pool},
 		}
 	}
+	var reqOpts *RequestOptions
+	if len(opts) > 0 {
+		reqOpts = opts[len(opts)-1] // last non-variadic option wins
+	}
 	return &HTTPClient{
-		baseURL:    baseURL,
-		projectID:  projectID,
-		token:      token,
-		httpClient: httpClient,
-		logger:     logging.New("rest_client"),
+		baseURL:        baseURL,
+		projectID:      projectID,
+		token:          token,
+		httpClient:     httpClient,
+		logger:         logging.New("rest_client"),
+		requestOptions: reqOpts,
 	}
 }
 
@@ -188,64 +207,56 @@ func (c *HTTPClient) SetBaseURL(url string) {
 
 // Get performs an HTTP GET request. params are added as query-string
 // parameters.
-func (c *HTTPClient) Get(path string, params map[string]string) (map[string]any, error) {
-	return c.doRequest("GET", path, nil, params)
+func (c *HTTPClient) Get(path string, params map[string]string, opts *RequestOptions) (map[string]any, error) {
+	return c.doRequestContextOpts(context.Background(), "GET", path, nil, params, opts)
 }
 
 // Post performs an HTTP POST request with a JSON body. Optional params are
 // appended to the URL as query-string parameters.
-func (c *HTTPClient) Post(path string, body map[string]any, params map[string]string) (map[string]any, error) {
-	return c.doRequest("POST", path, body, params)
+func (c *HTTPClient) Post(path string, body map[string]any, params map[string]string, opts *RequestOptions) (map[string]any, error) {
+	return c.doRequestContextOpts(context.Background(), "POST", path, body, params, opts)
 }
 
 // Put performs an HTTP PUT request with a JSON body.
-func (c *HTTPClient) Put(path string, body map[string]any) (map[string]any, error) {
-	return c.doRequest("PUT", path, body, nil)
+func (c *HTTPClient) Put(path string, body map[string]any, opts *RequestOptions) (map[string]any, error) {
+	return c.doRequestContextOpts(context.Background(), "PUT", path, body, nil, opts)
 }
 
 // Patch performs an HTTP PATCH request with a JSON body.
-func (c *HTTPClient) Patch(path string, body map[string]any) (map[string]any, error) {
-	return c.doRequest("PATCH", path, body, nil)
+func (c *HTTPClient) Patch(path string, body map[string]any, opts *RequestOptions) (map[string]any, error) {
+	return c.doRequestContextOpts(context.Background(), "PATCH", path, body, nil, opts)
 }
 
 // Delete performs an HTTP DELETE request. It returns the parsed response body
 // (or an empty map for 204 No Content) and any error.
-func (c *HTTPClient) Delete(path string) (map[string]any, error) {
-	return c.doRequest("DELETE", path, nil, nil)
+func (c *HTTPClient) Delete(path string, opts *RequestOptions) (map[string]any, error) {
+	return c.doRequestContextOpts(context.Background(), "DELETE", path, nil, nil, opts)
 }
 
 // GetContext is the context-aware variant of Get: the request is cancelled when
 // ctx is cancelled or its deadline passes.
 func (c *HTTPClient) GetContext(ctx context.Context, path string, params map[string]string) (map[string]any, error) {
-	return c.doRequestContext(ctx, "GET", path, nil, params)
+	return c.doRequestContextOpts(ctx, "GET", path, nil, params, nil)
 }
 
 // PostContext is the context-aware variant of Post.
 func (c *HTTPClient) PostContext(ctx context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error) {
-	return c.doRequestContext(ctx, "POST", path, body, params)
+	return c.doRequestContextOpts(ctx, "POST", path, body, params, nil)
 }
 
 // PutContext is the context-aware variant of Put.
 func (c *HTTPClient) PutContext(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
-	return c.doRequestContext(ctx, "PUT", path, body, nil)
+	return c.doRequestContextOpts(ctx, "PUT", path, body, nil, nil)
 }
 
 // PatchContext is the context-aware variant of Patch.
 func (c *HTTPClient) PatchContext(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
-	return c.doRequestContext(ctx, "PATCH", path, body, nil)
+	return c.doRequestContextOpts(ctx, "PATCH", path, body, nil, nil)
 }
 
 // DeleteContext is the context-aware variant of Delete.
 func (c *HTTPClient) DeleteContext(ctx context.Context, path string) (map[string]any, error) {
-	return c.doRequestContext(ctx, "DELETE", path, nil, nil)
-}
-
-// doRequest is the shared request execution method. It delegates to
-// doRequestContext with a background context (no cancellation/deadline beyond
-// the client's fixed Timeout). Callers wanting per-call cancellation use the
-// ...Context verb variants.
-func (c *HTTPClient) doRequest(method, path string, body any, params map[string]string) (map[string]any, error) {
-	return c.doRequestContext(context.Background(), method, path, body, params)
+	return c.doRequestContextOpts(ctx, "DELETE", path, nil, nil, nil)
 }
 
 // doRequestContext is the shared request execution method. It threads the
@@ -253,7 +264,92 @@ func (c *HTTPClient) doRequest(method, path string, body any, params map[string]
 // observed), sets Basic Auth, Content-Type, Accept, and User-Agent headers. A
 // 204 No Content response returns an empty map. Non-2xx responses return a
 // *SignalWireRestError.
-func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, body any, params map[string]string) (map[string]any, error) {
+// doRequestContextOpts is the request-options-aware entry point: it resolves
+// the effective options (per-request over client-default over built-in),
+// then runs the retry/timeout/abort loop over doAttempt.
+//
+// total attempts = retries + 1; a retryable failure (an idempotency-aware
+// retryable status, or a transport error) is retried, honoring Retry-After
+// then exponential backoff. AbortSignal (a context.Context) is checked BEFORE
+// each attempt (a cancelled ctx raises the typed transport error without a
+// send) and is also threaded onto the request so it cuts an in-flight send.
+// A per-attempt Timeout is applied via context.WithTimeout.
+func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path string, body any, params map[string]string, perRequest *RequestOptions) (map[string]any, error) {
+	opts := Resolve(c.requestOptions, perRequest)
+	// AbortSignal (the RequestOptions cancellation primitive) IS a
+	// context.Context. When set it becomes the parent context so cancelling it
+	// cuts an in-flight request; the caller-supplied ctx (the ...Context verbs)
+	// is the parent otherwise.
+	parent := ctx
+	if opts.abortSignal != nil {
+		parent = opts.abortSignal
+	}
+
+	attempt := 0
+	for {
+		attempt++
+		// Cooperative cancellation BEFORE the attempt: a cancelled parent (the
+		// AbortSignal or caller ctx) surfaces as the typed transport error with
+		// NO send, mirroring the Python reference's pre-attempt abort check.
+		if err := parent.Err(); err != nil {
+			return nil, NewSignalWireRestTransportError(err, "request cancelled by abort_signal", path, method)
+		}
+
+		result, status, retryAfter, err := c.doAttempt(parent, method, path, body, params, opts.timeout)
+		if err == nil {
+			return result, nil
+		}
+
+		var restErr *SignalWireRestError
+		isREST := errorsAs(err, &restErr)
+		retryable := false
+		if isREST && restErr.Transport {
+			// Transport failure (connection refused / DNS / reset / TLS / timeout):
+			// no response was produced. Retry if attempts remain, regardless of
+			// method (there is no server-side side effect to duplicate).
+			retryable = true
+		} else if isREST {
+			retryable = StatusIsRetryable(method, status, opts)
+		}
+
+		if retryable && attempt <= opts.retries {
+			delay := retryAfter
+			if delay < 0 {
+				delay = opts.retryBackoff * math.Pow(2, float64(attempt-1))
+			}
+			if !c.sleepOrCancel(parent, delay) {
+				// Cancelled during backoff -> typed transport error.
+				return nil, NewSignalWireRestTransportError(parent.Err(), "request cancelled by abort_signal", path, method)
+			}
+			continue
+		}
+		return nil, err
+	}
+}
+
+// sleepOrCancel sleeps for delay seconds, returning false if the context is
+// cancelled first (so the loop can surface the typed transport error instead
+// of finishing the backoff). A non-positive delay returns immediately.
+func (c *HTTPClient) sleepOrCancel(ctx context.Context, delaySeconds float64) bool {
+	if delaySeconds <= 0 {
+		return ctx.Err() == nil
+	}
+	timer := time.NewTimer(time.Duration(delaySeconds * float64(time.Second)))
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+// doAttempt performs ONE HTTP attempt. It returns the decoded body on success,
+// or a *SignalWireRestError (HTTP-status or transport) on failure, along with
+// the HTTP status (0 for a transport failure) and the parsed Retry-After delta
+// in seconds (-1 when absent) so the retry loop can honor it. timeoutSeconds
+// caps this single attempt via context.WithTimeout.
+func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body any, params map[string]string, timeoutSeconds float64) (map[string]any, int, float64, error) {
 	// Build URL
 	reqURL := c.baseURL + path
 	if len(params) > 0 {
@@ -269,16 +365,26 @@ func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, 
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			return nil, fmt.Errorf("json marshal: %w", err)
+			return nil, 0, -1, fmt.Errorf("json marshal: %w", err)
 		}
 		bodyReader = bytes.NewReader(data)
 	}
 
 	c.logger.Debug("REST request %s %s", method, path)
 
-	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
+	// Per-attempt deadline: the resolved timeout caps THIS attempt. A
+	// cancelled/expired ctx makes http.Client.Do fail, which we map to the
+	// typed transport error below (status 0).
+	attemptCtx := ctx
+	var cancel context.CancelFunc
+	if timeoutSeconds > 0 {
+		attemptCtx, cancel = context.WithTimeout(ctx, time.Duration(timeoutSeconds*float64(time.Second)))
+		defer cancel()
+	}
+
+	req, err := http.NewRequestWithContext(attemptCtx, method, reqURL, bodyReader)
 	if err != nil {
-		return nil, fmt.Errorf("new request: %w", err)
+		return nil, 0, -1, fmt.Errorf("new request: %w", err)
 	}
 
 	// Headers
@@ -290,22 +396,23 @@ func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		// Transport failure (connection refused / DNS / reset / TLS / context
-		// cancellation): the request never produced a response. Wrap it in the typed
-		// error family so a caller unwrapping *SignalWireRestError handles it too,
-		// instead of a bare net/url error leaking out. The underlying error is kept
-		// as the cause so errors.Is (e.g. context.Canceled) still sees through it.
-		return nil, NewSignalWireRestTransportError(err, "", path, method)
+		// cancellation / per-attempt timeout): the request never produced a
+		// response. Wrap it in the typed error family so a caller unwrapping
+		// *SignalWireRestError handles it too, instead of a bare net/url error
+		// leaking out. The underlying error is kept as the cause so errors.Is
+		// (e.g. context.Canceled / context.DeadlineExceeded) still sees through it.
+		return nil, 0, -1, NewSignalWireRestTransportError(err, "", path, method)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("read body: %w", err)
+		return nil, 0, -1, fmt.Errorf("read body: %w", err)
 	}
 
 	// Non-2xx error
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &SignalWireRestError{
+		return nil, resp.StatusCode, retryAfterSeconds(resp), &SignalWireRestError{
 			StatusCode: resp.StatusCode,
 			Body:       string(respBody),
 			URL:        path,
@@ -315,7 +422,7 @@ func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, 
 
 	// 204 No Content or empty body
 	if resp.StatusCode == 204 || len(respBody) == 0 {
-		return map[string]any{}, nil
+		return map[string]any{}, resp.StatusCode, -1, nil
 	}
 
 	var result map[string]any
@@ -326,11 +433,33 @@ func (c *HTTPClient) doRequestContext(ctx context.Context, method, path string, 
 		// map[string]any shape.
 		var arr []any
 		if arrErr := json.Unmarshal(respBody, &arr); arrErr == nil {
-			return map[string]any{"data": arr}, nil
+			return map[string]any{"data": arr}, resp.StatusCode, -1, nil
 		}
-		return nil, fmt.Errorf("json unmarshal: %w", err)
+		return nil, 0, -1, fmt.Errorf("json unmarshal: %w", err)
 	}
-	return result, nil
+	return result, resp.StatusCode, -1, nil
+}
+
+// retryAfterSeconds parses a Retry-After response header in delta-seconds form,
+// returning the delay in seconds or -1 when the header is absent or in the
+// HTTP-date form (which we do not honor; the loop falls back to exponential
+// backoff). Mirrors the Python reference _retry_after_seconds.
+func retryAfterSeconds(resp *http.Response) float64 {
+	v := resp.Header.Get("Retry-After")
+	if v == "" {
+		return -1
+	}
+	secs, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return -1 // HTTP-date form: fall back to computed backoff
+	}
+	return secs
+}
+
+// errorsAs is a thin wrapper over errors.As kept local so the retry loop reads
+// cleanly; it lets a *SignalWireRestError be recovered from a wrapped error.
+func errorsAs(err error, target **SignalWireRestError) bool {
+	return errors.As(err, target)
 }
 
 // ---------- PaginatedIterator ----------

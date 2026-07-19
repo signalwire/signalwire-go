@@ -62,7 +62,7 @@ func (c *RestClient) HTTPClient() *HTTPClient {
 //
 // An error is returned when any of the three values is still empty after the
 // environment lookup.
-func NewRestClient(project, token, space string) (*RestClient, error) {
+func NewRestClient(project, token, space string, opts ...*RequestOptions) (*RestClient, error) {
 	if project == "" {
 		project = os.Getenv("SIGNALWIRE_PROJECT_ID")
 	}
@@ -80,7 +80,7 @@ func NewRestClient(project, token, space string) (*RestClient, error) {
 		)
 	}
 
-	h := NewHTTPClient(project, token, space)
+	h := NewHTTPClient(project, token, space, opts...)
 
 	// Wrap the HTTPClient in a namespaces.HTTPClient adapter so namespaces
 	// can use it without importing the rest package (avoiding a cycle).
