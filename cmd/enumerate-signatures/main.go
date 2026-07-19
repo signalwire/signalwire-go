@@ -761,12 +761,12 @@ var goLocalAliases = map[string]string{
 	"TypedHandler":       "callable<list<any>,any>",
 	"swaig.TypedHandler": "callable<list<any>,any>",
 	// namespaces.Paginator is the value CrudResource.Paginate returns — the
-	// Go-idiom equivalent of Python ReadResource.paginate()'s PaginatedIterator.
-	// A namespaces-package import cycle forbids reusing rest.PaginatedIterator
-	// here (rest already imports namespaces), so Paginate returns a self-contained
-	// *Paginator in the namespaces package. It plays the SAME role as the
-	// reference's PaginatedIterator, so its return type folds to that class ref for
-	// the signature comparison (idiom reconciled in the alias table, not an omission).
+	// Go-idiom equivalent of Python ReadResource.paginate()'s PaginatedIterator,
+	// and (since plan 6.2-go retired the orphan rest.PaginatedIterator) the port's
+	// sole representative of that class. It lives in the namespaces package to
+	// avoid the rest->namespaces import cycle. Its return type folds to that class
+	// ref for the signature comparison (idiom reconciled in the alias table, not an
+	// omission); the adapter StructTable also maps its methods onto the class.
 	"Paginator":            "class:signalwire.rest._pagination.PaginatedIterator",
 	"namespaces.Paginator": "class:signalwire.rest._pagination.PaginatedIterator",
 	// rest.EffectiveOptions is the Go public spelling of the reference's

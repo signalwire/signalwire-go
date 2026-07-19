@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ c2b8bd9be1a4e3431cd81bd93af9ed17a1dd7f56 (go/ast walker)",
+  "generated_from": "signalwire-go @ e42bc761ef2f4fc5e42eb295ac1dce31c654be12 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -12199,6 +12199,11 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
                 },
                 {
                   "name": "client",

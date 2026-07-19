@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ c2b8bd9be1a4e3431cd81bd93af9ed17a1dd7f56",
+  "generated_from": "signalwire-go (go-native) @ e42bc761ef2f4fc5e42eb295ac1dce31c654be12",
   "modules": {
     "agent": {
       "classes": {
@@ -1405,12 +1405,6 @@
           "PutContext",
           "SetBaseURL"
         ],
-        "PaginatedIterator": [
-          "ForEach",
-          "ForEachContext",
-          "Next",
-          "NextContext"
-        ],
         "RequestOptions": [
           "Merge"
         ],
@@ -1425,7 +1419,6 @@
       },
       "functions": [
         "NewHTTPClient",
-        "NewPaginatedIterator",
         "NewRestClient",
         "NewSignalWireRestError",
         "NewSignalWireRestTransportError",
@@ -1588,6 +1581,7 @@
     },
     "swaig": {
       "classes": {
+        "ConnectOptions": [],
         "FunctionResult": [
           "Actions",
           "AddAction",
@@ -1660,7 +1654,8 @@
         ],
         "PayOptions": [],
         "Prop": [],
-        "RecordCallOptions": []
+        "RecordCallOptions": [],
+        "WaitForUserOptions": []
       },
       "functions": [
         "CodecValues",

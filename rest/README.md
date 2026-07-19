@@ -63,6 +63,49 @@ func main() {
 - [Calling Commands](docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
 - [All Namespaces](docs/namespaces.md) -- phone numbers, video, datasphere, logs, registry, and more
 
+## Pagination
+
+List endpoints return one page at a time with a `links.next` cursor. Every
+list resource exposes a `Paginate(ctx, params)` method that returns a
+`*namespaces.Paginator` — it follows that cursor for you, so you never hand-build
+the `page_token` loop. `List(ctx, params)` still returns a single raw page when
+that is all you want.
+
+`Paginator` has two idioms. `Next` yields one page at a time and reports whether
+more remain:
+
+```go
+it := client.Fabric.Addresses.Paginate(context.Background(), nil)
+for {
+    items, hasMore, err := it.Next()
+    if err != nil {
+        log.Fatal(err)
+    }
+    for _, item := range items {
+        fmt.Println(item["id"])
+    }
+    if !hasMore {
+        break
+    }
+}
+```
+
+`ForEach` walks every item across all pages, fetching pages lazily; return a
+non-nil error from the callback to stop early:
+
+```go
+it := client.Fabric.Addresses.Paginate(context.Background(), nil)
+err := it.ForEach(func(item map[string]any) error {
+    fmt.Println(item["id"])
+    return nil // return an error to stop paging early
+})
+```
+
+Construction does not fetch — the first request happens on the first `Next`
+(or `ForEach`). The `ctx` passed to `Paginate` is threaded onto every page fetch,
+so cancelling it stops the walk. `Paginate` is available on both the CRUD
+resources and the read-only list resources (logs, sessions).
+
 ## Examples
 
 - [rest_manage_resources.go](examples/rest_manage_resources.go) -- create an AI agent, assign a phone number, and place a test call

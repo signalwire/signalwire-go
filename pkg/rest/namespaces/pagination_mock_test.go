@@ -8,23 +8,21 @@
 // Mock-backed unit tests translated from
 // signalwire-python/tests/unit/rest/test_pagination_mock.py.
 //
-// PaginatedIterator wraps any HTTPClient.Get call and walks paged
-// responses following the links.next cursor. We test it end-to-end by:
-//
-//   1. Staging two FIFO scenarios on a known mock endpoint — the first
-//      scenario has a ``links.next`` cursor, the second is the terminal page.
-//   2. Iterating over a real PaginatedIterator wired to the SDK's
-//      HTTPClient pointed at the mock.
-//   3. Asserting on the items collected and on the journal entries that
-//      correspond to the two HTTP fetches.
+// These drive the LIVE Paginator — the value returned by a resource's Paginate()
+// accessor (client.Fabric.Addresses.Paginate) — through the SDK's real HTTPClient
+// pointed at the mock. The multi-page cursor walk + page_token round-trip is
+// covered by paginate_method_mock_test.go; here we cover the two remaining
+// behaviors: StopIteration-on-exhaustion and ForEach early-exit on a callback
+// error. (The former orphan rest.PaginatedIterator these tests exercised was
+// retired in plan 6.2-go — the resource-wired Paginator is the one users get.)
 
 package namespaces_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
-	rest "github.com/signalwire/signalwire-go/v3/pkg/rest"
 	"github.com/signalwire/signalwire-go/v3/pkg/rest/internal/mocktest"
 )
 
@@ -35,111 +33,9 @@ const (
 	fabricAddressesEndpointID = "fabric.list_fabric_addresses"
 )
 
-// ---------- Constructor/initial state ----------
-
-func TestPaginatedIterator_InitState(t *testing.T) {
-	t.Parallel()
-	client, mock := mocktest.New(t)
-	if client == nil {
-		return
-	}
-	mock.Reset(t)
-
-	it := rest.NewPaginatedIterator(
-		client.HTTPClient(),
-		fabricAddressesPath,
-		map[string]string{"page_size": "2"},
-		"data",
-	)
-	if it == nil {
-		t.Fatal("NewPaginatedIterator returned nil")
-	}
-	// Constructor must not have fetched anything yet.
-	entries := mock.Journal(t)
-	if len(entries) != 0 {
-		t.Errorf("journal must be empty after constructor; got %d entries", len(entries))
-	}
-}
-
-// ---------- Pages through all items ----------
-
-func TestPaginatedIterator_NextPagesThroughAllItems(t *testing.T) {
-	t.Parallel()
-	client, mock := mocktest.New(t)
-	if client == nil {
-		return
-	}
-	mock.Reset(t)
-
-	// Stage two FIFO scenarios. First page's links.next carries the real wire
-	// param the fabric list endpoint round-trips: page_token (a cursor token
-	// that starts with PA/PB), NOT a cursor param (no SignalWire REST endpoint
-	// accepts that — see rest-apis/fabric/openapi.yaml ListFabricAddressesQuery).
-	// Second page is terminal.
-	mock.PushScenario(t, fabricAddressesEndpointID, 200, map[string]any{
-		"data": []any{
-			map[string]any{"id": "addr-1", "name": "first"},
-			map[string]any{"id": "addr-2", "name": "second"},
-		},
-		"links": map[string]any{
-			"next": "http://example.com/api/fabric/addresses?page_token=PA_page2",
-		},
-	})
-	mock.PushScenario(t, fabricAddressesEndpointID, 200, map[string]any{
-		"data": []any{
-			map[string]any{"id": "addr-3", "name": "third"},
-		},
-		"links": map[string]any{},
-	})
-
-	it := rest.NewPaginatedIterator(
-		client.HTTPClient(),
-		fabricAddressesPath,
-		nil,
-		"data",
-	)
-
-	var collected []map[string]any
-	if err := it.ForEach(func(item map[string]any) error {
-		collected = append(collected, item)
-		return nil
-	}); err != nil {
-		t.Fatalf("ForEach: %v", err)
-	}
-
-	// Three items total, in order.
-	if len(collected) != 3 {
-		t.Fatalf("got %d items, want 3: %v", len(collected), collected)
-	}
-	wantIDs := []string{"addr-1", "addr-2", "addr-3"}
-	for i, want := range wantIDs {
-		if collected[i]["id"] != want {
-			t.Errorf("collected[%d].id = %v, want %s", i, collected[i]["id"], want)
-		}
-	}
-
-	// Journal must have exactly two GETs at the same path.
-	entries := mock.Journal(t)
-	var gets []mocktest.JournalEntry
-	for _, e := range entries {
-		if e.Path == fabricAddressesPath {
-			gets = append(gets, e)
-		}
-	}
-	if len(gets) != 2 {
-		t.Fatalf("expected 2 paginated GETs, got %d entries: %v", len(gets), gets)
-	}
-	// The second fetch carries the page_token param parsed from the first
-	// response's links.next — the real wire token the server round-trips.
-	pageTokenVals := gets[1].QueryParams["page_token"]
-	if len(pageTokenVals) != 1 || pageTokenVals[0] != "PA_page2" {
-		t.Errorf("second fetch missing page_token=PA_page2: %v", gets[1].QueryParams)
-	}
-}
-
 // ---------- StopIteration when exhausted ----------
 
-func TestPaginatedIterator_NextStopsWhenDone(t *testing.T) {
+func TestPaginator_NextStopsWhenDone(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
@@ -149,28 +45,18 @@ func TestPaginatedIterator_NextStopsWhenDone(t *testing.T) {
 
 	// One terminal page.
 	mock.PushScenario(t, fabricAddressesEndpointID, 200, map[string]any{
-		"data": []any{
-			map[string]any{"id": "only-one"},
-		},
+		"data":  []any{map[string]any{"id": "only-one"}},
 		"links": map[string]any{},
 	})
 
-	it := rest.NewPaginatedIterator(
-		client.HTTPClient(),
-		fabricAddressesPath,
-		nil,
-		"data",
-	)
+	it := client.Fabric.Addresses.Paginate(context.Background(), nil)
 
 	items, hasMore, err := it.Next()
 	if err != nil {
 		t.Fatalf("first Next: %v", err)
 	}
-	if len(items) != 1 {
-		t.Fatalf("first page items = %d, want 1", len(items))
-	}
-	if items[0]["id"] != "only-one" {
-		t.Errorf("first item id = %v", items[0]["id"])
+	if len(items) != 1 || items[0]["id"] != "only-one" {
+		t.Fatalf("first page = %v, want [only-one]", items)
 	}
 	// Terminal page: hasMore must be false.
 	if hasMore {
@@ -193,7 +79,7 @@ func TestPaginatedIterator_NextStopsWhenDone(t *testing.T) {
 
 // ---------- ForEach early exit on error ----------
 
-func TestPaginatedIterator_ForEachStopsOnError(t *testing.T) {
+func TestPaginator_ForEachStopsOnError(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
@@ -210,12 +96,7 @@ func TestPaginatedIterator_ForEachStopsOnError(t *testing.T) {
 		"links": map[string]any{},
 	})
 
-	it := rest.NewPaginatedIterator(
-		client.HTTPClient(),
-		fabricAddressesPath,
-		nil,
-		"data",
-	)
+	it := client.Fabric.Addresses.Paginate(context.Background(), nil)
 
 	stopErr := &stopError{msg: "stop here"}
 	visited := 0
