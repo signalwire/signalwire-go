@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 )
@@ -282,6 +283,42 @@ func TestSignalWireRestError_ImplementsError(t *testing.T) {
 	want := `POST /api/test returned 500: internal server error`
 	if got != want {
 		t.Errorf("Error() = %q, want %q", got, want)
+	}
+}
+
+// TestSignalWireRestError_URLIsFullWithQuery pins plan decision D1: error.URL is
+// the FULL request URL (scheme+host+path) WITH the query string, not the bare
+// path. A caller logging error.URL must be able to replay the exact request. This
+// drives a real GET (with a query param) against a mock returning 400 and asserts
+// the error's URL is absolute and preserves the query.
+func TestSignalWireRestError_URLIsFullWithQuery(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(400)
+		_, _ = w.Write([]byte(`{"error":"bad request"}`))
+	}))
+	defer srv.Close()
+
+	c := NewHTTPClient("proj", "tok", "mock.invalid")
+	c.SetBaseURL(srv.URL)
+
+	_, err := c.Get("/api/fabric/addresses", map[string]string{"page_size": "2"}, nil)
+	var restErr *SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+
+	parsed, perr := url.Parse(restErr.URL)
+	if perr != nil {
+		t.Fatalf("error.URL %q does not parse: %v", restErr.URL, perr)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		t.Errorf("error.URL must be absolute (scheme+host); got %q", restErr.URL)
+	}
+	if parsed.Path != "/api/fabric/addresses" {
+		t.Errorf("error.URL path = %q, want /api/fabric/addresses", parsed.Path)
+	}
+	if got := parsed.Query().Get("page_size"); got != "2" {
+		t.Errorf("error.URL must preserve the query (page_size=2); got query %q in %q", parsed.RawQuery, restErr.URL)
 	}
 }
 

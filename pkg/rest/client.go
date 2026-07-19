@@ -292,7 +292,7 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 		// AbortSignal or caller ctx) surfaces as the typed transport error with
 		// NO send, mirroring the Python reference's pre-attempt abort check.
 		if err := parent.Err(); err != nil {
-			return nil, NewSignalWireRestTransportError(err, "request cancelled by abort_signal", path, method)
+			return nil, NewSignalWireRestTransportError(err, "request cancelled by abort_signal", c.buildURL(path, params), method)
 		}
 
 		result, status, retryAfter, err := c.doAttempt(parent, method, path, body, params, opts.timeout)
@@ -319,12 +319,27 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 			}
 			if !c.sleepOrCancel(parent, delay) {
 				// Cancelled during backoff -> typed transport error.
-				return nil, NewSignalWireRestTransportError(parent.Err(), "request cancelled by abort_signal", path, method)
+				return nil, NewSignalWireRestTransportError(parent.Err(), "request cancelled by abort_signal", c.buildURL(path, params), method)
 			}
 			continue
 		}
 		return nil, err
 	}
+}
+
+// buildURL composes the FULL request URL (scheme+host+path+query) from the
+// client's base URL, the path, and the query params — the exact string sent on
+// the wire and stored in error.URL (plan D1) so a caller can replay the request.
+func (c *HTTPClient) buildURL(path string, params map[string]string) string {
+	reqURL := c.baseURL + path
+	if len(params) > 0 {
+		q := url.Values{}
+		for k, v := range params {
+			q.Set(k, v)
+		}
+		reqURL += "?" + q.Encode()
+	}
+	return reqURL
 }
 
 // sleepOrCancel sleeps for delay seconds, returning false if the context is
@@ -350,15 +365,7 @@ func (c *HTTPClient) sleepOrCancel(ctx context.Context, delaySeconds float64) bo
 // in seconds (-1 when absent) so the retry loop can honor it. timeoutSeconds
 // caps this single attempt via context.WithTimeout.
 func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body any, params map[string]string, timeoutSeconds float64) (map[string]any, int, float64, error) {
-	// Build URL
-	reqURL := c.baseURL + path
-	if len(params) > 0 {
-		q := url.Values{}
-		for k, v := range params {
-			q.Set(k, v)
-		}
-		reqURL += "?" + q.Encode()
-	}
+	reqURL := c.buildURL(path, params)
 
 	// Encode body
 	var bodyReader io.Reader
@@ -401,7 +408,9 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 		// *SignalWireRestError handles it too, instead of a bare net/url error
 		// leaking out. The underlying error is kept as the cause so errors.Is
 		// (e.g. context.Canceled / context.DeadlineExceeded) still sees through it.
-		return nil, 0, -1, NewSignalWireRestTransportError(err, "", path, method)
+		// url = the FULL request URL (scheme+host+path+query, plan D1), so a caller
+		// logging error.URL can replay the exact request.
+		return nil, 0, -1, NewSignalWireRestTransportError(err, "", reqURL, method)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -412,10 +421,12 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 
 	// Non-2xx error
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// URL = the FULL request URL (scheme+host+path+query, plan D1), not the
+		// bare path — a caller logging error.URL can replay the exact request.
 		return nil, resp.StatusCode, retryAfterSeconds(resp), &SignalWireRestError{
 			StatusCode: resp.StatusCode,
 			Body:       string(respBody),
-			URL:        path,
+			URL:        reqURL,
 			Method:     method,
 		}
 	}
