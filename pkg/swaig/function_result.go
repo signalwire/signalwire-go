@@ -97,13 +97,10 @@ func (fr *FunctionResult) ToMap() map[string]any {
 
 // --- Call Control Actions ---
 
-// ConnectOptions carries the parameters of FunctionResult.Connect as a single
-// named options value, replacing the former (destination, final, from) positional
-// signature so a call site reads `result.Connect(swaig.ConnectOptions{
-// Destination: n, Final: false, From: cid})` instead of the opaque
-// `result.Connect(n, false, cid)`. Fields map 1:1 to the Python connect
-// (destination, final, from_addr) params — the enumerator unfolds them back
-// (drift 0).
+// ConnectOptions carries the parameters of [FunctionResult.Connect] as a single
+// named options value, so a call site reads `result.Connect(swaig.ConnectOptions{
+// Destination: n, Final: false, From: cid})` instead of an opaque list of
+// positional arguments. From sets the caller ID (leave empty for the default).
 type ConnectOptions struct {
 	Destination string
 	Final       bool
@@ -173,13 +170,11 @@ func (fr *FunctionResult) Hold(timeout int) *FunctionResult {
 	return fr.AddAction("hold", timeout)
 }
 
-// WaitForUserOptions carries the parameters of FunctionResult.WaitForUser as a
-// single named options value, replacing the former (enabled, timeout, answerFirst)
-// mixed-pointer positional signature so a call site reads
-// `result.WaitForUser(swaig.WaitForUserOptions{Timeout: &t})` instead of
-// `result.WaitForUser(nil, &t, false)`. Fields map 1:1 to the Python
-// wait_for_user (enabled, timeout, answer_first) params; the enumerator unfolds
-// them back (drift 0).
+// WaitForUserOptions carries the parameters of [FunctionResult.WaitForUser] as a
+// single named options value, so a call site reads
+// `result.WaitForUser(swaig.WaitForUserOptions{Timeout: &t})` instead of a list
+// of positional pointers. Leave Enabled/Timeout nil to omit them; if AnswerFirst
+// is true the value is set to "answer_first" regardless of the other fields.
 type WaitForUserOptions struct {
 	Enabled     *bool
 	Timeout     *int

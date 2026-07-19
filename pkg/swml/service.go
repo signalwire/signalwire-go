@@ -668,14 +668,10 @@ func (s *Service) Hangup(reason *string) error {
 	return s.ExecuteVerb("hangup", cfg)
 }
 
-// PlayOptions carries the optional parameters of Service.Play as a single named
-// options value, replacing the former 7-positional-pointer signature (the
-// idiomatic Go options shape — a caller sets only the fields it needs and reads
-// as `svc.Play(swml.PlayOptions{URL: &u})` rather than `svc.Play(&u, nil, nil,
-// nil, nil, nil, nil)`). Every field maps 1:1 to a Python `play` keyword param
-// (url/urls/volume/say_voice/say_language/say_gender/auto_answer), so this is a
-// pure call-site reshape: the signature enumerator unfolds the struct back into
-// the flat keyword set the oracle records (drift 0).
+// PlayOptions carries the optional parameters of [Service.Play] as a single named
+// options value. Set only the fields you need — a caller reads
+// `svc.Play(swml.PlayOptions{URL: &u})` rather than passing a long list of
+// positional pointers. Provide exactly one of URL or URLs.
 type PlayOptions struct {
 	URL         *string
 	URLs        []string
@@ -792,12 +788,9 @@ func (s *Service) SIPRefer(config map[string]any) error {
 	return s.ExecuteVerb("sip_refer", filterNilValues(config))
 }
 
-// AIOptions carries the parameters of Service.AI as a single named options value,
-// replacing the former 6-positional signature. Every field maps 1:1 to a Python
-// `ai` param (prompt_text/prompt_pom/post_prompt/post_prompt_url/swaig) except
-// Extra, which folds to the reference's `**kwargs` tail — so this is a pure
-// call-site reshape and the enumerator unfolds it back to the flat keyword set
-// (drift 0).
+// AIOptions carries the parameters of [Service.AI] as a single named options
+// value. Set only the fields you need. Provide at most one of PromptText or
+// PromptPOM; Extra holds any additional AI parameters merged into the verb config.
 type AIOptions struct {
 	PromptText    *string
 	PromptPOM     []map[string]any

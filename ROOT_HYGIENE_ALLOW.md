@@ -26,3 +26,5 @@ load-bearing, not clutter.
 - ROUTE_COLLISION_ALLOW.md — required at root by porting-sdk route_collision.py (user-approved 2026-07-07)
 - WIRE_VIOLATIONS_ALLOW.md — STRICT-MOCKS signed-exception ledger read by porting-sdk assert_no_wire_violations.py / examples_run.py / snippet_run.py at repo root (mike@signalwire.com, 2026-07-18)
 - DUP_TREE_PAIRS.md — DUP-TREE gate manifest declaring rest/ vs pkg/rest/ doc pairs, read by porting-sdk dup_tree.py at repo root (plan 3.3, 2026-07-18)
+- WIRED_MODES.md — WIRED-MODES gate manifest declaring the load-bearing run-ci env/mode lines, read by porting-sdk check_wired_modes.py at repo root (plan 1.6/D7, 2026-07-19)
+- .doc_surface_floor — DOC-SURFACE godoc-coverage floor pin, read + ratcheted at repo root by porting-sdk doc_surface.py (plan 6.3, 2026-07-19)
