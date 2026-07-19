@@ -668,39 +668,61 @@ func (s *Service) Hangup(reason *string) error {
 	return s.ExecuteVerb("hangup", cfg)
 }
 
+// PlayOptions carries the optional parameters of Service.Play as a single named
+// options value, replacing the former 7-positional-pointer signature (the
+// idiomatic Go options shape — a caller sets only the fields it needs and reads
+// as `svc.Play(swml.PlayOptions{URL: &u})` rather than `svc.Play(&u, nil, nil,
+// nil, nil, nil, nil)`). Every field maps 1:1 to a Python `play` keyword param
+// (url/urls/volume/say_voice/say_language/say_gender/auto_answer), so this is a
+// pure call-site reshape: the signature enumerator unfolds the struct back into
+// the flat keyword set the oracle records (drift 0).
+type PlayOptions struct {
+	URL         *string
+	URLs        []string
+	Volume      *float64
+	SayVoice    *string
+	SayLanguage *string
+	SayGender   *string
+	AutoAnswer  *bool
+}
+
 // Play adds the play verb.
-// Exactly one of url or urls must be provided; providing both is an error.
-// volume sets the playback volume (-40 to 40, optional).
-// sayVoice, sayLanguage, sayGender configure text-to-speech (optional).
-// autoAnswer controls whether to auto-answer the call (optional).
+// Exactly one of URL or URLs must be provided; providing both is an error.
+// Volume sets the playback volume (-40 to 40, optional).
+// SayVoice, SayLanguage, SayGender configure text-to-speech (optional).
+// AutoAnswer controls whether to auto-answer the call (optional).
 // Mirrors Python SWMLBuilder.play(url, urls, volume, say_voice, say_language, say_gender, auto_answer).
-func (s *Service) Play(url *string, urls []string, volume *float64, sayVoice, sayLanguage, sayGender *string, autoAnswer *bool) error {
-	if url == nil && len(urls) == 0 {
-		return fmt.Errorf("Play: either url or urls must be provided")
+//
+// Pass a PlayOptions value:
+//
+//	svc.Play(swml.PlayOptions{URL: &u, Volume: &v})
+func (s *Service) Play(opts PlayOptions) error {
+	if opts.URL == nil && len(opts.URLs) == 0 {
+		return fmt.Errorf("Play: either URL or URLs must be provided")
 	}
-	if url != nil && len(urls) > 0 {
-		return fmt.Errorf("Play: url and urls are mutually exclusive")
+	if opts.URL != nil && len(opts.URLs) > 0 {
+		return fmt.Errorf("Play: URL and URLs are mutually exclusive")
 	}
 	cfg := map[string]any{}
-	if url != nil {
-		cfg["url"] = *url
+	if opts.URL != nil {
+		cfg["url"] = *opts.URL
 	} else {
-		cfg["urls"] = urls
+		cfg["urls"] = opts.URLs
 	}
-	if volume != nil {
-		cfg["volume"] = *volume
+	if opts.Volume != nil {
+		cfg["volume"] = *opts.Volume
 	}
-	if sayVoice != nil {
-		cfg["say_voice"] = *sayVoice
+	if opts.SayVoice != nil {
+		cfg["say_voice"] = *opts.SayVoice
 	}
-	if sayLanguage != nil {
-		cfg["say_language"] = *sayLanguage
+	if opts.SayLanguage != nil {
+		cfg["say_language"] = *opts.SayLanguage
 	}
-	if sayGender != nil {
-		cfg["say_gender"] = *sayGender
+	if opts.SayGender != nil {
+		cfg["say_gender"] = *opts.SayGender
 	}
-	if autoAnswer != nil {
-		cfg["auto_answer"] = *autoAnswer
+	if opts.AutoAnswer != nil {
+		cfg["auto_answer"] = *opts.AutoAnswer
 	}
 	return s.ExecuteVerb("play", cfg)
 }
@@ -711,7 +733,13 @@ func (s *Service) Play(url *string, urls []string, volume *float64, sayVoice, sa
 // Mirrors Python SWMLBuilder.say(text, voice, language, gender, volume).
 func (s *Service) Say(text string, voice, language, gender *string, volume *float64) error {
 	sayURL := "say:" + text
-	return s.Play(&sayURL, nil, volume, voice, language, gender, nil)
+	return s.Play(PlayOptions{
+		URL:         &sayURL,
+		Volume:      volume,
+		SayVoice:    voice,
+		SayLanguage: language,
+		SayGender:   gender,
+	})
 }
 
 // Record adds the record verb.
@@ -764,37 +792,56 @@ func (s *Service) SIPRefer(config map[string]any) error {
 	return s.ExecuteVerb("sip_refer", filterNilValues(config))
 }
 
+// AIOptions carries the parameters of Service.AI as a single named options value,
+// replacing the former 6-positional signature. Every field maps 1:1 to a Python
+// `ai` param (prompt_text/prompt_pom/post_prompt/post_prompt_url/swaig) except
+// Extra, which folds to the reference's `**kwargs` tail — so this is a pure
+// call-site reshape and the enumerator unfolds it back to the flat keyword set
+// (drift 0).
+type AIOptions struct {
+	PromptText    *string
+	PromptPOM     []map[string]any
+	PostPrompt    *string
+	PostPromptURL *string
+	Swaig         map[string]any
+	Extra         map[string]any
+}
+
 // AI adds the ai verb. AgentBase overrides this with its own AI rendering.
-// promptText and promptPOM are mutually exclusive; providing both is an error.
-// promptText sets a plain-text prompt; promptPOM sets a structured POM prompt.
-// postPrompt and postPromptURL configure post-prompt behavior (optional).
-// swaig supplies SWAIG configuration (optional).
-// extra is a map of additional AI parameters merged into the verb config (optional).
+// PromptText and PromptPOM are mutually exclusive; providing both is an error.
+// PromptText sets a plain-text prompt; PromptPOM sets a structured POM prompt.
+// PostPrompt and PostPromptURL configure post-prompt behavior (optional).
+// Swaig supplies SWAIG configuration (optional).
+// Extra is a map of additional AI parameters merged into the verb config (optional).
 // Mirrors Python SWMLBuilder.ai(prompt_text, prompt_pom, post_prompt, post_prompt_url, swaig, **kwargs).
-func (s *Service) AI(promptText *string, promptPOM []map[string]any, postPrompt, postPromptURL *string, swaig map[string]any, extra map[string]any) error {
-	if promptText != nil && len(promptPOM) > 0 {
-		return fmt.Errorf("AI: promptText and promptPOM are mutually exclusive")
+//
+// Pass an AIOptions value:
+//
+//	svc.AI(swml.AIOptions{PromptText: &p, PostPromptURL: &u})
+func (s *Service) AI(opts AIOptions) error {
+	if opts.PromptText != nil && len(opts.PromptPOM) > 0 {
+		return fmt.Errorf("AI: PromptText and PromptPOM are mutually exclusive")
 	}
 	cfg := map[string]any{}
 	// AIVerbHandler expects the wrapped form {"prompt": {"text": ...}} or
 	// {"prompt": {"pom": ...}}, matching Python SWMLBuilder.ai. Prior Go
 	// code emitted a bare string/slice under "prompt" which passed when no
 	// handler validated the ai verb, but fails the handler added in PR #86.
-	if promptText != nil {
-		cfg["prompt"] = map[string]any{"text": *promptText}
-	} else if len(promptPOM) > 0 {
-		cfg["prompt"] = map[string]any{"pom": promptPOM}
+	if opts.PromptText != nil {
+		cfg["prompt"] = map[string]any{"text": *opts.PromptText}
+	} else if len(opts.PromptPOM) > 0 {
+		cfg["prompt"] = map[string]any{"pom": opts.PromptPOM}
 	}
-	if postPrompt != nil {
-		cfg["post_prompt"] = *postPrompt
+	if opts.PostPrompt != nil {
+		cfg["post_prompt"] = *opts.PostPrompt
 	}
-	if postPromptURL != nil {
-		cfg["post_prompt_url"] = *postPromptURL
+	if opts.PostPromptURL != nil {
+		cfg["post_prompt_url"] = *opts.PostPromptURL
 	}
-	if swaig != nil {
-		cfg["SWAIG"] = swaig
+	if opts.Swaig != nil {
+		cfg["SWAIG"] = opts.Swaig
 	}
-	for k, v := range extra {
+	for k, v := range opts.Extra {
 		cfg[k] = v
 	}
 	return s.ExecuteVerb("ai", cfg)

@@ -97,11 +97,25 @@ func (fr *FunctionResult) ToMap() map[string]any {
 
 // --- Call Control Actions ---
 
+// ConnectOptions carries the parameters of FunctionResult.Connect as a single
+// named options value, replacing the former (destination, final, from) positional
+// signature so a call site reads `result.Connect(swaig.ConnectOptions{
+// Destination: n, Final: false, From: cid})` instead of the opaque
+// `result.Connect(n, false, cid)`. Fields map 1:1 to the Python connect
+// (destination, final, from_addr) params — the enumerator unfolds them back
+// (drift 0).
+type ConnectOptions struct {
+	Destination string
+	Final       bool
+	From        string
+}
+
 // Connect adds a connect action to transfer/connect the call to another destination.
-// If final is true, the call permanently transfers (exits the agent).
-// If final is false, the call returns to the agent when the far end hangs up.
-// The from parameter sets the caller ID; pass empty string to use the call's default.
-func (fr *FunctionResult) Connect(destination string, final bool, from string) *FunctionResult {
+// If Final is true, the call permanently transfers (exits the agent).
+// If Final is false, the call returns to the agent when the far end hangs up.
+// From sets the caller ID; leave empty to use the call's default.
+func (fr *FunctionResult) Connect(opts ConnectOptions) *FunctionResult {
+	destination, final, from := opts.Destination, opts.Final, opts.From
 	connectParams := map[string]any{"to": destination}
 	if from != "" {
 		connectParams["from"] = from
@@ -159,18 +173,31 @@ func (fr *FunctionResult) Hold(timeout int) *FunctionResult {
 	return fr.AddAction("hold", timeout)
 }
 
+// WaitForUserOptions carries the parameters of FunctionResult.WaitForUser as a
+// single named options value, replacing the former (enabled, timeout, answerFirst)
+// mixed-pointer positional signature so a call site reads
+// `result.WaitForUser(swaig.WaitForUserOptions{Timeout: &t})` instead of
+// `result.WaitForUser(nil, &t, false)`. Fields map 1:1 to the Python
+// wait_for_user (enabled, timeout, answer_first) params; the enumerator unfolds
+// them back (drift 0).
+type WaitForUserOptions struct {
+	Enabled     *bool
+	Timeout     *int
+	AnswerFirst bool
+}
+
 // WaitForUser controls how the agent waits for user input.
-// Pass nil for enabled/timeout to omit those fields. If answerFirst is true,
-// the value is set to "answer_first" regardless of other parameters.
-func (fr *FunctionResult) WaitForUser(enabled *bool, timeout *int, answerFirst bool) *FunctionResult {
-	if answerFirst {
+// Leave Enabled/Timeout nil to omit those fields. If AnswerFirst is true, the
+// value is set to "answer_first" regardless of the other fields.
+func (fr *FunctionResult) WaitForUser(opts WaitForUserOptions) *FunctionResult {
+	if opts.AnswerFirst {
 		return fr.AddAction("wait_for_user", "answer_first")
 	}
-	if timeout != nil {
-		return fr.AddAction("wait_for_user", *timeout)
+	if opts.Timeout != nil {
+		return fr.AddAction("wait_for_user", *opts.Timeout)
 	}
-	if enabled != nil {
-		return fr.AddAction("wait_for_user", *enabled)
+	if opts.Enabled != nil {
+		return fr.AddAction("wait_for_user", *opts.Enabled)
 	}
 	return fr.AddAction("wait_for_user", true)
 }

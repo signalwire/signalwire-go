@@ -116,6 +116,37 @@ var optionalRequestOptionsTailMethods = map[string]bool{
 	"signalwire.rest.client.RestClient.__init__": true,
 }
 
+// optionsStructUnfoldMethods maps a fully-qualified Python reference method whose
+// Go spelling takes a single named options STRUCT (`opts <Struct>`) to the SHORT
+// name of that struct. The idiom-convergence pass (plan 6.2-go) collapsed the
+// flat 7-positional-pointer SWML Service.Play / 6-positional Service.AI signatures
+// into named options structs (swml.PlayOptions / swml.AIOptions) so a caller reads
+// `svc.Play(swml.PlayOptions{URL: &u})` instead of `svc.Play(&u, nil, nil, nil,
+// nil, nil, nil)`. That is a pure call-site reshape: the enumerator UNFOLDS the
+// struct's fields back into the flat keyword param set the Python oracle records,
+// so port_signatures.json stays byte-identical (drift 0). The struct fields must
+// be in field order and 1:1 with the reference keyword params (an `Extra`/`Extras`
+// field folds to the reference's `**kwargs` var_keyword tail, matching the old
+// flat `extra map[string]any`). Recorded from the swml package like the REST
+// params structs, then unfolded in toCanonicalSignature.
+var optionsStructUnfoldMethods = map[string]string{
+	"signalwire.core.swml_builder.SWMLBuilder.play":                "PlayOptions",
+	"signalwire.core.swml_builder.SWMLBuilder.ai":                  "AIOptions",
+	"signalwire.core.function_result.FunctionResult.connect":       "ConnectOptions",
+	"signalwire.core.function_result.FunctionResult.wait_for_user": "WaitForUserOptions",
+}
+
+// handOptionsStructs is the allowlist of SHORT struct names (in hand-written,
+// non-generated files) whose fields the enumerator records into
+// paramsStructFields so optionsStructUnfoldMethods can unfold them. Keeping it an
+// explicit allowlist avoids capturing every exported struct's fields.
+var handOptionsStructs = map[string]bool{
+	"PlayOptions":        true,
+	"AIOptions":          true,
+	"ConnectOptions":     true,
+	"WaitForUserOptions": true,
+}
+
 // paramsStructField is one field of a generated-REST params struct (§5/§4a).
 type paramsStructField struct {
 	name    string // exported Go field name (e.g. "QueryString", "Extras")
@@ -414,6 +445,20 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				// flat keyword set the oracle records (drift-neutral). Scoped to
 				// `*Params` structs in the generated resource files.
 				if isRestResource && strings.HasSuffix(ts.Name.Name, "Params") && st.Fields != nil {
+					var fields []paramsStructField
+					for _, f := range st.Fields.List {
+						typeStr := exprString(f.Type)
+						for _, n := range f.Names {
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr})
+						}
+					}
+					paramsStructFields[ts.Name.Name] = fields
+				}
+				// Hand-written SWML options structs (PlayOptions/AIOptions): record
+				// their fields too, so optionsStructUnfoldMethods can unfold a
+				// `opts <Struct>` method param back to the flat oracle keyword set
+				// (plan 6.2-go idiom convergence, drift-neutral).
+				if handOptionsStructs[ts.Name.Name] && st.Fields != nil {
 					var fields []paramsStructField
 					for _, f := range st.Fields.List {
 						typeStr := exprString(f.Type)
@@ -1130,6 +1175,10 @@ func isPrimitive(t string) bool {
 
 func goFieldToPython(s string) string {
 	switch s {
+	case "URLs":
+		// Initialism-plural: goNameToSnake yields "ur_ls" (it inserts _ at the
+		// R→L uppercase-run boundary). The Python-canonical name is "urls".
+		return "urls"
 	case "MFA":
 		return "mfa"
 	case "PubSub":
@@ -1165,6 +1214,39 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 		params = append(params, canonicalParam{Name: "self", Kind: "self"})
 	}
 	for pi, p := range sig.params {
+		// Idiom-convergence (plan 6.2-go): a SWML Service method spelled as a single
+		// named options struct (`opts PlayOptions` / `opts AIOptions`) UNFOLDS back to
+		// the flat keyword param set the Python oracle records. Each field → the same
+		// param the old flat-positional signature produced (translateType of the field
+		// type, required:true — Go has no defaults), so port_signatures.json is
+		// byte-identical to the pre-reshape form (drift 0). A trailing `Extra` map
+		// field folds to the reference's `**kwargs` var_keyword tail (the old
+		// `extra map[string]any` last-param behavior), gated on the method being in
+		// kwargsTailMethods just like the flat form was.
+		if structName, ok := optionsStructUnfoldMethods[ctx]; ok && p.typeStr == structName {
+			if fields, ok := paramsStructFields[structName]; ok {
+				for fi, f := range fields {
+					isLast := fi == len(fields)-1
+					if isLast && (f.name == "Extra" || f.name == "Extras") &&
+						strings.HasPrefix(f.typeStr, "map[string]") && kwargsTailMethods[ctx] {
+						params = append(params, canonicalParam{
+							Name: "kwargs", Kind: "var_keyword", Type: "any",
+							Required: boolPtr(false), Default: json.RawMessage("{}"),
+						})
+						continue
+					}
+					fCanon, fail := translateType(f.typeStr, aliases, ctx+"["+f.name+"]")
+					if fail != nil {
+						failures = append(failures, *fail)
+						continue
+					}
+					params = append(params, canonicalParam{
+						Name: goFieldToPython(f.name), Type: fCanon, Required: boolPtr(true),
+					})
+				}
+				continue
+			}
+		}
 		// A reconciliation-table method's FINAL bag param is the Python
 		// reference's `**kwargs`/`**params` var_keyword tail (stripped from the
 		// oracle by porting-sdk #58). Emit it as var_keyword required:false so the

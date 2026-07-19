@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 98a2fe0560faaea7fef5f3b85246a04c6cc89231",
+  "generated_from": "signalwire-go (go-native) @ c2b8bd9be1a4e3431cd81bd93af9ed17a1dd7f56",
   "modules": {
     "agent": {
       "classes": {
@@ -1689,6 +1689,7 @@
     },
     "swml": {
       "classes": {
+        "AIOptions": [],
         "AIVerbHandler": [
           "BuildConfig",
           "GetVerbName",
@@ -1706,6 +1707,7 @@
           "Reset",
           "ToMap"
         ],
+        "PlayOptions": [],
         "Schema": [
           "GetAllVerbNames",
           "GetVerb",

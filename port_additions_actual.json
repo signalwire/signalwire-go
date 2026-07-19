@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 98a2fe0560faaea7fef5f3b85246a04c6cc89231",
+  "generated_from": "signalwire-go @ c2b8bd9be1a4e3431cd81bd93af9ed17a1dd7f56",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
@@ -62,7 +62,9 @@
     "swaig.PayOptions",
     "swaig.Prop",
     "swaig.RecordCallOptions",
+    "swml.AIOptions",
     "swml.Document",
+    "swml.PlayOptions",
     "swml.Schema",
     "swml.SecurityConfig",
     "swml.ToolDefinition",

@@ -26,7 +26,7 @@ func main() {
 	svc.Answer(&maxDuration, nil)
 
 	welcome := "say:Welcome to our service. Press 1 for sales, 2 for support, or 3 to leave a message."
-	svc.Play(&welcome, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &welcome})
 
 	svc.Prompt(map[string]any{
 		"play":        "say:Please make your selection now.",

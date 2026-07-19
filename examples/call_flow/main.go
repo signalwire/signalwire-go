@@ -84,7 +84,7 @@ func main() {
 			result := swaig.NewFunctionResult(
 				fmt.Sprintf("Transferring you to %s now. Please hold.", department),
 			)
-			result.Connect(number, false, "+15559990000")
+			result.Connect(swaig.ConnectOptions{Destination: number, Final: false, From: "+15559990000"})
 			return result
 		},
 	})

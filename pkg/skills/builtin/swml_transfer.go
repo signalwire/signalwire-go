@@ -191,7 +191,7 @@ func (s *SWMLTransferSkill) handleTransfer(args map[string]any, _ map[string]any
 			isFinal = f
 		}
 		fromAddr, _ := config["from_addr"].(string)
-		result.Connect(addr, isFinal, fromAddr)
+		result.Connect(swaig.ConnectOptions{Destination: addr, Final: isFinal, From: fromAddr})
 	}
 
 	return result
