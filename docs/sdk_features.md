@@ -355,24 +355,38 @@ The SDK's contexts/steps/function restrictions are the primitives that make PGI 
 
 ---
 
-## Deployment: One `Run()` Call
+## Deployment
+
+For a long-lived server, one `Run()` call starts the HTTP listener:
 
 ```go
-a = agent.NewAgentBase(agent.WithName("my-agent"), agent.WithRoute("/agent"))
+a := agent.NewAgentBase(agent.WithName("my-agent"), agent.WithRoute("/agent"))
 a.Run()
 ```
 
-That single call auto-detects the environment and does the right thing:
+`Run()` first calls `DetectRunMode()`, which reads the process environment to
+report the deployment mode (the same precedence every SDK port observes:
+`GATEWAY_INTERFACE` → CGI; `AWS_LAMBDA_FUNCTION_NAME`/`LAMBDA_TASK_ROOT` → Lambda;
+`FUNCTION_TARGET`/`K_SERVICE`/`GOOGLE_CLOUD_PROJECT` → Google Cloud;
+`AZURE_FUNCTIONS_ENVIRONMENT`/`FUNCTIONS_WORKER_RUNTIME` → Azure; otherwise
+server). It then dispatches:
 
-| Environment | Detection | What Happens |
-|-------------|-----------|--------------|
-| **Standalone** | Default | Starts uvicorn HTTP server with FastAPI |
-| **AWS Lambda** | Lambda context object | Returns Lambda-formatted response |
-| **Google Cloud Functions** | GCF environment markers | Returns Flask-compatible response |
-| **Azure Functions** | Azure context object | Returns Azure HttpResponse |
-| **CGI** | CGI environment variables | Reads stdin, writes stdout |
+| Mode | Detection | What `Run()` does |
+|------|-----------|-------------------|
+| **Server** (default) | No serverless env vars | Serves HTTP via the standard-library `net/http` server (blocking) |
+| **CGI** | `GATEWAY_INTERFACE` set | Serves one request off stdin/stdout via `serverless.NewHandler(a.AsRouter()).ServeCGI` |
+| **AWS Lambda** | `AWS_LAMBDA_FUNCTION_NAME`/`LAMBDA_TASK_ROOT` | Returns `ErrServerlessUnsupported` — the Lambda runtime owns the event loop; wire `pkg/lambda`'s `NewHandler(a.AsRouter())` from `main()` |
+| **Google Cloud Functions** | `FUNCTION_TARGET`/`K_SERVICE`/`GOOGLE_CLOUD_PROJECT` | Returns `ErrServerlessUnsupported` — wire `pkg/serverless`'s `NewHandler(a.AsRouter()).ServeHTTP` from `main()` |
+| **Azure Functions** | `AZURE_FUNCTIONS_ENVIRONMENT`/`FUNCTIONS_WORKER_RUNTIME` | Returns `ErrServerlessUnsupported` — wire the same `pkg/serverless` adapter from the Azure worker |
 
-Each mode handles authentication differently (HTTP Basic Auth, API Gateway authorizers, function-level auth), constructs webhook URLs using the correct public endpoint (Lambda function URL, GCF URL, Azure app URL), and formats request/response bodies per platform. You write one agent, deploy it anywhere.
+Unlike interpreted ports where `Run()` can host every mode inline, a Go
+serverless function is driven by the platform runtime's own `main()`-level event
+loop (`lambda.Start`, the functions-framework HTTP entry, the Azure worker), so
+`Run()` returns a descriptive `ErrServerlessUnsupported` for those modes rather
+than binding a dead listener. The adapter — `agent.AsRouter()` wrapped by
+`pkg/lambda` or `pkg/serverless` — is what you register from `main()`; it maps
+the platform request/response shapes onto the agent's `http.Handler`. `AsRouter()`
+is mode-independent, so one agent definition serves every target.
 
 For standalone mode, the SDK provides:
 - Kubernetes health (`/health`) and readiness (`/ready`) probes

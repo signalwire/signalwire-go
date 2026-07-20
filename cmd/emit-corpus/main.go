@@ -68,10 +68,14 @@ var corpus = []entry{
 	}},
 
 	// ---- connect ------------------------------------------------------------
-	{"connect.final_true", func() *swaig.FunctionResult { return fr("").Connect("+15551234567", true, "") }},
-	{"connect.final_false", func() *swaig.FunctionResult { return fr("").Connect("+15551234567", false, "") }},
+	{"connect.final_true", func() *swaig.FunctionResult {
+		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})
+	}},
+	{"connect.final_false", func() *swaig.FunctionResult {
+		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: false})
+	}},
 	{"connect.from_addr", func() *swaig.FunctionResult {
-		return fr("").Connect("support@example.com", false, "+15559876543")
+		return fr("").Connect(swaig.ConnectOptions{Destination: "support@example.com", Final: false, From: "+15559876543"})
 	}},
 
 	// ---- swml_transfer ------------------------------------------------------
@@ -92,11 +96,15 @@ var corpus = []entry{
 	{"say", func() *swaig.FunctionResult { return fr("").Say("Please hold while I connect you.") }},
 
 	// ---- wait_for_user (each branch) ---------------------------------------
-	{"wait_for_user.default", func() *swaig.FunctionResult { return fr("").WaitForUser(nil, nil, false) }},
-	{"wait_for_user.answer_first", func() *swaig.FunctionResult { return fr("").WaitForUser(nil, nil, true) }},
-	{"wait_for_user.timeout", func() *swaig.FunctionResult { return fr("").WaitForUser(nil, ptrInt(30), false) }},
-	{"wait_for_user.enabled_true", func() *swaig.FunctionResult { return fr("").WaitForUser(ptrBool(true), nil, false) }},
-	{"wait_for_user.enabled_false", func() *swaig.FunctionResult { return fr("").WaitForUser(ptrBool(false), nil, false) }},
+	{"wait_for_user.default", func() *swaig.FunctionResult { return fr("").WaitForUser(swaig.WaitForUserOptions{}) }},
+	{"wait_for_user.answer_first", func() *swaig.FunctionResult { return fr("").WaitForUser(swaig.WaitForUserOptions{AnswerFirst: true}) }},
+	{"wait_for_user.timeout", func() *swaig.FunctionResult { return fr("").WaitForUser(swaig.WaitForUserOptions{Timeout: ptrInt(30)}) }},
+	{"wait_for_user.enabled_true", func() *swaig.FunctionResult {
+		return fr("").WaitForUser(swaig.WaitForUserOptions{Enabled: ptrBool(true)})
+	}},
+	{"wait_for_user.enabled_false", func() *swaig.FunctionResult {
+		return fr("").WaitForUser(swaig.WaitForUserOptions{Enabled: ptrBool(false)})
+	}},
 
 	// ---- global data / metadata --------------------------------------------
 	{"set_global_data", func() *swaig.FunctionResult {

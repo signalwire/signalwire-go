@@ -1,0 +1,131 @@
+name: Multi-OS (nightly)
+
+# Plan 6.4 — multi-OS CI lane. ubuntu-only CI cannot certify a cross-platform SDK;
+# this NIGHTLY job runs the two OS-sensitive suites — TEST (`go test ./...`) and
+# PACKAGE-SMOKE (`package_smoke.py`, i.e. `go build ./...` + the module-path/version
+# check) — on macOS AND Windows. The full run-ci.sh gate set stays Linux-only (its
+# mock servers are POSIX and the audit scripts assume bash + signalwire-python
+# adjacency), so this lane invokes only the two portable pieces directly.
+#
+# Skip-if-unchanged: a GREEN run saves a cache key fingerprinting the (port,
+# porting-sdk) HEAD SHA pair; the next run probes it (restore, lookup-only) and skips
+# when the exact pair already passed. workflow_dispatch(force) overrides.
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  schedule:
+    - cron: '31 7 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Run even if nothing changed since the last successful run'
+        type: boolean
+        default: false
+
+concurrency:
+  group: multi-os-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      cache_key: ${{ steps.fp.outputs.cache_key }}
+    steps:
+      - name: Checkout signalwire-go
+        uses: actions/checkout@v7
+        with:
+          path: signalwire-go
+      - name: Checkout porting-sdk
+        uses: actions/checkout@v7
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
+      - name: Fingerprint input HEAD SHAs (port + porting-sdk)
+        id: fp
+        run: |
+          go_sha=$(git -C signalwire-go rev-parse HEAD)
+          psdk_sha=$(git -C porting-sdk rev-parse HEAD)
+          echo "cache_key=multi-os-ok-${go_sha}-${psdk_sha}" >> "$GITHUB_OUTPUT"
+      - name: Probe last-green cache (lookup-only)
+        id: probe
+        uses: actions/cache/restore@v4
+        with:
+          path: .multi-os-ok
+          key: ${{ steps.fp.outputs.cache_key }}
+          lookup-only: true
+      - name: Decide whether to run
+        id: check
+        run: |
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.probe.outputs.cache-hit }}" = "true" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Inputs unchanged since last green multi-OS run — skipping."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  multi-os:
+    needs: guard
+    if: needs.guard.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout signalwire-go
+        uses: actions/checkout@v7
+        with:
+          path: signalwire-go
+      - name: Checkout porting-sdk (package_smoke.py)
+        uses: actions/checkout@v7
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: signalwire-go/go.mod
+          cache: true
+          cache-dependency-path: signalwire-go/go.sum
+      - name: Set up Python (package_smoke.py)
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      # TEST (OS-sensitive suite #1): the module's tests on this OS. A
+      # platform-specific construct without a build constraint breaks silently
+      # otherwise (the Linux matrix never exercises GOOS=darwin/windows).
+      - name: go test ./...
+        working-directory: signalwire-go
+        run: go test ./...
+
+      # PACKAGE-SMOKE (OS-sensitive suite #2): go's package smoke is `go build ./...`
+      # + the module-path/version check, run cross-OS to catch an OS-gated build tag.
+      - name: PACKAGE-SMOKE (package_smoke.py)
+        working-directory: signalwire-go
+        run: python ../porting-sdk/scripts/package_smoke.py --port go --repo .
+
+  save:
+    needs: [guard, multi-os]
+    if: needs.guard.outputs.changed == 'true' && needs.multi-os.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark this input pair green (save cache key)
+        run: |
+          mkdir -p .cache && date > .multi-os-ok
+      - name: Save last-green cache
+        uses: actions/cache/save@v4
+        with:
+          path: .multi-os-ok
+          key: ${{ needs.guard.outputs.cache_key }}

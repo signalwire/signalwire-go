@@ -24,7 +24,7 @@ func main() {
 	// Build the default (main) SWML document
 	svc.Answer(nil, nil)
 	greeting := "say:Hello from the main service!"
-	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &greeting})
 	svc.Hangup(nil)
 
 	// Register a routing callback at /dispatch: inspect the body and redirect

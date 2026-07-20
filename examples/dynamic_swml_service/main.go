@@ -26,7 +26,7 @@ func main() {
 	// Build a default SWML document
 	svc.Answer(nil, nil)
 	greeting := "say:Hello, thank you for calling our service."
-	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &greeting})
 	svc.Prompt(map[string]any{
 		"play":        "say:Press 1 for sales, 2 for support, or 3 to leave a message.",
 		"max_digits":  1,

@@ -225,7 +225,7 @@ func TestAddActions(t *testing.T) {
 
 func TestConnect(t *testing.T) {
 	fr := NewFunctionResult("Transferring").
-		Connect("+15551234567", true, "+15559876543")
+		Connect(ConnectOptions{Destination: "+15551234567", Final: true, From: "+15559876543"})
 
 	m := fr.ToMap()
 	actions, ok := m["action"].([]map[string]any)
@@ -272,7 +272,7 @@ func TestConnect(t *testing.T) {
 
 func TestConnectNoFrom(t *testing.T) {
 	fr := NewFunctionResult("Transferring").
-		Connect("+15551234567", false, "")
+		Connect(ConnectOptions{Destination: "+15551234567", Final: false})
 
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	action := actions[0]
@@ -359,7 +359,7 @@ func TestHoldClampMax(t *testing.T) {
 }
 
 func TestWaitForUserAnswerFirst(t *testing.T) {
-	fr := NewFunctionResult("wait").WaitForUser(nil, nil, true)
+	fr := NewFunctionResult("wait").WaitForUser(WaitForUserOptions{AnswerFirst: true})
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	if actions[0]["wait_for_user"] != "answer_first" {
 		t.Errorf("wait_for_user = %v, want %q", actions[0]["wait_for_user"], "answer_first")
@@ -368,7 +368,7 @@ func TestWaitForUserAnswerFirst(t *testing.T) {
 
 func TestWaitForUserTimeout(t *testing.T) {
 	timeout := 30
-	fr := NewFunctionResult("wait").WaitForUser(nil, &timeout, false)
+	fr := NewFunctionResult("wait").WaitForUser(WaitForUserOptions{Timeout: &timeout})
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	if actions[0]["wait_for_user"] != 30 {
 		t.Errorf("wait_for_user = %v, want 30", actions[0]["wait_for_user"])
@@ -377,7 +377,7 @@ func TestWaitForUserTimeout(t *testing.T) {
 
 func TestWaitForUserEnabled(t *testing.T) {
 	enabled := false
-	fr := NewFunctionResult("wait").WaitForUser(&enabled, nil, false)
+	fr := NewFunctionResult("wait").WaitForUser(WaitForUserOptions{Enabled: &enabled})
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	if actions[0]["wait_for_user"] != false {
 		t.Errorf("wait_for_user = %v, want false", actions[0]["wait_for_user"])
@@ -385,7 +385,7 @@ func TestWaitForUserEnabled(t *testing.T) {
 }
 
 func TestWaitForUserDefault(t *testing.T) {
-	fr := NewFunctionResult("wait").WaitForUser(nil, nil, false)
+	fr := NewFunctionResult("wait").WaitForUser(WaitForUserOptions{})
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	if actions[0]["wait_for_user"] != true {
 		t.Errorf("wait_for_user = %v, want true", actions[0]["wait_for_user"])

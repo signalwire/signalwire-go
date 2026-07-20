@@ -237,7 +237,7 @@ func (ra *ReceptionistAgent) registerTools() {
 			if dept.TransferSWML {
 				result.SwmlTransfer(dept.Number, "Transferring you now.", true)
 			} else {
-				result.Connect(dept.Number, true, "")
+				result.Connect(swaig.ConnectOptions{Destination: dept.Number, Final: true})
 			}
 
 			return result

@@ -50,7 +50,7 @@ func TestServiceVerbMethods(t *testing.T) {
 
 	// Test Play verb with typed params
 	playURL := "https://example.com/audio.mp3"
-	err = svc.Play(&playURL, nil, nil, nil, nil, nil, nil)
+	err = svc.Play(PlayOptions{URL: &playURL})
 	if err != nil {
 		t.Fatalf("Play failed: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestServiceAllVerbMethods(t *testing.T) {
 	}{
 		{"Answer", func() error { return svc.Answer(nil, nil) }},
 		{"Hangup", func() error { return svc.Hangup(nil) }},
-		{"Play", func() error { u := "say:hello"; return svc.Play(&u, nil, nil, nil, nil, nil, nil) }},
+		{"Play", func() error { u := "say:hello"; return svc.Play(PlayOptions{URL: &u}) }},
 		{"Record", func() error { return svc.Record(map[string]any{}) }},
 		{"RecordCall", func() error { return svc.RecordCall(map[string]any{}) }},
 		{"StopRecordCall", func() error { return svc.StopRecordCall(map[string]any{}) }},
@@ -93,7 +93,7 @@ func TestServiceAllVerbMethods(t *testing.T) {
 			// After the verb-handler registry (PR #86) landed, AIVerbHandler
 			// rejects a blank prompt. Provide the minimum valid shape.
 			pt := "hello"
-			return svc.AI(&pt, nil, nil, nil, nil, nil)
+			return svc.AI(AIOptions{PromptText: &pt})
 		}},
 		{"AmazonBedrock", func() error { return svc.AmazonBedrock(map[string]any{}) }},
 		{"Cond", func() error { return svc.Cond(map[string]any{}) }},
@@ -145,7 +145,7 @@ func TestServiceRender(t *testing.T) {
 		t.Fatalf("Answer: %v", err)
 	}
 	playURL2 := "https://example.com/audio.mp3"
-	if err := svc.Play(&playURL2, nil, nil, nil, nil, nil, nil); err != nil {
+	if err := svc.Play(PlayOptions{URL: &playURL2}); err != nil {
 		t.Fatalf("Play: %v", err)
 	}
 	if err := svc.Hangup(nil); err != nil {

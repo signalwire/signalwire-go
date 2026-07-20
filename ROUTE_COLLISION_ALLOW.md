@@ -3,6 +3,15 @@
 Each entry is a proven, spec-documented exception, not a way to silence the gate.
 Key format: `<Class>.<canonical_op>` (matching the gate's finding key).
 
+> PENDING RETIREMENT (plan a-bar 2026-07-19): porting-sdk's `route_collision.py` is
+> being made SPEC-AWARE on the plan branch — it will recognize the fabric
+> `call_flow`/`conference_room` SINGULAR address sub-paths as spec-faithful directly
+> from `rest-apis/fabric/openapi.yaml`, making both entries below obsolete. They are
+> KEPT here only because this repo's CI pins porting-sdk `main`, whose route_collision
+> still needs them; retiring them now would red the OLD check. Retire both the moment
+> the spec-aware route_collision.py is on porting-sdk main (verified route-split=0
+> without them — done against the plan branch).
+
 ## Entries
 
 - `CallFlows.list_addresses` — The SignalWire fabric API serves Call Flow addresses

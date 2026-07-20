@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 98a2fe0560faaea7fef5f3b85246a04c6cc89231",
+  "generated_from": "signalwire-go (go-native) @ ed97c037fb79a6100000f94da2a993954e7d4936",
   "modules": {
     "agent": {
       "classes": {
@@ -1405,12 +1405,6 @@
           "PutContext",
           "SetBaseURL"
         ],
-        "PaginatedIterator": [
-          "ForEach",
-          "ForEachContext",
-          "Next",
-          "NextContext"
-        ],
         "RequestOptions": [
           "Merge"
         ],
@@ -1425,7 +1419,6 @@
       },
       "functions": [
         "NewHTTPClient",
-        "NewPaginatedIterator",
         "NewRestClient",
         "NewSignalWireRestError",
         "NewSignalWireRestTransportError",
@@ -1588,6 +1581,7 @@
     },
     "swaig": {
       "classes": {
+        "ConnectOptions": [],
         "FunctionResult": [
           "Actions",
           "AddAction",
@@ -1660,7 +1654,8 @@
         ],
         "PayOptions": [],
         "Prop": [],
-        "RecordCallOptions": []
+        "RecordCallOptions": [],
+        "WaitForUserOptions": []
       },
       "functions": [
         "CodecValues",
@@ -1689,6 +1684,7 @@
     },
     "swml": {
       "classes": {
+        "AIOptions": [],
         "AIVerbHandler": [
           "BuildConfig",
           "GetVerbName",
@@ -1706,6 +1702,7 @@
           "Reset",
           "ToMap"
         ],
+        "PlayOptions": [],
         "Schema": [
           "GetAllVerbNames",
           "GetVerb",

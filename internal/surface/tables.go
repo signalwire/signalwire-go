@@ -840,11 +840,18 @@ var StructTable = map[string][]ClassTarget{
 			"ListAddresses": "list_addresses",
 		},
 	}},
-	"rest.PaginatedIterator": {{
+	// namespaces.Paginator is the LIVE paginator — the value every resource's
+	// Paginate() accessor returns. It represents Python's _pagination.
+	// PaginatedIterator class surface (__init__/__next__/__iter__). The former
+	// orphan rest.PaginatedIterator, which mapped here but no accessor returned,
+	// was retired in plan 6.2-go; its adapter mapping moved to the live type so
+	// the Python class stays represented (rename, not omission — DRIFT/SURFACE
+	// stay 0).
+	"namespaces.Paginator": {{
 		Module: "signalwire.rest._pagination", Class: "PaginatedIterator",
 		Methods: map[string]string{
-			"NewPaginatedIterator": "__init__",
-			"Next":                 "__next__",
+			"NewPaginator": "__init__",
+			"Next":         "__next__",
 		},
 		SyntheticMethods: []string{"__iter__"},
 	}},

@@ -58,6 +58,15 @@ type SignalWireRestError struct {
 	// request never reached a response), in which case StatusCode is 0. It is false
 	// for an HTTP-status error (a real >= 400 response).
 	Transport bool
+	// Headers is the response header map captured on an HTTP-status error (client-
+	// side observability — plan 6.6; no wire change). nil for a transport failure
+	// (no response was produced), matching the Python reference's headers=None.
+	Headers http.Header
+	// RequestID is the platform request-id extracted from the response headers
+	// (x-request-id / x-signalwire-request-id / request-id / x-amzn-requestid, first
+	// match wins — the Python reference's precedence). Empty for a transport failure
+	// or when no such header is present. Appended to Error() for observability.
+	RequestID string
 	// cause is the underlying transport error (net/url error, context cancellation,
 	// TLS error) for a Transport failure, preserved so errors.Is/errors.As still
 	// unwrap to it — the Go equivalent of Python's ``raise ... from exc``. nil for
@@ -72,22 +81,57 @@ type SignalWireRestError struct {
 // does, while still presenting the typed REST error family at the top.
 func (e *SignalWireRestError) Unwrap() error { return e.cause }
 
-// Error implements the error interface.
+// Error implements the error interface. When a platform RequestID was captured it
+// is appended for observability, matching the Python reference (plan 6.6).
 func (e *SignalWireRestError) Error() string {
+	var msg string
 	if e.Transport {
-		return fmt.Sprintf("%s %s failed to reach the server: %s", e.Method, e.URL, e.Body)
+		msg = fmt.Sprintf("%s %s failed to reach the server: %s", e.Method, e.URL, e.Body)
+	} else {
+		msg = fmt.Sprintf("%s %s returned %d: %s", e.Method, e.URL, e.StatusCode, e.Body)
 	}
-	return fmt.Sprintf("%s %s returned %d: %s", e.Method, e.URL, e.StatusCode, e.Body)
+	if e.RequestID != "" {
+		msg += fmt.Sprintf(" (request-id: %s)", e.RequestID)
+	}
+	return msg
+}
+
+// requestIDHeaders is the precedence-ordered set of response header names that
+// carry the platform request-id (first match wins), mirroring the Python
+// reference (_extract_request_id in signalwire/rest/_base.py).
+var requestIDHeaders = []string{
+	"X-Request-Id", "X-Signalwire-Request-Id", "Request-Id", "X-Amzn-Requestid",
+}
+
+// extractRequestID returns the platform request-id from a response header map, or
+// "" when none of the known headers is present. http.Header.Get is
+// case-insensitive (canonicalized), so the caller's header casing is irrelevant.
+func extractRequestID(h http.Header) string {
+	for _, name := range requestIDHeaders {
+		if v := h.Get(name); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // NewSignalWireRestError constructs a SignalWireRestError for an HTTP-status
 // failure, substituting "GET" as the method when method is empty — matches
-// Python's default.
-func NewSignalWireRestError(statusCode int, body, url, method string) *SignalWireRestError {
+// Python's default. headers is the response header map (may be nil — e.g. a
+// hand-built error); when present the platform request-id is extracted from it
+// (plan 6.6 error-observability, mirroring the reference's optional headers param).
+func NewSignalWireRestError(statusCode int, body, url, method string, headers http.Header) *SignalWireRestError {
 	if method == "" {
 		method = "GET"
 	}
-	return &SignalWireRestError{StatusCode: statusCode, Body: body, URL: url, Method: method}
+	return &SignalWireRestError{
+		StatusCode: statusCode,
+		Body:       body,
+		URL:        url,
+		Method:     method,
+		Headers:    headers,
+		RequestID:  extractRequestID(headers),
+	}
 }
 
 // NewSignalWireRestTransportError constructs a SignalWireRestError for a
@@ -292,7 +336,7 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 		// AbortSignal or caller ctx) surfaces as the typed transport error with
 		// NO send, mirroring the Python reference's pre-attempt abort check.
 		if err := parent.Err(); err != nil {
-			return nil, NewSignalWireRestTransportError(err, "request cancelled by abort_signal", path, method)
+			return nil, NewSignalWireRestTransportError(err, "request cancelled by abort_signal", c.buildURL(path, params), method)
 		}
 
 		result, status, retryAfter, err := c.doAttempt(parent, method, path, body, params, opts.timeout)
@@ -319,12 +363,27 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 			}
 			if !c.sleepOrCancel(parent, delay) {
 				// Cancelled during backoff -> typed transport error.
-				return nil, NewSignalWireRestTransportError(parent.Err(), "request cancelled by abort_signal", path, method)
+				return nil, NewSignalWireRestTransportError(parent.Err(), "request cancelled by abort_signal", c.buildURL(path, params), method)
 			}
 			continue
 		}
 		return nil, err
 	}
+}
+
+// buildURL composes the FULL request URL (scheme+host+path+query) from the
+// client's base URL, the path, and the query params — the exact string sent on
+// the wire and stored in error.URL (plan D1) so a caller can replay the request.
+func (c *HTTPClient) buildURL(path string, params map[string]string) string {
+	reqURL := c.baseURL + path
+	if len(params) > 0 {
+		q := url.Values{}
+		for k, v := range params {
+			q.Set(k, v)
+		}
+		reqURL += "?" + q.Encode()
+	}
+	return reqURL
 }
 
 // sleepOrCancel sleeps for delay seconds, returning false if the context is
@@ -350,15 +409,7 @@ func (c *HTTPClient) sleepOrCancel(ctx context.Context, delaySeconds float64) bo
 // in seconds (-1 when absent) so the retry loop can honor it. timeoutSeconds
 // caps this single attempt via context.WithTimeout.
 func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body any, params map[string]string, timeoutSeconds float64) (map[string]any, int, float64, error) {
-	// Build URL
-	reqURL := c.baseURL + path
-	if len(params) > 0 {
-		q := url.Values{}
-		for k, v := range params {
-			q.Set(k, v)
-		}
-		reqURL += "?" + q.Encode()
-	}
+	reqURL := c.buildURL(path, params)
 
 	// Encode body
 	var bodyReader io.Reader
@@ -401,7 +452,9 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 		// *SignalWireRestError handles it too, instead of a bare net/url error
 		// leaking out. The underlying error is kept as the cause so errors.Is
 		// (e.g. context.Canceled / context.DeadlineExceeded) still sees through it.
-		return nil, 0, -1, NewSignalWireRestTransportError(err, "", path, method)
+		// url = the FULL request URL (scheme+host+path+query, plan D1), so a caller
+		// logging error.URL can replay the exact request.
+		return nil, 0, -1, NewSignalWireRestTransportError(err, "", reqURL, method)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -412,11 +465,17 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 
 	// Non-2xx error
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// URL = the FULL request URL (scheme+host+path+query, plan D1), not the
+		// bare path — a caller logging error.URL can replay the exact request.
+		// Headers + RequestID capture the response headers + platform request-id
+		// for client-side observability (plan 6.6; no wire change).
 		return nil, resp.StatusCode, retryAfterSeconds(resp), &SignalWireRestError{
 			StatusCode: resp.StatusCode,
 			Body:       string(respBody),
-			URL:        path,
+			URL:        reqURL,
 			Method:     method,
+			Headers:    resp.Header,
+			RequestID:  extractRequestID(resp.Header),
 		}
 	}
 
@@ -460,119 +519,4 @@ func retryAfterSeconds(resp *http.Response) float64 {
 // cleanly; it lets a *SignalWireRestError be recovered from a wrapped error.
 func errorsAs(err error, target **SignalWireRestError) bool {
 	return errors.As(err, target)
-}
-
-// ---------- PaginatedIterator ----------
-
-// PaginatedIterator walks through paginated API responses one page at a time.
-// Each call to Next returns the items from the current page, a boolean
-// indicating whether more pages exist, and any error encountered.
-type PaginatedIterator struct {
-	client  *HTTPClient
-	path    string
-	params  map[string]string
-	dataKey string
-	done    bool
-}
-
-// NewPaginatedIterator creates a new iterator for the given endpoint.
-// dataKey is the JSON key that holds the array of items (typically "data").
-func NewPaginatedIterator(client *HTTPClient, path string, params map[string]string, dataKey string) *PaginatedIterator {
-	if params == nil {
-		params = map[string]string{}
-	}
-	if dataKey == "" {
-		dataKey = "data"
-	}
-	return &PaginatedIterator{
-		client:  client,
-		path:    path,
-		params:  params,
-		dataKey: dataKey,
-	}
-}
-
-// Next fetches the next page of results. It returns the items from the page,
-// a boolean hasMore that is true when additional pages remain, and any error.
-// When there are no more pages, it returns nil, false, nil.
-func (p *PaginatedIterator) Next() ([]map[string]any, bool, error) {
-	return p.NextContext(context.Background())
-}
-
-// NextContext is the context-aware variant of Next: the page fetch is cancelled
-// when ctx is cancelled or its deadline passes.
-func (p *PaginatedIterator) NextContext(ctx context.Context) ([]map[string]any, bool, error) {
-	if p.done {
-		return nil, false, nil
-	}
-
-	resp, err := p.client.GetContext(ctx, p.path, p.params)
-	if err != nil {
-		return nil, false, err
-	}
-
-	// Extract items
-	var items []map[string]any
-	if raw, ok := resp[p.dataKey]; ok {
-		if arr, ok := raw.([]any); ok {
-			for _, v := range arr {
-				if m, ok := v.(map[string]any); ok {
-					items = append(items, m)
-				}
-			}
-		}
-	}
-
-	// Check for next page link
-	if linksRaw, ok := resp["links"]; ok {
-		if links, ok := linksRaw.(map[string]any); ok {
-			if nextRaw, ok := links["next"]; ok {
-				if nextURL, ok := nextRaw.(string); ok && nextURL != "" && len(items) > 0 {
-					// Parse query parameters from the next URL
-					parsed, err := url.Parse(nextURL)
-					if err == nil {
-						newParams := map[string]string{}
-						for k, v := range parsed.Query() {
-							if len(v) > 0 {
-								newParams[k] = v[0]
-							}
-						}
-						p.params = newParams
-						return items, true, nil
-					}
-				}
-			}
-		}
-	}
-
-	// No more pages
-	p.done = true
-	return items, false, nil
-}
-
-// ForEach calls fn for every item across all pages. It fetches pages lazily
-// via Next and invokes fn once per item in the order they are returned.
-// Iteration stops early if fn returns a non-nil error (that error is returned
-// to the caller) or when Next signals there are no more pages.
-func (p *PaginatedIterator) ForEach(fn func(map[string]any) error) error {
-	return p.ForEachContext(context.Background(), fn)
-}
-
-// ForEachContext is the context-aware variant of ForEach: page fetches are
-// cancelled when ctx is cancelled or its deadline passes.
-func (p *PaginatedIterator) ForEachContext(ctx context.Context, fn func(map[string]any) error) error {
-	for {
-		items, hasMore, err := p.NextContext(ctx)
-		if err != nil {
-			return err
-		}
-		for _, item := range items {
-			if err := fn(item); err != nil {
-				return err
-			}
-		}
-		if !hasMore {
-			return nil
-		}
-	}
 }

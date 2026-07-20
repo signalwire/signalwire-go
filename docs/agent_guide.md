@@ -229,25 +229,39 @@ When CGI environment variables are present, operates in CGI mode with clean HTTP
 a.Run()
 ```
 
-#### AWS Lambda Mode
-When AWS Lambda environment is detected, configures for serverless execution:
+#### AWS Lambda / Google Cloud / Azure Modes
+On these platforms the runtime owns the process entry point, so `Run()` does
+**not** host the serverless loop — it returns `ErrServerlessUnsupported` when it
+detects one of these modes. Wire the platform adapter from your `main()` instead:
 
 ```go
-// Same code - automatically detects Lambda environment
-a.Run()
+// AWS Lambda: register the agent's router with the Lambda adapter from main()
+import (
+    swlambda "github.com/signalwire/signalwire-go/v3/pkg/lambda"
+    "github.com/aws/aws-lambda-go/lambda"
+)
+
+handler := swlambda.NewHandler(a.AsRouter())
+lambda.Start(handler.HandleFunctionURL) // or HandleAPIGatewayV2
 ```
+
+Google Cloud Functions and Azure Functions use `pkg/serverless`'s `NewHandler`
+the same way (its `ServeHTTP` is the functions-framework entry point). `AsRouter()`
+is mode-independent — the same agent definition works behind any adapter.
 
 ### Environment Detection
 
-The SDK automatically detects the execution environment:
+`Run()` calls `DetectRunMode()`, which reads the process environment to report the
+mode (first match wins). Only Server and CGI are hosted inline by `Run()`; the
+serverless modes are detected so you can branch to the adapter yourself.
 
-| Environment | Detection Method | Behavior |
+| Environment | Detection Method | Behavior of `Run()` |
 |-------------|------------------|----------|
-| **HTTP Server** | Default when no serverless environment detected | Starts HTTP server on specified host/port |
-| **CGI** | `GATEWAY_INTERFACE` environment variable present | Processes single CGI request and exits |
-| **AWS Lambda** | `AWS_LAMBDA_FUNCTION_NAME` environment variable | Handles Lambda event/context |
-| **Google Cloud** | `FUNCTION_NAME` or `K_SERVICE` variables | Processes Cloud Function request |
-| **Azure Functions** | `AZURE_FUNCTIONS_*` variables | Handles Azure Function request |
+| **HTTP Server** | Default when no serverless env var present | Starts `net/http` server on the configured host/port |
+| **CGI** | `GATEWAY_INTERFACE` set | Serves one request off stdin/stdout, then returns |
+| **AWS Lambda** | `AWS_LAMBDA_FUNCTION_NAME` or `LAMBDA_TASK_ROOT` set | Returns `ErrServerlessUnsupported` — use `pkg/lambda` from `main()` |
+| **Google Cloud** | `FUNCTION_TARGET`, `K_SERVICE`, or `GOOGLE_CLOUD_PROJECT` set | Returns `ErrServerlessUnsupported` — use `pkg/serverless` from `main()` |
+| **Azure Functions** | `AZURE_FUNCTIONS_ENVIRONMENT` or `FUNCTIONS_WORKER_RUNTIME` set | Returns `ErrServerlessUnsupported` — use `pkg/serverless` from `main()` |
 
 ### Logging Configuration
 

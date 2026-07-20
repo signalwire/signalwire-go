@@ -116,6 +116,37 @@ var optionalRequestOptionsTailMethods = map[string]bool{
 	"signalwire.rest.client.RestClient.__init__": true,
 }
 
+// optionsStructUnfoldMethods maps a fully-qualified Python reference method whose
+// Go spelling takes a single named options STRUCT (`opts <Struct>`) to the SHORT
+// name of that struct. The idiom-convergence pass (plan 6.2-go) collapsed the
+// flat 7-positional-pointer SWML Service.Play / 6-positional Service.AI signatures
+// into named options structs (swml.PlayOptions / swml.AIOptions) so a caller reads
+// `svc.Play(swml.PlayOptions{URL: &u})` instead of `svc.Play(&u, nil, nil, nil,
+// nil, nil, nil)`. That is a pure call-site reshape: the enumerator UNFOLDS the
+// struct's fields back into the flat keyword param set the Python oracle records,
+// so port_signatures.json stays byte-identical (drift 0). The struct fields must
+// be in field order and 1:1 with the reference keyword params (an `Extra`/`Extras`
+// field folds to the reference's `**kwargs` var_keyword tail, matching the old
+// flat `extra map[string]any`). Recorded from the swml package like the REST
+// params structs, then unfolded in toCanonicalSignature.
+var optionsStructUnfoldMethods = map[string]string{
+	"signalwire.core.swml_builder.SWMLBuilder.play":                "PlayOptions",
+	"signalwire.core.swml_builder.SWMLBuilder.ai":                  "AIOptions",
+	"signalwire.core.function_result.FunctionResult.connect":       "ConnectOptions",
+	"signalwire.core.function_result.FunctionResult.wait_for_user": "WaitForUserOptions",
+}
+
+// handOptionsStructs is the allowlist of SHORT struct names (in hand-written,
+// non-generated files) whose fields the enumerator records into
+// paramsStructFields so optionsStructUnfoldMethods can unfold them. Keeping it an
+// explicit allowlist avoids capturing every exported struct's fields.
+var handOptionsStructs = map[string]bool{
+	"PlayOptions":        true,
+	"AIOptions":          true,
+	"ConnectOptions":     true,
+	"WaitForUserOptions": true,
+}
+
 // paramsStructField is one field of a generated-REST params struct (§5/§4a).
 type paramsStructField struct {
 	name    string // exported Go field name (e.g. "QueryString", "Extras")
@@ -423,6 +454,20 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 					}
 					paramsStructFields[ts.Name.Name] = fields
 				}
+				// Hand-written SWML options structs (PlayOptions/AIOptions): record
+				// their fields too, so optionsStructUnfoldMethods can unfold a
+				// `opts <Struct>` method param back to the flat oracle keyword set
+				// (plan 6.2-go idiom convergence, drift-neutral).
+				if handOptionsStructs[ts.Name.Name] && st.Fields != nil {
+					var fields []paramsStructField
+					for _, f := range st.Fields.List {
+						typeStr := exprString(f.Type)
+						for _, n := range f.Names {
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr})
+						}
+					}
+					paramsStructFields[ts.Name.Name] = fields
+				}
 				key := pkgName + "." + ts.Name.Name
 				if _, present := structs[key]; !present {
 					structs[key] = &goStructFacts{
@@ -716,12 +761,12 @@ var goLocalAliases = map[string]string{
 	"TypedHandler":       "callable<list<any>,any>",
 	"swaig.TypedHandler": "callable<list<any>,any>",
 	// namespaces.Paginator is the value CrudResource.Paginate returns — the
-	// Go-idiom equivalent of Python ReadResource.paginate()'s PaginatedIterator.
-	// A namespaces-package import cycle forbids reusing rest.PaginatedIterator
-	// here (rest already imports namespaces), so Paginate returns a self-contained
-	// *Paginator in the namespaces package. It plays the SAME role as the
-	// reference's PaginatedIterator, so its return type folds to that class ref for
-	// the signature comparison (idiom reconciled in the alias table, not an omission).
+	// Go-idiom equivalent of Python ReadResource.paginate()'s PaginatedIterator,
+	// and (since plan 6.2-go retired the orphan rest.PaginatedIterator) the port's
+	// sole representative of that class. It lives in the namespaces package to
+	// avoid the rest->namespaces import cycle. Its return type folds to that class
+	// ref for the signature comparison (idiom reconciled in the alias table, not an
+	// omission); the adapter StructTable also maps its methods onto the class.
 	"Paginator":            "class:signalwire.rest._pagination.PaginatedIterator",
 	"namespaces.Paginator": "class:signalwire.rest._pagination.PaginatedIterator",
 	// rest.EffectiveOptions is the Go public spelling of the reference's
@@ -775,6 +820,13 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	// either the defining package or an importer.
 	if canon, ok := closedSetUnions[t]; ok {
 		return canon, nil
+	}
+	// http.Header is Go's (nil-able) response-header map. The reference spells the
+	// 6.6 `headers` ctor param `optional<dict<string,string>>`; fold the stdlib type
+	// to that canonical spelling (a pure type-fold reconciled at the adapter, per
+	// RULES — never an omission).
+	if t == "http.Header" || t == "net/http.Header" {
+		return "optional<dict<string,string>>", nil
 	}
 	// context.Context is Go's idiomatic deadline/cancellation carrier — the
 	// idiomatic Go expression of "this call may take an optional timeout" (the
@@ -1130,6 +1182,10 @@ func isPrimitive(t string) bool {
 
 func goFieldToPython(s string) string {
 	switch s {
+	case "URLs":
+		// Initialism-plural: goNameToSnake yields "ur_ls" (it inserts _ at the
+		// R→L uppercase-run boundary). The Python-canonical name is "urls".
+		return "urls"
 	case "MFA":
 		return "mfa"
 	case "PubSub":
@@ -1165,6 +1221,39 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 		params = append(params, canonicalParam{Name: "self", Kind: "self"})
 	}
 	for pi, p := range sig.params {
+		// Idiom-convergence (plan 6.2-go): a SWML Service method spelled as a single
+		// named options struct (`opts PlayOptions` / `opts AIOptions`) UNFOLDS back to
+		// the flat keyword param set the Python oracle records. Each field → the same
+		// param the old flat-positional signature produced (translateType of the field
+		// type, required:true — Go has no defaults), so port_signatures.json is
+		// byte-identical to the pre-reshape form (drift 0). A trailing `Extra` map
+		// field folds to the reference's `**kwargs` var_keyword tail (the old
+		// `extra map[string]any` last-param behavior), gated on the method being in
+		// kwargsTailMethods just like the flat form was.
+		if structName, ok := optionsStructUnfoldMethods[ctx]; ok && p.typeStr == structName {
+			if fields, ok := paramsStructFields[structName]; ok {
+				for fi, f := range fields {
+					isLast := fi == len(fields)-1
+					if isLast && (f.name == "Extra" || f.name == "Extras") &&
+						strings.HasPrefix(f.typeStr, "map[string]") && kwargsTailMethods[ctx] {
+						params = append(params, canonicalParam{
+							Name: "kwargs", Kind: "var_keyword", Type: "any",
+							Required: boolPtr(false), Default: json.RawMessage("{}"),
+						})
+						continue
+					}
+					fCanon, fail := translateType(f.typeStr, aliases, ctx+"["+f.name+"]")
+					if fail != nil {
+						failures = append(failures, *fail)
+						continue
+					}
+					params = append(params, canonicalParam{
+						Name: goFieldToPython(f.name), Type: fCanon, Required: boolPtr(true),
+					})
+				}
+				continue
+			}
+		}
 		// A reconciliation-table method's FINAL bag param is the Python
 		// reference's `**kwargs`/`**params` var_keyword tail (stripped from the
 		// oracle by porting-sdk #58). Emit it as var_keyword required:false so the
@@ -1417,6 +1506,16 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 				// accessor is a signature-only idiom divergence
 				// (PORT_SIGNATURE_OMISSIONS.md).
 				if ret == "context.Context" {
+					continue
+				}
+				// http.Header is a stdlib type (the captured response headers on
+				// SignalWireRestError, plan 6.6), NOT an SDK class — it is a data
+				// field like the URL/Body/StatusCode primitives, not a sub-resource
+				// accessor. Python models it as the instance attribute `.headers`
+				// (not a method), which the surface oracle does not record, so the Go
+				// field must not project as an accessor either (same reasoning as the
+				// context.Context exclusion above).
+				if ret == "http.Header" {
 					continue
 				}
 				if !strings.Contains(ret, ".") && !(ret[0] >= 'A' && ret[0] <= 'Z') {

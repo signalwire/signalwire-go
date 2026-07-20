@@ -54,8 +54,6 @@ rest.HTTPClient.PostContext: Go ctx-aware form of HTTPClient.Post. Non-ctx Post 
 rest.HTTPClient.PutContext: Go ctx-aware form of HTTPClient.Put. Non-ctx Put preserved
 rest.HTTPClient.PatchContext: Go ctx-aware form of HTTPClient.Patch. Non-ctx Patch preserved
 rest.HTTPClient.DeleteContext: Go ctx-aware form of HTTPClient.Delete. Non-ctx Delete preserved
-rest.PaginatedIterator.NextContext: Go ctx-aware form of PaginatedIterator.Next; page fetch cancelled on ctx cancel/deadline. Non-ctx Next preserved, delegates with context.Background()
-rest.PaginatedIterator.ForEachContext: Go ctx-aware form of PaginatedIterator.ForEach; page fetches cancelled on ctx cancel/deadline. Non-ctx ForEach preserved
 
 # --- Tier-2 idiom additions: AgentServer graceful shutdown (IDIOM_PASS_JOURNAL §4) ---
 server.AgentServer.Shutdown: Go graceful shutdown — stops accepting new connections and drains in-flight requests bounded by ctx's deadline (net/http.Server.Shutdown). Returns ErrServerNotRunning when not serving. No Python-reference equivalent (AgentServer has no graceful-shutdown surface)
@@ -440,7 +438,27 @@ gen-payload.CondElse.else: generated SWML-verb config field the Python reference
 gen-payload.CondReg.else: generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the Go struct types it
 
 # --- Port-only helper structs (options/results) ---
+swml.PlayOptions: Go options struct for swml.Service.Play — the idiomatic Go named-options shape that replaced the 7-positional-pointer signature (plan 6.2-go). Its fields unfold 1:1 back to the Python play(url, urls, volume, say_voice, say_language, say_gender, auto_answer) keyword params (enumerate-signatures optionsStructUnfoldMethods), so signature drift stays 0; the struct type itself is port-only call-shape plumbing.
+swml.AIOptions: Go options struct for swml.Service.AI — the idiomatic Go named-options shape that replaced the 6-positional signature (plan 6.2-go). Fields unfold to ai(prompt_text, prompt_pom, post_prompt, post_prompt_url, swaig, **kwargs) with the Extra map folding to the reference **kwargs tail; port-only call-shape plumbing.
 web.Options: Go options struct for web.NewWebService — the idiomatic Go constructor-options shape for the WebService static-file server (Python passes a flat kwarg list). Call-shape plumbing, not oracle surface.
 swml.ValidationResult: Go struct returned by swml schema validation — an idiomatic typed result the Python reference expresses as a (bool, errors) tuple. Port-only helper type.
-namespaces.Paginator: Go value returned by CrudResource.Paginate()/the ReadResource-subclass Paginate() — the concrete iterator that walks a list endpoint's links.next cursor. A namespaces-package import cycle (rest imports namespaces) forbids reusing the parent package's rest.PaginatedIterator here, so this is the self-contained namespaces-local form. Plays the same role as Python's _pagination.PaginatedIterator; the Paginate() return type folds to that class ref (enumerate-signatures goLocalAliases) so signatures compare EQUAL.
-namespaces.NewPaginator: constructor for namespaces.Paginator (above) — Go-idiom factory; Python constructs PaginatedIterator inline in ReadResource.paginate().
+namespaces.Paginator: Go value returned by CrudResource.Paginate()/the ReadResource-subclass Paginate() — the LIVE paginator that walks a list endpoint's links.next cursor. It REPRESENTS Python's _pagination.PaginatedIterator class (adapter StructTable maps NewPaginator->__init__, Next->__next__, synthetic __iter__), so it is the port's counterpart to that class, not a bare addition; the former orphan rest.PaginatedIterator (no Paginate() returned it) was retired in plan 6.2-go and its mapping moved here. The Paginate() return type also folds to that class ref (enumerate-signatures goLocalAliases) so signatures compare EQUAL. Lives in the namespaces package (not rest) to avoid the rest->namespaces import cycle.
+namespaces.NewPaginator: constructor for namespaces.Paginator (above) — maps to _pagination.PaginatedIterator.__init__; Go-idiom factory. Python constructs PaginatedIterator inline in ReadResource.paginate().
+
+# --- Extras escape hatch (typed-first surface) ---
+
+Every generated Create/Update/Set* params struct carries an `Extras map[string]any`
+field. The typed fields ARE the intended surface — reach for a typed field whenever one
+exists; `Extras` is the escape hatch for genuinely-open / forward-compat wire keys the
+typed surface does not (yet) model (the analog of Python's `**kwargs` tail and the closed-
+create-params + `extras` design in TYPED_SURFACE_STRATEGY §4). This preserves Python's
+dynamic-kwargs capability 1:1 while keeping the typed surface the default.
+
+Merge semantics (`namespaces.mergeExtra`, common.go): the generated wrapper writes the
+typed params into the request body first (each unconditionally, including its Go zero
+value), then merges `Extras` — so on a key collision the Extras value wins (last-writer-
+wins, Extras applied last). That override is deliberate: because a typed param is written
+even at its zero value, an Extras entry of the same name is the only way to supply a wire
+value the caller left on the typed zero. A key set only via Extras still reaches the wire
+and is caught by the strict mock's 400-on-unknown-key in the test lanes. Not oracle surface
+(the field folds away like the other map[string]any open-param plumbing).
