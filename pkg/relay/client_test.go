@@ -1119,7 +1119,7 @@ func TestClient_MaxActiveCallsCapEnforced(t *testing.T) {
 	c.OnCall(func(*Call) {})
 
 	// Feed 3 inbound-receive events straight through the dispatch path.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		c.handleEvent(EventCallingCallReceive, map[string]any{
 			"call_id":    "c" + string(rune('0'+i)),
 			"node_id":    "n",
