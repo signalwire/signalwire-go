@@ -41,6 +41,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -86,7 +87,21 @@ type envCase struct {
 	body   map[string]any
 	// requestOptions, when set, is passed as the port's RequestOptions for the call.
 	requestOptions *requestOptionsSpec
+	// composeLeg, when non-empty ("ctx"|"signal"|"both"), marks a ctx/abort_signal
+	// COMPOSITION case (PSDK-4c / GO-5) whose artifact is the compose classification
+	// {ctx_cancel_honored, signal_cancel_honored, both_compose} rather than the
+	// error-envelope artifact. These cases drive a SLOW (3s) armed response and
+	// assert the request is cancelled within composeWindow by the intended source.
+	composeLeg string
 }
+
+// compose timing knobs — MUST match diff_port_envelope.py's _drive_compose.
+const (
+	composeWindow       = 1500 * time.Millisecond // bounded iff cancelled within this
+	composeShortTimeout = 500 * time.Millisecond  // < the 3s delay: fires
+	composeLongTimeout  = 10 * time.Second        // > the 3s delay: the SIGNAL fires, not this
+	composeSlowDelayMs  = 3000                    // the armed response delay
+)
 
 // The GET list route every default case targets (envelope_corpus.CALL).
 const callPath = "/api/fabric/addresses"
@@ -177,6 +192,17 @@ var corpus = []envCase{
 		scenario:       &scenario{status: 503, response: map[string]any{"errors": []any{map[string]any{"code": "UNAVAILABLE", "message": "throttled"}}}},
 		requestOptions: &requestOptionsSpec{retries: intPtr(1), retryBackoff: floatPtr(0)},
 	},
+
+	// ============ ctx/abort_signal COMPOSITION (PSDK-4c / GO-5) ============
+	// A per-request abort_signal and a caller ctx/deadline must COMPOSE: a cancel
+	// from EITHER cancels the request (merge, never replace). Each leg arms a SLOW
+	// (3s) response and asserts the request is cancelled within composeWindow by
+	// the intended source. The "both" leg is the GO-5 red: a client-default
+	// abort_signal that REPLACED the caller ctx (the old bug) dropped the ctx
+	// deadline, letting the request run to ~3s (un-bounded).
+	{id: "compose_ctx_timeout_alone", composeLeg: "ctx"},
+	{id: "compose_abort_signal_alone", composeLeg: "signal"},
+	{id: "compose_ctx_and_signal_both", composeLeg: "both"},
 }
 
 // artifact is the shared cross-port reduction the differ byte-compares.
@@ -395,9 +421,87 @@ func reduceError(art *artifact, reqErr error) {
 	art.ErrorKind = strp("bare:" + fmt.Sprintf("%T", reqErr))
 }
 
+// composeClassification is the compose-case artifact the differ byte-compares
+// against the python golden {ctx_cancel_honored, signal_cancel_honored,
+// both_compose}.
+type composeClassification struct {
+	CtxCancelHonored    bool `json:"ctx_cancel_honored"`
+	SignalCancelHonored bool `json:"signal_cancel_honored"`
+	BothCompose         bool `json:"both_compose"`
+}
+
+// runComposeCase drives one compose leg against an in-process mock that delays
+// its 200 response by composeSlowDelayMs, and reports whether the request was
+// cancelled within composeWindow by the intended source. It uses ONLY the
+// exported client API: a client-default abort_signal (via NewHTTPClient's
+// variadic RequestOptions) plus a per-call ctx deadline (GetContext) — exactly
+// the natural GO-5 usage (a global-shutdown abort_signal must NOT swallow each
+// call's ctx deadline).
+func runComposeCase(c envCase) composeClassification {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Duration(composeSlowDelayMs) * time.Millisecond)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	}))
+	defer srv.Close()
+
+	// bounded runs one GET and reports whether it returned (was cancelled) within
+	// composeWindow. clientSignal is the client-DEFAULT abort_signal (nil => none);
+	// ctxTimeout is the per-call ctx deadline (0 => background, no deadline).
+	bounded := func(clientSignal context.Context, ctxTimeout time.Duration) bool {
+		var defaults *rest.RequestOptions
+		if clientSignal != nil {
+			defaults = &rest.RequestOptions{AbortSignal: clientSignal, Retries: intPtr(0)}
+		}
+		var client *rest.HTTPClient
+		if defaults != nil {
+			client = rest.NewHTTPClient("compose_proj", "compose_tok", "mock.invalid", defaults)
+		} else {
+			client = rest.NewHTTPClient("compose_proj", "compose_tok", "mock.invalid")
+		}
+		client.SetBaseURL(srv.URL)
+
+		ctx := context.Background()
+		if ctxTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, ctxTimeout)
+			defer cancel()
+		}
+		t0 := time.Now()
+		_, _ = client.GetContext(ctx, callPath, nil)
+		return time.Since(t0) < composeWindow
+	}
+
+	var out composeClassification
+	switch c.composeLeg {
+	case "ctx":
+		// SHORT ctx deadline vs slow response, NO signal: the ctx must cut it.
+		out.CtxCancelHonored = bounded(nil, composeShortTimeout)
+	case "signal":
+		// A PRE-CANCELLED client-default abort_signal, GENEROUS ctx deadline: the
+		// SIGNAL must cut it (not the deadline).
+		sigCtx, sigCancel := context.WithCancel(context.Background())
+		sigCancel() // pre-cancelled
+		out.SignalCancelHonored = bounded(sigCtx, composeLongTimeout)
+	case "both":
+		// A LIVE (un-cancelled) client-default abort_signal AND a SHORT ctx
+		// deadline: the ctx deadline must still fire (proving the signal did NOT
+		// replace/drop the ctx — the GO-5 compose contract).
+		sigCtx, sigCancel := context.WithCancel(context.Background())
+		defer sigCancel()
+		out.BothCompose = bounded(sigCtx, composeShortTimeout)
+	}
+	return out
+}
+
 func main() {
-	out := map[string]artifact{}
+	out := map[string]any{}
 	for _, c := range corpus {
+		if c.composeLeg != "" {
+			out[c.id] = runComposeCase(c)
+			continue
+		}
 		out[c.id] = runCase(c)
 	}
 	enc := json.NewEncoder(os.Stdout)

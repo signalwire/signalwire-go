@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -53,6 +55,21 @@ type Client struct {
 	// Reconnect
 	reconnectBackoff time.Duration
 	maxBackoff       time.Duration
+
+	// executeTimeout bounds how long an execute() waits for its RPC response
+	// before returning ErrExecuteTimeout. Default 30s; tunable (WithExecuteTimeout)
+	// so a liveness harness can bound a silent peer inside a short window.
+	executeTimeout time.Duration
+
+	// Client-side liveness watchdog (F2.1): pingInterval is how often the client
+	// sends signalwire.ping; a half-open peer that stops answering pings is
+	// detected after maxPingFailures consecutive misses and forced to reconnect.
+	// pingInterval<=0 disables the watchdog. connected mirrors the live transport
+	// state for IsConnected().
+	pingInterval    time.Duration
+	maxPingFailures int
+	connected       atomic.Bool
+	watchdogStop    chan struct{}
 }
 
 // NewRelayClient creates a new RELAY Client with the given options.
@@ -75,6 +92,8 @@ func NewRelayClient(opts ...ClientOption) *Client {
 		cancel:           cancel,
 		reconnectBackoff: 1 * time.Second,
 		maxBackoff:       30 * time.Second,
+		executeTimeout:   30 * time.Second,
+		maxPingFailures:  3,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -300,6 +319,7 @@ func (c *Client) RunContext(ctx context.Context) error {
 		defer close(done)
 		c.readLoop()
 	}()
+	c.startWatchdog()
 
 	if err := c.subscribeContexts(); err != nil {
 		c.running.Store(false)
@@ -350,6 +370,7 @@ func (c *Client) Authenticate() error {
 func (c *Client) StartReadLoop() {
 	c.running.Store(true)
 	go c.readLoop()
+	c.startWatchdog()
 }
 
 // SubscribeContexts subscribes to whatever contexts were configured via
@@ -383,6 +404,106 @@ func (c *Client) Stop() {
 	c.mu.Unlock()
 	if conn != nil {
 		_ = conn.Close()
+	}
+	c.connected.Store(false)
+	c.stopWatchdog()
+}
+
+// startWatchdog launches the client-side ping watchdog if enabled
+// (pingInterval>0). Idempotent-ish: a prior watchdog is stopped first.
+func (c *Client) startWatchdog() {
+	if c.pingInterval <= 0 {
+		return
+	}
+	c.stopWatchdog()
+	stop := make(chan struct{})
+	c.mu.Lock()
+	c.watchdogStop = stop
+	c.mu.Unlock()
+	go c.watchdogLoop(stop)
+}
+
+// stopWatchdog signals the current watchdog goroutine to exit.
+func (c *Client) stopWatchdog() {
+	c.mu.Lock()
+	stop := c.watchdogStop
+	c.watchdogStop = nil
+	c.mu.Unlock()
+	if stop != nil {
+		select {
+		case <-stop:
+		default:
+			close(stop)
+		}
+	}
+}
+
+// watchdogLoop periodically pings the peer; after maxPingFailures consecutive
+// unanswered pings it declares the peer half-open (F2.1), marks the client
+// disconnected, and tears the socket down so readLoop surfaces a read error and
+// reconnect() runs. A single answered ping resets the failure counter.
+func (c *Client) watchdogLoop(stop chan struct{}) {
+	failures := 0
+	ticker := time.NewTicker(c.pingInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-c.ctx.Done():
+			return
+		case <-ticker.C:
+			if !c.running.Load() {
+				return
+			}
+			if c.pingPeer() {
+				failures = 0
+				continue
+			}
+			failures++
+			if failures >= c.maxPingFailures {
+				c.logger.Printf("relay: peer half-open (%d missed pings), forcing reconnect", failures)
+				c.connected.Store(false)
+				c.mu.Lock()
+				conn := c.conn
+				c.mu.Unlock()
+				if conn != nil {
+					_ = conn.Close() // readLoop errors -> reconnect()
+				}
+				return
+			}
+		}
+	}
+}
+
+// pingPeer sends one signalwire.ping and waits pingInterval for the result,
+// returning true iff a response arrived. It correlates by JSON-RPC id through
+// the same pending map the read loop resolves.
+func (c *Client) pingPeer() bool {
+	id := uuid.New().String()
+	ch := make(chan json.RawMessage, 1)
+	c.mu.Lock()
+	c.pending[id] = ch
+	c.mu.Unlock()
+	req := map[string]any{"jsonrpc": "2.0", "id": id, "method": MethodSignalWirePing, "params": map[string]any{}}
+	if err := c.writeJSON(req); err != nil {
+		c.mu.Lock()
+		delete(c.pending, id)
+		c.mu.Unlock()
+		return false
+	}
+	timer := time.NewTimer(c.pingInterval)
+	defer timer.Stop()
+	select {
+	case <-ch:
+		return true
+	case <-timer.C:
+		c.mu.Lock()
+		delete(c.pending, id)
+		c.mu.Unlock()
+		return false
+	case <-c.ctx.Done():
+		return false
 	}
 }
 
@@ -566,7 +687,35 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 // space; when scheme is set it overrides "wss". This mirrors the
 // per-port harness contract documented in the shared test harness
 // SUBAGENT_PLAYBOOK.
+// validateCredentials fails PRE-CONNECT with a per-variable actionable error
+// when a required credential is missing, mirroring python RelayClient
+// (relay/client.py:132-154): a JWT alone is sufficient; otherwise BOTH project
+// and token are required, and the error names the specific missing credential +
+// its env var so the fix is obvious. This runs before any socket work so a
+// misconfiguration surfaces immediately instead of as an opaque connect/auth
+// failure.
+func (c *Client) validateCredentials() error {
+	c.mu.RLock()
+	jwt := c.jwtToken
+	project := c.projectID
+	token := c.token
+	c.mu.RUnlock()
+	if jwt != "" {
+		return nil
+	}
+	if project == "" {
+		return &RelayError{Code: -1, Message: "project is required (pass WithProject(...) or set SIGNALWIRE_PROJECT_ID)"}
+	}
+	if token == "" {
+		return &RelayError{Code: -1, Message: "token is required (pass WithToken(...) or set SIGNALWIRE_API_TOKEN)"}
+	}
+	return nil
+}
+
 func (c *Client) connect() error {
+	if err := c.validateCredentials(); err != nil {
+		return err
+	}
 	host := os.Getenv("SIGNALWIRE_RELAY_HOST")
 	if host == "" {
 		host = c.space
@@ -606,9 +755,15 @@ func (c *Client) connect() error {
 	c.mu.Lock()
 	c.conn = conn
 	c.mu.Unlock()
+	c.connected.Store(true)
 
 	return nil
 }
+
+// IsConnected reports whether the client currently believes its transport is
+// live. Set true on a successful connect, and false when the liveness watchdog
+// detects a half-open peer or the transport is torn down.
+func (c *Client) IsConnected() bool { return c.connected.Load() }
 
 // caPoolFromEnv reads the PEM file named by the given env var and returns a
 // CertPool containing its certificates, or nil when the env var is unset/empty.
@@ -859,6 +1014,11 @@ func (c *Client) readLoop() {
 }
 
 // execute sends a JSON-RPC request and waits for the response.
+// successCodeRE matches a 2xx calling.* result code ("200".."299"). Anything else
+// (a "404"/"410" call-gone, a "500" server failure, etc.) is a non-success the
+// SDK must surface — mirrors python _SUCCESS_CODE_RE (relay/client.py).
+var successCodeRE = regexp.MustCompile(`^2\d\d$`)
+
 func (c *Client) execute(method string, params map[string]any) (json.RawMessage, error) {
 	id := uuid.New().String()
 
@@ -892,18 +1052,49 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 	// Use a stoppable timer (not time.After) so the underlying *time.Timer is
 	// released on the common success path instead of lingering up to 30s and
 	// accumulating under load. Mirrors the DialContext pattern above.
-	timer := time.NewTimer(30 * time.Second)
+	execTimeout := c.executeTimeout
+	if execTimeout <= 0 {
+		execTimeout = 30 * time.Second
+	}
+	timer := time.NewTimer(execTimeout)
 	defer timer.Stop()
 
 	select {
 	case resp := <-ch:
-		// Check if the response is an error.
+		// A JSON-RPC error frame (delivered as the marshaled msg.Error) carries an
+		// integer code — surface it as a RelayError.
 		var errResp struct {
 			Code    int    `json:"code"`
 			Message string `json:"message"`
 		}
 		if err := json.Unmarshal(resp, &errResp); err == nil && errResp.Code != 0 {
 			return nil, NewRelayError(errResp.Code, errResp.Message)
+		}
+		// A calling.* RESULT carries a STRING `code` (e.g. "200"/"404"/"500"). Any
+		// non-2xx code is a server-side failure that must RAISE (A2/B7): the prior
+		// int-only decode silently swallowed every string code, so a failed verb
+		// looked like success. signalwire.connect returns no such code and is
+		// exempt (its result is the auth envelope). Mirrors python _handle_response
+		// (relay/client.py:887-901): raise RelayError(int(code), message) on a
+		// non-2xx result code; the Call layer then swallows only 404/410.
+		if method != MethodSignalWireConnect {
+			var codeResp struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}
+			if err := json.Unmarshal(resp, &codeResp); err == nil && codeResp.Code != "" {
+				if !successCodeRE.MatchString(codeResp.Code) {
+					intCode := -1
+					if n, convErr := strconv.Atoi(codeResp.Code); convErr == nil {
+						intCode = n
+					}
+					msg := codeResp.Message
+					if msg == "" {
+						msg = "Unknown error"
+					}
+					return nil, NewRelayError(intCode, msg)
+				}
+			}
 		}
 		return resp, nil
 	case <-c.ctx.Done():

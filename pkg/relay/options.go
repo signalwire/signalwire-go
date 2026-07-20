@@ -700,6 +700,41 @@ func WithContexts(contexts ...string) ClientOption {
 	}
 }
 
+// WithPingWatchdog enables the client-side liveness watchdog: the client sends
+// signalwire.ping every interval and, after maxFailures consecutive unanswered
+// pings, declares the peer half-open and forces a reconnect (F2.1). interval<=0
+// disables it (the default). maxFailures<1 is clamped to 1.
+func WithPingWatchdog(interval time.Duration, maxFailures int) ClientOption {
+	return func(c *Client) {
+		c.pingInterval = interval
+		if maxFailures < 1 {
+			maxFailures = 1
+		}
+		c.maxPingFailures = maxFailures
+	}
+}
+
+// WithExecuteTimeout bounds how long an execute() RPC waits for its response
+// before returning ErrExecuteTimeout. Default 30s. A short value lets a liveness
+// harness bound a silent/black-hole peer inside a tight window.
+func WithExecuteTimeout(d time.Duration) ClientOption {
+	return func(c *Client) {
+		if d > 0 {
+			c.executeTimeout = d
+		}
+	}
+}
+
+// WithReconnectBackoff sets the initial reconnect backoff (the delay before the
+// first reconnect attempt; it grows exponentially up to maxBackoff). Default 1s.
+func WithReconnectBackoff(d time.Duration) ClientOption {
+	return func(c *Client) {
+		if d > 0 {
+			c.reconnectBackoff = d
+		}
+	}
+}
+
 // DefaultMaxActiveCalls is the inbound-call ceiling applied when neither
 // WithMaxActiveCalls nor RELAY_MAX_ACTIVE_CALLS sets one. Mirrors python's
 // _DEFAULT_MAX_ACTIVE_CALLS (relay/client.py:92): overload protection is always
