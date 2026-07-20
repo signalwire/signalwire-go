@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ ed97c037fb79a6100000f94da2a993954e7d4936",
+  "generated_from": "signalwire-go (go-native) @ ce53e0163dd115e84860d65e4e944bb2857eed09",
   "modules": {
     "agent": {
       "classes": {
@@ -763,6 +763,9 @@
           "Get"
         ],
         "RelayApplications": [],
+        "RequestOptions": [
+          "Merge"
+        ],
         "Resource": [
           "Path"
         ],
@@ -1111,6 +1114,7 @@
           "Dial",
           "DialContext",
           "Execute",
+          "IsConnected",
           "JWTToken",
           "Notify",
           "OnCall",
@@ -1325,6 +1329,7 @@
         "WithDigitDigits",
         "WithDigitTimeout",
         "WithEnvDefaults",
+        "WithExecuteTimeout",
         "WithFaxControlID",
         "WithFaxDetectTimeout",
         "WithFaxHeaderInfo",
@@ -1354,12 +1359,14 @@
         "WithPayTokenType",
         "WithPayValidCardTypes",
         "WithPayVoice",
+        "WithPingWatchdog",
         "WithPlayControlID",
         "WithPlayDirection",
         "WithPlayLoop",
         "WithPlayOnCompleted",
         "WithPlayVolume",
         "WithProject",
+        "WithReconnectBackoff",
         "WithRecordAudio",
         "WithRecordBeep",
         "WithRecordControlID",
@@ -1404,9 +1411,6 @@
           "Put",
           "PutContext",
           "SetBaseURL"
-        ],
-        "RequestOptions": [
-          "Merge"
         ],
         "RestClient": [
           "HTTPClient",

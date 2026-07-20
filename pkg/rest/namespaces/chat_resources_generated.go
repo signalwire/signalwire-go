@@ -28,7 +28,7 @@ type ChatNamespaceCreateTokenParams struct {
 	Extras   map[string]any
 }
 
-func (r *ChatNamespace) CreateToken(ctx context.Context, params ChatNamespaceCreateTokenParams) (*ChatToken, error) {
+func (r *ChatNamespace) CreateToken(ctx context.Context, params ChatNamespaceCreateTokenParams, opts ...*RequestOptions) (*ChatToken, error) {
 	body := map[string]any{}
 	body["ttl"] = params.Ttl
 	body["channels"] = params.Channels
@@ -39,5 +39,5 @@ func (r *ChatNamespace) CreateToken(ctx context.Context, params ChatNamespaceCre
 		body["state"] = params.State
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[ChatToken](r.HTTP.Post(ctx, r.Base, body, nil))
+	return decodeResult[ChatToken](r.HTTP.Post(ctx, r.Base, body, nil, opts...))
 }

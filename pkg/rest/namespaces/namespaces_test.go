@@ -15,43 +15,109 @@ type mockHTTP struct {
 	lastPath   string
 	lastBody   map[string]any
 	lastParams map[string]string
+	lastOpts   *RequestOptions // first per-request override the verb forwarded (GO-1)
 	response   map[string]any
 	err        error
 }
 
-func (m *mockHTTP) Get(_ context.Context, path string, params map[string]string) (map[string]any, error) {
+// firstMockOpt records the first non-nil per-request override the verb forwarded,
+// so a test can assert request_options threads through (GO-1 / PY-7).
+func firstMockOpt(opts []*RequestOptions) *RequestOptions {
+	for _, o := range opts {
+		if o != nil {
+			return o
+		}
+	}
+	return nil
+}
+
+func (m *mockHTTP) Get(_ context.Context, path string, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
 	m.lastMethod = "GET"
 	m.lastPath = path
 	m.lastParams = params
+	m.lastOpts = firstMockOpt(opts)
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Post(_ context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error) {
+func (m *mockHTTP) Post(_ context.Context, path string, body map[string]any, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
 	m.lastMethod = "POST"
 	m.lastPath = path
 	m.lastBody = body
 	m.lastParams = params
+	m.lastOpts = firstMockOpt(opts)
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Put(_ context.Context, path string, body map[string]any) (map[string]any, error) {
+func (m *mockHTTP) Put(_ context.Context, path string, body map[string]any, opts ...*RequestOptions) (map[string]any, error) {
 	m.lastMethod = "PUT"
 	m.lastPath = path
 	m.lastBody = body
+	m.lastOpts = firstMockOpt(opts)
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Patch(_ context.Context, path string, body map[string]any) (map[string]any, error) {
+func (m *mockHTTP) Patch(_ context.Context, path string, body map[string]any, opts ...*RequestOptions) (map[string]any, error) {
 	m.lastMethod = "PATCH"
 	m.lastPath = path
 	m.lastBody = body
+	m.lastOpts = firstMockOpt(opts)
 	return m.response, m.err
 }
 
-func (m *mockHTTP) Delete(_ context.Context, path string) (map[string]any, error) {
+func (m *mockHTTP) Delete(_ context.Context, path string, opts ...*RequestOptions) (map[string]any, error) {
 	m.lastMethod = "DELETE"
 	m.lastPath = path
+	m.lastOpts = firstMockOpt(opts)
 	return m.response, m.err
+}
+
+// ---------------------------------------------------------------------------
+// request_options threading (GO-1 / PY-7): a per-request *RequestOptions passed
+// to a generated verb reaches the HTTP layer (never the wire body). The mock
+// captures the first forwarded override in lastOpts.
+// ---------------------------------------------------------------------------
+
+func TestRequestOptions_ThreadsThroughCrudVerbs(t *testing.T) {
+	mock := &mockHTTP{response: map[string]any{}}
+	r := NewCrudResource(mock, "/api/things")
+	to := 12.5
+	ro := &RequestOptions{Timeout: &to}
+
+	cases := []struct {
+		name string
+		call func()
+	}{
+		{"List", func() { _, _ = r.List(context.Background(), nil, ro) }},
+		{"Get", func() { _, _ = r.Get(context.Background(), "id-1", ro) }},
+		{"Create", func() { _, _ = r.Create(context.Background(), map[string]any{"a": 1}, ro) }},
+		{"Update", func() { _, _ = r.Update(context.Background(), "id-1", map[string]any{"a": 1}, ro) }},
+		{"Delete", func() { _, _ = r.Delete(context.Background(), "id-1", ro) }},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			mock.lastOpts = nil
+			c.call()
+			if mock.lastOpts != ro {
+				t.Errorf("%s: request_options not threaded to HTTP layer (lastOpts=%v)", c.name, mock.lastOpts)
+			}
+			// Never serialized into the wire body.
+			if mock.lastBody != nil {
+				if _, leaked := mock.lastBody["request_options"]; leaked {
+					t.Errorf("%s: request_options leaked into wire body", c.name)
+				}
+			}
+		})
+	}
+}
+
+func TestRequestOptions_OmittedIsNil(t *testing.T) {
+	mock := &mockHTTP{response: map[string]any{}}
+	r := NewCrudResource(mock, "/api/things")
+	mock.lastOpts = &RequestOptions{} // sentinel to prove the verb overwrites it
+	_, _ = r.Get(context.Background(), "id-1")
+	if mock.lastOpts != nil {
+		t.Errorf("no request_options passed, but HTTP layer saw %v", mock.lastOpts)
+	}
 }
 
 // ---------------------------------------------------------------------------

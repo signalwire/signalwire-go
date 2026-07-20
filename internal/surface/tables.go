@@ -760,7 +760,15 @@ var StructTable = map[string][]ClassTarget{
 	// NewRequestOptions factory), so __init__ + the abort_signal accessor are
 	// signature-only idiom divergences (PORT_SIGNATURE_OMISSIONS.md); the SURFACE
 	// oracle records only merge(), which this mapping projects.
-	"rest.RequestOptions": {{
+	//
+	// The struct + its Merge method live in the `namespaces` package (GO-1 /
+	// PY-7): the generated resource verbs name it in their `opts ...*RequestOptions`
+	// tail, and namespaces cannot import the parent rest package (rest already
+	// imports namespaces — an import cycle). The parent rest package re-exports it
+	// as a transparent type ALIAS, so the public spelling stays `rest.RequestOptions`
+	// while the method surface lives on `namespaces.RequestOptions` — hence the
+	// StructTable key is `namespaces.RequestOptions`.
+	"namespaces.RequestOptions": {{
 		Module: "signalwire.rest._request_options", Class: "RequestOptions",
 		Methods: map[string]string{
 			"Merge": "merge",

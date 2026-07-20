@@ -809,6 +809,16 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 		retSig = "(*" + respType + ", error)"
 	}
 
+	// Every generated operation verb takes a TRAILING optional
+	// `opts ...*RequestOptions` (the reference's keyword-only request_options —
+	// PY-7 / GO-1). It is per-request transport policy (timeout / retry / abort-
+	// signal), NEVER serialized into the wire body/query, so the emitted wire is
+	// unchanged; it is threaded straight to the HTTP verb. The signature
+	// enumerator reclassifies this trailing variadic to the reference's optional
+	// RequestOptions keyword param (generatedRequestOptionsTail), restoring the
+	// positional alignment the leading ctx would otherwise offset, so DRIFT is 0.
+	params = append(params, "opts ...*RequestOptions")
+
 	if structDef != "" {
 		b.WriteString(structDef)
 	}
@@ -845,18 +855,18 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	switch verb {
 	case "get":
 		if tail == "params" {
-			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(ctx, %s, params)", pathCode)))
+			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(ctx, %s, params, opts...)", pathCode)))
 		} else {
-			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(ctx, %s, nil)", pathCode)))
+			fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Get(ctx, %s, nil, opts...)", pathCode)))
 		}
 	case "post":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Post(ctx, %s, %s, nil)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Post(ctx, %s, %s, nil, opts...)", pathCode, dataExpr)))
 	case "put":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Put(ctx, %s, %s)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Put(ctx, %s, %s, opts...)", pathCode, dataExpr)))
 	case "patch":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Patch(ctx, %s, %s)", pathCode, dataExpr)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Patch(ctx, %s, %s, opts...)", pathCode, dataExpr)))
 	case "delete":
-		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Delete(ctx, %s)", pathCode)))
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Delete(ctx, %s, opts...)", pathCode)))
 	}
 	b.WriteString("}\n\n")
 	return nil
@@ -1041,14 +1051,17 @@ func emitResource(b *strings.Builder, rm *resourceMarkup, sd *specDoc, bases map
 	// ReadResource maps to the method-less Go `Resource` embed, so the base's
 	// list+get are synthesized here (the hand code writes them out explicitly).
 	if rm.base == "ReadResource" {
-		fmt.Fprintf(b, "func (r *%s) List(ctx context.Context, params map[string]string) (map[string]any, error) {\n\treturn r.HTTP.Get(ctx, r.Base, params)\n}\n\n", goName)
-		fmt.Fprintf(b, "func (r *%s) Get(ctx context.Context, id string) (map[string]any, error) {\n\treturn r.HTTP.Get(ctx, r.Path(id), nil)\n}\n\n", goName)
+		// Each synthesized base verb takes the trailing optional
+		// `opts ...*RequestOptions` (reference request_options — PY-7 / GO-1),
+		// threaded to the HTTP verb / paginator, never serialized.
+		fmt.Fprintf(b, "func (r *%s) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {\n\treturn r.HTTP.Get(ctx, r.Base, params, opts...)\n}\n\n", goName)
+		fmt.Fprintf(b, "func (r *%s) Get(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {\n\treturn r.HTTP.Get(ctx, r.Path(id), nil, opts...)\n}\n\n", goName)
 		// Paginate() is ReadResource.paginate()'s Go form: the Python oracle records
 		// paginate() on every concrete ReadResource subclass, so emit it here. These
 		// subclasses embed the method-less Resource (not CrudResource, which carries
 		// Paginate for the CRUD path), so it is synthesized directly, mirroring the
 		// CrudResource.Paginate body — a Paginator over the collection base path.
-		fmt.Fprintf(b, "func (r *%s) Paginate(ctx context.Context, params map[string]string) *Paginator {\n\treturn NewPaginator(ctx, r.HTTP, r.Base, params, \"data\")\n}\n\n", goName)
+		fmt.Fprintf(b, "func (r *%s) Paginate(ctx context.Context, params map[string]string, opts ...*RequestOptions) *Paginator {\n\treturn NewPaginator(ctx, r.HTTP, r.Base, params, \"data\", opts...)\n}\n\n", goName)
 	}
 
 	for _, mm := range extraMethods(rm, emb, sd) {
@@ -1113,6 +1126,14 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 		}
 	}
 	params = append(params, optParams...)
+	// request_options (PY-7 / GO-1): the reference's keyword-only request_options,
+	// spelled as a non-variadic `*RequestOptions` here because Go allows only ONE
+	// trailing variadic and the **kwargs `extra` tail already claims it. nil =>
+	// client default. Placed BEFORE the extra ...map[string]any door so its
+	// positional slot aligns with the reference's request_options keyword param
+	// (the enumerator reclassifies it via generatedRequestOptionsParam; the extra
+	// tail is a port-only optional the diff absorbs).
+	params = append(params, "requestOptions *RequestOptions")
 	params = append(params, "extra ...map[string]any")
 	fmt.Fprintf(b, "func (r *%s) %s(%s) (map[string]any, error) {\n", recv, goName, strings.Join(params, ", "))
 	b.WriteString("\tbody := map[string]any{\n")
@@ -1124,7 +1145,7 @@ func emitSetMethod(b *strings.Builder, recv string, rm *resourceMarkup, sm setMe
 		b.WriteString(l)
 	}
 	b.WriteString("\tmergeExtra(body, extra)\n")
-	b.WriteString("\treturn r.Update(ctx, sid, body)\n}\n\n")
+	b.WriteString("\treturn r.Update(ctx, sid, body, requestOptions)\n}\n\n")
 	return nil
 }
 
@@ -1235,10 +1256,10 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 	fmt.Fprintf(b, "func New%s(client HTTPClient) *%s {\n\treturn &%s{Resource{HTTP: client, Base: %q}}\n}\n\n", goName, goName, goName, base)
 	// execute helper (unexported → not enumerated for DRIFT; ctx threaded like the
 	// public methods so the whole command-dispatch call is cancellable).
-	fmt.Fprintf(b, "func (c *%s) execute(ctx context.Context, command string, callID string, params map[string]any) (map[string]any, error) {\n", goName)
+	fmt.Fprintf(b, "func (c *%s) execute(ctx context.Context, command string, callID string, params map[string]any, opts ...*RequestOptions) (map[string]any, error) {\n", goName)
 	b.WriteString("\tbody := map[string]any{\"command\": command, \"params\": params}\n")
 	b.WriteString("\tif callID != \"\" {\n\t\tbody[\"id\"] = callID\n\t}\n")
-	b.WriteString("\treturn c.HTTP.Post(ctx, c.Base, body, nil)\n}\n\n")
+	b.WriteString("\treturn c.HTTP.Post(ctx, c.Base, body, nil, opts...)\n}\n\n")
 
 	for _, cmd := range mapping {
 		mName, ok := callingMethodName[cmd]
@@ -1292,6 +1313,11 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 			sigParams = append(sigParams, "callID string")
 		}
 		sigParams = append(sigParams, "params "+structName)
+		// request_options (PY-7 / GO-1): the reference's trailing keyword-only
+		// request_options, spelled as the trailing `opts ...*RequestOptions`
+		// variadic and threaded through execute to the HTTP POST (never
+		// serialized). The enumerator reclassifies it to the reference param.
+		sigParams = append(sigParams, "opts ...*RequestOptions")
 		// Command methods return the typed CallResponse (the call-commands op's
 		// 200 response is a $ref to CallResponse for every command).
 		fmt.Fprintf(b, "func (c *%s) %s(%s) (*CallResponse, error) {\n", goName, mName, strings.Join(sigParams, ", "))
@@ -1308,7 +1334,7 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		if withID {
 			callID = "callID"
 		}
-		fmt.Fprintf(b, "\treturn decodeResult[CallResponse](c.execute(ctx, %q, %s, body))\n}\n\n", cmd, callID)
+		fmt.Fprintf(b, "\treturn decodeResult[CallResponse](c.execute(ctx, %q, %s, body, opts...))\n}\n\n", cmd, callID)
 	}
 	return nil
 }

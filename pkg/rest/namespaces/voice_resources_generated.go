@@ -19,18 +19,18 @@ func NewVoiceLogs(client HTTPClient) *VoiceLogs {
 	return &VoiceLogs{Resource{HTTP: client, Base: "/api/voice/logs"}}
 }
 
-func (r *VoiceLogs) List(ctx context.Context, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Base, params)
+func (r *VoiceLogs) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params, opts...)
 }
 
-func (r *VoiceLogs) Get(ctx context.Context, id string) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Path(id), nil)
+func (r *VoiceLogs) Get(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil, opts...)
 }
 
-func (r *VoiceLogs) Paginate(ctx context.Context, params map[string]string) *Paginator {
-	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
+func (r *VoiceLogs) Paginate(ctx context.Context, params map[string]string, opts ...*RequestOptions) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data", opts...)
 }
 
-func (r *VoiceLogs) ListEvents(ctx context.Context, id string, params map[string]string) (*LogEventsListResponse, error) {
-	return decodeResult[LogEventsListResponse](r.HTTP.Get(ctx, r.Path(id, "events"), params))
+func (r *VoiceLogs) ListEvents(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*LogEventsListResponse, error) {
+	return decodeResult[LogEventsListResponse](r.HTTP.Get(ctx, r.Path(id, "events"), params, opts...))
 }

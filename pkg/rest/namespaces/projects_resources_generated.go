@@ -19,6 +19,6 @@ func NewProjects(client HTTPClient) *Projects {
 	return &Projects{NewCrudResource(client, "/api/projects")}
 }
 
-func (r *Projects) RotateSigningKey(ctx context.Context, id string) (*ProjectWithSigningKey, error) {
-	return decodeResult[ProjectWithSigningKey](r.HTTP.Post(ctx, r.Path(id, "signing-key", "rotate"), nil, nil))
+func (r *Projects) RotateSigningKey(ctx context.Context, id string, opts ...*RequestOptions) (*ProjectWithSigningKey, error) {
+	return decodeResult[ProjectWithSigningKey](r.HTTP.Post(ctx, r.Path(id, "signing-key", "rotate"), nil, nil, opts...))
 }

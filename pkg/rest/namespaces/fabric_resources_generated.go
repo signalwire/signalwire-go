@@ -19,16 +19,16 @@ func NewFabricAddresses(client HTTPClient) *FabricAddresses {
 	return &FabricAddresses{Resource{HTTP: client, Base: "/api/fabric/addresses"}}
 }
 
-func (r *FabricAddresses) List(ctx context.Context, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Base, params)
+func (r *FabricAddresses) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params, opts...)
 }
 
-func (r *FabricAddresses) Get(ctx context.Context, id string) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Path(id), nil)
+func (r *FabricAddresses) Get(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil, opts...)
 }
 
-func (r *FabricAddresses) Paginate(ctx context.Context, params map[string]string) *Paginator {
-	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
+func (r *FabricAddresses) Paginate(ctx context.Context, params map[string]string, opts ...*RequestOptions) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data", opts...)
 }
 
 // GenericResources is a client for the "GenericResources" resource of the SignalWire fabric API.
@@ -41,20 +41,20 @@ func NewGenericResources(client HTTPClient) *GenericResources {
 	return &GenericResources{Resource{HTTP: client, Base: "/api/fabric/resources"}}
 }
 
-func (r *GenericResources) List(ctx context.Context, params map[string]string) (*ResourceListResponse, error) {
-	return decodeResult[ResourceListResponse](r.HTTP.Get(ctx, r.Base, params))
+func (r *GenericResources) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (*ResourceListResponse, error) {
+	return decodeResult[ResourceListResponse](r.HTTP.Get(ctx, r.Base, params, opts...))
 }
 
-func (r *GenericResources) Get(ctx context.Context, id string, params map[string]string) (*ResourceResponse, error) {
-	return decodeResult[ResourceResponse](r.HTTP.Get(ctx, r.Path(id), params))
+func (r *GenericResources) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*ResourceResponse, error) {
+	return decodeResult[ResourceResponse](r.HTTP.Get(ctx, r.Path(id), params, opts...))
 }
 
-func (r *GenericResources) Delete(ctx context.Context, id string) (map[string]any, error) {
-	return r.HTTP.Delete(ctx, r.Path(id))
+func (r *GenericResources) Delete(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id), opts...)
 }
 
-func (r *GenericResources) ListAddresses(ctx context.Context, id string, params map[string]string) (*ResourceAddressListResponse, error) {
-	return decodeResult[ResourceAddressListResponse](r.HTTP.Get(ctx, r.Path(id, "addresses"), params))
+func (r *GenericResources) ListAddresses(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*ResourceAddressListResponse, error) {
+	return decodeResult[ResourceAddressListResponse](r.HTTP.Get(ctx, r.Path(id, "addresses"), params, opts...))
 }
 
 // GenericResourcesAssignPhoneRouteParams holds the named optional parameters for GenericResources.AssignPhoneRoute.
@@ -64,12 +64,12 @@ type GenericResourcesAssignPhoneRouteParams struct {
 	Extras       map[string]any
 }
 
-func (r *GenericResources) AssignPhoneRoute(ctx context.Context, id string, params GenericResourcesAssignPhoneRouteParams) (*PhoneRouteResponse, error) {
+func (r *GenericResources) AssignPhoneRoute(ctx context.Context, id string, params GenericResourcesAssignPhoneRouteParams, opts ...*RequestOptions) (*PhoneRouteResponse, error) {
 	body := map[string]any{}
 	body["phone_route_id"] = params.PhoneRouteID
 	body["handler"] = params.Handler
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[PhoneRouteResponse](r.HTTP.Post(ctx, r.Path(id, "phone_routes"), body, nil))
+	return decodeResult[PhoneRouteResponse](r.HTTP.Post(ctx, r.Path(id, "phone_routes"), body, nil, opts...))
 }
 
 // GenericResourcesAssignDomainApplicationParams holds the named optional parameters for GenericResources.AssignDomainApplication.
@@ -78,11 +78,11 @@ type GenericResourcesAssignDomainApplicationParams struct {
 	Extras              map[string]any
 }
 
-func (r *GenericResources) AssignDomainApplication(ctx context.Context, id string, params GenericResourcesAssignDomainApplicationParams) (*DomainApplicationResponse, error) {
+func (r *GenericResources) AssignDomainApplication(ctx context.Context, id string, params GenericResourcesAssignDomainApplicationParams, opts ...*RequestOptions) (*DomainApplicationResponse, error) {
 	body := map[string]any{}
 	body["domain_application_id"] = params.DomainApplicationID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[DomainApplicationResponse](r.HTTP.Post(ctx, r.Path(id, "domain_applications"), body, nil))
+	return decodeResult[DomainApplicationResponse](r.HTTP.Post(ctx, r.Path(id, "domain_applications"), body, nil, opts...))
 }
 
 // AIAgents is a client for the "AiAgents" resource of the SignalWire fabric API.
@@ -105,16 +105,16 @@ func NewCallFlowsResource(client HTTPClient) *CallFlowsResource {
 	return &CallFlowsResource{NewCrudResourcePUT(client, "/api/fabric/resources/call_flows")}
 }
 
-func (r *CallFlowsResource) ListAddresses(ctx context.Context, id string, params map[string]string) (*CallFlowAddressListResponse, error) {
-	return decodeResult[CallFlowAddressListResponse](r.HTTP.Get(ctx, "/api/fabric/resources/call_flow/"+id+"/addresses", params))
+func (r *CallFlowsResource) ListAddresses(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*CallFlowAddressListResponse, error) {
+	return decodeResult[CallFlowAddressListResponse](r.HTTP.Get(ctx, "/api/fabric/resources/call_flow/"+id+"/addresses", params, opts...))
 }
 
-func (r *CallFlowsResource) ListVersions(ctx context.Context, id string, params map[string]string) (*CallFlowVersionListResponse, error) {
-	return decodeResult[CallFlowVersionListResponse](r.HTTP.Get(ctx, "/api/fabric/resources/call_flow/"+id+"/versions", params))
+func (r *CallFlowsResource) ListVersions(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*CallFlowVersionListResponse, error) {
+	return decodeResult[CallFlowVersionListResponse](r.HTTP.Get(ctx, "/api/fabric/resources/call_flow/"+id+"/versions", params, opts...))
 }
 
-func (r *CallFlowsResource) DeployVersion(ctx context.Context, id string, data map[string]any) (*CallFlowVersionDeployResponse, error) {
-	return decodeResult[CallFlowVersionDeployResponse](r.HTTP.Post(ctx, "/api/fabric/resources/call_flow/"+id+"/versions", data, nil))
+func (r *CallFlowsResource) DeployVersion(ctx context.Context, id string, data map[string]any, opts ...*RequestOptions) (*CallFlowVersionDeployResponse, error) {
+	return decodeResult[CallFlowVersionDeployResponse](r.HTTP.Post(ctx, "/api/fabric/resources/call_flow/"+id+"/versions", data, nil, opts...))
 }
 
 // ConferenceRoomsResource is a client for the "ConferenceRooms" resource of the SignalWire fabric API.
@@ -127,8 +127,8 @@ func NewConferenceRoomsResource(client HTTPClient) *ConferenceRoomsResource {
 	return &ConferenceRoomsResource{NewCrudResourcePUT(client, "/api/fabric/resources/conference_rooms")}
 }
 
-func (r *ConferenceRoomsResource) ListAddresses(ctx context.Context, id string, params map[string]string) (*ConferenceRoomAddressListResponse, error) {
-	return decodeResult[ConferenceRoomAddressListResponse](r.HTTP.Get(ctx, "/api/fabric/resources/conference_room/"+id+"/addresses", params))
+func (r *ConferenceRoomsResource) ListAddresses(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*ConferenceRoomAddressListResponse, error) {
+	return decodeResult[ConferenceRoomAddressListResponse](r.HTTP.Get(ctx, "/api/fabric/resources/conference_room/"+id+"/addresses", params, opts...))
 }
 
 // CxmlApplicationsResource is a client for the "CxmlApplications" resource of the SignalWire fabric API.
@@ -141,12 +141,12 @@ func NewCxmlApplicationsResource(client HTTPClient) *CxmlApplicationsResource {
 	return &CxmlApplicationsResource{Resource{HTTP: client, Base: "/api/fabric/resources/cxml_applications"}}
 }
 
-func (r *CxmlApplicationsResource) List(ctx context.Context, params map[string]string) (*CxmlApplicationListResponse, error) {
-	return decodeResult[CxmlApplicationListResponse](r.HTTP.Get(ctx, r.Base, params))
+func (r *CxmlApplicationsResource) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (*CxmlApplicationListResponse, error) {
+	return decodeResult[CxmlApplicationListResponse](r.HTTP.Get(ctx, r.Base, params, opts...))
 }
 
-func (r *CxmlApplicationsResource) Get(ctx context.Context, id string, params map[string]string) (*CxmlApplicationResponse, error) {
-	return decodeResult[CxmlApplicationResponse](r.HTTP.Get(ctx, r.Path(id), params))
+func (r *CxmlApplicationsResource) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*CxmlApplicationResponse, error) {
+	return decodeResult[CxmlApplicationResponse](r.HTTP.Get(ctx, r.Path(id), params, opts...))
 }
 
 // CxmlApplicationsResourceUpdateParams holds the named optional parameters for CxmlApplicationsResource.Update.
@@ -168,7 +168,7 @@ type CxmlApplicationsResourceUpdateParams struct {
 	Extras                  map[string]any
 }
 
-func (r *CxmlApplicationsResource) Update(ctx context.Context, id string, params CxmlApplicationsResourceUpdateParams) (*CxmlApplicationResponse, error) {
+func (r *CxmlApplicationsResource) Update(ctx context.Context, id string, params CxmlApplicationsResourceUpdateParams, opts ...*RequestOptions) (*CxmlApplicationResponse, error) {
 	body := map[string]any{}
 	if params.DisplayName != nil {
 		body["display_name"] = params.DisplayName
@@ -213,15 +213,15 @@ func (r *CxmlApplicationsResource) Update(ctx context.Context, id string, params
 		body["sms_status_callback_method"] = params.SmsStatusCallbackMethod
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CxmlApplicationResponse](r.HTTP.Put(ctx, r.Path(id), body))
+	return decodeResult[CxmlApplicationResponse](r.HTTP.Put(ctx, r.Path(id), body, opts...))
 }
 
-func (r *CxmlApplicationsResource) Delete(ctx context.Context, id string) (map[string]any, error) {
-	return r.HTTP.Delete(ctx, r.Path(id))
+func (r *CxmlApplicationsResource) Delete(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id), opts...)
 }
 
-func (r *CxmlApplicationsResource) ListAddresses(ctx context.Context, id string, params map[string]string) (*CxmlApplicationAddressListResponse, error) {
-	return decodeResult[CxmlApplicationAddressListResponse](r.HTTP.Get(ctx, r.Path(id, "addresses"), params))
+func (r *CxmlApplicationsResource) ListAddresses(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*CxmlApplicationAddressListResponse, error) {
+	return decodeResult[CxmlApplicationAddressListResponse](r.HTTP.Get(ctx, r.Path(id, "addresses"), params, opts...))
 }
 
 // CXMLScripts is a client for the "CxmlScripts" resource of the SignalWire fabric API.
@@ -294,8 +294,8 @@ func NewSubscribersResource(client HTTPClient) *SubscribersResource {
 	return &SubscribersResource{NewCrudWithAddressesPUT(client, "/api/fabric/resources/subscribers")}
 }
 
-func (r *SubscribersResource) ListSIPEndpoints(ctx context.Context, subscriberID string, params map[string]string) (*SubscriberSipEndpointListResponse, error) {
-	return decodeResult[SubscriberSipEndpointListResponse](r.HTTP.Get(ctx, r.Path(subscriberID, "sip_endpoints"), params))
+func (r *SubscribersResource) ListSIPEndpoints(ctx context.Context, subscriberID string, params map[string]string, opts ...*RequestOptions) (*SubscriberSipEndpointListResponse, error) {
+	return decodeResult[SubscriberSipEndpointListResponse](r.HTTP.Get(ctx, r.Path(subscriberID, "sip_endpoints"), params, opts...))
 }
 
 // SubscribersResourceCreateSIPEndpointParams holds the named optional parameters for SubscribersResource.CreateSIPEndpoint.
@@ -310,7 +310,7 @@ type SubscribersResourceCreateSIPEndpointParams struct {
 	Extras     map[string]any
 }
 
-func (r *SubscribersResource) CreateSIPEndpoint(ctx context.Context, subscriberID string, params SubscribersResourceCreateSIPEndpointParams) (*SubscriberSIPEndpoint, error) {
+func (r *SubscribersResource) CreateSIPEndpoint(ctx context.Context, subscriberID string, params SubscribersResourceCreateSIPEndpointParams, opts ...*RequestOptions) (*SubscriberSIPEndpoint, error) {
 	body := map[string]any{}
 	body["username"] = params.Username
 	body["password"] = params.Password
@@ -330,11 +330,11 @@ func (r *SubscribersResource) CreateSIPEndpoint(ctx context.Context, subscriberI
 		body["encryption"] = params.Encryption
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Post(ctx, r.Path(subscriberID, "sip_endpoints"), body, nil))
+	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Post(ctx, r.Path(subscriberID, "sip_endpoints"), body, nil, opts...))
 }
 
-func (r *SubscribersResource) GetSIPEndpoint(ctx context.Context, subscriberID string, id string, params map[string]string) (*SubscriberSIPEndpoint, error) {
-	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Get(ctx, r.Path(subscriberID, "sip_endpoints", id), params))
+func (r *SubscribersResource) GetSIPEndpoint(ctx context.Context, subscriberID string, id string, params map[string]string, opts ...*RequestOptions) (*SubscriberSIPEndpoint, error) {
+	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Get(ctx, r.Path(subscriberID, "sip_endpoints", id), params, opts...))
 }
 
 // SubscribersResourceUpdateSIPEndpointParams holds the named optional parameters for SubscribersResource.UpdateSIPEndpoint.
@@ -349,7 +349,7 @@ type SubscribersResourceUpdateSIPEndpointParams struct {
 	Extras     map[string]any
 }
 
-func (r *SubscribersResource) UpdateSIPEndpoint(ctx context.Context, subscriberID string, id string, params SubscribersResourceUpdateSIPEndpointParams) (*SubscriberSIPEndpoint, error) {
+func (r *SubscribersResource) UpdateSIPEndpoint(ctx context.Context, subscriberID string, id string, params SubscribersResourceUpdateSIPEndpointParams, opts ...*RequestOptions) (*SubscriberSIPEndpoint, error) {
 	body := map[string]any{}
 	if params.Username != nil {
 		body["username"] = params.Username
@@ -373,11 +373,11 @@ func (r *SubscribersResource) UpdateSIPEndpoint(ctx context.Context, subscriberI
 		body["encryption"] = params.Encryption
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Patch(ctx, r.Path(subscriberID, "sip_endpoints", id), body))
+	return decodeResult[SubscriberSIPEndpoint](r.HTTP.Patch(ctx, r.Path(subscriberID, "sip_endpoints", id), body, opts...))
 }
 
-func (r *SubscribersResource) DeleteSIPEndpoint(ctx context.Context, subscriberID string, id string) (map[string]any, error) {
-	return r.HTTP.Delete(ctx, r.Path(subscriberID, "sip_endpoints", id))
+func (r *SubscribersResource) DeleteSIPEndpoint(ctx context.Context, subscriberID string, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(subscriberID, "sip_endpoints", id), opts...)
 }
 
 // SWMLScripts is a client for the "SwmlScripts" resource of the SignalWire fabric API.
@@ -427,7 +427,7 @@ type FabricTokensCreateSubscriberTokenParams struct {
 	Extras        map[string]any
 }
 
-func (r *FabricTokens) CreateSubscriberToken(ctx context.Context, params FabricTokensCreateSubscriberTokenParams) (*SubscriberTokenResponse, error) {
+func (r *FabricTokens) CreateSubscriberToken(ctx context.Context, params FabricTokensCreateSubscriberTokenParams, opts ...*RequestOptions) (*SubscriberTokenResponse, error) {
 	body := map[string]any{}
 	body["reference"] = params.Reference
 	if params.ExpireAt != nil {
@@ -464,7 +464,7 @@ func (r *FabricTokens) CreateSubscriberToken(ctx context.Context, params FabricT
 		body["company_name"] = params.CompanyName
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SubscriberTokenResponse](r.HTTP.Post(ctx, "/api/fabric/subscribers/tokens", body, nil))
+	return decodeResult[SubscriberTokenResponse](r.HTTP.Post(ctx, "/api/fabric/subscribers/tokens", body, nil, opts...))
 }
 
 // FabricTokensRefreshSubscriberTokenParams holds the named optional parameters for FabricTokens.RefreshSubscriberToken.
@@ -473,11 +473,11 @@ type FabricTokensRefreshSubscriberTokenParams struct {
 	Extras       map[string]any
 }
 
-func (r *FabricTokens) RefreshSubscriberToken(ctx context.Context, params FabricTokensRefreshSubscriberTokenParams) (*SubscriberRefreshTokenResponse, error) {
+func (r *FabricTokens) RefreshSubscriberToken(ctx context.Context, params FabricTokensRefreshSubscriberTokenParams, opts ...*RequestOptions) (*SubscriberRefreshTokenResponse, error) {
 	body := map[string]any{}
 	body["refresh_token"] = params.RefreshToken
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SubscriberRefreshTokenResponse](r.HTTP.Post(ctx, "/api/fabric/subscribers/tokens/refresh", body, nil))
+	return decodeResult[SubscriberRefreshTokenResponse](r.HTTP.Post(ctx, "/api/fabric/subscribers/tokens/refresh", body, nil, opts...))
 }
 
 // FabricTokensCreateInviteTokenParams holds the named optional parameters for FabricTokens.CreateInviteToken.
@@ -487,14 +487,14 @@ type FabricTokensCreateInviteTokenParams struct {
 	Extras    map[string]any
 }
 
-func (r *FabricTokens) CreateInviteToken(ctx context.Context, params FabricTokensCreateInviteTokenParams) (*SubscriberInviteTokenCreateResponse, error) {
+func (r *FabricTokens) CreateInviteToken(ctx context.Context, params FabricTokensCreateInviteTokenParams, opts ...*RequestOptions) (*SubscriberInviteTokenCreateResponse, error) {
 	body := map[string]any{}
 	body["address_id"] = params.AddressID
 	if params.ExpiresAt != nil {
 		body["expires_at"] = params.ExpiresAt
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SubscriberInviteTokenCreateResponse](r.HTTP.Post(ctx, "/api/fabric/subscriber/invites", body, nil))
+	return decodeResult[SubscriberInviteTokenCreateResponse](r.HTTP.Post(ctx, "/api/fabric/subscriber/invites", body, nil, opts...))
 }
 
 // FabricTokensCreateGuestTokenParams holds the named optional parameters for FabricTokens.CreateGuestToken.
@@ -504,7 +504,7 @@ type FabricTokensCreateGuestTokenParams struct {
 	Extras           map[string]any
 }
 
-func (r *FabricTokens) CreateGuestToken(ctx context.Context, params FabricTokensCreateGuestTokenParams) (*SubscriberGuestTokenCreateResponse, error) {
+func (r *FabricTokens) CreateGuestToken(ctx context.Context, params FabricTokensCreateGuestTokenParams, opts ...*RequestOptions) (*SubscriberGuestTokenCreateResponse, error) {
 	body := map[string]any{}
 	if params.AllowedAddresses != nil {
 		body["allowed_addresses"] = params.AllowedAddresses
@@ -513,7 +513,7 @@ func (r *FabricTokens) CreateGuestToken(ctx context.Context, params FabricTokens
 		body["expire_at"] = params.ExpireAt
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SubscriberGuestTokenCreateResponse](r.HTTP.Post(ctx, "/api/fabric/guests/tokens", body, nil))
+	return decodeResult[SubscriberGuestTokenCreateResponse](r.HTTP.Post(ctx, "/api/fabric/guests/tokens", body, nil, opts...))
 }
 
 // FabricTokensCreateEmbedTokenParams holds the named optional parameters for FabricTokens.CreateEmbedToken.
@@ -522,9 +522,9 @@ type FabricTokensCreateEmbedTokenParams struct {
 	Extras map[string]any
 }
 
-func (r *FabricTokens) CreateEmbedToken(ctx context.Context, params FabricTokensCreateEmbedTokenParams) (*EmbedsTokensResponse, error) {
+func (r *FabricTokens) CreateEmbedToken(ctx context.Context, params FabricTokensCreateEmbedTokenParams, opts ...*RequestOptions) (*EmbedsTokensResponse, error) {
 	body := map[string]any{}
 	body["token"] = params.Token
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[EmbedsTokensResponse](r.HTTP.Post(ctx, "/api/fabric/embeds/tokens", body, nil))
+	return decodeResult[EmbedsTokensResponse](r.HTTP.Post(ctx, "/api/fabric/embeds/tokens", body, nil, opts...))
 }

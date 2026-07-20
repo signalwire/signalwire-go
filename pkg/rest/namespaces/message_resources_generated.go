@@ -19,14 +19,14 @@ func NewMessageLogs(client HTTPClient) *MessageLogs {
 	return &MessageLogs{Resource{HTTP: client, Base: "/api/messaging/logs"}}
 }
 
-func (r *MessageLogs) List(ctx context.Context, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Base, params)
+func (r *MessageLogs) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params, opts...)
 }
 
-func (r *MessageLogs) Get(ctx context.Context, id string) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Path(id), nil)
+func (r *MessageLogs) Get(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil, opts...)
 }
 
-func (r *MessageLogs) Paginate(ctx context.Context, params map[string]string) *Paginator {
-	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
+func (r *MessageLogs) Paginate(ctx context.Context, params map[string]string, opts ...*RequestOptions) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data", opts...)
 }

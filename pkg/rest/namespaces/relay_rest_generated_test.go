@@ -903,7 +903,7 @@ func TestRelayRestGen_PhoneNumbers_SetAiAgent(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.PhoneNumbers.SetAiAgent(context.Background(), "x-1", "x-1")
+	_, err := client.PhoneNumbers.SetAiAgent(context.Background(), "x-1", "x-1", nil)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -924,7 +924,7 @@ func TestRelayRestGen_PhoneNumbers_SetAiAgent_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.update_phone_number", 500, map[string]any{"error": "x"})
-	_, err := client.PhoneNumbers.SetAiAgent(context.Background(), "x-1", "x-1")
+	_, err := client.PhoneNumbers.SetAiAgent(context.Background(), "x-1", "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

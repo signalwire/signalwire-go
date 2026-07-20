@@ -159,10 +159,9 @@ func TestLambdaHandler_DispatchesSwaigFunctionCall(t *testing.T) {
 
 	h := lambda.NewHandler(a.AsRouter())
 
-	// The Go SDK's handleSwaig treats `argument` as the flat args map
-	// (matching how the existing pkg/agent tests exercise it). The nested
-	// parsed/raw shape seen in Python is not accepted here.
-	body := `{"function":"greet","argument":{"name":"Ada"}}`
+	// The real platform (mod_openai) POSTs a tool call with args nested under
+	// argument.parsed[0] (SWAIG-HTTP fixture PSDK-7 / GO-7); handleSwaig unwraps it.
+	body := `{"function":"greet","argument":{"parsed":[{"name":"Ada"}],"raw":"{\"name\":\"Ada\"}"}}`
 	req := events.LambdaFunctionURLRequest{
 		RawPath: "/bot/swaig",
 		RequestContext: events.LambdaFunctionURLRequestContext{

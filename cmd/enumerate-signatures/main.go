@@ -114,6 +114,13 @@ var optionalTailVariadicMethods = map[string]bool{
 var optionalRequestOptionsTailMethods = map[string]bool{
 	"signalwire.rest._base.HttpClient.__init__":  true,
 	"signalwire.rest.client.RestClient.__init__": true,
+	// The Paginator ctor (NewPaginator → PaginatedIterator.__init__): the
+	// reference records request_options as a plain POSITIONAL __init__ param
+	// (`__init__(self, http, path, params, data_key, request_options=None)`), not
+	// a keyword-only one — so its trailing `opts ...*RequestOptions` reconciles to
+	// the positional class param via the ctor rule, NOT the keyword-only rule the
+	// generated verbs use.
+	"signalwire.rest._pagination.PaginatedIterator.__init__": true,
 }
 
 // optionsStructUnfoldMethods maps a fully-qualified Python reference method whose
@@ -1137,6 +1144,17 @@ type canonicalParam struct {
 
 func boolPtr(b bool) *bool { return &b }
 
+// indexOfParam returns the index of the first canonicalParam with the given
+// name, or -1. Used by the request_options ordering reconciliation.
+func indexOfParam(params []canonicalParam, name string) int {
+	for i, p := range params {
+		if p.Name == name {
+			return i
+		}
+	}
+	return -1
+}
+
 func goNameToSnake(s string) string {
 	// Reuse enumerate-surface's pascal_to_snake by inlining the canonical
 	// rule: insert _ between lowercase→uppercase and uppercase→Aa boundaries.
@@ -1295,6 +1313,45 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			})
 			continue
 		}
+		// request_options (PY-7 / GO-1): every generated-REST verb, its
+		// base-embedded CRUD/read counterparts, and the set_method wrappers carry a
+		// trailing per-request `opts ...*RequestOptions` (a variadic) — or, for the
+		// set_method form whose `extra ...map[string]any` already claims the
+		// variadic slot, a non-variadic `requestOptions *RequestOptions`. Both are
+		// the Go spelling of the reference's optional keyword-only
+		// `request_options: RequestOptions | None = None`. Reclassify EITHER to that
+		// single optional keyword class param so the port compares EQUAL (idiom
+		// reconciled in the enumerator, not an omission). The type marker
+		// `*RequestOptions` / `...*RequestOptions` is unambiguous — it appears
+		// nowhere else — so this is not table-gated. It is emitted here (before the
+		// var_keyword/struct handling) so the extra map[string]any tail still folds
+		// to **kwargs after it.
+		// The GENERATED verbs spell it as the variadic `opts ...*RequestOptions`;
+		// the set_method wrappers (whose `extra ...` already claims the variadic
+		// slot) spell it as a non-variadic param named exactly `requestOptions`.
+		// Both map to the reference's optional keyword-only request_options. A
+		// non-variadic `*RequestOptions` under ANY OTHER name (the hand HTTPClient
+		// verbs' `opts *RequestOptions`, where the reference records a plain
+		// POSITIONAL request_options) is NOT reclassified here — it falls through to
+		// the normal positional class translation below.
+		// EXCLUDE the ctor/HttpClient methods in optionalRequestOptionsTailMethods:
+		// their reference records request_options as a plain POSITIONAL param (a
+		// normal `__init__(..., request_options=None)` / hand-verb signature, not a
+		// keyword-only `*, request_options`). Those are handled by the ctor-scoped
+		// rule below (positional). Only the generated verbs + set_methods get the
+		// keyword-only classification here.
+		if !optionalRequestOptionsTailMethods[ctx] &&
+			(p.typeStr == "...*RequestOptions" ||
+				(p.typeStr == "*RequestOptions" && p.name == "requestOptions")) {
+			params = append(params, canonicalParam{
+				Name:     "request_options",
+				Kind:     "keyword",
+				Type:     "optional<class:signalwire.rest._request_options.RequestOptions>",
+				Required: boolPtr(false),
+				Default:  json.RawMessage("null"),
+			})
+			continue
+		}
 		// §5/§4a: a generated-REST operation/command method takes its wire-body
 		// fields as a named params STRUCT (`params <Recv><Method>Params`) instead of
 		// flat positionals. UNFOLD that struct back into the flat keyword set the
@@ -1364,7 +1421,59 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			})
 			continue
 		}
+		// The hand base resource methods (namespaces common.go: List / Get /
+		// ListAddresses / Paginate on CrudResource / CrudWithAddresses / the
+		// ReadResource embed) are NOT in a *_resources_generated.go file, so
+		// sig.restResource is false — but they carry the SAME `params
+		// map[string]string` query bag that the reference records as a stripped
+		// `**params` var_keyword. Recognize it by shape: a `params`/`extra` map bag
+		// IMMEDIATELY FOLLOWED by the `opts ...*RequestOptions` tail (the base-verb
+		// signature) → var_keyword, so it absorbs against the reference's stripped
+		// **params exactly like the generated form.
+		if (p.name == "params" || p.name == "extra") &&
+			strings.HasPrefix(p.typeStr, "map[string]") &&
+			pi+1 < len(sig.params) && sig.params[pi+1].typeStr == "...*RequestOptions" {
+			params = append(params, canonicalParam{
+				Name: p.name, Kind: "var_keyword", Type: "any",
+				Required: boolPtr(false), Default: json.RawMessage("{}"),
+			})
+			continue
+		}
 		params = append(params, cp)
+	}
+	// request_options ordering (PY-7 / GO-1): Python declares
+	// `*, request_options=None, **params` — the keyword-only request_options comes
+	// BEFORE the `**params` var_keyword tail; the oracle strips the tail, leaving
+	// request_options LAST. The Go verb spells the query/extra bag first
+	// (`params map[string]string` / `extra ...`) and the request_options tail
+	// after it, so the enumerated order is `..., <var_keyword>, request_options`.
+	// Reorder so request_options precedes any trailing var_keyword param(s),
+	// matching Python's declaration order — then the port's stripped-equivalent
+	// (a trailing optional var_keyword the diff absorbs) aligns with the
+	// reference's request_options positionally. Pure signature-shape
+	// reconciliation; the wire is unchanged.
+	if roIdx := indexOfParam(params, "request_options"); roIdx >= 0 {
+		ro := params[roIdx]
+		// Find the first var_keyword tail param (the reclassified GET query /
+		// set_method extra bag = the reference's stripped `**params`).
+		// request_options must sit BEFORE it to match Python's
+		// `*, request_options=None, **params` order.
+		firstVK := -1
+		for i, cp := range params {
+			if cp.Kind == "var_keyword" {
+				firstVK = i
+				break
+			}
+		}
+		if firstVK >= 0 && firstVK < roIdx {
+			// Remove request_options from its slot and re-insert before the var_keyword.
+			params = append(params[:roIdx], params[roIdx+1:]...)
+			out := make([]canonicalParam, 0, len(params)+1)
+			out = append(out, params[:firstVK]...)
+			out = append(out, ro)
+			out = append(out, params[firstVK:]...)
+			params = out
+		}
 	}
 	returns := "void"
 	if isCtor {

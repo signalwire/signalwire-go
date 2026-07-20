@@ -12,6 +12,11 @@ import (
 	"net/url"
 )
 
+// seenNext guards against a server that returns the SAME links.next cursor twice
+// (or cycles among a small set), which a follow-until-absent walk would chase
+// forever. Recording each cursor and stopping when one repeats bounds the walk
+// (PAGINATION-CORPUS repeating_cursor_guard).
+
 // Paginator walks every page of a list endpoint, following the response's
 // links.next cursor. It is the value returned by CrudResource.Paginate and is
 // the Go-idiom equivalent of Python's ReadResource.paginate()'s PaginatedIterator
@@ -23,19 +28,21 @@ import (
 // resource uses), so it lives in this package without importing the parent rest
 // package (which would create an import cycle: rest already imports namespaces).
 type Paginator struct {
-	ctx     context.Context
-	http    HTTPClient
-	path    string
-	params  map[string]string
-	dataKey string
-	done    bool
+	ctx      context.Context
+	http     HTTPClient
+	path     string
+	params   map[string]string
+	dataKey  string
+	done     bool
+	opts     []*RequestOptions
+	seenNext map[string]bool
 }
 
 // NewPaginator builds a Paginator for path against client. dataKey is the JSON
 // key holding the page's item array (defaults to "data"). params seeds the first
 // request's query (nil is fine). ctx is threaded onto every page fetch so the
 // whole walk is cancellable; a nil ctx falls back to context.Background().
-func NewPaginator(ctx context.Context, client HTTPClient, path string, params map[string]string, dataKey string) *Paginator {
+func NewPaginator(ctx context.Context, client HTTPClient, path string, params map[string]string, dataKey string, opts ...*RequestOptions) *Paginator {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -45,7 +52,7 @@ func NewPaginator(ctx context.Context, client HTTPClient, path string, params ma
 	if dataKey == "" {
 		dataKey = "data"
 	}
-	return &Paginator{ctx: ctx, http: client, path: path, params: params, dataKey: dataKey}
+	return &Paginator{ctx: ctx, http: client, path: path, params: params, dataKey: dataKey, opts: opts, seenNext: map[string]bool{}}
 }
 
 // Next fetches the next page. It returns the page's items, hasMore (true when a
@@ -57,7 +64,7 @@ func (p *Paginator) Next() ([]map[string]any, bool, error) {
 		return nil, false, nil
 	}
 
-	resp, err := p.http.Get(p.ctx, p.path, p.params)
+	resp, err := p.http.Get(p.ctx, p.path, p.params, p.opts...)
 	if err != nil {
 		return nil, false, err
 	}
@@ -73,11 +80,22 @@ func (p *Paginator) Next() ([]map[string]any, bool, error) {
 		}
 	}
 
-	// Follow links.next when it is a non-empty URL and this page had items.
+	// Follow links.next whenever it is a non-empty URL — INDEPENDENT of whether
+	// this page carried items. A page can be empty (data:[]) yet still point at a
+	// further page; a naive `len(items) > 0` guard STOPS on such a page and
+	// silently drops every later page (the P#1 pagination killer — PAGINATION-
+	// CORPUS empty_page_with_next). The only terminators are: an absent/empty
+	// next, or a next cursor already seen (the repeating-cursor loop guard).
 	if linksRaw, ok := resp["links"]; ok {
 		if links, ok := linksRaw.(map[string]any); ok {
 			if nextRaw, ok := links["next"]; ok {
-				if nextURL, ok := nextRaw.(string); ok && nextURL != "" && len(items) > 0 {
+				if nextURL, ok := nextRaw.(string); ok && nextURL != "" {
+					if p.seenNext[nextURL] {
+						// Repeated cursor: stop rather than loop forever.
+						p.done = true
+						return items, false, nil
+					}
+					p.seenNext[nextURL] = true
 					if parsed, perr := url.Parse(nextURL); perr == nil {
 						next := map[string]string{}
 						for k, v := range parsed.Query() {

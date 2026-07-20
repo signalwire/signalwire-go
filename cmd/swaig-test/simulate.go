@@ -474,9 +474,16 @@ func SimulateExecToolViaLambda(
 		return nil, fmt.Errorf("simulate-lambda exec: factory returned nil handler")
 	}
 
+	// Send the PLATFORM-nested argument shape (argument.parsed[0], same as the
+	// real mod_openai POST) so this exercises the exact dispatch path handleSwaig
+	// unwraps — matching SimulateExecTool's HTTP path and the GO-7 contract.
+	rawArgs, err := json.Marshal(args)
+	if err != nil {
+		return nil, fmt.Errorf("simulate-lambda exec: marshal args: %w", err)
+	}
 	payload := map[string]any{
 		"function": toolName,
-		"argument": args,
+		"argument": map[string]any{"parsed": []any{args}, "raw": string(rawArgs)},
 		"call_id":  "simulate-call-id",
 	}
 	body, err := json.Marshal(payload)

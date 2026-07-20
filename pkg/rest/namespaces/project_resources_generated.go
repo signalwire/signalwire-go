@@ -27,7 +27,7 @@ type ProjectTokensCreateParams struct {
 	Extras       map[string]any
 }
 
-func (r *ProjectTokens) Create(ctx context.Context, params ProjectTokensCreateParams) (*TokenResponse, error) {
+func (r *ProjectTokens) Create(ctx context.Context, params ProjectTokensCreateParams, opts ...*RequestOptions) (*TokenResponse, error) {
 	body := map[string]any{}
 	body["name"] = params.Name
 	if params.Permissions != nil {
@@ -37,7 +37,7 @@ func (r *ProjectTokens) Create(ctx context.Context, params ProjectTokensCreatePa
 		body["subproject_id"] = params.SubprojectID
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[TokenResponse](r.HTTP.Post(ctx, r.Base, body, nil))
+	return decodeResult[TokenResponse](r.HTTP.Post(ctx, r.Base, body, nil, opts...))
 }
 
 // ProjectTokensUpdateParams holds the named optional parameters for ProjectTokens.Update.
@@ -47,7 +47,7 @@ type ProjectTokensUpdateParams struct {
 	Extras      map[string]any
 }
 
-func (r *ProjectTokens) Update(ctx context.Context, tokenID string, params ProjectTokensUpdateParams) (*TokenResponse, error) {
+func (r *ProjectTokens) Update(ctx context.Context, tokenID string, params ProjectTokensUpdateParams, opts ...*RequestOptions) (*TokenResponse, error) {
 	body := map[string]any{}
 	if params.Name != nil {
 		body["name"] = params.Name
@@ -56,9 +56,9 @@ func (r *ProjectTokens) Update(ctx context.Context, tokenID string, params Proje
 		body["permissions"] = params.Permissions
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[TokenResponse](r.HTTP.Patch(ctx, r.Path(tokenID), body))
+	return decodeResult[TokenResponse](r.HTTP.Patch(ctx, r.Path(tokenID), body, opts...))
 }
 
-func (r *ProjectTokens) Delete(ctx context.Context, tokenID string) (map[string]any, error) {
-	return r.HTTP.Delete(ctx, r.Path(tokenID))
+func (r *ProjectTokens) Delete(ctx context.Context, tokenID string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(tokenID), opts...)
 }

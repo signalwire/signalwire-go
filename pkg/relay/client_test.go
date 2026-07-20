@@ -1105,3 +1105,36 @@ func TestCall_WaitForPredicateDoesNotDeadlockDispatch(t *testing.T) {
 		t.Errorf("State()=%q after second dispatch, want ended", c.State())
 	}
 }
+
+// TestClient_MaxActiveCallsCapEnforced is the GO-4 regression: with a cap of N,
+// the N+1th inbound call is DROPPED (not registered, handler not invoked) —
+// mirroring python _handle_inbound_call. Before the fix the cap field was
+// written by WithMaxActiveCalls but never read, so the cap was a silent no-op.
+func TestClient_MaxActiveCallsCapEnforced(t *testing.T) {
+	c := NewRelayClient(
+		WithProject("p"), WithToken("t"),
+		WithMaxActiveCalls(2),
+	)
+
+	c.OnCall(func(*Call) {})
+
+	// Feed 3 inbound-receive events straight through the dispatch path.
+	for i := 0; i < 3; i++ {
+		c.handleEvent(EventCallingCallReceive, map[string]any{
+			"call_id":    "c" + string(rune('0'+i)),
+			"node_id":    "n",
+			"direction":  "inbound",
+			"call_state": "created",
+			"context":    "default",
+		})
+	}
+	// Give the goroutine-dispatched OnCall handlers a moment.
+	time.Sleep(100 * time.Millisecond)
+
+	c.mu.RLock()
+	active := len(c.calls)
+	c.mu.RUnlock()
+	if active != 2 {
+		t.Errorf("active calls = %d, want 2 (the cap); the 3rd must be dropped", active)
+	}
+}

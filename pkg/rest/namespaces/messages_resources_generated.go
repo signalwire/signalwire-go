@@ -31,7 +31,7 @@ type MessagesCreateParams struct {
 	Extras          map[string]any
 }
 
-func (r *Messages) Create(ctx context.Context, params MessagesCreateParams) (*Message, error) {
+func (r *Messages) Create(ctx context.Context, params MessagesCreateParams, opts ...*RequestOptions) (*Message, error) {
 	body := map[string]any{}
 	body["to"] = params.To
 	body["from"] = params.From
@@ -51,7 +51,7 @@ func (r *Messages) Create(ctx context.Context, params MessagesCreateParams) (*Me
 		body["custom_variables"] = params.CustomVariables
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Message](r.HTTP.Post(ctx, r.Base, body, nil))
+	return decodeResult[Message](r.HTTP.Post(ctx, r.Base, body, nil, opts...))
 }
 
 // MessagesUpdateParams holds the named optional parameters for Messages.Update.
@@ -60,9 +60,9 @@ type MessagesUpdateParams struct {
 	Extras map[string]any
 }
 
-func (r *Messages) Update(ctx context.Context, id string, params MessagesUpdateParams) (*Message, error) {
+func (r *Messages) Update(ctx context.Context, id string, params MessagesUpdateParams, opts ...*RequestOptions) (*Message, error) {
 	body := map[string]any{}
 	body["body"] = params.Body
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Message](r.HTTP.Patch(ctx, r.Path(id), body))
+	return decodeResult[Message](r.HTTP.Patch(ctx, r.Path(id), body, opts...))
 }

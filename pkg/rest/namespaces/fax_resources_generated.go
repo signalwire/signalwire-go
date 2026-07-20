@@ -19,14 +19,14 @@ func NewFaxLogs(client HTTPClient) *FaxLogs {
 	return &FaxLogs{Resource{HTTP: client, Base: "/api/fax/logs"}}
 }
 
-func (r *FaxLogs) List(ctx context.Context, params map[string]string) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Base, params)
+func (r *FaxLogs) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params, opts...)
 }
 
-func (r *FaxLogs) Get(ctx context.Context, id string) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Path(id), nil)
+func (r *FaxLogs) Get(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil, opts...)
 }
 
-func (r *FaxLogs) Paginate(ctx context.Context, params map[string]string) *Paginator {
-	return NewPaginator(ctx, r.HTTP, r.Base, params, "data")
+func (r *FaxLogs) Paginate(ctx context.Context, params map[string]string, opts ...*RequestOptions) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data", opts...)
 }
