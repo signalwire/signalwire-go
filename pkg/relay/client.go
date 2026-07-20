@@ -978,6 +978,16 @@ func (c *Client) handleCallingEvent(eventType string, params map[string]any) {
 			call.context = ctxStr
 		}
 		c.mu.Lock()
+		// Overload protection: drop the inbound call when the active-call cap is
+		// reached, mirroring python _handle_inbound_call (relay/client.py:1020-1024)
+		// — do NOT register it and do NOT invoke the on_call handler. The cap is
+		// always positive (DefaultMaxActiveCalls when unset), so this is a real
+		// ceiling, not a no-op knob.
+		if c.maxActiveCalls > 0 && len(c.calls) >= c.maxActiveCalls {
+			c.mu.Unlock()
+			c.logger.Printf("relay: max active calls (%d) reached, dropping inbound call %s", c.maxActiveCalls, callID)
+			return
+		}
 		c.calls[callID] = call
 		handler := c.onCall
 		c.mu.Unlock()

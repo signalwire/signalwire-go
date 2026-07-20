@@ -253,21 +253,50 @@ func (c *Call) dispatchEvent(event *RelayEvent) {
 	handlers := make([]func(*RelayEvent), len(c.eventHandlers[event.EventType]))
 	copy(handlers, c.eventHandlers[event.EventType])
 
-	// Check waiters.
-	remaining := c.waiters[:0]
+	// Snapshot the waiters registered for this event type so their predicates
+	// can run OUTSIDE the lock. A predicate is arbitrary user code that commonly
+	// reads a Call getter (State(), Direction(), Device(), ...) — every one of
+	// which takes this same non-reentrant mutex. Evaluating a predicate while
+	// holding c.mu therefore self-deadlocks the read-loop goroutine (the whole
+	// client wedges; every subsequent execute times out). So we match+deliver
+	// after Unlock, mirroring how On() handlers are already dispatched unlocked.
+	candidates := make([]waiter, 0, len(c.waiters))
 	for _, w := range c.waiters {
-		if w.eventType == event.EventType && (w.predicate == nil || w.predicate(event)) {
+		if w.eventType == event.EventType {
+			candidates = append(candidates, w)
+		}
+	}
+
+	c.mu.Unlock()
+
+	// Evaluate predicates unlocked and deliver to the matched waiters. Track
+	// which channels matched so we can remove exactly those waiters afterward.
+	matched := make(map[chan *RelayEvent]struct{}, len(candidates))
+	for _, w := range candidates {
+		if w.predicate == nil || w.predicate(event) {
+			matched[w.ch] = struct{}{}
 			select {
 			case w.ch <- event:
 			default:
 			}
-		} else {
-			remaining = append(remaining, w)
 		}
 	}
-	c.waiters = remaining
 
-	c.mu.Unlock()
+	// Re-acquire to prune the matched waiters. Rebuild against the CURRENT
+	// c.waiters (not the snapshot) so any waiter appended concurrently by a
+	// WaitFor call during predicate evaluation is preserved.
+	if len(matched) > 0 {
+		c.mu.Lock()
+		remaining := c.waiters[:0]
+		for _, w := range c.waiters {
+			if _, hit := matched[w.ch]; hit {
+				continue
+			}
+			remaining = append(remaining, w)
+		}
+		c.waiters = remaining
+		c.mu.Unlock()
+	}
 
 	for _, h := range handlers {
 		h(event)

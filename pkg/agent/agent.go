@@ -3792,6 +3792,51 @@ func (a *AgentBase) clone() *AgentBase {
 }
 
 // handleSwaig dispatches incoming SWAIG function calls.
+// extractSwaigArgs unwraps the SWAIG request body's arguments to the flat args
+// dict a tool handler expects, mirroring the python reference
+// (core/swml_service.py _handle_swaig_request). Extraction order:
+//
+//  1. body["argument"] is an object with a non-empty "parsed" array  -> parsed[0]
+//  2. body["argument"] is an object with a non-empty "raw" string     -> json.Unmarshal(raw)
+//  3. body["argument"] is a bare JSON string                          -> json.Unmarshal(string)
+//  4. body["arguments"] is an object (the flat fallback some           -> arguments
+//     integrations + the platform both accept)
+//  5. otherwise                                                        -> {}
+//
+// A result that does not decode to a JSON object yields an empty map (never nil),
+// so a handler always receives a usable args map.
+func extractSwaigArgs(body map[string]any) map[string]any {
+	if arg, ok := body["argument"].(map[string]any); ok {
+		// (1) parsed[0]
+		if parsed, ok := arg["parsed"].([]any); ok && len(parsed) > 0 {
+			if first, ok := parsed[0].(map[string]any); ok {
+				return first
+			}
+		}
+		// (2) raw (JSON string)
+		if raw, ok := arg["raw"].(string); ok && raw != "" {
+			var m map[string]any
+			if json.Unmarshal([]byte(raw), &m) == nil && m != nil {
+				return m
+			}
+		}
+		return map[string]any{}
+	}
+	// (3) argument as a bare JSON string.
+	if argStr, ok := body["argument"].(string); ok && argStr != "" {
+		var m map[string]any
+		if json.Unmarshal([]byte(argStr), &m) == nil && m != nil {
+			return m
+		}
+	}
+	// (4) flat {"arguments": {...}} fallback.
+	if flat, ok := body["arguments"].(map[string]any); ok && flat != nil {
+		return flat
+	}
+	// (5) nothing usable.
+	return map[string]any{}
+}
+
 func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -3811,20 +3856,15 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	args, _ := body["argument"].(map[string]any)
-	if args == nil {
-		// Try parsing argument as JSON string
-		if argStr, ok := body["argument"].(string); ok && argStr != "" {
-			if err := json.Unmarshal([]byte(argStr), &args); err != nil {
-				// Best-effort parse: on failure fall through to the
-				// empty-map fallback below rather than erroring out.
-				args = nil
-			}
-		}
-		if args == nil {
-			args = make(map[string]any)
-		}
-	}
+	// Argument extraction. The real platform (mod_openai) POSTs a tool call as
+	// the PLATFORM-NESTED shape {"argument": {"parsed": [{...args...}], "raw":
+	// "<json>"}} — NOT a flat args dict. Mirror the python reference
+	// (core/swml_service.py _handle_swaig_request, ~:832-851): unwrap
+	// argument.parsed[0], else argument.raw (JSON), else a flat {"arguments":{...}}
+	// fallback, else {}. The pre-GO-7 code read body["argument"] straight into
+	// args, so on a real platform call the handler received {"parsed":..,"raw":..}
+	// (i.e. NO real args) — SWAIG-HTTP fixture PSDK-7's platform_nested case.
+	args := extractSwaigArgs(body)
 
 	result, err := a.OnFunctionCall(funcName, args, body)
 	if err != nil {

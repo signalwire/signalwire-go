@@ -1276,7 +1276,10 @@ func TestHTTP_SwaigEndpoint(t *testing.T) {
 	})
 	mux := a.buildMux()
 
-	payload := `{"function":"greet","argument":{"name":"World"}}`
+	// The real platform (mod_openai) POSTs a tool call with the args nested under
+	// argument.parsed[0] (SWAIG-HTTP fixture PSDK-7 / GO-7). The handler must
+	// receive the REAL flat args, not the {parsed,raw} envelope.
+	payload := `{"function":"greet","argument":{"parsed":[{"name":"World"}],"raw":"{\"name\":\"World\"}"}}`
 	req := httptest.NewRequest("POST", "/swaig", strings.NewReader(payload))
 	req.SetBasicAuth("u", "p")
 	req.Header.Set("Content-Type", "application/json")
@@ -1293,6 +1296,64 @@ func TestHTTP_SwaigEndpoint(t *testing.T) {
 	}
 	if result["response"] != "Hi, World" {
 		t.Errorf("unexpected response: %v", result)
+	}
+}
+
+// TestHTTP_SwaigEndpoint_ArgUnwrap pins the argument-extraction contract the
+// GO-7 fix implements (mirroring the python reference _handle_swaig_request):
+// the /swaig handler unwraps argument.parsed[0], argument.raw, and the flat
+// {"arguments": {...}} fallback to the real flat args a handler expects. Before
+// GO-7 the handler received the {parsed,raw} envelope raw (empty real args) on
+// every platform call.
+func TestHTTP_SwaigEndpoint_ArgUnwrap(t *testing.T) {
+	cases := []struct {
+		name    string
+		payload string
+		want    string
+	}{
+		{
+			name:    "platform_nested_parsed",
+			payload: `{"function":"greet","argument":{"parsed":[{"name":"Ada"}],"raw":"{\"name\":\"Ada\"}"}}`,
+			want:    "Hi, Ada",
+		},
+		{
+			name:    "argument_raw_only",
+			payload: `{"function":"greet","argument":{"raw":"{\"name\":\"Bo\"}"}}`,
+			want:    "Hi, Bo",
+		},
+		{
+			name:    "flat_arguments_fallback",
+			payload: `{"function":"greet","arguments":{"name":"Cy"}}`,
+			want:    "Hi, Cy",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := NewAgentBase(WithBasicAuth("u", "p"))
+			a.DefineTool(ToolDefinition{
+				Name: "greet",
+				Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+					name, _ := args["name"].(string)
+					return swaig.NewFunctionResult("Hi, " + name)
+				},
+			})
+			mux := a.buildMux()
+			req := httptest.NewRequest("POST", "/swaig", strings.NewReader(tc.payload))
+			req.SetBasicAuth("u", "p")
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
+			mux.ServeHTTP(rr, req)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("expected 200, got %d", rr.Code)
+			}
+			var result map[string]any
+			if err := json.NewDecoder(rr.Body).Decode(&result); err != nil {
+				t.Fatalf("decode response: %v", err)
+			}
+			if result["response"] != tc.want {
+				t.Errorf("response = %v, want %q", result["response"], tc.want)
+			}
+		})
 	}
 }
 

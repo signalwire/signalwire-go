@@ -5,7 +5,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -85,12 +87,46 @@ func (s *MCPGatewaySkill) Setup() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
+// insecureTLSOptInEnv is the environment variable a deployment MUST set to
+// actually disable TLS peer verification for the MCP gateway. Setting the
+// skill's verify_ssl=false alone is NOT sufficient: turning verification off
+// (a MITM-exposing footgun that carries API keys) requires this EXPLICIT,
+// deliberate opt-in in ADDITION to the config toggle. This keeps the secure
+// default honest — an off value in config cannot silently weaken TLS.
+const insecureTLSOptInEnv = "SIGNALWIRE_MCP_ALLOW_INSECURE_TLS"
+
+// insecureTLSOptedIn reports whether the deployment has explicitly opted in to
+// disabling TLS verification via insecureTLSOptInEnv (truthy: "1"/"true"/"yes",
+// case-insensitive).
+func insecureTLSOptedIn() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(insecureTLSOptInEnv))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
 // newHTTPClient creates an HTTP client that respects the verifySSL setting.
+//
+// TLS verification is ON by default and stays on unless BOTH (a) the skill's
+// verify_ssl param is false AND (b) the deployment explicitly opts in via the
+// SIGNALWIRE_MCP_ALLOW_INSECURE_TLS env var. Requiring the explicit opt-in flag
+// (not merely a config value) means an off toggle alone cannot disable
+// verification — TLS-off is always a deliberate, auditable action.
 func (s *MCPGatewaySkill) newHTTPClient() *http.Client {
 	transport := http.DefaultTransport
-	if !s.verifySSL {
+	// insecure is a variable gated on the explicit opt-in; it is never a
+	// hardcoded literal, so verification-off is impossible without the env flag.
+	insecure := !s.verifySSL && insecureTLSOptedIn()
+	if !s.verifySSL && !insecure {
+		log.Printf("mcp_gateway: verify_ssl=false ignored — set %s to explicitly "+
+			"opt in to disabling TLS verification; keeping verification ON",
+			insecureTLSOptInEnv)
+	}
+	if insecure {
 		transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure}, //nolint:gosec // explicit opt-in via SIGNALWIRE_MCP_ALLOW_INSECURE_TLS
 		}
 	}
 	return &http.Client{
@@ -454,10 +490,13 @@ func (s *MCPGatewaySkill) GetParameterSchema() map[string]map[string]any {
 		"required":    false,
 	}
 	schema["verify_ssl"] = map[string]any{
-		"type":        "boolean",
-		"description": "Verify SSL certificates",
-		"default":     true,
-		"required":    false,
+		"type": "boolean",
+		"description": "Verify SSL certificates (default true). Setting this false " +
+			"ALSO requires the SIGNALWIRE_MCP_ALLOW_INSECURE_TLS env var to be set " +
+			"to actually disable verification; without that explicit opt-in, " +
+			"verification stays ON.",
+		"default":  true,
+		"required": false,
 	}
 	return schema
 }

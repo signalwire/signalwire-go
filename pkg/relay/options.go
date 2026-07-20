@@ -700,9 +700,20 @@ func WithContexts(contexts ...string) ClientOption {
 	}
 }
 
-// WithMaxActiveCalls limits the number of concurrent active calls.
+// DefaultMaxActiveCalls is the inbound-call ceiling applied when neither
+// WithMaxActiveCalls nor RELAY_MAX_ACTIVE_CALLS sets one. Mirrors python's
+// _DEFAULT_MAX_ACTIVE_CALLS (relay/client.py:92): overload protection is always
+// in effect, never "unlimited".
+const DefaultMaxActiveCalls = 1000
+
+// WithMaxActiveCalls limits the number of concurrent active calls. A value <= 0
+// is clamped to 1 (matching python's max(1, max_active_calls) at
+// relay/client.py:208) so the cap is always a positive ceiling.
 func WithMaxActiveCalls(n int) ClientOption {
 	return func(c *Client) {
+		if n < 1 {
+			n = 1
+		}
 		c.maxActiveCalls = n
 	}
 }
@@ -832,6 +843,12 @@ func (c *Client) applyEnvDefaults() {
 				c.maxActiveCalls = n
 			}
 		}
+	}
+	// Still unset -> the fleet default ceiling (mirrors python
+	// _DEFAULT_MAX_ACTIVE_CALLS = 1000 at relay/client.py:92/216). An unset knob
+	// still enforces a cap; it is never "unlimited".
+	if c.maxActiveCalls == 0 {
+		c.maxActiveCalls = DefaultMaxActiveCalls
 	}
 }
 

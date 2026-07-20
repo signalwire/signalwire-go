@@ -321,12 +321,23 @@ func (c *HTTPClient) DeleteContext(ctx context.Context, path string) (map[string
 func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path string, body any, params map[string]string, perRequest *RequestOptions) (map[string]any, error) {
 	opts := Resolve(c.requestOptions, perRequest)
 	// AbortSignal (the RequestOptions cancellation primitive) IS a
-	// context.Context. When set it becomes the parent context so cancelling it
-	// cuts an in-flight request; the caller-supplied ctx (the ...Context verbs)
-	// is the parent otherwise.
+	// context.Context. It must COMPOSE with the caller-supplied ctx (the
+	// ...Context verbs' deadline/cancellation), NOT replace it: a cancel from
+	// EITHER source cancels the request. Deriving `parent` from ctx and wiring
+	// the abort_signal to cancel that derived context means the caller's ctx
+	// deadline is still honored when an AbortSignal is armed (the GO-5 fix — the
+	// old code overwrote ctx with the signal, silently dropping every caller's
+	// timeout/cancellation whenever a client-default AbortSignal was set).
 	parent := ctx
 	if opts.abortSignal != nil {
-		parent = opts.abortSignal
+		var cancel context.CancelFunc
+		parent, cancel = context.WithCancel(ctx)
+		defer cancel()
+		// Cancel the derived context when the abort_signal fires (AfterFunc runs
+		// immediately if it is already cancelled). ctx cancelling still cancels
+		// `parent` directly (it is the parent), so BOTH sources compose.
+		stop := context.AfterFunc(opts.abortSignal, cancel)
+		defer stop()
 	}
 
 	attempt := 0
