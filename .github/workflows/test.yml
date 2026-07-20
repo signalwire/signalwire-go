@@ -77,6 +77,16 @@ jobs:
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
 
+      # The SWAIG-HTTP-INVOKE differ (porting-sdk/scripts/diff_port_swaig_http.py)
+      # builds its golden by driving the python reference through
+      # starlette.testclient.TestClient, which requires an httpx backend. On the
+      # newest starlette that backend is `httpx2`; on older ones it is `httpx`.
+      # Install both so the TestClient import resolves regardless of the starlette
+      # version signalwire-python pulls in (else SWAIG-HTTP-INVOKE reds with
+      # "requires the httpx2 package to be installed").
+      - name: Install starlette TestClient HTTP backend (SWAIG-HTTP differ)
+        run: pip install httpx httpx2 || pip install httpx
+
       # The EMISSION gate needs `import signalwire` (the oracle). Install it from
       # the adjacent checkout only if it isn't already importable.
       - name: Install signalwire-python (EMISSION oracle) if not importable
