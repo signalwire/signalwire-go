@@ -65,6 +65,26 @@ func main() {
 
 ## Pagination
 
+<!-- snippet-setup -->
+```go
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/signalwire/signalwire-go/v3/pkg/rest"
+)
+
+// Client established in the Quick Start above.
+var client, _ = rest.NewRestClient("", "", "")
+
+var (
+	_ = context.Background
+	_ = fmt.Println
+	_ = log.Fatal
+)
+```
+
 List endpoints return one page at a time with a `links.next` cursor. Every
 list resource exposes a `Paginate(ctx, params)` method that returns a
 `*namespaces.Paginator` — it follows that cursor for you, so you never hand-build
@@ -99,6 +119,9 @@ err := it.ForEach(func(item map[string]any) error {
     fmt.Println(item["id"])
     return nil // return an error to stop paging early
 })
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 Construction does not fetch — the first request happens on the first `Next`

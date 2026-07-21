@@ -74,12 +74,12 @@ swmlDoc := map[string]any{
 result.ExecuteSwml(swmlDoc, true)
 ```
 
-#### `Connect(destination string, final bool, from string) *FunctionResult`
-Transfer/connect call to another destination using SWML. Pass `from = ""` to omit the from-address.
+#### `Connect(opts ConnectOptions) *FunctionResult`
+Transfer/connect call to another destination using SWML. Leave `From` empty to omit the from-address.
 
 ```go
-result.Connect("+15551234567", true, "")                        // Permanent transfer
-result.Connect("support@company.com", false, "+15559876543")    // Temporary transfer
+result.Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})                        // Permanent transfer
+result.Connect(swaig.ConnectOptions{Destination: "support@company.com", Final: false, From: "+15559876543"}) // Temporary transfer
 ```
 
 #### `SendSms(toNumber, fromNumber, body string, media []string, tags []string, region string) *FunctionResult`
@@ -508,20 +508,20 @@ result.Hold(60)    // Hold for 1 minute
 result.Hold(600)   // Hold for 10 minutes
 ```
 
-#### `WaitForUser(enabled *bool, timeout *int, answerFirst bool) *FunctionResult`
-Control how agent waits for user input with flexible parameters. `enabled` and `timeout` are pointers so they can be omitted with `nil`.
+#### `WaitForUser(opts WaitForUserOptions) *FunctionResult`
+Control how agent waits for user input with flexible parameters. `Enabled` and `Timeout` are pointers so they can be omitted with `nil`.
 
 ```go
 enabled := true
-result.WaitForUser(&enabled, nil, false)      // Wait indefinitely
+result.WaitForUser(swaig.WaitForUserOptions{Enabled: &enabled})      // Wait indefinitely
 
 timeout := 30
-result.WaitForUser(nil, &timeout, false)      // Wait 30 seconds
+result.WaitForUser(swaig.WaitForUserOptions{Timeout: &timeout})      // Wait 30 seconds
 
-result.WaitForUser(nil, nil, true)            // Special answer-first mode
+result.WaitForUser(swaig.WaitForUserOptions{AnswerFirst: true})      // Special answer-first mode
 
 disabled := false
-result.WaitForUser(&disabled, nil, false)     // Disable waiting
+result.WaitForUser(swaig.WaitForUserOptions{Enabled: &disabled})     // Disable waiting
 ```
 
 #### `Stop() *FunctionResult`
@@ -779,7 +779,7 @@ result = swaig.NewFunctionResult("Processing your request").
 result = swaig.NewFunctionResult("Let me transfer you to billing").
 	SetMetadata(map[string]any{"transfer_reason": "billing_inquiry"}).
 	UpdateGlobalData(map[string]any{"last_action": "transfer_to_billing"}).
-	Connect("+15551234567", true, "")
+	Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})
 ```
 
 ---
