@@ -40,7 +40,7 @@ jobs:
           repository: signalwire/porting-sdk
           # REVERT-WHEN-MERGED: pin porting-sdk to wave/1-aplus until it merges to main
           # (this port's DRIFT/SURFACE gates diff against that branch's PY-7 request_options oracle).
-          ref: wave/1-aplus
+          ref: main
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
