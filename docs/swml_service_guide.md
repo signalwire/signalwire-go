@@ -62,7 +62,7 @@ func main() {
 	svc.Answer(nil, nil)
 
 	greeting := "say:Hello, thank you for calling our service."
-	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &greeting})
 
 	svc.Hangup(nil)
 
@@ -294,10 +294,10 @@ func buildDocument(svc *swml.Service, requestData map[string]any) {
 	// Add custom verbs based on the request data.
 	if callerType, _ := requestData["caller_type"].(string); callerType == "vip" {
 		vip := "say:Welcome VIP caller!"
-		svc.Play(&vip, nil, nil, nil, nil, nil, nil)
+		svc.Play(swml.PlayOptions{URL: &vip})
 	} else {
 		std := "say:Welcome caller!"
-		svc.Play(&std, nil, nil, nil, nil, nil, nil)
+		svc.Play(swml.PlayOptions{URL: &std})
 	}
 }
 
@@ -381,7 +381,7 @@ func main() {
 	// Build the main (default) document.
 	svc.Answer(nil, nil)
 	greeting := "say:Hello from the main service!"
-	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &greeting})
 	svc.Hangup(nil)
 
 	// Register a routing callback at /dispatch that redirects based on the body.
@@ -514,11 +514,11 @@ func buildVoicemailDocument(svc *swml.Service) {
 
 	// Play the greeting.
 	greeting := "say:Hello, you've reached the voicemail service. Please leave a message after the beep."
-	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &greeting})
 
 	// Play a beep.
 	beep := "https://example.com/beep.wav"
-	svc.Play(&beep, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &beep})
 
 	// Record the message.
 	svc.Record(map[string]any{
@@ -530,7 +530,7 @@ func buildVoicemailDocument(svc *swml.Service) {
 
 	// Thank the caller.
 	thanks := "say:Thank you for your message. Goodbye!"
-	svc.Play(&thanks, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &thanks})
 
 	// Hang up.
 	svc.Hangup(nil)
@@ -578,7 +578,7 @@ func buildCallRouterDocument(svc *swml.Service, requestData map[string]any) {
 
 	// Greeting.
 	greeting := fmt.Sprintf("say:Thank you for calling our %s department. Please hold.", department)
-	svc.Play(&greeting, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &greeting})
 
 	// Route based on department.
 	phoneNumbers := map[string]string{
@@ -600,7 +600,7 @@ func buildCallRouterDocument(svc *swml.Service, requestData map[string]any) {
 
 	// Fallback message and hangup.
 	fallback := "say:We're sorry, but all of our agents are currently busy. Please try again later."
-	svc.Play(&fallback, nil, nil, nil, nil, nil, nil)
+	svc.Play(swml.PlayOptions{URL: &fallback})
 	svc.Hangup(nil)
 }
 ```

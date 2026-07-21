@@ -207,28 +207,28 @@ Use the typed helpers on `client.PhoneNumbers`:
 
 ```go
 // SWML webhook (your backend returns SWML per call)
-_, err = client.PhoneNumbers.SetSwmlWebhook(context.Background(), pnID, "https://example.com/swml")
+_, err = client.PhoneNumbers.SetSwmlWebhook(context.Background(), pnID, "https://example.com/swml", nil)
 
 // cXML / LAML webhook (Twilio-compat); optional fallback + status URLs
 fallbackURL := "https://example.com/fallback.xml"
 statusURL := "https://example.com/status"
-_, err = client.PhoneNumbers.SetCxmlWebhook(context.Background(), pnID, "https://example.com/voice.xml", &fallbackURL, &statusURL)
+_, err = client.PhoneNumbers.SetCxmlWebhook(context.Background(), pnID, "https://example.com/voice.xml", &fallbackURL, &statusURL, nil)
 
 // Existing cXML application by ID
-_, err = client.PhoneNumbers.SetCxmlApplication(context.Background(), pnID, "app-uuid")
+_, err = client.PhoneNumbers.SetCxmlApplication(context.Background(), pnID, "app-uuid", nil)
 
 // AI Agent by ID
-_, err = client.PhoneNumbers.SetAiAgent(context.Background(), pnID, "agent-uuid")
+_, err = client.PhoneNumbers.SetAiAgent(context.Background(), pnID, "agent-uuid", nil)
 
 // Call flow (optionally pin a version)
 version := "current_deployed"
-_, err = client.PhoneNumbers.SetCallFlow(context.Background(), pnID, "flow-uuid", &version)
+_, err = client.PhoneNumbers.SetCallFlow(context.Background(), pnID, "flow-uuid", &version, nil)
 
 // Relay application (named routing)
-_, err = client.PhoneNumbers.SetRelayApplication(context.Background(), pnID, "my-relay-app")
+_, err = client.PhoneNumbers.SetRelayApplication(context.Background(), pnID, "my-relay-app", nil)
 
 // Relay topic (RELAY client subscription)
-_, err = client.PhoneNumbers.SetRelayTopic(context.Background(), pnID, "office", nil)
+_, err = client.PhoneNumbers.SetRelayTopic(context.Background(), pnID, "office", nil, nil)
 ```
 
 The `namespaces.PhoneCallHandler` type exposes the full enum of wire values

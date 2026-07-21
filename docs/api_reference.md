@@ -1022,15 +1022,15 @@ Other response accessors: `Response()`, `Actions()`, `PostProcess()`.
 
 #### Call Transfer and Connection
 
-##### `Connect(destination string, final bool, from string) *FunctionResult`
-Transfer or connect the call to another destination. `final=true` is a permanent transfer (call exits the agent); `final=false` returns the call to the agent if the far end hangs up. Pass `""` for `from` to keep the caller ID.
+##### `Connect(opts ConnectOptions) *FunctionResult`
+Transfer or connect the call to another destination. `Final: true` is a permanent transfer (call exits the agent); `Final: false` returns the call to the agent if the far end hangs up. Leave `From` empty to keep the caller ID.
 
 ```go
 // Permanent transfer to phone number
-result.Connect("+15551234567", true, "")
+result.Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})
 
 // Temporary transfer to SIP address with custom caller ID
-result.Connect("support@company.com", false, "+15559876543")
+result.Connect(swaig.ConnectOptions{Destination: "support@company.com", Final: false, From: "+15559876543"})
 ```
 
 ##### `SwmlTransfer(dest, aiResponse string, final bool) *FunctionResult`
@@ -1159,17 +1159,17 @@ Set the timeout for speech events (milliseconds).
 result.SetSpeechEventTimeout(5000)
 ```
 
-##### `WaitForUser(enabled *bool, timeout *int, answerFirst bool) *FunctionResult`
-Control whether to wait for user input. `enabled` and `timeout` are pointers so they can be omitted (`nil`).
+##### `WaitForUser(opts WaitForUserOptions) *FunctionResult`
+Control whether to wait for user input. `Enabled` and `Timeout` are pointers so they can be omitted (`nil`).
 
 ```go
 enabled := true
 timeout := 10000
-result.WaitForUser(&enabled, &timeout, false)
+result.WaitForUser(swaig.WaitForUserOptions{Enabled: &enabled, Timeout: &timeout})
 
 // Don't wait for user
 no := false
-result.WaitForUser(&no, nil, false)
+result.WaitForUser(swaig.WaitForUserOptions{Enabled: &no})
 ```
 
 ##### `ToggleFunctions(toggles []map[string]any) *FunctionResult`
@@ -2249,7 +2249,7 @@ func newComprehensiveAgent() *agent.AgentBase {
 		Handler: func(args, rawData map[string]any) *swaig.FunctionResult {
 			return swaig.NewFunctionResult("Transferring you to our billing department").
 				UpdateGlobalData(map[string]any{"last_action": "transfer_to_billing"}).
-				Connect("billing@company.com", false, "")
+				Connect(swaig.ConnectOptions{Destination: "billing@company.com", Final: false})
 		},
 	})
 

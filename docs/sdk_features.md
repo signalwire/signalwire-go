@@ -360,8 +360,8 @@ The SDK's contexts/steps/function restrictions are the primitives that make PGI 
 For a long-lived server, one `Run()` call starts the HTTP listener:
 
 ```go
-a := agent.NewAgentBase(agent.WithName("my-agent"), agent.WithRoute("/agent"))
-a.Run()
+srv := agent.NewAgentBase(agent.WithName("my-agent"), agent.WithRoute("/agent"))
+srv.Run()
 ```
 
 `Run()` first calls `DetectRunMode()`, which reads the process environment to
