@@ -700,9 +700,55 @@ func WithContexts(contexts ...string) ClientOption {
 	}
 }
 
-// WithMaxActiveCalls limits the number of concurrent active calls.
+// WithPingWatchdog enables the client-side liveness watchdog: the client sends
+// signalwire.ping every interval and, after maxFailures consecutive unanswered
+// pings, declares the peer half-open and forces a reconnect (F2.1). interval<=0
+// disables it (the default). maxFailures<1 is clamped to 1.
+func WithPingWatchdog(interval time.Duration, maxFailures int) ClientOption {
+	return func(c *Client) {
+		c.pingInterval = interval
+		if maxFailures < 1 {
+			maxFailures = 1
+		}
+		c.maxPingFailures = maxFailures
+	}
+}
+
+// WithExecuteTimeout bounds how long an execute() RPC waits for its response
+// before returning ErrExecuteTimeout. Default 30s. A short value lets a liveness
+// harness bound a silent/black-hole peer inside a tight window.
+func WithExecuteTimeout(d time.Duration) ClientOption {
+	return func(c *Client) {
+		if d > 0 {
+			c.executeTimeout = d
+		}
+	}
+}
+
+// WithReconnectBackoff sets the initial reconnect backoff (the delay before the
+// first reconnect attempt; it grows exponentially up to maxBackoff). Default 1s.
+func WithReconnectBackoff(d time.Duration) ClientOption {
+	return func(c *Client) {
+		if d > 0 {
+			c.reconnectBackoff = d
+		}
+	}
+}
+
+// DefaultMaxActiveCalls is the inbound-call ceiling applied when neither
+// WithMaxActiveCalls nor RELAY_MAX_ACTIVE_CALLS sets one. Mirrors python's
+// _DEFAULT_MAX_ACTIVE_CALLS (relay/client.py:92): overload protection is always
+// in effect, never "unlimited".
+const DefaultMaxActiveCalls = 1000
+
+// WithMaxActiveCalls limits the number of concurrent active calls. A value <= 0
+// is clamped to 1 (matching python's max(1, max_active_calls) at
+// relay/client.py:208) so the cap is always a positive ceiling.
 func WithMaxActiveCalls(n int) ClientOption {
 	return func(c *Client) {
+		if n < 1 {
+			n = 1
+		}
 		c.maxActiveCalls = n
 	}
 }
@@ -832,6 +878,12 @@ func (c *Client) applyEnvDefaults() {
 				c.maxActiveCalls = n
 			}
 		}
+	}
+	// Still unset -> the fleet default ceiling (mirrors python
+	// _DEFAULT_MAX_ACTIVE_CALLS = 1000 at relay/client.py:92/216). An unset knob
+	// still enforces a cap; it is never "unlimited".
+	if c.maxActiveCalls == 0 {
+		c.maxActiveCalls = DefaultMaxActiveCalls
 	}
 }
 

@@ -304,6 +304,7 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_API_TOKEN` | Skills | API token for Datasphere serverless skills |
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
+| `SIGNALWIRE_MCP_ALLOW_INSECURE_TLS` | Skills (mcp_gateway) | Second gate required to disable upstream TLS verification. The `mcp_gateway` skill verifies TLS by default (`verify_ssl=true`); setting `verify_ssl=false` alone is IGNORED (logged) unless this is ALSO set truthy (`true`, `1`, `yes`). Leave unset in production. |
 
 ## Testing, linting, formatting
 

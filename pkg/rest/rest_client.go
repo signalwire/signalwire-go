@@ -103,18 +103,33 @@ type httpAdapter struct {
 	c *HTTPClient
 }
 
-func (a *httpAdapter) Get(ctx context.Context, path string, params map[string]string) (map[string]any, error) {
-	return a.c.GetContext(ctx, path, params)
+// firstOpt returns the first non-nil per-request *RequestOptions from a generated
+// verb's `opts ...*RequestOptions` tail (only the first is honored, mirroring the
+// reference's single request_options keyword param). The adapter threads BOTH the
+// caller's ctx AND that per-request override down to doRequestContextOpts, so an
+// AbortSignal composes with (does not replace) the caller's ctx and a per-request
+// timeout/retry policy overrides the client default for that one call.
+func firstOpt(opts []*RequestOptions) *RequestOptions {
+	for _, o := range opts {
+		if o != nil {
+			return o
+		}
+	}
+	return nil
 }
-func (a *httpAdapter) Post(ctx context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error) {
-	return a.c.PostContext(ctx, path, body, params)
+
+func (a *httpAdapter) Get(ctx context.Context, path string, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	return a.c.doRequestContextOpts(ctx, "GET", path, nil, params, firstOpt(opts))
 }
-func (a *httpAdapter) Put(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
-	return a.c.PutContext(ctx, path, body)
+func (a *httpAdapter) Post(ctx context.Context, path string, body map[string]any, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	return a.c.doRequestContextOpts(ctx, "POST", path, body, params, firstOpt(opts))
 }
-func (a *httpAdapter) Patch(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
-	return a.c.PatchContext(ctx, path, body)
+func (a *httpAdapter) Put(ctx context.Context, path string, body map[string]any, opts ...*RequestOptions) (map[string]any, error) {
+	return a.c.doRequestContextOpts(ctx, "PUT", path, body, nil, firstOpt(opts))
 }
-func (a *httpAdapter) Delete(ctx context.Context, path string) (map[string]any, error) {
-	return a.c.DeleteContext(ctx, path)
+func (a *httpAdapter) Patch(ctx context.Context, path string, body map[string]any, opts ...*RequestOptions) (map[string]any, error) {
+	return a.c.doRequestContextOpts(ctx, "PATCH", path, body, nil, firstOpt(opts))
+}
+func (a *httpAdapter) Delete(ctx context.Context, path string, opts ...*RequestOptions) (map[string]any, error) {
+	return a.c.doRequestContextOpts(ctx, "DELETE", path, nil, nil, firstOpt(opts))
 }

@@ -760,7 +760,15 @@ var StructTable = map[string][]ClassTarget{
 	// NewRequestOptions factory), so __init__ + the abort_signal accessor are
 	// signature-only idiom divergences (PORT_SIGNATURE_OMISSIONS.md); the SURFACE
 	// oracle records only merge(), which this mapping projects.
-	"rest.RequestOptions": {{
+	//
+	// The struct + its Merge method live in the `namespaces` package (GO-1 /
+	// PY-7): the generated resource verbs name it in their `opts ...*RequestOptions`
+	// tail, and namespaces cannot import the parent rest package (rest already
+	// imports namespaces — an import cycle). The parent rest package re-exports it
+	// as a transparent type ALIAS, so the public spelling stays `rest.RequestOptions`
+	// while the method surface lives on `namespaces.RequestOptions` — hence the
+	// StructTable key is `namespaces.RequestOptions`.
+	"namespaces.RequestOptions": {{
 		Module: "signalwire.rest._request_options", Class: "RequestOptions",
 		Methods: map[string]string{
 			"Merge": "merge",
@@ -1396,9 +1404,11 @@ type SkillContract struct {
 // cmd/enumerate-surface and cmd/enumerate-signatures (kept in lockstep). The
 // method sets are the Python reference's own per-skill surface (each skill
 // records a DIFFERENT subset — see signalwire-python/signalwire/skills/<n>/skill.py).
-// mcp_gateway is intentionally absent: the Python reference does not surface a
-// signalwire.skills.mcp_gateway.skill module (Go ships the skill as a port
-// extension, recorded in PORT_ADDITIONS).
+// mcp_gateway is now part of the Python reference surface
+// (signalwire.skills.mcp_gateway.skill.MCPGatewaySkill, a cross-port CLIENT skill);
+// Go's *MCPGatewaySkill implements the SAME 6 contract methods (Setup/RegisterTools/
+// GetGlobalData/GetHints/GetPromptSections/GetParameterSchema — the snake↔PascalCase
+// rename is reconciled by skillLeafToGoMethod), so it is projected here in lockstep.
 var SkillContractTable = []SkillContract{
 	{GoStruct: "builtin.APINinjasTriviaSkill", Module: "signalwire.skills.api_ninjas_trivia.skill", ClassName: "ApiNinjasTriviaSkill",
 		Methods:   []string{"get_instance_key", "get_parameter_schema", "register_tools", "setup"},
@@ -1419,6 +1429,8 @@ var SkillContractTable = []SkillContract{
 		Methods: []string{"get_global_data", "get_hints", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
 	{GoStruct: "builtin.MathSkill", Module: "signalwire.skills.math.skill", ClassName: "MathSkill",
 		Methods: []string{"get_hints", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
+	{GoStruct: "builtin.MCPGatewaySkill", Module: "signalwire.skills.mcp_gateway.skill", ClassName: "MCPGatewaySkill",
+		Methods: []string{"get_global_data", "get_hints", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
 	{GoStruct: "builtin.NativeVectorSearchSkill", Module: "signalwire.skills.native_vector_search.skill", ClassName: "NativeVectorSearchSkill",
 		Methods: []string{"cleanup", "get_global_data", "get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
 	{GoStruct: "builtin.PlayBackgroundFileSkill", Module: "signalwire.skills.play_background_file.skill", ClassName: "PlayBackgroundFileSkill",

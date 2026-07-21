@@ -19,12 +19,12 @@ func NewCallingNamespace(client HTTPClient) *CallingNamespace {
 	return &CallingNamespace{Resource{HTTP: client, Base: "/api/calling/calls"}}
 }
 
-func (c *CallingNamespace) execute(ctx context.Context, command string, callID string, params map[string]any) (map[string]any, error) {
+func (c *CallingNamespace) execute(ctx context.Context, command string, callID string, params map[string]any, opts ...*RequestOptions) (map[string]any, error) {
 	body := map[string]any{"command": command, "params": params}
 	if callID != "" {
 		body["id"] = callID
 	}
-	return c.HTTP.Post(ctx, c.Base, body, nil)
+	return c.HTTP.Post(ctx, c.Base, body, nil, opts...)
 }
 
 // CallingNamespaceDialParams holds the named optional parameters for CallingNamespace.Dial.
@@ -42,7 +42,7 @@ type CallingNamespaceDialParams struct {
 	Extras       map[string]any
 }
 
-func (c *CallingNamespace) Dial(ctx context.Context, params CallingNamespaceDialParams) (*CallResponse, error) {
+func (c *CallingNamespace) Dial(ctx context.Context, params CallingNamespaceDialParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["from"] = params.From
 	body["to"] = params.To
@@ -71,7 +71,7 @@ func (c *CallingNamespace) Dial(ctx context.Context, params CallingNamespaceDial
 		body["swml"] = params.Swml
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "dial", "", body))
+	return decodeResult[CallResponse](c.execute(ctx, "dial", "", body, opts...))
 }
 
 // CallingNamespaceUpdateParams holds the named optional parameters for CallingNamespace.Update.
@@ -85,7 +85,7 @@ type CallingNamespaceUpdateParams struct {
 	Extras      map[string]any
 }
 
-func (c *CallingNamespace) Update(ctx context.Context, params CallingNamespaceUpdateParams) (*CallResponse, error) {
+func (c *CallingNamespace) Update(ctx context.Context, params CallingNamespaceUpdateParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["id"] = params.ID
 	if params.FallbackURL != nil {
@@ -104,7 +104,7 @@ func (c *CallingNamespace) Update(ctx context.Context, params CallingNamespaceUp
 		body["swml"] = params.Swml
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "update", "", body))
+	return decodeResult[CallResponse](c.execute(ctx, "update", "", body, opts...))
 }
 
 // CallingNamespaceEndParams holds the named optional parameters for CallingNamespace.End.
@@ -113,13 +113,13 @@ type CallingNamespaceEndParams struct {
 	Extras map[string]any
 }
 
-func (c *CallingNamespace) End(ctx context.Context, callID string, params CallingNamespaceEndParams) (*CallResponse, error) {
+func (c *CallingNamespace) End(ctx context.Context, callID string, params CallingNamespaceEndParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Reason != nil {
 		body["reason"] = params.Reason
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.end", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.end", callID, body, opts...))
 }
 
 // CallingNamespaceAIHoldParams holds the named optional parameters for CallingNamespace.AIHold.
@@ -129,7 +129,7 @@ type CallingNamespaceAIHoldParams struct {
 	Extras  map[string]any
 }
 
-func (c *CallingNamespace) AIHold(ctx context.Context, callID string, params CallingNamespaceAIHoldParams) (*CallResponse, error) {
+func (c *CallingNamespace) AIHold(ctx context.Context, callID string, params CallingNamespaceAIHoldParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Timeout != nil {
 		body["timeout"] = params.Timeout
@@ -138,7 +138,7 @@ func (c *CallingNamespace) AIHold(ctx context.Context, callID string, params Cal
 		body["prompt"] = params.Prompt
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.ai_hold", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.ai_hold", callID, body, opts...))
 }
 
 // CallingNamespaceAIUnholdParams holds the named optional parameters for CallingNamespace.AIUnhold.
@@ -147,13 +147,13 @@ type CallingNamespaceAIUnholdParams struct {
 	Extras map[string]any
 }
 
-func (c *CallingNamespace) AIUnhold(ctx context.Context, callID string, params CallingNamespaceAIUnholdParams) (*CallResponse, error) {
+func (c *CallingNamespace) AIUnhold(ctx context.Context, callID string, params CallingNamespaceAIUnholdParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Prompt != nil {
 		body["prompt"] = params.Prompt
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.ai_unhold", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.ai_unhold", callID, body, opts...))
 }
 
 // CallingNamespaceAIMessageParams holds the named optional parameters for CallingNamespace.AIMessage.
@@ -165,7 +165,7 @@ type CallingNamespaceAIMessageParams struct {
 	Extras      map[string]any
 }
 
-func (c *CallingNamespace) AIMessage(ctx context.Context, callID string, params CallingNamespaceAIMessageParams) (*CallResponse, error) {
+func (c *CallingNamespace) AIMessage(ctx context.Context, callID string, params CallingNamespaceAIMessageParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Role != nil {
 		body["role"] = params.Role
@@ -180,7 +180,7 @@ func (c *CallingNamespace) AIMessage(ctx context.Context, callID string, params 
 		body["global_data"] = params.GlobalData
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.ai_message", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.ai_message", callID, body, opts...))
 }
 
 // CallingNamespaceLiveTranscribeParams holds the named optional parameters for CallingNamespace.LiveTranscribe.
@@ -189,13 +189,13 @@ type CallingNamespaceLiveTranscribeParams struct {
 	Extras map[string]any
 }
 
-func (c *CallingNamespace) LiveTranscribe(ctx context.Context, callID string, params CallingNamespaceLiveTranscribeParams) (*CallResponse, error) {
+func (c *CallingNamespace) LiveTranscribe(ctx context.Context, callID string, params CallingNamespaceLiveTranscribeParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Action != nil {
 		body["action"] = params.Action
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.live_transcribe", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.live_transcribe", callID, body, opts...))
 }
 
 // CallingNamespaceLiveTranslateParams holds the named optional parameters for CallingNamespace.LiveTranslate.
@@ -205,7 +205,7 @@ type CallingNamespaceLiveTranslateParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) LiveTranslate(ctx context.Context, callID string, params CallingNamespaceLiveTranslateParams) (*CallResponse, error) {
+func (c *CallingNamespace) LiveTranslate(ctx context.Context, callID string, params CallingNamespaceLiveTranslateParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Action != nil {
 		body["action"] = params.Action
@@ -214,7 +214,7 @@ func (c *CallingNamespace) LiveTranslate(ctx context.Context, callID string, par
 		body["status_url"] = params.StatusURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.live_translate", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.live_translate", callID, body, opts...))
 }
 
 // CallingNamespaceTransferParams holds the named optional parameters for CallingNamespace.Transfer.
@@ -223,13 +223,13 @@ type CallingNamespaceTransferParams struct {
 	Extras map[string]any
 }
 
-func (c *CallingNamespace) Transfer(ctx context.Context, callID string, params CallingNamespaceTransferParams) (*CallResponse, error) {
+func (c *CallingNamespace) Transfer(ctx context.Context, callID string, params CallingNamespaceTransferParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Dest != nil {
 		body["dest"] = params.Dest
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.transfer", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.transfer", callID, body, opts...))
 }
 
 // CallingNamespaceUserEventParams holds the named optional parameters for CallingNamespace.UserEvent.
@@ -238,13 +238,13 @@ type CallingNamespaceUserEventParams struct {
 	Extras map[string]any
 }
 
-func (c *CallingNamespace) UserEvent(ctx context.Context, callID string, params CallingNamespaceUserEventParams) (*CallResponse, error) {
+func (c *CallingNamespace) UserEvent(ctx context.Context, callID string, params CallingNamespaceUserEventParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Event != nil {
 		body["event"] = params.Event
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.user_event", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.user_event", callID, body, opts...))
 }
 
 // CallingNamespaceDisconnectParams holds the named optional parameters for CallingNamespace.Disconnect.
@@ -252,10 +252,10 @@ type CallingNamespaceDisconnectParams struct {
 	Extras map[string]any
 }
 
-func (c *CallingNamespace) Disconnect(ctx context.Context, callID string, params CallingNamespaceDisconnectParams) (*CallResponse, error) {
+func (c *CallingNamespace) Disconnect(ctx context.Context, callID string, params CallingNamespaceDisconnectParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.disconnect", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.disconnect", callID, body, opts...))
 }
 
 // CallingNamespacePlayParams holds the named optional parameters for CallingNamespace.Play.
@@ -269,7 +269,7 @@ type CallingNamespacePlayParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) Play(ctx context.Context, callID string, params CallingNamespacePlayParams) (*CallResponse, error) {
+func (c *CallingNamespace) Play(ctx context.Context, callID string, params CallingNamespacePlayParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Play != nil {
 		body["play"] = params.Play
@@ -290,7 +290,7 @@ func (c *CallingNamespace) Play(ctx context.Context, callID string, params Calli
 		body["status_url"] = params.StatusURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.play", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.play", callID, body, opts...))
 }
 
 // CallingNamespacePlayPauseParams holds the named optional parameters for CallingNamespace.PlayPause.
@@ -299,11 +299,11 @@ type CallingNamespacePlayPauseParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) PlayPause(ctx context.Context, callID string, params CallingNamespacePlayPauseParams) (*CallResponse, error) {
+func (c *CallingNamespace) PlayPause(ctx context.Context, callID string, params CallingNamespacePlayPauseParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.play.pause", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.play.pause", callID, body, opts...))
 }
 
 // CallingNamespacePlayResumeParams holds the named optional parameters for CallingNamespace.PlayResume.
@@ -312,11 +312,11 @@ type CallingNamespacePlayResumeParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) PlayResume(ctx context.Context, callID string, params CallingNamespacePlayResumeParams) (*CallResponse, error) {
+func (c *CallingNamespace) PlayResume(ctx context.Context, callID string, params CallingNamespacePlayResumeParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.play.resume", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.play.resume", callID, body, opts...))
 }
 
 // CallingNamespacePlayStopParams holds the named optional parameters for CallingNamespace.PlayStop.
@@ -325,11 +325,11 @@ type CallingNamespacePlayStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) PlayStop(ctx context.Context, callID string, params CallingNamespacePlayStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) PlayStop(ctx context.Context, callID string, params CallingNamespacePlayStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.play.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.play.stop", callID, body, opts...))
 }
 
 // CallingNamespacePlayVolumeParams holds the named optional parameters for CallingNamespace.PlayVolume.
@@ -339,12 +339,12 @@ type CallingNamespacePlayVolumeParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) PlayVolume(ctx context.Context, callID string, params CallingNamespacePlayVolumeParams) (*CallResponse, error) {
+func (c *CallingNamespace) PlayVolume(ctx context.Context, callID string, params CallingNamespacePlayVolumeParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	body["volume"] = params.Volume
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.play.volume", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.play.volume", callID, body, opts...))
 }
 
 // CallingNamespaceRecordParams holds the named optional parameters for CallingNamespace.Record.
@@ -355,7 +355,7 @@ type CallingNamespaceRecordParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) Record(ctx context.Context, callID string, params CallingNamespaceRecordParams) (*CallResponse, error) {
+func (c *CallingNamespace) Record(ctx context.Context, callID string, params CallingNamespaceRecordParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.ControlID != nil {
 		body["control_id"] = params.ControlID
@@ -367,7 +367,7 @@ func (c *CallingNamespace) Record(ctx context.Context, callID string, params Cal
 		body["status_url"] = params.StatusURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.record", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.record", callID, body, opts...))
 }
 
 // CallingNamespaceRecordPauseParams holds the named optional parameters for CallingNamespace.RecordPause.
@@ -376,11 +376,11 @@ type CallingNamespaceRecordPauseParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) RecordPause(ctx context.Context, callID string, params CallingNamespaceRecordPauseParams) (*CallResponse, error) {
+func (c *CallingNamespace) RecordPause(ctx context.Context, callID string, params CallingNamespaceRecordPauseParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.record.pause", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.record.pause", callID, body, opts...))
 }
 
 // CallingNamespaceRecordResumeParams holds the named optional parameters for CallingNamespace.RecordResume.
@@ -389,11 +389,11 @@ type CallingNamespaceRecordResumeParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) RecordResume(ctx context.Context, callID string, params CallingNamespaceRecordResumeParams) (*CallResponse, error) {
+func (c *CallingNamespace) RecordResume(ctx context.Context, callID string, params CallingNamespaceRecordResumeParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.record.resume", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.record.resume", callID, body, opts...))
 }
 
 // CallingNamespaceRecordStopParams holds the named optional parameters for CallingNamespace.RecordStop.
@@ -402,11 +402,11 @@ type CallingNamespaceRecordStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) RecordStop(ctx context.Context, callID string, params CallingNamespaceRecordStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) RecordStop(ctx context.Context, callID string, params CallingNamespaceRecordStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.record.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.record.stop", callID, body, opts...))
 }
 
 // CallingNamespaceCollectParams holds the named optional parameters for CallingNamespace.Collect.
@@ -420,7 +420,7 @@ type CallingNamespaceCollectParams struct {
 	Extras         map[string]any
 }
 
-func (c *CallingNamespace) Collect(ctx context.Context, callID string, params CallingNamespaceCollectParams) (*CallResponse, error) {
+func (c *CallingNamespace) Collect(ctx context.Context, callID string, params CallingNamespaceCollectParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.ControlID != nil {
 		body["control_id"] = params.ControlID
@@ -441,7 +441,7 @@ func (c *CallingNamespace) Collect(ctx context.Context, callID string, params Ca
 		body["partial_results"] = params.PartialResults
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.collect", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.collect", callID, body, opts...))
 }
 
 // CallingNamespaceCollectStopParams holds the named optional parameters for CallingNamespace.CollectStop.
@@ -450,11 +450,11 @@ type CallingNamespaceCollectStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) CollectStop(ctx context.Context, callID string, params CallingNamespaceCollectStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) CollectStop(ctx context.Context, callID string, params CallingNamespaceCollectStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.collect.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.collect.stop", callID, body, opts...))
 }
 
 // CallingNamespaceCollectStartInputTimersParams holds the named optional parameters for CallingNamespace.CollectStartInputTimers.
@@ -463,11 +463,11 @@ type CallingNamespaceCollectStartInputTimersParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) CollectStartInputTimers(ctx context.Context, callID string, params CallingNamespaceCollectStartInputTimersParams) (*CallResponse, error) {
+func (c *CallingNamespace) CollectStartInputTimers(ctx context.Context, callID string, params CallingNamespaceCollectStartInputTimersParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.collect.start_input_timers", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.collect.start_input_timers", callID, body, opts...))
 }
 
 // CallingNamespaceDetectParams holds the named optional parameters for CallingNamespace.Detect.
@@ -478,7 +478,7 @@ type CallingNamespaceDetectParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) Detect(ctx context.Context, callID string, params CallingNamespaceDetectParams) (*CallResponse, error) {
+func (c *CallingNamespace) Detect(ctx context.Context, callID string, params CallingNamespaceDetectParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Detect != nil {
 		body["detect"] = params.Detect
@@ -490,7 +490,7 @@ func (c *CallingNamespace) Detect(ctx context.Context, callID string, params Cal
 		body["timeout"] = params.Timeout
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.detect", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.detect", callID, body, opts...))
 }
 
 // CallingNamespaceDetectStopParams holds the named optional parameters for CallingNamespace.DetectStop.
@@ -499,11 +499,11 @@ type CallingNamespaceDetectStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) DetectStop(ctx context.Context, callID string, params CallingNamespaceDetectStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) DetectStop(ctx context.Context, callID string, params CallingNamespaceDetectStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.detect.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.detect.stop", callID, body, opts...))
 }
 
 // CallingNamespaceTapParams holds the named optional parameters for CallingNamespace.Tap.
@@ -514,7 +514,7 @@ type CallingNamespaceTapParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) Tap(ctx context.Context, callID string, params CallingNamespaceTapParams) (*CallResponse, error) {
+func (c *CallingNamespace) Tap(ctx context.Context, callID string, params CallingNamespaceTapParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Tap != nil {
 		body["tap"] = params.Tap
@@ -526,7 +526,7 @@ func (c *CallingNamespace) Tap(ctx context.Context, callID string, params Callin
 		body["control_id"] = params.ControlID
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.tap", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.tap", callID, body, opts...))
 }
 
 // CallingNamespaceTapStopParams holds the named optional parameters for CallingNamespace.TapStop.
@@ -535,11 +535,11 @@ type CallingNamespaceTapStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) TapStop(ctx context.Context, callID string, params CallingNamespaceTapStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) TapStop(ctx context.Context, callID string, params CallingNamespaceTapStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.tap.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.tap.stop", callID, body, opts...))
 }
 
 // CallingNamespaceStreamParams holds the named optional parameters for CallingNamespace.Stream.
@@ -553,7 +553,7 @@ type CallingNamespaceStreamParams struct {
 	Extras                   map[string]any
 }
 
-func (c *CallingNamespace) Stream(ctx context.Context, callID string, params CallingNamespaceStreamParams) (*CallResponse, error) {
+func (c *CallingNamespace) Stream(ctx context.Context, callID string, params CallingNamespaceStreamParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["url"] = params.URL
 	if params.ControlID != nil {
@@ -572,7 +572,7 @@ func (c *CallingNamespace) Stream(ctx context.Context, callID string, params Cal
 		body["custom_parameters"] = params.CustomParameters
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.stream", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.stream", callID, body, opts...))
 }
 
 // CallingNamespaceStreamStopParams holds the named optional parameters for CallingNamespace.StreamStop.
@@ -581,11 +581,11 @@ type CallingNamespaceStreamStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) StreamStop(ctx context.Context, callID string, params CallingNamespaceStreamStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) StreamStop(ctx context.Context, callID string, params CallingNamespaceStreamStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.stream.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.stream.stop", callID, body, opts...))
 }
 
 // CallingNamespaceDenoiseParams holds the named optional parameters for CallingNamespace.Denoise.
@@ -593,10 +593,10 @@ type CallingNamespaceDenoiseParams struct {
 	Extras map[string]any
 }
 
-func (c *CallingNamespace) Denoise(ctx context.Context, callID string, params CallingNamespaceDenoiseParams) (*CallResponse, error) {
+func (c *CallingNamespace) Denoise(ctx context.Context, callID string, params CallingNamespaceDenoiseParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.denoise", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.denoise", callID, body, opts...))
 }
 
 // CallingNamespaceDenoiseStopParams holds the named optional parameters for CallingNamespace.DenoiseStop.
@@ -604,10 +604,10 @@ type CallingNamespaceDenoiseStopParams struct {
 	Extras map[string]any
 }
 
-func (c *CallingNamespace) DenoiseStop(ctx context.Context, callID string, params CallingNamespaceDenoiseStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) DenoiseStop(ctx context.Context, callID string, params CallingNamespaceDenoiseStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.denoise.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.denoise.stop", callID, body, opts...))
 }
 
 // CallingNamespaceTranscribeParams holds the named optional parameters for CallingNamespace.Transcribe.
@@ -617,7 +617,7 @@ type CallingNamespaceTranscribeParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) Transcribe(ctx context.Context, callID string, params CallingNamespaceTranscribeParams) (*CallResponse, error) {
+func (c *CallingNamespace) Transcribe(ctx context.Context, callID string, params CallingNamespaceTranscribeParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.ControlID != nil {
 		body["control_id"] = params.ControlID
@@ -626,7 +626,7 @@ func (c *CallingNamespace) Transcribe(ctx context.Context, callID string, params
 		body["status_url"] = params.StatusURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.transcribe", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.transcribe", callID, body, opts...))
 }
 
 // CallingNamespaceTranscribeStopParams holds the named optional parameters for CallingNamespace.TranscribeStop.
@@ -635,11 +635,11 @@ type CallingNamespaceTranscribeStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) TranscribeStop(ctx context.Context, callID string, params CallingNamespaceTranscribeStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) TranscribeStop(ctx context.Context, callID string, params CallingNamespaceTranscribeStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.transcribe.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.transcribe.stop", callID, body, opts...))
 }
 
 // CallingNamespaceAIStopParams holds the named optional parameters for CallingNamespace.AIStop.
@@ -648,11 +648,11 @@ type CallingNamespaceAIStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) AIStop(ctx context.Context, callID string, params CallingNamespaceAIStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) AIStop(ctx context.Context, callID string, params CallingNamespaceAIStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.ai.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.ai.stop", callID, body, opts...))
 }
 
 // CallingNamespaceSendFaxStopParams holds the named optional parameters for CallingNamespace.SendFaxStop.
@@ -661,11 +661,11 @@ type CallingNamespaceSendFaxStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) SendFaxStop(ctx context.Context, callID string, params CallingNamespaceSendFaxStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) SendFaxStop(ctx context.Context, callID string, params CallingNamespaceSendFaxStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.send_fax.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.send_fax.stop", callID, body, opts...))
 }
 
 // CallingNamespaceReceiveFaxStopParams holds the named optional parameters for CallingNamespace.ReceiveFaxStop.
@@ -674,11 +674,11 @@ type CallingNamespaceReceiveFaxStopParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) ReceiveFaxStop(ctx context.Context, callID string, params CallingNamespaceReceiveFaxStopParams) (*CallResponse, error) {
+func (c *CallingNamespace) ReceiveFaxStop(ctx context.Context, callID string, params CallingNamespaceReceiveFaxStopParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	body["control_id"] = params.ControlID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.receive_fax.stop", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.receive_fax.stop", callID, body, opts...))
 }
 
 // CallingNamespaceReferParams holds the named optional parameters for CallingNamespace.Refer.
@@ -688,7 +688,7 @@ type CallingNamespaceReferParams struct {
 	Extras    map[string]any
 }
 
-func (c *CallingNamespace) Refer(ctx context.Context, callID string, params CallingNamespaceReferParams) (*CallResponse, error) {
+func (c *CallingNamespace) Refer(ctx context.Context, callID string, params CallingNamespaceReferParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
 	if params.Device != nil {
 		body["device"] = params.Device
@@ -697,5 +697,5 @@ func (c *CallingNamespace) Refer(ctx context.Context, callID string, params Call
 		body["status_url"] = params.StatusURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[CallResponse](c.execute(ctx, "calling.refer", callID, body))
+	return decodeResult[CallResponse](c.execute(ctx, "calling.refer", callID, body, opts...))
 }

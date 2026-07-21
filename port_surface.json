@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ ed97c037fb79a6100000f94da2a993954e7d4936",
+  "generated_from": "signalwire-go @ 10be38bb8b27bc07ce9e26cbe722fbbbabdb540f",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -2448,6 +2448,19 @@
     "signalwire.skills.math.skill": {
       "classes": {
         "MathSkill": [
+          "get_hints",
+          "get_parameter_schema",
+          "get_prompt_sections",
+          "register_tools",
+          "setup"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.skills.mcp_gateway.skill": {
+      "classes": {
+        "MCPGatewaySkill": [
+          "get_global_data",
           "get_hints",
           "get_parameter_schema",
           "get_prompt_sections",

@@ -28,7 +28,7 @@ type PubSubNamespaceCreateTokenParams struct {
 	Extras   map[string]any
 }
 
-func (r *PubSubNamespace) CreateToken(ctx context.Context, params PubSubNamespaceCreateTokenParams) (*PubSubToken, error) {
+func (r *PubSubNamespace) CreateToken(ctx context.Context, params PubSubNamespaceCreateTokenParams, opts ...*RequestOptions) (*PubSubToken, error) {
 	body := map[string]any{}
 	body["ttl"] = params.Ttl
 	body["channels"] = params.Channels
@@ -39,5 +39,5 @@ func (r *PubSubNamespace) CreateToken(ctx context.Context, params PubSubNamespac
 		body["state"] = params.State
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[PubSubToken](r.HTTP.Post(ctx, r.Base, body, nil))
+	return decodeResult[PubSubToken](r.HTTP.Post(ctx, r.Base, body, nil, opts...))
 }

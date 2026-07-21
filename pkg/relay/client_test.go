@@ -1038,3 +1038,103 @@ func findSubstring(s, sub string) bool {
 	}
 	return false
 }
+
+// TestCall_WaitForPredicateDoesNotDeadlockDispatch is the GO-3 regression: a
+// WaitFor predicate that reads a Call getter (State(), which takes c.mu) must
+// NOT deadlock dispatchEvent. Before the fix, predicates ran UNDER c.mu, so the
+// getter's re-entrant Lock() wedged the dispatching goroutine forever. The test
+// registers such a predicate, dispatches a matching event, and asserts (a) the
+// waiter is delivered and (b) a SUBSEQUENT dispatch still completes promptly
+// (proving dispatch was never wedged).
+func TestCall_WaitForPredicateDoesNotDeadlockDispatch(t *testing.T) {
+	c := newCall(nil, "call-1", "node-1", "tag-1")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	got := make(chan *RelayEvent, 1)
+	go func() {
+		// The predicate reads a Call getter — the exact re-entrant-lock pattern
+		// that used to deadlock when predicates ran under c.mu.
+		ev, err := c.WaitFor(ctx, EventCallingCallState, func(e *RelayEvent) bool {
+			return c.State() != "" || e.GetString("call_state") == "answered"
+		})
+		if err == nil {
+			got <- ev
+		}
+	}()
+
+	// Give WaitFor a moment to register its waiter, then dispatch a matching event
+	// from another goroutine with a hard deadline: if dispatch deadlocks, this
+	// goroutine never returns and the test times out on the select below.
+	time.Sleep(50 * time.Millisecond)
+	dispatched := make(chan struct{})
+	go func() {
+		c.dispatchEvent(NewRelayEvent(EventCallingCallState, map[string]any{"call_state": "answered"}))
+		close(dispatched)
+	}()
+
+	select {
+	case <-dispatched:
+	case <-time.After(2 * time.Second):
+		t.Fatal("dispatchEvent deadlocked (predicate ran under the Call mutex)")
+	}
+
+	select {
+	case ev := <-got:
+		if ev.GetString("call_state") != "answered" {
+			t.Errorf("waiter got call_state=%q, want answered", ev.GetString("call_state"))
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("WaitFor never received its event")
+	}
+
+	// A subsequent dispatch must still complete promptly (the read loop was not
+	// wedged) even though the predicate touched a getter.
+	done2 := make(chan struct{})
+	go func() {
+		c.dispatchEvent(NewRelayEvent(EventCallingCallState, map[string]any{"call_state": "ended"}))
+		close(done2)
+	}()
+	select {
+	case <-done2:
+	case <-time.After(2 * time.Second):
+		t.Fatal("subsequent dispatchEvent wedged")
+	}
+	if c.State() != "ended" {
+		t.Errorf("State()=%q after second dispatch, want ended", c.State())
+	}
+}
+
+// TestClient_MaxActiveCallsCapEnforced is the GO-4 regression: with a cap of N,
+// the N+1th inbound call is DROPPED (not registered, handler not invoked) —
+// mirroring python _handle_inbound_call. Before the fix the cap field was
+// written by WithMaxActiveCalls but never read, so the cap was a silent no-op.
+func TestClient_MaxActiveCallsCapEnforced(t *testing.T) {
+	c := NewRelayClient(
+		WithProject("p"), WithToken("t"),
+		WithMaxActiveCalls(2),
+	)
+
+	c.OnCall(func(*Call) {})
+
+	// Feed 3 inbound-receive events straight through the dispatch path.
+	for i := range 3 {
+		c.handleEvent(EventCallingCallReceive, map[string]any{
+			"call_id":    "c" + string(rune('0'+i)),
+			"node_id":    "n",
+			"direction":  "inbound",
+			"call_state": "created",
+			"context":    "default",
+		})
+	}
+	// Give the goroutine-dispatched OnCall handlers a moment.
+	time.Sleep(100 * time.Millisecond)
+
+	c.mu.RLock()
+	active := len(c.calls)
+	c.mu.RUnlock()
+	if active != 2 {
+		t.Errorf("active calls = %d, want 2 (the cap); the 3rd must be dropped", active)
+	}
+}

@@ -41,7 +41,9 @@ func main() {
 
 	// The typed helper — one line:
 	fmt.Printf("Binding %s to %s ...\n", pnSID, webhookURL)
-	if _, err := client.PhoneNumbers.SetSwmlWebhook(context.Background(), pnSID, webhookURL); err != nil {
+	// The trailing nil is the optional per-request *rest.RequestOptions (timeout /
+	// retry / abort-signal); pass nil to use the client default.
+	if _, err := client.PhoneNumbers.SetSwmlWebhook(context.Background(), pnSID, webhookURL, nil); err != nil {
 		fmt.Printf("  Binding failed: %v\n", err)
 		os.Exit(1)
 	}
@@ -66,11 +68,12 @@ func main() {
 	fmt.Printf("  calling_handler_resource_id (server-derived) = %v\n",
 		pn["calling_handler_resource_id"])
 
-	// To route to something other than an SWML webhook, use:
+	// To route to something other than an SWML webhook, use (the trailing nil
+	// before any variadic tail is the optional per-request *rest.RequestOptions):
 	//
-	//	client.PhoneNumbers.SetCxmlWebhook(context.Background(), sid, url, nil)            // LAML / Twilio-compat
-	//	client.PhoneNumbers.SetAiAgent(context.Background(), sid, agentID)                 // AI Agent
-	//	client.PhoneNumbers.SetCallFlow(context.Background(), sid, flowID, nil)            // Call Flow
-	//	client.PhoneNumbers.SetRelayApplication(context.Background(), sid, name)           // Named RELAY app
-	//	client.PhoneNumbers.SetRelayTopic(context.Background(), sid, topic, nil)           // RELAY topic
+	//	client.PhoneNumbers.SetCxmlWebhook(context.Background(), sid, url, nil, nil, nil)  // LAML / Twilio-compat
+	//	client.PhoneNumbers.SetAiAgent(context.Background(), sid, agentID, nil)            // AI Agent
+	//	client.PhoneNumbers.SetCallFlow(context.Background(), sid, flowID, nil, nil)       // Call Flow
+	//	client.PhoneNumbers.SetRelayApplication(context.Background(), sid, name, nil)      // Named RELAY app
+	//	client.PhoneNumbers.SetRelayTopic(context.Background(), sid, topic, nil, nil)      // RELAY topic
 }

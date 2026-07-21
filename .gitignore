@@ -49,6 +49,10 @@ debug
 /route-registry
 /swaig-test
 /wait-liveness-dump
+/relay-liveness-dump
+/envelope-dump
+/swaig-http-dump
+/pagination-dump
 
 # Python audit-script bytecode (scripts/enumerate_*.py invocations)
 __pycache__/

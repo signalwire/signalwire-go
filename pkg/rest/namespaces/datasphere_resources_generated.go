@@ -32,7 +32,7 @@ type DatasphereDocumentsSearchParams struct {
 	Extras      map[string]any
 }
 
-func (r *DatasphereDocuments) Search(ctx context.Context, params DatasphereDocumentsSearchParams) (*SearchResponse, error) {
+func (r *DatasphereDocuments) Search(ctx context.Context, params DatasphereDocumentsSearchParams, opts ...*RequestOptions) (*SearchResponse, error) {
 	body := map[string]any{}
 	body["query_string"] = params.QueryString
 	if params.Tags != nil {
@@ -57,17 +57,17 @@ func (r *DatasphereDocuments) Search(ctx context.Context, params DatasphereDocum
 		body["max_synonyms"] = params.MaxSynonyms
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[SearchResponse](r.HTTP.Post(ctx, r.Path("search"), body, nil))
+	return decodeResult[SearchResponse](r.HTTP.Post(ctx, r.Path("search"), body, nil, opts...))
 }
 
-func (r *DatasphereDocuments) ListChunks(ctx context.Context, documentID string, params map[string]string) (*ChunkListResponse, error) {
-	return decodeResult[ChunkListResponse](r.HTTP.Get(ctx, r.Path(documentID, "chunks"), params))
+func (r *DatasphereDocuments) ListChunks(ctx context.Context, documentID string, params map[string]string, opts ...*RequestOptions) (*ChunkListResponse, error) {
+	return decodeResult[ChunkListResponse](r.HTTP.Get(ctx, r.Path(documentID, "chunks"), params, opts...))
 }
 
-func (r *DatasphereDocuments) GetChunk(ctx context.Context, documentID string, chunkID string, params map[string]string) (*ChunkResponse, error) {
-	return decodeResult[ChunkResponse](r.HTTP.Get(ctx, r.Path(documentID, "chunks", chunkID), params))
+func (r *DatasphereDocuments) GetChunk(ctx context.Context, documentID string, chunkID string, params map[string]string, opts ...*RequestOptions) (*ChunkResponse, error) {
+	return decodeResult[ChunkResponse](r.HTTP.Get(ctx, r.Path(documentID, "chunks", chunkID), params, opts...))
 }
 
-func (r *DatasphereDocuments) DeleteChunk(ctx context.Context, documentID string, chunkID string) (map[string]any, error) {
-	return r.HTTP.Delete(ctx, r.Path(documentID, "chunks", chunkID))
+func (r *DatasphereDocuments) DeleteChunk(ctx context.Context, documentID string, chunkID string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(documentID, "chunks", chunkID), opts...)
 }

@@ -10,62 +10,19 @@ package rest
 import (
 	"context"
 	"strings"
+
+	"github.com/signalwire/signalwire-go/v3/pkg/rest/namespaces"
 )
 
-// RequestOptions is the REST request-options envelope (plan 4.2): a single value
-// object controlling per-request transport behavior — timeout, an
-// idempotency-aware retry policy with exponential backoff, and cooperative
-// cancellation. It mirrors the Python reference
-// (signalwire.rest._request_options.RequestOptions).
-//
-// It is supplied at two levels:
-//
-//   - Client default: NewRestClientWithOptions(..., RequestOptions{...}) (or the
-//     HTTPClient's WithRequestOptions seam) stores it on the HTTPClient and
-//     applies it to every request.
-//   - Per-request override: each ...WithOptions verb accepts an optional
-//     *RequestOptions that SHALLOW-overrides the client default for that one call —
-//     an unset (nil) field falls back to the client default, then the built-in
-//     default.
-//
-// Every field is a pointer so "unset" (nil) is distinguishable from a deliberate
-// zero value ("inherit" vs. "0 retries" / "0s timeout"). The Python reference uses
-// None for the same reason; Go uses nil pointers.
-//
-// AbortSignal fidelity is per-port idiom. Go's cancellation primitive IS
-// context.Context, and Go's REST surface is already ctx-first — so the request
-// loop threads AbortSignal onto the outgoing HTTP request's context. A cancelled
-// context is checked BEFORE each attempt (surfacing the typed transport error
-// without a send) AND cuts an in-flight request (net/http observes the ctx). When
-// AbortSignal is nil the request uses the caller's own ctx (the ...Context verbs)
-// or context.Background() (the plain verbs), unchanged.
-type RequestOptions struct {
-	// Timeout is the max wall-clock duration per attempt (in seconds; a float to
-	// match the reference's fractional-second timeouts). On exceed the request
-	// raises the transport-error type (SignalWireRestError with Transport=true).
-	// Built-in default 30.0s. nil => inherit.
-	Timeout *float64
-
-	// Retries is the number of RETRY attempts (total attempts = Retries + 1) on a
-	// retryable failure. Built-in default 0 (opt-in resilience — the no-retry
-	// behavior stays the default; a caller opts into retries). nil => inherit.
-	Retries *int
-
-	// RetryOnStatus is the set of HTTP statuses that trigger a retry for an
-	// idempotent method. Built-in {429, 500, 502, 503, 504}. nil => inherit.
-	RetryOnStatus map[int]bool
-
-	// RetryBackoff is the base duration (seconds) for exponential backoff between
-	// retries (backoff * 2^(attempt-1)), honoring Retry-After when present.
-	// Built-in 0.5s. nil => inherit.
-	RetryBackoff *float64
-
-	// AbortSignal is the cooperative-cancellation primitive: Go's context.Context.
-	// Checked before each attempt (a cancelled ctx raises the transport error
-	// before the send) and threaded onto the request so it also cuts an in-flight
-	// send. Built-in nil (no cancellation). nil => inherit.
-	AbortSignal context.Context
-}
+// RequestOptions is the REST request-options envelope. It is a transparent type
+// ALIAS to namespaces.RequestOptions: the struct + its Merge method live in the
+// namespaces package so the generated resource verbs can name it in their
+// `opts ...*RequestOptions` tail WITHOUT the rest->namespaces import cycle
+// (exactly like Paginator). The alias keeps every existing `rest.RequestOptions`
+// call site, the client-default seam, and the request loop below working
+// unchanged, and keeps the type's public spelling under the rest package. The
+// full doc + field semantics live on the namespaces definition.
+type RequestOptions = namespaces.RequestOptions
 
 // The built-in defaults (the contract floor). A nil field on a RequestOptions
 // means "inherit"; these are what an unset field resolves to at apply-time.
@@ -81,34 +38,8 @@ func defaultRetryOnStatus() map[int]bool {
 	return map[int]bool{429: true, 500: true, 502: true, 503: true, 504: true}
 }
 
-// Merge returns a copy of o with any SET (non-nil) field of override applied.
-// This is the per-request-over-client-default shallow merge: a nil field on
-// override leaves o's value intact. A nil o is treated as an empty RequestOptions.
-func (o *RequestOptions) Merge(override *RequestOptions) RequestOptions {
-	var out RequestOptions
-	if o != nil {
-		out = *o
-	}
-	if override == nil {
-		return out
-	}
-	if override.Timeout != nil {
-		out.Timeout = override.Timeout
-	}
-	if override.Retries != nil {
-		out.Retries = override.Retries
-	}
-	if override.RetryOnStatus != nil {
-		out.RetryOnStatus = override.RetryOnStatus
-	}
-	if override.RetryBackoff != nil {
-		out.RetryBackoff = override.RetryBackoff
-	}
-	if override.AbortSignal != nil {
-		out.AbortSignal = override.AbortSignal
-	}
-	return out
-}
+// Merge lives on namespaces.RequestOptions (this type's alias target); Resolve
+// below invokes it through the alias.
 
 // EffectiveOptions is a RequestOptions with every field resolved to a concrete
 // value — produced by Resolve, so the request loop reads concrete values

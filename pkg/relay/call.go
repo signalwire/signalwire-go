@@ -2,6 +2,8 @@ package relay
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -253,21 +255,50 @@ func (c *Call) dispatchEvent(event *RelayEvent) {
 	handlers := make([]func(*RelayEvent), len(c.eventHandlers[event.EventType]))
 	copy(handlers, c.eventHandlers[event.EventType])
 
-	// Check waiters.
-	remaining := c.waiters[:0]
+	// Snapshot the waiters registered for this event type so their predicates
+	// can run OUTSIDE the lock. A predicate is arbitrary user code that commonly
+	// reads a Call getter (State(), Direction(), Device(), ...) — every one of
+	// which takes this same non-reentrant mutex. Evaluating a predicate while
+	// holding c.mu therefore self-deadlocks the read-loop goroutine (the whole
+	// client wedges; every subsequent execute times out). So we match+deliver
+	// after Unlock, mirroring how On() handlers are already dispatched unlocked.
+	candidates := make([]waiter, 0, len(c.waiters))
 	for _, w := range c.waiters {
-		if w.eventType == event.EventType && (w.predicate == nil || w.predicate(event)) {
+		if w.eventType == event.EventType {
+			candidates = append(candidates, w)
+		}
+	}
+
+	c.mu.Unlock()
+
+	// Evaluate predicates unlocked and deliver to the matched waiters. Track
+	// which channels matched so we can remove exactly those waiters afterward.
+	matched := make(map[chan *RelayEvent]struct{}, len(candidates))
+	for _, w := range candidates {
+		if w.predicate == nil || w.predicate(event) {
+			matched[w.ch] = struct{}{}
 			select {
 			case w.ch <- event:
 			default:
 			}
-		} else {
-			remaining = append(remaining, w)
 		}
 	}
-	c.waiters = remaining
 
-	c.mu.Unlock()
+	// Re-acquire to prune the matched waiters. Rebuild against the CURRENT
+	// c.waiters (not the snapshot) so any waiter appended concurrently by a
+	// WaitFor call during predicate evaluation is preserved.
+	if len(matched) > 0 {
+		c.mu.Lock()
+		remaining := c.waiters[:0]
+		for _, w := range c.waiters {
+			if _, hit := matched[w.ch]; hit {
+				continue
+			}
+			remaining = append(remaining, w)
+		}
+		c.waiters = remaining
+		c.mu.Unlock()
+	}
 
 	for _, h := range handlers {
 		h(event)
@@ -307,6 +338,27 @@ func (c *Call) registerAction(a *Action) {
 	c.actions[a.controlID] = a
 }
 
+// execVerb runs a calling.* RPC for this call and applies the documented
+// call-gone contract, mirroring python Call._execute (relay/call.py:395-413):
+// a RelayError carrying code 404/410 means the call is already gone, so the verb
+// is a swallowed no-op (returns nil); any OTHER server error (500-class, bad
+// params, ...) propagates. Combined with client.execute's A2 result-code raise
+// (a non-2xx result code becomes a RelayError), this makes a failed verb raise
+// while a call-gone verb is a benign no-op — instead of silently swallowing every
+// failure.
+func (c *Call) execVerb(method string, params map[string]any) (json.RawMessage, error) {
+	res, err := c.client.execute(method, params)
+	if err != nil {
+		var re *RelayError
+		if errors.As(err, &re) && (re.Code == 404 || re.Code == 410) {
+			c.client.logger.Printf("relay: call %s gone during %s (code=%d): %v", c.callID, method, re.Code, err)
+			return nil, nil
+		}
+		return nil, err
+	}
+	return res, nil
+}
+
 // newControlID generates a unique control identifier.
 func newControlID() string {
 	return uuid.New().String()
@@ -318,7 +370,7 @@ func newControlID() string {
 
 // Answer answers an inbound call.
 func (c *Call) Answer() error {
-	_, err := c.client.execute("calling.answer", map[string]any{
+	_, err := c.execVerb("calling.answer", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
@@ -330,7 +382,7 @@ func (c *Call) Hangup(reason string) error {
 	if reason == "" {
 		reason = EndReasonHangup
 	}
-	_, err := c.client.execute("calling.end", map[string]any{
+	_, err := c.execVerb("calling.end", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 		"reason":  reason,
@@ -340,7 +392,7 @@ func (c *Call) Hangup(reason string) error {
 
 // Pass passes the call to the next context handler without answering.
 func (c *Call) Pass() error {
-	_, err := c.client.execute("calling.pass", map[string]any{
+	_, err := c.execVerb("calling.pass", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
@@ -351,7 +403,7 @@ func (c *Call) Pass() error {
 // The dest parameter is the destination context/URL string, sent as the
 // "dest" key to the server (matches Python's transfer(dest: str) behavior).
 func (c *Call) Transfer(dest string) error {
-	_, err := c.client.execute("calling.transfer", map[string]any{
+	_, err := c.execVerb("calling.transfer", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 		"dest":    dest,
@@ -375,7 +427,7 @@ func (c *Call) Refer(device map[string]any, statusURL string) error {
 	if statusURL != "" {
 		params["status_url"] = statusURL
 	}
-	_, err := c.client.execute("calling.refer", params)
+	_, err := c.execVerb("calling.refer", params)
 	return err
 }
 
@@ -387,7 +439,7 @@ func (c *Call) Refer(device map[string]any, statusURL string) error {
 // map describes the transcription operation (e.g. {"type": "start"}).
 // Matches Python's live_transcribe(action, **kwargs).
 func (c *Call) LiveTranscribe(action map[string]any) error {
-	_, err := c.client.execute("calling.live_transcribe", map[string]any{
+	_, err := c.execVerb("calling.live_transcribe", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 		"action":  action,
@@ -407,7 +459,7 @@ func (c *Call) LiveTranslate(action map[string]any, statusURL string) error {
 	if statusURL != "" {
 		params["status_url"] = statusURL
 	}
-	_, err := c.client.execute("calling.live_translate", params)
+	_, err := c.execVerb("calling.live_translate", params)
 	return err
 }
 
@@ -456,7 +508,7 @@ func (c *Call) Play(media []map[string]any, opts ...PlayOption) *PlayAction {
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.play", params)
+		_, err := c.execVerb("calling.play", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallPlay, map[string]any{
 				"control_id": controlID,
@@ -508,7 +560,7 @@ func (c *Call) PlayAndCollect(media []map[string]any, collect map[string]any, op
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.play_and_collect", params)
+		_, err := c.execVerb("calling.play_and_collect", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallCollect, map[string]any{
 				"control_id": controlID,
@@ -599,7 +651,7 @@ func (c *Call) Collect(params *CollectParams) *StandaloneCollectAction {
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.collect", rpcParams)
+		_, err := c.execVerb("calling.collect", rpcParams)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallCollect, map[string]any{
 				"control_id": controlID,
@@ -885,7 +937,7 @@ func (c *Call) Record(opts ...RecordOption) *RecordAction {
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.record", params)
+		_, err := c.execVerb("calling.record", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallRecord, map[string]any{
 				"control_id": controlID,
@@ -912,13 +964,13 @@ func (c *Call) Connect(devices [][]map[string]any, opts ...ConnectOption) error 
 	for _, opt := range opts {
 		opt(params)
 	}
-	_, err := c.client.execute("calling.connect", params)
+	_, err := c.execVerb("calling.connect", params)
 	return err
 }
 
 // Disconnect tears down a previously established bridge.
 func (c *Call) Disconnect() error {
-	_, err := c.client.execute("calling.disconnect", map[string]any{
+	_, err := c.execVerb("calling.disconnect", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
@@ -932,7 +984,7 @@ func (c *Call) Disconnect() error {
 // SendDigits sends DTMF digits on the call.
 func (c *Call) SendDigits(digits string) error {
 	controlID := newControlID()
-	_, err := c.client.execute("calling.send_digits", map[string]any{
+	_, err := c.execVerb("calling.send_digits", map[string]any{
 		"node_id":    c.nodeID,
 		"call_id":    c.callID,
 		"control_id": controlID,
@@ -972,7 +1024,7 @@ func (c *Call) Detect(detect map[string]any, timeout *float64, controlID ...stri
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.detect", params)
+		_, err := c.execVerb("calling.detect", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallDetect, map[string]any{
 				"control_id": cid,
@@ -1014,7 +1066,7 @@ func (c *Call) SendFax(document string, identity string, opts ...FaxOption) *Fax
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.send_fax", params)
+		_, err := c.execVerb("calling.send_fax", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallFax, map[string]any{
 				"control_id": controlID,
@@ -1048,7 +1100,7 @@ func (c *Call) ReceiveFax(opts ...FaxOption) *FaxAction {
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.receive_fax", params)
+		_, err := c.execVerb("calling.receive_fax", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallFax, map[string]any{
 				"control_id": controlID,
@@ -1088,7 +1140,7 @@ func (c *Call) Tap(tap, device map[string]any, controlID ...string) *TapAction {
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.tap", params)
+		_, err := c.execVerb("calling.tap", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallTap, map[string]any{
 				"control_id": cid,
@@ -1128,7 +1180,7 @@ func (c *Call) Stream(url string, opts ...StreamOption) *StreamAction {
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.stream", params)
+		_, err := c.execVerb("calling.stream", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallStream, map[string]any{
 				"control_id": cid,
@@ -1155,13 +1207,13 @@ func (c *Call) JoinConference(name string, opts ...ConferenceOption) error {
 	for _, opt := range opts {
 		opt(params)
 	}
-	_, err := c.client.execute("calling.join_conference", params)
+	_, err := c.execVerb("calling.join_conference", params)
 	return err
 }
 
 // LeaveConference removes the call from a conference.
 func (c *Call) LeaveConference(confID string) error {
-	_, err := c.client.execute("calling.leave_conference", map[string]any{
+	_, err := c.execVerb("calling.leave_conference", map[string]any{
 		"node_id":       c.nodeID,
 		"call_id":       c.callID,
 		"conference_id": confID,
@@ -1248,7 +1300,7 @@ func (c *Call) AIMessage(controlID, text, role string, reset map[string]any, glo
 	if globalData != nil {
 		params["global_data"] = globalData
 	}
-	_, err := c.client.execute("calling.ai_message", params)
+	_, err := c.execVerb("calling.ai_message", params)
 	return err
 }
 
@@ -1270,7 +1322,7 @@ func (c *Call) AIHold(controlID string, timeout string, prompt string) error {
 	if prompt != "" {
 		params["prompt"] = prompt
 	}
-	_, err := c.client.execute("calling.ai_hold", params)
+	_, err := c.execVerb("calling.ai_hold", params)
 	return err
 }
 
@@ -1289,7 +1341,7 @@ func (c *Call) AIUnhold(controlID string, prompt string) error {
 	if prompt != "" {
 		params["prompt"] = prompt
 	}
-	_, err := c.client.execute("calling.ai_unhold", params)
+	_, err := c.execVerb("calling.ai_unhold", params)
 	return err
 }
 
@@ -1299,7 +1351,7 @@ func (c *Call) AIUnhold(controlID string, prompt string) error {
 
 // Hold places the call on hold.
 func (c *Call) Hold() error {
-	_, err := c.client.execute("calling.hold", map[string]any{
+	_, err := c.execVerb("calling.hold", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
@@ -1308,7 +1360,7 @@ func (c *Call) Hold() error {
 
 // Unhold takes the call off hold.
 func (c *Call) Unhold() error {
-	_, err := c.client.execute("calling.unhold", map[string]any{
+	_, err := c.execVerb("calling.unhold", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
@@ -1317,7 +1369,7 @@ func (c *Call) Unhold() error {
 
 // Denoise starts noise reduction on the call.
 func (c *Call) Denoise() error {
-	_, err := c.client.execute("calling.denoise", map[string]any{
+	_, err := c.execVerb("calling.denoise", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
@@ -1326,7 +1378,7 @@ func (c *Call) Denoise() error {
 
 // DenoiseStop stops noise reduction on the call.
 func (c *Call) DenoiseStop() error {
-	_, err := c.client.execute("calling.denoise.stop", map[string]any{
+	_, err := c.execVerb("calling.denoise.stop", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
@@ -1348,13 +1400,13 @@ func (c *Call) JoinRoom(name string, statusURL string) error {
 	if statusURL != "" {
 		params["status_url"] = statusURL
 	}
-	_, err := c.client.execute("calling.join_room", params)
+	_, err := c.execVerb("calling.join_room", params)
 	return err
 }
 
 // LeaveRoom removes the call from the current room.
 func (c *Call) LeaveRoom() error {
-	_, err := c.client.execute("calling.leave_room", map[string]any{
+	_, err := c.execVerb("calling.leave_room", map[string]any{
 		"node_id": c.nodeID,
 		"call_id": c.callID,
 	})
@@ -1375,7 +1427,7 @@ func (c *Call) QueueEnter(name string, statusURL string) error {
 	if statusURL != "" {
 		params["status_url"] = statusURL
 	}
-	_, err := c.client.execute("calling.queue.enter", params)
+	_, err := c.execVerb("calling.queue.enter", params)
 	return err
 }
 
@@ -1396,7 +1448,7 @@ func (c *Call) QueueLeave(name string, queueID string, statusURL string) error {
 	if statusURL != "" {
 		params["status_url"] = statusURL
 	}
-	_, err := c.client.execute("calling.queue.leave", params)
+	_, err := c.execVerb("calling.queue.leave", params)
 	return err
 }
 
@@ -1423,7 +1475,7 @@ func (c *Call) BindDigit(digits, method string, bindParams map[string]any, realm
 	if maxTriggers > 0 {
 		p["max_triggers"] = maxTriggers
 	}
-	_, err := c.client.execute("calling.bind_digit", p)
+	_, err := c.execVerb("calling.bind_digit", p)
 	return err
 }
 
@@ -1438,7 +1490,7 @@ func (c *Call) ClearDigitBindings(realm string) error {
 	if realm != "" {
 		params["realm"] = realm
 	}
-	_, err := c.client.execute("calling.clear_digit_bindings", params)
+	_, err := c.execVerb("calling.clear_digit_bindings", params)
 	return err
 }
 
@@ -1461,7 +1513,7 @@ func (c *Call) UserEvent(eventName string, extra ...map[string]any) error {
 			params[k] = v
 		}
 	}
-	_, err := c.client.execute("calling.user_event", params)
+	_, err := c.execVerb("calling.user_event", params)
 	return err
 }
 
@@ -1479,7 +1531,7 @@ func (c *Call) Echo(timeout *float64, statusURL string) error {
 	if statusURL != "" {
 		params["status_url"] = statusURL
 	}
-	_, err := c.client.execute("calling.echo", params)
+	_, err := c.execVerb("calling.echo", params)
 	return err
 }
 
@@ -1516,7 +1568,7 @@ func (c *Call) Pay(connectorURL string, opts ...PayOption) *PayAction {
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.pay", params)
+		_, err := c.execVerb("calling.pay", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallPay, map[string]any{
 				"control_id": cid,
@@ -1557,7 +1609,7 @@ func (c *Call) Transcribe(statusURL string, controlID ...string) *TranscribeActi
 	c.registerAction(action.Action)
 
 	go func() {
-		_, err := c.client.execute("calling.transcribe", params)
+		_, err := c.execVerb("calling.transcribe", params)
 		if err != nil {
 			action.resolve(NewRelayEvent(EventCallingCallTranscribe, map[string]any{
 				"control_id": cid,

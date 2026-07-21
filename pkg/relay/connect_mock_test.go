@@ -213,10 +213,10 @@ func TestRelay_ReconnectWithProtocolPreservesProtocolValue(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // TestRelay_ConnectRejectsEmptyCredsViaSDK — Python:
-// test_connect_rejects_empty_creds_at_constructor. The Go SDK's
-// behavior: NewRelayClient does not validate creds at construction;
-// the failure shows up at Authenticate() instead. Verify that empty
-// project/token leads to an auth error.
+// test_connect_rejects_empty_creds_at_constructor. The Go SDK now FAILS
+// PRE-CONNECT (A6): Connect() validates credentials before any socket work and
+// returns a per-variable actionable error naming the missing credential + its
+// env var — the failure no longer waits for Authenticate().
 func TestRelay_ConnectRejectsEmptyCredsViaSDK(t *testing.T) {
 	_, h := mocktest.New(t)
 	if h == nil {
@@ -229,49 +229,42 @@ func TestRelay_ConnectRejectsEmptyCredsViaSDK(t *testing.T) {
 		relay.WithProject(""),
 		relay.WithToken(""),
 	)
-	if err := c.Connect(); err != nil {
-		t.Fatalf("Connect: %v", err)
+	err := c.Connect()
+	if err == nil {
+		t.Fatal("Connect succeeded with empty creds; expected pre-connect error")
 	}
 	defer c.Stop()
-	err := c.Authenticate()
-	if err == nil {
-		t.Fatal("Authenticate succeeded with empty creds; expected auth error")
+	// The message must name the missing project credential + its env var.
+	msg := err.Error()
+	if !strings.Contains(msg, "project") || !strings.Contains(msg, "SIGNALWIRE_PROJECT_ID") {
+		t.Errorf("pre-connect error should name project + SIGNALWIRE_PROJECT_ID, got %q", msg)
 	}
 }
 
 // TestRelay_UnauthenticatedRawConnectRejectedByMock — Python:
-// test_unauthenticated_raw_connect_rejected_by_mock. Bypass the SDK
-// and send a connect frame with empty creds via Notify; the mock must
-// reply with an AUTH_REQUIRED error envelope. Verified by the previous
-// test indirectly (Authenticate fails when creds are empty); covered
-// here directly.
+// test_unauthenticated_raw_connect_rejected_by_mock. With a token supplied but
+// no project the SDK still fails PRE-CONNECT (A6), naming the missing token when
+// project is present. (The empty-both case is covered by the sibling test.)
 func TestRelay_UnauthenticatedRawConnectRejectedByMock(t *testing.T) {
 	_, h := mocktest.New(t)
 	if h == nil {
 		return
 	}
-	// Build a fresh client just for this test, but skip Authenticate so
-	// we can drive the wire ourselves.
 	t.Setenv("SIGNALWIRE_RELAY_HOST", h.RelayHost())
 	t.Setenv("SIGNALWIRE_RELAY_SCHEME", "ws")
 
 	c := relay.NewRelayClient(
-		relay.WithProject(""),
+		relay.WithProject("proj-present"),
 		relay.WithToken(""),
 	)
-	if err := c.Connect(); err != nil {
-		t.Fatalf("Connect: %v", err)
+	err := c.Connect()
+	if err == nil {
+		t.Fatal("expected pre-connect error for missing token, got nil")
 	}
 	defer c.Stop()
-
-	err := c.Authenticate()
-	if err == nil {
-		t.Fatal("expected auth error for empty creds, got nil")
-	}
-	// Some auth-error message format. Just verify it surfaced.
 	msg := err.Error()
-	if msg == "" {
-		t.Error("auth error message is empty")
+	if !strings.Contains(msg, "token") || !strings.Contains(msg, "SIGNALWIRE_API_TOKEN") {
+		t.Errorf("pre-connect error should name token + SIGNALWIRE_API_TOKEN, got %q", msg)
 	}
 }
 
