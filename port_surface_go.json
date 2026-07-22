@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 10be38bb8b27bc07ce9e26cbe722fbbbabdb540f",
+  "generated_from": "signalwire-go (go-native) @ 8bc0133b5ea895b0be3bdc4a2206d84ffe290b2c",
   "modules": {
     "agent": {
       "classes": {

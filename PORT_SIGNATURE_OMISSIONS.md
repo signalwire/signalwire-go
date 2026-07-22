@@ -331,19 +331,15 @@ signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_hints: go-idiom-pascalca
 signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_prompt_sections: go-idiom-pascalcase rename — Go GetPromptSections() is the same canonical method, reconciled in the adapter (enumerator does not walk builtin skills)
 signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_parameter_schema: go-idiom-pascalcase rename — Go GetParameterSchema() is the same canonical method, reconciled in the adapter (enumerator does not walk builtin skills)
 
-## BedrockAgent — reference-oracle gap (surface-present, absent from python_signatures)
-# signalwire.agents.bedrock.BedrockAgent is in python_surface but NOT in
-# python_signatures (a reference-oracle gap). The Go implementation
-# (pkg/agent/bedrock.go) surfaces the methods; they have no reference signature
-# to compare against, so each is excused here (matching the TS port).
-signalwire.agents.bedrock.BedrockAgent.__init__: reference-oracle gap — BedrockAgent absent from python_signatures
-signalwire.agents.bedrock.BedrockAgent.__repr__: reference-oracle gap — BedrockAgent absent from python_signatures
-signalwire.agents.bedrock.BedrockAgent.set_voice: reference-oracle gap — BedrockAgent absent from python_signatures
-signalwire.agents.bedrock.BedrockAgent.set_inference_params: reference-oracle gap — BedrockAgent absent from python_signatures
-signalwire.agents.bedrock.BedrockAgent.set_llm_model: reference-oracle gap — BedrockAgent absent from python_signatures
-signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: reference-oracle gap — BedrockAgent absent from python_signatures
-signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference-oracle gap — BedrockAgent absent from python_signatures
-signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference-oracle gap — BedrockAgent absent from python_signatures
+## BedrockAgent (C2-BEDROCK, Wave 2): reference now HAS the signatures
+# Cluster-1 C1-O1 added BedrockAgent to python_signatures (it was previously only
+# in python_surface). The prior `reference-oracle gap` excuse is therefore STALE
+# and removed. The Go implementation (pkg/agent/bedrock.go) surfaces these methods;
+# any residual difference is go's named-parameter idiom, reconciled below, NOT an
+# oracle gap. The 7 set_* / __repr__ methods now match the reference signature
+# with NO excuse (removed). Only __init__ diverges — go collapses Python's 7
+# construction kwargs into a single BedrockOptions struct (go's named-parameter idiom).
+signalwire.agents.bedrock.BedrockAgent.__init__: go-idiom-options — Go NewBedrockAgent(opts BedrockOptions) collapses Python's name/route/system_prompt/voice_id/temperature/top_p/max_tokens kwargs into one options struct (pkg/agent/bedrock.go); same fields, same Bedrock defaults, wire/behaviour-neutral
 signalwire.web.web_service.WebService.app: Python @property returning the FastAPI app; Go has no framework app handle (not surfaced)
 signalwire.web.web_service.WebService.security: Go WebService.Security() accessor exists but the reference records it as a @property with a distinct signature; not part of the compared surface
 
