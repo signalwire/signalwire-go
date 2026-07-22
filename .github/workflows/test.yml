@@ -68,6 +68,12 @@ jobs:
           version: v2.12.2
           install-only: true
 
+      # Install actionlint (native binary) so run-ci.sh's ACTIONLINT gate
+      # (porting-sdk/scripts/actionlint_gate.py) finds it on PATH. The gate
+      # fails LOUD if the binary is absent, so it MUST be declared here.
+      - name: Install actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+
       - name: Set up Python (porting-sdk audit scripts + mock servers)
         uses: actions/setup-python@v6
         with:
