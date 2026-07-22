@@ -88,6 +88,9 @@ go run ./examples/simple_agent/main.go
 go run ./cmd/swaig-test --url http://localhost:3001/simple --list-tools
 go run ./cmd/swaig-test --url http://localhost:3001/simple --dump-swml
 go run ./cmd/swaig-test --url http://localhost:3001/simple --exec get_time
+
+# Pass function arguments with --param key=value (repeatable):
+go run ./cmd/swaig-test --url http://localhost:3001/simple --exec get_weather --param location=London
 ```
 
 See the [CLI Guide](docs/cli_guide.md) for the full flag set, including
@@ -97,7 +100,7 @@ See the [CLI Guide](docs/cli_guide.md) for the full flag set, including
 
 - **Prompt Object Model (POM)** -- structured prompt composition via `PromptAddSection()`
 - **SWAIG tools** -- define functions with `DefineTool()` that the AI calls mid-conversation, with native access to the call's media stack
-- **Skills system** -- add capabilities with one-liners: `a.AddSkill("datetime", nil)`
+- **Skills system** -- add capabilities with one-liners: `a.AddSkill("datetime", nil)` (blank-import `_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"` once to register the built-ins so `AddSkill` can resolve them by name)
 - **Contexts and steps** -- structured multi-step workflows with navigation control
 - **DataMap tools** -- tools that execute on SignalWire's servers, calling REST APIs without your own webhook
 - **Dynamic configuration** -- per-request agent customization for multi-tenant deployments
@@ -279,6 +282,10 @@ Guides are also available in the [`docs/`](docs/) directory:
 - [Skills Parameter Schema](docs/skills_parameter_schema.md) -- skill parameter definitions
 
 ## Environment Variables
+
+Your project ID, API token, and space are on the [SignalWire Dashboard](https://my.signalwire.com)
+under **API** (or see [Navigating your SignalWire Space](https://developer.signalwire.com/platform/dashboard/get-started/explore/)).
+Create a SignalWire account first if you don't have one.
 
 | Variable | Used by | Description |
 |----------|---------|-------------|

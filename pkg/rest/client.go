@@ -174,7 +174,7 @@ type HTTPClient struct {
 // NewHTTPClient creates a new HTTPClient configured for the given SignalWire
 // space. The baseURL is normally constructed as "https://<space>", but the
 // SIGNALWIRE_REST_BASE_URL environment variable overrides it when set —
-// pointing the client at a loopback fixture for the the shared test harness
+// pointing the client at a loopback fixture for the shared test harness
 // audit_rest_transport.py harness, or at any non-default endpoint.
 func NewHTTPClient(projectID, token, space string, opts ...*RequestOptions) *HTTPClient {
 	baseURL := os.Getenv("SIGNALWIRE_REST_BASE_URL")
@@ -196,6 +196,11 @@ func NewHTTPClient(projectID, token, space string, opts ...*RequestOptions) *HTT
 	// default transport + system roots (unchanged behavior).
 	if pool := caPoolFromEnv("SIGNALWIRE_REST_CA_FILE"); pool != nil {
 		httpClient.Transport = &http.Transport{
+			// Preserve proxy support: the default http.Transport honors
+			// HTTP(S)_PROXY/NO_PROXY via ProxyFromEnvironment. Building a custom
+			// transport for the CA pool would otherwise silently drop proxying,
+			// so re-declare it here (setting a CA file must not disable proxies).
+			Proxy:           http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{RootCAs: pool},
 		}
 	}

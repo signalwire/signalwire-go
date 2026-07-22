@@ -9,15 +9,24 @@ package rest
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewRestClient_ExplicitArgs(t *testing.T) {
@@ -538,5 +547,66 @@ func TestNewSignalWireRestTransportError_Fields(t *testing.T) {
 	}
 	if !errors.Is(e, cause) {
 		t.Error("errors.Is(e, cause) = false; want the cause unwrappable via Unwrap")
+	}
+}
+
+// writeSelfSignedCA writes a minimal self-signed CA cert to a temp PEM file and
+// returns its path — enough for x509.CertPool.AppendCertsFromPEM to accept.
+func writeSelfSignedCA(t *testing.T) string {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("GenerateKey: %v", err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "go-rest-proxy-test-ca"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("CreateCertificate: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "ca.pem")
+	pemBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	if err := os.WriteFile(path, pemBytes, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	return path
+}
+
+// TestNewHTTPClient_CAFile_KeepsProxy pins the F1.2 fix: when SIGNALWIRE_REST_CA_FILE
+// is set the client builds a custom *http.Transport for the CA pool, and that
+// transport must still honor HTTP(S)_PROXY/NO_PROXY (Proxy: http.ProxyFromEnvironment).
+// Before the fix the custom transport omitted Proxy, silently disabling proxy support
+// whenever a CA file was configured.
+func TestNewHTTPClient_CAFile_KeepsProxy(t *testing.T) {
+	t.Setenv("SIGNALWIRE_REST_CA_FILE", writeSelfSignedCA(t))
+
+	client := NewHTTPClient("proj", "tok", "example.signalwire.com")
+
+	tr, ok := client.httpClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("Transport = %T, want *http.Transport (CA file should build a custom transport)", client.httpClient.Transport)
+	}
+	if tr.TLSClientConfig == nil || tr.TLSClientConfig.RootCAs == nil {
+		t.Error("TLSClientConfig.RootCAs = nil, want the CA pool wired")
+	}
+	if tr.Proxy == nil {
+		t.Fatal("Transport.Proxy = nil; want http.ProxyFromEnvironment (a CA file must not disable proxy support)")
+	}
+	// The Proxy func must be http.ProxyFromEnvironment (so HTTP(S)_PROXY/NO_PROXY are
+	// honored). Compare by function pointer rather than invoking it — invoking
+	// depends on net/http's process-global envProxyOnce cache, which an earlier
+	// HTTP request in this package can prime, making an invocation-based assertion
+	// order-dependent. The pointer identity is deterministic.
+	wantFn := reflect.ValueOf(http.ProxyFromEnvironment).Pointer()
+	gotFn := reflect.ValueOf(tr.Proxy).Pointer()
+	if gotFn != wantFn {
+		t.Errorf("Transport.Proxy is not http.ProxyFromEnvironment (a CA file must not swap in a different / nil proxy func)")
 	}
 }

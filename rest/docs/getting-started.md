@@ -20,6 +20,21 @@ You need three things to connect:
 | `token` | `SIGNALWIRE_API_TOKEN` | Your SignalWire API token |
 | `space` | `SIGNALWIRE_SPACE` | Your space hostname (e.g. `example.signalwire.com`) |
 
+### Overriding the API endpoint
+
+By default the client targets `https://<space>`. Two environment variables let you
+point it elsewhere without changing code:
+
+| Env Var | Description |
+|---------|-------------|
+| `SIGNALWIRE_REST_BASE_URL` | Overrides the base URL entirely — set it to reach a staging endpoint, a proxy, or a loopback test fixture (e.g. `http://127.0.0.1:8933`). When unset the base URL is `https://<space>`. |
+| `SIGNALWIRE_REST_CA_FILE` | Path to a PEM CA bundle to trust for HTTPS. Use it when the endpoint presents a certificate signed by a private CA (required on macOS, where Go's system trust store ignores `SSL_CERT_FILE`). Standard `HTTP(S)_PROXY` / `NO_PROXY` proxy support is preserved when this is set. |
+
+```bash
+# Point the client at a local mock or staging endpoint:
+export SIGNALWIRE_REST_BASE_URL=http://127.0.0.1:8933
+```
+
 <!-- snippet-setup -->
 ```go
 import (
