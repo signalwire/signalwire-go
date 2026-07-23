@@ -95,15 +95,11 @@ signalwire.relay.event.StreamEvent.__init__: Go uses NewX factory function as co
 signalwire.relay.event.TapEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.relay.event.TranscribeEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 signalwire.relay.message.Message.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.rest.namespaces.datasphere_resources_generated.DatasphereDocuments.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric_resources_generated.FabricTokens.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.rest.namespaces.project_resources_generated.ProjectTokens.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 
 ## Idiom: Go fluent API returns *Self for chaining
 
 signalwire.agent_server.AgentServer.get_agents: Go fluent API returns *Self for chaining
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tools: Go fluent API returns *Self for chaining
-signalwire.core.swml_service.SWMLService.get_document: Go fluent API returns *Self for chaining
 
 ## Idiom: PromptManager projects from AgentBase (fluent *AgentBase return)
 
@@ -124,7 +120,6 @@ signalwire.core.skill_base.SkillBase.logger: type-class divergence; Go's Logger 
 ## Idiom: Go typed options vs Python kwargs / typed signature divergences
 
 signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: Go's GetBasicAuthCredentials returns the resolved auth string only (no include_source kwarg); Python supports an include_source flag that causes it to return a (user, pass, source) tuple
-signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: Go takes a typed *http.Request param; Python takes Optional[fastapi.Request] (FastAPI vs net/http binding difference)
 signalwire.core.security.security_utils.filter_sensitive_headers: type-idiom divergence — Python parametrizes the header dict with a generic ``_V`` TypeVar (``dict[str, _V]`` in and out); Go uses a concrete ``map[string]string``. Same wire behavior (headers are string→string); Go has no need for the value-type generic.
 
 ## POM (signalwire.pom.pom) — Go idiom
@@ -283,12 +278,9 @@ signalwire.core.swml_builder.SWMLBuilder.reset: Go returns the builder for chain
 # multi-return, RawMessage) that differ from the Python signature shapes.
 signalwire.agent_server.AgentServer.register_global_routing_callback: go-idiom param-order — Go RegisterGlobalRoutingCallback(path string, cb swml.RoutingCallback) places the path first (Go registration convention) where Python register_global_routing_callback(callback_fn, path) places the callback first; the callback TYPE now matches exactly (callable<list<dict<string,any>,dict<string,any>>,optional<string>>). Pure param-order swap.
 signalwire.core.security.session_manager.SessionManager.set_session_metadata: Go SetSessionMetadata(sessionID, metadata map) stores a map and returns void; Python set_session_metadata(call_id,key,value) sets one key and returns bool
-signalwire.core.security_config.SecurityConfig.get_basic_auth: Go returns (user, pass) as two values; the canonical tuple<string,string> is expressed via Go multi-return
-signalwire.core.security_config.SecurityConfig.validate_ssl_config: Go returns (bool, string) multi-return; Python returns a tuple<bool,optional<string>>
 signalwire.core.pom_builder.PomBuilder.add_section: Go AddSection omits the nested `subsections` kwarg (subsections are added via AddSubsection); param shape differs
 signalwire.core.pom_builder.PomBuilder.add_to_section: Go AddToSection takes (title, body, bullets); Python also accepts a singular `bullet` — folded into `bullets` in Go
 signalwire.core.swml_handler.AIVerbHandler.build_config: Go BuildConfig(params map) takes the verb params as one map; Python spreads them as explicit kwargs
-signalwire.core.swml_handler.SWMLVerbHandler.validate_config: Go ValidateConfig returns bool; Python returns a (bool, errors[]) tuple — errors surfaced via Go error path
 signalwire.core.swml_handler.VerbHandlerRegistry.get_handler: Go GetVerbHandler returns the VerbHandler interface; Python returns optional<SWMLVerbHandler>
 signalwire.core.swml_handler.VerbHandlerRegistry.register_handler: Go RegisterVerbHandler takes the VerbHandler interface; Python takes an SWMLVerbHandler base
 signalwire.core.swml_service.SWMLService.register_verb_handler: Go RegisterVerbHandler takes the VerbHandler interface; Python takes an SWMLVerbHandler base
