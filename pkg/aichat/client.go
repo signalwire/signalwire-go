@@ -432,6 +432,14 @@ func (c *Client) Chat(ctx context.Context, conversationID, message string, opts 
 	}, nil
 }
 
+// Close releases any resources the client owns. The client wraps a stateless,
+// connection-pooled *http.Client (shared, or caller-injected via WithHTTPClient),
+// which has no per-client resource to release, so Close is a no-op that completes
+// the lifecycle contract — the Go analogue of the Python reference's close()
+// (which releases its owned aiohttp ClientSession). It always returns nil and is
+// safe to call more than once.
+func (c *Client) Close() error { return nil }
+
 // End ends a conversation (triggers server-side post-processing / archival). It
 // returns true when the service reported the conversation ended.
 func (c *Client) End(ctx context.Context, conversationID string) (bool, error) {

@@ -749,11 +749,12 @@ var StructTable = map[string][]ClassTarget{
 	// --- aichat package (signalwire.ai_chat.client) -----------------------
 	// The Go AIChatClient idiom folds onto the Python reference's async client:
 	// the functional-options constructor (NewClient) -> __init__, and each
-	// exported turn method -> its snake_case reference name. The three async
-	// session-lifecycle members the reference records (__aenter__, __aexit__,
-	// close) have no Go analogue: the Go Client wraps a stateless, connection-
-	// pooled *http.Client with nothing to enter/exit/close, and the TS OO cousin
-	// omits them identically. They are `impossible:` PORT_OMISSIONS entries,
+	// exported turn method -> its snake_case reference name. The reference's
+	// close() -> Go's Close() (a no-op that completes the lifecycle contract; the
+	// pooled/injected *http.Client has nothing to release, exactly as the TS OO
+	// cousin's close() is a no-op). Only the async context-manager protocol
+	// members __aenter__/__aexit__ have no Go analogue — Go has no `with`/`async
+	// with` scope guard — so those two stay `impossible:` PORT_OMISSIONS entries,
 	// mirroring RelayClient.__aenter__/__aexit__.
 	"aichat.Client": {{
 		Module: "signalwire.ai_chat.client", Class: "AIChatClient",
@@ -765,6 +766,7 @@ var StructTable = map[string][]ClassTarget{
 			"Delete":             "delete",
 			"Log":                "log",
 			"Summarize":          "summarize",
+			"Close":              "close",
 		},
 	}},
 	// The AI-Chat typed error family. Go has no exception hierarchy, so each
@@ -777,7 +779,14 @@ var StructTable = map[string][]ClassTarget{
 	// they never leak).
 	"aichat.AIChatError": {{
 		Module: "signalwire.ai_chat.client", Class: "AIChatError",
-		Methods:          map[string]string{},
+		Methods: map[string]string{},
+		// The reference records AIChatError.__init__(code, message) as SURFACE (a
+		// public exception constructor). Go builds it via a struct literal /
+		// newTypedError, so enumerate-surface emits the __init__ NAME via this
+		// synthetic; enumerate-signatures synthesizes its full (code, message)
+		// signature from aiChatCtorSigs. (ConversationInfo/ChatResponse/ChatLog carry
+		// __init__ only at the SIGNATURE layer — their surface member set is empty —
+		// so they need no surface synthetic here.)
 		SyntheticMethods: []string{"__init__"},
 	}},
 	"aichat.AuthenticationError": {{

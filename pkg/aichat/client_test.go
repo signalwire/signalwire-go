@@ -345,3 +345,25 @@ func TestSummarizeSamplingParams(t *testing.T) {
 		t.Errorf("top_p should be absent when unset")
 	}
 }
+
+// TestCloseIsNoOpLifecycle exercises close() — the Go analogue of the Python
+// reference's AIChatClient.close(). The client wraps a pooled/injected *http.Client
+// with nothing to release, so Close is a no-op that completes the lifecycle
+// contract: it returns nil, is safe to call more than once, and the client remains
+// usable (Go has no async context-manager; close() is the only lifecycle member).
+func TestCloseIsNoOpLifecycle(t *testing.T) {
+	client, _ := newTestServer(t, func(_ string, _ map[string]any) map[string]any {
+		return map[string]any{"result": map[string]any{"status": "created"}}
+	})
+	if err := client.Close(); err != nil {
+		t.Fatalf("Close: got %v, want nil", err)
+	}
+	// Idempotent: a second Close still returns nil.
+	if err := client.Close(); err != nil {
+		t.Fatalf("second Close: got %v, want nil", err)
+	}
+	// The client is still usable after Close (no owned resource was torn down).
+	if _, err := client.CreateConversation(ctx(), "conv-1", CreateOptions{ConfigURL: "http://cfg"}); err != nil {
+		t.Fatalf("CreateConversation after Close: %v", err)
+	}
+}

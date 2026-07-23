@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 8f2dbb2e2d1feb44162dcce9cc8191c9f0eac308",
+  "generated_from": "signalwire-go (go-native) @ d5d808382003c8851e108a9338fbd1f874ededc9",
   "modules": {
     "agent": {
       "classes": {
@@ -179,6 +179,7 @@
         "ChatResponse": [],
         "Client": [
           "Chat",
+          "Close",
           "CreateConversation",
           "Delete",
           "End",

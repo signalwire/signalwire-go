@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 8f2dbb2e2d1feb44162dcce9cc8191c9f0eac308",
+  "generated_from": "signalwire-go @ d5d808382003c8851e108a9338fbd1f874ededc9",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -49,6 +49,7 @@
         "AIChatClient": [
           "__init__",
           "chat",
+          "close",
           "create_conversation",
           "delete",
           "end",

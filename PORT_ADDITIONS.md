@@ -165,9 +165,6 @@ swaig.Codec: Go-only defined-string type (closed set of SWAIG-tap audio codecs: 
 swaig.JoinConferenceOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 swaig.PayOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 swaig.RecordCallOptions: Go-only options struct; encodes Python kwargs for the matching constructor
-aichat.ChatOptions: Go-only options struct; encodes the AIChatClient.chat keyword params (role/config_url/timeout/reinit/user_metadata) as the Go functional-options idiom
-aichat.CreateOptions: Go-only options struct; encodes the AIChatClient.create_conversation keyword params (config_url/user_message/timeout/reinit/user_metadata) as the Go functional-options idiom
-aichat.SummarizeOptions: Go-only options struct; encodes the AIChatClient.summarize keyword param (summary_prompt) as the Go functional-options idiom
 swaig.RecordDirection: Go-only defined-string type (closed set of record_call audio directions: speak/listen/both) + RecordDirection* typed constants; FunctionResult.RecordCall takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "both" string compiling — parity with the reference's str direction (validated valid_directions=["speak","listen","both"] at function_result.py:917). Wire-identical to string, so signature drift stays 0 (the union<class:swaig.RecordDirection,string> the enumerator emits for record_call's direction param absorbs against the reference's str). DISTINCT from swaig.TapDirection (tap uses "hear" where record_call uses "listen") — never unify the two.
 swaig.RecordFormat: Go-only defined-string type (closed set of recording formats: mp3/wav/mp4) + Format* typed constants; FunctionResult.RecordCall (and the relay/agent WithRecordFormat options) take it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "wav" string compiling — parity with the reference's str format. Wire-identical to string, so signature drift stays 0 (the union<class:swaig.RecordFormat,string> the enumerator emits for record_call's format param absorbs against the reference's str).
 swaig.TapDirection: Go-only defined-string type (closed set of tap audio directions: speak/hear/both) + TapDirection* typed constants; FunctionResult.Tap takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "both" string compiling — parity with the reference's str direction (validated valid_directions=["speak","hear","both"] at function_result.py:1212). Wire-identical to string, so signature drift stays 0 (the union<class:swaig.TapDirection,string> the enumerator emits for tap's direction param absorbs against the reference's str). DISTINCT from swaig.RecordDirection (record_call uses "listen" where tap uses "hear") — never unify the two.
@@ -210,12 +207,6 @@ swml.ToolDefinition: Go-only struct; no direct Python counterpart
 swml.VerbInfo: Go-only struct; no direct Python counterpart
 
 # --- Go-only functions (functional-options helpers, factory constructors, package utilities) ---
-aichat.WithProject: Go functional-options helper; encodes the AIChatClient constructor project kwarg
-aichat.WithToken: Go functional-options helper; encodes the AIChatClient constructor token kwarg
-aichat.WithSpace: Go functional-options helper; encodes the AIChatClient constructor space kwarg
-aichat.WithURL: Go functional-options helper; encodes the AIChatClient constructor url kwarg
-aichat.WithHTTPClient: Go functional-options helper; injects a custom *http.Client (dependency injection for tests/transports) — the Go spelling of Python's optional session arg
-aichat.WithReadIdleTimeout: Go functional-options helper; encodes the AIChatClient constructor read-idle-timeout kwarg
 agent.WithAIVerbName: Go functional-options helper; encodes a Python kwarg for the matching constructor
 agent.WithAgentID: Go functional-options helper; encodes a Python kwarg for the matching constructor
 agent.WithAutoAnswer: Go functional-options helper; encodes a Python kwarg for the matching constructor
