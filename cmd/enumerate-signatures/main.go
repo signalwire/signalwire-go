@@ -169,10 +169,11 @@ var aiChatMethodSigs = map[string]canonicalSignature{
 			{Name: "token", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
 			{Name: "space", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
 			{Name: "url", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
-			// Python's `session: aiohttp.ClientSession | None` HTTP-client injection
-			// seam ≡ Go's WithHTTPClient(*http.Client) functional option. Same
-			// capability (inject a custom transport); recorded as the open class slot.
-			{Name: "session", Type: "optional<class:aiohttp.ClientSession>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			// The oracle dropped Python's `session: aiohttp.ClientSession | None`
+			// (a Python-only DI seam) as of porting-sdk ai-chat-client @ f6efa9b, so
+			// __init__ folds naturally to (project, token, space, url). Go's
+			// WithHTTPClient(*http.Client) functional option remains as an idiomatic
+			// transport-injection extra, invisible to this reference-shaped signature.
 		},
 		Returns: "void",
 	},
@@ -196,8 +197,11 @@ var aiChatMethodSigs = map[string]canonicalSignature{
 			{Name: "role", Type: "string", Required: boolPtr(false), Default: json.RawMessage("\"user\"")},
 			{Name: "config_url", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
 			{Name: "user_metadata", Type: "optional<dict<string,any>>", Required: boolPtr(false), Default: json.RawMessage("null")},
-			{Name: "timeout", Type: "optional<int>", Required: boolPtr(false), Default: json.RawMessage("null")},
-			{Name: "reinit", Type: "bool", Required: boolPtr(false), Default: json.RawMessage("false")},
+			// timeout/reinit carry the oracle's exact type vocabulary for chat
+			// (optional<integer> / boolean) — the oracle records these for chat
+			// (create_conversation records optional<int> / bool); match each verbatim.
+			{Name: "timeout", Type: "optional<integer>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "reinit", Type: "boolean", Required: boolPtr(false), Default: json.RawMessage("false")},
 		},
 		Returns: "class:signalwire.ai_chat.client.ChatResponse",
 	},

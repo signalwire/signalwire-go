@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ d5d808382003c8851e108a9338fbd1f874ededc9 (go/ast walker)",
+  "generated_from": "signalwire-go @ 8231e0d0fc9e76b241afc778d57bf9db68751fa6 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -382,12 +382,6 @@
                   "type": "optional\u003cstring\u003e",
                   "required": false,
                   "default": null
-                },
-                {
-                  "name": "session",
-                  "type": "optional\u003cclass:aiohttp.ClientSession\u003e",
-                  "required": false,
-                  "default": null
                 }
               ],
               "returns": "void"
@@ -428,13 +422,13 @@
                 },
                 {
                   "name": "timeout",
-                  "type": "optional\u003cint\u003e",
+                  "type": "optional\u003cinteger\u003e",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "reinit",
-                  "type": "bool",
+                  "type": "boolean",
                   "required": false,
                   "default": false
                 }
