@@ -83,42 +83,67 @@ func TestServiceAllVerbMethods(t *testing.T) {
 		{"RecordCall", func() error { return svc.RecordCall(map[string]any{}) }},
 		{"StopRecordCall", func() error { return svc.StopRecordCall(map[string]any{}) }},
 		{"Sleep", func() error { return svc.Sleep(100) }},
-		{"Connect", func() error { return svc.Connect(map[string]any{}) }},
-		{"SendDigits", func() error { return svc.SendDigits(map[string]any{}) }},
-		{"SendSMS", func() error { return svc.SendSMS(map[string]any{}) }},
-		{"SendFax", func() error { return svc.SendFax(map[string]any{}) }},
+		{"Connect", func() error {
+			return svc.Connect(map[string]any{"to": "sip:x@y"})
+		}},
+		{"SendDigits", func() error { return svc.SendDigits(map[string]any{"digits": "123"}) }},
+		{"SendSMS", func() error {
+			return svc.SendSMS(map[string]any{"to_number": "+15551112222", "from_number": "+15553334444", "body": "hi"})
+		}},
+		{"SendFax", func() error { return svc.SendFax(map[string]any{"document": "http://x/f.pdf"}) }},
 		{"ReceiveFax", func() error { return svc.ReceiveFax(map[string]any{}) }},
-		{"SIPRefer", func() error { return svc.SIPRefer(map[string]any{}) }},
+		{"SIPRefer", func() error { return svc.SIPRefer(map[string]any{"to_uri": "sip:x@y"}) }},
 		{"AI", func() error {
 			// After the verb-handler registry (PR #86) landed, AIVerbHandler
 			// rejects a blank prompt. Provide the minimum valid shape.
 			pt := "hello"
 			return svc.AI(AIOptions{PromptText: &pt})
 		}},
-		{"AmazonBedrock", func() error { return svc.AmazonBedrock(map[string]any{}) }},
-		{"Cond", func() error { return svc.Cond(map[string]any{}) }},
-		{"Switch", func() error { return svc.Switch(map[string]any{}) }},
-		{"Execute", func() error { return svc.Execute(map[string]any{}) }},
+		{"AmazonBedrock", func() error {
+			return svc.AmazonBedrock(map[string]any{"prompt": map[string]any{"text": "hi"}})
+		}},
+		// cond takes an ARRAY of condition objects per the schema, not a map;
+		// drive ExecuteVerb with the correctly-typed value.
+		{"Cond", func() error {
+			return svc.ExecuteVerb("cond", []any{map[string]any{"when": "x", "then": []any{}}})
+		}},
+		{"Switch", func() error {
+			return svc.Switch(map[string]any{"variable": "x", "case": map[string]any{}})
+		}},
+		{"Execute", func() error { return svc.Execute(map[string]any{"dest": "main"}) }},
 		{"Return", func() error { return svc.Return(map[string]any{}) }},
-		{"Goto", func() error { return svc.Goto(map[string]any{}) }},
-		{"Label", func() error { return svc.Label(map[string]any{}) }},
+		{"Goto", func() error { return svc.Goto(map[string]any{"label": "top"}) }},
+		// label takes a STRING per the schema, not a map.
+		{"Label", func() error { return svc.ExecuteVerb("label", "greeting") }},
 		{"Set", func() error { return svc.Set(map[string]any{}) }},
-		{"Unset", func() error { return svc.Unset(map[string]any{}) }},
-		{"Transfer", func() error { return svc.Transfer(map[string]any{}) }},
-		{"Tap", func() error { return svc.Tap(map[string]any{}) }},
+		// unset takes a string or an array of strings per the schema, not a map.
+		{"Unset", func() error { return svc.ExecuteVerb("unset", []any{"temp_data"}) }},
+		{"Transfer", func() error { return svc.Transfer(map[string]any{"dest": "main"}) }},
+		{"Tap", func() error { return svc.Tap(map[string]any{"uri": "rtp://x"}) }},
 		{"StopTap", func() error { return svc.StopTap(map[string]any{}) }},
 		{"Denoise", func() error { return svc.Denoise(map[string]any{}) }},
 		{"StopDenoise", func() error { return svc.StopDenoise(map[string]any{}) }},
-		{"JoinRoom", func() error { return svc.JoinRoom(map[string]any{}) }},
-		{"JoinConference", func() error { return svc.JoinConference(map[string]any{}) }},
-		{"Prompt", func() error { return svc.Prompt(map[string]any{}) }},
-		{"EnterQueue", func() error { return svc.EnterQueue(map[string]any{}) }},
-		{"Request", func() error { return svc.Request(map[string]any{}) }},
-		{"Pay", func() error { return svc.Pay(map[string]any{}) }},
+		{"JoinRoom", func() error { return svc.JoinRoom(map[string]any{"name": "room1"}) }},
+		{"JoinConference", func() error { return svc.JoinConference(map[string]any{"name": "conf1"}) }},
+		{"Prompt", func() error { return svc.Prompt(map[string]any{"play": "say:hi"}) }},
+		{"EnterQueue", func() error {
+			return svc.EnterQueue(map[string]any{"queue_name": "q", "transfer_after_bridge": "main"})
+		}},
+		{"Request", func() error {
+			return svc.Request(map[string]any{"url": "http://x", "method": "GET"})
+		}},
+		{"Pay", func() error { return svc.Pay(map[string]any{"payment_connector_url": "http://x"}) }},
 		{"DetectMachine", func() error { return svc.DetectMachine(map[string]any{}) }},
-		{"LiveTranscribe", func() error { return svc.LiveTranscribe(map[string]any{}) }},
-		{"LiveTranslate", func() error { return svc.LiveTranslate(map[string]any{}) }},
-		{"UserEvent", func() error { return svc.UserEvent(map[string]any{}) }},
+		// live_transcribe / live_translate take a typed action; "stop" (a string
+		// const) is the minimal valid action per the schema. The wrappers accept
+		// a map, so drive ExecuteVerb with the valid {action:"stop"} shape.
+		{"LiveTranscribe", func() error {
+			return svc.LiveTranscribe(map[string]any{"action": "stop"})
+		}},
+		{"LiveTranslate", func() error {
+			return svc.LiveTranslate(map[string]any{"action": "stop"})
+		}},
+		{"UserEvent", func() error { return svc.UserEvent(map[string]any{"event": map[string]any{}}) }},
 	}
 
 	for _, tt := range tests {

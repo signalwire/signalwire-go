@@ -1166,6 +1166,56 @@ func (cb *ContextBuilder) Validate() error {
 				colliding, reserved,
 			)
 		}
+
+		// Validate step set_functions([...]) whitelists against the known tool
+		// universe. A step that whitelists a function which is neither a
+		// registered SWAIG tool nor a reserved native tool is a DANGLING
+		// reference: it would render a step whose active-function set silently
+		// points at nothing (r5 F3 / GAP2 — get_datetime vs order_status). We
+		// only enforce this when a real agent (ToolLister) is attached — a
+		// standalone ContextBuilder cannot know the tool universe, so it must
+		// not red a valid document there.
+		known := make(map[string]struct{}, len(names)+len(ReservedNativeToolNames))
+		for _, n := range names {
+			known[n] = struct{}{}
+		}
+		for n := range ReservedNativeToolNames {
+			known[n] = struct{}{}
+		}
+		for _, ctx := range cb.contexts {
+			for _, step := range ctx.steps {
+				// Only a []string whitelist references tools to resolve.
+				// "none" (string) and any non-list value are explicit
+				// disable-all / unset — nothing to check.
+				funcs, ok := step.functions.([]string)
+				if !ok {
+					continue
+				}
+				for _, fn := range funcs {
+					if _, found := known[fn]; found {
+						continue
+					}
+					available := make([]string, 0, len(known))
+					for n := range known {
+						available = append(available, n)
+					}
+					for i := 1; i < len(available); i++ {
+						for j := i; j > 0 && available[j-1] > available[j]; j-- {
+							available[j-1], available[j] = available[j], available[j-1]
+						}
+					}
+					return fmt.Errorf(
+						"step %q in context %q whitelists function %q via "+
+							"SetFunctions(), but no such SWAIG tool is registered "+
+							"on the agent and it is not a reserved native tool. "+
+							"This would emit a dangling function reference. "+
+							"Register the tool (DefineTool / a skill) or remove it "+
+							"from the step. Available: %v",
+						step.name, ctx.name, fn, available,
+					)
+				}
+			}
+		}
 	}
 
 	return nil

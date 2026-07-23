@@ -9,6 +9,7 @@ package agent
 
 import (
 	"encoding/json"
+	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -178,6 +179,16 @@ func TestEnableDebugRoutes_RegistersDebugRoute(t *testing.T) {
 
 func TestDefineContextsFromMap_PopulatesBuilder(t *testing.T) {
 	a := NewAgentBase(WithName("t"))
+	// Register the tool the step whitelists so its set_functions reference is
+	// not dangling. STRICT-RENDER (Wave-2 P#5) rejects a step that whitelists a
+	// function which is neither a registered SWAIG tool nor a reserved native
+	// tool, matching the python reference's ContextBuilder.validate().
+	a.DefineTool(ToolDefinition{
+		Name:        "get_time",
+		Description: "get the current time",
+		Parameters:  map[string]any{},
+		Handler:     func(map[string]any, map[string]any) *swaig.FunctionResult { return nil },
+	})
 	a.DefineContextsFromMap(map[string]any{
 		"default": map[string]any{
 			"steps": []any{

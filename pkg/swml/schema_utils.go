@@ -17,11 +17,15 @@
 package swml
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/dlclark/regexp2"
+	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // SchemaValidationError is the canonical error type raised when SWML
@@ -73,10 +77,15 @@ type SchemaUtils struct {
 	// verbs is the extracted verb table keyed by actual verb name
 	// (e.g. "ai", "answer", "sip_refer").
 	verbs map[string]*VerbInfo
-	// schemaValidator is the optional full JSON Schema validator.
-	// Currently nil in the Go port — extend by wiring a validator
-	// (e.g. github.com/santhosh-tekuri/jsonschema/v5) here.
+	// schemaValidator is the optional full JSON Schema validator. It holds a
+	// compiled *jsonschema.Schema (Draft 2020-12) when full validation is wired
+	// and available — the Go analogue of Python's jsonschema-rs
+	// Draft202012Validator. nil = lightweight (required-property) fallback.
 	schemaValidator any
+	// fullValidator is the concretely-typed compiled schema used by the full
+	// validation path; kept separate from schemaValidator (which stays `any` to
+	// preserve the FullValidationAvailable() surface parity with Python).
+	fullValidator *jsonschema.Schema
 }
 
 // NewSchemaUtils constructs a SchemaUtils.
@@ -187,13 +196,44 @@ func (s *SchemaUtils) extractVerbs() {
 	}
 }
 
-// initFullValidator wires up the full JSON Schema validator when
-// available.  In the Go port this currently does nothing — extend
-// here when a validator dependency is added.
+// initFullValidator compiles the embedded SWML JSON Schema into a Draft
+// 2020-12 validator (santhosh-tekuri/jsonschema/v6), the Go analogue of
+// Python's jsonschema-rs Draft202012Validator. On any compile failure it
+// leaves the validator nil so the lightweight required-property check remains
+// the fallback (matching Python's behaviour when jsonschema-rs is unavailable).
 func (s *SchemaUtils) initFullValidator() {
-	// Reserved for future full-validator wiring.  Lightweight validation
-	// (required-property check) runs unconditionally below.
-	s.schemaValidator = nil
+	if len(s.schema) == 0 {
+		return
+	}
+	// The compiler wants a json-decoded document that uses json.Number for all
+	// numbers (jsonschema.UnmarshalJSON sets UseNumber); re-encode our schema
+	// map and decode it back through that helper so number semantics match.
+	raw, err := json.Marshal(s.schema)
+	if err != nil {
+		return
+	}
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
+	if err != nil {
+		return
+	}
+	const schemaURL = "mem://swml/schema.json"
+	c := jsonschema.NewCompiler()
+	// Use an ECMAScript-compatible regexp engine (dlclark/regexp2) instead of
+	// Go's RE2. The SWML schema uses negative-lookahead patterns (e.g. a step
+	// name pattern "^(?!next$).*$") that RE2 cannot parse — the same fancy-regex
+	// lookahead support Python's jsonschema-rs relies on. Without this the
+	// metaschema pass rejects the schema at compile time and the validator would
+	// silently fall back to the lightweight (required-only) check.
+	c.UseRegexpEngine(regexp2Engine)
+	if err := c.AddResource(schemaURL, doc); err != nil {
+		return
+	}
+	compiled, err := c.Compile(schemaURL)
+	if err != nil {
+		return
+	}
+	s.fullValidator = compiled
+	s.schemaValidator = compiled
 }
 
 // FullValidationAvailable reports whether the full JSON Schema
@@ -281,11 +321,151 @@ func (s *SchemaUtils) ValidateVerb(verbName string, verbConfig map[string]any) V
 	return s.validateVerbLightweight(verbName, verbConfig)
 }
 
+// verbTopLevelPropertyNames resolves the set of KNOWN top-level property names
+// for a verb's config object, following a single $ref (e.g. AI -> AIObject).
+// Returns (nil, false) when the verb's config schema is not a closed
+// object-with-properties — i.e. there is no enumerable known-key set, so no
+// shallow check applies. Mirrors python _verb_top_level_property_names.
+func (s *SchemaUtils) verbTopLevelPropertyNames(verbName string) (map[string]struct{}, bool) {
+	v, ok := s.verbs[verbName]
+	if !ok {
+		return nil, false
+	}
+	props, ok := v.Definition["properties"].(map[string]any)
+	if !ok {
+		return nil, false
+	}
+	body, ok := props[verbName].(map[string]any)
+	if !ok {
+		return nil, false
+	}
+	// Follow a single $ref (AI -> AIObject) to the object that declares the
+	// verb config's own properties.
+	if ref, ok := body["$ref"].(string); ok {
+		refName := ref
+		if i := strings.LastIndex(ref, "/"); i >= 0 {
+			refName = ref[i+1:]
+		}
+		defs, _ := s.schema["$defs"].(map[string]any)
+		if rd, ok := defs[refName].(map[string]any); ok {
+			body = rd
+		} else {
+			return nil, false
+		}
+	}
+	if t, _ := body["type"].(string); t != "object" {
+		return nil, false
+	}
+	propMap, ok := body["properties"].(map[string]any)
+	if !ok {
+		return nil, false
+	}
+	// Only meaningful as a closed-key check when the schema itself closes the
+	// object (additionalProperties:false or unevaluatedProperties disallowed).
+	closes := false
+	if ap, ok := body["additionalProperties"].(bool); ok && !ap {
+		closes = true
+	}
+	if up, ok := body["unevaluatedProperties"].(bool); ok && !up {
+		closes = true
+	}
+	if up, ok := body["unevaluatedProperties"].(map[string]any); ok {
+		// The SWML schema closes objects with `unevaluatedProperties: {"not": {}}`
+		// — an empty `not` schema that nothing satisfies, so any unevaluated
+		// property is rejected.
+		if notVal, has := up["not"]; has {
+			if m, ok := notVal.(map[string]any); ok && len(m) == 0 {
+				closes = true
+			}
+		}
+	}
+	if !closes {
+		return nil, false
+	}
+	known := make(map[string]struct{}, len(propMap))
+	for k := range propMap {
+		known[k] = struct{}{}
+	}
+	return known, true
+}
+
+// ValidateVerbTopLevelKeys is the SHALLOW strict-render check: reject
+// unknown/misspelled TOP-LEVEL keys in a verb config against the schema's known
+// property set, WITHOUT running the full deep schema (which would false-reject
+// legitimate deep emissions such as the ai verb's empty prompt.pom, SWAIG
+// defaults, or functions[].web_hook_url/__token). Used for handler verbs (the
+// ai verb) whose deep shapes the handler owns. A no-op when validation is
+// disabled or when the verb has no enumerable closed key-set.
+// Mirrors python validate_verb_top_level_keys.
+func (s *SchemaUtils) ValidateVerbTopLevelKeys(verbName string, verbConfig map[string]any) ValidationResult {
+	if !s.validationEnabled {
+		return ValidationResult{Valid: true, Errors: []string{}}
+	}
+	if _, ok := s.verbs[verbName]; !ok {
+		return ValidationResult{Valid: false, Errors: []string{fmt.Sprintf("Unknown verb: %s", verbName)}}
+	}
+	known, ok := s.verbTopLevelPropertyNames(verbName)
+	if !ok {
+		// No enumerable closed key-set — nothing shallow to enforce.
+		return ValidationResult{Valid: true, Errors: []string{}}
+	}
+	var unknown []string
+	for k := range verbConfig {
+		if _, found := known[k]; !found {
+			unknown = append(unknown, k)
+		}
+	}
+	if len(unknown) > 0 {
+		sort.Strings(unknown)
+		knownList := make([]string, 0, len(known))
+		for k := range known {
+			knownList = append(knownList, k)
+		}
+		sort.Strings(knownList)
+		return ValidationResult{Valid: false, Errors: []string{
+			fmt.Sprintf("Unknown/misspelled key(s) %v for verb '%s'. Known keys: %v",
+				unknown, verbName, knownList),
+		}}
+	}
+	return ValidationResult{Valid: true, Errors: []string{}}
+}
+
 func (s *SchemaUtils) validateVerbFull(verbName string, verbConfig map[string]any) ValidationResult {
-	// Reserved for full-validator integration.  Lightweight fallback
-	// keeps behaviour identical to Python's lightweight path until
-	// a validator is wired in.
-	return s.validateVerbLightweight(verbName, verbConfig)
+	if s.fullValidator == nil {
+		return s.validateVerbLightweight(verbName, verbConfig)
+	}
+	// Use lightweight for partial/test schemas that lack the full document
+	// structure (no "sections" in properties) — mirrors Python's guard.
+	props, _ := s.schema["properties"].(map[string]any)
+	if _, ok := props["sections"]; !ok {
+		return s.validateVerbLightweight(verbName, verbConfig)
+	}
+
+	// Wrap the verb in a minimal SWML document, exactly as Python does, so the
+	// schema's closed-object (unevaluatedProperties) + type + required checks
+	// fire against the real document context.
+	minimalDoc := map[string]any{
+		"version":  "1.0.0",
+		"sections": map[string]any{"main": []any{map[string]any{verbName: verbConfig}}},
+	}
+	// Re-decode through jsonschema.UnmarshalJSON so numbers become json.Number,
+	// matching how the schema was compiled (the validator compares kinds).
+	raw, err := json.Marshal(minimalDoc)
+	if err != nil {
+		return ValidationResult{Valid: false, Errors: []string{fmt.Sprintf("Schema validation error for '%s': %v", verbName, err)}}
+	}
+	inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
+	if err != nil {
+		return ValidationResult{Valid: false, Errors: []string{fmt.Sprintf("Schema validation error for '%s': %v", verbName, err)}}
+	}
+	if err := s.fullValidator.Validate(inst); err != nil {
+		msg := err.Error()
+		if len(msg) > 500 {
+			msg = msg[:500] + "..."
+		}
+		return ValidationResult{Valid: false, Errors: []string{fmt.Sprintf("Schema validation error for '%s': %s", verbName, msg)}}
+	}
+	return ValidationResult{Valid: true, Errors: []string{}}
 }
 
 func (s *SchemaUtils) validateVerbLightweight(verbName string, verbConfig map[string]any) ValidationResult {
@@ -306,10 +486,24 @@ func (s *SchemaUtils) validateVerbLightweight(verbName string, verbConfig map[st
 // “(False, ["Schema validator not initialized"])“; the Go port
 // matches that contract bit-for-bit.
 func (s *SchemaUtils) ValidateDocument(document map[string]any) ValidationResult {
-	if s.schemaValidator == nil {
+	if s.fullValidator == nil {
 		return ValidationResult{Valid: false, Errors: []string{"Schema validator not initialized"}}
 	}
-	// Reserved for full-validator integration.
+	raw, err := json.Marshal(document)
+	if err != nil {
+		return ValidationResult{Valid: false, Errors: []string{fmt.Sprintf("Document validation error: %v", err)}}
+	}
+	inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
+	if err != nil {
+		return ValidationResult{Valid: false, Errors: []string{fmt.Sprintf("Document validation error: %v", err)}}
+	}
+	if err := s.fullValidator.Validate(inst); err != nil {
+		msg := err.Error()
+		if len(msg) > 500 {
+			msg = msg[:500] + "..."
+		}
+		return ValidationResult{Valid: false, Errors: []string{fmt.Sprintf("Document validation error: %s", msg)}}
+	}
 	return ValidationResult{Valid: true, Errors: []string{}}
 }
 
@@ -419,4 +613,29 @@ func pythonTypeAnnotation(def any) string {
 		}
 		return "Any"
 	}
+}
+
+// regexp2Regexp adapts a *regexp2.Regexp to the jsonschema.Regexp interface
+// (an ECMAScript-mode engine with lookahead/lookbehind support, matching the
+// fancy-regex semantics of Python's jsonschema-rs).
+type regexp2Regexp regexp2.Regexp
+
+func (r *regexp2Regexp) MatchString(str string) bool {
+	matched, err := (*regexp2.Regexp)(r).MatchString(str)
+	return err == nil && matched
+}
+
+func (r *regexp2Regexp) String() string {
+	return (*regexp2.Regexp)(r).String()
+}
+
+// regexp2Engine compiles a pattern with dlclark/regexp2 in ECMAScript mode.
+// Wired into the schema compiler via Compiler.UseRegexpEngine so the SWML
+// schema's negative-lookahead patterns compile (Go's stdlib RE2 rejects them).
+func regexp2Engine(pattern string) (jsonschema.Regexp, error) {
+	re, err := regexp2.Compile(pattern, regexp2.ECMAScript)
+	if err != nil {
+		return nil, err
+	}
+	return (*regexp2Regexp)(re), nil
 }

@@ -602,40 +602,99 @@ func (s *Service) ManualSetProxyURL(url string) {
 // For most verbs, config should be a map[string]any of verb parameters.
 // For "sleep", config should be an integer (milliseconds).
 func (s *Service) ExecuteVerb(verbName string, config any) error {
-	// Custom handler check first (mirrors Python: verb_registry.has_handler priority).
-	s.mu.RLock()
-	handler, hasHandler := s.verbHandlers[verbName]
-	s.mu.RUnlock()
-
-	if hasHandler {
-		if cfgMap, ok := config.(map[string]any); ok {
-			if valid, errs := handler.ValidateConfig(cfgMap); !valid {
-				return fmt.Errorf("verb %q handler validation failed: %s", verbName, strings.Join(errs, "; "))
-			}
-		}
-	} else if s.schema != nil && !s.schema.IsValidVerb(verbName) {
-		return fmt.Errorf("unknown SWML verb: %q", verbName)
+	if err := s.validateVerb(verbName, config); err != nil {
+		return err
 	}
 	return s.document.AddVerb(verbName, config)
 }
 
 // ExecuteVerbToSection adds a SWML verb to a named section.
 func (s *Service) ExecuteVerbToSection(section, verbName string, config any) error {
-	// Custom handler check first.
+	if err := s.validateVerb(verbName, config); err != nil {
+		return err
+	}
+	return s.document.AddVerbToSection(section, verbName, config)
+}
+
+// validateVerb runs the shared verb-validation pipeline that both ExecuteVerb
+// and ExecuteVerbToSection use, mirroring Python SWMLService.add_verb:
+//
+//  1. sleep with a bare integer config bypasses validation (direct-value verb);
+//  2. a non-map config for any other verb is passed through unvalidated —
+//     Python's add_verb only schema-validates dict configs, and some verbs
+//     legitimately carry a non-map wire value (cond -> array, label/unset ->
+//     string|array), so raising here would be stricter than the reference;
+//  3. a registered handler's ValidateConfig runs first (verb-specific
+//     diagnostics such as the ai verb's prompt/SWAIG shape check);
+//  4. the schema pass (schemaUtils.ValidateVerb) ALWAYS runs when the config is
+//     a map — this is the closed-key / type / required check that rejects
+//     unknown verbs, misspelled or unknown config keys, and wrong-typed values.
+//     Running it for handler verbs too is what makes the ai verb reject
+//     unknown/misspelled TOP-LEVEL keys (r5 GAP1) while ai.params stays open.
+//
+// The schema pass is a no-op when schema validation is disabled, so this never
+// tightens the validation-off path.
+func (s *Service) validateVerb(verbName string, config any) error {
+	// Direct-value verbs (sleep takes a bare int) skip config validation.
+	if verbName == "sleep" {
+		if _, ok := config.(int); ok {
+			return nil
+		}
+	}
+
+	cfgMap, isMap := config.(map[string]any)
+	if !isMap {
+		// Non-map config for a non-direct-value verb. The python reference's
+		// add_verb only schema-validates dict configs (a non-dict, non-sleep
+		// config is dropped via a warning + return False, never raised). Some
+		// verbs legitimately carry a non-map value on the wire (cond -> array,
+		// label -> string, unset -> string|array); we do not raise on those and
+		// do not run the closed-key schema pass (which is defined over object
+		// configs). Being stricter here than the reference is forbidden, so we
+		// pass such configs through unvalidated.
+		return nil
+	}
+
 	s.mu.RLock()
 	handler, hasHandler := s.verbHandlers[verbName]
 	s.mu.RUnlock()
 
 	if hasHandler {
-		if cfgMap, ok := config.(map[string]any); ok {
-			if valid, errs := handler.ValidateConfig(cfgMap); !valid {
-				return fmt.Errorf("verb %q handler validation failed: %s", verbName, strings.Join(errs, "; "))
-			}
+		if valid, errs := handler.ValidateConfig(cfgMap); !valid {
+			return fmt.Errorf("verb %q handler validation failed: %s", verbName, strings.Join(errs, "; "))
 		}
-	} else if s.schema != nil && !s.schema.IsValidVerb(verbName) {
-		return fmt.Errorf("unknown SWML verb: %q", verbName)
 	}
-	return s.document.AddVerbToSection(section, verbName, config)
+
+	if s.schemaUtils == nil {
+		// Defensive fallback if schemaUtils was never built.
+		if s.schema != nil && !s.schema.IsValidVerb(verbName) {
+			return fmt.Errorf("unknown SWML verb: %q", verbName)
+		}
+		return nil
+	}
+
+	// The schema pass differs by verb kind, matching the python reference's
+	// add_verb dispatch:
+	//
+	//   - Handler verbs (the ai verb): a SHALLOW top-level-key check only —
+	//     reject unknown/misspelled TOP-LEVEL keys (temperatur, zzz) while
+	//     leaving the deep shape to the handler. Full deep-validating the ai
+	//     verb would FALSE-REJECT legitimate deep emissions the bundled schema
+	//     does not fully accept (an empty prompt.pom, SWAIG.defaults,
+	//     functions[].web_hook_url/__token). ai.params stays open by virtue of
+	//     being a known top-level key whose interior is not inspected here.
+	//   - Non-handler verbs (answer/play/record/...): the FULL deep schema
+	//     (closed-key + type + required), since no handler owns their shape.
+	var res ValidationResult
+	if hasHandler {
+		res = s.schemaUtils.ValidateVerbTopLevelKeys(verbName, cfgMap)
+	} else {
+		res = s.schemaUtils.ValidateVerb(verbName, cfgMap)
+	}
+	if !res.Valid {
+		return NewSchemaValidationError(verbName, res.Errors)
+	}
+	return nil
 }
 
 // --- Auto-vivified convenience methods for all 38 SWML verbs ---
