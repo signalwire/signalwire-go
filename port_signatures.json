@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 8231e0d0fc9e76b241afc778d57bf9db68751fa6 (go/ast walker)",
+  "generated_from": "signalwire-go @ 15d358904c011361c77847bad94ea18e1332311c (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -422,13 +422,13 @@
                 },
                 {
                   "name": "timeout",
-                  "type": "optional\u003cinteger\u003e",
+                  "type": "optional\u003cint\u003e",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "reinit",
-                  "type": "boolean",
+                  "type": "bool",
                   "required": false,
                   "default": false
                 }

@@ -197,11 +197,11 @@ var aiChatMethodSigs = map[string]canonicalSignature{
 			{Name: "role", Type: "string", Required: boolPtr(false), Default: json.RawMessage("\"user\"")},
 			{Name: "config_url", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
 			{Name: "user_metadata", Type: "optional<dict<string,any>>", Required: boolPtr(false), Default: json.RawMessage("null")},
-			// timeout/reinit carry the oracle's exact type vocabulary for chat
-			// (optional<integer> / boolean) — the oracle records these for chat
-			// (create_conversation records optional<int> / bool); match each verbatim.
-			{Name: "timeout", Type: "optional<integer>", Required: boolPtr(false), Default: json.RawMessage("null")},
-			{Name: "reinit", Type: "boolean", Required: boolPtr(false), Default: json.RawMessage("false")},
+			// timeout/reinit use the oracle's canonical int/bool spelling (matching
+			// create_conversation); porting-sdk @ 3e24867 fixed the earlier
+			// integer/boolean typo so chat and create_conversation now agree.
+			{Name: "timeout", Type: "optional<int>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "reinit", Type: "bool", Required: boolPtr(false), Default: json.RawMessage("false")},
 		},
 		Returns: "class:signalwire.ai_chat.client.ChatResponse",
 	},
