@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 8bc0133b5ea895b0be3bdc4a2206d84ffe290b2c",
+  "generated_from": "signalwire-go (go-native) @ 8f2dbb2e2d1feb44162dcce9cc8191c9f0eac308",
   "modules": {
     "agent": {
       "classes": {
@@ -161,6 +161,51 @@
         "WithSuppressLogs",
         "WithTokenExpiry",
         "WithUsePom"
+      ]
+    },
+    "aichat": {
+      "classes": {
+        "AIChatError": [
+          "Error"
+        ],
+        "AuthenticationError": [
+          "Unwrap"
+        ],
+        "ChatInProgressError": [
+          "Unwrap"
+        ],
+        "ChatLog": [],
+        "ChatOptions": [],
+        "ChatResponse": [],
+        "Client": [
+          "Chat",
+          "CreateConversation",
+          "Delete",
+          "End",
+          "Log",
+          "Summarize"
+        ],
+        "ConversationInfo": [],
+        "ConversationNotFoundError": [
+          "Unwrap"
+        ],
+        "CreateOptions": [],
+        "RateLimitError": [
+          "Unwrap"
+        ],
+        "SummarizeOptions": [],
+        "SummaryError": [
+          "Unwrap"
+        ]
+      },
+      "functions": [
+        "NewClient",
+        "WithHTTPClient",
+        "WithProject",
+        "WithReadIdleTimeout",
+        "WithSpace",
+        "WithToken",
+        "WithURL"
       ]
     },
     "builtin": {
@@ -1723,7 +1768,8 @@
           "GetVerbRequiredProperties",
           "LoadSchema",
           "ValidateDocument",
-          "ValidateVerb"
+          "ValidateVerb",
+          "ValidateVerbTopLevelKeys"
         ],
         "SchemaValidationError": [
           "Error"

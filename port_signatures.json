@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 8bc0133b5ea895b0be3bdc4a2206d84ffe290b2c (go/ast walker)",
+  "generated_from": "signalwire-go @ 8f2dbb2e2d1feb44162dcce9cc8191c9f0eac308 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -344,6 +344,162 @@
                 }
               ],
               "returns": "class:signalwire.agents.bedrock.BedrockAgent"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.ai_chat.client": {
+      "classes": {
+        "AIChatClient": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:Option\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "chat": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "message",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:ChatOptions\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.ai_chat.client.ChatResponse"
+            },
+            "create_conversation": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "class:CreateOptions",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.ai_chat.client.ConversationInfo"
+            },
+            "delete": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
+            },
+            "end": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
+            },
+            "log": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.ai_chat.client.ChatLog"
+            },
+            "summarize": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "list\u003cclass:SummarizeOptions\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "string"
             }
           }
         }

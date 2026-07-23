@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 8bc0133b5ea895b0be3bdc4a2206d84ffe290b2c",
+  "generated_from": "signalwire-go @ 8f2dbb2e2d1feb44162dcce9cc8191c9f0eac308",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -41,6 +41,31 @@
           "set_prompt_llm_params",
           "set_voice"
         ]
+      },
+      "functions": []
+    },
+    "signalwire.ai_chat.client": {
+      "classes": {
+        "AIChatClient": [
+          "__init__",
+          "chat",
+          "create_conversation",
+          "delete",
+          "end",
+          "log",
+          "summarize"
+        ],
+        "AIChatError": [
+          "__init__"
+        ],
+        "AuthenticationError": [],
+        "ChatInProgressError": [],
+        "ChatLog": [],
+        "ChatResponse": [],
+        "ConversationInfo": [],
+        "ConversationNotFoundError": [],
+        "RateLimitError": [],
+        "SummaryError": []
       },
       "functions": []
     },

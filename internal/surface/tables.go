@@ -746,6 +746,66 @@ var StructTable = map[string][]ClassTarget{
 	// relay.AIEvent has no Python counterpart; it's a port-only extension.
 	// See PORT_ADDITIONS.md.
 
+	// --- aichat package (signalwire.ai_chat.client) -----------------------
+	// The Go AIChatClient idiom folds onto the Python reference's async client:
+	// the functional-options constructor (NewClient) -> __init__, and each
+	// exported turn method -> its snake_case reference name. The three async
+	// session-lifecycle members the reference records (__aenter__, __aexit__,
+	// close) have no Go analogue: the Go Client wraps a stateless, connection-
+	// pooled *http.Client with nothing to enter/exit/close, and the TS OO cousin
+	// omits them identically. They are `impossible:` PORT_OMISSIONS entries,
+	// mirroring RelayClient.__aenter__/__aexit__.
+	"aichat.Client": {{
+		Module: "signalwire.ai_chat.client", Class: "AIChatClient",
+		Methods: map[string]string{
+			"NewClient":          "__init__",
+			"CreateConversation": "create_conversation",
+			"Chat":               "chat",
+			"End":                "end",
+			"Delete":             "delete",
+			"Log":                "log",
+			"Summarize":          "summarize",
+		},
+	}},
+	// The AI-Chat typed error family. Go has no exception hierarchy, so each
+	// Python exception class is a Go error struct: the base *AIChatError plus
+	// five typed variants that embed it. The base carries the reference's
+	// __init__ (constructed via struct literal / the unexported newTypedError,
+	// like relay.Call) as a synthetic; the subclasses are method-less classes
+	// exactly as the reference records them (their Go Error()/Unwrap() members
+	// are the error-interface idiom, not oracle surface, and are unlisted so
+	// they never leak).
+	"aichat.AIChatError": {{
+		Module: "signalwire.ai_chat.client", Class: "AIChatError",
+		Methods:          map[string]string{},
+		SyntheticMethods: []string{"__init__"},
+	}},
+	"aichat.AuthenticationError": {{
+		Module: "signalwire.ai_chat.client", Class: "AuthenticationError",
+	}},
+	"aichat.ConversationNotFoundError": {{
+		Module: "signalwire.ai_chat.client", Class: "ConversationNotFoundError",
+	}},
+	"aichat.RateLimitError": {{
+		Module: "signalwire.ai_chat.client", Class: "RateLimitError",
+	}},
+	"aichat.ChatInProgressError": {{
+		Module: "signalwire.ai_chat.client", Class: "ChatInProgressError",
+	}},
+	"aichat.SummaryError": {{
+		Module: "signalwire.ai_chat.client", Class: "SummaryError",
+	}},
+	// The AI-Chat data-transfer structs -> the reference's method-less dataclasses.
+	"aichat.ConversationInfo": {{
+		Module: "signalwire.ai_chat.client", Class: "ConversationInfo",
+	}},
+	"aichat.ChatResponse": {{
+		Module: "signalwire.ai_chat.client", Class: "ChatResponse",
+	}},
+	"aichat.ChatLog": {{
+		Module: "signalwire.ai_chat.client", Class: "ChatLog",
+	}},
+
 	// --- rest package -----------------------------------------------------
 	"rest.RestClient": {{
 		Module: "signalwire.rest.client", Class: "RestClient",

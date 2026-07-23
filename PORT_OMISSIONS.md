@@ -302,6 +302,11 @@ signalwire.relay.client.RelayClient.__aexit__: impossible: Python async context-
 signalwire.relay.client.RelayClient.__del__: impossible: Python __del__ finalizer has no Go equivalent; Go GC + Stop() release the WebSocket
 signalwire.relay.message.Message.__repr__: impossible: Python __repr__ object-protocol method has no Go analog (Stringer not surfaced as a reference method)
 
+# --- AI-Chat async session-lifecycle (signalwire.ai_chat.client) ---
+signalwire.ai_chat.client.AIChatClient.__aenter__: impossible: Python async context-manager protocol (__aenter__) has no Go equivalent; the Go aichat.Client wraps a stateless, connection-pooled *http.Client (nothing to enter) and the TS OO cousin omits it identically
+signalwire.ai_chat.client.AIChatClient.__aexit__: impossible: Python async context-manager protocol (__aexit__) has no Go equivalent; the Go aichat.Client has no owned session to tear down on exit, mirroring RelayClient.__aexit__
+signalwire.ai_chat.client.AIChatClient.close: impossible: Python close() releases the owned aiohttp ClientSession; Go's aichat.Client holds a shared, connection-pooled *http.Client with no close semantics (the TS OO cousin omits it identically) — nothing to close
+
 # --- REST namespace omissions ---
 signalwire.rest.call_handler.PhoneCallHandler: Python PhoneCallHandler is a typing helper alias; Go port uses pkg/rest/namespaces/call_handler.go (string type)
 signalwire.rest.namespaces.fabric.CxmlWebhooksResource: deprecated legacy resource; Go port omits per phone-binding.md (use phone_numbers.SetCxmlWebhook)
