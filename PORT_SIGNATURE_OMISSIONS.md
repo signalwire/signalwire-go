@@ -186,12 +186,7 @@ signalwire.relay.call.Call.ai_hold: go-no-keyword-only — Go AIHold(controlID, 
 signalwire.relay.call.Call.ai_unhold: go-no-keyword-only — Go AIUnhold(controlID, prompt string) takes Python's keyword-only prompt as a positional; same calling.ai_unhold params
 signalwire.relay.call.Call.ai_message: go-no-keyword-only — Go AIMessage(controlID, text, role string, reset, globalData map) takes Python's keyword-only message_text/role/reset/global_data as positionals; same calling.ai_message params
 signalwire.relay.call.Call.user_event: go-no-keyword-only — Go UserEvent(eventName string, extra ...map[string]any) takes Python's keyword `event` positionally and its **kwargs as a trailing variadic map; same user_event wire frame
-signalwire.relay.call.Call.answer: go-kwargs-catchall — Python answer(**kwargs) has only a **kwargs catch-all; Go Answer() takes no params (the canonical answer supplies none); same calling.answer frame
-signalwire.relay.call.Call.leave_room: go-kwargs-catchall — Python leave_room(**kwargs) is **kwargs-only; Go LeaveRoom() takes no params; same wire frame
-signalwire.relay.call.Call.transfer: go-kwargs-catchall — Python transfer(dest, **kwargs); Go Transfer(dest string) omits the **kwargs catch-all; same calling.transfer params
-signalwire.relay.call.Call.leave_conference: go-kwargs-catchall — Python leave_conference(conference_id, **kwargs); Go LeaveConference(confID string) omits **kwargs; same wire frame
 signalwire.relay.call.Call.clear_digit_bindings: go-kwargs-catchall — Python clear_digit_bindings(*, realm, **kwargs); Go ClearDigitBindings(realm string) takes realm positionally, omits **kwargs; same wire frame
-signalwire.relay.call.Call.live_transcribe: go-kwargs-catchall — Python live_transcribe(action, **kwargs); Go LiveTranscribe(action map) omits **kwargs; same wire frame
 signalwire.relay.call.Call.live_translate: go-kwargs-catchall — Python live_translate(action, status_url, **kwargs); Go LiveTranslate(action map, statusURL string) omits **kwargs; same wire frame
 signalwire.relay.call.Call.echo: go-kwargs-catchall — Python echo(timeout, status_url, **kwargs); Go Echo(timeout *float64, statusURL string) omits **kwargs; same calling.echo params
 signalwire.relay.call.Call.refer: go-kwargs-catchall — Python refer(device, status_url, **kwargs); Go Refer(device map, statusURL string) omits **kwargs; same calling.refer params
