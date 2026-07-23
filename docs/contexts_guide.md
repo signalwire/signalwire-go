@@ -192,7 +192,14 @@ func main() {
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/v3/pkg/agent"
+import (
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+
+	// Register the built-in skills (datetime, web_search, ...) so AddSkill can
+	// resolve them by name. Without this blank import AddSkill returns an
+	// "unknown skill" error at runtime.
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
+)
 
 func main() {
 	a := agent.NewAgentBase(
@@ -532,7 +539,12 @@ step.SetFunctions("none")
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/v3/pkg/agent"
+import (
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+
+	// Register the built-in skills so AddSkill can resolve them by name.
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
+)
 
 func main() {
 	a := agent.NewAgentBase(
@@ -874,7 +886,12 @@ Flow:
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/v3/pkg/agent"
+import (
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+
+	// Register the built-in skills so AddSkill can resolve them by name.
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
+)
 
 func main() {
 	a := agent.NewAgentBase(
@@ -964,7 +981,12 @@ func main() {
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/v3/pkg/agent"
+import (
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+
+	// Register the built-in skills so AddSkill can resolve them by name.
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
+)
 
 func main() {
 	a := agent.NewAgentBase(
@@ -1046,7 +1068,12 @@ func main() {
 ```go
 package main
 
-import "github.com/signalwire/signalwire-go/v3/pkg/agent"
+import (
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+
+	// Register the built-in skills so AddSkill can resolve them by name.
+	_ "github.com/signalwire/signalwire-go/v3/pkg/skills/all"
+)
 
 func main() {
 	a := agent.NewAgentBase(

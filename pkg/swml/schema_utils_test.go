@@ -151,11 +151,40 @@ func TestSchemaUtils_ValidateVerb_UnknownVerb(t *testing.T) {
 	}
 }
 
-func TestSchemaUtils_ValidateDocument_NoFullValidator(t *testing.T) {
-	// In Go we don't ship a JSON Schema validator yet; validate_document
-	// must return (false, ["Schema validator not initialized"]) — same
-	// contract as Python when no validator is wired in.
+func TestSchemaUtils_ValidateDocument_ValidatorWired(t *testing.T) {
+	// The Go port now ships a JSON Schema validator (santhosh-tekuri/jsonschema
+	// v6, Draft 2020-12) mirroring Python's jsonschema-rs. A valid document
+	// validates OK; a document with a misshapen verb fails — matching Python's
+	// validate_document contract.
 	su := NewSchemaUtils("", true)
+	if !su.FullValidationAvailable() {
+		t.Fatal("expected the full validator to be wired when schema_validation=true")
+	}
+
+	// A valid document validates OK.
+	okRes := su.ValidateDocument(map[string]any{
+		"version":  "1.0.0",
+		"sections": map[string]any{"main": []any{map[string]any{"answer": map[string]any{"max_duration": 5}}}},
+	})
+	if !okRes.Valid {
+		t.Errorf("expected a valid document to validate OK, got errors: %v", okRes.Errors)
+	}
+
+	// A document with a misspelled verb key fails.
+	badRes := su.ValidateDocument(map[string]any{
+		"version":  "1.0.0",
+		"sections": map[string]any{"main": []any{map[string]any{"answer": map[string]any{"maxduration": 5}}}},
+	})
+	if badRes.Valid {
+		t.Error("expected a document with a misspelled verb key to fail validation")
+	}
+}
+
+func TestSchemaUtils_ValidateDocument_NoFullValidator(t *testing.T) {
+	// When schema validation is DISABLED, no full validator is built, so
+	// validate_document returns (false, ["Schema validator not initialized"])
+	// — the same contract as Python when no validator is available.
+	su := NewSchemaUtils("", false)
 	res := su.ValidateDocument(map[string]any{
 		"version":  "1.0.0",
 		"sections": map[string]any{"main": []any{}},

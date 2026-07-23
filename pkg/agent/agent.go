@@ -3233,11 +3233,26 @@ func (a *AgentBase) AsRouter() http.Handler {
 func (a *AgentBase) buildAndServe() error {
 	mux := a.buildMux()
 
-	user, _ := a.Service.GetBasicAuthCredentials()
+	user, pass, source := a.Service.GetBasicAuthCredentialsWithSource()
 	addr := fmt.Sprintf("%s:%d", a.Service.Host, a.Service.Port)
 
 	a.Logger.Info("serving agent %q on %s%s", a.Name, addr, a.Service.Route)
 	a.Logger.Info("auth user: %s", user)
+
+	// First-run auth wall: when the password was auto-generated (no
+	// SWML_BASIC_AUTH_PASSWORD env / no WithBasicAuth), it exists only in this
+	// process, so a developer has no way to authenticate an incoming request
+	// unless we surface it. Print the full basic-auth credentials to stderr ONCE
+	// at startup so a first run is actually usable. Suppressed when the password
+	// came from the environment or was set explicitly (the developer already
+	// knows it) and when logs are suppressed.
+	if source == "auto-generated" && !logging.IsSuppressed() {
+		fmt.Fprintf(os.Stderr,
+			"[signalwire] auto-generated basic-auth credentials for agent %q: "+
+				"user=%q password=%q (set SWML_BASIC_AUTH_USER / "+
+				"SWML_BASIC_AUTH_PASSWORD or agent.WithBasicAuth(...) to pin them)\n",
+			a.Name, user, pass)
+	}
 
 	// Initialise shutdown channel so SetupGracefulShutdown can signal us.
 	a.mu.Lock()

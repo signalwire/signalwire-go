@@ -665,6 +665,14 @@ type PortAdditions struct {
 	Functions []string `json:"functions"`
 }
 
+// isMockTestSymbol reports whether a surface key belongs to the `mocktest`
+// shared test-harness package (keys are "<pkg>.<Symbol>"). Those symbols are
+// test infrastructure, not shipped SDK surface, so they are excluded from the
+// port-additions inventory (they must never register as SURFACE-DIFF additions).
+func isMockTestSymbol(key string) bool {
+	return strings.HasPrefix(key, "mocktest.")
+}
+
 // computePortAdditions walks the parsed Go inventory, keeps only the
 // genuinely-public exports that have no entry in the translation tables,
 // and emits the list in canonical order. Methods on unmapped structs are
@@ -682,6 +690,12 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 		if facts.paramsPlumbing {
 			continue
 		}
+		// The mocktest package is the shared test harness (mock server + journal),
+		// not shipped SDK surface — exclude it the same way as params plumbing so
+		// its exports never register as SURFACE-DIFF port-additions.
+		if isMockTestSymbol(key) {
+			continue
+		}
 		addStructs = append(addStructs, key)
 	}
 	sort.Strings(addStructs)
@@ -692,6 +706,10 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 			continue
 		}
 		if _, ok := factoryInit[key]; ok {
+			continue
+		}
+		// mocktest is the shared test harness, not shipped SDK surface (see above).
+		if isMockTestSymbol(key) {
 			continue
 		}
 		dot := strings.Index(key, ".")
