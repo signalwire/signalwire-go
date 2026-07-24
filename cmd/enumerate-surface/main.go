@@ -58,6 +58,14 @@ type genType struct {
 
 var genTypeSurface []genType
 
+// funcReturns records, for each exported free function ("<pkg>.<Name>"), the SHORT
+// name of its single named return TYPE (e.g. "AgentOption") when the function returns
+// exactly one bare/pointer identifier type. Used by the functional-options fold to
+// recognise `WithX() <T>Option` constructors generically (the generalisation of the
+// hardcoded aiChatOptionFuncs allowlist). Empty when the return isn't a single simple
+// identifier (multi-return, tuple, map, etc.).
+var funcReturns = map[string]string{}
+
 // sdkEnumSurfaceMarker is the doc-comment sentinel the types generator prepends to
 // an x-sdk-enum-derived public enum type (cmd/generate-rest/types.go sdkEnumMarker).
 // Its presence marks an enum type as surfaced public API (a surface class), while
@@ -318,7 +326,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				continue
 			}
 			if d.Recv == nil || len(d.Recv.List) == 0 {
-				funcs[pkgName+"."+d.Name.Name] = struct{}{}
+				key := pkgName + "." + d.Name.Name
+				funcs[key] = struct{}{}
+				funcReturns[key] = singleReturnTypeName(d.Type)
 				continue
 			}
 			recv := recvTypeName(d.Recv.List[0].Type)
@@ -378,6 +388,21 @@ func embeddedTypeNames(st *ast.StructType) []string {
 		}
 	}
 	return out
+}
+
+// singleReturnTypeName returns the SHORT type name of a function's return value when
+// it returns EXACTLY ONE result whose type is a bare or pointer identifier
+// (`AgentOption`, `*Foo`); otherwise "". Used to recognise `WithX() <T>Option`
+// functional-option constructors.
+func singleReturnTypeName(ft *ast.FuncType) string {
+	if ft == nil || ft.Results == nil || len(ft.Results.List) != 1 {
+		return ""
+	}
+	r := ft.Results.List[0]
+	if len(r.Names) > 1 {
+		return ""
+	}
+	return recvTypeName(r.Type)
 }
 
 // recvTypeName extracts the base type name from a method receiver.
@@ -673,32 +698,50 @@ func isMockTestSymbol(key string) bool {
 	return strings.HasPrefix(key, "mocktest.")
 }
 
-// aiChatOptionsPlumbing is the set of ai_chat per-call options structs whose fields
-// enumerate-signatures unfolds back into each AIChatClient method signature. They are
+// optionsPlumbingStructs is the set of per-call OPTIONS STRUCTS whose fields
+// enumerate-signatures UNFOLDS back into the configured method's signature (the
+// ai_chat per-call options via aiChatMethodSigs, and the swml/swaig options via
+// optionsStructUnfoldMethods — both in cmd/enumerate-signatures/main.go). They are
 // call-shape plumbing (the Go named-options idiom for the Python kwargs), not oracle
 // surface, so they are excluded from the SURFACE-DIFF additions inventory — the same
-// treatment the generated-REST *Params plumbing structs get.
-var aiChatOptionsPlumbing = map[string]bool{
+// treatment the generated-REST *Params plumbing structs get. This generalises the
+// former hardcoded ai_chat-only allowlist to every unfolded options struct.
+// (If you add a struct to optionsStructUnfoldMethods, add it here too.)
+var optionsPlumbingStructs = map[string]bool{
+	// ai_chat per-call options (unfolded via aiChatMethodSigs)
 	"aichat.CreateOptions":    true,
 	"aichat.ChatOptions":      true,
 	"aichat.SummarizeOptions": true,
+	// swml/swaig per-call options (unfolded via optionsStructUnfoldMethods)
+	"swml.PlayOptions":         true,
+	"swml.AIOptions":           true,
+	"swaig.ConnectOptions":     true,
+	"swaig.WaitForUserOptions": true,
 }
 
-// aiChatOptionFuncs is the set of ai_chat functional-options constructors — the Go
-// spelling of the AIChatClient.__init__ keyword arguments. WithProject/WithToken/
-// WithSpace/WithURL map 1:1 to project/token/space/url; WithHTTPClient + WithReadIdle-
-// Timeout are the two facets of Python's single `session: aiohttp.ClientSession`
-// injection seam (the reference passes a custom session to override transport AND the
-// sock_read idle timeout — see DEFAULT_TIMEOUT). enumerate-signatures splices the
-// constructor into __init__(project, token, space, url, session), so these carry no
-// standalone oracle surface and are excluded from the SURFACE-DIFF additions inventory.
-var aiChatOptionFuncs = map[string]bool{
-	"aichat.WithProject":         true,
-	"aichat.WithToken":           true,
-	"aichat.WithSpace":           true,
-	"aichat.WithURL":             true,
-	"aichat.WithHTTPClient":      true,
-	"aichat.WithReadIdleTimeout": true,
+// isFunctionalOptionCtor reports whether an exported free function key
+// ("<pkg>.<Name>") is a functional-options constructor: its name starts with `With`
+// and its sole return type is a `*Option`-suffixed identifier (e.g. AgentOption,
+// ConferenceOption, aichat.ClientOption). These encode a single Python keyword
+// argument of the constructor/method they configure; enumerate-signatures unfolds the
+// variadic `...Option` back into that expanded param list, so they carry no standalone
+// oracle surface and must not register as SURFACE-DIFF additions. This is the general
+// form of the retired hardcoded aiChatOptionFuncs allowlist.
+func isFunctionalOptionCtor(key string) bool {
+	dot := strings.Index(key, ".")
+	if dot < 0 {
+		return false
+	}
+	name := key[dot+1:]
+	if !strings.HasPrefix(name, "With") {
+		return false
+	}
+	// The return type is an option type when it is named `Option` or `<T>Option`
+	// (ai_chat's + security's option type is the bare `Option`; agent/relay/swml use
+	// `<T>Option`). A `With*` free function returning such a type is a functional-option
+	// constructor. Empty return (multi-return / non-identifier) does NOT qualify.
+	ret := funcReturns[key]
+	return ret == "Option" || strings.HasSuffix(ret, "Option")
 }
 
 // computePortAdditions walks the parsed Go inventory, keeps only the
@@ -718,11 +761,11 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 		if facts.paramsPlumbing {
 			continue
 		}
-		// ai_chat per-call options structs are call-shape plumbing (the Go spelling
-		// of the AIChatClient method kwargs, unfolded back into each method signature
-		// by enumerate-signatures) — not oracle surface, exactly like the REST
-		// *Params plumbing. Never list them as SURFACE-DIFF additions.
-		if aiChatOptionsPlumbing[key] {
+		// Per-call options structs whose fields enumerate-signatures unfolds back into
+		// the configured method signature (ai_chat + swml/swaig — see
+		// optionsPlumbingStructs) are call-shape plumbing, not oracle surface, exactly
+		// like the REST *Params plumbing. Never list them as SURFACE-DIFF additions.
+		if optionsPlumbingStructs[key] {
 			continue
 		}
 		// The mocktest package is the shared test harness (mock server + journal),
@@ -747,7 +790,7 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 		// of the AIChatClient.__init__ kwargs (project/token/space/url/session);
 		// enumerate-signatures splices them into __init__, so they are call-shape
 		// plumbing, not standalone oracle surface. Exclude from SURFACE-DIFF additions.
-		if aiChatOptionFuncs[key] {
+		if isFunctionalOptionCtor(key) {
 			continue
 		}
 		// mocktest is the shared test harness, not shipped SDK surface (see above).
@@ -849,6 +892,137 @@ func buildGoSurface(structs map[string]*goStructFacts, funcs map[string]struct{}
 	return out
 }
 
+// --- Composition-attribute enrich -------------------------------------------
+
+// sigSnapshot is the minimal shape of port_signatures.json needed to import
+// composition attributes into the surface.
+type sigSnapshot struct {
+	Modules map[string]struct {
+		Classes map[string]struct {
+			Methods map[string]struct {
+				Params []struct {
+					Kind string `json:"kind"`
+				} `json:"params"`
+				Returns string `json:"returns"`
+			} `json:"methods"`
+		} `json:"classes"`
+	} `json:"modules"`
+}
+
+// isCompositionReturn mirrors the Python surface enumerator's
+// `_enrich_composition_attributes._is_composition_return` (porting-sdk
+// scripts/enumerate_python.py): a composition attribute RETURNS an SDK class —
+// bare (`class:signalwire.…`) or wrapped in `optional<…>` / `list<…>` — but NOT a
+// `union<…>` (those are the auto-vivified SWML verb SETTERS, a distinct idiom class
+// folded elsewhere). Scalar state (`string`, `int`, …) is not class-typed and is
+// not imported, keeping go's two oracles (surface + signatures) consistent BY
+// CONSTRUCTION exactly as the Python pair is.
+// pythonReservedWords are identifiers the Python reference generator cannot surface
+// as a member name — it drops them to a comment (the same set the SIGNATURE diff
+// tolerates as reserved-word leaves, e.g. `else`/`from`). Go legitimately emits such a
+// wire-field accessor, but importing it as a composition attribute would surface a
+// member the reference can never have → a phantom addition. Exclude them here; the
+// signature side already carries the reserved-word leaf, so the two oracles stay
+// consistent (the member is present in signatures, absent from surface — matching the
+// reference on BOTH sides).
+var pythonReservedWords = map[string]bool{
+	"else": true, "from": true, "import": true, "class": true, "def": true,
+	"return": true, "global": true, "lambda": true, "pass": true, "raise": true,
+	"yield": true, "async": true, "await": true, "with": true, "as": true,
+	"not": true, "and": true, "or": true, "is": true, "in": true, "if": true,
+	"elif": true, "while": true, "for": true, "try": true, "except": true,
+	"finally": true, "del": true, "assert": true, "break": true, "continue": true,
+	"nonlocal": true, "None": true, "True": true, "False": true,
+}
+
+func isCompositionReturn(ret string) bool {
+	if strings.HasPrefix(ret, "union<") {
+		return false
+	}
+	return strings.Contains(ret, "class:signalwire.")
+}
+
+// enrichCompositionAttributes adds COMPOSITION-ATTRIBUTE members from go's own
+// signature oracle (port_signatures.json) into the surface snapshot in place, the
+// exact mirror of the Python reference's `_enrich_composition_attributes`. The
+// surface `build` step projects only StructTable-mapped ergonomic methods and drops
+// self-only class-returning accessors (REST namespace accessors like
+// `FabricNamespace.addresses`, generated SWML-model getters like `AIObject.hints`,
+// composition handles like `AgentServer.logger`); the SIGNATURE oracle already
+// records them as griffe-typed self-only members. Importing them here makes the two
+// go oracles consistent by construction — the same guarantee the Python pair has —
+// so the composition surface the reference now enumerates is PRESENT (folded), not a
+// phantom omission. Idempotent; skips silently if port_signatures.json is absent
+// (first-generation / degraded env), so surface never HARD-depends on it.
+//
+// A member is a composition attribute iff its signature is self-only (no params
+// other than the receiver) AND returns an SDK class per isCompositionReturn.
+func enrichCompositionAttributes(snapshot *surface, repoRoot string) error {
+	sigPath := filepath.Join(repoRoot, "port_signatures.json")
+	raw, err := os.ReadFile(sigPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var sig sigSnapshot
+	if err := json.Unmarshal(raw, &sig); err != nil {
+		return fmt.Errorf("enrich: parse %s: %w", sigPath, err)
+	}
+	for mod, sinv := range sig.Modules {
+		for cls, sce := range sinv.Classes {
+			var comp []string
+			for m, msig := range sce.Methods {
+				// A reserved-word leaf (`else`, `from`, …) cannot be a reference
+				// surface member — the Python generator drops it. Emitting it here
+				// would be a phantom addition; skip it (it stays on the signature side).
+				if pythonReservedWords[m] {
+					continue
+				}
+				nonSelf := false
+				for _, p := range msig.Params {
+					if p.Kind != "self" {
+						nonSelf = true
+						break
+					}
+				}
+				if nonSelf {
+					continue
+				}
+				if isCompositionReturn(msig.Returns) {
+					comp = append(comp, m)
+				}
+			}
+			if len(comp) == 0 {
+				continue
+			}
+			inv, ok := snapshot.Modules[mod]
+			if !ok {
+				inv = moduleInventory{Classes: map[string][]string{}, Functions: []string{}}
+			}
+			if inv.Classes == nil {
+				inv.Classes = map[string][]string{}
+			}
+			existing := inv.Classes[cls]
+			seen := map[string]bool{}
+			for _, e := range existing {
+				seen[e] = true
+			}
+			for _, m := range comp {
+				if !seen[m] {
+					existing = append(existing, m)
+					seen[m] = true
+				}
+			}
+			sort.Strings(existing)
+			inv.Classes[cls] = existing
+			snapshot.Modules[mod] = inv
+		}
+	}
+	return nil
+}
+
 // --- CLI --------------------------------------------------------------------
 
 // goSHA returns the signalwire-go repo HEAD SHA (or "N/A").
@@ -899,6 +1073,9 @@ func run() error {
 	sha := goSHA(repoRoot)
 
 	snapshot := build(structs, funcs)
+	if err := enrichCompositionAttributes(&snapshot, repoRoot); err != nil {
+		return fmt.Errorf("enrich composition attributes: %w", err)
+	}
 	snapshot.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s", sha)
 
 	rendered, err := json.MarshalIndent(snapshot, "", "  ")

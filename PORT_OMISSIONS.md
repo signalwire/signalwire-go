@@ -1,3 +1,50 @@
+<!-- ══════════════════════════════════════════════════════════════════════════
+BEFORE YOU ADD AN ENTRY TO THIS FILE — READ THIS.
+
+Every entry here is a place the parity checker STOPS comparing. That is a real cost:
+a divergence you list is a divergence no gate will ever catch again. So entries must
+be RARE, and each one must earn its place. Default to skepticism: assume the entry is
+NOT needed and make the case that it is.
+
+The order of preference, always:
+  1. FIX THE PORT so it matches the reference (add the missing member; make the
+     signature match).
+  2. FIX THE EMISSION so idiom folds onto the reference shape — the enumerator/emitter
+     canonicalizes your language's spelling onto the oracle's (builder → __init__,
+     getters → attributes, Result<T,E> → the plain return, CamelCase → the reference
+     name, options-object/kwargs → the expanded param list, RAII/dispose → close).
+     MOST divergences are idiom and belong here, not in this file.
+  3. FIX THE REFERENCE if the oracle itself is wrong or stale (a Python-only symbol
+     that leaked into the contract, a param the reference added and the oracle never
+     re-enumerated). Fix Python / the oracle, then re-drift — do not paper over a
+     broken reference with a per-port entry.
+  4. Only when 1–3 genuinely cannot apply does an entry here become justified.
+
+An entry is JUSTIFIED ONLY IF it is irreducible after correct emission — i.e. the
+divergence survives because the two languages genuinely cannot express the same thing,
+not because the emitter hasn't folded the idiom yet. If emission COULD fold it, the
+entry is a bug in this file; go fix the emitter.
+
+Each entry MUST state WHY, concretely, in one of these forms:
+  • ADDITION — this symbol exists in the port but not the reference. Answer: is it
+    genuine port-only surface with NO reference twin (say what it is and why the
+    reference has no equivalent), or is it IDIOM the emitter should have folded (then
+    it does not belong here — fold it)? A convenience/alias/back-compat wrapper is NOT
+    a justification.
+  • OMISSION — this reference symbol has no port member. Answer: WHY can it not exist
+    here — what specific language feature is absent (e.g. no async-context-manager
+    protocol, no __init__ method protocol)? "impossible:" means the construct cannot
+    be expressed at all; if it merely LOOKS different, that's idiom → fold it, don't
+    omit it. Cite a precedent when one exists (e.g. RelayClient omits the same dunder).
+  • SIGNATURE — the symbol matches by name but its parameters differ. Answer: is the
+    difference a foldable idiom collapse (options-object, leading context/self,
+    builder) — then EXPAND it in the signature emitter so names+count match, don't list
+    it — or a genuine reference-only parameter with no cross-language analogue?
+
+If you cannot write a crisp, specific WHY that survives the "could emission fold this?"
+test, the entry is not ready. Prove it's needed before you add it.
+═══════════════════════════════════════════════════════════════════════════════ -->
+
 # PORT_OMISSIONS.md
 #
 # Every symbol listed here is a public Python-reference API member that the
@@ -268,9 +315,9 @@ signalwire.skills.registry.SkillRegistry.register_skill: approved: 2026-07 user 
 # --- Core mixins not split into Go ---
 signalwire.core.mixins.mcp_server_mixin.MCPServerMixin: approved: 2026-07 user sign-off — MCP-server mixin is a Python marker class (no public methods); Go inlines MCP into AgentBase (AddMcpServer/EnableMcpServer)
 signalwire.core.mixins.serverless_mixin.ServerlessMixin: approved: 2026-07 user sign-off — Python serverless mixin (Lambda detection + request handling); Go delegates serverless to platform adapters (pkg/lambda Handler), not an in-process AgentBase mixin
-signalwire.core.mixins.serverless_mixin.ServerlessMixin.handle_serverless_request: impossible: Python couples serverless request handling into the mixin; Go delegates to platform adapters (pkg/lambda) — no in-process AgentBase equivalent
-signalwire.core.mixins.tool_mixin.ToolMixin.tool: impossible: Python @tool decorator relies on the decorator protocol; Go uses AgentBase.DefineTool(ToolDefinition{...})
-signalwire.core.mixins.web_mixin.WebMixin.get_app: impossible: returns the FastAPI app object; Go has no framework app handle (AsRouter returns http.Handler)
+agentbase-family.handle_serverless_request: impossible: Python couples serverless request handling into the mixin; Go delegates to platform adapters (pkg/lambda) — no in-process AgentBase equivalent
+agentbase-family.tool: impossible: Python @tool decorator relies on the decorator protocol; Go uses AgentBase.DefineTool(ToolDefinition{...})
+agentbase-family.get_app: impossible: Python's WebMixin.get_app returns the FastAPI app object; Go has no framework app handle (AsRouter returns http.Handler)
 
 # --- Core agent internal submodules ---
 signalwire.core.agent.prompt.manager.PromptManager.__init__: impossible: Python internal submodule constructor; Go consolidates PromptManager into AgentBase (no separately-constructed manager)
@@ -320,15 +367,15 @@ signalwire.rest.namespaces.fabric.SwmlWebhooksResource: deprecated legacy resour
 
 # --- Idiom: Python class accessors that Go folds into private fields or package-level helpers ---
 signalwire.agent_server.AgentServer.app: Python exposes the underlying FastAPI ``app`` object; Go uses net/http with no equivalent app handle
-signalwire.agent_server.AgentServer.agents: Python exposes ``agents`` as a public dict attribute; Go keeps the map private (``agents map[string]*agent.AgentBase``) and exposes it via the ``GetAgents()`` accessor (idiomatic Go private-field + accessor)
-signalwire.agent_server.AgentServer.logger: Python instance ``logger`` property; Go's AgentServer uses the package-level ``logging`` helper rather than a per-instance accessor
-signalwire.core.agent_base.AgentBase.skill_manager: Python exposes ``self.skill_manager`` for direct access; Go folds the SkillManager into a private ``skillManager`` field and surfaces user-facing methods (AddSkill, RemoveSkill, ListSkills, HasSkill) directly on AgentBase
-signalwire.core.skill_manager.SkillManager.loaded_skills: Python exposes ``loaded_skills`` as a public dict attribute; Go keeps the map private (``loadedSkills map[string]SkillBase``) and exposes it via the ``ListLoadedSkills()`` accessor (idiomatic Go private-field + accessor)
-signalwire.core.skill_manager.SkillManager.logger: Python instance ``logger`` property; Go's SkillManager uses the package-level ``logging`` helper and has no per-instance logger accessor
-signalwire.core.swml_service.SWMLService.security: Python exposes a ``security`` property returning a SecurityConfig; Go folds auth state into private fields on Service (basicAuthUser, bearerToken, apiKey, ...) configured via WithSecurityConfig/WithBasicAuth/WithBearerToken/WithAPIKey options
-signalwire.core.swml_service.SWMLService.verb_registry: Python uses a separate VerbRegistry helper class; Go uses a private ``verbHandlers`` map on Service and exposes RegisterVerbHandler directly
-signalwire.pom.pom.PromptObjectModel.sections: go-bean-accessor — Python exposes a ``sections`` list property; Go promotes it to an exported struct field ``Sections []*Section`` on PromptObjectModel (no method, direct field access is idiomatic)
-signalwire.pom.pom.Section.subsections: go-bean-accessor — Python exposes a ``subsections`` list property; Go promotes it to an exported struct field ``Subsections []*Section`` on Section (no method, direct field access is idiomatic)
+signalwire.agent_server.AgentServer.agents: impossible: Python exposes ``agents`` as a public dict attribute; Go keeps the map private (``agents map[string]*agent.AgentBase``) and exposes it via the ``GetAgents()`` accessor (idiomatic Go private-field + renamed accessor — the ``agents`` member name genuinely cannot exist)
+signalwire.agent_server.AgentServer.logger: impossible: Python instance ``logger`` property returning an SDK-typed logger; Go's AgentServer uses the package-level ``logging`` helper rather than a per-instance accessor — no ``logger`` member
+agentbase-family.skill_manager: impossible: Python exposes ``self.skill_manager`` (a SkillManager composition handle); Go folds the SkillManager into a private ``skillManager`` field and surfaces the user-facing methods (AddSkill, RemoveSkill, ListSkills, HasSkill) directly on AgentBase — no public composition-handle accessor
+signalwire.core.skill_manager.SkillManager.loaded_skills: impossible: Python exposes ``loaded_skills`` as a public dict attribute; Go keeps the map private (``loadedSkills map[string]SkillBase``) and exposes it via the ``ListLoadedSkills()`` accessor (private-field + renamed accessor)
+signalwire.core.skill_manager.SkillManager.logger: impossible: Python instance ``logger`` property; Go's SkillManager uses the package-level ``logging`` helper and has no per-instance logger accessor
+signalwire.core.swml_service.SWMLService.security: impossible: Python exposes a ``security`` property returning a SecurityConfig composition handle; Go folds auth state into private fields on Service (basicAuthUser, bearerToken, apiKey, ...) configured via WithSecurityConfig/WithBasicAuth/WithBearerToken/WithAPIKey options — no ``security`` accessor
+signalwire.core.swml_service.SWMLService.verb_registry: impossible: Python exposes a ``verb_registry`` property returning a VerbHandlerRegistry; Go uses a private ``verbHandlers`` map on Service and exposes RegisterVerbHandler directly — no registry composition handle
+signalwire.pom.pom.PromptObjectModel.sections: impossible: Python exposes a ``sections`` list PROPERTY; Go promotes it to an exported struct FIELD ``Sections []*Section`` (direct field access is idiomatic Go), which the signature/surface enumerators record as a field, not a zero-arg method member — the property-shaped accessor cannot exist
+signalwire.pom.pom.Section.subsections: impossible: Python exposes a ``subsections`` list PROPERTY; Go promotes it to an exported struct FIELD ``Subsections []*Section`` (direct field access is idiomatic Go) — the property-shaped accessor cannot exist
 
 signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: impossible: FastAPI dependency factory; Go exposes equivalent as security.WebhookMiddleware (http.Handler middleware) — see PORT_ADDITIONS.md
 
@@ -423,3 +470,24 @@ signalwire.livewire.Agent.stt_node: approved: livewire is a LiveKit-agents compa
 signalwire.livewire.Agent.tts_node: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
 signalwire.livewire.Agent.update_instructions: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
 signalwire.livewire.RunContext.userdata: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
+
+# --- Composition-attribute handles the reference surfaces (via the signature
+# --- oracle's composition enrich) that Go implements with a different idiom.
+# --- Each is a self-only Python property returning an SDK class; Go either folds
+# --- the state into private fields with a renamed accessor, or exposes a plain
+# --- (non-SDK-typed) field, so the reference member name genuinely cannot exist.
+signalwire.core.pom_builder.PomBuilder.pom: impossible: Python's PomBuilder.pom returns the built PromptObjectModel; Go's builder returns the *PromptObjectModel directly from Build()/its terminal methods rather than exposing a ``pom`` composition handle
+signalwire.core.skill_base.SkillBase.logger: impossible: Python exposes ``logger`` returning an SDK-typed logger (signalwire.core.logging_config); Go's SkillBase carries a plain ``Logger *logging.Logger`` stdlib-style field, not the SDK-typed composition handle the reference's enrich imports
+signalwire.rest._request_options.RequestOptions.abort_signal: impossible: Python's RequestOptions.abort_signal returns an _AbortSignal object bound to asyncio cancellation; Go request cancellation flows through context.Context (RequestOptions carries no abort-signal handle)
+signalwire.skills.registry.SkillRegistry.logger: impossible: Python's SkillRegistry exposes an SDK-typed ``logger`` property; Go's SkillRegistry uses the package-level ``logging`` helper and has no per-instance logger accessor
+signalwire.web.web_service.WebService.security: impossible: Python's WebService.security returns a SecurityConfig composition handle; Go folds auth state into private fields configured via the WithSecurityConfig/WithBasicAuth/... options — no ``security`` accessor
+
+# --- Raw-keyed twins of the agentbase-family.* omissions above. The SURFACE diff
+# --- folds these members to `agentbase-family.<m>` (so the family keys above match
+# --- there); the SIGNATURE diff (diff_port_signatures.py) does NOT fold, matching
+# --- the reference's raw mixin/AgentBase path, so it needs the un-folded key to
+# --- inherit the same excusal. Same omission, two key vocabularies.
+signalwire.core.mixins.tool_mixin.ToolMixin.tool: impossible: Python @tool decorator relies on the decorator protocol; Go uses AgentBase.DefineTool(ToolDefinition{...})
+signalwire.core.mixins.web_mixin.WebMixin.get_app: impossible: Python's WebMixin.get_app returns the FastAPI app object; Go has no framework app handle (AsRouter returns http.Handler)
+signalwire.core.mixins.serverless_mixin.ServerlessMixin.handle_serverless_request: impossible: Python couples serverless request handling into the mixin; Go delegates to platform adapters (pkg/lambda) — no in-process AgentBase equivalent
+signalwire.core.agent_base.AgentBase.skill_manager: impossible: Python exposes ``self.skill_manager`` (a SkillManager composition handle); Go folds the SkillManager into a private ``skillManager`` field and surfaces the user-facing methods (AddSkill/RemoveSkill/ListSkills/HasSkill) directly on AgentBase
