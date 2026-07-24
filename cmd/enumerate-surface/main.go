@@ -122,6 +122,15 @@ type goStructFacts struct {
 	pkg     string
 	name    string
 	methods map[string]struct{}
+	// fields holds the SHORT (exported, PascalCase) names of the struct's own
+	// declared data fields (non-embedded). Recorded so the oracle-gated relay
+	// Event / AI-Chat DTO / RequestOptions field emission (emitDataclassFields)
+	// can surface each public field the @dataclass reference now enumerates —
+	// the deserialized event payload the Go event struct carries. The base-class
+	// (*RelayEvent) fields promoted through the embed are NOT here (per-subclass
+	// declared fields only), which matches the reference: the oracle records a
+	// subclass's own dataclass fields on the subclass and the base's on the base.
+	fields map[string]struct{}
 	// embeds holds the SHORT type names of the struct's anonymous (embedded)
 	// fields whose declared methods are promoted onto this struct — e.g. a
 	// generated REST resource embeds `*CrudResource` / `*CrudWithAddresses`,
@@ -310,7 +319,11 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						pkg:     pkgName,
 						name:    ts.Name.Name,
 						methods: map[string]struct{}{},
+						fields:  map[string]struct{}{},
 					}
+				}
+				if structs[key].fields == nil {
+					structs[key].fields = map[string]struct{}{}
 				}
 				// §5/§4a: mark generated-REST params-struct plumbing so it is
 				// excluded from the SURFACE-DIFF additions inventory.
@@ -320,6 +333,20 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				// Record anonymous (embedded) fields so promoted methods can be
 				// resolved through the embed chain during projection.
 				structs[key].embeds = append(structs[key].embeds, embeddedTypeNames(st)...)
+				// Record own (non-embedded) exported data-field names for the
+				// oracle-gated @dataclass field emission (emitDataclassFields).
+				if st.Fields != nil {
+					for _, f := range st.Fields.List {
+						if len(f.Names) == 0 {
+							continue // embedded field, not a named data field
+						}
+						for _, n := range f.Names {
+							if ast.IsExported(n.Name) {
+								structs[key].fields[n.Name] = struct{}{}
+							}
+						}
+					}
+				}
 			}
 		case *ast.FuncDecl:
 			if !ast.IsExported(d.Name.Name) {
@@ -341,6 +368,7 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 					pkg:     pkgName,
 					name:    recv,
 					methods: map[string]struct{}{},
+					fields:  map[string]struct{}{},
 				}
 			}
 			structs[key].methods[d.Name.Name] = struct{}{}
@@ -418,6 +446,100 @@ func recvTypeName(expr ast.Expr) string {
 		return recvTypeName(e.X)
 	}
 	return ""
+}
+
+// --- @dataclass field emission (oracle-gated) -------------------------------
+
+// goNameToSnake folds an exported Go PascalCase identifier to snake_case, the
+// canonical Python-reference field spelling. Initialism runs (CallID→call_id,
+// SIPReferTo→sip_refer_to, RecordingID→recording_id) fold correctly via the
+// uppercase→Aa boundary rule (a `_` before an uppercase that begins a new word).
+// This is the same rule enumerate-signatures.goNameToSnake applies to fields.
+func goNameToSnake(s string) string {
+	var out strings.Builder
+	for i, r := range s {
+		if i > 0 {
+			prev := rune(s[i-1])
+			if (isUpper(r) && isLower(prev)) ||
+				(isUpper(r) && i+1 < len(s) && isLower(rune(s[i+1])) && isUpper(prev)) {
+				out.WriteByte('_')
+			}
+		}
+		out.WriteRune(toLowerRune(r))
+	}
+	return out.String()
+}
+
+func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
+func isLower(r rune) bool { return r >= 'a' && r <= 'z' }
+func toLowerRune(r rune) rune {
+	if r >= 'A' && r <= 'Z' {
+		return r + 32
+	}
+	return r
+}
+
+// oracleModuleMembers is the parse of python_surface.json restricted to the
+// per-class member sets emitDataclassFields gates on. Shape:
+// module -> class -> set(reference member names).
+type oracleModuleMembers map[string]map[string]map[string]bool
+
+// dataclassFieldModules is the CLOSED set of modules whose classes carry public
+// @dataclass fields the reference now enumerates and the Go structs express as
+// exported struct fields (the deserialized event payload / DTO / RequestOptions
+// values). Field emission is SCOPED to these three modules so it never touches
+// the ergonomic-method classes elsewhere (which project correctly already):
+//   - signalwire.relay.event         — the 24 relay Event dataclasses (94 fields)
+//   - signalwire.ai_chat.client      — the AI-Chat DTOs (ChatResponse/ChatLog/
+//     ConversationInfo, 8 fields); the client +
+//     error classes carry NO reference fields so
+//     they contribute nothing here.
+//   - signalwire.rest._request_options — RequestOptions (retries/retry_backoff/
+//     retry_on_status/timeout; abort_signal is an
+//     impossible: omission — Go uses context.Context;
+//     merge() is already a method).
+var dataclassFieldModules = map[string]bool{
+	"signalwire.relay.event":           true,
+	"signalwire.ai_chat.client":        true,
+	"signalwire.rest._request_options": true,
+}
+
+// loadOracleMembers reads python_surface.json and returns the per-class member
+// sets for the dataclassFieldModules only. Used to GATE field emission so the Go
+// port surfaces exactly the reference field set per class and never over-emits a
+// port-internal helper field. Returns nil (silently) if the oracle can't be
+// located/parsed — field emission then no-ops, exactly like enrichComposition's
+// degraded-env tolerance, so the enumerator never HARD-depends on adjacency.
+func loadOracleMembers(repoRoot string) oracleModuleMembers {
+	path := filepath.Join(repoRoot, "..", "porting-sdk", "python_surface.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var parsed struct {
+		Modules map[string]struct {
+			Classes map[string][]string `json:"classes"`
+		} `json:"modules"`
+	}
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return nil
+	}
+	out := oracleModuleMembers{}
+	for mod, mi := range parsed.Modules {
+		if !dataclassFieldModules[mod] {
+			continue
+		}
+		cm := map[string]map[string]bool{}
+		for cls, members := range mi.Classes {
+			set := map[string]bool{}
+			for _, m := range members {
+				set[m] = true
+			}
+			cm[cls] = set
+		}
+		out[mod] = cm
+	}
+	return out
 }
 
 // --- Emission ---------------------------------------------------------------
@@ -509,7 +631,7 @@ func promotedMethodExists(structs map[string]*goStructFacts, facts *goStructFact
 
 // build turns (goStructs, goFuncs) into a Python-reference surface driven by
 // the translation tables.
-func build(structs map[string]*goStructFacts, funcs map[string]struct{}) surface {
+func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle oracleModuleMembers) surface {
 	out := surface{
 		Version: "1",
 		Modules: map[string]moduleInventory{},
@@ -594,6 +716,23 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}) surface
 			}
 			for _, synthetic := range target.SyntheticMethods {
 				addMethod(target.Module, target.Class, synthetic)
+			}
+			// @dataclass field emission (oracle-gated). For the closed set of
+			// modules whose reference classes carry public @dataclass fields
+			// (relay Event structs, AI-Chat DTOs, RequestOptions), surface each
+			// exported Go struct field whose snake_case name is in the oracle's
+			// member set for this (module, class). This makes the deserialized
+			// event-payload fields the Go struct carries PRESENT (folded), so the
+			// 106 reference fields compare EQUAL instead of showing as omissions.
+			// Gating on the oracle guarantees we emit exactly the reference set
+			// and never a port-internal helper field.
+			if clsMembers, ok := oracle[target.Module][target.Class]; ok {
+				for goField := range facts.fields {
+					snake := goNameToSnake(goField)
+					if clsMembers[snake] {
+						addMethod(target.Module, target.Class, snake)
+					}
+				}
 			}
 			_ = target.Alias // already added via addClass above.
 		}
@@ -1072,7 +1211,8 @@ func run() error {
 
 	sha := goSHA(repoRoot)
 
-	snapshot := build(structs, funcs)
+	oracle := loadOracleMembers(repoRoot)
+	snapshot := build(structs, funcs, oracle)
 	if err := enrichCompositionAttributes(&snapshot, repoRoot); err != nil {
 		return fmt.Errorf("enrich composition attributes: %w", err)
 	}

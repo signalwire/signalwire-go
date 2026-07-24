@@ -200,7 +200,6 @@ signalwire.rest._base.FabricResourcePUT: impossible: Python empty base-class var
 # --- (non-SDK-typed) field, so the reference member name genuinely cannot exist.
 signalwire.core.pom_builder.PomBuilder.pom: impossible: Python's PomBuilder.pom returns the built PromptObjectModel; Go's builder returns the *PromptObjectModel directly from Build()/its terminal methods rather than exposing a ``pom`` composition handle
 signalwire.core.skill_base.SkillBase.logger: impossible: Python exposes ``logger`` returning an SDK-typed logger (signalwire.core.logging_config); Go's SkillBase carries a plain ``Logger *logging.Logger`` stdlib-style field, not the SDK-typed composition handle the reference's enrich imports
-signalwire.rest._request_options.RequestOptions.abort_signal: impossible: Python's RequestOptions.abort_signal returns an _AbortSignal object bound to asyncio cancellation; Go request cancellation flows through context.Context (RequestOptions carries no abort-signal handle)
 signalwire.skills.registry.SkillRegistry.logger: impossible: Python's SkillRegistry exposes an SDK-typed ``logger`` property; Go's SkillRegistry uses the package-level ``logging`` helper and has no per-instance logger accessor
 signalwire.web.web_service.WebService.security: impossible: Python's WebService.security returns a SecurityConfig composition handle; Go folds auth state into private fields configured via the WithSecurityConfig/WithBasicAuth/... options — no ``security`` accessor
 

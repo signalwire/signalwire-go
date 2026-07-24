@@ -1297,6 +1297,75 @@ func toLower(r rune) rune {
 	return r
 }
 
+// isSignatureDivergentDataclassField reports whether an oracle-gated @dataclass
+// field's raw Go type is a genuine idiom divergence with no faithful reference-
+// shaped signature, so it must not be emitted on the signature side (the member
+// stays surface-only + an annotated PORT_SIGNATURE_OMISSIONS entry). Currently the
+// two RequestOptions cases: context.Context (Go's cancellation primitive vs the
+// reference _AbortSignal object) and map[int]bool (Go's SET idiom vs the
+// reference list[int] for retry-on-status).
+func isSignatureDivergentDataclassField(goType string) bool {
+	switch goType {
+	case "context.Context", "map[int]bool":
+		return true
+	}
+	return false
+}
+
+// sigOracleMembers is python_signatures.json restricted to the per-class member
+// sets the @dataclass field emission gates on: module -> class -> set(member).
+type sigOracleMembers map[string]map[string]map[string]bool
+
+// dataclassFieldModules is the CLOSED set of modules whose reference classes
+// carry public @dataclass fields the Go structs express as exported struct
+// fields (the deserialized relay-event payload, the AI-Chat DTOs, RequestOptions).
+// Field emission is SCOPED to these three so it never touches the ergonomic-method
+// classes elsewhere. Same set as enumerate-surface's dataclassFieldModules.
+var dataclassFieldModules = map[string]bool{
+	"signalwire.relay.event":           true,
+	"signalwire.ai_chat.client":        true,
+	"signalwire.rest._request_options": true,
+}
+
+// loadSigOracle reads python_signatures.json (adjacent porting-sdk) and returns
+// the per-class member sets for dataclassFieldModules only. GATES field emission
+// so the port surfaces exactly the reference field set per class. Returns nil
+// silently if the oracle can't be located/parsed (degraded-env tolerance —
+// emission then no-ops, like the composition enrich's adjacency tolerance).
+func loadSigOracle(repoRoot string) sigOracleMembers {
+	path := filepath.Join(repoRoot, "..", "porting-sdk", "python_signatures.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var parsed struct {
+		Modules map[string]struct {
+			Classes map[string]struct {
+				Methods map[string]json.RawMessage `json:"methods"`
+			} `json:"classes"`
+		} `json:"modules"`
+	}
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return nil
+	}
+	out := sigOracleMembers{}
+	for mod, mi := range parsed.Modules {
+		if !dataclassFieldModules[mod] {
+			continue
+		}
+		cm := map[string]map[string]bool{}
+		for cls, ci := range mi.Classes {
+			set := map[string]bool{}
+			for m := range ci.Methods {
+				set[m] = true
+			}
+			cm[cls] = set
+		}
+		out[mod] = cm
+	}
+	return out
+}
+
 // goFieldToPython converts a Go exported struct field name to its
 // Python-canonical snake_case form, with corrections for SDK-specific
 // abbreviations that don't snake-case naturally (e.g. “MFA“ -> “mfa“,
@@ -1606,7 +1675,7 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 	return canonicalSignature{Params: params, Returns: returns}, failures
 }
 
-func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts, aliases map[string]string) (sigDoc, []translationFailure) {
+func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts, aliases map[string]string, sigOracle sigOracleMembers) (sigDoc, []translationFailure) {
 	out := sigDoc{
 		Version: "2",
 		Modules: map[string]sigModuleInventory{},
@@ -1727,6 +1796,51 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 			// generated-dataclass / exception auto-ctor is projected from the
 			// struct fields (aiChatCtorSigs) rather than an AST method.
 			emitAIChatCtor(target.Module, target.Class)
+
+			// @dataclass field emission (oracle-gated). For the closed set of
+			// modules whose reference classes carry public @dataclass fields
+			// (relay Event structs, AI-Chat DTOs, RequestOptions), project each
+			// exported Go struct field whose snake_case name is in the SIGNATURE
+			// oracle's member set for this (module, class) as a self-only accessor
+			// returning the field's translated type — mirroring the reference's
+			// dataclass-field-as-attribute projection. These are PRIMITIVE-typed
+			// (string/int/float/dict/optional<bool>), so the composition loop below
+			// (SDK-class-only) skips them; this pass emits them so the DRIFT gate
+			// sees the same 106 members the surface audit now folds. Gating on the
+			// oracle guarantees exactly the reference set — never a helper field.
+			if clsMembers, ok := sigOracle[target.Module][target.Class]; ok {
+				for goField, fSig := range facts.methods {
+					if !fSig.isField {
+						continue
+					}
+					snake := goNameToSnake(goField)
+					if _, already := target.Methods[goField]; already {
+						continue
+					}
+					if !clsMembers[snake] {
+						continue
+					}
+					// A field whose Go type is a GENUINE idiom divergence from the
+					// reference dataclass field type is NOT emitted here — the port
+					// carries the MEMBER (surface folds it) but its declared type has
+					// no faithful reference-shaped signature, so it stays an annotated
+					// PORT_SIGNATURE_OMISSIONS.md entry (surface-live / signature-
+					// divergent, per the DUAL-GATE rule). Two such fields:
+					//   - RequestOptions.AbortSignal (context.Context): Go's
+					//     cancellation primitive, not the reference's _AbortSignal
+					//     object — already a documented signature omission.
+					//   - RequestOptions.RetryOnStatus (map[int]bool): Go's SET idiom
+					//     for the retry statuses; the reference types it list[int].
+					//     A set-as-map vs list is a shape divergence, not a matching
+					//     signature.
+					if isSignatureDivergentDataclassField(fSig.returns) {
+						continue
+					}
+					sig, fails := toCanonicalSignature(fSig, aliases, true, false, fmt.Sprintf("%s.%s.%s", target.Module, target.Class, snake))
+					failures = append(failures, fails...)
+					addClassMethod(target.Module, target.Class, snake, sig)
+				}
+			}
 
 			// Auto-emit exported fields whose type is an SDK class
 			// (``*namespaces.FabricNamespace``, ``*FooClient``, etc.)
@@ -1940,7 +2054,8 @@ func run() error {
 		return fmt.Errorf("walk: %w", err)
 	}
 
-	doc, failures := build(structs, funcs, payloads, aliases)
+	sigOracle := loadSigOracle(repoRoot)
+	doc, failures := build(structs, funcs, payloads, aliases, sigOracle)
 	doc.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s (go/ast walker)", goSHA(repoRoot))
 
 	if len(failures) > 0 {
