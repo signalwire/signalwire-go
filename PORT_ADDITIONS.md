@@ -320,8 +320,6 @@ signalwire.core.swml_service.SWMLService.logger: Go's swml.Service exposes a pub
 
 # --- Go-only fields on REST base resources (Python uses dynamic attribute lookup) ---
 signalwire.rest._base.BaseResource.http: Go's namespaces.Resource exposes a public ``http`` HTTPClient field; Python uses dynamic attribute lookup via __init__
-signalwire.rest._base.CrudResource.client: Go's namespaces.CrudResource exposes a public ``client`` HTTPClient field; Python uses dynamic attribute lookup via __init__
-signalwire.rest._base.ReadResource.client: same Go namespaces.CrudResource ``client`` field, surfaced under the ReadResource half of the CrudResource->ReadResource base-placement adapter (internal/surface/tables.go); Python's ReadResource uses dynamic attribute lookup
 
 # --- Go projections of Python attributes the Python adapter drops from surface but keeps in signatures ---
 # Python's enumerate-surface omits these as instance properties; signatures keeps them.
@@ -343,11 +341,6 @@ signalwire.relay.call.Action.result: Go's Result() method projects to Python's r
 # matching the reference base; these five are the subclass projections the signature
 # audit requires, excused on the surface side. (Same shape as the pom/schema_utils
 # signatures-keeps/surface-drops entries above.)
-signalwire.rest.namespaces.fabric_resources_generated.FabricAddresses.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
-signalwire.rest.namespaces.fax_resources_generated.FaxLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
-signalwire.rest.namespaces.message_resources_generated.MessageLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
-signalwire.rest.namespaces.video_resources_generated.VideoRoomSessions.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
-signalwire.rest.namespaces.voice_resources_generated.VoiceLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
 
 ## SWML-verbs generated-payload reserved-word fields (port emits what the reference can't name)
 

@@ -354,11 +354,6 @@ signalwire.ai_chat.client.AIChatClient.__aenter__: impossible: Python async cont
 signalwire.ai_chat.client.AIChatClient.__aexit__: impossible: Python async context-manager protocol (__aexit__) has no Go equivalent; the Go aichat.Client has no owned session to tear down on exit, mirroring RelayClient.__aexit__
 
 # --- REST namespace omissions ---
-signalwire.rest.call_handler.PhoneCallHandler: Python PhoneCallHandler is a typing helper alias; Go port uses pkg/rest/namespaces/call_handler.go (string type)
-signalwire.rest.namespaces.fabric.CxmlWebhooksResource: deprecated legacy resource; Go port omits per phone-binding.md (use phone_numbers.SetCxmlWebhook)
-signalwire.rest.namespaces.fabric.FabricResource: internal base class for fabric resources; Go port aliases it to namespaces.CrudWithAddresses (List/Create/Get/Update/Delete + ListAddresses)
-signalwire.rest.namespaces.fabric.FabricResourcePUT: internal base-class variant (PUT updates); Go port aliases it to namespaces.CrudWithAddresses constructed via NewCrudWithAddressesPUT, so it exposes CRUD + ListAddresses
-signalwire.rest.namespaces.fabric.SwmlWebhooksResource: deprecated legacy resource; Go port omits per phone-binding.md (use phone_numbers.SetSwmlWebhook)
 
 # --- Prefab internal handlers ---
 
