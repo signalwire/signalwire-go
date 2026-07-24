@@ -143,6 +143,123 @@ var optionsStructUnfoldMethods = map[string]string{
 	"signalwire.core.function_result.FunctionResult.wait_for_user": "WaitForUserOptions",
 }
 
+// aiChatMethodSigs SPLICES the canonical signature for the AIChatClient turn
+// methods whose Go idiom (a leading ctx context.Context + a per-call options
+// struct / functional-options constructor) collapses several Python keyword
+// arguments into one Go param. Rather than teach the generic unfold every field's
+// optionality + oracle order, these four methods carry their exact reference
+// param list here (the "splice the canonical oracle signature" fold dotnet used):
+// the wire behaviour is identical (the Go client sends the same JSON-RPC params),
+// only the CALL SHAPE differs, so recording the reference-shaped signature keeps
+// port_signatures.json byte-identical to the oracle (drift 0). Keyed by the fully
+// qualified Python method name. When present, it REPLACES the AST-derived signature.
+//
+// chat/create_conversation carry the full reference param set (role, config_url,
+// user_metadata, timeout, reinit / config_url, user_message, timeout, user_metadata,
+// reinit) — the Go client's ChatOptions/CreateOptions fields — in reference order.
+// summarize's reference tail is `**sampling: Any` (a var_keyword bag the oracle
+// strips per porting-sdk #58); the Go SummarizeOptions models the same open sampling
+// set as typed fields, so the splice records only summary_prompt plus the stripped
+// **kwargs tail, matching what the oracle records.
+var aiChatMethodSigs = map[string]canonicalSignature{
+	"signalwire.ai_chat.client.AIChatClient.__init__": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "project", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "token", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "space", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "url", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			// The oracle dropped Python's `session: aiohttp.ClientSession | None`
+			// (a Python-only DI seam) as of porting-sdk ai-chat-client @ f6efa9b, so
+			// __init__ folds naturally to (project, token, space, url). Go's
+			// WithHTTPClient(*http.Client) functional option remains as an idiomatic
+			// transport-injection extra, invisible to this reference-shaped signature.
+		},
+		Returns: "void",
+	},
+	"signalwire.ai_chat.client.AIChatClient.create_conversation": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "conversation_id", Type: "string", Required: boolPtr(true)},
+			{Name: "config_url", Type: "string", Required: boolPtr(true)},
+			{Name: "user_message", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "timeout", Type: "optional<int>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "user_metadata", Type: "optional<dict<string,any>>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "reinit", Type: "bool", Required: boolPtr(false), Default: json.RawMessage("false")},
+		},
+		Returns: "class:signalwire.ai_chat.client.ConversationInfo",
+	},
+	"signalwire.ai_chat.client.AIChatClient.chat": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "conversation_id", Type: "string", Required: boolPtr(true)},
+			{Name: "message", Type: "string", Required: boolPtr(true)},
+			{Name: "role", Type: "string", Required: boolPtr(false), Default: json.RawMessage("\"user\"")},
+			{Name: "config_url", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "user_metadata", Type: "optional<dict<string,any>>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			// timeout/reinit use the oracle's canonical int/bool spelling (matching
+			// create_conversation); porting-sdk @ 3e24867 fixed the earlier
+			// integer/boolean typo so chat and create_conversation now agree.
+			{Name: "timeout", Type: "optional<int>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "reinit", Type: "bool", Required: boolPtr(false), Default: json.RawMessage("false")},
+		},
+		Returns: "class:signalwire.ai_chat.client.ChatResponse",
+	},
+	"signalwire.ai_chat.client.AIChatClient.summarize": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "conversation_id", Type: "string", Required: boolPtr(true)},
+			{Name: "summary_prompt", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "kwargs", Kind: "var_keyword", Type: "any", Required: boolPtr(false), Default: json.RawMessage("{}")},
+		},
+		Returns: "string",
+	},
+}
+
+// aiChatCtorSigs SYNTHESIZES the __init__ signature for the AI-Chat data/error
+// structs, which the reference records as generated-dataclass / exception
+// auto-constructors. Go builds each via a composite struct literal (no exported
+// NewX factory), so the reference's __init__ has no directly-corresponding Go
+// method — it is projected here from the struct's public fields, in declaration
+// order, matching the reference dataclass field order. Keyed by the fully qualified
+// Python class name; emitted as that class's __init__.
+var aiChatCtorSigs = map[string]canonicalSignature{
+	"signalwire.ai_chat.client.AIChatError": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "code", Type: "optional<int>", Required: boolPtr(true)},
+			{Name: "message", Type: "string", Required: boolPtr(true)},
+		},
+		Returns: "void",
+	},
+	"signalwire.ai_chat.client.ConversationInfo": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "id", Type: "string", Required: boolPtr(true)},
+			{Name: "status", Type: "string", Required: boolPtr(true)},
+			{Name: "initial_message", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+		},
+		Returns: "void",
+	},
+	"signalwire.ai_chat.client.ChatResponse": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "text", Type: "string", Required: boolPtr(true)},
+			{Name: "conversation_id", Type: "string", Required: boolPtr(true)},
+			{Name: "user_event", Type: "optional<dict<string,any>>", Required: boolPtr(false), Default: json.RawMessage("null")},
+		},
+		Returns: "void",
+	},
+	"signalwire.ai_chat.client.ChatLog": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "messages", Type: "list<dict<string,any>>", Required: boolPtr(false), Default: json.RawMessage("[]")},
+			{Name: "call_timeline", Type: "list<dict<string,any>>", Required: boolPtr(false), Default: json.RawMessage("[]")},
+		},
+		Returns: "void",
+	},
+}
+
 // handOptionsStructs is the allowlist of SHORT struct names (in hand-written,
 // non-generated files) whose fields the enumerator records into
 // paramsStructFields so optionsStructUnfoldMethods can unfold them. Keeping it an
@@ -1506,6 +1623,14 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 		}
 	}
 	addClassMethod := func(mod, cls, method string, sig canonicalSignature) {
+		// ai_chat idiom fold: the AIChatClient turn methods + constructor collapse
+		// several Python kwargs into a leading ctx + a Go options struct/functional
+		// options. Splice the reference-shaped signature (see aiChatMethodSigs) so
+		// the recorded signature matches the oracle exactly (drift 0), keeping the
+		// Go call shape idiomatic.
+		if spliced, ok := aiChatMethodSigs[mod+"."+cls+"."+method]; ok {
+			sig = spliced
+		}
 		inv := ensureModule(mod)
 		if inv.Classes == nil {
 			inv.Classes = map[string]sigClassEntry{}
@@ -1517,6 +1642,17 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 		entry.Methods[method] = sig
 		inv.Classes[cls] = entry
 		out.Modules[mod] = inv
+	}
+	// aiChatCtorSynthesized guards the one-time emission of each ai_chat data/error
+	// struct's synthesized __init__ (aiChatCtorSigs), so a struct that IS listed in
+	// StructTable (its methods projected above) still gets its field-derived ctor.
+	aiChatCtorSynthesized := map[string]bool{}
+	emitAIChatCtor := func(mod, cls string) {
+		qn := mod + "." + cls
+		if sig, ok := aiChatCtorSigs[qn]; ok && !aiChatCtorSynthesized[qn] {
+			aiChatCtorSynthesized[qn] = true
+			addClassMethod(mod, cls, "__init__", sig)
+		}
 	}
 	addFunction := func(mod, name string, sig canonicalSignature) {
 		inv := ensureModule(mod)
@@ -1585,6 +1721,12 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 					Returns: "class:" + target.Module + "." + target.Class,
 				})
 			}
+
+			// ai_chat data/error struct __init__: Go builds each via a composite
+			// struct literal (no exported NewX factory), so the reference's
+			// generated-dataclass / exception auto-ctor is projected from the
+			// struct fields (aiChatCtorSigs) rather than an AST method.
+			emitAIChatCtor(target.Module, target.Class)
 
 			// Auto-emit exported fields whose type is an SDK class
 			// (``*namespaces.FabricNamespace``, ``*FooClient``, etc.)

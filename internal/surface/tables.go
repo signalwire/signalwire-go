@@ -746,6 +746,75 @@ var StructTable = map[string][]ClassTarget{
 	// relay.AIEvent has no Python counterpart; it's a port-only extension.
 	// See PORT_ADDITIONS.md.
 
+	// --- aichat package (signalwire.ai_chat.client) -----------------------
+	// The Go AIChatClient idiom folds onto the Python reference's async client:
+	// the functional-options constructor (NewClient) -> __init__, and each
+	// exported turn method -> its snake_case reference name. The reference's
+	// close() -> Go's Close() (a no-op that completes the lifecycle contract; the
+	// pooled/injected *http.Client has nothing to release, exactly as the TS OO
+	// cousin's close() is a no-op). Only the async context-manager protocol
+	// members __aenter__/__aexit__ have no Go analogue — Go has no `with`/`async
+	// with` scope guard — so those two stay `impossible:` PORT_OMISSIONS entries,
+	// mirroring RelayClient.__aenter__/__aexit__.
+	"aichat.Client": {{
+		Module: "signalwire.ai_chat.client", Class: "AIChatClient",
+		Methods: map[string]string{
+			"NewClient":          "__init__",
+			"CreateConversation": "create_conversation",
+			"Chat":               "chat",
+			"End":                "end",
+			"Delete":             "delete",
+			"Log":                "log",
+			"Summarize":          "summarize",
+			"Close":              "close",
+		},
+	}},
+	// The AI-Chat typed error family. Go has no exception hierarchy, so each
+	// Python exception class is a Go error struct: the base *AIChatError plus
+	// five typed variants that embed it. The base carries the reference's
+	// __init__ (constructed via struct literal / the unexported newTypedError,
+	// like relay.Call) as a synthetic; the subclasses are method-less classes
+	// exactly as the reference records them (their Go Error()/Unwrap() members
+	// are the error-interface idiom, not oracle surface, and are unlisted so
+	// they never leak).
+	"aichat.AIChatError": {{
+		Module: "signalwire.ai_chat.client", Class: "AIChatError",
+		Methods: map[string]string{},
+		// The reference records AIChatError.__init__(code, message) as SURFACE (a
+		// public exception constructor). Go builds it via a struct literal /
+		// newTypedError, so enumerate-surface emits the __init__ NAME via this
+		// synthetic; enumerate-signatures synthesizes its full (code, message)
+		// signature from aiChatCtorSigs. (ConversationInfo/ChatResponse/ChatLog carry
+		// __init__ only at the SIGNATURE layer — their surface member set is empty —
+		// so they need no surface synthetic here.)
+		SyntheticMethods: []string{"__init__"},
+	}},
+	"aichat.AuthenticationError": {{
+		Module: "signalwire.ai_chat.client", Class: "AuthenticationError",
+	}},
+	"aichat.ConversationNotFoundError": {{
+		Module: "signalwire.ai_chat.client", Class: "ConversationNotFoundError",
+	}},
+	"aichat.RateLimitError": {{
+		Module: "signalwire.ai_chat.client", Class: "RateLimitError",
+	}},
+	"aichat.ChatInProgressError": {{
+		Module: "signalwire.ai_chat.client", Class: "ChatInProgressError",
+	}},
+	"aichat.SummaryError": {{
+		Module: "signalwire.ai_chat.client", Class: "SummaryError",
+	}},
+	// The AI-Chat data-transfer structs -> the reference's method-less dataclasses.
+	"aichat.ConversationInfo": {{
+		Module: "signalwire.ai_chat.client", Class: "ConversationInfo",
+	}},
+	"aichat.ChatResponse": {{
+		Module: "signalwire.ai_chat.client", Class: "ChatResponse",
+	}},
+	"aichat.ChatLog": {{
+		Module: "signalwire.ai_chat.client", Class: "ChatLog",
+	}},
+
 	// --- rest package -----------------------------------------------------
 	"rest.RestClient": {{
 		Module: "signalwire.rest.client", Class: "RestClient",

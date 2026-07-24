@@ -673,6 +673,34 @@ func isMockTestSymbol(key string) bool {
 	return strings.HasPrefix(key, "mocktest.")
 }
 
+// aiChatOptionsPlumbing is the set of ai_chat per-call options structs whose fields
+// enumerate-signatures unfolds back into each AIChatClient method signature. They are
+// call-shape plumbing (the Go named-options idiom for the Python kwargs), not oracle
+// surface, so they are excluded from the SURFACE-DIFF additions inventory — the same
+// treatment the generated-REST *Params plumbing structs get.
+var aiChatOptionsPlumbing = map[string]bool{
+	"aichat.CreateOptions":    true,
+	"aichat.ChatOptions":      true,
+	"aichat.SummarizeOptions": true,
+}
+
+// aiChatOptionFuncs is the set of ai_chat functional-options constructors — the Go
+// spelling of the AIChatClient.__init__ keyword arguments. WithProject/WithToken/
+// WithSpace/WithURL map 1:1 to project/token/space/url; WithHTTPClient + WithReadIdle-
+// Timeout are the two facets of Python's single `session: aiohttp.ClientSession`
+// injection seam (the reference passes a custom session to override transport AND the
+// sock_read idle timeout — see DEFAULT_TIMEOUT). enumerate-signatures splices the
+// constructor into __init__(project, token, space, url, session), so these carry no
+// standalone oracle surface and are excluded from the SURFACE-DIFF additions inventory.
+var aiChatOptionFuncs = map[string]bool{
+	"aichat.WithProject":         true,
+	"aichat.WithToken":           true,
+	"aichat.WithSpace":           true,
+	"aichat.WithURL":             true,
+	"aichat.WithHTTPClient":      true,
+	"aichat.WithReadIdleTimeout": true,
+}
+
 // computePortAdditions walks the parsed Go inventory, keeps only the
 // genuinely-public exports that have no entry in the translation tables,
 // and emits the list in canonical order. Methods on unmapped structs are
@@ -688,6 +716,13 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 		// §5/§4a: generated-REST params structs are call-shape plumbing, not oracle
 		// surface — never list them as SURFACE-DIFF additions.
 		if facts.paramsPlumbing {
+			continue
+		}
+		// ai_chat per-call options structs are call-shape plumbing (the Go spelling
+		// of the AIChatClient method kwargs, unfolded back into each method signature
+		// by enumerate-signatures) — not oracle surface, exactly like the REST
+		// *Params plumbing. Never list them as SURFACE-DIFF additions.
+		if aiChatOptionsPlumbing[key] {
 			continue
 		}
 		// The mocktest package is the shared test harness (mock server + journal),
@@ -706,6 +741,13 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 			continue
 		}
 		if _, ok := factoryInit[key]; ok {
+			continue
+		}
+		// ai_chat functional-options constructors (aichat.With*) are the Go spelling
+		// of the AIChatClient.__init__ kwargs (project/token/space/url/session);
+		// enumerate-signatures splices them into __init__, so they are call-shape
+		// plumbing, not standalone oracle surface. Exclude from SURFACE-DIFF additions.
+		if aiChatOptionFuncs[key] {
 			continue
 		}
 		// mocktest is the shared test harness, not shipped SDK surface (see above).
