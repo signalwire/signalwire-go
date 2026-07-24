@@ -56,7 +56,6 @@ test, the entry is not ready. Prove it's needed before you add it.
 # match.
 
 # --- Existing curated entries (preserved) ---
-signalwire.relay.event.AIEvent: Go-only typed wrapper around AI action events; Python uses RelayEvent directly
 
 # --- Tier-2 idiom additions: context.Context-aware entry points (IDIOM_PASS_JOURNAL §4) ---
 # Additive *Context variants of the blocking/async entry points that honor ctx
@@ -309,13 +308,6 @@ swml.NewDocument: Go factory constructor for a port-only struct; Python equivale
 swml.ValidateURL: Go-only public function; no direct Python counterpart
 
 # --- Go-only public Logger field auto-projected onto each struct that embeds it ---
-signalwire.core.agent_base.AgentBase.logger: Go's AgentBase exposes a public ``Logger *logging.Logger`` field; auto-projected as ``logger`` accessor on the Python-canonical class
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.logger: AIConfigMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.mixins.prompt_mixin.PromptMixin.logger: PromptMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.mixins.skill_mixin.SkillMixin.logger: SkillMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.mixins.tool_mixin.ToolMixin.logger: ToolMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.mixins.web_mixin.WebMixin.logger: WebMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.swml_service.SWMLService.logger: Go's swml.Service exposes a public ``Logger *logging.Logger`` field; auto-projected as ``logger`` accessor on the Python-canonical class
 
 
 # --- Go-only fields on REST base resources (Python uses dynamic attribute lookup) ---

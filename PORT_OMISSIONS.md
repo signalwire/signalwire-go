@@ -59,219 +59,10 @@ test, the entry is not ready. Prove it's needed before you add it.
 #     implementation detail, or port-specific architectural difference).
 
 # --- Search subsystem ---
-signalwire.search.document_processor.DocumentProcessor: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.document_processor.DocumentProcessor.__init__: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.document_processor.DocumentProcessor.create_chunks: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.index_builder.IndexBuilder: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.index_builder.IndexBuilder.__init__: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.index_builder.IndexBuilder.build_index: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.index_builder.IndexBuilder.build_index_from_sources: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.index_builder.IndexBuilder.validate_index: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.migration.SearchIndexMigrator: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.migration.SearchIndexMigrator.__init__: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.migration.SearchIndexMigrator.get_index_info: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.migration.SearchIndexMigrator.migrate_pgvector_to_sqlite: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.migration.SearchIndexMigrator.migrate_sqlite_to_pgvector: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.models.resolve_model_alias: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorBackend: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorBackend.__init__: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorBackend.close: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorBackend.create_schema: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorBackend.delete_collection: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorBackend.get_stats: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorBackend.list_collections: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorBackend.store_chunks: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorSearchBackend: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorSearchBackend.__init__: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorSearchBackend.close: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorSearchBackend.fetch_candidates: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorSearchBackend.get_stats: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.pgvector_backend.PgVectorSearchBackend.search: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.detect_language: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.ensure_nltk_resources: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.get_synonyms: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.get_wordnet_pos: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.load_spacy_model: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.preprocess_document_content: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.preprocess_query: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.remove_duplicate_words: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.set_global_model: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.query_processor.vectorize_query: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_engine.SearchEngine: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_engine.SearchEngine.__init__: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_engine.SearchEngine.get_stats: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_engine.SearchEngine.search: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_service.SearchService: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_service.SearchService.__init__: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_service.SearchService.search_direct: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_service.SearchService.start: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
-signalwire.search.search_service.SearchService.stop: search subsystem (vector store, indexing, migrations) is Python-only; Go port uses native_vector_search skill in network mode only
 
 # --- CLI tooling ---
-signalwire.cli.build_search.console_entry_point: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.build_search.main: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.build_search.migrate_command: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.build_search.remote_command: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.build_search.search_command: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.build_search.validate_command: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.agent_loader.discover_agents_in_file: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.agent_loader.discover_services_in_file: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.agent_loader.load_agent_from_file: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.agent_loader.load_service_from_file: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.argparse_helpers.CustomArgumentParser: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.argparse_helpers.CustomArgumentParser.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.argparse_helpers.CustomArgumentParser.error: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.argparse_helpers.CustomArgumentParser.parse_args: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.argparse_helpers.CustomArgumentParser.print_usage: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.argparse_helpers.parse_function_arguments: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.dynamic_config.apply_dynamic_config: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.service_loader.ServiceCapture: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.service_loader.ServiceCapture.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.service_loader.ServiceCapture.capture: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.service_loader.discover_agents_in_file: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.service_loader.load_agent_from_file: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.service_loader.load_and_simulate_service: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.core.service_loader.simulate_request_to_service: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.Colors: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.DokkuProjectGenerator: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.DokkuProjectGenerator.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.DokkuProjectGenerator.generate: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.cmd_config: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.cmd_deploy: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.cmd_init: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.cmd_logs: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.cmd_scale: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.generate_password: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.main: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.print_error: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.print_header: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.print_step: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.print_success: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.print_warning: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.prompt: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.dokku.prompt_yes_no: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.execution.datamap_exec.execute_datamap_function: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.execution.datamap_exec.simple_template_expand: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.execution.webhook_exec.execute_external_webhook_function: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.Colors: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.ProjectGenerator: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.ProjectGenerator.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.ProjectGenerator.generate: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.generate_password: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.get_agent_template: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.get_app_template: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.get_env_credentials: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.get_readme_template: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.get_test_template: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.get_web_index_template: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.main: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.mask_token: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.print_error: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.print_step: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.print_success: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.print_warning: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.prompt: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.prompt_multiselect: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.prompt_select: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.prompt_yes_no: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.run_interactive: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.init_project.run_quick: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.output.output_formatter.display_agent_tools: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.output.output_formatter.format_result: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.output.swml_dump.handle_dump_swml: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.output.swml_dump.setup_output_suppression: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_generation.adapt_for_call_type: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_generation.generate_comprehensive_post_data: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_generation.generate_fake_node_id: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_generation.generate_fake_sip_from: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_generation.generate_fake_sip_to: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_generation.generate_fake_swml_post_data: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_generation.generate_fake_uuid: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_generation.generate_minimal_post_data: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_overrides.apply_convenience_mappings: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_overrides.apply_overrides: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_overrides.parse_value: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.data_overrides.set_nested_value: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockHeaders: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockHeaders.__contains__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockHeaders.__getitem__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockHeaders.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockHeaders.get: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockHeaders.items: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockHeaders.keys: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockHeaders.values: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockQueryParams: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockQueryParams.__contains__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockQueryParams.__getitem__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockQueryParams.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockQueryParams.get: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockQueryParams.items: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockQueryParams.keys: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockQueryParams.values: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockRequest: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockRequest.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockRequest.body: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockRequest.client: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockRequest.json: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockURL: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockURL.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.MockURL.__str__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.ServerlessSimulator: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.ServerlessSimulator.__init__: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.ServerlessSimulator.activate: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.ServerlessSimulator.add_override: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.ServerlessSimulator.deactivate: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.ServerlessSimulator.get_current_env: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.create_mock_request: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.simulation.mock_env.load_env_file: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.swaig_test_wrapper.main: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.test_swaig.console_entry_point: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.test_swaig.main: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.test_swaig.print_help_examples: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.test_swaig.print_help_platforms: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.types.AgentInfo: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.types.CallData: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.types.DataMapConfig: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.types.FunctionInfo: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.types.PostData: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
-signalwire.cli.types.VarsData: Python-only CLI tooling; Go port ships cmd/swaig-test and cmd/enumerate-surface instead
 
 # --- MCP gateway service ---
-signalwire.mcp_gateway.gateway_service.MCPGateway: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.gateway_service.MCPGateway.__init__: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.gateway_service.MCPGateway.run: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.gateway_service.MCPGateway.shutdown: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.gateway_service.main: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPClient: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPClient.__init__: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPClient.call_method: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPClient.call_tool: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPClient.get_tools: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPClient.start: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPClient.stop: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPManager: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPManager.__init__: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPManager.create_client: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPManager.get_service: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPManager.get_service_tools: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPManager.list_services: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPManager.shutdown: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPManager.validate_services: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPService: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPService.__hash__: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.mcp_manager.MCPService.__post_init__: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.Session: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.Session.is_alive: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.Session.is_expired: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.Session.touch: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.SessionManager: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.SessionManager.__init__: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.SessionManager.close_session: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.SessionManager.create_session: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.SessionManager.get_service_session_count: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.SessionManager.get_session: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.SessionManager.list_sessions: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
-signalwire.mcp_gateway.session_manager.SessionManager.shutdown: MCP gateway service daemon is Python-only; Go port exposes MCP via AgentBase.AddMcpServer / EnableMcpServer
 
 # --- POM builder ---
 # signalwire.pom.pom.PromptObjectModel and signalwire.pom.pom.Section are
@@ -282,10 +73,6 @@ signalwire.mcp_gateway.session_manager.SessionManager.shutdown: MCP gateway serv
 #
 # pom_tool is a Python-only CLI that wraps the POM module — kept omitted
 # because Go ships a library, not a CLI.
-signalwire.pom.pom_tool.detect_file_format: pom_tool is a Python-only CLI wrapper around pom.pom; Go ships the library only
-signalwire.pom.pom_tool.load_pom: pom_tool is a Python-only CLI wrapper around pom.pom; Go ships the library only
-signalwire.pom.pom_tool.main: pom_tool is a Python-only CLI wrapper around pom.pom; Go ships the library only
-signalwire.pom.pom_tool.render_pom: pom_tool is a Python-only CLI wrapper around pom.pom; Go ships the library only
 
 # --- Utils / web / auth helpers ---
 signalwire.core.auth_handler.AuthHandler: impossible: Python standalone auth-helper class; Go folds auth into AgentBase withAuth middleware + security.SessionManager — no standalone class
@@ -361,7 +148,6 @@ signalwire.ai_chat.client.AIChatClient.__aexit__: impossible: Python async conte
 # --- Misc not-yet-implemented items ---
 
 # --- Idiom: Python class accessors that Go folds into private fields or package-level helpers ---
-signalwire.agent_server.AgentServer.app: Python exposes the underlying FastAPI ``app`` object; Go uses net/http with no equivalent app handle
 signalwire.agent_server.AgentServer.agents: impossible: Python exposes ``agents`` as a public dict attribute; Go keeps the map private (``agents map[string]*agent.AgentBase``) and exposes it via the ``GetAgents()`` accessor (idiomatic Go private-field + renamed accessor — the ``agents`` member name genuinely cannot exist)
 signalwire.agent_server.AgentServer.logger: impossible: Python instance ``logger`` property returning an SDK-typed logger; Go's AgentServer uses the package-level ``logging`` helper rather than a per-instance accessor — no ``logger`` member
 agentbase-family.skill_manager: impossible: Python exposes ``self.skill_manager`` (a SkillManager composition handle); Go folds the SkillManager into a private ``skillManager`` field and surfaces the user-facing methods (AddSkill, RemoveSkill, ListSkills, HasSkill) directly on AgentBase — no public composition-handle accessor
@@ -406,65 +192,6 @@ signalwire.rest._base.FabricResourcePUT: impossible: Python empty base-class var
 # SWML/SWAIG core *_generated typed-payload modules (D workstream):
 
 # --- LiveWire (LiveKit-agents compat shim) — Go is not a LiveKit agents SDK language ---
-signalwire.livewire.Agent: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.on_enter: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.on_exit: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.on_user_turn_completed: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.session: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.update_tools: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentHandoff: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentHandoff.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentServer: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentServer.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentServer.rtc_session: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession.generate_reply: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession.history: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession.interrupt: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession.say: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession.start: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession.update_agent: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.AgentSession.userdata: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.ChatContext: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.ChatContext.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.ChatContext.append: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.function_tool: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.InferenceLLM: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.InferenceLLM.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.InferenceSTT: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.InferenceSTT.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.InferenceTTS: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.InferenceTTS.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.JobContext: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.JobContext.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.JobContext.connect: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.JobContext.wait_for_participant: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.JobProcess: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.JobProcess.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.CartesiaTTS: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.CartesiaTTS.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.DeepgramSTT: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.DeepgramSTT.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.ElevenLabsTTS: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.ElevenLabsTTS.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.OpenAILLM: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.OpenAILLM.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.SileroVAD: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.SileroVAD.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.plugins.SileroVAD.load: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Room: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.run_app: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.RunContext: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.RunContext.__init__: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.StopResponse: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.ToolError: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.llm_node: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.stt_node: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.tts_node: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.Agent.update_instructions: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
-signalwire.livewire.RunContext.userdata: approved: livewire is a LiveKit-agents compatibility shim — ported ONLY to languages LiveKit ships an agents SDK for (Python + Node/TS); not ported to Go (user ruling, 2026-07)
 
 # --- Composition-attribute handles the reference surfaces (via the signature
 # --- oracle's composition enrich) that Go implements with a different idiom.
