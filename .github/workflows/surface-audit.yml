@@ -71,6 +71,19 @@ jobs:
           # different snapshot than the committed one.
           go run ./cmd/enumerate-surface --check --output port_surface.json
 
+      # Record WHICH porting-sdk the reference oracle came from. Without this the
+      # job reports a symbol diff with no way to tell whether it ran against the
+      # coordinated pin, main, or something else — and a coordinated-pass red is
+      # then indistinguishable from a real one. (2026-07-25: a 107-symbol red here
+      # could not be reproduced locally against either the pin tip or main, and the
+      # log had no way to say which oracle it actually used.)
+      - name: Record reference oracle provenance
+        run: |
+          echo "PORTING_SDK_REF variable = '${{ vars.PORTING_SDK_REF }}'"
+          git -C porting-sdk rev-parse HEAD
+          git -C porting-sdk log -1 --format='%h %cI %s'
+          python3 -c "import json;d=json.load(open('porting-sdk/python_surface.json'));print('oracle generated_from:',d.get('generated_from'));c=d['modules'].get('signalwire.ai_chat.client',{}).get('classes',{});print('ai_chat ChatLog members:',c.get('ChatLog'))"
+
       - name: Diff against Python reference
         run: |
           python3 porting-sdk/scripts/diff_port_surface.py \
