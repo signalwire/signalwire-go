@@ -83,6 +83,12 @@ jobs:
           git -C porting-sdk rev-parse HEAD
           git -C porting-sdk log -1 --format='%h %cI %s'
           python3 -c "import json;d=json.load(open('porting-sdk/python_surface.json'));print('oracle generated_from:',d.get('generated_from'));c=d['modules'].get('signalwire.ai_chat.client',{}).get('classes',{});print('ai_chat ChatLog members:',c.get('ChatLog'))"
+          echo "--- input fingerprints (md5) ---"
+          md5sum porting-sdk/python_surface.json port_surface.json PORT_OMISSIONS.md PORT_ADDITIONS.md
+          echo "--- what the PORT surface says for the symbols CI reports missing ---"
+          python3 -c "import json;d=json.load(open('port_surface.json'));m=d['modules'];print('ai_chat classes:',m.get('signalwire.ai_chat.client',{}).get('classes',{}));print('CallReceiveEvent:',m.get('signalwire.relay.event',{}).get('classes',{}).get('CallReceiveEvent'))"
+          echo "--- python + git identity ---"
+          python3 -V; git -C . rev-parse HEAD
 
       - name: Diff against Python reference
         run: |
