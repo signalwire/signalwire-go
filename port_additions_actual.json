@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 9cdf75b7885eff44cdc6d230f7915d4faeb73bad",
+  "generated_from": "signalwire-go @ f8b4b8c8987c76b501f875f14efb98f753fa9d10",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
@@ -85,9 +85,7 @@
     "lambda.NewHandler",
     "logging.GetGlobalLevel",
     "logging.IsSuppressed",
-    "logging.New",
     "logging.ParseLevel",
-    "logging.ResetLoggingConfiguration",
     "logging.SetGlobalLevel",
     "logging.Suppress",
     "logging.Unsuppress",

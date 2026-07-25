@@ -84,8 +84,6 @@ signalwire.core.auth_handler.AuthHandler.verify_api_key: impossible: Python auth
 signalwire.core.auth_handler.AuthHandler.verify_basic_auth: impossible: Python auth-helper method; Go verifies basic auth inside withAuth middleware, no standalone class
 signalwire.core.auth_handler.AuthHandler.verify_bearer_token: impossible: Python auth-helper method; Go verifies bearer tokens inside withAuth middleware, no standalone class
 signalwire.core.logging_config.configure_logging: impossible: wraps the Python logging library; Go uses pkg/logging (structured) with equivalent behaviour — no logging-lib configuration surface
-signalwire.core.logging_config.get_logger: impossible: returns a Python logging.Logger; Go uses pkg/logging.New — no stdlib-logger accessor
-signalwire.core.logging_config.reset_logging_configuration: impossible: resets Python logging-library global state; Go pkg/logging has no equivalent global reset
 signalwire.core.logging_config.strip_control_chars: impossible: Python logging-formatter helper; Go pkg/logging sanitises inline with no exported free function
 
 # --- Bedrock prefab agent ---
@@ -149,10 +147,8 @@ signalwire.ai_chat.client.AIChatClient.__aexit__: impossible: Python async conte
 
 # --- Idiom: Python class accessors that Go folds into private fields or package-level helpers ---
 signalwire.agent_server.AgentServer.agents: impossible: Python exposes ``agents`` as a public dict attribute; Go keeps the map private (``agents map[string]*agent.AgentBase``) and exposes it via the ``GetAgents()`` accessor (idiomatic Go private-field + renamed accessor — the ``agents`` member name genuinely cannot exist)
-signalwire.agent_server.AgentServer.logger: impossible: Python instance ``logger`` property returning an SDK-typed logger; Go's AgentServer uses the package-level ``logging`` helper rather than a per-instance accessor — no ``logger`` member
 agentbase-family.skill_manager: impossible: Python exposes ``self.skill_manager`` (a SkillManager composition handle); Go folds the SkillManager into a private ``skillManager`` field and surfaces the user-facing methods (AddSkill, RemoveSkill, ListSkills, HasSkill) directly on AgentBase — no public composition-handle accessor
 signalwire.core.skill_manager.SkillManager.loaded_skills: impossible: Python exposes ``loaded_skills`` as a public dict attribute; Go keeps the map private (``loadedSkills map[string]SkillBase``) and exposes it via the ``ListLoadedSkills()`` accessor (private-field + renamed accessor)
-signalwire.core.skill_manager.SkillManager.logger: impossible: Python instance ``logger`` property; Go's SkillManager uses the package-level ``logging`` helper and has no per-instance logger accessor
 signalwire.core.swml_service.SWMLService.security: impossible: Python exposes a ``security`` property returning a SecurityConfig composition handle; Go folds auth state into private fields on Service (basicAuthUser, bearerToken, apiKey, ...) configured via WithSecurityConfig/WithBasicAuth/WithBearerToken/WithAPIKey options — no ``security`` accessor
 signalwire.core.swml_service.SWMLService.verb_registry: impossible: Python exposes a ``verb_registry`` property returning a VerbHandlerRegistry; Go uses a private ``verbHandlers`` map on Service and exposes RegisterVerbHandler directly — no registry composition handle
 signalwire.pom.pom.PromptObjectModel.sections: impossible: Python exposes a ``sections`` list PROPERTY; Go promotes it to an exported struct FIELD ``Sections []*Section`` (direct field access is idiomatic Go), which the signature/surface enumerators record as a field, not a zero-arg method member — the property-shaped accessor cannot exist
@@ -199,8 +195,6 @@ signalwire.rest._base.FabricResourcePUT: impossible: Python empty base-class var
 # --- the state into private fields with a renamed accessor, or exposes a plain
 # --- (non-SDK-typed) field, so the reference member name genuinely cannot exist.
 signalwire.core.pom_builder.PomBuilder.pom: impossible: Python's PomBuilder.pom returns the built PromptObjectModel; Go's builder returns the *PromptObjectModel directly from Build()/its terminal methods rather than exposing a ``pom`` composition handle
-signalwire.core.skill_base.SkillBase.logger: impossible: Python exposes ``logger`` returning an SDK-typed logger (signalwire.core.logging_config); Go's SkillBase carries a plain ``Logger *logging.Logger`` stdlib-style field, not the SDK-typed composition handle the reference's enrich imports
-signalwire.skills.registry.SkillRegistry.logger: impossible: Python's SkillRegistry exposes an SDK-typed ``logger`` property; Go's SkillRegistry uses the package-level ``logging`` helper and has no per-instance logger accessor
 signalwire.web.web_service.WebService.security: impossible: Python's WebService.security returns a SecurityConfig composition handle; Go folds auth state into private fields configured via the WithSecurityConfig/WithBasicAuth/... options — no ``security`` accessor
 
 # --- Raw-keyed twins of the agentbase-family.* omissions above. The SURFACE diff

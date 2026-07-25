@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 9cdf75b7885eff44cdc6d230f7915d4faeb73bad",
+  "generated_from": "signalwire-go @ f8b4b8c8987c76b501f875f14efb98f753fa9d10",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -323,7 +323,9 @@
     "signalwire.core.logging_config": {
       "classes": {},
       "functions": [
-        "get_execution_mode"
+        "get_execution_mode",
+        "get_logger",
+        "reset_logging_configuration"
       ]
     },
     "signalwire.core.mixins.ai_config_mixin": {

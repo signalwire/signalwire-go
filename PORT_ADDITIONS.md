@@ -275,9 +275,7 @@ serverless.NewHandler: Go factory constructor for the port-only serverless.Handl
 serverless.WriteCGI: Go-only public function serializing a CGIResult to the CGI response wire format (Status line + headers + body); Python writes the CGI response inline
 logging.GetGlobalLevel: Go-only public function; no direct Python counterpart
 logging.IsSuppressed: Go-only public function; no direct Python counterpart
-logging.New: Go factory constructor for a port-only struct; Python equivalent does not exist
 logging.ParseLevel: Go-only public function; no direct Python counterpart
-logging.ResetLoggingConfiguration: Go-only public function; no direct Python counterpart
 logging.SetGlobalLevel: Go-only public function; no direct Python counterpart
 logging.Suppress: Go-only public function; no direct Python counterpart
 logging.Unsuppress: Go-only public function; no direct Python counterpart

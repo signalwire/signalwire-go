@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 9cdf75b7885eff44cdc6d230f7915d4faeb73bad (go/ast walker)",
+  "generated_from": "signalwire-go @ f8b4b8c8987c76b501f875f14efb98f753fa9d10 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3462,6 +3462,20 @@
         "get_execution_mode": {
           "params": [],
           "returns": "string"
+        },
+        "get_logger": {
+          "params": [
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "class:Logger"
+        },
+        "reset_logging_configuration": {
+          "params": [],
+          "returns": "void"
         }
       }
     },

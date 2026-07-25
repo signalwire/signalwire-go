@@ -1388,6 +1388,19 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"util.GetExecutionMode": {Module: "signalwire.core.logging_config", Name: "get_execution_mode"},
 	"util.IsServerlessMode": {Module: "signalwire.utils", Name: "is_serverless_mode"},
 
+	// Module-level logging capability (owner ruling 2026-07-24: logging is a
+	// MODULE-LEVEL capability ports may reach however their language does; the
+	// contract is signalwire.core.logging_config's free functions). Go reaches the
+	// same two capabilities through pkg/logging package-level functions, so they
+	// project onto the reference names rather than being carried as a port-only
+	// addition AND a reference omission at the same time (the both-sides tell):
+	//   - get_logger(name) -> a named logger  ==  logging.New(name) -> *Logger
+	//   - reset_logging_configuration() re-derives global config from the env
+	//     ==  logging.ResetLoggingConfiguration() (self-documented as the Go
+	//     equivalent in pkg/logging/logger.go).
+	"logging.New":                       {Module: "signalwire.core.logging_config", Name: "get_logger"},
+	"logging.ResetLoggingConfiguration": {Module: "signalwire.core.logging_config", Name: "reset_logging_configuration"},
+
 	// Livewire
 	"livewire.FunctionTool": {Module: "signalwire.livewire", Name: "function_tool"},
 	"livewire.RunApp":       {Module: "signalwire.livewire", Name: "run_app"},
