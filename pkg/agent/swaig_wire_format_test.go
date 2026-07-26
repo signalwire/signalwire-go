@@ -29,7 +29,7 @@ func TestBuildSwaigFunctionsUsesDescriptionNotPurpose(t *testing.T) {
 		},
 	})
 
-	fns := a.buildSwaigFunctions("http://example.com/swaig")
+	fns := a.buildSwaigFunctions("http://example.com/swaig", "")
 	if len(fns) != 1 {
 		t.Fatalf("expected 1 SWAIG function, got %d", len(fns))
 	}
@@ -54,7 +54,7 @@ func TestBuildSwaigFunctionsUsesParametersNotArgument(t *testing.T) {
 		},
 	})
 
-	fn := a.buildSwaigFunctions("http://example.com/swaig")[0]
+	fn := a.buildSwaigFunctions("http://example.com/swaig", "")[0]
 	params, ok := fn["parameters"].(map[string]any)
 	if !ok {
 		t.Fatalf(`expected "parameters" key with object value, got %#v`, fn["parameters"])
@@ -74,7 +74,7 @@ func TestBuildSwaigFunctionsOmitsParametersWhenNone(t *testing.T) {
 	a.SetPromptText("hi")
 	a.DefineTool(ToolDefinition{Name: "no_args", Description: "d"})
 
-	fn := a.buildSwaigFunctions("http://example.com/swaig")[0]
+	fn := a.buildSwaigFunctions("http://example.com/swaig", "")[0]
 	if _, present := fn["parameters"]; present {
 		t.Errorf(`no-param tool should omit "parameters", got %#v`, fn)
 	}

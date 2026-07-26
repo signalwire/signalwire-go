@@ -176,13 +176,22 @@ sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-R
 
 # BEHAVIORAL (one Layer-D pass per rule): the per-PR rules. WAIT-LIVENESS (nightly)
 # is the separate line below. NOTE go's underscore spelling BEHAVIORAL-WIRE_RELAY.
-sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/SWAIG-HTTP-INVOKE/CA-VAR/TLS-VERIFY/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI)" \
+# SECURE-DEFAULT + SECRET-SCRUB are the two SECURITY rules, split per the
+# enterprise report's "static per-PR + behavioral nightly":
+#   * SECURE-DEFAULT (per-PR) — a fast in-process SWML render proving DefineTool
+#     defaults to SECURE and that the rendered webhook carries the per-tool
+#     __token IFF the tool is secure (cmd/secure-default-dump).
+#   * SECRET-SCRUB (per-PR) — the cheap STATIC grep for the raw-frame-log shape.
+#   * SECRET-SCRUB-LIVE (nightly, below) — the BEHAVIORAL leg: a live
+#     debug-level relay drive proving no sentinel credential reaches the log
+#     (cmd/secret-scrub-dump).
+sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/SWAIG-HTTP-INVOKE/SECURE-DEFAULT/CA-VAR/TLS-VERIFY/SECRET-SCRUB/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port go --repo "$PORT_ROOT" \
-        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE_RELAY,ENVELOPE,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,SWAIG-HTTP-INVOKE,CA-VAR,TLS-VERIFY,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI
+        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE_RELAY,ENVELOPE,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,SWAIG-HTTP-INVOKE,SECURE-DEFAULT,CA-VAR,TLS-VERIFY,SECRET-SCRUB,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI
 
-sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS)" \
+sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS/SECRET-SCRUB-LIVE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port go --repo "$PORT_ROOT" \
-        --rules WAIT-LIVENESS,RELAY-LIVENESS
+        --rules WAIT-LIVENESS,RELAY-LIVENESS,SECRET-SCRUB-LIVE
 
 # DOC-TRUTH (one markdown walk): DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/
 # COUNT-CLAIM/ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE. res=surface: DOC-AUDIT

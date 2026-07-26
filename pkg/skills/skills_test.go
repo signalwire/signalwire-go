@@ -396,6 +396,7 @@ func TestBaseSkill_Cleanup_DefaultIsNoOp(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestToolRegistration_Fields(t *testing.T) {
+	secureTrue := true
 	tr := ToolRegistration{
 		Name:        "test_tool",
 		Description: "A test tool",
@@ -406,7 +407,7 @@ func TestToolRegistration_Fields(t *testing.T) {
 		Handler: func(args map[string]any, raw map[string]any) *swaig.FunctionResult {
 			return swaig.NewFunctionResult("ok")
 		},
-		Secure: true,
+		Secure: &secureTrue,
 		Fillers: map[string][]string{
 			"en-US": {"Please wait..."},
 		},
@@ -416,10 +417,27 @@ func TestToolRegistration_Fields(t *testing.T) {
 	if tr.Name != "test_tool" {
 		t.Errorf("Name = %q", tr.Name)
 	}
-	if !tr.Secure {
-		t.Error("expected Secure=true")
+	if !tr.IsSecure() {
+		t.Error("expected IsSecure()=true")
 	}
 	if tr.Handler == nil {
 		t.Error("expected non-nil Handler")
+	}
+}
+
+// A skill registration that omits Secure must be SECURE — SkillBase.define_tool
+// delegates to agent.define_tool, whose reference default is secure=True.
+func TestToolRegistration_DefaultsToSecure(t *testing.T) {
+	tr := ToolRegistration{Name: "defaulted"}
+	if tr.Secure != nil {
+		t.Errorf("expected the raw Secure field to stay unset (nil), got %v", *tr.Secure)
+	}
+	if !tr.IsSecure() {
+		t.Error("a ToolRegistration with no explicit Secure must be SECURE by default")
+	}
+	insecureFlag := false
+	insecure := ToolRegistration{Name: "opted_out", Secure: &insecureFlag}
+	if insecure.IsSecure() {
+		t.Error("expected IsSecure()=false for an explicit Secure: &false")
 	}
 }

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 998dcea7eaf2979a5fbe1b0b1e515e1a30b9dbf7",
+  "generated_from": "signalwire-go (go-native) @ a1b51127cbdcbca7d5eb8614b15ed9b6e3ca9c0e",
   "modules": {
     "agent": {
       "classes": {
@@ -76,6 +76,7 @@
           "RemoveFunction",
           "RemoveSkill",
           "RenderSWML",
+          "RenderSWMLForCall",
           "ResetContexts",
           "Run",
           "RunContext",
@@ -129,6 +130,7 @@
         ],
         "MCPServerConfig": [],
         "ToolDefinition": [
+          "IsSecure",
           "ValidateArgs"
         ]
       },
@@ -1636,7 +1638,9 @@
           "RegisterSkill",
           "RegisteredNames"
         ],
-        "ToolRegistration": []
+        "ToolRegistration": [
+          "IsSecure"
+        ]
       },
       "functions": [
         "AddSkillDirectory",

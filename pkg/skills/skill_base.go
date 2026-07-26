@@ -76,9 +76,22 @@ type ToolRegistration struct {
 	Description string
 	Parameters  map[string]any
 	Handler     swaig.ToolHandler
-	Secure      bool
+	// Secure is the tri-state SWAIG token-validation flag, with the same
+	// contract as agent.ToolDefinition.Secure: nil means SECURE (the
+	// reference's ``define_tool(secure=True)`` default, which SkillBase
+	// .define_tool inherits by delegation), and only an explicit
+	// pointer to false opts out. A plain bool here would make every skill that
+	// omits the field register an INSECURE tool. Read it via IsSecure().
+	Secure      *bool
 	Fillers     map[string][]string
 	SwaigFields map[string]any
+}
+
+// IsSecure reports the registration's EFFECTIVE secure state: unset (nil) means
+// SECURE, matching the reference default. Only an explicit pointer to false is
+// insecure.
+func (tr *ToolRegistration) IsSecure() bool {
+	return tr.Secure == nil || *tr.Secure
 }
 
 // BaseSkill provides default implementations for the SkillBase interface.

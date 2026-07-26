@@ -53,6 +53,8 @@ debug
 /envelope-dump
 /swaig-http-dump
 /pagination-dump
+/secure-default-dump
+/secret-scrub-dump
 
 # Python audit-script bytecode (scripts/enumerate_*.py invocations)
 __pycache__/

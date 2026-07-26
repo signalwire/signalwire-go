@@ -92,15 +92,51 @@ func TestDefineTool_WithParameters(t *testing.T) {
 
 func TestDefineTool_SecureTool(t *testing.T) {
 	a := NewAgentBase()
+	secure := true
 	a.DefineTool(ToolDefinition{
 		Name:    "secret",
-		Secure:  true,
+		Secure:  &secure,
 		Handler: func(args map[string]any, raw map[string]any) *swaig.FunctionResult { return nil },
 	})
 
 	tools := a.DefineTools()
-	if !tools[0].Secure {
-		t.Error("expected Secure=true")
+	if !tools[0].IsSecure() {
+		t.Error("expected IsSecure()=true")
+	}
+}
+
+// A tool defined WITHOUT an explicit Secure must default to SECURE, matching the
+// reference's define_tool(secure=True). This is the A1 contract: a plain `bool`
+// field would make the omitted-field case ship an INSECURE tool.
+func TestDefineTool_DefaultsToSecure(t *testing.T) {
+	a := NewAgentBase()
+	a.DefineTool(ToolDefinition{
+		Name:    "no_explicit_secure",
+		Handler: func(args map[string]any, raw map[string]any) *swaig.FunctionResult { return nil },
+	})
+
+	tools := a.DefineTools()
+	if tools[0].Secure != nil {
+		t.Errorf("expected the raw Secure field to stay unset (nil), got %v", *tools[0].Secure)
+	}
+	if !tools[0].IsSecure() {
+		t.Error("a tool defined with no explicit Secure must be SECURE by default")
+	}
+}
+
+// Only an EXPLICIT pointer-to-false makes a tool insecure.
+func TestDefineTool_ExplicitInsecure(t *testing.T) {
+	a := NewAgentBase()
+	insecure := false
+	a.DefineTool(ToolDefinition{
+		Name:    "opted_out",
+		Secure:  &insecure,
+		Handler: func(args map[string]any, raw map[string]any) *swaig.FunctionResult { return nil },
+	})
+
+	tools := a.DefineTools()
+	if tools[0].IsSecure() {
+		t.Error("expected IsSecure()=false for an explicit Secure: &false")
 	}
 }
 
