@@ -493,62 +493,11 @@ func recvTypeName(expr ast.Expr) string {
 
 // --- @dataclass field emission (oracle-gated) -------------------------------
 
-// goNameToSnake folds an exported Go PascalCase identifier to snake_case, the
-// canonical Python-reference field spelling. Initialism runs (CallID→call_id,
-// SIPReferTo→sip_refer_to, RecordingID→recording_id) fold correctly via the
-// uppercase→Aa boundary rule (a `_` before an uppercase that begins a new word).
-// This is the same rule enumerate-signatures.goNameToSnake applies to fields.
-func goNameToSnake(s string) string {
-	var out strings.Builder
-	for i, r := range s {
-		if i > 0 {
-			prev := rune(s[i-1])
-			if (isUpper(r) && isLower(prev)) ||
-				(isUpper(r) && i+1 < len(s) && isLower(rune(s[i+1])) && isUpper(prev)) {
-				out.WriteByte('_')
-			}
-		}
-		out.WriteRune(toLowerRune(r))
-	}
-	return out.String()
-}
-
-// goNameToPython folds an exported Go identifier to its Python-canonical
-// snake_case name, with the SDK's initialism corrections applied first.
-// goNameToSnake alone gets initialism-PLURALS wrong — it breaks at the internal
-// uppercase-run boundary, so `FAQs` -> "fa_qs" and `URLs` -> "ur_ls". This is the
-// same correction table cmd/enumerate-signatures applies in goFieldToPython; the
-// two enumerators MUST agree on the canonical spelling, or a member folds in one
-// gate and not the other.
-func goNameToPython(s string) string {
-	switch s {
-	case "URLs":
-		return "urls"
-	case "FAQs":
-		return "faqs"
-	case "MFA":
-		return "mfa"
-	case "PubSub":
-		return "pubsub"
-	case "NumberedBullets":
-		// A camelCase WIRE KEY, not reference sloppiness: `numberedBullets`
-		// round-trips through the POM dict verbatim (pom.py:345,361,371), so the
-		// oracle records it camelCase and converting it would be wrong. Only four
-		// such members exist in the whole oracle (this one plus JSON-Schema's
-		// allOf/anyOf/oneOf).
-		return "numberedBullets"
-	}
-	return goNameToSnake(s)
-}
-
-func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
-func isLower(r rune) bool { return r >= 'a' && r <= 'z' }
-func toLowerRune(r rune) rune {
-	if r >= 'A' && r <= 'Z' {
-		return r + 32
-	}
-	return r
-}
+// goNameToPython delegates to internal/surface, the SINGLE home of the
+// Go-identifier -> Python-canonical fold. See internal/surface/names.go for why
+// the correction table is shared with cmd/enumerate-signatures rather than
+// duplicated (the two copies had already diverged on `FAQs`).
+func goNameToPython(s string) string { return surfacepkg.GoNameToPython(s) }
 
 // oracleModuleMembers is the parse of python_surface.json restricted to the
 // per-class member sets emitDataclassFields gates on. Shape:

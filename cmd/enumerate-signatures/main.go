@@ -1312,30 +1312,7 @@ func indexOfParam(params []canonicalParam, name string) int {
 	return -1
 }
 
-func goNameToSnake(s string) string {
-	// Reuse enumerate-surface's pascal_to_snake by inlining the canonical
-	// rule: insert _ between lowercase→uppercase and uppercase→Aa boundaries.
-	var out strings.Builder
-	for i, r := range s {
-		if i > 0 {
-			prev := rune(s[i-1])
-			if (isUpper(r) && isLower(prev)) ||
-				(isUpper(r) && i+1 < len(s) && isLower(rune(s[i+1])) && isUpper(prev)) {
-				out.WriteRune('_')
-			}
-		}
-		out.WriteRune(toLower(r))
-	}
-	return out.String()
-}
-func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
-func isLower(r rune) bool { return r >= 'a' && r <= 'z' }
-func toLower(r rune) rune {
-	if r >= 'A' && r <= 'Z' {
-		return r + 32
-	}
-	return r
-}
+func goNameToSnake(s string) string { return surfacepkg.GoNameToSnake(s) }
 
 // isSignatureDivergentDataclassField reports whether an oracle-gated @dataclass
 // field's raw Go type is a genuine idiom divergence with no faithful reference-
@@ -1446,47 +1423,7 @@ func isPrimitive(t string) bool {
 	return false
 }
 
-func goFieldToPython(s string) string {
-	switch s {
-	case "URLs":
-		// Initialism-plural: goNameToSnake yields "ur_ls" (it inserts _ at the
-		// R→L uppercase-run boundary). The Python-canonical name is "urls".
-		return "urls"
-	case "FAQs":
-		// Initialism-plural, same shape as URLs: goNameToSnake yields "fa_qs"
-		// (it inserts _ at the Q->s uppercase-run boundary). Canonical: "faqs".
-		return "faqs"
-	case "MFA":
-		return "mfa"
-	case "PubSub":
-		return "pubsub"
-	case "FreeSwitchConnectors":
-		return "freeswitch_connectors"
-	case "SIPEndpoints":
-		return "sip_endpoints"
-	case "SIPGateways":
-		return "sip_gateways"
-	case "SWMLScripts":
-		return "swml_scripts"
-	case "SWMLWebhooks":
-		return "swml_webhooks"
-	case "CXMLScripts":
-		return "cxml_scripts"
-	case "CXMLApplications":
-		return "cxml_applications"
-	case "CXMLWebhooks":
-		return "cxml_webhooks"
-	case "NumberedBullets":
-		// A camelCase WIRE KEY, not reference sloppiness: `numberedBullets`
-		// round-trips through the POM dict verbatim (pom.py:345,361,371), so the
-		// oracle records it camelCase and snake-casing it would be wrong. Only
-		// four such members exist in the whole oracle (this plus JSON-Schema's
-		// allOf/anyOf/oneOf). Kept in lockstep with enumerate-surface's
-		// goNameToPython — the two enumerators must agree on the spelling.
-		return "numberedBullets"
-	}
-	return goNameToSnake(s)
-}
+func goFieldToPython(s string) string { return surfacepkg.GoNameToPython(s) }
 
 func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod bool, isCtor bool, ctx string) (canonicalSignature, []translationFailure) {
 	var failures []translationFailure
