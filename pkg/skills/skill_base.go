@@ -8,6 +8,31 @@ import (
 	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
 )
 
+// SkillAgent is the capability a loaded skill can reach on its owning agent.
+//
+// The reference gives every skill a direct back-reference (`SkillBase.agent`,
+// `SkillManager.agent`) and pushes through it: `self.agent.add_hints(...)`,
+// `.update_global_data(...)`, `.prompt_add_section(...)`, `.define_tool(...)`
+// (skill_base.py:79, skill_manager.py:177-186). Go's normal flow is the PULL
+// direction — the skill returns hints/global-data/prompt-sections/tools and
+// AgentBase.AddSkill applies them — which covers the same ground for the common
+// case. This interface exists so a skill that needs to configure its agent
+// DIRECTLY (conditionally, or after Setup) can, exactly as the reference allows.
+//
+// It is an INTERFACE rather than a *agent.AgentBase because pkg/agent imports
+// pkg/skills; a concrete back-reference would be an import cycle. The method set
+// is the four the reference actually drives through the back-reference.
+type SkillAgent interface {
+	// AddHints appends speech-recognition hints to the agent.
+	AddHints(hints []string)
+	// UpdateGlobalData merges keys into the agent's global data.
+	UpdateGlobalData(data map[string]any)
+	// PromptAddSection appends a section to the agent's prompt.
+	PromptAddSection(title, body string, bullets []string)
+	// DefineTool registers a tool with the agent.
+	DefineTool(reg ToolRegistration)
+}
+
 // SkillBase defines the interface that all skills must implement.
 type SkillBase interface {
 	// Name returns the unique skill identifier.
@@ -37,6 +62,12 @@ type SkillBase interface {
 	GetInstanceKey() string
 	// GetParameterSchema returns metadata about all parameters the skill accepts.
 	GetParameterSchema() map[string]map[string]any
+	// Agent returns the agent this skill was loaded into (nil before load).
+	// The reference's SkillBase.agent.
+	Agent() SkillAgent
+	// SetAgent records the owning agent; called by SkillManager.LoadSkill
+	// before Setup. Satisfied by the embedded BaseSkill.
+	SetAgent(SkillAgent)
 }
 
 // ToolRegistration describes a tool that a skill wants to register with the agent.
@@ -61,7 +92,20 @@ type BaseSkill struct {
 	// automatically when Name() is first called via NewBaseSkill, or can be
 	// set explicitly. Mirrors Python SkillBase.logger.
 	Logger *logging.Logger
+	// agent is the owning agent, set by SkillManager.LoadSkill. Read via
+	// Agent(); the reference's SkillBase.agent.
+	agent SkillAgent
 }
+
+// Agent returns the agent this skill was loaded into, or nil when the skill has
+// not been loaded yet (Python: SkillBase.agent). Use it to configure the agent
+// directly from Setup or a tool handler.
+func (b *BaseSkill) Agent() SkillAgent { return b.agent }
+
+// SetAgent records the owning agent. Called by SkillManager.LoadSkill before
+// Setup, so Setup can already reach the agent — matching the reference, which
+// assigns self.agent in SkillBase.__init__.
+func (b *BaseSkill) SetAgent(a SkillAgent) { b.agent = a }
 
 // Name returns the skill name.
 func (b *BaseSkill) Name() string { return b.SkillName }

@@ -429,6 +429,15 @@ func (s *Service) ResetDocument() {
 	s.document = NewDocument()
 }
 
+// ServiceRef returns the Service itself.
+//
+// Go merges the reference's fluent SWMLBuilder INTO Service (the verb methods ARE
+// Service methods), so the SWMLService the builder wraps — `SWMLBuilder.service`,
+// swml_builder.py:57 — resolves to this Service. Returning `s` is the honest
+// answer under that composition. Named ServiceRef because `Service` is the type
+// name and cannot also be a method name on it.
+func (s *Service) ServiceRef() *Service { return s }
+
 // SchemaUtils returns the SchemaUtils helper bound to this Service.
 // Mirrors Python's “self.schema_utils“ instance attribute exposed
 // publicly on signalwire.core.swml_service.SWMLService.

@@ -102,6 +102,50 @@ func (ws *WebService) RemoveDirectory(route string) {
 // Security returns the WebService's SecurityConfig.
 func (ws *WebService) Security() *security.SecurityConfig { return ws.securityConfig }
 
+// Port returns the configured listen port (Python: WebService.port).
+func (ws *WebService) Port() int { return ws.port }
+
+// EnableDirectoryBrowsing reports whether directory listings are served
+// (Python: WebService.enable_directory_browsing).
+func (ws *WebService) EnableDirectoryBrowsing() bool { return ws.enableDirectoryBrowsing }
+
+// EnableCORS reports whether CORS headers are added to responses
+// (Python: WebService.enable_cors).
+func (ws *WebService) EnableCORS() bool { return ws.enableCORS }
+
+// MaxFileSize returns the per-file size ceiling in bytes
+// (Python: WebService.max_file_size).
+func (ws *WebService) MaxFileSize() int64 { return ws.maxFileSize }
+
+// AllowedExtensions returns the file-extension allowlist; empty means "any
+// extension not blocked" (Python: WebService.allowed_extensions). A copy is
+// returned so a caller cannot mutate the service's policy through the slice.
+func (ws *WebService) AllowedExtensions() []string {
+	return append([]string(nil), ws.allowedExtensions...)
+}
+
+// BlockedExtensions returns the file-extension denylist
+// (Python: WebService.blocked_extensions). A copy is returned so a caller cannot
+// mutate the service's policy through the slice.
+func (ws *WebService) BlockedExtensions() []string {
+	return append([]string(nil), ws.blockedExtensions...)
+}
+
+// Directories returns the mounted route -> directory map
+// (Python: WebService.directories). A copy is returned under the read lock:
+// AddDirectory/RemoveDirectory mutate the live map concurrently, so handing out
+// the map itself would be a data race as well as a mutation channel that
+// bypasses route normalisation.
+func (ws *WebService) Directories() map[string]string {
+	ws.mu.RLock()
+	defer ws.mu.RUnlock()
+	out := make(map[string]string, len(ws.directories))
+	for route, dir := range ws.directories {
+		out[route] = dir
+	}
+	return out
+}
+
 // handler builds the http.Handler serving all mounted directories.
 func (ws *WebService) handler() http.Handler {
 	mux := http.NewServeMux()

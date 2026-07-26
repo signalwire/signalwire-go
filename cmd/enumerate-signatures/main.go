@@ -1356,16 +1356,11 @@ func isSignatureDivergentDataclassField(goType string) bool {
 // sets the @dataclass field emission gates on: module -> class -> set(member).
 type sigOracleMembers map[string]map[string]map[string]bool
 
-// dataclassFieldModules is the CLOSED set of modules whose reference classes
-// carry public @dataclass fields the Go structs express as exported struct
-// fields (the deserialized relay-event payload, the AI-Chat DTOs, RequestOptions).
-// Field emission is SCOPED to these three so it never touches the ergonomic-method
-// classes elsewhere. Same set as enumerate-surface's dataclassFieldModules.
-var dataclassFieldModules = map[string]bool{
-	"signalwire.relay.event":           true,
-	"signalwire.ai_chat.client":        true,
-	"signalwire.rest._request_options": true,
-}
+// RETIRED: dataclassFieldModules — same reasoning as in cmd/enumerate-surface.
+// The closed three-module scope became a stale exclusion once class B2 widened the
+// oracle to record ctor-param `__init__` attributes SDK-wide; loadSigOracle now
+// returns every module and the oracle alone gates emission, so the gate follows
+// the oracle instead of a hand-maintained list.
 
 // loadSigOracle reads python_signatures.json (adjacent porting-sdk) and returns
 // the per-class member sets for dataclassFieldModules only. GATES field emission
@@ -1390,9 +1385,6 @@ func loadSigOracle(repoRoot string) sigOracleMembers {
 	}
 	out := sigOracleMembers{}
 	for mod, mi := range parsed.Modules {
-		if !dataclassFieldModules[mod] {
-			continue
-		}
 		cm := map[string]map[string]bool{}
 		for cls, ci := range mi.Classes {
 			set := map[string]bool{}
@@ -1454,6 +1446,14 @@ func goFieldToPython(s string) string {
 		return "cxml_applications"
 	case "CXMLWebhooks":
 		return "cxml_webhooks"
+	case "NumberedBullets":
+		// A camelCase WIRE KEY, not reference sloppiness: `numberedBullets`
+		// round-trips through the POM dict verbatim (pom.py:345,361,371), so the
+		// oracle records it camelCase and snake-casing it would be wrong. Only
+		// four such members exist in the whole oracle (this plus JSON-Schema's
+		// allOf/anyOf/oneOf). Kept in lockstep with enumerate-surface's
+		// goNameToPython — the two enumerators must agree on the spelling.
+		return "numberedBullets"
 	}
 	return goNameToSnake(s)
 }
@@ -1930,10 +1930,19 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 			// oracle guarantees exactly the reference set — never a helper field.
 			if clsMembers, ok := sigOracle[target.Module][target.Class]; ok {
 				for goField, fSig := range facts.methods {
-					if !fSig.isField {
+					// A public data FIELD, or a zero-arg READ ACCESSOR over an
+					// unexported one — both are Go's expression of a public
+					// attribute, and both have the same shape here (no params,
+					// one return). The ACCESSOR arm is the signature-side twin of
+					// enumerate-surface's accessor fold; without it a member folds
+					// in SURFACE-DIFF and reds in SIGNATURES-DIFF.
+					if !fSig.isField && len(fSig.params) != 0 {
 						continue
 					}
-					snake := goNameToSnake(goField)
+					if !fSig.isField && fSig.returns == "" {
+						continue // void method, not a reader
+					}
+					snake := goFieldToPython(goField)
 					if _, already := target.Methods[goField]; already {
 						continue
 					}

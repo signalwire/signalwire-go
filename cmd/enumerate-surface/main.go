@@ -131,6 +131,16 @@ type goStructFacts struct {
 	// declared fields only), which matches the reference: the oracle records a
 	// subclass's own dataclass fields on the subclass and the base's on the base.
 	fields map[string]struct{}
+	// readers holds the subset of `methods` that are ZERO-ARG, SINGLE-RETURN
+	// exported methods — i.e. Go's idiomatic READ ACCESSOR over an unexported
+	// field (`func (c *Call) CallID() string { return c.callID }`). Recorded so
+	// the ORACLE-GATED accessor fold can surface them under the reference's plain
+	// attribute spelling (ALLOWLIST_DISCIPLINE §7 row 1: `getX()` folds to the
+	// public attribute `self.x`). Gating on the oracle is what makes this safe and
+	// self-retiring: an accessor is folded ONLY when the reference records a member
+	// of that snake_case name on that same class, so it can never invent surface
+	// and it needs no hand-maintained per-symbol list.
+	readers map[string]struct{}
 	// embeds holds the SHORT type names of the struct's anonymous (embedded)
 	// fields whose declared methods are promoted onto this struct — e.g. a
 	// generated REST resource embeds `*CrudResource` / `*CrudWithAddresses`,
@@ -320,10 +330,14 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						name:    ts.Name.Name,
 						methods: map[string]struct{}{},
 						fields:  map[string]struct{}{},
+						readers: map[string]struct{}{},
 					}
 				}
 				if structs[key].fields == nil {
 					structs[key].fields = map[string]struct{}{}
+				}
+				if structs[key].readers == nil {
+					structs[key].readers = map[string]struct{}{}
 				}
 				// §5/§4a: mark generated-REST params-struct plumbing so it is
 				// excluded from the SURFACE-DIFF additions inventory.
@@ -369,9 +383,19 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 					name:    recv,
 					methods: map[string]struct{}{},
 					fields:  map[string]struct{}{},
+					readers: map[string]struct{}{},
 				}
 			}
+			if structs[key].readers == nil {
+				structs[key].readers = map[string]struct{}{}
+			}
 			structs[key].methods[d.Name.Name] = struct{}{}
+			// A zero-arg, single-return exported method is Go's read accessor
+			// over an unexported field; record it for the oracle-gated accessor
+			// fold (see goStructFacts.readers).
+			if isZeroArgReader(d.Type) {
+				structs[key].readers[d.Name.Name] = struct{}{}
+			}
 		}
 	}
 	return nil
@@ -433,6 +457,25 @@ func singleReturnTypeName(ft *ast.FuncType) string {
 	return recvTypeName(r.Type)
 }
 
+// isZeroArgReader reports whether a method signature is a READ ACCESSOR: no
+// parameters and exactly one result. That is Go's idiomatic expression of a
+// public attribute over an unexported field, and it is the shape the
+// oracle-gated accessor fold surfaces under the reference's plain attribute
+// name. A method taking arguments is a verb, not a reader; a method returning
+// nothing or a (value, error) pair is not an attribute read either.
+func isZeroArgReader(ft *ast.FuncType) bool {
+	if ft == nil || ft.Results == nil || len(ft.Results.List) != 1 {
+		return false
+	}
+	if len(ft.Results.List[0].Names) > 1 {
+		return false
+	}
+	if ft.Params != nil && len(ft.Params.List) > 0 {
+		return false
+	}
+	return true
+}
+
 // recvTypeName extracts the base type name from a method receiver.
 func recvTypeName(expr ast.Expr) string {
 	switch e := expr.(type) {
@@ -470,6 +513,34 @@ func goNameToSnake(s string) string {
 	return out.String()
 }
 
+// goNameToPython folds an exported Go identifier to its Python-canonical
+// snake_case name, with the SDK's initialism corrections applied first.
+// goNameToSnake alone gets initialism-PLURALS wrong — it breaks at the internal
+// uppercase-run boundary, so `FAQs` -> "fa_qs" and `URLs` -> "ur_ls". This is the
+// same correction table cmd/enumerate-signatures applies in goFieldToPython; the
+// two enumerators MUST agree on the canonical spelling, or a member folds in one
+// gate and not the other.
+func goNameToPython(s string) string {
+	switch s {
+	case "URLs":
+		return "urls"
+	case "FAQs":
+		return "faqs"
+	case "MFA":
+		return "mfa"
+	case "PubSub":
+		return "pubsub"
+	case "NumberedBullets":
+		// A camelCase WIRE KEY, not reference sloppiness: `numberedBullets`
+		// round-trips through the POM dict verbatim (pom.py:345,361,371), so the
+		// oracle records it camelCase and converting it would be wrong. Only four
+		// such members exist in the whole oracle (this one plus JSON-Schema's
+		// allOf/anyOf/oneOf).
+		return "numberedBullets"
+	}
+	return goNameToSnake(s)
+}
+
 func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
 func isLower(r rune) bool { return r >= 'a' && r <= 'z' }
 func toLowerRune(r rune) rune {
@@ -484,25 +555,25 @@ func toLowerRune(r rune) rune {
 // module -> class -> set(reference member names).
 type oracleModuleMembers map[string]map[string]map[string]bool
 
-// dataclassFieldModules is the CLOSED set of modules whose classes carry public
-// @dataclass fields the reference now enumerates and the Go structs express as
-// exported struct fields (the deserialized event payload / DTO / RequestOptions
-// values). Field emission is SCOPED to these three modules so it never touches
-// the ergonomic-method classes elsewhere (which project correctly already):
-//   - signalwire.relay.event         — the 24 relay Event dataclasses (94 fields)
-//   - signalwire.ai_chat.client      — the AI-Chat DTOs (ChatResponse/ChatLog/
-//     ConversationInfo, 8 fields); the client +
-//     error classes carry NO reference fields so
-//     they contribute nothing here.
-//   - signalwire.rest._request_options — RequestOptions (retries/retry_backoff/
-//     retry_on_status/timeout; abort_signal is an
-//     impossible: omission — Go uses context.Context;
-//     merge() is already a method).
-var dataclassFieldModules = map[string]bool{
-	"signalwire.relay.event":           true,
-	"signalwire.ai_chat.client":        true,
-	"signalwire.rest._request_options": true,
-}
+// RETIRED: dataclassFieldModules.
+//
+// Field emission used to be scoped to a CLOSED set of three modules
+// (signalwire.relay.event, signalwire.ai_chat.client,
+// signalwire.rest._request_options) — the modules whose reference classes carried
+// public @dataclass fields when the table was written.
+//
+// The oracle has since grown well past those three: class B2 made every public
+// `__init__` attribute that is ALSO a constructor param part of the recorded
+// surface, across the whole SDK. The hardcoded module list then became a stale
+// exclusion that silently threw away capability the port already had — 30 of go's
+// 110 missing symbols were fields or accessors the Go structs carried, dropped
+// only because their module was not one of the three.
+//
+// loadOracleMembers now returns EVERY module the oracle records, so the ORACLE
+// alone gates emission. That is strictly safer than the module list it replaces
+// (a field is emitted only when the reference records a member of that name on
+// that same class, so it can never over-emit) and it self-retires: the gate tracks
+// the oracle instead of needing a hand edit each time the oracle grows.
 
 // loadOracleMembers reads python_surface.json and returns the per-class member
 // sets for the dataclassFieldModules only. Used to GATE field emission so the Go
@@ -526,9 +597,6 @@ func loadOracleMembers(repoRoot string) oracleModuleMembers {
 	}
 	out := oracleModuleMembers{}
 	for mod, mi := range parsed.Modules {
-		if !dataclassFieldModules[mod] {
-			continue
-		}
 		cm := map[string]map[string]bool{}
 		for cls, members := range mi.Classes {
 			set := map[string]bool{}
@@ -728,8 +796,38 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 			// and never a port-internal helper field.
 			if clsMembers, ok := oracle[target.Module][target.Class]; ok {
 				for goField := range facts.fields {
-					snake := goNameToSnake(goField)
+					snake := goNameToPython(goField)
 					if clsMembers[snake] {
+						addMethod(target.Module, target.Class, snake)
+					}
+				}
+				// Accessor fold (ALLOWLIST_DISCIPLINE §7 row 1), same oracle
+				// gate. Go's idiomatic expression of a public attribute over an
+				// unexported field is a zero-arg reader method
+				// (`func (c *Call) CallID() string { return c.callID }`). Fold
+				// each such reader onto the reference's plain attribute spelling
+				// when the oracle records a member of that snake_case name on
+				// this same class.
+				//
+				// Why this is not an ad-hoc rename table: the ORACLE decides.
+				// The fold can only ever emit a name the reference already
+				// records on this class, so it cannot invent surface, and it
+				// retires itself as the oracle changes — there is no
+				// hand-maintained per-symbol list to go stale (the failure mode
+				// java and dotnet both hit with their strip tables).
+				//
+				// EXCLUDED: a reader whose snake name the StructTable already
+				// maps some Go method to. That mapping is the deliberate,
+				// reviewed projection; keeping it authoritative is what stops
+				// the fold from quietly re-pointing a real reference METHOD at
+				// a same-named accessor.
+				mapped := map[string]bool{}
+				for _, py := range target.Methods {
+					mapped[py] = true
+				}
+				for goReader := range facts.readers {
+					snake := goNameToPython(goReader)
+					if clsMembers[snake] && !mapped[snake] {
 						addMethod(target.Module, target.Class, snake)
 					}
 				}

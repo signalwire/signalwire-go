@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ f8b4b8c8987c76b501f875f14efb98f753fa9d10",
+  "generated_from": "signalwire-go (go-native) @ 998dcea7eaf2979a5fbe1b0b1e515e1a30b9dbf7",
   "modules": {
     "agent": {
       "classes": {
@@ -20,6 +20,7 @@
           "AddPronunciation",
           "AddSkill",
           "AddSwaigQueryParams",
+          "Agent",
           "AllFunctions",
           "AsRouter",
           "AutoMapSIPUsernames",
@@ -55,6 +56,7 @@
           "ListSkills",
           "ListToolNames",
           "ManualSetProxyURL",
+          "NativeFunctions",
           "OnDebugEvent",
           "OnFunctionCall",
           "OnRequest",
@@ -100,6 +102,7 @@
           "SetPronunciations",
           "SetWebHookURL",
           "SetupGracefulShutdown",
+          "SigningKey",
           "UpdateGlobalData",
           "ValidateBasicAuth",
           "ValidateToolToken"
@@ -115,6 +118,7 @@
         ],
         "BedrockOptions": [],
         "ConfigLoader": [
+          "ConfigPaths",
           "Get",
           "GetConfig",
           "GetConfigFile",
@@ -1015,16 +1019,24 @@
         ],
         "BedrockOptions": [],
         "ConciergeAgent": [
+          "Amenities",
           "CheckAvailability",
           "GetDirections",
-          "OnSummary"
+          "HoursOfOperation",
+          "OnSummary",
+          "Services",
+          "SpecialInstructions",
+          "VenueName"
         ],
         "ConciergeOptions": [],
         "Department": [],
         "FAQ": [],
         "FAQBotAgent": [
+          "FAQs",
           "OnSummary",
-          "SearchFaqs"
+          "Persona",
+          "SearchFaqs",
+          "SuggestRelated"
         ],
         "FAQBotOptions": [],
         "InfoGathererAgent": [
@@ -1040,8 +1052,14 @@
         ],
         "ReceptionistOptions": [],
         "SurveyAgent": [
+          "BrandName",
+          "Conclusion",
+          "Introduction",
           "LogResponse",
+          "MaxRetries",
           "OnSummary",
+          "Questions",
+          "SurveyName",
           "ValidateResponse"
         ],
         "SurveyOptions": [],
@@ -1069,6 +1087,7 @@
         ],
         "AIEvent": [],
         "Action": [
+          "Call",
           "Completed",
           "ControlID",
           "IsDone",
@@ -1478,6 +1497,11 @@
     },
     "security": {
       "classes": {
+        "AuthHandler": [
+          "SecurityConfig",
+          "VerifyBasicAuth",
+          "VerifyBasicAuthPair"
+        ],
         "SecurityConfig": [
           "GetBasicAuth",
           "GetCORSConfig",
@@ -1497,7 +1521,9 @@
           "EndSession",
           "GenerateToken",
           "GetSessionMetadata",
+          "SecretKey",
           "SetSessionMetadata",
+          "TokenExpirySecs",
           "ValidateSessionToken",
           "ValidateToken"
         ],
@@ -1507,6 +1533,7 @@
       "functions": [
         "FilterSensitiveHeaders",
         "IsValidHostname",
+        "NewAuthHandler",
         "NewSecurityConfig",
         "NewSessionManager",
         "RawBodyFromContext",
@@ -1518,7 +1545,8 @@
         "ValidateWebhookSignatureE",
         "WebhookMiddleware",
         "WithDebugMode",
-        "WithSecret"
+        "WithSecret",
+        "WithSecretKey"
       ]
     },
     "server": {
@@ -1527,7 +1555,10 @@
         "AgentServer": [
           "GetAgent",
           "GetAgents",
+          "Host",
+          "LogLevel",
           "LookupSIPRoute",
+          "Port",
           "Register",
           "RegisterGlobalRoutingCallback",
           "RegisterGlobalSIPRoutingCallback",
@@ -1567,6 +1598,7 @@
     "skills": {
       "classes": {
         "BaseSkill": [
+          "Agent",
           "Cleanup",
           "Description",
           "GetGlobalData",
@@ -1583,16 +1615,19 @@
           "GetSkillNamespace",
           "Name",
           "RequiredEnvVars",
+          "SetAgent",
           "ShouldSkipPrompt",
           "SupportsMultipleInstances",
           "UpdateSkillData",
           "Version"
         ],
         "SkillManager": [
+          "Agent",
           "GetSkill",
           "HasSkill",
           "ListLoadedSkills",
           "LoadSkill",
+          "SetAgent",
           "UnloadSkill"
         ],
         "SkillRegistry": [
@@ -1768,6 +1803,7 @@
           "GetVerbProperties",
           "GetVerbRequiredProperties",
           "LoadSchema",
+          "SchemaPath",
           "ValidateDocument",
           "ValidateVerb",
           "ValidateVerbTopLevelKeys"
@@ -1841,6 +1877,7 @@
           "SendFax",
           "SendSMS",
           "Serve",
+          "ServiceRef",
           "Set",
           "Sleep",
           "Stop",
@@ -1903,6 +1940,13 @@
         "Options": [],
         "WebService": [
           "AddDirectory",
+          "AllowedExtensions",
+          "BlockedExtensions",
+          "Directories",
+          "EnableCORS",
+          "EnableDirectoryBrowsing",
+          "MaxFileSize",
+          "Port",
           "RemoveDirectory",
           "Security",
           "Start",

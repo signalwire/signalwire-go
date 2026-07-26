@@ -75,13 +75,11 @@ test, the entry is not ready. Prove it's needed before you add it.
 # because Go ships a library, not a CLI.
 
 # --- Utils / web / auth helpers ---
-signalwire.core.auth_handler.AuthHandler: impossible: Python standalone auth-helper class; Go folds auth into AgentBase withAuth middleware + security.SessionManager — no standalone class
-signalwire.core.auth_handler.AuthHandler.__init__: impossible: constructor of the standalone auth-helper class Go does not model
+signalwire.core.auth_handler.AuthHandler.verify_basic_auth: impossible: the reference's sole parameter is FastAPI's HTTPBasicCredentials object; Go has no framework credentials type and will not invent one. security.AuthHandler DOES verify basic credentials (VerifyBasicAuth(*http.Request) / VerifyBasicAuthPair(user, pass)) — the capability is present, only the framework-object parameter shape cannot be expressed
 signalwire.core.auth_handler.AuthHandler.flask_decorator: impossible: Flask-specific decorator; no Go equivalent (Go uses net/http middleware)
 signalwire.core.auth_handler.AuthHandler.get_auth_info: impossible: Python auth-helper accessor; Go folds auth state into middleware, no standalone class
 signalwire.core.auth_handler.AuthHandler.get_fastapi_dependency: impossible: FastAPI-specific dependency factory; no Go equivalent (Go uses net/http middleware)
 signalwire.core.auth_handler.AuthHandler.verify_api_key: impossible: Python auth-helper method; Go verifies API keys inside withAuth middleware, no standalone class
-signalwire.core.auth_handler.AuthHandler.verify_basic_auth: impossible: Python auth-helper method; Go verifies basic auth inside withAuth middleware, no standalone class
 signalwire.core.auth_handler.AuthHandler.verify_bearer_token: impossible: Python auth-helper method; Go verifies bearer tokens inside withAuth middleware, no standalone class
 signalwire.core.logging_config.configure_logging: impossible: wraps the Python logging library; Go uses pkg/logging (structured) with equivalent behaviour — no logging-lib configuration surface
 signalwire.core.logging_config.strip_control_chars: impossible: Python logging-formatter helper; Go pkg/logging sanitises inline with no exported free function
@@ -116,12 +114,10 @@ signalwire.core.skill_base.SkillBase.validate_env_vars: impossible: Python valid
 signalwire.core.skill_base.SkillBase.validate_packages: impossible: Python validate_packages checks pip dependencies at runtime; Go dependencies are resolved at build time — no runtime package check
 
 # --- Core SWML / SWAIG / function_result internals ---
-signalwire.core.swaig_function.SWAIGFunction: impossible: Python SWAIGFunction is a callable wrapper around a tool registration; Go models tools as ToolDefinition + AgentBase.DefineTool (no callable class)
 signalwire.core.swaig_function.SWAIGFunction.__call__: impossible: Python callable protocol (__call__) has no Go equivalent
 signalwire.core.swaig_function.SWAIGFunction.__init__: impossible: constructor of the callable wrapper class Go does not model
 signalwire.core.swaig_function.SWAIGFunction.execute: impossible: Python SWAIGFunction.execute invokes the wrapped callable; Go invokes via swaig.ToolHandler func values
 signalwire.core.swaig_function.SWAIGFunction.to_swaig: impossible: serialises the callable-wrapper to a SWAIG entry; Go builds SWAIG entries from ToolDefinition directly
-signalwire.core.swaig_function.SWAIGFunction.validate_args: impossible: validates against the wrapper class; Go validates via ToolDefinition.ValidateArgs
 signalwire.core.swml_builder.SWMLBuilder.__getattr__: impossible: Python dynamic attribute dispatch (__getattr__) has no Go equivalent; verbs are explicit methods on swml.Service
 signalwire.core.swml_renderer.SwmlRenderer: impossible: Python SwmlRenderer is a stateless render helper; Go folds rendering into swml.Service.Render / swaig.FunctionResult — no separate renderer type
 signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: impossible: Go builds function-response SWML via swaig.FunctionResult — no separate renderer

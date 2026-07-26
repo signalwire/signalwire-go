@@ -528,10 +528,47 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 	// Session manager for secure tools
 	a.sessionManager = security.NewSessionManager(a.tokenExpirySecs)
 
-	// Skill manager
-	a.skillManager = skills.NewSkillManager()
+	// Skill manager. Hand it the agent (through the skillAgent adapter) so a
+	// loaded skill can configure its agent directly, as the reference allows via
+	// SkillBase.agent / SkillManager.agent.
+	a.skillManager = skills.NewSkillManager(&skillAgent{a: a})
 
 	return a
+}
+
+// skillAgent adapts *AgentBase to the skills.SkillAgent interface — the
+// back-reference a loaded skill reaches its agent through (the reference's
+// SkillBase.agent / SkillManager.agent).
+//
+// An adapter is needed rather than *AgentBase satisfying the interface directly
+// because AgentBase's configuration methods are FLUENT (they return *AgentBase
+// for chaining), which is the port's ergonomic idiom and not something to give up
+// for an interface's sake. The adapter discards the chaining return; every call
+// is otherwise a straight pass-through.
+type skillAgent struct{ a *AgentBase }
+
+func (s *skillAgent) AddHints(hints []string) { s.a.AddHints(hints) }
+
+func (s *skillAgent) UpdateGlobalData(data map[string]any) { s.a.UpdateGlobalData(data) }
+
+func (s *skillAgent) PromptAddSection(title, body string, bullets []string) {
+	s.a.PromptAddSection(title, body, bullets)
+}
+
+func (s *skillAgent) DefineTool(reg skills.ToolRegistration) {
+	handler := reg.Handler
+	td := ToolDefinition{
+		Name:        reg.Name,
+		Description: reg.Description,
+		Parameters:  reg.Parameters,
+		Secure:      reg.Secure,
+		Fillers:     reg.Fillers,
+		SwaigFields: reg.SwaigFields,
+		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+			return handler(args, rawData)
+		},
+	}
+	s.a.DefineTool(td)
 }
 
 // generateUUID produces a random UUID v4 string using crypto/rand.
@@ -1413,6 +1450,36 @@ func (a *AgentBase) GetSIPUsernames() []string {
 	sort.Strings(out)
 	return out
 }
+
+// NativeFunctions returns the configured native (built-in) SWAIG function names
+// (Python: AgentBase.native_functions). A copy is returned so a caller cannot
+// mutate the agent's list; use SetNativeFunctions to change it.
+func (a *AgentBase) NativeFunctions() []string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return append([]string(nil), a.nativeFunctions...)
+}
+
+// SigningKey returns the SignalWire Signing Key used to validate inbound webhook
+// signatures, or "" when validation is disabled (Python:
+// AgentBase.signing_key). The value is whatever was resolved at construction —
+// the WithSigningKey argument or SIGNALWIRE_SIGNING_KEY — so a caller can check
+// WHETHER signature validation is active and with which key, which is exactly
+// what the reference exposes.
+func (a *AgentBase) SigningKey() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.signingKey
+}
+
+// Agent returns the agent itself.
+//
+// Go merges the reference's PromptManager and ToolRegistry INTO AgentBase (their
+// methods are AgentBase methods), so the back-reference those classes carry to
+// their owning agent — `PromptManager.agent`, `ToolRegistry.agent` — resolves to
+// the agent itself. Returning `a` is the honest answer to "which agent does this
+// manager belong to" under that composition.
+func (a *AgentBase) Agent() *AgentBase { return a }
 
 // SetNativeFunctions sets the list of native function names.
 func (a *AgentBase) SetNativeFunctions(names []string) *AgentBase {

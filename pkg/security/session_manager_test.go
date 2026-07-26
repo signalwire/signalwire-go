@@ -32,10 +32,18 @@ func TestNewSessionManager_CustomExpiry(t *testing.T) {
 	}
 }
 
+// TestNewSessionManager_SecretLength pins the DEFAULT key's length to the
+// reference's: `secrets.token_hex(32)` is a 64-CHARACTER hex string, and the HMAC
+// is keyed with that string's bytes — so the key is 64 bytes, not 32.
+//
+// This test previously asserted 32 bytes, i.e. it asserted the port's own
+// non-interoperable convention rather than the reference's. A token minted by Go
+// could not be validated by the reference or by any other port, and this test
+// certified that as correct.
 func TestNewSessionManager_SecretLength(t *testing.T) {
 	sm := NewSessionManager(3600)
-	if len(sm.secret) != 32 {
-		t.Errorf("expected 32-byte secret, got %d bytes", len(sm.secret))
+	if len(sm.secret) != 64 {
+		t.Errorf("expected a 64-byte key (the bytes of a 64-char token_hex(32) string), got %d bytes", len(sm.secret))
 	}
 }
 
@@ -360,5 +368,68 @@ func TestContract7_TokenWireFormat(t *testing.T) {
 	tamperedWire := base64.URLEncoding.EncodeToString([]byte(tamperedToken))
 	if sm.ValidateToken(fn, tamperedWire, callID) {
 		t.Error("a signature-flipped token must fail validation")
+	}
+}
+
+// TestSecretKeyIsAStringKeyedHMAC pins the cross-language HMAC KEYING contract.
+//
+// The reference's secret_key is a STRING and it keys the HMAC with THAT STRING'S
+// BYTES (`hmac.new(self.secret_key.encode(), ...)`, session_manager.py:79,152).
+// The default is `secrets.token_hex(32)` — a 64-CHARACTER HEX STRING, so the
+// default key is 64 bytes of ASCII hex, NOT 32 raw bytes.
+//
+// Go previously generated 32 raw bytes for the default. A token minted by Go
+// therefore did not validate in the reference, or in any other port, because the
+// two sides were keying with different bytes. cpp, java and dotnet all shipped
+// the same defect. This test signs with the key obtained ONLY through the public
+// SecretKey() reader — the same way a peer implementation would — so it cannot
+// pass by agreeing with the port's own internal representation.
+func TestSecretKeyIsAStringKeyedHMAC(t *testing.T) {
+	// (1) The generated default is a 64-char hex string, matching token_hex(32).
+	sm := NewSessionManager(3600)
+	key := sm.SecretKey()
+	if len(key) != 64 {
+		t.Errorf("generated secret_key must be 64 hex chars (secrets.token_hex(32)), got %d: %q", len(key), key)
+	}
+	if _, err := hex.DecodeString(key); err != nil {
+		t.Errorf("generated secret_key must be hex-decodable, got %q: %v", key, err)
+	}
+
+	// (2) Signing with []byte(SecretKey()) — the reference's
+	// `secret_key.encode()` — reproduces a token the port accepts. If the port
+	// keyed with anything other than the string's bytes, this fails.
+	signAsReference := func(secretKey, callID, fn string) string {
+		expiry := strconv.FormatInt(time.Now().Unix()+300, 10)
+		nonce := "abcdef0123456789"
+		msg := callID + ":" + fn + ":" + expiry + ":" + nonce
+		mac := hmac.New(sha256.New, []byte(secretKey))
+		mac.Write([]byte(msg))
+		sig := hex.EncodeToString(mac.Sum(nil))
+		return base64.URLEncoding.EncodeToString(
+			[]byte(callID + "." + fn + "." + expiry + "." + nonce + "." + sig))
+	}
+	if !sm.ValidateToken("peek", signAsReference(key, "call-1", "peek"), "call-1") {
+		t.Error("a token signed with []byte(SecretKey()) must validate: the HMAC must be keyed with the secret_key STRING's bytes")
+	}
+
+	// (3) An explicitly supplied string key round-trips through SecretKey() and
+	// keys the HMAC identically — WithSecretKey and WithSecret([]byte(s)) agree.
+	const shared = "a-shared-secret-string"
+	for name, opt := range map[string]Option{
+		"WithSecretKey": WithSecretKey(shared),
+		"WithSecret":    WithSecret([]byte(shared)),
+	} {
+		peer := NewSessionManager(3600, opt)
+		if peer.SecretKey() != shared {
+			t.Errorf("%s: SecretKey() = %q, want %q", name, peer.SecretKey(), shared)
+		}
+		if !peer.ValidateToken("f", signAsReference(shared, "c", "f"), "c") {
+			t.Errorf("%s: a reference-keyed token must validate", name)
+		}
+	}
+
+	// (4) TokenExpirySecs reads back what was configured.
+	if got := NewSessionManager(4242).TokenExpirySecs(); got != 4242 {
+		t.Errorf("TokenExpirySecs() = %d, want 4242", got)
 	}
 }

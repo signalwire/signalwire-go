@@ -122,6 +122,11 @@ var StructTable = map[string][]ClassTarget{
 				"RawPrompt":           "get_raw_prompt",
 				"GetContexts":         "get_contexts",
 				"DefineContexts":      "define_contexts",
+				// RENAME: the manager's back-reference to its owning agent
+				// (`PromptManager.agent` / `ToolRegistry.agent`). Go merges these
+				// managers INTO AgentBase, so the owning agent IS the receiver —
+				// AgentBase.Agent() returns itself. See pkg/agent/agent.go.
+				"Agent": "agent",
 			},
 		},
 		ClassTarget{
@@ -142,6 +147,9 @@ var StructTable = map[string][]ClassTarget{
 				"Function":              "get_function",
 				"AllFunctions":          "get_all_functions",
 				"RemoveFunction":        "remove_function",
+				// RENAME: `ToolRegistry.agent` — the registry's owning agent. Go
+				// merges the registry INTO AgentBase, so it IS the receiver.
+				"Agent": "agent",
 			},
 		},
 		ClassTarget{
@@ -269,6 +277,50 @@ var StructTable = map[string][]ClassTarget{
 		},
 	}},
 
+	// --- SWAIG tool definition --------------------------------------------
+	// RENAME, not an addition. `agent.ToolDefinition` IS the Go spelling of the
+	// reference's `signalwire.core.swaig_function.SWAIGFunction`: same 11
+	// caller-supplied fields (name/handler/description/parameters/secure/fillers/
+	// wait_file/wait_file_loops/webhook_url/required/is_typed_handler) and the same
+	// ValidateArgs behaviour. It was previously carried as a PORT_ADDITION ("no
+	// direct Python counterpart") while SWAIGFunction was carried as an
+	// `impossible:` PORT_OMISSION — an entry on BOTH ledgers for one symbol is the
+	// tell that it is a rename (ALLOWLIST_DISCIPLINE §0/§7), so both were wrong.
+	// The four Python members Go genuinely cannot express (__call__/__init__/
+	// execute/to_swaig — the callable-wrapper protocol; Go dispatches through
+	// swaig.ToolHandler func values) stay as the pre-existing omissions.
+	"agent.ToolDefinition": {{
+		Module: "signalwire.core.swaig_function", Class: "SWAIGFunction",
+		Methods: map[string]string{
+			"ValidateArgs": "validate_args",
+			// RENAME: `SwaigFields` IS the reference's `extra_swaig_fields` —
+			// the `**extra_swaig_fields` var-keyword tail, stored as an
+			// attribute and merged into the rendered function definition
+			// (swaig_function.py:108,279). Same map, different spelling.
+			"SwaigFields": "extra_swaig_fields",
+		},
+	}},
+
+	// --- auth handler -----------------------------------------------------
+	// security.AuthHandler is the framework-free half of the reference's
+	// signalwire.core.auth_handler.AuthHandler: the SecurityConfig it verifies
+	// against plus constant-time basic-credential verification. The FastAPI /
+	// Flask adapter methods have no Go analogue and stay recorded as omissions.
+	"security.AuthHandler": {{
+		Module: "signalwire.core.auth_handler", Class: "AuthHandler",
+		Methods: map[string]string{
+			"NewAuthHandler": "__init__",
+			"SecurityConfig": "security_config",
+			// verify_basic_auth is NOT mapped. The capability is present
+			// (VerifyBasicAuth / VerifyBasicAuthPair) but the reference's sole
+			// parameter is FastAPI's HTTPBasicCredentials — a web-framework
+			// object. Mapping it would either claim a type Go does not have or
+			// require inventing a fake HTTPBasicCredentials analogue (banned
+			// invented surface). The existing verify_basic_auth omission covers
+			// the reference symbol; the Go methods stand on their own.
+		},
+	}},
+
 	// --- server package ---------------------------------------------------
 	"server.AgentServer": {{
 		Module: "signalwire.agent_server", Class: "AgentServer",
@@ -389,6 +441,10 @@ var StructTable = map[string][]ClassTarget{
 				"AddSection":    "add_section",
 				"Render":        "render",
 				"ResetDocument": "reset",
+				// RENAME: `SWMLBuilder.service` is the SWMLService the builder wraps
+				// (swml_builder.py:57). Go merged the builder INTO Service, so it IS
+				// this Service — ServiceRef returns the receiver.
+				"ServiceRef": "service",
 			},
 			// build == render's alias (both return the document); GetDocument
 			// serves the build role in Go.
@@ -543,6 +599,13 @@ var StructTable = map[string][]ClassTarget{
 			"Receive":       "receive",
 			"Unreceive":     "unreceive",
 			"RelayProtocol": "relay_protocol",
+			// RENAME (ALLOWLIST_DISCIPLINE §7 row 2): Go spells these with its
+			// own noun for the same state. `ProjectID()` IS the reference's
+			// `project` (relay/client.py:171) and `Space()` IS its `host`
+			// (relay/client.py:174 — the SignalWire space hostname). A different
+			// NAME for the same capability is a rename, never an omission.
+			"ProjectID": "project",
+			"Space":     "host",
 		},
 	}},
 	// RECONCILE: Go ships a typed relay.RelayError (pkg/relay/error.go) — the

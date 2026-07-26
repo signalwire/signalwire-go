@@ -156,7 +156,6 @@ signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: Go's Regist
 
 # --- Go-only structs (port-only public types) ---
 agent.MCPServerConfig: Go-only config struct; not part of Python public API
-agent.ToolDefinition: Go-only struct; no direct Python counterpart
 builtin.APINinjasTriviaSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.ClaudeSkillsSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.CustomSkillsSkill: Go skill implementation; matches the Python skill of the same name structurally

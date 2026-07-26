@@ -38,6 +38,11 @@ type AgentServer struct {
 
 	host string
 	port int
+	// logLevel is the level the caller configured via WithLogLevel, retained so
+	// LogLevel() can read it back (the reference stores it as
+	// `self.log_level`, agent_server.py:63). WithLogLevel ALSO applies it
+	// globally; this field is the readable record of what was asked for.
+	logLevel string
 
 	logger *logging.Logger
 
@@ -84,6 +89,9 @@ func WithServerPort(port int) ServerOption {
 // compatibility with the Python reference's plain str log_level.
 func WithLogLevel(level logging.LogLevel) ServerOption {
 	return func(s *AgentServer) {
+		// Record what the caller asked for (readable via LogLevel()), then apply
+		// it. The reference lower-cases before storing (agent_server.py:63).
+		s.logLevel = strings.ToLower(string(level))
 		logging.SetGlobalLevel(logging.ParseLevel(string(level)))
 	}
 }
@@ -117,6 +125,7 @@ func NewAgentServer(opts ...ServerOption) *AgentServer {
 		order:        make([]string, 0),
 		host:         "0.0.0.0",
 		port:         3000,
+		logLevel:     "info",
 		sipUsernames: make(map[string]string),
 		staticDirs:   make(map[string]string),
 	}
@@ -128,6 +137,36 @@ func NewAgentServer(opts ...ServerOption) *AgentServer {
 	s.logger = logging.New("AgentServer")
 
 	return s
+}
+
+// ---------------------------------------------------------------------------
+// Configuration readers
+// ---------------------------------------------------------------------------
+//
+// The reference stores host/port/log_level as public attributes
+// (agent_server.py:61-63), so a caller can read back what the server was
+// configured with — e.g. to log the bind address, or to build a URL for a peer.
+
+// Host returns the configured bind address (Python: host).
+func (s *AgentServer) Host() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.host
+}
+
+// Port returns the configured bind port (Python: port).
+func (s *AgentServer) Port() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.port
+}
+
+// LogLevel returns the configured log level, lower-cased (Python: log_level).
+// Defaults to "info" when WithLogLevel was not supplied, matching the reference.
+func (s *AgentServer) LogLevel() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.logLevel
 }
 
 // ---------------------------------------------------------------------------

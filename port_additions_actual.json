@@ -1,10 +1,9 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ f8b4b8c8987c76b501f875f14efb98f753fa9d10",
+  "generated_from": "signalwire-go @ 998dcea7eaf2979a5fbe1b0b1e515e1a30b9dbf7",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
-    "agent.ToolDefinition",
     "builtin.APINinjasTriviaSkill",
     "builtin.ClaudeSkillsSkill",
     "builtin.CustomSkillsSkill",

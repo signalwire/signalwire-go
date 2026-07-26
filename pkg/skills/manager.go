@@ -10,13 +10,38 @@ import (
 type SkillManager struct {
 	loadedSkills map[string]SkillBase
 	mu           sync.RWMutex
+	// agent is the agent this manager loads skills for. Read via Agent();
+	// the reference's SkillManager.agent (skill_manager.py). LoadSkill
+	// propagates it to each skill so a skill can configure its agent.
+	agent SkillAgent
 }
 
-// NewSkillManager creates a new SkillManager.
-func NewSkillManager() *SkillManager {
-	return &SkillManager{
+// NewSkillManager creates a new SkillManager. Pass the owning agent so loaded
+// skills can reach it (the reference takes it as SkillManager(agent)); pass nil
+// for a standalone manager.
+func NewSkillManager(agent ...SkillAgent) *SkillManager {
+	sm := &SkillManager{
 		loadedSkills: make(map[string]SkillBase),
 	}
+	if len(agent) > 0 {
+		sm.agent = agent[0]
+	}
+	return sm
+}
+
+// Agent returns the agent this manager loads skills for, or nil when the manager
+// is standalone (Python: SkillManager.agent).
+func (sm *SkillManager) Agent() SkillAgent {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return sm.agent
+}
+
+// SetAgent records the owning agent. Skills loaded after this call receive it.
+func (sm *SkillManager) SetAgent(a SkillAgent) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.agent = a
 }
 
 // LoadSkill validates environment variables, calls Setup, and registers the skill.
@@ -48,6 +73,13 @@ func (sm *SkillManager) LoadSkill(skill SkillBase) (bool, string) {
 		if os.Getenv(envVar) == "" {
 			return false, fmt.Sprintf("missing required environment variable: %s", envVar)
 		}
+	}
+
+	// Hand the skill its agent BEFORE Setup, so Setup can already configure the
+	// agent — the reference assigns self.agent in SkillBase.__init__, i.e. before
+	// any setup work runs.
+	if sm.agent != nil {
+		skill.SetAgent(sm.agent)
 	}
 
 	// Call Setup

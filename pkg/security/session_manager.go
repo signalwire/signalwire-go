@@ -34,13 +34,30 @@ type SessionManager struct {
 // Option is a functional option for NewSessionManager.
 type Option func(*SessionManager)
 
-// WithSecret injects a fixed secret key into the SessionManager. Use this when
-// you need multiple processes or instances to validate each other's tokens.
-// Pass nil to keep the default behaviour (auto-generate a random 32-byte secret).
+// WithSecret injects a fixed HMAC key into the SessionManager. Use this when you
+// need multiple processes or instances to validate each other's tokens.
+// Pass nil to keep the default (an auto-generated key).
+//
+// INTEROP: the reference's secret_key is a STRING and it keys the HMAC with that
+// string's bytes (`self.secret_key.encode()`, session_manager.py:79,152). So the
+// bytes passed here must be the UTF-8 bytes of the shared secret STRING — which
+// is what `[]byte("my-secret")` gives you. Prefer WithSecretKey, which takes the
+// string directly and makes that contract impossible to get wrong.
 func WithSecret(key []byte) Option {
 	return func(sm *SessionManager) {
 		if key != nil {
 			sm.secret = key
+		}
+	}
+}
+
+// WithSecretKey injects the shared secret as a STRING — the reference's
+// `secret_key` parameter shape. Equivalent to WithSecret([]byte(key)), and the
+// form to use for cross-port/cross-language token interop.
+func WithSecretKey(key string) Option {
+	return func(sm *SessionManager) {
+		if key != "" {
+			sm.secret = []byte(key)
 		}
 	}
 }
@@ -61,11 +78,18 @@ func NewSessionManager(tokenExpirySecs int, opts ...Option) *SessionManager {
 		tokenExpirySecs = 900
 	}
 
-	secret := make([]byte, 32)
-	if _, err := rand.Read(secret); err != nil {
+	// The reference defaults secret_key to `secrets.token_hex(32)` — a 64-CHARACTER
+	// HEX STRING — and keys the HMAC with that string's bytes
+	// (session_manager.py:40,79). Generating 32 RAW bytes here instead produced a
+	// key no other implementation could reproduce, so a token minted by Go did not
+	// validate in the reference (or in cpp/java/dotnet, which had the same defect).
+	// Generate the same 64-char hex string and use ITS bytes as the key.
+	secretBytes := make([]byte, 32)
+	if _, err := rand.Read(secretBytes); err != nil {
 		// This should never happen on a properly configured system.
 		panic("security: failed to generate random secret: " + err.Error())
 	}
+	secret := []byte(hex.EncodeToString(secretBytes))
 
 	sm := &SessionManager{
 		secret:          secret,
@@ -82,6 +106,17 @@ func NewSessionManager(tokenExpirySecs int, opts ...Option) *SessionManager {
 
 	return sm
 }
+
+// SecretKey returns the HMAC secret as the reference's `secret_key` STRING
+// (session_manager.py:40). The generated default is a 64-character hex string;
+// an injected key is returned as supplied. Exposed because the reference exposes
+// it: a caller that let the SessionManager generate a key needs to read it back
+// to configure a peer process that must validate the same tokens.
+func (sm *SessionManager) SecretKey() string { return string(sm.secret) }
+
+// TokenExpirySecs returns the token lifetime in seconds
+// (Python: token_expiry_secs).
+func (sm *SessionManager) TokenExpirySecs() int { return sm.tokenExpirySecs }
 
 // CreateSession returns callID unchanged if it is non-empty; otherwise it
 // generates a cryptographically random URL-safe string (matches Python
