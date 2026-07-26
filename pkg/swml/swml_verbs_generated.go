@@ -257,8 +257,8 @@ type ConnectDeviceSingle struct {
 	WebrtcMedia any `json:"webrtc_media,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// SessionTimeout Time, in seconds, to set the SIP `Session-Expires` header in INVITE.
 	SessionTimeout any `json:"session_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// Ringback Array of URIs to play as ringback tone. If not specified, plays audio from the provider.
-	Ringback []string `json:"ringback,omitempty" gen:"list<string>"`
+	// Ringback Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object.
+	Ringback any `json:"ringback,omitempty" gen:"union<list<string>,class:signalwire.core.swml_verbs_generated.RingbackConfig>"`
 	// Result Action to take based on the result of the call. This will run once the peer leg of the call has ended.
 	Result any `json:"result,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.ConnectSwitch,list<class:signalwire.core.swml_verbs_generated.CondParams>>"`
 	// Timeout Time, in seconds, to wait for the call to be answered.
@@ -298,8 +298,8 @@ type ConnectDeviceSerial struct {
 	WebrtcMedia any `json:"webrtc_media,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// SessionTimeout Time, in seconds, to set the SIP `Session-Expires` header in INVITE.
 	SessionTimeout any `json:"session_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// Ringback Array of URIs to play as ringback tone. If not specified, plays audio from the provider.
-	Ringback []string `json:"ringback,omitempty" gen:"list<string>"`
+	// Ringback Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object.
+	Ringback any `json:"ringback,omitempty" gen:"union<list<string>,class:signalwire.core.swml_verbs_generated.RingbackConfig>"`
 	// Result Action to take based on the result of the call. This will run once the peer leg of the call has ended.
 	Result any `json:"result,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.ConnectSwitch,list<class:signalwire.core.swml_verbs_generated.CondParams>>"`
 	// Timeout Time, in seconds, to wait for the call to be answered.
@@ -338,8 +338,8 @@ type ConnectDeviceParallel struct {
 	WebrtcMedia any `json:"webrtc_media,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// SessionTimeout Time, in seconds, to set the SIP `Session-Expires` header in INVITE.
 	SessionTimeout any `json:"session_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// Ringback Array of URIs to play as ringback tone. If not specified, plays audio from the provider.
-	Ringback []string `json:"ringback,omitempty" gen:"list<string>"`
+	// Ringback Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object.
+	Ringback any `json:"ringback,omitempty" gen:"union<list<string>,class:signalwire.core.swml_verbs_generated.RingbackConfig>"`
 	// Result Action to take based on the result of the call. This will run once the peer leg of the call has ended.
 	Result any `json:"result,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.ConnectSwitch,list<class:signalwire.core.swml_verbs_generated.CondParams>>"`
 	// Timeout Time, in seconds, to wait for the call to be answered.
@@ -379,8 +379,8 @@ type ConnectDeviceSerialParallel struct {
 	WebrtcMedia any `json:"webrtc_media,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// SessionTimeout Time, in seconds, to set the SIP `Session-Expires` header in INVITE.
 	SessionTimeout any `json:"session_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// Ringback Array of URIs to play as ringback tone. If not specified, plays audio from the provider.
-	Ringback []string `json:"ringback,omitempty" gen:"list<string>"`
+	// Ringback Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object.
+	Ringback any `json:"ringback,omitempty" gen:"union<list<string>,class:signalwire.core.swml_verbs_generated.RingbackConfig>"`
 	// Result Action to take based on the result of the call. This will run once the peer leg of the call has ended.
 	Result any `json:"result,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.ConnectSwitch,list<class:signalwire.core.swml_verbs_generated.CondParams>>"`
 	// Timeout Time, in seconds, to wait for the call to be answered.
@@ -1735,6 +1735,24 @@ type UserInputAction struct {
 	UserInput string `json:"user_input,omitempty" gen:"string"`
 }
 
+type AiSidecar struct {
+	// AiSidecar Start ai_sidecar mode — live_transcribe with an LLM/SWAIG/MCP loop on top.
+	AiSidecar map[string]any `json:"ai_sidecar,omitempty" gen:"dict<string,any>"`
+}
+
+// RingbackConfig Ringback configuration (the modern object form). Declared as a named $defs entry so every generator emits a TYPED shape via $ref rather than collapsing an inline object to an untyped map; the legacy URI array remains the other oneOf branch.
+type RingbackConfig struct {
+	Url         string   `json:"url,omitempty" gen:"string"`
+	Urls        []string `json:"urls,omitempty" gen:"list<string>"`
+	Volume      float64  `json:"volume,omitempty" gen:"float"`
+	AutoAnswer  bool     `json:"auto_answer,omitempty" gen:"bool"`
+	SayVoice    string   `json:"say_voice,omitempty" gen:"string"`
+	SayLanguage string   `json:"say_language,omitempty" gen:"string"`
+	SayGender   string   `json:"say_gender,omitempty" gen:"string"`
+	StatusUrl   string   `json:"status_url,omitempty" gen:"string"`
+	Loop        int      `json:"loop,omitempty" gen:"int"`
+}
+
 // ConnectConfig Dial a SIP URI or phone number.
 type ConnectConfig struct {
 	// From The caller ID to use when dialing the number.
@@ -1747,8 +1765,8 @@ type ConnectConfig struct {
 	WebrtcMedia any `json:"webrtc_media,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// SessionTimeout Time, in seconds, to set the SIP `Session-Expires` header in INVITE.
 	SessionTimeout any `json:"session_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	// Ringback Array of URIs to play as ringback tone. If not specified, plays audio from the provider.
-	Ringback []string `json:"ringback,omitempty" gen:"list<string>"`
+	// Ringback Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object.
+	Ringback any `json:"ringback,omitempty" gen:"union<list<string>,class:signalwire.core.swml_verbs_generated.RingbackConfig>"`
 	// Result Action to take based on the result of the call. This will run once the peer leg of the call has ended.
 	Result any `json:"result,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.ConnectSwitch,list<class:signalwire.core.swml_verbs_generated.CondParams>>"`
 	// Timeout Time, in seconds, to wait for the call to be answered.
@@ -1810,6 +1828,34 @@ type GotoConfig struct {
 type LiveTranscribeConfig struct {
 	// Action The action to perform during live transcription.
 	Action *TranscribeAction `json:"action,omitempty" gen:"class:signalwire.core.swml_verbs_generated.TranscribeAction"`
+}
+
+// AiSidecarConfig Start ai_sidecar mode — live_transcribe with an LLM/SWAIG/MCP loop on top.
+type AiSidecarConfig struct {
+	// Prompt Operator prompt — POM object, plain string, or {file: path}.
+	Prompt any `json:"prompt,omitempty" gen:"union<string,dict<string,any>>"`
+	// Lang BCP-47 conversation language. Required.
+	Lang string `json:"lang,omitempty" gen:"string"`
+	// Model LLM model for sidecar tick + close-time summaries.
+	Model string `json:"model,omitempty" gen:"string"`
+	// Direction Both legs are required for sidecar mode.
+	Direction []string `json:"direction,omitempty" gen:"list<string>"`
+	// CustomerRole Which leg is the customer (turn-end trigger source).
+	CustomerRole string `json:"customer_role,omitempty" gen:"string"`
+	// Url Webhook URL for transcribe events AND sidecar events.
+	Url string `json:"url,omitempty" gen:"string"`
+	// SWAIG SWAIG functions and MCP servers.
+	SWAIG *SWAIG `json:"SWAIG,omitempty" gen:"class:signalwire.core.swml_verbs_generated.SWAIG"`
+	// Permissions SWAIG permission overrides — pass-through to mod_openai.
+	Permissions map[string]any `json:"permissions,omitempty" gen:"dict<string,any>"`
+	// GlobalData Initial sidecar global_data.
+	GlobalData map[string]any `json:"global_data,omitempty" gen:"dict<string,any>"`
+	// Hints Speech-recognition hints biasing ASR toward specific terms.
+	Hints []string `json:"hints,omitempty" gen:"list<string>"`
+	// Params Tunable knobs (idle_timeout_ms, ai_summary, etc.) — pass-through to mod_openai which validates them strictly. New tunables only land here.
+	Params map[string]any `json:"params,omitempty" gen:"dict<string,any>"`
+	// Action Reserved for future runtime sub-actions.
+	Action map[string]any `json:"action,omitempty" gen:"dict<string,any>"`
 }
 
 // LiveTranslateConfig Start live translation of the call. The translation will be sent to the specified webhook URL.

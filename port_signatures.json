@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ a1b51127cbdcbca7d5eb8614b15ed9b6e3ca9c0e (go/ast walker)",
+  "generated_from": "signalwire-go @ b45fd6bf070d682a49c2c48d543c022ad5dcc657 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -7359,6 +7359,19 @@
             }
           }
         },
+        "AiSidecarConfig": {
+          "methods": {
+            "SWAIG": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.core.swml_verbs_generated.SWAIG"
+            }
+          }
+        },
         "AllOfProperty": {
           "methods": {
             "allOf": {
@@ -7688,6 +7701,15 @@
               ],
               "returns": "union\u003cclass:signalwire.core.swml_verbs_generated.ConnectSwitch,list\u003cclass:signalwire.core.swml_verbs_generated.CondParams\u003e\u003e"
             },
+            "ringback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003clist\u003cstring\u003e,class:signalwire.core.swml_verbs_generated.RingbackConfig\u003e"
+            },
             "serial": {
               "params": [
                 {
@@ -7818,6 +7840,15 @@
               ],
               "returns": "union\u003cclass:signalwire.core.swml_verbs_generated.ConnectSwitch,list\u003cclass:signalwire.core.swml_verbs_generated.CondParams\u003e\u003e"
             },
+            "ringback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003clist\u003cstring\u003e,class:signalwire.core.swml_verbs_generated.RingbackConfig\u003e"
+            },
             "session_timeout": {
               "params": [
                 {
@@ -7920,6 +7951,15 @@
                 }
               ],
               "returns": "union\u003cclass:signalwire.core.swml_verbs_generated.ConnectSwitch,list\u003cclass:signalwire.core.swml_verbs_generated.CondParams\u003e\u003e"
+            },
+            "ringback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003clist\u003cstring\u003e,class:signalwire.core.swml_verbs_generated.RingbackConfig\u003e"
             },
             "serial": {
               "params": [
@@ -8033,6 +8073,15 @@
               ],
               "returns": "union\u003cclass:signalwire.core.swml_verbs_generated.ConnectSwitch,list\u003cclass:signalwire.core.swml_verbs_generated.CondParams\u003e\u003e"
             },
+            "ringback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003clist\u003cstring\u003e,class:signalwire.core.swml_verbs_generated.RingbackConfig\u003e"
+            },
             "serial_parallel": {
               "params": [
                 {
@@ -8144,6 +8193,15 @@
                 }
               ],
               "returns": "union\u003cclass:signalwire.core.swml_verbs_generated.ConnectSwitch,list\u003cclass:signalwire.core.swml_verbs_generated.CondParams\u003e\u003e"
+            },
+            "ringback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003clist\u003cstring\u003e,class:signalwire.core.swml_verbs_generated.RingbackConfig\u003e"
             },
             "session_timeout": {
               "params": [
