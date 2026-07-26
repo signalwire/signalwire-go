@@ -120,6 +120,21 @@ jobs:
       - name: Install porting-sdk script dependencies
         run: python3 -m pip install --quiet -r ${{ github.workspace }}/porting-sdk/scripts/requirements.txt
 
+      # `go test ./...` below includes the TLS suites (TestTLS_RelayClient_WSS,
+      # TestTLS_RestClient_HTTPS), which SPAWN the shared python mocks — so this workflow
+      # needs the mock harnesses, not just the gate-script deps. Without them the tests die
+      # on `ModuleNotFoundError: No module named 'uvicorn'` and the matrix reds on
+      # macos-latest and windows-latest while the Linux `test` workflow (which DOES install
+      # them) stays green. uvicorn is not named here on purpose: each harness declares
+      # `uvicorn==0.50.0` in its own pyproject, so installing the harness is what pins it —
+      # a hand-added uvicorn line here would be a second, drifting declaration of the same
+      # dependency, which is the mistake the scripts/requirements.txt manifest exists to
+      # stop.
+      - name: Install Python test harnesses (mock_relay + mock_signalwire)
+        run: |
+          python3 -m pip install --quiet -e ${{ github.workspace }}/porting-sdk/test_harness/mock_relay
+          python3 -m pip install --quiet -e ${{ github.workspace }}/porting-sdk/test_harness/mock_signalwire
+
 
       # TEST (OS-sensitive suite #1): the module's tests on this OS. A
       # platform-specific construct without a build constraint breaks silently
