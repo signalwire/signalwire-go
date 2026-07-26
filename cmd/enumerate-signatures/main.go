@@ -1367,11 +1367,41 @@ type sigOracleMembers map[string]map[string]map[string]bool
 // so the port surfaces exactly the reference field set per class. Returns nil
 // silently if the oracle can't be located/parsed (degraded-env tolerance —
 // emission then no-ops, like the composition enrich's adjacency tolerance).
-func loadSigOracle(repoRoot string) sigOracleMembers {
-	path := filepath.Join(repoRoot, "..", "porting-sdk", "python_signatures.json")
+// resolvePortingSDK is the fail-loud oracle-checkout resolver, matching
+// cmd/enumerate-surface's: $PORTING_SDK, then the sibling layout, then the CI
+// in-repo layout, and an ERROR rather than a silent miss. See that copy for why
+// silence here produced a valid-looking snapshot missing ~200 members and a
+// surface-audit red that could not be reproduced locally.
+func resolvePortingSDK(repoRoot string) (string, error) {
+	candidates := []string{}
+	if env := os.Getenv("PORTING_SDK"); env != "" {
+		candidates = append(candidates, env)
+	}
+	candidates = append(candidates,
+		filepath.Join(repoRoot, "..", "porting-sdk"),
+		filepath.Join(repoRoot, "porting-sdk"),
+	)
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(c, "python_signatures.json")); err == nil {
+			return c, nil
+		}
+	}
+	return "", fmt.Errorf(
+		"porting-sdk not found (looked for python_signatures.json under %v); "+
+			"set PORTING_SDK or clone porting-sdk adjacent to this repo", candidates)
+}
+
+// loadSigOracle reads python_signatures.json and returns the per-class member
+// sets. FAILS LOUD (see resolvePortingSDK).
+func loadSigOracle(repoRoot string) (sigOracleMembers, error) {
+	psdk, err := resolvePortingSDK(repoRoot)
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(psdk, "python_signatures.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("read oracle %s: %w", path, err)
 	}
 	var parsed struct {
 		Modules map[string]struct {
@@ -1381,7 +1411,7 @@ func loadSigOracle(repoRoot string) sigOracleMembers {
 		} `json:"modules"`
 	}
 	if err := json.Unmarshal(raw, &parsed); err != nil {
-		return nil
+		return nil, fmt.Errorf("parse oracle %s: %w", path, err)
 	}
 	out := sigOracleMembers{}
 	for mod, mi := range parsed.Modules {
@@ -1395,7 +1425,7 @@ func loadSigOracle(repoRoot string) sigOracleMembers {
 		}
 		out[mod] = cm
 	}
-	return out
+	return out, nil
 }
 
 // goFieldToPython converts a Go exported struct field name to its
@@ -2568,9 +2598,18 @@ func run() error {
 	aliasFile := *aliasesPath
 	if aliasFile == "" {
 		// Autodetect: try sibling porting-sdk
-		candidates := []string{
-			filepath.Join(repoRoot, "..", "porting-sdk", "type_aliases.yaml"),
+		// Same three-layout resolution as resolvePortingSDK: $PORTING_SDK, the
+		// sibling dev layout, then the CI in-repo layout. This one already failed
+		// loud below, which is why it never produced a degraded snapshot the way the
+		// oracle loaders did — but it must know about all three layouts too.
+		candidates := []string{}
+		if env := os.Getenv("PORTING_SDK"); env != "" {
+			candidates = append(candidates, filepath.Join(env, "type_aliases.yaml"))
 		}
+		candidates = append(candidates,
+			filepath.Join(repoRoot, "..", "porting-sdk", "type_aliases.yaml"),
+			filepath.Join(repoRoot, "porting-sdk", "type_aliases.yaml"),
+		)
 		for _, c := range candidates {
 			if _, err := os.Stat(c); err == nil {
 				aliasFile = c
@@ -2603,7 +2642,10 @@ func run() error {
 		return fmt.Errorf("walk: %w", err)
 	}
 
-	sigOracle := loadSigOracle(repoRoot)
+	sigOracle, err := loadSigOracle(repoRoot)
+	if err != nil {
+		return fmt.Errorf("load reference signature oracle: %w", err)
+	}
 	doc, failures := build(structs, funcs, payloads, aliases, sigOracle)
 	doc.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s (go/ast walker)", goSHA(repoRoot))
 

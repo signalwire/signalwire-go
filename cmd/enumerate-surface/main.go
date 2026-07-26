@@ -575,17 +575,58 @@ type oracleModuleMembers map[string]map[string]map[string]bool
 // that same class, so it can never over-emit) and it self-retires: the gate tracks
 // the oracle instead of needing a hand edit each time the oracle grows.
 
+// resolvePortingSDK locates the adjacent porting-sdk checkout that carries the
+// reference oracle, trying in order:
+//
+//  1. $PORTING_SDK — the explicit override every CI workflow in the matrix sets
+//     (and the only reliable answer when the layout is not sibling-adjacent).
+//  2. <repoRoot>/../porting-sdk — the local development layout, where porting-sdk
+//     is a SIBLING of the port repo.
+//  3. <repoRoot>/porting-sdk — the CI layout, where actions/checkout places
+//     porting-sdk INSIDE the port repo (`path: porting-sdk`).
+//
+// It returns an error rather than "" when none resolves, and every caller must
+// FAIL on that error rather than degrade.
+//
+// That last point is the whole reason this function exists. The oracle loaders used
+// to hardcode layout (2) and return nil on any failure — so under the CI layout the
+// walk missed, the oracle loaded EMPTY, and every oracle-gated field simply did not
+// emit. The result was a valid-LOOKING port_surface.json that was missing ~200
+// members, a surface-audit red that could not be reproduced locally (where the
+// sibling DOES resolve), and a long hunt for a cause that was never in the port's
+// source. dotnet's lane hit the identical trap. A gate that cannot resolve its
+// oracle must say so, not quietly emit less.
+func resolvePortingSDK(repoRoot string) (string, error) {
+	candidates := []string{}
+	if env := os.Getenv("PORTING_SDK"); env != "" {
+		candidates = append(candidates, env)
+	}
+	candidates = append(candidates,
+		filepath.Join(repoRoot, "..", "porting-sdk"),
+		filepath.Join(repoRoot, "porting-sdk"),
+	)
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(c, "python_surface.json")); err == nil {
+			return c, nil
+		}
+	}
+	return "", fmt.Errorf(
+		"porting-sdk not found (looked for python_surface.json under %v); "+
+			"set PORTING_SDK or clone porting-sdk adjacent to this repo", candidates)
+}
+
 // loadOracleMembers reads python_surface.json and returns the per-class member
-// sets for the dataclassFieldModules only. Used to GATE field emission so the Go
-// port surfaces exactly the reference field set per class and never over-emits a
-// port-internal helper field. Returns nil (silently) if the oracle can't be
-// located/parsed — field emission then no-ops, exactly like enrichComposition's
-// degraded-env tolerance, so the enumerator never HARD-depends on adjacency.
-func loadOracleMembers(repoRoot string) oracleModuleMembers {
-	path := filepath.Join(repoRoot, "..", "porting-sdk", "python_surface.json")
+// sets. FAILS LOUD: an unresolvable or unparseable oracle is an error, never a
+// silent empty result (see resolvePortingSDK).
+func loadOracleMembers(repoRoot string) (oracleModuleMembers, error) {
+	psdk, err := resolvePortingSDK(repoRoot)
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(psdk, "python_surface.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("read oracle %s: %w", path, err)
 	}
 	var parsed struct {
 		Modules map[string]struct {
@@ -593,7 +634,7 @@ func loadOracleMembers(repoRoot string) oracleModuleMembers {
 		} `json:"modules"`
 	}
 	if err := json.Unmarshal(raw, &parsed); err != nil {
-		return nil
+		return nil, fmt.Errorf("parse oracle %s: %w", path, err)
 	}
 	out := oracleModuleMembers{}
 	for mod, mi := range parsed.Modules {
@@ -607,7 +648,7 @@ func loadOracleMembers(repoRoot string) oracleModuleMembers {
 		}
 		out[mod] = cm
 	}
-	return out
+	return out, nil
 }
 
 // --- Emission ---------------------------------------------------------------
@@ -1282,6 +1323,29 @@ func findRepoRoot(cwd string) (string, error) {
 	return "", fmt.Errorf("no go.mod found above %s", cwd)
 }
 
+// assertOracleGatedEmission verifies the oracle-gated field/accessor fold actually
+// emitted. ChatLog.messages is the canary: it is a plain public @dataclass field on
+// a class the walker always finds, so it is present whenever the fold ran and
+// absent whenever the oracle failed to load — exactly the signal that was silently
+// missing before.
+func assertOracleGatedEmission(snapshot *surface) error {
+	const (
+		mod    = "signalwire.ai_chat.client"
+		cls    = "ChatLog"
+		member = "messages"
+	)
+	for _, m := range snapshot.Modules[mod].Classes[cls] {
+		if m == member {
+			return nil
+		}
+	}
+	return fmt.Errorf(
+		"oracle-gated emission produced nothing: %s.%s.%s is missing from the "+
+			"snapshot. The reference oracle was resolved but its member sets did not "+
+			"reach the fold — do NOT commit this snapshot, it is missing every "+
+			"oracle-gated field and accessor", mod, cls, member)
+}
+
 func run() error {
 	var (
 		outputPath      = flag.String("output", "port_surface.json", "Write JSON to this path")
@@ -1309,12 +1373,26 @@ func run() error {
 
 	sha := goSHA(repoRoot)
 
-	oracle := loadOracleMembers(repoRoot)
+	oracle, err := loadOracleMembers(repoRoot)
+	if err != nil {
+		return fmt.Errorf("load reference oracle: %w", err)
+	}
 	snapshot := build(structs, funcs, oracle)
 	if err := enrichCompositionAttributes(&snapshot, repoRoot); err != nil {
 		return fmt.Errorf("enrich composition attributes: %w", err)
 	}
 	snapshot.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s", sha)
+
+	// Self-check: assert an ORACLE-GATED member actually made it into the snapshot.
+	//
+	// resolvePortingSDK now fails loud, so an unreachable oracle can no longer
+	// produce a quietly-degraded snapshot. This is the belt to that braces: it
+	// catches any FUTURE way the gating could silently no-op (a renamed oracle key,
+	// a reshaped surface JSON, a fold that stops firing) at the moment of emission
+	// rather than as an unreproducible parity red days later.
+	if err := assertOracleGatedEmission(&snapshot); err != nil {
+		return err
+	}
 
 	rendered, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
