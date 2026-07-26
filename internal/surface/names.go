@@ -45,7 +45,7 @@ func GoNameToSnake(s string) string {
 //   - WIRE KEYS that are genuinely camelCase in the reference and must NOT be
 //     snake-cased. `numberedBullets` round-trips through the POM dict verbatim
 //     (pom.py:345,361,371), so converting it would break the wire. Only four such
-//     members exist in the whole oracle — this one plus JSON-Schema's
+//     members exist in the whole reference surface — this one plus JSON-Schema's
 //     allOf/anyOf/oneOf.
 var nameCorrections = map[string]string{
 	"URLs": "urls",
