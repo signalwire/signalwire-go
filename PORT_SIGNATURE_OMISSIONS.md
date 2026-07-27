@@ -160,10 +160,6 @@ signalwire.core.agent.tools.registry.ToolRegistry.define_tool: Go's ToolRegistry
 signalwire.core.agent.tools.registry.ToolRegistry.get_function: Go's ToolRegistry returns the port's ``*ToolDefinition`` value type instead of Python's union of SWAIGFunction/dict (Python's untyped registry vs Go's typed one)
 signalwire.core.agent.tools.registry.ToolRegistry.get_all_functions: Go's ToolRegistry returns ``map[string]*ToolDefinition`` instead of Python's union of SWAIGFunction/dict (Python's untyped registry vs Go's typed one)
 
-## Idiom: Go typed-result returns vs Python serialized/dynamic returns
-
-signalwire.core.skill_base.SkillBase.logger: type-class divergence; Go's Logger field is typed as *logging.Logger; Python returns the result of get_logger() helper (same role, different declared type)
-
 ## Idiom: Go typed options vs Python kwargs / typed signature divergences
 
 signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: Go's GetBasicAuthCredentials returns the resolved auth string only (no include_source kwarg); Python supports an include_source flag that causes it to return a (user, pass, source) tuple
@@ -378,20 +374,6 @@ signalwire.web.web_service.WebService.app: Python @property returning the FastAP
 signalwire.web.web_service.WebService.security: Go WebService.Security() accessor exists but the reference records it as a @property with a distinct signature; not part of the compared surface
 
 ## Surface-reconcile signature lockstep (2026-07 cleanup: removed stale surface omissions)
-signalwire.core.agent.prompt.manager.PromptManager.logger: Go PromptManager exposes a Logger field; the reference records no logger signature
-signalwire.core.agent.tools.registry.ToolRegistry.logger: Go ToolRegistry exposes a Logger field; the reference records no logger signature
-signalwire.core.mixins.auth_mixin.AuthMixin.logger: Go exposes a Logger field; the reference records no logger signature
-signalwire.core.mixins.state_mixin.StateMixin.logger: Go exposes a Logger field; the reference records no logger signature
-signalwire.core.swml_builder.SWMLBuilder.logger: Go swml.Service exposes a Logger field projected onto SWMLBuilder; reference records no logger signature
-signalwire.core.swml_handler.VerbHandlerRegistry.logger: Go swml.Service exposes a Logger field projected onto VerbHandlerRegistry; reference records no logger signature
-signalwire.skills.registry.SkillRegistry.logger: reference records a SkillRegistry.logger the Go instance registry does not expose (package-level registration idiom)
-signalwire.core.agent_base.AgentBase.logger: Go AgentBase exposes a Logger field (composition attribute) projected onto AgentBase; the reference records no logger signature. Same Logger-field idiom as the PromptManager/ToolRegistry/mixin entries above — surfaced when the AgentBase mixin-flatten fold (porting-sdk 8268da7) projected the composition attribute onto the flattened classes.
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.logger: Go exposes a Logger field (composition attribute) projected onto AIConfigMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
-signalwire.core.mixins.prompt_mixin.PromptMixin.logger: Go exposes a Logger field (composition attribute) projected onto PromptMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
-signalwire.core.mixins.skill_mixin.SkillMixin.logger: Go exposes a Logger field (composition attribute) projected onto SkillMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
-signalwire.core.mixins.tool_mixin.ToolMixin.logger: Go exposes a Logger field (composition attribute) projected onto ToolMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
-signalwire.core.mixins.web_mixin.WebMixin.logger: Go exposes a Logger field (composition attribute) projected onto WebMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
-signalwire.core.swml_service.SWMLService.logger: Go SWMLService exposes a Logger field (composition attribute); the reference records no logger signature. Same Logger-field idiom as the SWMLBuilder/VerbHandlerRegistry entries above.
 signalwire.agent_server.AgentServer.app: Python @property returning the FastAPI app; Go AgentServer has no framework app handle (not surfaced). Same idiom as the WebService.app entry above.
 signalwire.rest._request_options.RequestOptions.retry_on_status: go-set-idiom — Go models the retry-on-status status set as RetryOnStatus map[int]bool (a SET: O(1) membership, the natural Go idiom), whereas the reference types retry_on_status as list[int] | None. The MEMBER is present (folded in the surface oracle); only the container SHAPE diverges (set-as-map vs list), so there is no faithful reference-shaped signature to compare. Same functional surface (the set of statuses that trigger a retry).
 signalwire.core.function_result.FunctionResult.create_payment_action: Go exposes swaig.CreatePaymentAction as a package helper (staticmethod placement); no instance method signature to compare

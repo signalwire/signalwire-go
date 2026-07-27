@@ -304,9 +304,6 @@ swml.NewAIVerbHandler: Go factory constructor for a port-only struct; Python equ
 swml.NewDocument: Go factory constructor for a port-only struct; Python equivalent does not exist
 swml.ValidateURL: Go-only public function; no direct Python counterpart
 
-# --- Go-only public Logger field auto-projected onto each struct that embeds it ---
-
-
 # --- Go-only fields on REST base resources (Python uses dynamic attribute lookup) ---
 signalwire.rest._base.BaseResource.http: Go's namespaces.Resource exposes a public ``http`` HTTPClient field; Python uses dynamic attribute lookup via __init__
 

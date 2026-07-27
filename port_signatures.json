@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ b45fd6bf070d682a49c2c48d543c022ad5dcc657 (go/ast walker)",
+  "generated_from": "signalwire-go @ 083f9db9a1f66e569e781cfe9664cf5cb823defb (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -865,15 +865,6 @@
               ],
               "returns": "string"
             },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
-            },
             "prompt_add_section": {
               "params": [
                 {
@@ -1079,15 +1070,6 @@
                 }
               ],
               "returns": "bool"
-            },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
             },
             "register_swaig_function": {
               "params": [
@@ -1348,15 +1330,6 @@
                 }
               ],
               "returns": "string"
-            },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
             },
             "native_functions": {
               "params": [
@@ -3924,15 +3897,6 @@
               ],
               "returns": "dict\u003cstring,any\u003e"
             },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
-            },
             "set_function_includes": {
               "params": [
                 {
@@ -4146,15 +4110,6 @@
               ],
               "returns": "tuple\u003cstring,string\u003e"
             },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
-            },
             "validate_basic_auth": {
               "params": [
                 {
@@ -4217,15 +4172,6 @@
                 }
               ],
               "returns": "any"
-            },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
             },
             "prompt_add_section": {
               "params": [
@@ -4424,15 +4370,6 @@
               ],
               "returns": "list\u003cstring\u003e"
             },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
-            },
             "remove_skill": {
               "params": [
                 {
@@ -4455,15 +4392,6 @@
       "classes": {
         "StateMixin": {
           "methods": {
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
-            },
             "validate_tool_token": {
               "params": [
                 {
@@ -4518,15 +4446,6 @@
                 }
               ],
               "returns": "list\u003cclass:signalwire.core.swaig_function.SWAIGFunction\u003e"
-            },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
             },
             "on_function_call": {
               "params": [
@@ -4591,15 +4510,6 @@
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
-            },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
             },
             "manual_set_proxy_url": {
               "params": [
@@ -5536,15 +5446,6 @@
               ],
               "returns": "dict\u003cstring,any\u003e"
             },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
-            },
             "params": {
               "params": [
                 {
@@ -5926,15 +5827,6 @@
               ],
               "returns": "any"
             },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
-            },
             "play": {
               "params": [
                 {
@@ -6174,15 +6066,6 @@
               ],
               "returns": "bool"
             },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
-            },
             "register_handler": {
               "params": [
                 {
@@ -6349,15 +6232,6 @@
                 }
               ],
               "returns": "string"
-            },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:logging.Logger"
             },
             "manual_set_proxy_url": {
               "params": [
@@ -24209,10 +24083,6 @@
         "agent_id": {
           "type": "string",
           "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
-          "required": false
         }
       }
     },
@@ -24220,10 +24090,6 @@
       "params": {
         "agent_id": {
           "type": "string",
-          "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
           "required": false
         }
       }
@@ -24409,10 +24275,6 @@
         "agent_id": {
           "type": "string",
           "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
-          "required": false
         }
       }
     },
@@ -24420,10 +24282,6 @@
       "params": {
         "agent_id": {
           "type": "string",
-          "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
           "required": false
         }
       }
@@ -24433,10 +24291,6 @@
         "agent_id": {
           "type": "string",
           "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
-          "required": false
         }
       }
     },
@@ -24444,10 +24298,6 @@
       "params": {
         "agent_id": {
           "type": "string",
-          "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
           "required": false
         }
       }
@@ -24457,10 +24307,6 @@
         "agent_id": {
           "type": "string",
           "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
-          "required": false
         }
       }
     },
@@ -24469,10 +24315,6 @@
         "agent_id": {
           "type": "string",
           "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
-          "required": false
         }
       }
     },
@@ -24480,10 +24322,6 @@
       "params": {
         "agent_id": {
           "type": "string",
-          "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
           "required": false
         }
       }
@@ -24566,10 +24404,6 @@
     },
     "signalwire.core.skill_base.SkillBase": {
       "params": {
-        "logger": {
-          "type": "class:logging.Logger",
-          "required": false
-        },
         "params": {
           "type": "dict\u003cstring,any\u003e",
           "required": false
@@ -24662,10 +24496,6 @@
           "type": "string",
           "required": false
         },
-        "logger": {
-          "type": "class:logging.Logger",
-          "required": false
-        },
         "name": {
           "type": "string",
           "required": false
@@ -24688,10 +24518,6 @@
         },
         "host": {
           "type": "string",
-          "required": false
-        },
-        "logger": {
-          "type": "class:logging.Logger",
           "required": false
         },
         "name": {

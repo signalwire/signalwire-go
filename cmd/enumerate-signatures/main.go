@@ -641,6 +641,26 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 							continue
 						}
 						typeStr := exprString(f.Type)
+						if isLoggerHandleType(typeStr) {
+							// Owner ruling 2026-07-24 (ALLOWLIST_DISCIPLINE.md §8):
+							// logging is a MODULE-LEVEL capability a port may reach
+							// however its language does. The per-instance logger
+							// handle is Python's structlog idiom leaking into the
+							// enumerated surface, and is NOT contract — the reference
+							// suppresses it at porting-sdk/scripts/enumerate_python.py
+							// (_LOGGER_FACTORY_RETURN). Go embeds a `Logger
+							// *logging.Logger` in agent/skills/swml, so field
+							// projection promoted it onto 14 classes and each one
+							// needed a dead PORT_SIGNATURE_OMISSIONS entry. Fold it
+							// here instead, keyed on the logging-handle TYPE (not a
+							// member-name list) so it cannot drift as structs are
+							// added or renamed — mirroring the reference's return-type
+							// rule. The capability stays signalled by the 5
+							// module-level free functions the oracle records
+							// (get_logger / configure_logging / get_execution_mode /
+							// reset_logging_configuration / strip_control_chars).
+							continue
+						}
 						for _, n := range f.Names {
 							if !ast.IsExported(n.Name) {
 								continue
@@ -731,6 +751,24 @@ func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
 		}
 	}
 	return sig
+}
+
+// loggerHandleTypes are the Go type spellings of a per-instance logging handle.
+// Keyed on the TYPE, not the field name, so the exclusion cannot drift as structs
+// are added or renamed (a field named `Logger` of some OTHER type is still real
+// surface, and a logging handle stored under a different field name is still
+// excluded). See isLoggerHandleType.
+var loggerHandleTypes = map[string]bool{
+	"*logging.Logger": true,
+	"logging.Logger":  true,
+}
+
+// isLoggerHandleType reports whether a struct field's type is the SDK's logging
+// handle. Per the owner ruling of 2026-07-24 (ALLOWLIST_DISCIPLINE.md §8) logging
+// is a module-level capability, so the per-instance handle is idiom rather than
+// contract and is folded out of the enumerated surface on both sides.
+func isLoggerHandleType(typeStr string) bool {
+	return loggerHandleTypes[strings.TrimSpace(typeStr)]
 }
 
 // exprString renders an ast.Expr as the canonical Go source string.
