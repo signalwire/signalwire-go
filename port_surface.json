@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 43049a62c41b7a95ac7d20b4eb54703dd25933b1",
+  "generated_from": "signalwire-go @ e57337ea3d95cd1051a43a9ec471eba24411d1fc",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1654,8 +1654,7 @@
     "signalwire.rest._base": {
       "classes": {
         "BaseResource": [
-          "__init__",
-          "http"
+          "__init__"
         ],
         "CrudResource": [
           "create",
@@ -1722,7 +1721,29 @@
     "signalwire.rest.client": {
       "classes": {
         "RestClient": [
-          "__init__"
+          "__init__",
+          "addresses",
+          "calling",
+          "chat",
+          "datasphere",
+          "fabric",
+          "imported_numbers",
+          "logs",
+          "lookup",
+          "messages",
+          "mfa",
+          "number_groups",
+          "phone_numbers",
+          "project",
+          "projects",
+          "pubsub",
+          "queues",
+          "recordings",
+          "registry",
+          "short_codes",
+          "sip_profile",
+          "verified_callers",
+          "video"
         ]
       },
       "functions": []

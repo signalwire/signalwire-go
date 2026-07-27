@@ -90,6 +90,39 @@ func GoNameToPython(s string) string {
 	return GoNameToSnake(s)
 }
 
+// promotedFieldCarriers are the UNEXPORTED struct types whose exported fields Go
+// promotes onto an exported embedder, making those FIELDS public API even though
+// the carrier TYPE is unexported.
+//
+// `_GeneratedResourceTree` is the only one. `rest.RestClient` embeds it, and its
+// 22 fields (`Fabric`, `Calling`, `Video`, …) are the client's namespace
+// accessors — the exact members the reference exposes as `client.fabric`,
+// `client.calling`, `client.video`. The leading underscore keeps the tree TYPE
+// off the public surface (and is required: Go forbids embedding a cross-package
+// underscore-unexported type, which is why the tree lives in package `rest`); it
+// does not make the promoted fields private, and `client.Fabric` resolves
+// through the embed exactly as the reference's `client.fabric` does.
+//
+// Both enumerators skip unexported types when walking type declarations, so
+// without this exemption the tree is never recorded, the embed resolves to
+// nothing, and all 22 accessors read as "missing-port" on BOTH the signature and
+// surface axes — a blind spot in the walkers, not an absent capability (the
+// accessors are proven live by the mock-backed TestResourceTreeAccessors_*
+// tests in pkg/rest/namespaces).
+//
+// Shared here, alongside the name-fold table, for the reason that file documents:
+// the two enumerators previously each carried their own copy of a fold table and
+// DIVERGED, making the two gates mutually unsatisfiable. One table means an
+// exemption cannot land in half the pipeline.
+var promotedFieldCarriers = map[string]bool{
+	"_GeneratedResourceTree": true,
+}
+
+// IsPromotedFieldCarrier reports whether an unexported type must still be walked
+// because an exported struct embeds it and promotes its fields onto the public
+// surface. See promotedFieldCarriers.
+func IsPromotedFieldCarrier(name string) bool { return promotedFieldCarriers[name] }
+
 func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
 func isLower(r rune) bool { return r >= 'a' && r <= 'z' }
 func toLowerRune(r rune) rune {

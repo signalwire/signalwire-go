@@ -566,7 +566,7 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 			}
 			for _, spec := range d.Specs {
 				ts, ok := spec.(*ast.TypeSpec)
-				if !ok || !ast.IsExported(ts.Name.Name) {
+				if !ok || !(ast.IsExported(ts.Name.Name) || isPromotedFieldCarrier(ts.Name.Name)) {
 					continue
 				}
 				st, isStruct := ts.Type.(*ast.StructType)
@@ -771,6 +771,36 @@ func isLoggerHandleType(typeStr string) bool {
 	return loggerHandleTypes[strings.TrimSpace(typeStr)]
 }
 
+// transportHandleTypes are the Go type spellings of the REST TRANSPORT handle a
+// resource holds so it can issue requests. Keyed on the TYPE (like
+// loggerHandleTypes) so the exclusion cannot drift as resources are added.
+//
+// Every generated REST resource embeds `Resource{HTTP HTTPClient; Base string}`,
+// and Go promotes `HTTP` onto all ~90 of them. It is NOT caller surface: the
+// reference stores the same handle as the PRIVATE `_client` attribute, which the
+// oracle does not record. Go has to export it only because the resources and the
+// `rest` package that builds the adapter live in different packages — a
+// visibility constraint, not an API decision. Projecting it would manufacture a
+// bogus `http` accessor on every resource class. Same rule as the existing
+// context.Context / http.Header carve-outs in the accessor projection: a
+// plumbing-typed field is not a sub-resource accessor.
+var transportHandleTypes = map[string]bool{
+	"HTTPClient":            true,
+	"*HTTPClient":           true,
+	"namespaces.HTTPClient": true,
+}
+
+// isTransportHandleType reports whether a struct field's type is the REST
+// transport handle. See transportHandleTypes.
+func isTransportHandleType(typeStr string) bool {
+	return transportHandleTypes[strings.TrimSpace(typeStr)]
+}
+
+// isPromotedFieldCarrier delegates to the SHARED table in internal/surface, so
+// the signature and surface enumerators cannot disagree about which unexported
+// carriers must be walked. See surfacepkg.IsPromotedFieldCarrier.
+func isPromotedFieldCarrier(name string) bool { return surfacepkg.IsPromotedFieldCarrier(name) }
+
 // exprString renders an ast.Expr as the canonical Go source string.
 func exprString(e ast.Expr) string {
 	switch t := e.(type) {
@@ -874,6 +904,52 @@ func embeddedTypeNames(st *ast.StructType) []string {
 			out = append(out, name)
 		}
 	}
+	return out
+}
+
+// promotedFieldSet returns every exported FIELD reachable on facts — its own
+// plus the ones Go promotes through the anonymous-embed chain — keyed by Go
+// field name. An own field always wins over a promoted one of the same name
+// (that is Go's own shallower-depth selector rule).
+//
+// Field promotion is why `RestClient` needed this: the hand client declares NO
+// exported fields of its own. All 22 namespace accessors (`Fabric`, `Calling`,
+// `Video`, …) live on the generated `_GeneratedResourceTree` it embeds, and Go
+// promotes them so `client.Fabric.AIAgents.List(...)` resolves on the client
+// exactly as the reference's `client.fabric.ai_agents.list()` does. A walker
+// that reads only own fields sees zero of them and reports all 22 as
+// "missing-port" — a blind spot in the enumerator, not an absent capability
+// (the accessors are proven live by the mock-backed
+// TestResourceTreeAccessors_* tests). This mirrors the promoted-field walk the
+// construction collector already does (collectStructLiteralFields) and the
+// reference enumerator's own `_wired_base_attributes` lift.
+func promotedFieldSet(structs map[string]*goStructFacts, facts *goStructFacts) map[string]*goSignature {
+	out := map[string]*goSignature{}
+	seen := map[string]bool{}
+	var walk func(f *goStructFacts, depth int)
+	walk = func(f *goStructFacts, depth int) {
+		if f == nil || depth > 4 || seen[f.pkg+"."+f.name] {
+			return
+		}
+		seen[f.pkg+"."+f.name] = true
+		for name, sig := range f.methods {
+			if !sig.isField {
+				continue
+			}
+			// Shallower depth wins: a field already recorded came from this
+			// struct or a nearer embed and shadows the deeper one.
+			if _, already := out[name]; already {
+				continue
+			}
+			out[name] = sig
+		}
+		for _, embed := range f.embeds {
+			if base, ok := structs[f.pkg+"."+embed]; ok {
+				walk(base, depth+1)
+			}
+		}
+	}
+	walk(facts, 0)
 	return out
 }
 
@@ -1981,7 +2057,11 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 			// as zero-arg accessor methods. Mirrors the Python reference
 			// adapter's instance-attribute projection for the same
 			// composition pattern (RestClient.fabric, RestClient.calling).
-			for goField, fSig := range facts.methods {
+			//
+			// The field set is the PROMOTED one (own + embed chain), because Go
+			// expresses "this client exposes these namespaces" by embedding the
+			// generated resource tree — see promotedFieldSet.
+			for goField, fSig := range promotedFieldSet(structs, facts) {
 				if !fSig.isField {
 					continue
 				}
@@ -2004,6 +2084,15 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 				// type fold would misreport its return); the reference abort_signal
 				// accessor is a signature-only idiom divergence
 				// (PORT_SIGNATURE_OMISSIONS.md).
+				// The REST transport handle (`Resource.HTTP`) is plumbing, not a
+				// sub-resource accessor — the reference keeps the same handle
+				// private as `_client`. Go promotes it onto every generated
+				// resource through the embedded `Resource` base, so it must be
+				// filtered here or it manufactures a bogus `http` accessor on
+				// every resource class. See isTransportHandleType.
+				if isTransportHandleType(fSig.returns) {
+					continue
+				}
 				if ret == "context.Context" {
 					continue
 				}

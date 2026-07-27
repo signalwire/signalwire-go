@@ -316,7 +316,7 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 			}
 			for _, spec := range d.Specs {
 				ts, ok := spec.(*ast.TypeSpec)
-				if !ok || !ast.IsExported(ts.Name.Name) {
+				if !ok || !(ast.IsExported(ts.Name.Name) || isPromotedFieldCarrier(ts.Name.Name)) {
 					continue
 				}
 				st, isStruct := ts.Type.(*ast.StructType)
@@ -499,6 +499,11 @@ func recvTypeName(expr ast.Expr) string {
 // duplicated (the two copies had already diverged on `FAQs`).
 func goNameToPython(s string) string { return surfacepkg.GoNameToPython(s) }
 
+// isPromotedFieldCarrier delegates to the SHARED table in internal/surface, so
+// the surface and signature enumerators cannot disagree about which unexported
+// carriers must be walked. See surfacepkg.IsPromotedFieldCarrier.
+func isPromotedFieldCarrier(name string) bool { return surfacepkg.IsPromotedFieldCarrier(name) }
+
 // oracleModuleMembers is the parse of python_surface.json restricted to the
 // per-class member sets emitDataclassFields gates on. Shape:
 // module -> class -> set(reference member names).
@@ -659,6 +664,42 @@ func skillLeafToGoMethod(leaf string) string {
 	panic(fmt.Sprintf("enumerate-surface: no Go member mapping for skill contract leaf %q", leaf))
 }
 
+// promotedFieldNames returns every exported FIELD name reachable on facts — its
+// own plus the ones Go promotes through the anonymous-embed chain.
+//
+// `rest.RestClient` is why this exists: it declares NO exported fields of its
+// own. All 22 namespace accessors (`Fabric`, `Calling`, `Video`, …) live on the
+// generated `_GeneratedResourceTree` it embeds, and Go promotes them so
+// `client.Fabric` resolves on the client exactly as the reference's
+// `client.fabric` does. A walker that reads only own fields sees none of them
+// and reports all 22 as missing — a blind spot in the walker, not an absent
+// capability (proven live by the mock-backed TestResourceTreeAccessors_* tests).
+//
+// Emission stays ORACLE-GATED at the call site, so widening the input set can
+// only ever surface names the reference already records on this class; it
+// cannot invent surface.
+func promotedFieldNames(structs map[string]*goStructFacts, facts *goStructFacts) map[string]struct{} {
+	out := map[string]struct{}{}
+	seen := map[string]bool{}
+	var walk func(f *goStructFacts, depth int)
+	walk = func(f *goStructFacts, depth int) {
+		if f == nil || depth > 4 || seen[f.pkg+"."+f.name] {
+			return
+		}
+		seen[f.pkg+"."+f.name] = true
+		for name := range f.fields {
+			out[name] = struct{}{}
+		}
+		for _, embed := range f.embeds {
+			if base, ok := structs[f.pkg+"."+embed]; ok {
+				walk(base, depth+1)
+			}
+		}
+	}
+	walk(facts, 0)
+	return out
+}
+
 // promotedMethodExists reports whether goMethod is declared on one of facts'
 // embedded base structs (transitively). Go promotes an embedded field's methods
 // onto the embedder, so a StructTable entry that lists e.g. `Create` for a
@@ -790,7 +831,10 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 			// Gating on the oracle guarantees we emit exactly the reference set
 			// and never a port-internal helper field.
 			if clsMembers, ok := oracle[target.Module][target.Class]; ok {
-				for goField := range facts.fields {
+				// PROMOTED field set (own + embed chain): Go expresses "this
+				// client exposes these namespaces" by embedding the generated
+				// resource tree. See promotedFieldNames.
+				for goField := range promotedFieldNames(structs, facts) {
 					snake := goNameToPython(goField)
 					if clsMembers[snake] {
 						addMethod(target.Module, target.Class, snake)
@@ -988,6 +1032,14 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 		if _, ok := structTable[key]; ok {
 			continue
 		}
+		// An UNEXPORTED type is not public surface and so can never be a port
+		// ADDITION. The type walk records unexported promoted-field carriers
+		// (``_GeneratedResourceTree``) so the embed chain resolves; the carrier
+		// itself stays off the surface — only the fields it promotes onto the
+		// exported embedder are public, and those are emitted on that embedder.
+		if !ast.IsExported(facts.name) {
+			continue
+		}
 		// §5/§4a: generated-REST params structs are call-shape plumbing, not oracle
 		// surface — never list them as SURFACE-DIFF additions.
 		if facts.paramsPlumbing {
@@ -1078,8 +1130,17 @@ func buildGoSurface(structs map[string]*goStructFacts, funcs map[string]struct{}
 	// a member.  Unexported or port-only symbols are included — ``audit_docs.py``
 	// only cares that *some* reference resolves, not that the inventory
 	// matches a reference layout.
+	//
+	// The export filter is EXPLICIT rather than implied by what ``structs``
+	// happens to hold: the type walk also records unexported promoted-field
+	// carriers (``_GeneratedResourceTree``) so the embed chain resolves, and
+	// those are not identifiers any Go doc or example can name. Without this
+	// they would leak into the doc-resolution inventory as bogus classes.
 	for key, facts := range structs {
 		_ = key
+		if !ast.IsExported(facts.name) {
+			continue
+		}
 		inv := ensure(facts.pkg)
 		methods, present := inv.Classes[facts.name]
 		if !present || methods == nil {
