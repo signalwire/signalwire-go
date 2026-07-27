@@ -63,6 +63,14 @@ type SpiderSkill struct {
 	userAgent          string
 	headers            map[string]string
 
+	// removeXPaths are the XPath expressions for page elements stripped before
+	// text extraction (chrome that is not content: scripts, styling, navigation,
+	// header/footer, sidebars, noscript fallbacks). PREFILLED at construction
+	// with the reference's default set, and readable/mutable by the caller via
+	// RemoveXPaths / SetRemoveXPaths — it is a configuration VALUE, not internal
+	// state. Mirrors the reference's SpiderSkill.remove_xpaths attribute.
+	removeXPaths []string
+
 	// LRU-style bounded cache (map + ordered keys via slice)
 	cacheMu    sync.Mutex
 	cache      map[string][]byte
@@ -70,6 +78,19 @@ type SpiderSkill struct {
 }
 
 const cacheMaxSize = 100
+
+// defaultRemoveXPaths is the prefilled set of XPath expressions for non-content
+// page elements removed before text extraction. Byte-for-byte the reference's
+// default list (signalwire/skills/spider/skill.py) and in the same order.
+var defaultRemoveXPaths = []string{
+	"//script",
+	"//style",
+	"//nav",
+	"//header",
+	"//footer",
+	"//aside",
+	"//noscript",
+}
 
 // NewSpider creates a new SpiderSkill.
 func NewSpider(params map[string]any) skills.SkillBase {
@@ -80,7 +101,22 @@ func NewSpider(params map[string]any) skills.SkillBase {
 			SkillVer:  "1.0.0",
 			Params:    params,
 		},
+		removeXPaths: append([]string(nil), defaultRemoveXPaths...),
 	}
+}
+
+// RemoveXPaths returns the XPath expressions for the page elements stripped
+// before text extraction. Prefilled with the reference default set; the returned
+// slice is a copy, so mutating it does not affect the skill. Mirrors reading the
+// reference's SpiderSkill.remove_xpaths attribute.
+func (s *SpiderSkill) RemoveXPaths() []string {
+	return append([]string(nil), s.removeXPaths...)
+}
+
+// SetRemoveXPaths replaces the XPath expressions stripped before text
+// extraction. Mirrors assigning the reference's remove_xpaths attribute.
+func (s *SpiderSkill) SetRemoveXPaths(xpaths []string) {
+	s.removeXPaths = append([]string(nil), xpaths...)
 }
 
 func (s *SpiderSkill) SupportsMultipleInstances() bool { return true }
@@ -362,8 +398,11 @@ func (s *SpiderSkill) fetchURL(urlStr string) ([]byte, error) {
 }
 
 // extractText strips HTML and optionally cleans whitespace, then truncates.
+// Non-content elements matching removeXPaths are dropped first, so navigation,
+// header/footer and sidebar chrome never reaches the extracted text (the
+// reference does the same pass in _extract_text before text_content()).
 func (s *SpiderSkill) extractText(body []byte) string {
-	content := stripHTMLTags(string(body))
+	content := stripHTMLTags(applyRemoveXPaths(body, s.removeXPaths))
 	if s.cleanText {
 		content = whitespaceRE.ReplaceAllString(content, " ")
 		content = strings.TrimSpace(content)
@@ -704,6 +743,47 @@ func extractLinks(body, baseURL string) []string {
 		}
 	}
 	return links
+}
+
+// applyRemoveXPaths parses body as HTML, detaches every node matched by one of
+// the xpaths, and re-renders the remaining tree. This is the Go equivalent of the
+// reference's `for xpath in self.remove_xpaths: for elem in tree.xpath(xpath):
+// elem.drop_tree()` pass, and runs BEFORE tag stripping so a removed element's
+// text is discarded along with its markup.
+//
+// Degrades to the raw body when the document does not parse or no xpath matches —
+// stripHTMLTags still removes script/style, so extraction never regresses below
+// the previous behavior on malformed input.
+func applyRemoveXPaths(body []byte, xpaths []string) string {
+	if len(xpaths) == 0 {
+		return string(body)
+	}
+	root, err := htmlquery.Parse(bytes.NewReader(body))
+	if err != nil || root == nil {
+		return string(body)
+	}
+	removed := false
+	for _, xp := range xpaths {
+		nodes, err := htmlquery.QueryAll(root, xp)
+		if err != nil {
+			continue // an invalid caller-supplied expression skips, never panics
+		}
+		for _, n := range nodes {
+			if n.Parent == nil {
+				continue // already detached (nested match) or the root itself
+			}
+			n.Parent.RemoveChild(n)
+			removed = true
+		}
+	}
+	if !removed {
+		return string(body)
+	}
+	var buf bytes.Buffer
+	if err := html.Render(&buf, root); err != nil {
+		return string(body)
+	}
+	return buf.String()
 }
 
 // stripHTMLTags removes HTML tags from a string (simple regex-based approach).

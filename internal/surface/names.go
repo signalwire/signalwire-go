@@ -36,7 +36,7 @@ func GoNameToSnake(s string) string {
 }
 
 // nameCorrections are the identifiers GoNameToSnake gets wrong, and the canonical
-// reference spelling for each. Three kinds:
+// reference spelling for each. Four kinds:
 //
 //   - INITIALISM PLURALS — GoNameToSnake breaks at the internal uppercase-run
 //     boundary, so `URLs` becomes "ur_ls" and `FAQs` becomes "fa_qs".
@@ -47,10 +47,22 @@ func GoNameToSnake(s string) string {
 //     (pom.py:345,361,371), so converting it would break the wire. Only four such
 //     members exist in the whole reference surface — this one plus JSON-Schema's
 //     allOf/anyOf/oneOf.
+//   - PROTOCOL-SPELLING RENAMES — the reference names a member after the legacy
+//     protocol ("ssl") where Go names it after the current one ("TLS"). These are
+//     the SAME caller-observable attribute under two spellings, so they are folded
+//     HERE (the adapter rename table), never carried as an omission. Renaming the
+//     Go member instead would be a gratuitous break of an established public API
+//     to paper over a pure naming difference. Each is unambiguous: `TLSEnabled` is
+//     declared exactly once in the SDK (pkg/swml/service.go, *Service).
 var nameCorrections = map[string]string{
 	"URLs": "urls",
 	"FAQs": "faqs",
 	"MFA":  "mfa",
+
+	// swml.Service TLS accessors <-> reference SWMLService.ssl_* attributes.
+	"TLSEnabled":  "ssl_enabled",
+	"TLSCertPath": "ssl_cert_path",
+	"TLSKeyPath":  "ssl_key_path",
 
 	"PubSub":               "pubsub",
 	"FreeSwitchConnectors": "freeswitch_connectors",
@@ -61,6 +73,10 @@ var nameCorrections = map[string]string{
 	"CXMLScripts":          "cxml_scripts",
 	"CXMLApplications":     "cxml_applications",
 	"CXMLWebhooks":         "cxml_webhooks",
+
+	// `XPath` is one word in the reference's spelling (`remove_xpaths`), but
+	// GoNameToSnake breaks at the X->P uppercase-run boundary ("remove_x_paths").
+	"RemoveXPaths": "remove_xpaths",
 
 	"NumberedBullets": "numberedBullets",
 }

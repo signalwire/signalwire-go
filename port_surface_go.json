@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ ba245e14931421910f54992ee577ee7eed79d672",
+  "generated_from": "signalwire-go (go-native) @ f6b5348312acba646b1a3be3979937b54141175a",
   "modules": {
     "agent": {
       "classes": {
@@ -1660,6 +1660,8 @@
           "GetInstanceKey",
           "GetParameterSchema",
           "RegisterTools",
+          "RemoveXPaths",
+          "SetRemoveXPaths",
           "Setup",
           "SupportsMultipleInstances"
         ]
@@ -1890,7 +1892,9 @@
           "StopTap",
           "SwaigPreDispatch",
           "Switch",
+          "TLSCertPath",
           "TLSEnabled",
+          "TLSKeyPath",
           "Tap",
           "Transfer",
           "Unset",

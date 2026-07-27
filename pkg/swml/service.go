@@ -582,6 +582,21 @@ func (s *Service) TLSEnabled() bool {
 	return s.tlsCertFile != "" && s.tlsKeyFile != ""
 }
 
+// TLSCertPath returns the configured TLS certificate path ("" when unset).
+// Mirrors Python's ssl_cert_path attribute on SWMLService: the resolved value a
+// caller can read back after construction, whether it came from WithTLS, the
+// config file, or SWML_SSL_CERT_PATH.
+func (s *Service) TLSCertPath() string {
+	return s.tlsCertFile
+}
+
+// TLSKeyPath returns the configured TLS private-key path ("" when unset).
+// Mirrors Python's ssl_key_path attribute on SWMLService — the read-back twin of
+// TLSCertPath, resolved from WithTLS, the config file, or SWML_SSL_KEY_PATH.
+func (s *Service) TLSKeyPath() string {
+	return s.tlsKeyFile
+}
+
 // FullValidationEnabled reports whether schema validation is active.
 // Returns true when a schema was successfully loaded and schemaValidation
 // is on. Mirrors Python's full_validation_enabled property.

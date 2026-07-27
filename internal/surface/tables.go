@@ -1224,6 +1224,21 @@ var StructTable = map[string][]ClassTarget{
 		// have no BaseSkill equivalent (impossible-tagged in PORT_OMISSIONS).
 		SyntheticMethods: []string{"__init__", "register_tools", "setup"},
 	}},
+	// The signature enumerator otherwise does not project the concrete builtin
+	// skill packages (their PascalCase contract methods are reconciled in
+	// PORT_SIGNATURE_OMISSIONS.md). SpiderSkill is mapped for ONE member:
+	// remove_xpaths is a public ATTRIBUTE the reference records in the signature
+	// oracle — a caller-observable configuration VALUE, not a contract method —
+	// so it must compare on the signature axis, and Go expresses it as the
+	// RemoveXPaths accessor over the prefilled removeXPaths field. The Methods map
+	// is a strict allowlist, so mapping this struct projects only this member and
+	// does not flood the surface with the skill's other methods.
+	"spider.SpiderSkill": {{
+		Module: "signalwire.skills.spider.skill", Class: "SpiderSkill",
+		Methods: map[string]string{
+			"RemoveXPaths": "remove_xpaths",
+		},
+	}},
 	"skills.SkillRegistry": {{
 		// Python's `signalwire.skills.registry.SkillRegistry` is an
 		// instance class with `add_skill_directory` + `_external_paths`.
@@ -1581,8 +1596,11 @@ var SkillContractTable = []SkillContract{
 	{GoStruct: "builtin.PlayBackgroundFileSkill", Module: "signalwire.skills.play_background_file.skill", ClassName: "PlayBackgroundFileSkill",
 		Methods:   []string{"get_instance_key", "get_parameter_schema", "register_tools", "setup"},
 		Synthetic: []string{"__init__", "get_tools"}},
+	// remove_xpaths is a public ATTRIBUTE on the reference skill (a prefilled
+	// list of XPath expressions), expressed in Go as the RemoveXPaths accessor
+	// over the unexported field — an accessor folds to the same member name.
 	{GoStruct: "spider.SpiderSkill", Module: "signalwire.skills.spider.skill", ClassName: "SpiderSkill",
-		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "setup"},
+		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "remove_xpaths", "setup"},
 		Synthetic: []string{"__init__"}},
 	{GoStruct: "builtin.SWMLTransferSkill", Module: "signalwire.skills.swml_transfer.skill", ClassName: "SWMLTransferSkill",
 		Methods: []string{"get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},

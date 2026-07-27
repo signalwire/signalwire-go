@@ -650,6 +650,11 @@ func skillLeafToGoMethod(leaf string) string {
 		return "GetGlobalData"
 	case "get_prompt_sections":
 		return "GetPromptSections"
+	case "remove_xpaths":
+		// Not a SkillBase contract method: a public ATTRIBUTE on the reference's
+		// SpiderSkill (the prefilled XPath list stripped before text extraction),
+		// expressed in Go as an accessor over the unexported removeXPaths field.
+		return "RemoveXPaths"
 	}
 	panic(fmt.Sprintf("enumerate-surface: no Go member mapping for skill contract leaf %q", leaf))
 }

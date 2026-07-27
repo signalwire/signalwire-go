@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ ba245e14931421910f54992ee577ee7eed79d672",
+  "generated_from": "signalwire-go @ f6b5348312acba646b1a3be3979937b54141175a",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -3002,6 +3002,7 @@
           "get_instance_key",
           "get_parameter_schema",
           "register_tools",
+          "remove_xpaths",
           "setup"
         ]
       },
