@@ -367,7 +367,7 @@ type ToolDefinition struct {
 	Parameters     map[string]any // JSON Schema properties map
 	Required       []string       // required parameter names
 	Handler        ToolHandler    // func(args, rawData map[string]any) *swaig.FunctionResult
-	Secure         bool           // require security token (default behavior: secure)
+	Secure         *bool          // tri-state token flag: unset (nil) == SECURE; only &false opts out
 	Fillers        map[string][]string
 	WaitFile       string
 	WaitFileLoops  int

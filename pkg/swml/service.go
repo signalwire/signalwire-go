@@ -26,12 +26,24 @@ var swaigFnNameRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 type ToolHandler func(args map[string]any, rawData map[string]any) any
 
 // ToolDefinition is a SWAIG tool registered on the Service.
+//
+// There is deliberately NO Secure flag here. The reference's per-tool
+// `secure` flag gates SWAIG *token validation*, and that machinery — the
+// SessionManager that mints a per-(tool, call) HMAC token and the validator
+// that checks it — lives entirely on AgentBase (reference:
+// agent_base.py + mixins/state_mixin.py; Go: pkg/agent, agent.ToolDefinition
+// .Secure, a tri-state *bool defaulting to SECURE). A bare SWMLService has no
+// session manager and mints no tokens, so a secure flag at this level has
+// nothing to gate. `secure` is also not a SWML/SWAIG wire field — it never
+// appears in the rendered document or the function payload.
+//
+// Set agent.ToolDefinition.Secure (or skills.ToolRegistration.Secure) when you
+// want token validation.
 type ToolDefinition struct {
 	Name        string
 	Description string
 	Parameters  map[string]any
 	Handler     ToolHandler
-	Secure      bool
 }
 
 // RoutingCallback is a function called on incoming POST requests to decide

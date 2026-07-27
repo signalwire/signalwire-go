@@ -77,6 +77,11 @@ func main() {
 
 	// 2. Register tools the sidecar's LLM can call. Same DefineTool you'd
 	//    use on AgentBase — it lives on swml.Service.
+	//
+	//    swml.ToolDefinition has no `Secure` flag: SWAIG token minting and
+	//    validation live on agent.AgentBase (its SessionManager), not on a bare
+	//    SWMLService. Register on an AgentBase and set
+	//    agent.ToolDefinition.Secure if you want per-tool token validation.
 	svc.DefineTool(&swml.ToolDefinition{
 		Name: "lookup_competitor",
 		Description: "Look up competitor pricing by company name. The sidecar " +
@@ -99,7 +104,6 @@ func main() {
 				),
 			}
 		},
-		Secure: false,
 	})
 
 	// 3. (Optional) Mount an event sink for ai_sidecar lifecycle events at
