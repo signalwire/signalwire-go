@@ -788,7 +788,18 @@ func TestRenderSWML_WithTools(t *testing.T) {
 			if fn["description"] != "Get weather" {
 				t.Errorf("unexpected description: %v", fn["description"])
 			}
-			webhookURL, _ := fn["web_hook_url"].(string)
+			// The SWAIG endpoint for a tool with no external URL and no minted
+			// token is the shared SWAIG.defaults.web_hook_url — this render has
+			// no call_id, so no token exists and the tool correctly carries no
+			// per-tool key (reference agent_base.py:1089-1099).
+			if _, present := fn["web_hook_url"]; present {
+				t.Errorf("tokenless tool must not carry its own web_hook_url, got %#v", fn["web_hook_url"])
+			}
+			defaults, ok := swaigCfg["defaults"].(map[string]any)
+			if !ok {
+				t.Fatal("expected SWAIG defaults")
+			}
+			webhookURL, _ := defaults["web_hook_url"].(string)
 			if !strings.Contains(webhookURL, "/swaig") {
 				t.Errorf("expected webhook URL to contain /swaig, got %q", webhookURL)
 			}
@@ -1552,8 +1563,11 @@ func TestRenderSWML_WithRoute(t *testing.T) {
 		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			swaigCfg := as[map[string]any](t, aiCfg["SWAIG"])
-			functions := as[[]map[string]any](t, swaigCfg["functions"])
-			webhookURL := as[string](t, functions[0]["web_hook_url"])
+			// Route composition is asserted on the shared SWAIG endpoint: this
+			// render has no call_id, so the tokenless tool has no per-tool
+			// web_hook_url of its own (reference agent_base.py:1089-1099).
+			defaults := as[map[string]any](t, swaigCfg["defaults"])
+			webhookURL := as[string](t, defaults["web_hook_url"])
 			if !strings.Contains(webhookURL, "/myagent/swaig") {
 				t.Errorf("expected webhook URL to contain route /myagent/swaig, got %q", webhookURL)
 			}

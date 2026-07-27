@@ -2930,8 +2930,9 @@ func appendQueryParam(rawURL, key, value string) string {
 // web_hook_url as a reserved “__token“ query parameter — the WIRE
 // manifestation of “secure“ the platform validates on the callback (Matches
 // Python: agent_base.py:1040 “if func.secure and call_id“ →
-// _build_webhook_url(url_params["__token"])). An INSECURE tool never gets one:
-// it falls back to the shared SWAIG defaults.web_hook_url. With no callID
+// _build_webhook_url(url_params["__token"])). An INSECURE tool never gets one —
+// and, per the reference, never gets a per-tool web_hook_url KEY either: it
+// falls back to the shared SWAIG.defaults.web_hook_url. With no callID
 // (a render outside a call, e.g. a bare document dump) no token can be bound to
 // a session, so none is emitted for either kind.
 func (a *AgentBase) buildSwaigFunctions(webhookURL, callID string) []map[string]any {
@@ -2957,20 +2958,35 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL, callID string) []map[string]
 			token = a.createToolTokenLocked(tool.Name, callID)
 		}
 
-		// Determine the effective webhook URL: per-tool override takes precedence.
-		// A per-tool override is used verbatim (Python: an external webhook_url is
-		// the platform's own endpoint — we never append our token to it).
-		effectiveWebhook := webhookURL
-		if tool.WebhookURL != "" {
-			effectiveWebhook = tool.WebhookURL
-		} else if token != "" {
-			effectiveWebhook = appendQueryParam(effectiveWebhook, "__token", token)
+		fn := map[string]any{
+			"function":    tool.Name,
+			"description": tool.Description,
 		}
 
-		fn := map[string]any{
-			"function":     tool.Name,
-			"description":  tool.Description,
-			"web_hook_url": effectiveWebhook,
+		// Decide whether this tool gets its OWN web_hook_url, mirroring the
+		// reference's three-way branch verbatim (agent_base.py:1089-1099):
+		//
+		//	1. an external per-tool webhook_url  -> use it verbatim (it is the
+		//	   platform's own endpoint; we never append our token to it);
+		//	2. else a token OR swaigQueryParams  -> build the LOCAL swaig URL,
+		//	   carrying "__token" when there is a token;
+		//	3. else                              -> emit NO web_hook_url key at all.
+		//
+		// Case 3 is load-bearing and is why this is a guard rather than an
+		// unconditional assignment: an INSECURE tool (secure=false, hence no
+		// token) must NOT be handed a function-specific callback URL, because
+		// that URL would carry no token and therefore be an unauthenticated,
+		// per-function endpoint on the wire. It falls back to the shared
+		// SWAIG.defaults.web_hook_url instead — that fallback is the point.
+		switch {
+		case tool.WebhookURL != "":
+			fn["web_hook_url"] = tool.WebhookURL
+		case token != "":
+			fn["web_hook_url"] = appendQueryParam(webhookURL, "__token", token)
+		case len(a.swaigQueryParams) > 0:
+			// swaigQueryParams are already baked into webhookURL by
+			// buildWebhookURL, so the local URL is used as-is.
+			fn["web_hook_url"] = webhookURL
 		}
 
 		if tool.Parameters != nil {
@@ -3158,6 +3174,13 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 	if len(swaigFunctions) > 0 || len(a.functionIncludes) > 0 {
 		swaigConfig := map[string]any{}
 		if len(swaigFunctions) > 0 {
+			// The shared fallback endpoint every function without its OWN
+			// web_hook_url dispatches to — notably every INSECURE tool, which
+			// deliberately gets no per-function callback of its own (see
+			// buildSwaigFunctions). Mirrors the reference, which adds the
+			// defaults block exactly when there are functions
+			// (agent_base.py:1111-1113).
+			swaigConfig["defaults"] = map[string]any{"web_hook_url": webhookURL}
 			swaigConfig["functions"] = swaigFunctions
 		}
 		if len(a.functionIncludes) > 0 {

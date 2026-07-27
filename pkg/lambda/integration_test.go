@@ -364,8 +364,17 @@ func extractFirstSwaigWebhook(t *testing.T, body string) string {
 		if len(fns) == 0 {
 			t.Fatalf("SWAIG functions array is empty; document=%v", doc)
 		}
-		first, _ := fns[0].(map[string]any)
-		url, _ := first["web_hook_url"].(string)
+		// These tests assert URL COMPOSITION (route preservation, proxy base,
+		// Lambda host). The composed SWAIG endpoint is SWAIG.defaults.web_hook_url:
+		// a per-tool web_hook_url is emitted only for a tool that has an external
+		// URL or a minted __token (reference agent_base.py:1089-1099), and these
+		// renders carry no call_id, so no token exists and the tools correctly
+		// have no per-tool key. defaults is the URL every such tool dispatches to.
+		defaults, ok := swaigCfg["defaults"].(map[string]any)
+		if !ok {
+			t.Fatalf("SWAIG.defaults missing; document=%v", doc)
+		}
+		url, _ := defaults["web_hook_url"].(string)
 		return url
 	}
 	t.Fatalf("could not find ai verb with SWAIG functions in document; body=%s", body)
