@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ d61771f364a8d00c6fc7decd33f0b84223279611 (go/ast walker)",
+  "generated_from": "signalwire-go @ 43049a62c41b7a95ac7d20b4eb54703dd25933b1 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -5261,6 +5261,16 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "config_file",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "service_name",
+                  "type": "string",
+                  "required": true
                 }
               ],
               "returns": "void"
@@ -24415,61 +24425,13 @@
     },
     "signalwire.core.security_config.SecurityConfig": {
       "params": {
-        "allowed_hosts": {
-          "type": "list\u003cstring\u003e",
-          "required": false
-        },
-        "basic_auth_password": {
+        "config_file": {
           "type": "string",
-          "required": false
+          "required": true
         },
-        "basic_auth_user": {
+        "service_name": {
           "type": "string",
-          "required": false
-        },
-        "cors_origins": {
-          "type": "list\u003cstring\u003e",
-          "required": false
-        },
-        "domain": {
-          "type": "string",
-          "required": false
-        },
-        "hsts_max_age": {
-          "type": "int",
-          "required": false
-        },
-        "max_request_size": {
-          "type": "int",
-          "required": false
-        },
-        "rate_limit": {
-          "type": "int",
-          "required": false
-        },
-        "request_timeout": {
-          "type": "int",
-          "required": false
-        },
-        "ssl_cert_path": {
-          "type": "string",
-          "required": false
-        },
-        "ssl_enabled": {
-          "type": "bool",
-          "required": false
-        },
-        "ssl_key_path": {
-          "type": "string",
-          "required": false
-        },
-        "ssl_verify_mode": {
-          "type": "string",
-          "required": false
-        },
-        "use_hsts": {
-          "type": "bool",
-          "required": false
+          "required": true
         }
       }
     },

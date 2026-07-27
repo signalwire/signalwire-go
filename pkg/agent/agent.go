@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -524,6 +525,14 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 	}
 	if a.pendingBasicAuthUser != "" && a.pendingBasicAuthPassword != "" {
 		svcOpts = append(svcOpts, swml.WithBasicAuth(a.pendingBasicAuthUser, a.pendingBasicAuthPassword))
+	}
+	// Hand the config-file path to the Service so its `security` section is
+	// actually resolved (Python: SWMLService.__init__ passes config_file
+	// straight into SecurityConfig). Without this the path was stored on
+	// AgentBase and never read, so an operator supplying ssl_enabled + a
+	// cert/key via WithConfigFile got a plain-HTTP server with no error.
+	if a.configFile != "" {
+		svcOpts = append(svcOpts, swml.WithConfigFile(a.configFile))
 	}
 	a.Service = swml.NewService(svcOpts...)
 	a.Logger = logging.New(a.Name)
@@ -3430,6 +3439,19 @@ func (a *AgentBase) buildAndServe() error {
 		ReadHeaderTimeout: 20 * time.Second,
 	}
 
+	// TLS: the agent serves off the Service's RESOLVED ssl settings — which
+	// SecurityConfig produced from defaults -> env -> config file — exactly as
+	// the reference's AgentBase serves through SWMLService.serve()'s
+	// `if self.ssl_enabled and ssl_cert_path and ssl_key_path` branch. Building
+	// the listener here without consulting them is what made an agent come up
+	// plain HTTP even when a cert/key was configured.
+	tlsEnabled := a.Service.TLSEnabled()
+	if tlsEnabled {
+		// Require TLS 1.2+ (mirrors the reference's CERT_REQUIRED
+		// ssl_verify_mode default), matching swml.Service.Serve.
+		server.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
 	// If SetupGracefulShutdown is active, spin a goroutine that waits for
 	// the shutdown channel and then asks the server to shut down cleanly.
 	go func() {
@@ -3440,8 +3462,15 @@ func (a *AgentBase) buildAndServe() error {
 		}
 	}()
 
-	err := server.ListenAndServe()
-	if err == http.ErrServerClosed {
+	var err error
+	if tlsEnabled {
+		cert, key := a.Service.TLSCertPath(), a.Service.TLSKeyPath()
+		a.Logger.Info("TLS enabled: cert=%s key=%s", cert, key)
+		err = server.ListenAndServeTLS(cert, key)
+	} else {
+		err = server.ListenAndServe()
+	}
+	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
 	return err

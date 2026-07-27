@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/signalwire/signalwire-go/v3/pkg/logging"
+	"github.com/signalwire/signalwire-go/v3/pkg/security"
 )
 
 var swaigFnNameRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
@@ -113,6 +114,25 @@ type Service struct {
 	// TLS / SSL
 	tlsCertFile string // path to TLS certificate file
 	tlsKeyFile  string // path to TLS key file
+	// sslEnabled is the reference's `ssl_enabled` switch (SWML_SSL_ENABLED env
+	// var / the config file's security.ssl_enabled). It is resolved through
+	// security.SecurityConfig (defaults -> env -> config file, config file
+	// highest) and is the master switch Serve() consults: a cert/key pair with
+	// ssl_enabled false serves plain HTTP, exactly as the reference does
+	// (swml_service.serve only takes the ssl branch when self.ssl_enabled).
+	//
+	// It is NOT set by WithTLS: passing an explicit cert+key IS the caller
+	// asking for TLS, so WithTLS sets sslEnabledExplicit instead (see
+	// TLSEnabled).
+	sslEnabled bool
+	// sslEnabledExplicit records that the caller turned TLS on directly
+	// (WithTLS), so the resolved ssl_enabled flag cannot switch it back off.
+	sslEnabledExplicit bool
+
+	// configFile is the explicit WithConfigFile path. NewService feeds it to
+	// security.SecurityConfig (which resolves defaults -> env -> config file)
+	// and then applies the Go-specific auth keys from the same file.
+	configFile string
 
 	// Schema validation
 	// schemaValidation controls whether verb schema validation is active.
@@ -248,6 +268,12 @@ func WithTLS(certFile, keyFile string) ServiceOption {
 	return func(s *Service) {
 		s.tlsCertFile = certFile
 		s.tlsKeyFile = keyFile
+		// Handing the service an explicit cert+key IS the request to serve
+		// TLS, so a later-resolved ssl_enabled=false (an unset env var, say)
+		// must not silently downgrade it to plain HTTP.
+		if certFile != "" && keyFile != "" {
+			s.sslEnabledExplicit = true
+		}
 	}
 }
 
@@ -265,12 +291,14 @@ func WithSchemaPath(path string) ServiceOption {
 	return func(s *Service) { s.schemaPath = path }
 }
 
-// WithConfigFile loads a YAML configuration file and applies its `security`
-// section to the Service. Mirrors Python's
-// SecurityConfig(config_file=...) loader (signalwire/core/security_config.py
-// _load_config_file). The expected schema is:
+// WithConfigFile loads a configuration file and applies its `security` section
+// to the Service. Mirrors Python's SecurityConfig(config_file=...) loader
+// (signalwire/core/security_config.py _load_config_file). The canonical format
+// is JSON, matching the reference; the equivalent YAML is also accepted. The
+// expected schema is:
 //
 //	security:
+//	  ssl_enabled: true
 //	  ssl_cert_path: /path/to/cert.pem
 //	  ssl_key_path: /path/to/key.pem
 //	  domain: example.com
@@ -282,19 +310,16 @@ func WithSchemaPath(path string) ServiceOption {
 //	    api_key: <key>
 //	    api_key_header: X-API-Key
 //
-// Settings from the file are applied AFTER the explicit WithBasicAuth /
-// WithBearerToken / WithAPIKey / WithTLS / WithDomain options, so config-file
-// values take precedence (matching Python's documented load order). If the
-// file cannot be read or parsed, NewService logs a warning and keeps running
-// with the previously-set values; this matches Python's "best-effort" load
-// behaviour and avoids crashing services whose config is missing.
+// Settings from the file are applied AFTER the SWML_* environment variables and
+// after the explicit WithBasicAuth / WithBearerToken / WithAPIKey / WithTLS /
+// WithDomain options, so config-file values take precedence — the reference's
+// documented defaults -> env -> config-file load order. In particular a cert
+// and key supplied only here DO put the server on HTTPS. If the file cannot be
+// read or parsed, NewService logs a warning and keeps running with the
+// previously-set values; this matches Python's "best-effort" load behaviour and
+// avoids crashing services whose config is missing.
 func WithConfigFile(path string) ServiceOption {
-	return func(s *Service) {
-		if path == "" {
-			return
-		}
-		applyConfigFile(s, path)
-	}
+	return func(s *Service) { s.configFile = path }
 }
 
 // WithSchemaValidation enables or disables SWML schema validation.
@@ -334,16 +359,25 @@ func NewService(opts ...ServiceOption) *Service {
 		s.schemaValidation = false
 	}
 
-	// TLS domain from env (mirrors Python's SWML_DOMAIN / SecurityConfig.domain).
-	if s.Domain == "" {
-		s.Domain = os.Getenv("SWML_DOMAIN")
-	}
-	// TLS cert/key from env when not set via WithTLS (mirrors SWML_SSL_CERT_PATH / SWML_SSL_KEY_PATH).
-	if s.tlsCertFile == "" {
-		s.tlsCertFile = os.Getenv("SWML_SSL_CERT_PATH")
-	}
-	if s.tlsKeyFile == "" {
-		s.tlsKeyFile = os.Getenv("SWML_SSL_KEY_PATH")
+	// Resolve the security settings the way the reference does — defaults, then
+	// SWML_* env vars, then the config file (config file HIGHEST priority) —
+	// and hoist the TLS values onto the service, mirroring
+	// SWMLService.__init__'s `self.ssl_enabled = self.security.ssl_enabled`
+	// (and domain / ssl_cert_path / ssl_key_path). Serve() then serves off
+	// these fields rather than re-reading the environment, so an operator who
+	// supplies a cert/key ONLY in a config file actually gets HTTPS.
+	//
+	// The config file is the explicit WithConfigFile path when given, else the
+	// one auto-discovered for this service's name (Python:
+	// ConfigLoader.find_config_file(service_name)).
+	s.applyResolvedSecurity(security.NewSecurityConfig(s.configFile, s.Name))
+
+	// The same file also carries the auth keys that are specific to the Go
+	// service (bearer token / API key) and are not part of the reference's
+	// SecurityConfig, plus the YAML spelling of the security block. Apply it
+	// last so the config file remains the highest-priority layer.
+	if s.configFile != "" {
+		applyConfigFile(s, s.configFile)
 	}
 
 	// Port from env if not explicitly set
@@ -576,10 +610,22 @@ func (s *Service) GetAuthInfo() map[string]any {
 	return info
 }
 
-// TLSEnabled reports whether TLS is configured for this service.
-// Mirrors Python's ssl_enabled property on SWMLService.
+// TLSEnabled reports whether TLS is configured for this service — i.e. whether
+// Serve() will bind an HTTPS listener. Mirrors Python's ssl_enabled attribute on
+// SWMLService as consumed by serve(), which requires BOTH the ssl_enabled switch
+// and a usable cert/key pair (`if self.ssl_enabled and ssl_cert_path and
+// ssl_key_path`).
+//
+// The switch is on when the caller passed an explicit cert+key (WithTLS), or
+// when the resolved ssl_enabled — SWML_SSL_ENABLED, overridden by the config
+// file's security.ssl_enabled — is true. An explicit `ssl_enabled: false` in the
+// config file turns it back off even with a cert/key present, matching the
+// reference.
 func (s *Service) TLSEnabled() bool {
-	return s.tlsCertFile != "" && s.tlsKeyFile != ""
+	if s.tlsCertFile == "" || s.tlsKeyFile == "" {
+		return false
+	}
+	return s.sslEnabled || s.sslEnabledExplicit
 }
 
 // TLSCertPath returns the configured TLS certificate path ("" when unset).
