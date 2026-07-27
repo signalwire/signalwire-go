@@ -40,6 +40,20 @@ type ClassTarget struct {
 	// on relay events that Go expresses through package-level factory
 	// constructors.
 	SyntheticMethods []string
+	// SignatureOnly lists Python method names (values of Methods) that the
+	// SIGNATURE enumerator emits but the SURFACE enumerator must NOT, because
+	// the two reference oracles genuinely disagree about the member.
+	//
+	// python_signatures.json and python_surface.json are produced by different
+	// walkers with different promotion rules, so a member can be contract on one
+	// axis and absent on the other. Emitting on both would satisfy one gate and
+	// create an ADDITION on the other. This field matches each axis against its
+	// OWN oracle, which is what the reference actually declares — it is not an
+	// allow-list and it hides nothing: the member is fully emitted, compared and
+	// gated on the axis that records it.
+	//
+	// Drop a name from here once both oracles agree about it.
+	SignatureOnly []string
 }
 
 // StructTable maps a Go “<shortPkg>.<StructName>“ to one or more Python
@@ -1233,11 +1247,19 @@ var StructTable = map[string][]ClassTarget{
 	// RemoveXPaths accessor over the prefilled removeXPaths field. The Methods map
 	// is a strict allowlist, so mapping this struct projects only this member and
 	// does not flood the surface with the skill's other methods.
+	//
+	// SignatureOnly: python_surface.json does NOT record remove_xpaths (its
+	// walker promotes a class's zero-arg members only for @dataclass classes,
+	// and SpiderSkill is not one), while python_signatures.json DOES. Emitting
+	// it on the surface axis would be an addition the reference lacks, so it is
+	// emitted on the signature axis only — matching each oracle against itself.
+	// ts and ruby resolved the same member the same way.
 	"spider.SpiderSkill": {{
 		Module: "signalwire.skills.spider.skill", Class: "SpiderSkill",
 		Methods: map[string]string{
 			"RemoveXPaths": "remove_xpaths",
 		},
+		SignatureOnly: []string{"remove_xpaths"},
 	}},
 	"skills.SkillRegistry": {{
 		// Python's `signalwire.skills.registry.SkillRegistry` is an
@@ -1596,11 +1618,12 @@ var SkillContractTable = []SkillContract{
 	{GoStruct: "builtin.PlayBackgroundFileSkill", Module: "signalwire.skills.play_background_file.skill", ClassName: "PlayBackgroundFileSkill",
 		Methods:   []string{"get_instance_key", "get_parameter_schema", "register_tools", "setup"},
 		Synthetic: []string{"__init__", "get_tools"}},
-	// remove_xpaths is a public ATTRIBUTE on the reference skill (a prefilled
-	// list of XPath expressions), expressed in Go as the RemoveXPaths accessor
-	// over the unexported field — an accessor folds to the same member name.
+	// remove_xpaths is deliberately absent: Go implements it (RemoveXPaths over the
+	// prefilled removeXPaths field) and StructTable projects it, but only onto the
+	// SIGNATURE axis — python_surface.json does not record the member. See the
+	// SignatureOnly note on the "spider.SpiderSkill" StructTable entry.
 	{GoStruct: "spider.SpiderSkill", Module: "signalwire.skills.spider.skill", ClassName: "SpiderSkill",
-		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "remove_xpaths", "setup"},
+		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "setup"},
 		Synthetic: []string{"__init__"}},
 	{GoStruct: "builtin.SWMLTransferSkill", Module: "signalwire.skills.swml_transfer.skill", ClassName: "SWMLTransferSkill",
 		Methods: []string{"get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
