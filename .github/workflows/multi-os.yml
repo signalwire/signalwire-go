@@ -110,6 +110,31 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.14'
+      # Install the porting-sdk gate scripts' declared dependencies. NOT optional: the
+      # enumerator reaches the reference oracle through generate_rest.py, which needs
+      # PyYAML, and a bare `except Exception: return None` turned its absence into an EMPTY
+      # oracle — 266 oracle-gated members silently failed to emit and the diff reported
+      # "311 Python symbol(s) missing from port", blaming a port that was correct. A dev box
+      # has PyYAML, so the failure is CI-only by construction. One manifest, shared by all
+      # ten repos; check_script_deps.py fails if a script imports something it omits.
+      - name: Install porting-sdk script dependencies
+        run: python3 -m pip install --quiet -r ${{ github.workspace }}/porting-sdk/scripts/requirements.txt
+
+      # `go test ./...` below includes the TLS suites (TestTLS_RelayClient_WSS,
+      # TestTLS_RestClient_HTTPS), which SPAWN the shared python mocks — so this workflow
+      # needs the mock harnesses, not just the gate-script deps. Without them the tests die
+      # on `ModuleNotFoundError: No module named 'uvicorn'` and the matrix reds on
+      # macos-latest and windows-latest while the Linux `test` workflow (which DOES install
+      # them) stays green. uvicorn is not named here on purpose: each harness declares
+      # `uvicorn==0.50.0` in its own pyproject, so installing the harness is what pins it —
+      # a hand-added uvicorn line here would be a second, drifting declaration of the same
+      # dependency, which is the mistake the scripts/requirements.txt manifest exists to
+      # stop.
+      - name: Install Python test harnesses (mock_relay + mock_signalwire)
+        run: |
+          python3 -m pip install --quiet -e ${{ github.workspace }}/porting-sdk/test_harness/mock_relay
+          python3 -m pip install --quiet -e ${{ github.workspace }}/porting-sdk/test_harness/mock_signalwire
+
 
       # TEST (OS-sensitive suite #1): the module's tests on this OS. A
       # platform-specific construct without a build constraint breaks silently

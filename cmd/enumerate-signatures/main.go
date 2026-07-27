@@ -285,6 +285,15 @@ type paramsStructField struct {
 // call-site reshape and keeps port_signatures.json byte-identical (drift 0).
 var paramsStructFields = map[string][]paramsStructField{}
 
+// ctorOptionsStructFields maps a CONSTRUCTOR options-struct's `<pkg>.<Name>` key
+// to its exported fields. Populated for every exported `<X>Options` struct while
+// walking. The CONSTRUCTION CONTRACT (§10) unfolds these back into the named
+// configurable set: `prefabs.NewSurveyAgent(SurveyOptions{Name: …, MaxRetries: …})`
+// is Go's spelling of the reference's `SurveyAgent(name=…, max_retries=…)`, so
+// the struct's fields ARE its construction params — one of the mechanisms §10
+// explicitly names ("rust options-struct fields … ts/dotnet options objects").
+var ctorOptionsStructFields = map[string][]paramsStructField{}
+
 // genTypeModule maps a generated REST wire-type name (declared in a
 // pkg/rest/namespaces/*_types_generated.go file) to its canonical Python module
 // `signalwire.rest.namespaces.<ns>_types_generated`. Populated while parsing
@@ -591,6 +600,24 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						}
 					}
 					paramsStructFields[ts.Name.Name] = fields
+				}
+				// CONSTRUCTION CONTRACT (§10): record every exported `<X>Options`
+				// struct's exported fields so a `NewX(XOptions{...})` factory can
+				// be unfolded into its named construction params.
+				if strings.HasSuffix(ts.Name.Name, "Options") && st.Fields != nil {
+					var fields []paramsStructField
+					for _, f := range st.Fields.List {
+						typeStr := exprString(f.Type)
+						for _, n := range f.Names {
+							if !ast.IsExported(n.Name) {
+								continue
+							}
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr})
+						}
+					}
+					if len(fields) > 0 {
+						ctorOptionsStructFields[pkgName+"."+ts.Name.Name] = fields
+					}
 				}
 				key := pkgName + "." + ts.Name.Name
 				if _, present := structs[key]; !present {
@@ -1234,6 +1261,19 @@ type sigDoc struct {
 	Version       string                        `json:"version"`
 	GeneratedFrom string                        `json:"generated_from"`
 	Modules       map[string]sigModuleInventory `json:"modules"`
+	// Construction is THE CONSTRUCTION CONTRACT (porting-sdk
+	// ALLOWLIST_DISCIPLINE.md §10): a NAME-KEYED, unordered set of configurable
+	// construction params per class. See buildConstruction.
+	Construction map[string]constructionEntry `json:"construction,omitempty"`
+}
+
+type constructionEntry struct {
+	Params map[string]constructionParam `json:"params"`
+}
+
+type constructionParam struct {
+	Type     string `json:"type"`
+	Required bool   `json:"required"`
 }
 
 type sigModuleInventory struct {
@@ -1272,29 +1312,97 @@ func indexOfParam(params []canonicalParam, name string) int {
 	return -1
 }
 
-func goNameToSnake(s string) string {
-	// Reuse enumerate-surface's pascal_to_snake by inlining the canonical
-	// rule: insert _ between lowercase→uppercase and uppercase→Aa boundaries.
-	var out strings.Builder
-	for i, r := range s {
-		if i > 0 {
-			prev := rune(s[i-1])
-			if (isUpper(r) && isLower(prev)) ||
-				(isUpper(r) && i+1 < len(s) && isLower(rune(s[i+1])) && isUpper(prev)) {
-				out.WriteRune('_')
-			}
-		}
-		out.WriteRune(toLower(r))
+func goNameToSnake(s string) string { return surfacepkg.GoNameToSnake(s) }
+
+// isSignatureDivergentDataclassField reports whether an oracle-gated @dataclass
+// field's raw Go type is a genuine idiom divergence with no faithful reference-
+// shaped signature, so it must not be emitted on the signature side (the member
+// stays surface-only + an annotated PORT_SIGNATURE_OMISSIONS entry). Currently the
+// two RequestOptions cases: context.Context (Go's cancellation primitive vs the
+// reference _AbortSignal object) and map[int]bool (Go's SET idiom vs the
+// reference list[int] for retry-on-status).
+func isSignatureDivergentDataclassField(goType string) bool {
+	switch goType {
+	case "context.Context", "map[int]bool":
+		return true
 	}
-	return out.String()
+	return false
 }
-func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
-func isLower(r rune) bool { return r >= 'a' && r <= 'z' }
-func toLower(r rune) rune {
-	if r >= 'A' && r <= 'Z' {
-		return r + 32
+
+// sigOracleMembers is python_signatures.json restricted to the per-class member
+// sets the @dataclass field emission gates on: module -> class -> set(member).
+type sigOracleMembers map[string]map[string]map[string]bool
+
+// RETIRED: dataclassFieldModules — same reasoning as in cmd/enumerate-surface.
+// The closed three-module scope became a stale exclusion once class B2 widened the
+// oracle to record ctor-param `__init__` attributes SDK-wide; loadSigOracle now
+// returns every module and the oracle alone gates emission, so the gate follows
+// the oracle instead of a hand-maintained list.
+
+// loadSigOracle reads python_signatures.json (adjacent porting-sdk) and returns
+// the per-class member sets for dataclassFieldModules only. GATES field emission
+// so the port surfaces exactly the reference field set per class. Returns nil
+// silently if the oracle can't be located/parsed (degraded-env tolerance —
+// emission then no-ops, like the composition enrich's adjacency tolerance).
+// resolvePortingSDK is the fail-loud oracle-checkout resolver, matching
+// cmd/enumerate-surface's: $PORTING_SDK, then the sibling layout, then the CI
+// in-repo layout, and an ERROR rather than a silent miss. See that copy for why
+// silence here produced a valid-looking snapshot missing ~200 members and a
+// surface-audit red that could not be reproduced locally.
+func resolvePortingSDK(repoRoot string) (string, error) {
+	candidates := []string{}
+	if env := os.Getenv("PORTING_SDK"); env != "" {
+		candidates = append(candidates, env)
 	}
-	return r
+	candidates = append(candidates,
+		filepath.Join(repoRoot, "..", "porting-sdk"),
+		filepath.Join(repoRoot, "porting-sdk"),
+	)
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(c, "python_signatures.json")); err == nil {
+			return c, nil
+		}
+	}
+	return "", fmt.Errorf(
+		"porting-sdk not found (looked for python_signatures.json under %v); "+
+			"set PORTING_SDK or clone porting-sdk adjacent to this repo", candidates)
+}
+
+// loadSigOracle reads python_signatures.json and returns the per-class member
+// sets. FAILS LOUD (see resolvePortingSDK).
+func loadSigOracle(repoRoot string) (sigOracleMembers, error) {
+	psdk, err := resolvePortingSDK(repoRoot)
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(psdk, "python_signatures.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read oracle %s: %w", path, err)
+	}
+	var parsed struct {
+		Modules map[string]struct {
+			Classes map[string]struct {
+				Methods map[string]json.RawMessage `json:"methods"`
+			} `json:"classes"`
+		} `json:"modules"`
+	}
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return nil, fmt.Errorf("parse oracle %s: %w", path, err)
+	}
+	out := sigOracleMembers{}
+	for mod, mi := range parsed.Modules {
+		cm := map[string]map[string]bool{}
+		for cls, ci := range mi.Classes {
+			set := map[string]bool{}
+			for m := range ci.Methods {
+				set[m] = true
+			}
+			cm[cls] = set
+		}
+		out[mod] = cm
+	}
+	return out, nil
 }
 
 // goFieldToPython converts a Go exported struct field name to its
@@ -1315,35 +1423,7 @@ func isPrimitive(t string) bool {
 	return false
 }
 
-func goFieldToPython(s string) string {
-	switch s {
-	case "URLs":
-		// Initialism-plural: goNameToSnake yields "ur_ls" (it inserts _ at the
-		// R→L uppercase-run boundary). The Python-canonical name is "urls".
-		return "urls"
-	case "MFA":
-		return "mfa"
-	case "PubSub":
-		return "pubsub"
-	case "FreeSwitchConnectors":
-		return "freeswitch_connectors"
-	case "SIPEndpoints":
-		return "sip_endpoints"
-	case "SIPGateways":
-		return "sip_gateways"
-	case "SWMLScripts":
-		return "swml_scripts"
-	case "SWMLWebhooks":
-		return "swml_webhooks"
-	case "CXMLScripts":
-		return "cxml_scripts"
-	case "CXMLApplications":
-		return "cxml_applications"
-	case "CXMLWebhooks":
-		return "cxml_webhooks"
-	}
-	return goNameToSnake(s)
-}
+func goFieldToPython(s string) string { return surfacepkg.GoNameToPython(s) }
 
 func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod bool, isCtor bool, ctx string) (canonicalSignature, []translationFailure) {
 	var failures []translationFailure
@@ -1606,7 +1686,7 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 	return canonicalSignature{Params: params, Returns: returns}, failures
 }
 
-func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts, aliases map[string]string) (sigDoc, []translationFailure) {
+func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts, aliases map[string]string, sigOracle sigOracleMembers) (sigDoc, []translationFailure) {
 	out := sigDoc{
 		Version: "2",
 		Modules: map[string]sigModuleInventory{},
@@ -1663,6 +1743,81 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 		out.Modules[mod] = inv
 	}
 
+	// structLiteralFields collects, per canonical class, the exported struct
+	// FIELDS (own + promoted through the embed chain) of the Go struct behind it.
+	// For a plain data struct with no NewX factory, the composite struct literal
+	// IS Go's construction mechanism and those exported fields ARE its named
+	// configurable set — the third construction source (see buildConstruction).
+	// Collected here because the embed chain lives in `structs`, which is not
+	// reachable from the emitted JSON.
+	structLiteralFields := map[string]map[string]constructionParam{}
+	collectStructLiteralFields := func(target surfacepkg.ClassTarget, facts *goStructFacts) {
+		qn := target.Module + "." + target.Class
+		dst, ok := structLiteralFields[qn]
+		if !ok {
+			dst = map[string]constructionParam{}
+			structLiteralFields[qn] = dst
+		}
+		// factoryRequired: the names a `New<Struct>(...)` factory MAKES required.
+		// The relay events are the canonical case — every one is built by
+		// `New<X>Event(params map[string]any)` (event.go), so `params` must be
+		// supplied and `event_type` is supplied BY the factory (it passes the
+		// EventCalling* constant). Both are required in Go exactly as they are in
+		// the reference ctor; without this the fallback would mark every field
+		// optional and manufacture ~50 bogus required-flips.
+		factoryRequired := map[string]bool{}
+		if fn, ok := funcs[facts.pkg+".New"+facts.name]; ok {
+			for _, p := range fn.params {
+				factoryRequired[goFieldToPython(p.name)] = true
+			}
+			// A factory that takes the raw payload map builds the typed value from
+			// it; the discriminator it hard-codes is not caller-optional either.
+			if len(fn.params) == 1 && strings.HasPrefix(fn.params[0].typeStr, "map[string]") {
+				factoryRequired["event_type"] = true
+			}
+		}
+		var walkFields func(f *goStructFacts, depth int)
+		seen := map[string]bool{}
+		walkFields = func(f *goStructFacts, depth int) {
+			if f == nil || depth > 4 || seen[f.pkg+"."+f.name] {
+				return
+			}
+			seen[f.pkg+"."+f.name] = true
+			for goField, fSig := range f.methods {
+				if !fSig.isField {
+					continue
+				}
+				name := applyConstructionGlobalRename(qn, goFieldToPython(goField))
+				if _, already := dst[name]; already {
+					continue
+				}
+				t, fail := translateType(fSig.returns, aliases, qn+"."+name)
+				if fail != nil || t == "" {
+					t = "any"
+				}
+				// A struct-literal field is optional by construction — Go
+				// zero-values every field the literal omits, exactly as a Python
+				// defaulted kwarg does — UNLESS the type's factory demands it.
+				dst[name] = constructionParam{Type: t, Required: factoryRequired[name]}
+			}
+			// Promoted fields: an embedded struct's exported fields are reachable
+			// (and settable, via the embedded literal) on the outer struct.
+			for _, emb := range f.embeds {
+				short := strings.TrimPrefix(emb, "*")
+				if i := strings.LastIndex(short, "."); i >= 0 {
+					short = short[i+1:]
+				}
+				if next, ok := structs[f.pkg+"."+short]; ok {
+					walkFields(next, depth+1)
+				}
+			}
+		}
+		walkFields(facts, 0)
+		if len(dst) == 0 {
+			delete(structLiteralFields, qn)
+		}
+	}
+
 	// --- 1. Project struct methods onto Python classes ---
 	for key, facts := range structs {
 		targets, ok := structTable[key]
@@ -1670,6 +1825,7 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 			continue
 		}
 		for _, target := range targets {
+			collectStructLiteralFields(target, facts)
 			for goMethod, pyMethod := range target.Methods {
 				if strings.HasPrefix(goMethod, "New") {
 					if fn, present := funcs[facts.pkg+"."+goMethod]; present {
@@ -1727,6 +1883,60 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 			// generated-dataclass / exception auto-ctor is projected from the
 			// struct fields (aiChatCtorSigs) rather than an AST method.
 			emitAIChatCtor(target.Module, target.Class)
+
+			// @dataclass field emission (oracle-gated). For the closed set of
+			// modules whose reference classes carry public @dataclass fields
+			// (relay Event structs, AI-Chat DTOs, RequestOptions), project each
+			// exported Go struct field whose snake_case name is in the SIGNATURE
+			// oracle's member set for this (module, class) as a self-only accessor
+			// returning the field's translated type — mirroring the reference's
+			// dataclass-field-as-attribute projection. These are PRIMITIVE-typed
+			// (string/int/float/dict/optional<bool>), so the composition loop below
+			// (SDK-class-only) skips them; this pass emits them so the DRIFT gate
+			// sees the same 106 members the surface audit now folds. Gating on the
+			// oracle guarantees exactly the reference set — never a helper field.
+			if clsMembers, ok := sigOracle[target.Module][target.Class]; ok {
+				for goField, fSig := range facts.methods {
+					// A public data FIELD, or a zero-arg READ ACCESSOR over an
+					// unexported one — both are Go's expression of a public
+					// attribute, and both have the same shape here (no params,
+					// one return). The ACCESSOR arm is the signature-side twin of
+					// enumerate-surface's accessor fold; without it a member folds
+					// in SURFACE-DIFF and reds in SIGNATURES-DIFF.
+					if !fSig.isField && len(fSig.params) != 0 {
+						continue
+					}
+					if !fSig.isField && fSig.returns == "" {
+						continue // void method, not a reader
+					}
+					snake := goFieldToPython(goField)
+					if _, already := target.Methods[goField]; already {
+						continue
+					}
+					if !clsMembers[snake] {
+						continue
+					}
+					// A field whose Go type is a GENUINE idiom divergence from the
+					// reference dataclass field type is NOT emitted here — the port
+					// carries the MEMBER (surface folds it) but its declared type has
+					// no faithful reference-shaped signature, so it stays an annotated
+					// PORT_SIGNATURE_OMISSIONS.md entry (surface-live / signature-
+					// divergent, per the DUAL-GATE rule). Two such fields:
+					//   - RequestOptions.AbortSignal (context.Context): Go's
+					//     cancellation primitive, not the reference's _AbortSignal
+					//     object — already a documented signature omission.
+					//   - RequestOptions.RetryOnStatus (map[int]bool): Go's SET idiom
+					//     for the retry statuses; the reference types it list[int].
+					//     A set-as-map vs list is a shape divergence, not a matching
+					//     signature.
+					if isSignatureDivergentDataclassField(fSig.returns) {
+						continue
+					}
+					sig, fails := toCanonicalSignature(fSig, aliases, true, false, fmt.Sprintf("%s.%s.%s", target.Module, target.Class, snake))
+					failures = append(failures, fails...)
+					addClassMethod(target.Module, target.Class, snake, sig)
+				}
+			}
 
 			// Auto-emit exported fields whose type is an SDK class
 			// (``*namespaces.FabricNamespace``, ``*FooClient``, etc.)
@@ -1849,7 +2059,427 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 		sortedMods[k] = newInv
 	}
 	out.Modules = sortedMods
+	out.Construction = buildConstruction(out.Modules, funcs, structLiteralFields, aliases)
 	return out, failures
+}
+
+// ---------------------------------------------------------------------------
+// THE CONSTRUCTION CONTRACT (porting-sdk ALLOWLIST_DISCIPLINE.md §10)
+// ---------------------------------------------------------------------------
+//
+// Go expresses a wide many-optional-kwarg Python constructor as a NewX FACTORY
+// plus a family of WithX FUNCTIONAL OPTIONS:
+//
+//     agent.NewAgentBase(agent.WithName("x"), agent.WithRecordStereo(true), ...)
+//
+// Both halves are the construction parameter set — the factory's own params are
+// the required ones, each WithX names one optional configurable. That is the
+// same capability as Python's `AgentBase(name="x", record_stereo=True, ...)`,
+// spelled the way Go spells it, so it SATISFIES the contract rather than being
+// N port-only additions plus one blanket `__init__` signature omission.
+//
+// Why a name-keyed node instead of comparing `__init__` as a method: the
+// signature diff matches params BY POSITION and deliberately ignores names, and
+// position-matching a 22-param kwargs ctor against `NewAgentBase(opts ...Option)`
+// is meaningless — so the only available move was one omission per class, which
+// stops comparing all 22 params at once and hides a dropped `record_stereo`
+// forever. Order/arity/mechanism are exactly what idiom is entitled to vary; the
+// NAMED SET is the capability.
+
+// optionConstructs binds a functional-option TYPE (declared as
+// `type <T> func(*<Struct>)` in package <pkg>) to the canonical class it
+// constructs. Only CONSTRUCTION options belong here: the relay per-verb option
+// types (PlayOption/TTSOption/RecordOption/...) configure a METHOD CALL, not an
+// object's construction, and are deliberately absent.
+//
+// Key is `<pkg>.<OptionType>` — the same `pkgName + "." + name` key space the
+// AST walker uses for free functions — because two packages both spell their
+// option type `Option` (aichat, security).
+var optionConstructs = map[string]string{
+	"agent.AgentOption":             "signalwire.core.agent_base.AgentBase",
+	"swml.ServiceOption":            "signalwire.core.swml_service.SWMLService",
+	"relay.ClientOption":            "signalwire.relay.client.RelayClient",
+	"server.ServerOption":           "signalwire.agent_server.AgentServer",
+	"aichat.Option":                 "signalwire.ai_chat.client.AIChatClient",
+	"security.Option":               "signalwire.core.security.session_manager.SessionManager",
+	"pom.SectionOption":             "signalwire.pom.pom.Section",
+	"contexts.GatherQuestionOption": "signalwire.core.contexts.GatherQuestion",
+	"prefabs.SurveyQuestionOption":  "signalwire.prefabs.survey.SurveyQuestion",
+}
+
+// optionParamRenames canonicalizes a WithX option's derived param name onto the
+// reference spelling (ADAPTER_CONTRACT rule 3 — "translate names to
+// Python-canonical form at adapter time"). Name-keyed matching gives names
+// weight they did not carry under positional matching, so a genuine
+// port-vs-reference spelling difference is a RENAME here, never an omission
+// (§7). Each entry is verified against the Go option's BODY — it must write the
+// same state the reference param configures, not merely look similar.
+//
+// Key is `<canonical class>.<derived name>` so a rename is scoped to the class
+// whose contract it belongs to.
+var optionParamRenames = map[string]string{
+	// WithTokenExpiry(secs int) -> a.tokenExpirySecs (agent.go:192).
+	"signalwire.core.agent_base.AgentBase.token_expiry": "token_expiry_secs",
+	// WithSigningKeyTrustProxy(trust bool) -> a.signingKeyTrustProxy, the
+	// X-Forwarded-Proto/Host honoring used during signature URL reconstruction
+	// (agent.go:309-320) == the reference's trust_proxy_for_signature.
+	"signalwire.core.agent_base.AgentBase.signing_key_trust_proxy": "trust_proxy_for_signature",
+	// WithJWT(jwt string) -> the RELAY JWT credential (options.go).
+	"signalwire.relay.client.RelayClient.jwt": "jwt_token",
+	// server.WithServerHost/WithServerPort are prefixed only to disambiguate
+	// them from the RunOption pair in the same package; they configure the
+	// AgentServer's listen address == the reference's host/port.
+	"signalwire.agent_server.AgentServer.server_host": "host",
+	"signalwire.agent_server.AgentServer.server_port": "port",
+	// WithSecret(key []byte) -> the SessionManager HMAC secret (session_manager.go:40).
+	"signalwire.core.security.session_manager.SessionManager.secret": "secret_key",
+	// The reference Section ctor spells this one in camelCase (it is a POM
+	// wire key, not a Python identifier convention).
+	"signalwire.pom.pom.Section.numbered_bullets": "numberedBullets",
+}
+
+// ctorOptionsStructConstructs binds a CONSTRUCTOR options struct (`<pkg>.<Name>`
+// in ctorOptionsStructFields) to the canonical class its factory builds. Only
+// the ctor-shaped ones belong here: `rest.RequestOptions` is a real REFERENCE
+// parameter (`request_options`), not an unfold, and the SWML per-verb
+// PlayOptions/AIOptions configure a METHOD (they are already unfolded by
+// optionsStructUnfoldMethods), so neither appears.
+var ctorOptionsStructConstructs = map[string]string{
+	"prefabs.BedrockOptions":      "signalwire.agents.bedrock.BedrockAgent",
+	"prefabs.ConciergeOptions":    "signalwire.prefabs.concierge.ConciergeAgent",
+	"prefabs.FAQBotOptions":       "signalwire.prefabs.faq_bot.FAQBotAgent",
+	"prefabs.InfoGathererOptions": "signalwire.prefabs.info_gatherer.InfoGathererAgent",
+	"prefabs.ReceptionistOptions": "signalwire.prefabs.receptionist.ReceptionistAgent",
+	"prefabs.SurveyOptions":       "signalwire.prefabs.survey.SurveyAgent",
+	"web.Options":                 "signalwire.web.web_service.WebService",
+}
+
+// ctorOptionsFieldRenames canonicalizes an options-struct FIELD name onto the
+// reference spelling (ADAPTER_CONTRACT rule 3). Same discipline as
+// optionParamRenames: verified against the field's use, and a rename rather than
+// an omission (§7). Keyed `<canonical class>.<derived name>`.
+var ctorOptionsFieldRenames = map[string]string{
+	// SurveyOptions.Intro is the survey's opening script — the reference spells
+	// the same slot `introduction` (survey.go:121,151 `intro := opts.Intro` ->
+	// `introduction: intro`).
+	"signalwire.prefabs.survey.SurveyAgent.intro": "introduction",
+	// ConciergeOptions.Hours is documented in-source as "general hours of
+	// operation" == the reference's hours_of_operation.
+	"signalwire.prefabs.concierge.ConciergeAgent.hours": "hours_of_operation",
+}
+
+// ctorOptionsFieldPairs folds a pair of Go options-struct fields into ONE
+// reference param whose type is a TUPLE. Go has no tuple literal, so a
+// reference `basic_auth: optional<tuple<string,string>>` is idiomatically two
+// string fields; that is the same capability spelled the way Go spells it, so
+// it FOLDS (§0) rather than reading as a dropped param plus two extras. Keyed
+// `<canonical class>.<first derived name>` -> the second field's derived name
+// and the folded param.
+var ctorOptionsFieldPairs = map[string]struct {
+	With  string // the derived name of the second field
+	As    string // the canonical reference param they fold into
+	Type  string // the canonical (tuple) type
+	Order int    // 0 = this key is the first tuple member
+}{
+	"signalwire.web.web_service.WebService.basic_auth_user": {
+		With: "basic_auth_password", As: "basic_auth",
+		Type: "optional<tuple<string,string>>",
+	},
+}
+
+// ctorOptionsFieldMechanism are options-struct fields that are the Go MECHANISM
+// of construction, not a construction PARAMETER. `AgentOptions []agent.AgentOption`
+// on a prefab is the pass-through of the PARENT AgentBase option family (already
+// enumerated on AgentBase itself), not a configurable of its own.
+var ctorOptionsFieldMechanism = map[string]bool{
+	"agent_options": true,
+}
+
+// constructionGlobalRenames canonicalizes a construction param name onto the
+// reference spelling REGARDLESS of class — for a spelling difference that is
+// systematic across a whole generated family, where per-class entries would be
+// the same fact restated 56 times. ADAPTER_CONTRACT rule 3; a rename, never an
+// omission (§7). Each is scoped by constructionGlobalRenameClasses so it cannot
+// bleed onto an unrelated class that happens to use the same word.
+var constructionGlobalRenames = map[string]string{
+	// Every generated REST namespace/resource takes the shared HTTP transport as
+	// `client HTTPClient` (calling_resources_generated.go:18
+	// `func NewCallingNamespace(client HTTPClient)`); the reference names the same
+	// slot `http`. Same object, same position, different spelling — 56 classes.
+	"client": "http",
+	// rest._base.BaseResource's `Base` field holds the resource's URL path
+	// prefix == the reference's `base_path`.
+	"base": "base_path",
+	// The REST constructors take the per-request transport envelope as a
+	// variadic `opts ...*RequestOptions` (client.go:179 NewHTTPClient); the
+	// reference names the same object `request_options`. It is a real reference
+	// PARAMETER, not an option bag — hence a rename here rather than the
+	// mechanism skip.
+	"opts": "request_options",
+	// NewHTTPClient(projectID, ...) — the SignalWire project UUID, spelled
+	// `project` by the reference (and by RestClient in this same port).
+	"project_id": "project",
+}
+
+var constructionGlobalRenameClasses = map[string][]string{
+	"client":     {"signalwire.rest."},
+	"base":       {"signalwire.rest._base.BaseResource"},
+	"opts":       {"signalwire.rest."},
+	"project_id": {"signalwire.rest."},
+}
+
+// applyConstructionGlobalRename returns the canonical spelling of a derived
+// param name for a class, or the name unchanged.
+func applyConstructionGlobalRename(class, name string) string {
+	renamed, ok := constructionGlobalRenames[name]
+	if !ok {
+		return name
+	}
+	for _, prefix := range constructionGlobalRenameClasses[name] {
+		if strings.HasPrefix(class, prefix) {
+			return renamed
+		}
+	}
+	return name
+}
+
+// isConstructionMechanismParam reports whether an `__init__` param is the Go
+// MECHANISM of construction rather than a construction PARAMETER: the receiver,
+// the variadic `opts ...XOption` bag (every option in it is emitted by name from
+// source (2)), and a bound `opts XOptions` struct (unfolded to its fields by
+// source (1b)). A `class:...RequestOptions` param is NEITHER — it is the
+// reference's own `request_options` param — so the suffix test is deliberately
+// `Option>` / an explicitly-bound options struct, not any "Options" type.
+func isConstructionMechanismParam(p canonicalParam) bool {
+	switch p.Kind {
+	case "self", "cls", "var_keyword", "var_positional":
+		return true
+	}
+	if p.Name == "ctx" {
+		// Go's leading `ctx context.Context` is the cancellation/deadline
+		// MECHANISM, not a configurable of the object being built. The
+		// signature differ already absorbs it wholesale (porting-sdk 21d67ad,
+		// "Leading ctx reconciliation (Go idiom)"); the construction node holds
+		// the same line.
+		return true
+	}
+	if p.Name != "opts" && p.Name != "options" {
+		return false
+	}
+	if strings.HasPrefix(p.Type, "list<class:") && strings.HasSuffix(p.Type, "Option>") {
+		return true
+	}
+	leaf := strings.TrimSuffix(strings.TrimPrefix(p.Type, "class:"), ">")
+	if i := strings.LastIndex(leaf, "."); i >= 0 {
+		leaf = leaf[i+1:]
+	}
+	for k := range ctorOptionsStructConstructs {
+		if k[strings.LastIndex(k, ".")+1:] == leaf {
+			return true
+		}
+	}
+	return false
+}
+
+// buildConstruction returns {"module.Class": {"params": {name: {type, required}}}}.
+// Four sources, merged (factory params win over option funcs, because a factory
+// param is genuinely required while an option is optional by construction):
+//
+//  1. the class's already-emitted `__init__` (the NewX factory), minus the
+//     receiver and the `opts ...Option` variadic tail;
+//  2. every `WithX` free function whose RETURN type is an option type bound in
+//     optionConstructs — `WithRecordStereo(stereo bool) AgentOption` names the
+//     `record_stereo` construction param of AgentBase;
+//  3. for a plain data struct with NO factory and NO options (the relay event
+//     structs), the exported struct FIELDS — own and promoted through the embed
+//     chain — because the composite struct literal is Go's construction
+//     mechanism for such a type and its exported fields are its named
+//     configurable set. Scoped to classes sources (1)/(2) did not supply, so a
+//     class with a real factory is never diluted by its internal state fields.
+//
+// `required` is deliberately compared by the diff and must not vary between
+// ports (owner ruling 2026-07-24). A Go functional option is optional by
+// construction, so where the reference marks a param required the diff raises a
+// construction-required-flip rather than silently accepting an under-specified
+// construction. That is a finding to report, not something to paper over here.
+func buildConstruction(modules map[string]sigModuleInventory, funcs map[string]*goFunc, structLiteralFields map[string]map[string]constructionParam, aliases map[string]string) map[string]constructionEntry {
+	out := map[string]constructionEntry{}
+
+	ensure := func(qn string) map[string]constructionParam {
+		e, ok := out[qn]
+		if !ok {
+			e = constructionEntry{Params: map[string]constructionParam{}}
+			out[qn] = e
+		}
+		return e.Params
+	}
+
+	// (1) NewX factory params, via the already-canonical __init__ signature.
+	for mod, inv := range modules {
+		for cls, ce := range inv.Classes {
+			init, ok := ce.Methods["__init__"]
+			if !ok {
+				continue
+			}
+			var params map[string]constructionParam
+			for _, p := range init.Params {
+				if isConstructionMechanismParam(p) || p.Name == "" ||
+					strings.HasPrefix(p.Name, "_") {
+					continue
+				}
+				if params == nil {
+					params = ensure(mod + "." + cls)
+				}
+				required := true
+				if p.Required != nil {
+					required = *p.Required
+				}
+				t := p.Type
+				if t == "" {
+					t = "any"
+				}
+				name := applyConstructionGlobalRename(mod+"."+cls, p.Name)
+				params[name] = constructionParam{Type: t, Required: required}
+			}
+		}
+	}
+
+	// (1b) CONSTRUCTOR OPTIONS-STRUCT unfold. `NewSurveyAgent(SurveyOptions{...})`
+	// passes ONE struct where the reference takes named kwargs; its exported
+	// fields ARE the construction params (§10 names this mechanism explicitly).
+	// Unfolded here rather than in `__init__` because the signature side keeps
+	// the honest Go call shape.
+	structKeys := make([]string, 0, len(ctorOptionsStructConstructs))
+	for k := range ctorOptionsStructConstructs {
+		structKeys = append(structKeys, k)
+	}
+	sort.Strings(structKeys)
+	for _, sk := range structKeys {
+		target := ctorOptionsStructConstructs[sk]
+		fields, ok := ctorOptionsStructFields[sk]
+		if !ok {
+			continue
+		}
+		params := ensure(target)
+		derived := map[string]paramsStructField{}
+		for _, f := range fields {
+			derived[goFieldToPython(f.name)] = f
+		}
+		for _, f := range fields {
+			name := goFieldToPython(f.name)
+			if ctorOptionsFieldMechanism[name] {
+				continue
+			}
+			if pair, ok := ctorOptionsFieldPairs[target+"."+name]; ok {
+				if _, has := derived[pair.With]; has {
+					params[pair.As] = constructionParam{Type: pair.Type, Required: false}
+					continue
+				}
+			}
+			// The SECOND member of a folded pair is consumed by the fold above.
+			folded := false
+			for k, pair := range ctorOptionsFieldPairs {
+				if strings.HasPrefix(k, target+".") && pair.With == name {
+					folded = true
+					break
+				}
+			}
+			if folded {
+				continue
+			}
+			if renamed, ok := ctorOptionsFieldRenames[target+"."+name]; ok {
+				name = renamed
+			}
+			t, fail := translateType(f.typeStr, aliases, target+"."+name)
+			if fail != nil || t == "" {
+				t = "any"
+			}
+			// A zero-valued options-struct field falls back to the reference
+			// default (see each NewX), so every field is optional by construction.
+			params[name] = constructionParam{Type: t, Required: false}
+		}
+	}
+
+	// (2) WithX functional options, bound to their target class by option type.
+	names := make([]string, 0, len(funcs))
+	for k := range funcs {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	for _, key := range names {
+		fn := funcs[key]
+		if !strings.HasPrefix(fn.name, "With") || len(fn.name) <= len("With") {
+			continue
+		}
+		target, ok := optionConstructs[fn.pkg+"."+fn.returns]
+		if !ok {
+			continue
+		}
+		pname := goFieldToPython(fn.name[len("With"):])
+		if renamed, ok := optionParamRenames[target+"."+pname]; ok {
+			pname = renamed
+		}
+		params := ensure(target)
+		// A factory param already recorded is the authoritative one (it carries
+		// the real required flag); an option func only fills a gap.
+		if _, exists := params[pname]; exists {
+			continue
+		}
+		params[pname] = constructionParam{
+			Type:     optionParamType(fn, aliases, target+"."+pname),
+			Required: false,
+		}
+	}
+
+	// (3) Struct-literal construction, for classes neither a factory nor an
+	// option family supplied. A struct with a NewX factory already has its
+	// authoritative param set from (1); adding its exported state fields there
+	// would report internal state as configurable, so this is a FALLBACK only.
+	for qn, fields := range structLiteralFields {
+		if _, already := out[qn]; already {
+			continue
+		}
+		params := ensure(qn)
+		for name, spec := range fields {
+			params[name] = spec
+		}
+	}
+
+	for qn, e := range out {
+		if len(e.Params) == 0 {
+			delete(out, qn)
+		}
+	}
+	return out
+}
+
+// optionParamType renders the canonical type a WithX option configures.
+//
+//   - zero args (a flag-style option such as WithOptional() / WithEnvDefaults())
+//     configures a boolean;
+//   - one arg is that arg's translated type;
+//   - two-or-more args are the Go spelling of a reference TUPLE — Go has no
+//     tuple literal, so `WithBasicAuth(user, password string)` is the idiomatic
+//     spelling of the reference's `basic_auth: optional<tuple<string,string>>`.
+//     Emitting it as a tuple is what makes the two compare EQUAL instead of
+//     reading as a dropped capability.
+func optionParamType(fn *goFunc, aliases map[string]string, ctx string) string {
+	parts := make([]string, 0, len(fn.params))
+	for _, p := range fn.params {
+		canon, fail := translateType(p.typeStr, aliases, ctx)
+		if fail != nil || canon == "" {
+			canon = "any"
+		}
+		parts = append(parts, canon)
+	}
+	switch len(parts) {
+	case 0:
+		return "bool"
+	case 1:
+		return parts[0]
+	default:
+		return "tuple<" + strings.Join(parts, ",") + ">"
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -1905,9 +2535,18 @@ func run() error {
 	aliasFile := *aliasesPath
 	if aliasFile == "" {
 		// Autodetect: try sibling porting-sdk
-		candidates := []string{
-			filepath.Join(repoRoot, "..", "porting-sdk", "type_aliases.yaml"),
+		// Same three-layout resolution as resolvePortingSDK: $PORTING_SDK, the
+		// sibling dev layout, then the CI in-repo layout. This one already failed
+		// loud below, which is why it never produced a degraded snapshot the way the
+		// oracle loaders did — but it must know about all three layouts too.
+		candidates := []string{}
+		if env := os.Getenv("PORTING_SDK"); env != "" {
+			candidates = append(candidates, filepath.Join(env, "type_aliases.yaml"))
 		}
+		candidates = append(candidates,
+			filepath.Join(repoRoot, "..", "porting-sdk", "type_aliases.yaml"),
+			filepath.Join(repoRoot, "porting-sdk", "type_aliases.yaml"),
+		)
 		for _, c := range candidates {
 			if _, err := os.Stat(c); err == nil {
 				aliasFile = c
@@ -1940,7 +2579,11 @@ func run() error {
 		return fmt.Errorf("walk: %w", err)
 	}
 
-	doc, failures := build(structs, funcs, payloads, aliases)
+	sigOracle, err := loadSigOracle(repoRoot)
+	if err != nil {
+		return fmt.Errorf("load reference signature oracle: %w", err)
+	}
+	doc, failures := build(structs, funcs, payloads, aliases, sigOracle)
 	doc.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s (go/ast walker)", goSHA(repoRoot))
 
 	if len(failures) > 0 {

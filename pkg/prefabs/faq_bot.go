@@ -39,6 +39,7 @@ type FAQBotAgent struct {
 	*agent.AgentBase
 	faqs           []FAQ
 	suggestRelated bool
+	persona        string
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +78,7 @@ func NewFAQBotAgent(opts FAQBotOptions) *FAQBotAgent {
 		AgentBase:      base,
 		faqs:           opts.FAQs,
 		suggestRelated: suggestRelated,
+		persona:        persona,
 	}
 
 	// ---- Prompt ----
@@ -194,6 +196,29 @@ func NewFAQBotAgent(opts FAQBotOptions) *FAQBotAgent {
 
 	return fb
 }
+
+// ---------------------------------------------------------------------------
+// Configuration readers
+// ---------------------------------------------------------------------------
+//
+// The reference stores each constructor argument as a public attribute
+// (faq_bot.py:74-77) so a caller can read the configuration back.
+
+// FAQs returns the configured FAQ database (Python: faqs). A copy is returned so
+// a caller cannot mutate the agent's configuration.
+func (fb *FAQBotAgent) FAQs() []FAQ {
+	return append([]FAQ(nil), fb.faqs...)
+}
+
+// SuggestRelated reports whether the agent offers related questions
+// (Python: suggest_related).
+func (fb *FAQBotAgent) SuggestRelated() bool { return fb.suggestRelated }
+
+// Persona returns the resolved personality description rendered into the
+// Personality prompt section (Python: persona). This is the effective value —
+// the caller's string, or the default when none was supplied — matching the
+// reference, which also stores the resolved value.
+func (fb *FAQBotAgent) Persona() string { return fb.persona }
 
 // ---------------------------------------------------------------------------
 // Tool registration

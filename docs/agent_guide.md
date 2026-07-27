@@ -393,7 +393,9 @@ a.DefineTool(agent.ToolDefinition{
 			"description": "The city or location to get weather for",
 		},
 	},
-	Secure: true, // Optional, defaults to true
+	// Secure is OMITTED here — an unset Secure means SECURE (the default), which
+	// is what you want for almost every tool. See "Token-Based Security" below
+	// for how to opt a specific tool out.
 	Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
 		// Extract the location parameter
 		location, _ := args["location"].(string)
@@ -624,7 +626,10 @@ The SDK implements an automated security mechanism for SWAIG functions to ensure
 
 #### Token-Based Security
 
-By default, all SWAIG functions are marked as secure (`Secure: true`), which enables token-based security:
+By default, all SWAIG functions are marked as secure, which enables token-based
+security. `Secure` is a tri-state `*bool` precisely so that OMITTING it means
+secure — a plain `bool` would make the zero value (`false`) silently ship an
+insecure tool. Read it via `IsSecure()`; set it by pointing at a local:
 
 ```go
 a.DefineTool(agent.ToolDefinition{
@@ -633,7 +638,7 @@ a.DefineTool(agent.ToolDefinition{
 	Parameters: map[string]any{
 		"account_id": map[string]any{"type": "string"},
 	},
-	Secure: true, // This is the default, can be omitted
+	// Secure omitted == secure. This block shows the default; nothing to set.
 	Handler: func(args, rawData map[string]any) *swaig.FunctionResult {
 		// Implementation
 		return swaig.NewFunctionResult("...")
@@ -668,10 +673,14 @@ The token system secures both SWAIG functions and post-prompt endpoints:
 You can disable token security for specific functions when appropriate:
 
 ```go
+// Secure is a *bool so that "unset" can mean SECURE. Opting out is therefore
+// deliberate: you must point the field at an explicit false.
+insecure := false
+
 a.DefineTool(agent.ToolDefinition{
 	Name:        "get_public_information",
 	Description: "Get public information that doesn't require security",
-	Secure:      false, // Disable token security for this function
+	Secure:      &insecure, // Disable token security for this function
 	Handler: func(args, rawData map[string]any) *swaig.FunctionResult {
 		// Implementation
 		return swaig.NewFunctionResult("...")

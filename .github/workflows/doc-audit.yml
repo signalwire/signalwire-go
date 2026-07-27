@@ -49,6 +49,15 @@ permissions:
 jobs:
   doc-audit:
     runs-on: ubuntu-latest
+    env:
+      # The oracle-checkout root. cmd/enumerate-surface resolves porting-sdk from
+      # $PORTING_SDK first, then a SIBLING ../porting-sdk (the local dev layout),
+      # then an in-repo ./porting-sdk (what actions/checkout `path:` produces here).
+      # It resolves either way now, but state it explicitly: the sibling-only walk
+      # missing under this layout is what made the oracle load EMPTY, silently drop
+      # every oracle-gated field, and produce a surface-audit red that could not be
+      # reproduced locally.
+      PORTING_SDK: ${{ github.workspace }}/porting-sdk
     steps:
       - name: Check out signalwire-go
         uses: actions/checkout@v7

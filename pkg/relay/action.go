@@ -58,6 +58,9 @@ func (a *Action) matchesTerminal(event *RelayEvent) bool {
 	return true
 }
 
+// Call returns the call this action was issued on (Python: Action.call).
+func (a *Action) Call() *Call { return a.call }
+
 // ControlID returns the control identifier for this action.
 func (a *Action) ControlID() string {
 	return a.controlID

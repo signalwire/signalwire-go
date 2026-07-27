@@ -1,6 +1,7 @@
 package prefabs
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -698,9 +699,91 @@ func TestConcierge_VenueInfoInGlobalData(t *testing.T) {
 	if gd["venue_name"] != "Grand Hotel" {
 		t.Errorf("expected venue_name=Grand Hotel, got %v", gd["venue_name"])
 	}
-	if gd["hours"] != "8 AM - 10 PM" {
-		t.Errorf("expected hours=8 AM - 10 PM, got %v", gd["hours"])
+	// global_data["hours"] carries the hours_of_operation MAP, matching the
+	// reference (`"hours": self.hours_of_operation`, concierge.py:168). The
+	// single-line Hours option is the shorthand for {"default": Hours}, so it
+	// lands under the "default" label. This test previously asserted a bare
+	// string, i.e. it asserted go's own divergent wire shape: an agent
+	// configured with per-day hours could not express them at all, and
+	// global_data disagreed with every other port.
+	hours, ok := gd["hours"].(map[string]string)
+	if !ok {
+		hoursAny, okAny := gd["hours"].(map[string]any)
+		if !okAny {
+			t.Fatalf("expected hours to be a map, got %T: %v", gd["hours"], gd["hours"])
+		}
+		hours = map[string]string{}
+		for k, v := range hoursAny {
+			sv, _ := v.(string)
+			hours[k] = sv
+		}
 	}
+	if hours["default"] != "8 AM - 10 PM" {
+		t.Errorf("expected hours[default]=8 AM - 10 PM, got %v", hours)
+	}
+}
+
+// TestConcierge_HoursOfOperationMap covers the reference's labelled
+// hours_of_operation map (concierge.py:78): each label renders as its own
+// "<Title>: <hours>" line and the whole map reaches global_data. Before this,
+// go's ConciergeOptions carried a single `Hours string`, so per-day hours were
+// unreachable through the port at all.
+func TestConcierge_HoursOfOperationMap(t *testing.T) {
+	ca := NewConciergeAgent(ConciergeOptions{
+		VenueName: "Grand Hotel",
+		Services:  []string{"spa"},
+		Amenities: map[string]Amenity{},
+		HoursOfOperation: map[string]string{
+			"weekdays": "9 AM - 6 PM",
+			"saturday": "10 AM - 2 PM",
+		},
+	})
+
+	// (1) Readable back through the accessor.
+	got := ca.HoursOfOperation()
+	if got["weekdays"] != "9 AM - 6 PM" || got["saturday"] != "10 AM - 2 PM" {
+		t.Errorf("HoursOfOperation() = %v, want both labels", got)
+	}
+
+	// (2) Both labels render into the prompt, one line each, sorted for
+	// determinism, with no "General hours:" prefix (the reference has none).
+	prompt := renderedPromptText(t, ca)
+	for _, want := range []string{"Saturday: 10 AM - 2 PM", "Weekdays: 9 AM - 6 PM"} {
+		if !strings.Contains(prompt, want) {
+			t.Errorf("prompt missing %q\n%s", want, prompt)
+		}
+	}
+	if strings.Contains(prompt, "General hours:") {
+		t.Error("prompt must not carry a 'General hours:' prefix — the reference emits the bare label lines")
+	}
+
+	// (3) special_instructions round-trips through the accessor and reaches the
+	// Instructions section (it was previously accepted and never stored).
+	withInstr := NewConciergeAgent(ConciergeOptions{
+		VenueName:           "Grand Hotel",
+		Services:            []string{"spa"},
+		Amenities:           map[string]Amenity{},
+		SpecialInstructions: []string{"Always mention the rooftop bar."},
+	})
+	if si := withInstr.SpecialInstructions(); len(si) != 1 || si[0] != "Always mention the rooftop bar." {
+		t.Errorf("SpecialInstructions() = %v, want the caller's instruction", si)
+	}
+	if !strings.Contains(renderedPromptText(t, withInstr), "Always mention the rooftop bar.") {
+		t.Error("a special instruction must reach the Instructions prompt section")
+	}
+}
+
+// renderedPromptText renders the agent's SWML and returns its whole AI-config
+// prompt as one searchable string, so a test can assert on rendered prompt COPY
+// without depending on the POM section structure.
+func renderedPromptText(t *testing.T, ca *ConciergeAgent) string {
+	t.Helper()
+	aiConfig := findAIConfig(t, ca.RenderSWML(nil, nil))
+	blob, err := json.Marshal(aiConfig["prompt"])
+	if err != nil {
+		t.Fatalf("marshal prompt: %v", err)
+	}
+	return string(blob)
 }
 
 func TestConcierge_CheckAvailability_Found(t *testing.T) {

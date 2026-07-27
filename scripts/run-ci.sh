@@ -170,19 +170,37 @@ sched_gate TEST defer=1 desc="go test ./... (scripts/run-tests.sh)" \
 sched_gate SURFACE res=surface desc="surface parity suite (SIGNATURES/DRIFT/SURFACE-FRESH/SURFACE-DIFF/SEMVER-DIFF/GEN-TYPE-DEGENERACY/GEN-IDIOM/ROUTE-COLLISION)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/surface.py" --port go --repo "$PORT_ROOT"
 
+# TYPE-EROSION: a port may not erase a type the reference DECLARES. compare_param treats
+# `any` on EITHER side as matching anything, so a port emitting `any` silently satisfies
+# every reference declaration — an unlimited opt-out. ConciergeAgent.hours_of_operation is
+# declared optional<dict<string,string>> and go still shipped a bare string, with no gate
+# red. RATCHET, not a hard gate: dynamic languages cannot always express a type, so this
+# banks the current count and fails only on REGRESSION. Drive the number DOWN; never up.
+sched_gate TYPE-EROSION res=surface desc="port did not erase a reference-declared param type (ratchet 16)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port go --repo "$PORT_ROOT" --max 16
+
 # GEN (regen-from-specs family): the 5 GEN-FRESH rules.
 sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-RELAY/-SWAIG/-SWML)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/gen.py" --port go --repo "$PORT_ROOT"
 
 # BEHAVIORAL (one Layer-D pass per rule): the per-PR rules. WAIT-LIVENESS (nightly)
 # is the separate line below. NOTE go's underscore spelling BEHAVIORAL-WIRE_RELAY.
-sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/SWAIG-HTTP-INVOKE/CA-VAR/TLS-VERIFY/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI)" \
+# SECURE-DEFAULT + SECRET-SCRUB are the two SECURITY rules, split per the
+# enterprise report's "static per-PR + behavioral nightly":
+#   * SECURE-DEFAULT (per-PR) — a fast in-process SWML render proving DefineTool
+#     defaults to SECURE and that the rendered webhook carries the per-tool
+#     __token IFF the tool is secure (cmd/secure-default-dump).
+#   * SECRET-SCRUB (per-PR) — the cheap STATIC grep for the raw-frame-log shape.
+#   * SECRET-SCRUB-LIVE (nightly, below) — the BEHAVIORAL leg: a live
+#     debug-level relay drive proving no sentinel credential reaches the log
+#     (cmd/secret-scrub-dump).
+sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/SWAIG-HTTP-INVOKE/SECURE-DEFAULT/CA-VAR/TLS-VERIFY/SECRET-SCRUB/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port go --repo "$PORT_ROOT" \
-        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE_RELAY,ENVELOPE,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,SWAIG-HTTP-INVOKE,CA-VAR,TLS-VERIFY,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI
+        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE_RELAY,ENVELOPE,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,SWAIG-HTTP-INVOKE,SECURE-DEFAULT,CA-VAR,TLS-VERIFY,SECRET-SCRUB,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI
 
-sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS)" \
+sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS/SECRET-SCRUB-LIVE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port go --repo "$PORT_ROOT" \
-        --rules WAIT-LIVENESS,RELAY-LIVENESS
+        --rules WAIT-LIVENESS,RELAY-LIVENESS,SECRET-SCRUB-LIVE
 
 # DOC-TRUTH (one markdown walk): DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/
 # COUNT-CLAIM/ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE. res=surface: DOC-AUDIT

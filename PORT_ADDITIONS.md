@@ -1,3 +1,50 @@
+<!-- ══════════════════════════════════════════════════════════════════════════
+BEFORE YOU ADD AN ENTRY TO THIS FILE — READ THIS.
+
+Every entry here is a place the parity checker STOPS comparing. That is a real cost:
+a divergence you list is a divergence no gate will ever catch again. So entries must
+be RARE, and each one must earn its place. Default to skepticism: assume the entry is
+NOT needed and make the case that it is.
+
+The order of preference, always:
+  1. FIX THE PORT so it matches the reference (add the missing member; make the
+     signature match).
+  2. FIX THE EMISSION so idiom folds onto the reference shape — the enumerator/emitter
+     canonicalizes your language's spelling onto the oracle's (builder → __init__,
+     getters → attributes, Result<T,E> → the plain return, CamelCase → the reference
+     name, options-object/kwargs → the expanded param list, RAII/dispose → close).
+     MOST divergences are idiom and belong here, not in this file.
+  3. FIX THE REFERENCE if the oracle itself is wrong or stale (a Python-only symbol
+     that leaked into the contract, a param the reference added and the oracle never
+     re-enumerated). Fix Python / the oracle, then re-drift — do not paper over a
+     broken reference with a per-port entry.
+  4. Only when 1–3 genuinely cannot apply does an entry here become justified.
+
+An entry is JUSTIFIED ONLY IF it is irreducible after correct emission — i.e. the
+divergence survives because the two languages genuinely cannot express the same thing,
+not because the emitter hasn't folded the idiom yet. If emission COULD fold it, the
+entry is a bug in this file; go fix the emitter.
+
+Each entry MUST state WHY, concretely, in one of these forms:
+  • ADDITION — this symbol exists in the port but not the reference. Answer: is it
+    genuine port-only surface with NO reference twin (say what it is and why the
+    reference has no equivalent), or is it IDIOM the emitter should have folded (then
+    it does not belong here — fold it)? A convenience/alias/back-compat wrapper is NOT
+    a justification.
+  • OMISSION — this reference symbol has no port member. Answer: WHY can it not exist
+    here — what specific language feature is absent (e.g. no async-context-manager
+    protocol, no __init__ method protocol)? "impossible:" means the construct cannot
+    be expressed at all; if it merely LOOKS different, that's idiom → fold it, don't
+    omit it. Cite a precedent when one exists (e.g. RelayClient omits the same dunder).
+  • SIGNATURE — the symbol matches by name but its parameters differ. Answer: is the
+    difference a foldable idiom collapse (options-object, leading context/self,
+    builder) — then EXPAND it in the signature emitter so names+count match, don't list
+    it — or a genuine reference-only parameter with no cross-language analogue?
+
+If you cannot write a crisp, specific WHY that survives the "could emission fold this?"
+test, the entry is not ready. Prove it's needed before you add it.
+═══════════════════════════════════════════════════════════════════════════════ -->
+
 # PORT_ADDITIONS.md
 #
 # Every symbol listed here is a public Go-port API that has no direct
@@ -9,7 +56,6 @@
 # match.
 
 # --- Existing curated entries (preserved) ---
-signalwire.relay.event.AIEvent: Go-only typed wrapper around AI action events; Python uses RelayEvent directly
 
 # --- Tier-2 idiom additions: context.Context-aware entry points (IDIOM_PASS_JOURNAL §4) ---
 # Additive *Context variants of the blocking/async entry points that honor ctx
@@ -110,7 +156,6 @@ signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: Go's Regist
 
 # --- Go-only structs (port-only public types) ---
 agent.MCPServerConfig: Go-only config struct; not part of Python public API
-agent.ToolDefinition: Go-only struct; no direct Python counterpart
 builtin.APINinjasTriviaSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.ClaudeSkillsSkill: Go skill implementation; matches the Python skill of the same name structurally
 builtin.CustomSkillsSkill: Go skill implementation; matches the Python skill of the same name structurally
@@ -193,7 +238,6 @@ swaig.PropArray: Go-only kind constructor returning an array-typed *Prop whose e
 swaig.PropObject: Go-only kind constructor returning an object-typed *Prop with nested properties + nested required list (from a *Params). No Python counterpart.
 swaig.Default: Go-only PropOption setting a property's JSON-Schema "default" keyword. No Python counterpart.
 swaig.Format: Go-only PropOption setting a property's JSON-Schema "format" keyword (e.g. "date"). No Python counterpart.
-swaig.WithEnum: Go-only PropOption attaching a JSON-Schema "enum" closed set to a property. No Python counterpart.
 swaig.Required: Go-only PropOption marking the enclosing property required (inline alternative to Params.Required(names...)). No Python counterpart. (Note: the same name is also the variadic fluent setter method Params.Required(...) — a method, invisible to the surface enumerator; this entry is the free-function option.)
 swaig.RecordFormatValues: Go-only helper returning the RecordFormat closed set as wire strings (mp3/wav/mp4) for Params.Enum/PropEnum/WithEnum — bridges the Tier-1 enum into schema "enum". No Python counterpart.
 swaig.RecordDirectionValues: Go-only helper returning the RecordDirection closed set as wire strings (speak/listen/both) for schema "enum". No Python counterpart.
@@ -207,32 +251,6 @@ swml.ToolDefinition: Go-only struct; no direct Python counterpart
 swml.VerbInfo: Go-only struct; no direct Python counterpart
 
 # --- Go-only functions (functional-options helpers, factory constructors, package utilities) ---
-agent.WithAIVerbName: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithAgentID: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithAutoAnswer: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithBasicAuth: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithBullet: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithBullets: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithCheckForInputOverride: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithConfigFile: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithDefaultWebhookURL: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithEnablePostPromptOverride: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithHost: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithName: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithNativeFunctions: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithNumbered: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithNumberedBullets: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithPort: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithRecordCall: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithRecordFormat: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithRecordStereo: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithRoute: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithSchemaPath: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithSchemaValidation: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithSubsections: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithSuppressLogs: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithTokenExpiry: Go functional-options helper; encodes a Python kwarg for the matching constructor
-agent.WithUsePom: Go functional-options helper; encodes a Python kwarg for the matching constructor
 builtin.NewAPINinjasTrivia: Go factory constructor for a port-only struct; Python equivalent does not exist
 builtin.NewClaudeSkills: Go factory constructor for a port-only struct; Python equivalent does not exist
 builtin.NewCustomSkills: Go factory constructor for a port-only struct; Python equivalent does not exist
@@ -251,19 +269,12 @@ builtin.NewSpider: Go factory constructor for a port-only struct; Python equival
 builtin.NewWeatherAPI: Go factory constructor for a port-only struct; Python equivalent does not exist
 builtin.NewWebSearch: Go factory constructor for a port-only struct; Python equivalent does not exist
 builtin.NewWikipediaSearch: Go factory constructor for a port-only struct; Python equivalent does not exist
-contexts.WithConfirm: Go functional-options helper; encodes a Python kwarg for the matching constructor
-contexts.WithFunctions: Go functional-options helper; encodes a Python kwarg for the matching constructor
-contexts.WithIsolated: Go functional-options helper; encodes the per-question isolated kwarg (GatherQuestion.isolated) for AddGatherQuestion
-contexts.WithPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
-contexts.WithType: Go functional-options helper; encodes a Python kwarg for the matching constructor
 lambda.NewHandler: Go factory constructor for a port-only struct; Python equivalent does not exist
 serverless.NewHandler: Go factory constructor for the port-only serverless.Handler (CGI/GCF adapter); Python equivalent does not exist
 serverless.WriteCGI: Go-only public function serializing a CGIResult to the CGI response wire format (Status line + headers + body); Python writes the CGI response inline
 logging.GetGlobalLevel: Go-only public function; no direct Python counterpart
 logging.IsSuppressed: Go-only public function; no direct Python counterpart
-logging.New: Go factory constructor for a port-only struct; Python equivalent does not exist
 logging.ParseLevel: Go-only public function; no direct Python counterpart
-logging.ResetLoggingConfiguration: Go-only public function; no direct Python counterpart
 logging.SetGlobalLevel: Go-only public function; no direct Python counterpart
 logging.Suppress: Go-only public function; no direct Python counterpart
 logging.Unsuppress: Go-only public function; no direct Python counterpart
@@ -274,90 +285,12 @@ namespaces.NewCrudWithAddresses: Go factory constructor for a port-only struct; 
 namespaces.NewCrudWithAddressesPUT: Go factory constructor for a port-only struct; Python equivalent does not exist
 prefabs.NewBedrockAgent: Go factory constructor for a port-only struct; Python equivalent does not exist
 prefabs.NewSurveyQuestion: Go factory constructor for a port-only struct; Python equivalent does not exist
-prefabs.WithOptional: Go functional-options helper; encodes a Python kwarg for the matching constructor
-prefabs.WithQuestionChoices: Go functional-options helper; encodes a Python kwarg for the matching constructor
-prefabs.WithQuestionID: Go functional-options helper; encodes a Python kwarg for the matching constructor
-prefabs.WithQuestionScale: Go functional-options helper; encodes a Python kwarg for the matching constructor
-prefabs.WithQuestionType: Go functional-options helper; encodes a Python kwarg for the matching constructor
 relay.DeviceGroups: Go-only helper — converts serial groups of parallel typed relay.Devices into the [][]map[string]any shape Connect/Dial take, byte-identical to hand-built nesting; no Python counterpart
 relay.DeviceList: Go-only helper — converts a flat list of typed relay.Devices into one parallel [][]map[string]any leg for Connect/Dial; no Python counterpart
 relay.NewAIEvent: Go factory constructor for a port-only struct; Python equivalent does not exist
 relay.NewDevice: Go factory constructor for the port-only relay.Device struct; Python uses a raw {type, params} dict
 relay.NewRelayClient: Go factory constructor for a port-only struct; Python equivalent does not exist
 relay.NewRelayError: Go factory constructor for a port-only struct; Python equivalent does not exist
-relay.WithAIParams: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAIPostPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAIPrompt: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAMDDetectInterruptions: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAMDDetectMessageEnd: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAMDEndSilenceTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAMDInitialTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAMDMachineVoiceThreshold: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAMDMachineWordsThreshold: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAMDTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithAudioVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithConferenceBeep: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithConferenceMuted: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithConnectRingback: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithContexts: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithDialFromNumber: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithDialMaxDuration: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithDialTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithDigitDigits: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithDigitTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithEnvDefaults: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithFaxDetectTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithFaxHeaderInfo: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithFaxTone: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithJWT: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithMaxActiveCalls: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithMessageContext: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithMessageMedia: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithMessageOnCompleted: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithMessageRegion: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithMessageTags: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayChargeAmount: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayCurrency: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayDescription: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayInputMethod: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayLanguage: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayMaxAttempts: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayMinPostalCodeLength: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayParameters: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayPaymentMethod: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayPostalCode: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayPrompts: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPaySecurityCode: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayStatusURL: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayTokenType: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayValidCardTypes: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPayVoice: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithPlayVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithProject: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRecordBeep: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRecordDirection: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRecordEndSilenceTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRecordFormat: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRecordInitialTimeout: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRecordStereo: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRecordTerminators: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRingtoneDuration: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithRingtoneVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithSpace: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithStreamCodec: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithTTSGender: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithTTSLanguage: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithTTSVoice: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithTTSVolume: Go functional-options helper; encodes a Python kwarg for the matching constructor
-relay.WithToken: Go functional-options helper; encodes a Python kwarg for the matching constructor
-security.WithDebugMode: Go functional-options helper; encodes a Python kwarg for the matching constructor
-security.WithSecret: Go functional-options helper; encodes a Python kwarg for the matching constructor
-server.WithLogLevel: Go functional-options helper; encodes a Python kwarg for the matching constructor
-server.WithRunHost: Go functional-options helper; encodes a Python kwarg for the matching constructor
-server.WithRunPort: Go functional-options helper; encodes a Python kwarg for the matching constructor
-server.WithServerHost: Go functional-options helper; encodes a Python kwarg for the matching constructor
-server.WithServerPort: Go functional-options helper; encodes a Python kwarg for the matching constructor
 skills.GetSkillFactory: Go-only public function; no direct Python counterpart
 swaig.CreatePaymentAction: Go-only public function; no direct Python counterpart
 swaig.CreatePaymentParameter: Go-only public function; no direct Python counterpart
@@ -370,34 +303,12 @@ swml.LoadSchemaFromFile: Go-only public function; no direct Python counterpart
 swml.NewAIVerbHandler: Go factory constructor for a port-only struct; Python equivalent does not exist
 swml.NewDocument: Go factory constructor for a port-only struct; Python equivalent does not exist
 swml.ValidateURL: Go-only public function; no direct Python counterpart
-swml.WithAPIKey: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithBasicAuth: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithBearerToken: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithConfigFile: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithDomain: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithHost: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithName: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithPort: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithRoute: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithSchemaPath: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithSchemaValidation: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithSecurityConfig: Go functional-options helper; encodes a Python kwarg for the matching constructor
-swml.WithTLS: Go functional-options helper; encodes a Python kwarg for the matching constructor
 
 # --- Go-only public Logger field auto-projected onto each struct that embeds it ---
-signalwire.core.agent_base.AgentBase.logger: Go's AgentBase exposes a public ``Logger *logging.Logger`` field; auto-projected as ``logger`` accessor on the Python-canonical class
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.logger: AIConfigMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.mixins.prompt_mixin.PromptMixin.logger: PromptMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.mixins.skill_mixin.SkillMixin.logger: SkillMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.mixins.tool_mixin.ToolMixin.logger: ToolMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.mixins.web_mixin.WebMixin.logger: WebMixin methods are projected from agent.AgentBase, which exposes a public ``Logger *logging.Logger`` field
-signalwire.core.swml_service.SWMLService.logger: Go's swml.Service exposes a public ``Logger *logging.Logger`` field; auto-projected as ``logger`` accessor on the Python-canonical class
 
 
 # --- Go-only fields on REST base resources (Python uses dynamic attribute lookup) ---
 signalwire.rest._base.BaseResource.http: Go's namespaces.Resource exposes a public ``http`` HTTPClient field; Python uses dynamic attribute lookup via __init__
-signalwire.rest._base.CrudResource.client: Go's namespaces.CrudResource exposes a public ``client`` HTTPClient field; Python uses dynamic attribute lookup via __init__
-signalwire.rest._base.ReadResource.client: same Go namespaces.CrudResource ``client`` field, surfaced under the ReadResource half of the CrudResource->ReadResource base-placement adapter (internal/surface/tables.go); Python's ReadResource uses dynamic attribute lookup
 
 # --- Go projections of Python attributes the Python adapter drops from surface but keeps in signatures ---
 # Python's enumerate-surface omits these as instance properties; signatures keeps them.
@@ -419,11 +330,6 @@ signalwire.relay.call.Action.result: Go's Result() method projects to Python's r
 # matching the reference base; these five are the subclass projections the signature
 # audit requires, excused on the surface side. (Same shape as the pom/schema_utils
 # signatures-keeps/surface-drops entries above.)
-signalwire.rest.namespaces.fabric_resources_generated.FabricAddresses.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
-signalwire.rest.namespaces.fax_resources_generated.FaxLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
-signalwire.rest.namespaces.message_resources_generated.MessageLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
-signalwire.rest.namespaces.video_resources_generated.VideoRoomSessions.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
-signalwire.rest.namespaces.voice_resources_generated.VoiceLogs.paginate: ReadResource.paginate() on the concrete subclass — required by the signatures oracle (records it per-subclass), surface oracle records it only on the ReadResource base
 
 ## SWML-verbs generated-payload reserved-word fields (port emits what the reference can't name)
 
@@ -438,8 +344,6 @@ gen-payload.CondElse.else: generated SWML-verb config field the Python reference
 gen-payload.CondReg.else: generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the Go struct types it
 
 # --- Port-only helper structs (options/results) ---
-swml.PlayOptions: Go options struct for swml.Service.Play — the idiomatic Go named-options shape that replaced the 7-positional-pointer signature (plan 6.2-go). Its fields unfold 1:1 back to the Python play(url, urls, volume, say_voice, say_language, say_gender, auto_answer) keyword params (enumerate-signatures optionsStructUnfoldMethods), so signature drift stays 0; the struct type itself is port-only call-shape plumbing.
-swml.AIOptions: Go options struct for swml.Service.AI — the idiomatic Go named-options shape that replaced the 6-positional signature (plan 6.2-go). Fields unfold to ai(prompt_text, prompt_pom, post_prompt, post_prompt_url, swaig, **kwargs) with the Extra map folding to the reference **kwargs tail; port-only call-shape plumbing.
 web.Options: Go options struct for web.NewWebService — the idiomatic Go constructor-options shape for the WebService static-file server (Python passes a flat kwarg list). Call-shape plumbing, not oracle surface.
 swml.ValidationResult: Go struct returned by swml schema validation — an idiomatic typed result the Python reference expresses as a (bool, errors) tuple. Port-only helper type.
 namespaces.Paginator: Go value returned by CrudResource.Paginate()/the ReadResource-subclass Paginate() — the LIVE paginator that walks a list endpoint's links.next cursor. It REPRESENTS Python's _pagination.PaginatedIterator class (adapter StructTable maps NewPaginator->__init__, Next->__next__, synthetic __iter__), so it is the port's counterpart to that class, not a bare addition; the former orphan rest.PaginatedIterator (no Paginate() returned it) was retired in plan 6.2-go and its mapping moved here. The Paginate() return type also folds to that class ref (enumerate-signatures goLocalAliases) so signatures compare EQUAL. Lives in the namespaces package (not rest) to avoid the rest->namespaces import cycle.
@@ -466,76 +370,23 @@ and is caught by the strict mock's 400-on-unknown-key in the test lanes. Not ora
 # --- C2-GO-ADD (Wave 2): functional-options + go-idiom port-additions ---
 # Cluster-1 wired diff_port_surface.py --port-additions-actual into go's SURFACE-DIFF,
 # which now enforces that every port-only symbol the enumerator drops is documented
-# here. The 74 entries below are go's functional-options (relay.With* / pom.From*|With*
-# / agent.With* / security.* / swaig.* / rest.* / spider.NewSpider) — functional-options
-# are go's NAMED-PARAMETER idiom (RULES.md §2: idiom is reconciled, never invented
-# surface). Each spells a Python keyword argument / factory as an option func or options
-# struct; all are wire/behaviour-neutral and fold away from the oracle surface.
+# The `With*` functional-option CONSTRUCTORS (relay.With* / agent.With* / pom.With* /
+# security.With* / swaig.With* etc. — every `WithX() <T>Option`) are NO LONGER listed
+# here: the enumerator now folds them generically (isFunctionalOptionCtor in
+# cmd/enumerate-surface/main.go — the generalisation of the former hardcoded
+# aiChatOptionFuncs allowlist), so they never register as SURFACE-DIFF additions.
+# What remains below are the NON-`With*` go-idiom additions the fold does not cover:
+# factory constructors (pom.From* / rest.NewCrud*PUT / spider.NewSpider) and the
+# options/config STRUCTS (agent.BedrockOptions / *Config / *Options) that carry a
+# Python constructor's kwargs as a single named value — go's NAMED-PARAMETER idiom
+# (RULES.md §2: idiom is reconciled, never invented surface). All wire/behaviour-neutral.
 # (The mocktest.* test-harness symbols are NOT here — they are excluded at the
 # enumerator, isMockTestSymbol in cmd/enumerate-surface/main.go.)
 agent.BedrockOptions: Go options struct carrying the optional Bedrock-agent kwargs as a single named-parameter value (go's idiom for Python BedrockAgent's keyword arguments). Not oracle surface
-agent.WithSigningKey: Go functional-option for AgentBase construction — go's named-parameter idiom for a Python AgentBase kwarg. Wire/behaviour-neutral (sets one config field). Not oracle surface
-agent.WithSigningKeyTrustProxy: Go functional-option for AgentBase construction — go's named-parameter idiom for a Python AgentBase kwarg. Wire/behaviour-neutral (sets one config field). Not oracle surface
 pom.FromJSON: Go constructor for the prompt-object-model (POM) — builds a prompt document from the named source (go's idiom for Python's PromptObjectModel factory/classmethod). Not oracle surface
 pom.FromList: Go constructor for the prompt-object-model (POM) — builds a prompt document from the named source (go's idiom for Python's PromptObjectModel factory/classmethod). Not oracle surface
 pom.FromSections: Go constructor for the prompt-object-model (POM) — builds a prompt document from the named source (go's idiom for Python's PromptObjectModel factory/classmethod). Not oracle surface
 pom.FromYAML: Go constructor for the prompt-object-model (POM) — builds a prompt document from the named source (go's idiom for Python's PromptObjectModel factory/classmethod). Not oracle surface
-pom.WithBody: Go functional-option — go's named-parameter idiom for a Python keyword argument; sets one field, wire/behaviour-neutral. Not oracle surface
-pom.WithBullets: Go functional-option — go's named-parameter idiom for a Python keyword argument; sets one field, wire/behaviour-neutral. Not oracle surface
-pom.WithNumbered: Go functional-option — go's named-parameter idiom for a Python keyword argument; sets one field, wire/behaviour-neutral. Not oracle surface
-pom.WithNumberedBullets: Go functional-option — go's named-parameter idiom for a Python keyword argument; sets one field, wire/behaviour-neutral. Not oracle surface
-relay.WithAIAgent: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAIControlID: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAIGlobalData: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAIHints: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAILanguages: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAIPostPromptAuthPassword: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAIPostPromptAuthUser: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAIPostPromptURL: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAIPronounce: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithAISWAIG: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceCoach: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceEndOnExit: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceMaxParticipants: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceRecord: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceRecordingStatusCallback: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceRecordingStatusCallbackEvent: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceRecordingStatusCallbackEventType: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceRecordingStatusCallbackMethod: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceRegion: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceStartOnEnter: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceStatusCallback: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceStatusCallbackEvent: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceStatusCallbackEventType: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceStatusCallbackMethod: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceStream: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceTrim: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConferenceWaitURL: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConnectMaxDuration: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConnectMaxPricePerMinute: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConnectStatusURL: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithConnectTag: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithDialClientTimeout: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithDialTag: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithExecuteTimeout: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithFaxControlID: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithPayControlID: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithPingWatchdog: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithPlayControlID: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithPlayDirection: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithPlayLoop: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithPlayOnCompleted: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithReconnectBackoff: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithRecordAudio: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithRecordControlID: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithRecordOnCompleted: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithStreamAuthorizationBearerToken: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithStreamControlID: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithStreamCustomParameters: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithStreamName: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithStreamStatusURL: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithStreamStatusURLMethod: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
-relay.WithStreamTrack: Go functional-option for a RELAY call-control verb — go's named-parameter idiom (an optional arg on the Python reference's verb call, spelled as an option func in go). Wire-neutral: sets one field on the verb's params struct. Not oracle surface
 rest.EffectiveOptions: Go helper resolving the effective per-request options (defaults merged with per-call overrides) — go's explicit-resolution idiom for Python's request_options merge. Not oracle surface
 rest.NewSignalWireRestTransportError: Go constructor for SignalWireRestTransportError (a transport-layer failure distinct from an API error response) — go's explicit-constructor idiom. Not oracle surface
 security.RawBodyFromContext: Go helper to retrieve the raw request body stashed on the context by WebhookMiddleware (needed because signature validation consumes the body) — go http idiom. Not oracle surface
@@ -545,5 +396,3 @@ security.WebhookMiddleware: Go net/http middleware that validates an inbound web
 security.WebhookOpts: Go options struct for WebhookMiddleware (secret, debug-mode) — go's named-parameter idiom. Not oracle surface
 security.WebhookRejection: Go typed result describing why a webhook signature check failed (status + reason) — go's error-value idiom. Not oracle surface
 spider.NewSpider: Go constructor for the datasphere web-spider skill helper — go's explicit-constructor idiom. Not oracle surface
-swaig.ConnectOptions: Go options struct carrying the optional kwargs of the SWAIG connect action as one named-parameter value (go's idiom for Python keyword arguments). Not oracle surface
-swaig.WaitForUserOptions: Go options struct carrying the optional kwargs of the SWAIG wait-for-user action as one named-parameter value (go's named-parameter idiom). Not oracle surface

@@ -366,7 +366,8 @@ The SDK implements a multi-layer security model:
    - Function-specific security tokens
    - Token validation for secure function calls
    - SessionManager-based security scope
-   - `Secure: true` field on tool definitions
+   - `Secure *bool` field on tool definitions: unset means SECURE (the default);
+     only an explicit pointer-to-false opts a tool out
 
 4. **State Isolation**
    - Per-call state separation
@@ -390,7 +391,7 @@ The SDK is designed to be highly extensible:
        Name:        "tool_name",
        Description: "Tool description",
        Parameters:  map[string]any{ /* ... */ },
-       Secure:      true,
+       // Secure omitted: an unset Secure means SECURE (the default).
        Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
            // Tool implementation
            return swaig.NewFunctionResult("done")
@@ -1148,7 +1149,8 @@ The SDK supports multiple deployment models:
 4. **Security**
    - Use HTTPS in production
    - Set strong authentication credentials
-   - Enable security for sensitive operations with `Secure: true`
+   - Security is ON by default: leave `Secure` unset. Only opt out deliberately,
+     with a `Secure` pointing at a false
 
 5. **Deployment**
    - Use environment variables for configuration

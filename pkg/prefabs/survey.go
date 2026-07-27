@@ -279,6 +279,37 @@ func (sa *SurveyAgent) OnSummary(summary map[string]any, rawData map[string]any)
 }
 
 // ---------------------------------------------------------------------------
+// Configuration readers
+// ---------------------------------------------------------------------------
+//
+// The reference stores each constructor argument as a public attribute
+// (survey.py) so a caller can read the configuration back.
+
+// Questions returns the survey's question list (Python: questions). A copy is
+// returned so a caller cannot mutate the agent's configuration.
+func (sa *SurveyAgent) Questions() []SurveyQuestion {
+	return append([]SurveyQuestion(nil), sa.questions...)
+}
+
+// SurveyName returns the survey's name (Python: survey_name).
+func (sa *SurveyAgent) SurveyName() string { return sa.surveyName }
+
+// BrandName returns the brand conducting the survey (Python: brand_name).
+func (sa *SurveyAgent) BrandName() string { return sa.brandName }
+
+// MaxRetries returns how many times the agent re-asks a question whose answer
+// fails validation (Python: max_retries).
+func (sa *SurveyAgent) MaxRetries() int { return sa.maxRetries }
+
+// Introduction returns the resolved introduction text spoken before the first
+// question (Python: introduction).
+func (sa *SurveyAgent) Introduction() string { return sa.introduction }
+
+// Conclusion returns the resolved closing text spoken after the last question
+// (Python: conclusion).
+func (sa *SurveyAgent) Conclusion() string { return sa.conclusion }
+
+// ---------------------------------------------------------------------------
 // Tool registration
 // ---------------------------------------------------------------------------
 

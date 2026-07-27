@@ -58,6 +58,14 @@ type genType struct {
 
 var genTypeSurface []genType
 
+// funcReturns records, for each exported free function ("<pkg>.<Name>"), the SHORT
+// name of its single named return TYPE (e.g. "AgentOption") when the function returns
+// exactly one bare/pointer identifier type. Used by the functional-options fold to
+// recognise `WithX() <T>Option` constructors generically (the generalisation of the
+// hardcoded aiChatOptionFuncs allowlist). Empty when the return isn't a single simple
+// identifier (multi-return, tuple, map, etc.).
+var funcReturns = map[string]string{}
+
 // sdkEnumSurfaceMarker is the doc-comment sentinel the types generator prepends to
 // an x-sdk-enum-derived public enum type (cmd/generate-rest/types.go sdkEnumMarker).
 // Its presence marks an enum type as surfaced public API (a surface class), while
@@ -114,6 +122,25 @@ type goStructFacts struct {
 	pkg     string
 	name    string
 	methods map[string]struct{}
+	// fields holds the SHORT (exported, PascalCase) names of the struct's own
+	// declared data fields (non-embedded). Recorded so the oracle-gated relay
+	// Event / AI-Chat DTO / RequestOptions field emission (emitDataclassFields)
+	// can surface each public field the @dataclass reference now enumerates —
+	// the deserialized event payload the Go event struct carries. The base-class
+	// (*RelayEvent) fields promoted through the embed are NOT here (per-subclass
+	// declared fields only), which matches the reference: the oracle records a
+	// subclass's own dataclass fields on the subclass and the base's on the base.
+	fields map[string]struct{}
+	// readers holds the subset of `methods` that are ZERO-ARG, SINGLE-RETURN
+	// exported methods — i.e. Go's idiomatic READ ACCESSOR over an unexported
+	// field (`func (c *Call) CallID() string { return c.callID }`). Recorded so
+	// the ORACLE-GATED accessor fold can surface them under the reference's plain
+	// attribute spelling (ALLOWLIST_DISCIPLINE §7 row 1: `getX()` folds to the
+	// public attribute `self.x`). Gating on the oracle is what makes this safe and
+	// self-retiring: an accessor is folded ONLY when the reference records a member
+	// of that snake_case name on that same class, so it can never invent surface
+	// and it needs no hand-maintained per-symbol list.
+	readers map[string]struct{}
 	// embeds holds the SHORT type names of the struct's anonymous (embedded)
 	// fields whose declared methods are promoted onto this struct — e.g. a
 	// generated REST resource embeds `*CrudResource` / `*CrudWithAddresses`,
@@ -302,7 +329,15 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						pkg:     pkgName,
 						name:    ts.Name.Name,
 						methods: map[string]struct{}{},
+						fields:  map[string]struct{}{},
+						readers: map[string]struct{}{},
 					}
+				}
+				if structs[key].fields == nil {
+					structs[key].fields = map[string]struct{}{}
+				}
+				if structs[key].readers == nil {
+					structs[key].readers = map[string]struct{}{}
 				}
 				// §5/§4a: mark generated-REST params-struct plumbing so it is
 				// excluded from the SURFACE-DIFF additions inventory.
@@ -312,13 +347,29 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				// Record anonymous (embedded) fields so promoted methods can be
 				// resolved through the embed chain during projection.
 				structs[key].embeds = append(structs[key].embeds, embeddedTypeNames(st)...)
+				// Record own (non-embedded) exported data-field names for the
+				// oracle-gated @dataclass field emission (emitDataclassFields).
+				if st.Fields != nil {
+					for _, f := range st.Fields.List {
+						if len(f.Names) == 0 {
+							continue // embedded field, not a named data field
+						}
+						for _, n := range f.Names {
+							if ast.IsExported(n.Name) {
+								structs[key].fields[n.Name] = struct{}{}
+							}
+						}
+					}
+				}
 			}
 		case *ast.FuncDecl:
 			if !ast.IsExported(d.Name.Name) {
 				continue
 			}
 			if d.Recv == nil || len(d.Recv.List) == 0 {
-				funcs[pkgName+"."+d.Name.Name] = struct{}{}
+				key := pkgName + "." + d.Name.Name
+				funcs[key] = struct{}{}
+				funcReturns[key] = singleReturnTypeName(d.Type)
 				continue
 			}
 			recv := recvTypeName(d.Recv.List[0].Type)
@@ -331,9 +382,20 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 					pkg:     pkgName,
 					name:    recv,
 					methods: map[string]struct{}{},
+					fields:  map[string]struct{}{},
+					readers: map[string]struct{}{},
 				}
 			}
+			if structs[key].readers == nil {
+				structs[key].readers = map[string]struct{}{}
+			}
 			structs[key].methods[d.Name.Name] = struct{}{}
+			// A zero-arg, single-return exported method is Go's read accessor
+			// over an unexported field; record it for the oracle-gated accessor
+			// fold (see goStructFacts.readers).
+			if isZeroArgReader(d.Type) {
+				structs[key].readers[d.Name.Name] = struct{}{}
+			}
 		}
 	}
 	return nil
@@ -380,6 +442,40 @@ func embeddedTypeNames(st *ast.StructType) []string {
 	return out
 }
 
+// singleReturnTypeName returns the SHORT type name of a function's return value when
+// it returns EXACTLY ONE result whose type is a bare or pointer identifier
+// (`AgentOption`, `*Foo`); otherwise "". Used to recognise `WithX() <T>Option`
+// functional-option constructors.
+func singleReturnTypeName(ft *ast.FuncType) string {
+	if ft == nil || ft.Results == nil || len(ft.Results.List) != 1 {
+		return ""
+	}
+	r := ft.Results.List[0]
+	if len(r.Names) > 1 {
+		return ""
+	}
+	return recvTypeName(r.Type)
+}
+
+// isZeroArgReader reports whether a method signature is a READ ACCESSOR: no
+// parameters and exactly one result. That is Go's idiomatic expression of a
+// public attribute over an unexported field, and it is the shape the
+// oracle-gated accessor fold surfaces under the reference's plain attribute
+// name. A method taking arguments is a verb, not a reader; a method returning
+// nothing or a (value, error) pair is not an attribute read either.
+func isZeroArgReader(ft *ast.FuncType) bool {
+	if ft == nil || ft.Results == nil || len(ft.Results.List) != 1 {
+		return false
+	}
+	if len(ft.Results.List[0].Names) > 1 {
+		return false
+	}
+	if ft.Params != nil && len(ft.Params.List) > 0 {
+		return false
+	}
+	return true
+}
+
 // recvTypeName extracts the base type name from a method receiver.
 func recvTypeName(expr ast.Expr) string {
 	switch e := expr.(type) {
@@ -393,6 +489,115 @@ func recvTypeName(expr ast.Expr) string {
 		return recvTypeName(e.X)
 	}
 	return ""
+}
+
+// --- @dataclass field emission (oracle-gated) -------------------------------
+
+// goNameToPython delegates to internal/surface, the SINGLE home of the
+// Go-identifier -> Python-canonical fold. See internal/surface/names.go for why
+// the correction table is shared with cmd/enumerate-signatures rather than
+// duplicated (the two copies had already diverged on `FAQs`).
+func goNameToPython(s string) string { return surfacepkg.GoNameToPython(s) }
+
+// oracleModuleMembers is the parse of python_surface.json restricted to the
+// per-class member sets emitDataclassFields gates on. Shape:
+// module -> class -> set(reference member names).
+type oracleModuleMembers map[string]map[string]map[string]bool
+
+// RETIRED: dataclassFieldModules.
+//
+// Field emission used to be scoped to a CLOSED set of three modules
+// (signalwire.relay.event, signalwire.ai_chat.client,
+// signalwire.rest._request_options) — the modules whose reference classes carried
+// public @dataclass fields when the table was written.
+//
+// The oracle has since grown well past those three: class B2 made every public
+// `__init__` attribute that is ALSO a constructor param part of the recorded
+// surface, across the whole SDK. The hardcoded module list then became a stale
+// exclusion that silently threw away capability the port already had — 30 of go's
+// 110 missing symbols were fields or accessors the Go structs carried, dropped
+// only because their module was not one of the three.
+//
+// loadOracleMembers now returns EVERY module the oracle records, so the ORACLE
+// alone gates emission. That is strictly safer than the module list it replaces
+// (a field is emitted only when the reference records a member of that name on
+// that same class, so it can never over-emit) and it self-retires: the gate tracks
+// the oracle instead of needing a hand edit each time the oracle grows.
+
+// resolvePortingSDK locates the adjacent porting-sdk checkout that carries the
+// reference oracle, trying in order:
+//
+//  1. $PORTING_SDK — the explicit override every CI workflow in the matrix sets
+//     (and the only reliable answer when the layout is not sibling-adjacent).
+//  2. <repoRoot>/../porting-sdk — the local development layout, where porting-sdk
+//     is a SIBLING of the port repo.
+//  3. <repoRoot>/porting-sdk — the CI layout, where actions/checkout places
+//     porting-sdk INSIDE the port repo (`path: porting-sdk`).
+//
+// It returns an error rather than "" when none resolves, and every caller must
+// FAIL on that error rather than degrade.
+//
+// That last point is the whole reason this function exists. The oracle loaders used
+// to hardcode layout (2) and return nil on any failure — so under the CI layout the
+// walk missed, the oracle loaded EMPTY, and every oracle-gated field simply did not
+// emit. The result was a valid-LOOKING port_surface.json that was missing ~200
+// members, a surface-audit red that could not be reproduced locally (where the
+// sibling DOES resolve), and a long hunt for a cause that was never in the port's
+// source. dotnet's lane hit the identical trap. A gate that cannot resolve its
+// oracle must say so, not quietly emit less.
+func resolvePortingSDK(repoRoot string) (string, error) {
+	candidates := []string{}
+	if env := os.Getenv("PORTING_SDK"); env != "" {
+		candidates = append(candidates, env)
+	}
+	candidates = append(candidates,
+		filepath.Join(repoRoot, "..", "porting-sdk"),
+		filepath.Join(repoRoot, "porting-sdk"),
+	)
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(c, "python_surface.json")); err == nil {
+			return c, nil
+		}
+	}
+	return "", fmt.Errorf(
+		"porting-sdk not found (looked for python_surface.json under %v); "+
+			"set PORTING_SDK or clone porting-sdk adjacent to this repo", candidates)
+}
+
+// loadOracleMembers reads python_surface.json and returns the per-class member
+// sets. FAILS LOUD: an unresolvable or unparseable oracle is an error, never a
+// silent empty result (see resolvePortingSDK).
+func loadOracleMembers(repoRoot string) (oracleModuleMembers, error) {
+	psdk, err := resolvePortingSDK(repoRoot)
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(psdk, "python_surface.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read oracle %s: %w", path, err)
+	}
+	var parsed struct {
+		Modules map[string]struct {
+			Classes map[string][]string `json:"classes"`
+		} `json:"modules"`
+	}
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return nil, fmt.Errorf("parse oracle %s: %w", path, err)
+	}
+	out := oracleModuleMembers{}
+	for mod, mi := range parsed.Modules {
+		cm := map[string]map[string]bool{}
+		for cls, members := range mi.Classes {
+			set := map[string]bool{}
+			for _, m := range members {
+				set[m] = true
+			}
+			cm[cls] = set
+		}
+		out[mod] = cm
+	}
+	return out, nil
 }
 
 // --- Emission ---------------------------------------------------------------
@@ -484,7 +689,7 @@ func promotedMethodExists(structs map[string]*goStructFacts, facts *goStructFact
 
 // build turns (goStructs, goFuncs) into a Python-reference surface driven by
 // the translation tables.
-func build(structs map[string]*goStructFacts, funcs map[string]struct{}) surface {
+func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle oracleModuleMembers) surface {
 	out := surface{
 		Version: "1",
 		Modules: map[string]moduleInventory{},
@@ -569,6 +774,53 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}) surface
 			}
 			for _, synthetic := range target.SyntheticMethods {
 				addMethod(target.Module, target.Class, synthetic)
+			}
+			// @dataclass field emission (oracle-gated). For the closed set of
+			// modules whose reference classes carry public @dataclass fields
+			// (relay Event structs, AI-Chat DTOs, RequestOptions), surface each
+			// exported Go struct field whose snake_case name is in the oracle's
+			// member set for this (module, class). This makes the deserialized
+			// event-payload fields the Go struct carries PRESENT (folded), so the
+			// 106 reference fields compare EQUAL instead of showing as omissions.
+			// Gating on the oracle guarantees we emit exactly the reference set
+			// and never a port-internal helper field.
+			if clsMembers, ok := oracle[target.Module][target.Class]; ok {
+				for goField := range facts.fields {
+					snake := goNameToPython(goField)
+					if clsMembers[snake] {
+						addMethod(target.Module, target.Class, snake)
+					}
+				}
+				// Accessor fold (ALLOWLIST_DISCIPLINE §7 row 1), same oracle
+				// gate. Go's idiomatic expression of a public attribute over an
+				// unexported field is a zero-arg reader method
+				// (`func (c *Call) CallID() string { return c.callID }`). Fold
+				// each such reader onto the reference's plain attribute spelling
+				// when the oracle records a member of that snake_case name on
+				// this same class.
+				//
+				// Why this is not an ad-hoc rename table: the ORACLE decides.
+				// The fold can only ever emit a name the reference already
+				// records on this class, so it cannot invent surface, and it
+				// retires itself as the oracle changes — there is no
+				// hand-maintained per-symbol list to go stale (the failure mode
+				// java and dotnet both hit with their strip tables).
+				//
+				// EXCLUDED: a reader whose snake name the StructTable already
+				// maps some Go method to. That mapping is the deliberate,
+				// reviewed projection; keeping it authoritative is what stops
+				// the fold from quietly re-pointing a real reference METHOD at
+				// a same-named accessor.
+				mapped := map[string]bool{}
+				for _, py := range target.Methods {
+					mapped[py] = true
+				}
+				for goReader := range facts.readers {
+					snake := goNameToPython(goReader)
+					if clsMembers[snake] && !mapped[snake] {
+						addMethod(target.Module, target.Class, snake)
+					}
+				}
 			}
 			_ = target.Alias // already added via addClass above.
 		}
@@ -673,32 +925,50 @@ func isMockTestSymbol(key string) bool {
 	return strings.HasPrefix(key, "mocktest.")
 }
 
-// aiChatOptionsPlumbing is the set of ai_chat per-call options structs whose fields
-// enumerate-signatures unfolds back into each AIChatClient method signature. They are
+// optionsPlumbingStructs is the set of per-call OPTIONS STRUCTS whose fields
+// enumerate-signatures UNFOLDS back into the configured method's signature (the
+// ai_chat per-call options via aiChatMethodSigs, and the swml/swaig options via
+// optionsStructUnfoldMethods — both in cmd/enumerate-signatures/main.go). They are
 // call-shape plumbing (the Go named-options idiom for the Python kwargs), not oracle
 // surface, so they are excluded from the SURFACE-DIFF additions inventory — the same
-// treatment the generated-REST *Params plumbing structs get.
-var aiChatOptionsPlumbing = map[string]bool{
+// treatment the generated-REST *Params plumbing structs get. This generalises the
+// former hardcoded ai_chat-only allowlist to every unfolded options struct.
+// (If you add a struct to optionsStructUnfoldMethods, add it here too.)
+var optionsPlumbingStructs = map[string]bool{
+	// ai_chat per-call options (unfolded via aiChatMethodSigs)
 	"aichat.CreateOptions":    true,
 	"aichat.ChatOptions":      true,
 	"aichat.SummarizeOptions": true,
+	// swml/swaig per-call options (unfolded via optionsStructUnfoldMethods)
+	"swml.PlayOptions":         true,
+	"swml.AIOptions":           true,
+	"swaig.ConnectOptions":     true,
+	"swaig.WaitForUserOptions": true,
 }
 
-// aiChatOptionFuncs is the set of ai_chat functional-options constructors — the Go
-// spelling of the AIChatClient.__init__ keyword arguments. WithProject/WithToken/
-// WithSpace/WithURL map 1:1 to project/token/space/url; WithHTTPClient + WithReadIdle-
-// Timeout are the two facets of Python's single `session: aiohttp.ClientSession`
-// injection seam (the reference passes a custom session to override transport AND the
-// sock_read idle timeout — see DEFAULT_TIMEOUT). enumerate-signatures splices the
-// constructor into __init__(project, token, space, url, session), so these carry no
-// standalone oracle surface and are excluded from the SURFACE-DIFF additions inventory.
-var aiChatOptionFuncs = map[string]bool{
-	"aichat.WithProject":         true,
-	"aichat.WithToken":           true,
-	"aichat.WithSpace":           true,
-	"aichat.WithURL":             true,
-	"aichat.WithHTTPClient":      true,
-	"aichat.WithReadIdleTimeout": true,
+// isFunctionalOptionCtor reports whether an exported free function key
+// ("<pkg>.<Name>") is a functional-options constructor: its name starts with `With`
+// and its sole return type is a `*Option`-suffixed identifier (e.g. AgentOption,
+// ConferenceOption, aichat.ClientOption). These encode a single Python keyword
+// argument of the constructor/method they configure; enumerate-signatures unfolds the
+// variadic `...Option` back into that expanded param list, so they carry no standalone
+// oracle surface and must not register as SURFACE-DIFF additions. This is the general
+// form of the retired hardcoded aiChatOptionFuncs allowlist.
+func isFunctionalOptionCtor(key string) bool {
+	dot := strings.Index(key, ".")
+	if dot < 0 {
+		return false
+	}
+	name := key[dot+1:]
+	if !strings.HasPrefix(name, "With") {
+		return false
+	}
+	// The return type is an option type when it is named `Option` or `<T>Option`
+	// (ai_chat's + security's option type is the bare `Option`; agent/relay/swml use
+	// `<T>Option`). A `With*` free function returning such a type is a functional-option
+	// constructor. Empty return (multi-return / non-identifier) does NOT qualify.
+	ret := funcReturns[key]
+	return ret == "Option" || strings.HasSuffix(ret, "Option")
 }
 
 // computePortAdditions walks the parsed Go inventory, keeps only the
@@ -718,11 +988,11 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 		if facts.paramsPlumbing {
 			continue
 		}
-		// ai_chat per-call options structs are call-shape plumbing (the Go spelling
-		// of the AIChatClient method kwargs, unfolded back into each method signature
-		// by enumerate-signatures) — not oracle surface, exactly like the REST
-		// *Params plumbing. Never list them as SURFACE-DIFF additions.
-		if aiChatOptionsPlumbing[key] {
+		// Per-call options structs whose fields enumerate-signatures unfolds back into
+		// the configured method signature (ai_chat + swml/swaig — see
+		// optionsPlumbingStructs) are call-shape plumbing, not oracle surface, exactly
+		// like the REST *Params plumbing. Never list them as SURFACE-DIFF additions.
+		if optionsPlumbingStructs[key] {
 			continue
 		}
 		// The mocktest package is the shared test harness (mock server + journal),
@@ -747,7 +1017,7 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 		// of the AIChatClient.__init__ kwargs (project/token/space/url/session);
 		// enumerate-signatures splices them into __init__, so they are call-shape
 		// plumbing, not standalone oracle surface. Exclude from SURFACE-DIFF additions.
-		if aiChatOptionFuncs[key] {
+		if isFunctionalOptionCtor(key) {
 			continue
 		}
 		// mocktest is the shared test harness, not shipped SDK surface (see above).
@@ -849,6 +1119,137 @@ func buildGoSurface(structs map[string]*goStructFacts, funcs map[string]struct{}
 	return out
 }
 
+// --- Composition-attribute enrich -------------------------------------------
+
+// sigSnapshot is the minimal shape of port_signatures.json needed to import
+// composition attributes into the surface.
+type sigSnapshot struct {
+	Modules map[string]struct {
+		Classes map[string]struct {
+			Methods map[string]struct {
+				Params []struct {
+					Kind string `json:"kind"`
+				} `json:"params"`
+				Returns string `json:"returns"`
+			} `json:"methods"`
+		} `json:"classes"`
+	} `json:"modules"`
+}
+
+// isCompositionReturn mirrors the Python surface enumerator's
+// `_enrich_composition_attributes._is_composition_return` (porting-sdk
+// scripts/enumerate_python.py): a composition attribute RETURNS an SDK class —
+// bare (`class:signalwire.…`) or wrapped in `optional<…>` / `list<…>` — but NOT a
+// `union<…>` (those are the auto-vivified SWML verb SETTERS, a distinct idiom class
+// folded elsewhere). Scalar state (`string`, `int`, …) is not class-typed and is
+// not imported, keeping go's two oracles (surface + signatures) consistent BY
+// CONSTRUCTION exactly as the Python pair is.
+// pythonReservedWords are identifiers the Python reference generator cannot surface
+// as a member name — it drops them to a comment (the same set the SIGNATURE diff
+// tolerates as reserved-word leaves, e.g. `else`/`from`). Go legitimately emits such a
+// wire-field accessor, but importing it as a composition attribute would surface a
+// member the reference can never have → a phantom addition. Exclude them here; the
+// signature side already carries the reserved-word leaf, so the two oracles stay
+// consistent (the member is present in signatures, absent from surface — matching the
+// reference on BOTH sides).
+var pythonReservedWords = map[string]bool{
+	"else": true, "from": true, "import": true, "class": true, "def": true,
+	"return": true, "global": true, "lambda": true, "pass": true, "raise": true,
+	"yield": true, "async": true, "await": true, "with": true, "as": true,
+	"not": true, "and": true, "or": true, "is": true, "in": true, "if": true,
+	"elif": true, "while": true, "for": true, "try": true, "except": true,
+	"finally": true, "del": true, "assert": true, "break": true, "continue": true,
+	"nonlocal": true, "None": true, "True": true, "False": true,
+}
+
+func isCompositionReturn(ret string) bool {
+	if strings.HasPrefix(ret, "union<") {
+		return false
+	}
+	return strings.Contains(ret, "class:signalwire.")
+}
+
+// enrichCompositionAttributes adds COMPOSITION-ATTRIBUTE members from go's own
+// signature oracle (port_signatures.json) into the surface snapshot in place, the
+// exact mirror of the Python reference's `_enrich_composition_attributes`. The
+// surface `build` step projects only StructTable-mapped ergonomic methods and drops
+// self-only class-returning accessors (REST namespace accessors like
+// `FabricNamespace.addresses`, generated SWML-model getters like `AIObject.hints`,
+// composition handles like `AgentServer.logger`); the SIGNATURE oracle already
+// records them as griffe-typed self-only members. Importing them here makes the two
+// go oracles consistent by construction — the same guarantee the Python pair has —
+// so the composition surface the reference now enumerates is PRESENT (folded), not a
+// phantom omission. Idempotent; skips silently if port_signatures.json is absent
+// (first-generation / degraded env), so surface never HARD-depends on it.
+//
+// A member is a composition attribute iff its signature is self-only (no params
+// other than the receiver) AND returns an SDK class per isCompositionReturn.
+func enrichCompositionAttributes(snapshot *surface, repoRoot string) error {
+	sigPath := filepath.Join(repoRoot, "port_signatures.json")
+	raw, err := os.ReadFile(sigPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var sig sigSnapshot
+	if err := json.Unmarshal(raw, &sig); err != nil {
+		return fmt.Errorf("enrich: parse %s: %w", sigPath, err)
+	}
+	for mod, sinv := range sig.Modules {
+		for cls, sce := range sinv.Classes {
+			var comp []string
+			for m, msig := range sce.Methods {
+				// A reserved-word leaf (`else`, `from`, …) cannot be a reference
+				// surface member — the Python generator drops it. Emitting it here
+				// would be a phantom addition; skip it (it stays on the signature side).
+				if pythonReservedWords[m] {
+					continue
+				}
+				nonSelf := false
+				for _, p := range msig.Params {
+					if p.Kind != "self" {
+						nonSelf = true
+						break
+					}
+				}
+				if nonSelf {
+					continue
+				}
+				if isCompositionReturn(msig.Returns) {
+					comp = append(comp, m)
+				}
+			}
+			if len(comp) == 0 {
+				continue
+			}
+			inv, ok := snapshot.Modules[mod]
+			if !ok {
+				inv = moduleInventory{Classes: map[string][]string{}, Functions: []string{}}
+			}
+			if inv.Classes == nil {
+				inv.Classes = map[string][]string{}
+			}
+			existing := inv.Classes[cls]
+			seen := map[string]bool{}
+			for _, e := range existing {
+				seen[e] = true
+			}
+			for _, m := range comp {
+				if !seen[m] {
+					existing = append(existing, m)
+					seen[m] = true
+				}
+			}
+			sort.Strings(existing)
+			inv.Classes[cls] = existing
+			snapshot.Modules[mod] = inv
+		}
+	}
+	return nil
+}
+
 // --- CLI --------------------------------------------------------------------
 
 // goSHA returns the signalwire-go repo HEAD SHA (or "N/A").
@@ -869,6 +1270,29 @@ func findRepoRoot(cwd string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("no go.mod found above %s", cwd)
+}
+
+// assertOracleGatedEmission verifies the oracle-gated field/accessor fold actually
+// emitted. ChatLog.messages is the canary: it is a plain public @dataclass field on
+// a class the walker always finds, so it is present whenever the fold ran and
+// absent whenever the oracle failed to load — exactly the signal that was silently
+// missing before.
+func assertOracleGatedEmission(snapshot *surface) error {
+	const (
+		mod    = "signalwire.ai_chat.client"
+		cls    = "ChatLog"
+		member = "messages"
+	)
+	for _, m := range snapshot.Modules[mod].Classes[cls] {
+		if m == member {
+			return nil
+		}
+	}
+	return fmt.Errorf(
+		"oracle-gated emission produced nothing: %s.%s.%s is missing from the "+
+			"snapshot. The reference oracle was resolved but its member sets did not "+
+			"reach the fold — do NOT commit this snapshot, it is missing every "+
+			"oracle-gated field and accessor", mod, cls, member)
 }
 
 func run() error {
@@ -898,8 +1322,26 @@ func run() error {
 
 	sha := goSHA(repoRoot)
 
-	snapshot := build(structs, funcs)
+	oracle, err := loadOracleMembers(repoRoot)
+	if err != nil {
+		return fmt.Errorf("load reference oracle: %w", err)
+	}
+	snapshot := build(structs, funcs, oracle)
+	if err := enrichCompositionAttributes(&snapshot, repoRoot); err != nil {
+		return fmt.Errorf("enrich composition attributes: %w", err)
+	}
 	snapshot.GeneratedFrom = fmt.Sprintf("signalwire-go @ %s", sha)
+
+	// Self-check: assert an ORACLE-GATED member actually made it into the snapshot.
+	//
+	// resolvePortingSDK now fails loud, so an unreachable oracle can no longer
+	// produce a quietly-degraded snapshot. This is the belt to that braces: it
+	// catches any FUTURE way the gating could silently no-op (a renamed oracle key,
+	// a reshaped surface JSON, a fold that stops firing) at the moment of emission
+	// rather than as an unreproducible parity red days later.
+	if err := assertOracleGatedEmission(&snapshot); err != nil {
+		return err
+	}
 
 	rendered, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {

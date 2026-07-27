@@ -117,6 +117,10 @@ func envBoolish(v string) bool {
 	return false
 }
 
+// SchemaPath returns the location the schema was loaded from, or "" when the
+// embedded schema was used (Python: schema_path).
+func (s *SchemaUtils) SchemaPath() string { return s.schemaPath }
+
 // LoadSchema reads and parses the JSON Schema.
 // Mirrors Python's “load_schema()“.
 func (s *SchemaUtils) LoadSchema() map[string]any {

@@ -1,3 +1,50 @@
+<!-- ══════════════════════════════════════════════════════════════════════════
+BEFORE YOU ADD AN ENTRY TO THIS FILE — READ THIS.
+
+Every entry here is a place the parity checker STOPS comparing. That is a real cost:
+a divergence you list is a divergence no gate will ever catch again. So entries must
+be RARE, and each one must earn its place. Default to skepticism: assume the entry is
+NOT needed and make the case that it is.
+
+The order of preference, always:
+  1. FIX THE PORT so it matches the reference (add the missing member; make the
+     signature match).
+  2. FIX THE EMISSION so idiom folds onto the reference shape — the enumerator/emitter
+     canonicalizes your language's spelling onto the oracle's (builder → __init__,
+     getters → attributes, Result<T,E> → the plain return, CamelCase → the reference
+     name, options-object/kwargs → the expanded param list, RAII/dispose → close).
+     MOST divergences are idiom and belong here, not in this file.
+  3. FIX THE REFERENCE if the oracle itself is wrong or stale (a Python-only symbol
+     that leaked into the contract, a param the reference added and the oracle never
+     re-enumerated). Fix Python / the oracle, then re-drift — do not paper over a
+     broken reference with a per-port entry.
+  4. Only when 1–3 genuinely cannot apply does an entry here become justified.
+
+An entry is JUSTIFIED ONLY IF it is irreducible after correct emission — i.e. the
+divergence survives because the two languages genuinely cannot express the same thing,
+not because the emitter hasn't folded the idiom yet. If emission COULD fold it, the
+entry is a bug in this file; go fix the emitter.
+
+Each entry MUST state WHY, concretely, in one of these forms:
+  • ADDITION — this symbol exists in the port but not the reference. Answer: is it
+    genuine port-only surface with NO reference twin (say what it is and why the
+    reference has no equivalent), or is it IDIOM the emitter should have folded (then
+    it does not belong here — fold it)? A convenience/alias/back-compat wrapper is NOT
+    a justification.
+  • OMISSION — this reference symbol has no port member. Answer: WHY can it not exist
+    here — what specific language feature is absent (e.g. no async-context-manager
+    protocol, no __init__ method protocol)? "impossible:" means the construct cannot
+    be expressed at all; if it merely LOOKS different, that's idiom → fold it, don't
+    omit it. Cite a precedent when one exists (e.g. RelayClient omits the same dunder).
+  • SIGNATURE — the symbol matches by name but its parameters differ. Answer: is the
+    difference a foldable idiom collapse (options-object, leading context/self,
+    builder) — then EXPAND it in the signature emitter so names+count match, don't list
+    it — or a genuine reference-only parameter with no cross-language analogue?
+
+If you cannot write a crisp, specific WHY that survives the "could emission fold this?"
+test, the entry is not ready. Prove it's needed before you add it.
+═══════════════════════════════════════════════════════════════════════════════ -->
+
 # PORT_SIGNATURE_OMISSIONS.md
 
 Documented signature divergences between this Go port and the Python
@@ -338,6 +385,15 @@ signalwire.core.mixins.state_mixin.StateMixin.logger: Go exposes a Logger field;
 signalwire.core.swml_builder.SWMLBuilder.logger: Go swml.Service exposes a Logger field projected onto SWMLBuilder; reference records no logger signature
 signalwire.core.swml_handler.VerbHandlerRegistry.logger: Go swml.Service exposes a Logger field projected onto VerbHandlerRegistry; reference records no logger signature
 signalwire.skills.registry.SkillRegistry.logger: reference records a SkillRegistry.logger the Go instance registry does not expose (package-level registration idiom)
+signalwire.core.agent_base.AgentBase.logger: Go AgentBase exposes a Logger field (composition attribute) projected onto AgentBase; the reference records no logger signature. Same Logger-field idiom as the PromptManager/ToolRegistry/mixin entries above — surfaced when the AgentBase mixin-flatten fold (porting-sdk 8268da7) projected the composition attribute onto the flattened classes.
+signalwire.core.mixins.ai_config_mixin.AIConfigMixin.logger: Go exposes a Logger field (composition attribute) projected onto AIConfigMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
+signalwire.core.mixins.prompt_mixin.PromptMixin.logger: Go exposes a Logger field (composition attribute) projected onto PromptMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
+signalwire.core.mixins.skill_mixin.SkillMixin.logger: Go exposes a Logger field (composition attribute) projected onto SkillMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
+signalwire.core.mixins.tool_mixin.ToolMixin.logger: Go exposes a Logger field (composition attribute) projected onto ToolMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
+signalwire.core.mixins.web_mixin.WebMixin.logger: Go exposes a Logger field (composition attribute) projected onto WebMixin via the AgentBase mixin-flatten fold; the reference records no logger signature.
+signalwire.core.swml_service.SWMLService.logger: Go SWMLService exposes a Logger field (composition attribute); the reference records no logger signature. Same Logger-field idiom as the SWMLBuilder/VerbHandlerRegistry entries above.
+signalwire.agent_server.AgentServer.app: Python @property returning the FastAPI app; Go AgentServer has no framework app handle (not surfaced). Same idiom as the WebService.app entry above.
+signalwire.rest._request_options.RequestOptions.retry_on_status: go-set-idiom — Go models the retry-on-status status set as RetryOnStatus map[int]bool (a SET: O(1) membership, the natural Go idiom), whereas the reference types retry_on_status as list[int] | None. The MEMBER is present (folded in the surface oracle); only the container SHAPE diverges (set-as-map vs list), so there is no faithful reference-shaped signature to compare. Same functional surface (the set of statuses that trigger a retry).
 signalwire.core.function_result.FunctionResult.create_payment_action: Go exposes swaig.CreatePaymentAction as a package helper (staticmethod placement); no instance method signature to compare
 signalwire.core.function_result.FunctionResult.create_payment_parameter: Go exposes swaig.CreatePaymentParameter as a package helper; no instance method signature to compare
 signalwire.core.function_result.FunctionResult.create_payment_prompt: Go exposes swaig.CreatePaymentPrompt as a package helper; no instance method signature to compare
@@ -358,5 +414,5 @@ signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: Go Generate
 signalwire.core.agent.tools.type_inference.infer_schema: go-idiom typed-params-builder input — Python infer_schema reflects a handler func's signature/type-hints at runtime (callable input) to derive the schema; Go has no runtime func-signature reflection, so the typed declaration is supplied via the fluent swaig.Params builder — InferSchema(p *swaig.Params) returns the SAME 5-tuple (parameters, required, description, isTyped, hasRawData). Only param[0]'s input FORM differs (typed-builder vs callable); the schema-derivation role and return shape match exactly. (rust/java omit this as impossible; go realizes it via the builder — the create_typed_handler_wrapper cousin matches the reference signature verbatim.)
 signalwire.rest._base.SignalWireRestTransportError.__init__: go-error-cause-wrap — the Go transport error is the same rest.SignalWireRestError struct (folded via a Transport bool discriminator); its NewSignalWireRestTransportError(cause, body, url, method) constructor takes one EXTRA leading `cause error` arg beyond the reference's (body, url, method) so the underlying net/context error is preserved for errors.Is/errors.Unwrap — the Go equivalent of Python's `raise SignalWireRestTransportError(...) from exc`, which Python expresses via __cause__ (not a constructor param). Body still defaults to cause.Error() when empty, so the reference's (body, url, method) roles all map through.
 signalwire.rest._request_options.RequestOptions.__init__: go-struct-literal — Go's RequestOptions (plan 4.2) is a value struct with public fields (Timeout/Retries/RetryOnStatus/RetryBackoff/AbortSignal); a caller constructs it with a composite literal (rest.RequestOptions{Retries: intPtr(1)}), so there is no NewRequestOptions factory to project as __init__. The five optional reference kwargs are the five public fields (same functional surface); construction is the literal, not a constructor call. SURFACE-oracle-invisible (only merge() is in the surface oracle).
-signalwire.rest._request_options.RequestOptions.abort_signal: go-ctx-abort-primitive — the reference's abort_signal is a cooperative-cancellation object (the private _AbortSignal protocol); Go's cancellation primitive IS context.Context, exposed as the public RequestOptions.AbortSignal field and threaded onto the outgoing request's context (per the cross-port design: 'go uses context.Context'). A stdlib context.Context field is not projected as an SDK-class accessor, so the reference's abort_signal accessor has no matching Go method signature. SURFACE-oracle-invisible (only merge() is in the surface oracle).
+signalwire.rest._request_options.RequestOptions.abort_signal: go-ctx-abort-primitive — the reference's abort_signal is a cooperative-cancellation object (the private _AbortSignal protocol); Go's cancellation primitive IS context.Context, exposed as the public RequestOptions.AbortSignal field and threaded onto the outgoing request's context (per the cross-port design: 'go uses context.Context'). The MEMBER is present (folded into the surface oracle by the wave-4 @dataclass field pass, since AbortSignal is a public field), but its declared type is a stdlib context.Context, NOT the reference's _AbortSignal class — so there is no faithful reference-shaped accessor signature to compare. Surface-live / signature-divergent (DUAL-GATE).
 

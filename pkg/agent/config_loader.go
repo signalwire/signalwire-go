@@ -66,6 +66,13 @@ func (c *ConfigLoader) loadConfig() {
 	}
 }
 
+// ConfigPaths returns the search paths this loader considered, in order — the
+// caller's list, or the defaults when none was supplied (Python: config_paths).
+// A copy is returned so a caller cannot mutate the loader's search order.
+func (c *ConfigLoader) ConfigPaths() []string {
+	return append([]string(nil), c.configPaths...)
+}
+
 // HasConfig reports whether a configuration file was loaded.
 func (c *ConfigLoader) HasConfig() bool { return c.config != nil }
 

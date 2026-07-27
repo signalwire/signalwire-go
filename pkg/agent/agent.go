@@ -69,12 +69,22 @@ type OnSwmlRequestHook func(requestData map[string]any, callbackPath string, r *
 // Added fields to match Python: WebhookURL (webhook_url param), Required
 // (required param for required argument names), IsTypedHandler (is_typed_handler).
 type ToolDefinition struct {
-	Name           string
-	Description    string
-	Parameters     map[string]any // JSON Schema for arguments (properties map)
-	Required       []string       // Required parameter names included in the JSON Schema envelope
-	Handler        ToolHandler
-	Secure         bool
+	Name        string
+	Description string
+	Parameters  map[string]any // JSON Schema for arguments (properties map)
+	Required    []string       // Required parameter names included in the JSON Schema envelope
+	Handler     ToolHandler
+	// Secure is the tri-state SWAIG token-validation flag. The reference's
+	// ``define_tool(secure=True)`` DEFAULTS TO SECURE, so a Go plain `bool`
+	// would be wrong: its zero value is false, meaning a struct literal that
+	// simply omits the field — `ToolDefinition{Name: …, Handler: …}` — would
+	// silently ship an INSECURE tool. A pointer distinguishes "unset" (→ secure,
+	// the reference default) from an explicit opt-out (`insecure := false;
+	// Secure: &insecure`).
+	// This is precisely the surgical `*T` PORT_PHILOSOPHY_GO reserves for cases
+	// where nil must be distinguishable from the zero value. Read it through
+	// IsSecure(), never directly.
+	Secure         *bool
 	Fillers        map[string][]string
 	WaitFile       string // URL to audio file to play while the function executes
 	WaitFileLoops  int    // Number of times to loop WaitFile (0 = no loop)
@@ -82,6 +92,15 @@ type ToolDefinition struct {
 	MetaData       map[string]any
 	SwaigFields    map[string]any // extra per-function SWAIG fields
 	IsTypedHandler bool           // whether handler uses typed structs (Python: is_typed_handler)
+}
+
+// IsSecure reports the tool's EFFECTIVE secure state: an unset (nil) Secure
+// field means SECURE, matching the reference's “define_tool(secure=True)“
+// default. Only an explicit pointer to false makes a tool insecure.
+// Every render/dispatch path must consult this rather than the raw field, so a
+// nil never reads as "insecure".
+func (td *ToolDefinition) IsSecure() bool {
+	return td.Secure == nil || *td.Secure
 }
 
 // ValidateArgs validates the provided args map against the tool's parameter schema.
@@ -528,10 +547,47 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 	// Session manager for secure tools
 	a.sessionManager = security.NewSessionManager(a.tokenExpirySecs)
 
-	// Skill manager
-	a.skillManager = skills.NewSkillManager()
+	// Skill manager. Hand it the agent (through the skillAgent adapter) so a
+	// loaded skill can configure its agent directly, as the reference allows via
+	// SkillBase.agent / SkillManager.agent.
+	a.skillManager = skills.NewSkillManager(&skillAgent{a: a})
 
 	return a
+}
+
+// skillAgent adapts *AgentBase to the skills.SkillAgent interface — the
+// back-reference a loaded skill reaches its agent through (the reference's
+// SkillBase.agent / SkillManager.agent).
+//
+// An adapter is needed rather than *AgentBase satisfying the interface directly
+// because AgentBase's configuration methods are FLUENT (they return *AgentBase
+// for chaining), which is the port's ergonomic idiom and not something to give up
+// for an interface's sake. The adapter discards the chaining return; every call
+// is otherwise a straight pass-through.
+type skillAgent struct{ a *AgentBase }
+
+func (s *skillAgent) AddHints(hints []string) { s.a.AddHints(hints) }
+
+func (s *skillAgent) UpdateGlobalData(data map[string]any) { s.a.UpdateGlobalData(data) }
+
+func (s *skillAgent) PromptAddSection(title, body string, bullets []string) {
+	s.a.PromptAddSection(title, body, bullets)
+}
+
+func (s *skillAgent) DefineTool(reg skills.ToolRegistration) {
+	handler := reg.Handler
+	td := ToolDefinition{
+		Name:        reg.Name,
+		Description: reg.Description,
+		Parameters:  reg.Parameters,
+		Secure:      reg.Secure,
+		Fillers:     reg.Fillers,
+		SwaigFields: reg.SwaigFields,
+		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+			return handler(args, rawData)
+		},
+	}
+	s.a.DefineTool(td)
 }
 
 // generateUUID produces a random UUID v4 string using crypto/rand.
@@ -1413,6 +1469,36 @@ func (a *AgentBase) GetSIPUsernames() []string {
 	sort.Strings(out)
 	return out
 }
+
+// NativeFunctions returns the configured native (built-in) SWAIG function names
+// (Python: AgentBase.native_functions). A copy is returned so a caller cannot
+// mutate the agent's list; use SetNativeFunctions to change it.
+func (a *AgentBase) NativeFunctions() []string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return append([]string(nil), a.nativeFunctions...)
+}
+
+// SigningKey returns the SignalWire Signing Key used to validate inbound webhook
+// signatures, or "" when validation is disabled (Python:
+// AgentBase.signing_key). The value is whatever was resolved at construction —
+// the WithSigningKey argument or SIGNALWIRE_SIGNING_KEY — so a caller can check
+// WHETHER signature validation is active and with which key, which is exactly
+// what the reference exposes.
+func (a *AgentBase) SigningKey() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.signingKey
+}
+
+// Agent returns the agent itself.
+//
+// Go merges the reference's PromptManager and ToolRegistry INTO AgentBase (their
+// methods are AgentBase methods), so the back-reference those classes carry to
+// their owning agent — `PromptManager.agent`, `ToolRegistry.agent` — resolves to
+// the agent itself. Returning `a` is the honest answer to "which agent does this
+// manager belong to" under that composition.
+func (a *AgentBase) Agent() *AgentBase { return a }
 
 // SetNativeFunctions sets the list of native function names.
 func (a *AgentBase) SetNativeFunctions(names []string) *AgentBase {
@@ -2806,8 +2892,40 @@ func ensureParameterStructure(params map[string]any, required []string) map[stri
 	return out
 }
 
+// createToolTokenLocked mints a per-(tool, call) token. It is the a.mu-free
+// half of CreateToolToken, callable from render paths that already hold a.mu
+// (the SessionManager guards its own state, so no agent lock is needed).
+func (a *AgentBase) createToolTokenLocked(toolName, callID string) (token string) {
+	defer func() {
+		if r := recover(); r != nil {
+			token = ""
+		}
+	}()
+	return a.sessionManager.CreateToken(toolName, callID)
+}
+
+// appendQueryParam appends one URL-encoded key=value pair to a URL, choosing
+// "?" or "&" depending on whether the URL already carries a query string.
+func appendQueryParam(rawURL, key, value string) string {
+	sep := "?"
+	if strings.Contains(rawURL, "?") {
+		sep = "&"
+	}
+	return rawURL + sep + neturl.QueryEscape(key) + "=" + neturl.QueryEscape(value)
+}
+
 // buildSwaigFunctions returns the SWAIG functions array for the AI verb.
-func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
+//
+// callID is the active call's session id. When it is non-empty, every SECURE
+// tool gets a freshly minted per-tool token appended to its rendered
+// web_hook_url as a reserved “__token“ query parameter — the WIRE
+// manifestation of “secure“ the platform validates on the callback (Matches
+// Python: agent_base.py:1040 “if func.secure and call_id“ →
+// _build_webhook_url(url_params["__token"])). An INSECURE tool never gets one:
+// it falls back to the shared SWAIG defaults.web_hook_url. With no callID
+// (a render outside a call, e.g. a bare document dump) no token can be bound to
+// a session, so none is emitted for either kind.
+func (a *AgentBase) buildSwaigFunctions(webhookURL, callID string) []map[string]any {
 	functions := make([]map[string]any, 0, len(a.toolOrder)+len(a.functionIncludes))
 
 	for _, name := range a.toolOrder {
@@ -2822,10 +2940,22 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 			continue
 		}
 
+		// A SECURE tool rendered inside a live call carries a per-tool token. The
+		// token is minted per (tool, call) by the SessionManager (HMAC), so it is
+		// only meaningful when we have a callID to bind it to.
+		token := ""
+		if tool.IsSecure() && callID != "" {
+			token = a.createToolTokenLocked(tool.Name, callID)
+		}
+
 		// Determine the effective webhook URL: per-tool override takes precedence.
+		// A per-tool override is used verbatim (Python: an external webhook_url is
+		// the platform's own endpoint — we never append our token to it).
 		effectiveWebhook := webhookURL
 		if tool.WebhookURL != "" {
 			effectiveWebhook = tool.WebhookURL
+		} else if token != "" {
+			effectiveWebhook = appendQueryParam(effectiveWebhook, "__token", token)
 		}
 
 		fn := map[string]any{
@@ -2836,10 +2966,6 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 
 		if tool.Parameters != nil {
 			fn["parameters"] = ensureParameterStructure(tool.Parameters, tool.Required)
-		}
-
-		if tool.Secure {
-			fn["meta_data_token"] = "secure_token"
 		}
 
 		if tool.Fillers != nil {
@@ -2870,8 +2996,40 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL string) []map[string]any {
 	return functions
 }
 
+// callIDFromRequestData pulls the active call id out of a SWML request body,
+// mirroring the reference's lookup order (agent_base.py:1741-1748): a top-level
+// “call_id“, else “call.call_id“. Returns "" when the body carries neither
+// (a render outside a call).
+func callIDFromRequestData(requestData map[string]any) string {
+	if requestData == nil {
+		return ""
+	}
+	if id, ok := requestData["call_id"].(string); ok && id != "" {
+		return id
+	}
+	if call, ok := requestData["call"].(map[string]any); ok {
+		if id, ok := call["call_id"].(string); ok {
+			return id
+		}
+	}
+	return ""
+}
+
 // RenderSWML builds the complete SWML document for a request.
+//
+// The active call's id is read out of requestData (“call_id“, or nested under
+// “call“) exactly as the reference does (agent_base.py:1741-1748). It is what
+// binds a SECURE tool's per-tool “__token“ to the session, so a render with no
+// call_id emits no per-tool tokens.
 func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request) map[string]any {
+	return a.RenderSWMLForCall(requestData, request, callIDFromRequestData(requestData))
+}
+
+// RenderSWMLForCall is RenderSWML with the call id supplied explicitly, for
+// callers that already know it (or that must render a document for a specific
+// session without a request body). Matches the reference's
+// “_render_swml(call_id=…)“.
+func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.Request, callID string) map[string]any {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -2987,7 +3145,7 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 
 	// SWAIG functions
 	webhookURL := a.buildWebhookURL()
-	swaigFunctions := a.buildSwaigFunctions(webhookURL)
+	swaigFunctions := a.buildSwaigFunctions(webhookURL, callID)
 	if len(swaigFunctions) > 0 || len(a.functionIncludes) > 0 {
 		swaigConfig := map[string]any{}
 		if len(swaigFunctions) > 0 {
