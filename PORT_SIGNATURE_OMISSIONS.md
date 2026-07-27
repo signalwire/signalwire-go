@@ -72,9 +72,15 @@ Each excused divergence falls into one of:
 - **Typed handlers / multi-return** (`go-typed-handler` / `go-multi-return`):
   Go uses concrete func-typed callbacks and `(T, error)`/tuple multi-returns
   where Python uses untyped callables / value tuples.
-- **Factory constructors** (`go-factory-ctor` / `go-typed-factory` /
-  `go-package-fn`): Go `NewX` factories and package-level functions in place of
-  Python `__init__`/classmethods.
+- **Factory constructors** (`go-typed-factory` / `go-package-fn`): Go `NewX`
+  factories and package-level functions in place of Python classmethods.
+  A ctor `__init__` as a MEMBER is no longer excused here at all: per
+  `ALLOWLIST_DISCIPLINE.md` §7 (the "ctor / dunder" row) it is folded at the
+  diff — the CONSTRUCTION contract (`§10`, the top-level `construction` node)
+  compares the same capability keyed by NAME instead of by position, which is
+  the comparison that is actually meaningful against a Go factory. The one
+  ctor still listed below is one the reference publishes NO construction entry
+  for, so its member comparison is still the only comparison there is.
 - **Sum types** (`go-multi-union`): a single static Go type cannot represent a
   Python `union<A,B>`; Go picks one member (wire-neutral).
 - **Wire-neutral spellings** (`go-wire-neutral-string`): a Go bare `string`
@@ -83,65 +89,6 @@ Each excused divergence falls into one of:
   reference SOURCE but is absent from `python_signatures.json` (a griffe
   blindspot, e.g. the whole `signalwire.livewire` package); not a port defect.
 
-
-## Idiom: Go NewX factory constructors
-
-signalwire.agent_server.AgentServer.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.agent_base.AgentBase.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.contexts.Context.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.contexts.ContextBuilder.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.contexts.GatherInfo.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.contexts.GatherQuestion.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.contexts.Step.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.function_result.FunctionResult.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.security.session_manager.SessionManager.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.skill_base.SkillBase.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.skill_manager.SkillManager.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.core.swml_service.SWMLService.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.prefabs.concierge.ConciergeAgent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.prefabs.faq_bot.FAQBotAgent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.prefabs.info_gatherer.InfoGathererAgent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.prefabs.receptionist.ReceptionistAgent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.prefabs.survey.SurveyAgent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.AIAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.Action.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.Call.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.CollectAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.DetectAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.FaxAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.PayAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.PlayAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.RecordAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.StandaloneCollectAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.StreamAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.TapAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.call.TranscribeAction.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.client.RelayClient.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.CallReceiveEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.CallStateEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.CallingErrorEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.CollectEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.ConferenceEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.ConnectEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.DenoiseEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.DetectEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.DialEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.EchoEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.FaxEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.HoldEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.MessageReceiveEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.MessageStateEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.PayEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.PlayEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.QueueEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.RecordEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.ReferEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.RelayEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.SendDigitsEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.StreamEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.TapEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.event.TranscribeEvent.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
-signalwire.relay.message.Message.__init__: Go uses NewX factory function as constructor; param shape may differ from Python kwargs
 
 ## Idiom: Go fluent API returns *Self for chaining
 
@@ -167,11 +114,9 @@ signalwire.core.security.security_utils.filter_sensitive_headers: type-idiom div
 
 ## POM (signalwire.pom.pom) — Go idiom
 
-signalwire.pom.pom.PromptObjectModel.__init__: go-factory-ctor — Go uses NewPromptObjectModel() with no params; Python __init__ accepts an optional debug kwarg (Go logging is package-level, no per-instance debug flag)
 signalwire.pom.pom.PromptObjectModel.add_section: go-variadic-options — Go takes (title string, opts ...SectionOption) using functional options (WithBody/WithBullets/WithNumbered/WithNumberedBullets); Python uses 5 named kwargs
 signalwire.pom.pom.PromptObjectModel.from_json: go-package-fn — Go exposes pom.FromJSON(string) as a package-level constructor function (Go convention) where Python uses a classmethod accepting Union[str, dict]
 signalwire.pom.pom.PromptObjectModel.from_yaml: go-package-fn — Go exposes pom.FromYAML(string) as a package-level constructor function (Go convention) where Python uses a classmethod accepting Union[str, dict]
-signalwire.pom.pom.Section.__init__: go-factory-ctor — Go uses NewSection(title) plus functional-option mutators (WithBody/WithBullets/...); Python __init__ accepts title + 4 named kwargs
 signalwire.pom.pom.Section.add_subsection: go-variadic-options — Go takes (title string, opts ...SectionOption); Python uses 5 named kwargs
 
 ## RELAY Call: functional-options idiom (2026-07 backlog burndown)
@@ -308,9 +253,6 @@ signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_ai_ag
 ## Surface-reconcile signature idiom (2026-07: surface parity → 0)
 
 # Constructors take a Go options struct / functional options, not Python kwargs.
-signalwire.core.security_config.SecurityConfig.__init__: Go NewSecurityConfig() takes no args (loads defaults+env); Python takes config_file/service_name kwargs
-signalwire.web.web_service.WebService.__init__: Go NewWebService(Options{...}) takes an options struct; Python takes a flat kwarg list
-signalwire.core.swml_builder.SWMLBuilder.__init__: Go swml.NewService takes functional ServiceOptions; Python SWMLBuilder(service) takes an SWMLService
 signalwire.core.swml_handler.VerbHandlerRegistry.__init__: Go swml.NewService takes functional options; Python VerbHandlerRegistry() takes none (the registry is an inline map on Service)
 
 # Fluent builders return the receiver (*Self chaining); Python returns None/bool.
@@ -337,7 +279,6 @@ signalwire.relay.client.RelayClient.execute: Go Execute returns json.RawMessage 
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_tools: Go returns the tool list via RegisterTools (no separate get_tools method)
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_tools: Go returns the tool list via RegisterTools (no separate get_tools method)
 signalwire.skills.weather_api.skill.WeatherApiSkill.get_tools: Go returns the tool list via RegisterTools (no separate get_tools method)
-signalwire.skills.spider.skill.SpiderSkill.__init__: Go uses NewSpider factory; the reference records a per-skill __init__ signature Go expresses via the factory
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.search_wiki: Go registers the wiki search as a tool handler (handleSearch), not a public search_wiki method
 
 # mcp_gateway CLIENT skill (MCPGatewaySkill) — Go-idiom method rename (NOT an omission).
@@ -369,7 +310,6 @@ signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_parameter_schema: go-idi
 # oracle gap. The 7 set_* / __repr__ methods now match the reference signature
 # with NO excuse (removed). Only __init__ diverges — go collapses Python's 7
 # construction kwargs into a single BedrockOptions struct (go's named-parameter idiom).
-signalwire.agents.bedrock.BedrockAgent.__init__: go-idiom-options — Go NewBedrockAgent(opts BedrockOptions) collapses Python's name/route/system_prompt/voice_id/temperature/top_p/max_tokens kwargs into one options struct (pkg/agent/bedrock.go); same fields, same Bedrock defaults, wire/behaviour-neutral
 signalwire.web.web_service.WebService.app: Python @property returning the FastAPI app; Go has no framework app handle (not surfaced)
 signalwire.web.web_service.WebService.security: Go WebService.Security() accessor exists but the reference records it as a @property with a distinct signature; not part of the compared surface
 
@@ -390,11 +330,8 @@ signalwire.prefabs.concierge.ConciergeAgent.on_summary: Go OnSummary matches the
 signalwire.prefabs.faq_bot.FAQBotAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs
 signalwire.prefabs.receptionist.ReceptionistAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs
 signalwire.prefabs.survey.SurveyAgent.on_summary: Go OnSummary matches the SummaryCallback shape; reference on_summary signature differs
-signalwire.rest._base.BaseResource.__init__: Go namespaces.Resource is inline-initialised by namespace constructors; no public NewResource factory signature to compare
 signalwire.utils.schema_utils.SchemaUtils.generate_method_body: Go GenerateMethodBody exists but the reference signatures oracle does not record it under this module
 signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: Go GenerateMethodSignature exists but the reference signatures oracle does not record it under this module
 signalwire.core.agent.tools.type_inference.infer_schema: go-idiom typed-params-builder input — Python infer_schema reflects a handler func's signature/type-hints at runtime (callable input) to derive the schema; Go has no runtime func-signature reflection, so the typed declaration is supplied via the fluent swaig.Params builder — InferSchema(p *swaig.Params) returns the SAME 5-tuple (parameters, required, description, isTyped, hasRawData). Only param[0]'s input FORM differs (typed-builder vs callable); the schema-derivation role and return shape match exactly. (rust/java omit this as impossible; go realizes it via the builder — the create_typed_handler_wrapper cousin matches the reference signature verbatim.)
-signalwire.rest._base.SignalWireRestTransportError.__init__: go-error-cause-wrap — the Go transport error is the same rest.SignalWireRestError struct (folded via a Transport bool discriminator); its NewSignalWireRestTransportError(cause, body, url, method) constructor takes one EXTRA leading `cause error` arg beyond the reference's (body, url, method) so the underlying net/context error is preserved for errors.Is/errors.Unwrap — the Go equivalent of Python's `raise SignalWireRestTransportError(...) from exc`, which Python expresses via __cause__ (not a constructor param). Body still defaults to cause.Error() when empty, so the reference's (body, url, method) roles all map through.
-signalwire.rest._request_options.RequestOptions.__init__: go-struct-literal — Go's RequestOptions (plan 4.2) is a value struct with public fields (Timeout/Retries/RetryOnStatus/RetryBackoff/AbortSignal); a caller constructs it with a composite literal (rest.RequestOptions{Retries: intPtr(1)}), so there is no NewRequestOptions factory to project as __init__. The five optional reference kwargs are the five public fields (same functional surface); construction is the literal, not a constructor call. SURFACE-oracle-invisible (only merge() is in the surface oracle).
 signalwire.rest._request_options.RequestOptions.abort_signal: go-ctx-abort-primitive — the reference's abort_signal is a cooperative-cancellation object (the private _AbortSignal protocol); Go's cancellation primitive IS context.Context, exposed as the public RequestOptions.AbortSignal field and threaded onto the outgoing request's context (per the cross-port design: 'go uses context.Context'). The MEMBER is present (folded into the surface oracle by the wave-4 @dataclass field pass, since AbortSignal is a public field), but its declared type is a stdlib context.Context, NOT the reference's _AbortSignal class — so there is no faithful reference-shaped accessor signature to compare. Surface-live / signature-divergent (DUAL-GATE).
 
