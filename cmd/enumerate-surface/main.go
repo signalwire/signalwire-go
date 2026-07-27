@@ -754,17 +754,7 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 		}
 		for _, target := range targets {
 			addClass(target.Module, target.Class)
-			// Members the SIGNATURE axis emits but this (SURFACE) axis must not,
-			// because python_surface.json does not record them while
-			// python_signatures.json does. See ClassTarget.SignatureOnly.
-			signatureOnly := map[string]bool{}
-			for _, m := range target.SignatureOnly {
-				signatureOnly[m] = true
-			}
 			for goMethod, pyMethod := range target.Methods {
-				if signatureOnly[pyMethod] {
-					continue
-				}
 				if strings.HasPrefix(goMethod, "New") {
 					// Factory constructor lives as a free function;
 					// emit only if the matching Go ``New<X>`` exists.

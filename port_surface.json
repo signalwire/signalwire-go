@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 15f0e23dc476a04b48c628316373c045228eed84",
+  "generated_from": "signalwire-go @ d61771f364a8d00c6fc7decd33f0b84223279611",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -694,6 +694,7 @@
           "add_verb",
           "add_verb_to_section",
           "as_router",
+          "domain",
           "extract_sip_username",
           "full_validation_enabled",
           "get_basic_auth_credentials",
@@ -711,6 +712,9 @@
           "route",
           "schema_utils",
           "serve",
+          "ssl_cert_path",
+          "ssl_enabled",
+          "ssl_key_path",
           "stop"
         ]
       },
@@ -1167,6 +1171,7 @@
         "Action": [
           "__init__",
           "call",
+          "completed",
           "control_id",
           "is_done",
           "result",
@@ -1678,6 +1683,7 @@
           "body",
           "headers",
           "method",
+          "request_id",
           "status_code",
           "url"
         ],
@@ -3002,6 +3008,7 @@
           "get_instance_key",
           "get_parameter_schema",
           "register_tools",
+          "remove_xpaths",
           "setup"
         ]
       },
