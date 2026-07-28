@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ e57337ea3d95cd1051a43a9ec471eba24411d1fc",
+  "generated_from": "signalwire-go (go-native) @ 13596f89819f2d483993b9bcd8eccf7b82751a1e",
   "modules": {
     "agent": {
       "classes": {
@@ -1504,6 +1504,8 @@
           "VerifyBasicAuth",
           "VerifyBasicAuthPair"
         ],
+        "BasicCredentials": [],
+        "BearerCredentials": [],
         "SecurityConfig": [
           "GetBasicAuth",
           "GetCORSConfig",

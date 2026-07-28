@@ -321,6 +321,36 @@ var StructTable = map[string][]ClassTarget{
 		},
 	}},
 
+	// --- inbound credential carriers ---------------------------------------
+	// signalwire.core.auth_handler re-exports FastAPI's HTTPBasicCredentials /
+	// HTTPAuthorizationCredentials under the names BasicCredentials /
+	// BearerCredentials. Until porting-sdk dcff742 griffe could not resolve those
+	// FastAPI names into the `signalwire.` tree, so the oracle emitted DANGLING
+	// class refs — names with no definition anywhere — and a port could neither
+	// match nor miss them coherently. dcff742 filled them in as real two-field
+	// classes, which is what they always were on the wire.
+	//
+	// The contract is two strings each (username/password, scheme/credentials);
+	// the pydantic model is Python idiom, not the contract. Go carries them as
+	// plain structs with exported fields (pkg/security/credentials.go). Field
+	// emission is oracle-gated in BOTH enumerators, so `Username`/`Password` and
+	// `Scheme`/`Credentials` fold to the reference member names and emit only
+	// because the reference records them on these same classes.
+	//
+	// No Methods entry, and NO `NewX` factory mapped to `__init__`. That is not
+	// laziness: the two oracles disagree about these two classes — signatures lists
+	// `__init__`, surface does not — so mapping a factory fixes the construction
+	// contract and simultaneously emits a SURFACE-DIFF extra. See the block comment
+	// in pkg/security/credentials.go for the measurement and the oracle-side fix.
+	"security.BasicCredentials": {{
+		Module: "signalwire.core.auth_handler", Class: "BasicCredentials",
+		Methods: map[string]string{},
+	}},
+	"security.BearerCredentials": {{
+		Module: "signalwire.core.auth_handler", Class: "BearerCredentials",
+		Methods: map[string]string{},
+	}},
+
 	// --- server package ---------------------------------------------------
 	"server.AgentServer": {{
 		Module: "signalwire.agent_server", Class: "AgentServer",

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ e57337ea3d95cd1051a43a9ec471eba24411d1fc",
+  "generated_from": "signalwire-go @ 13596f89819f2d483993b9bcd8eccf7b82751a1e",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -164,6 +164,14 @@
         "AuthHandler": [
           "__init__",
           "security_config"
+        ],
+        "BasicCredentials": [
+          "password",
+          "username"
+        ],
+        "BearerCredentials": [
+          "credentials",
+          "scheme"
         ]
       },
       "functions": []

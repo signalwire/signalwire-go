@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ ebbb555b841c1ea83e112ae4b67f342e3e2afc4e (go/ast walker)",
+  "generated_from": "signalwire-go @ 13596f89819f2d483993b9bcd8eccf7b82751a1e (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -1461,6 +1461,50 @@
                 }
               ],
               "returns": "class:signalwire.core.security_config.SecurityConfig"
+            }
+          }
+        },
+        "BasicCredentials": {
+          "methods": {
+            "password": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "username": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            }
+          }
+        },
+        "BearerCredentials": {
+          "methods": {
+            "credentials": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "scheme": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         }
@@ -24539,6 +24583,30 @@
       "params": {
         "cfg": {
           "type": "class:signalwire.core.security_config.SecurityConfig",
+          "required": false
+        }
+      }
+    },
+    "signalwire.core.auth_handler.BasicCredentials": {
+      "params": {
+        "password": {
+          "type": "string",
+          "required": false
+        },
+        "username": {
+          "type": "string",
+          "required": false
+        }
+      }
+    },
+    "signalwire.core.auth_handler.BearerCredentials": {
+      "params": {
+        "credentials": {
+          "type": "string",
+          "required": false
+        },
+        "scheme": {
+          "type": "string",
           "required": false
         }
       }
