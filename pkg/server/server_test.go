@@ -679,10 +679,10 @@ func TestRegisterGlobalRoutingCallbacks_Coexist(t *testing.T) {
 	a := agent.NewAgentBase(agent.WithName("a"), agent.WithBasicAuth("u", "p"))
 	s.Register(a, "/a")
 
-	s.RegisterGlobalRoutingCallback("/override", func(body map[string]any, headers map[string]any) *string {
+	s.RegisterGlobalRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 		route := "/routed"
 		return &route
-	})
+	}, "/override")
 	s.RegisterGlobalSIPRoutingCallback("/sip", func(r *http.Request, body map[string]any) string {
 		return "https://elsewhere.example"
 	})

@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ e9720f8b07b08f4ac7415b621a3d811e196d8658 (go/ast walker)",
+  "generated_from": "signalwire-go @ 382867170272da34ba98e83bfe9f3042c756690c (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -160,13 +160,13 @@
                   "kind": "self"
                 },
                 {
-                  "name": "path",
-                  "type": "string",
-                  "required": false
-                },
-                {
                   "name": "cb",
                   "type": "callable\u003clist\u003cdict\u003cstring,any\u003e,dict\u003cstring,any\u003e\u003e,optional\u003cstring\u003e\u003e",
+                  "required": true
+                },
+                {
+                  "name": "path",
+                  "type": "string",
                   "required": true
                 }
               ],
@@ -1560,7 +1560,8 @@
                 {
                   "name": "env_prefix",
                   "type": "string",
-                  "required": true
+                  "required": false,
+                  "default": "SWML_"
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -1579,7 +1580,8 @@
                 {
                   "name": "max_depth",
                   "type": "int",
-                  "required": true
+                  "required": false,
+                  "default": 10
                 }
               ],
               "returns": "any"
@@ -2286,22 +2288,22 @@
                 {
                   "name": "output_key",
                   "type": "string",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "completion_action",
                   "type": "string",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "prompt",
                   "type": "string",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "isolated",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.contexts.Step"
@@ -2664,12 +2666,12 @@
                 {
                   "name": "required",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "enum",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.data_map.DataMap"
@@ -2730,22 +2732,22 @@
                 {
                   "name": "headers",
                   "type": "dict\u003cstring,string\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "form_param",
                   "type": "string",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "input_args_as_params",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "require_args",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.data_map.DataMap"
@@ -3098,7 +3100,7 @@
                 {
                   "name": "wait",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3582,12 +3584,12 @@
                 {
                   "name": "direction",
                   "type": "union\u003cclass:signalwire.swaig.TapDirection,string\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "codec",
                   "type": "union\u003cclass:signalwire.swaig.Codec,string\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "rtp_ptime",
@@ -4588,7 +4590,8 @@
                 {
                   "name": "path",
                   "type": "string",
-                  "required": true
+                  "required": false,
+                  "default": "/sip"
                 }
               ],
               "returns": "void"
@@ -4997,7 +5000,7 @@
                 {
                   "name": "call_id",
                   "type": "string",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "string"
@@ -6317,14 +6320,15 @@
                   "kind": "self"
                 },
                 {
-                  "name": "path",
-                  "type": "string",
-                  "required": true
-                },
-                {
                   "name": "cb",
                   "type": "callable\u003clist\u003cdict\u003cstring,any\u003e,dict\u003cstring,any\u003e\u003e,optional\u003cstring\u003e\u003e",
                   "required": true
+                },
+                {
+                  "name": "path",
+                  "type": "string",
+                  "required": false,
+                  "default": "/sip"
                 }
               ],
               "returns": "void"
@@ -11951,11 +11955,6 @@
                   "kind": "self"
                 },
                 {
-                  "name": "ctx",
-                  "type": "optional\u003cfloat\u003e",
-                  "required": false
-                },
-                {
                   "name": "event_type",
                   "type": "string",
                   "required": true
@@ -11963,7 +11962,12 @@
                 {
                   "name": "predicate",
                   "type": "callable\u003clist\u003cclass:signalwire.relay.event.RelayEvent\u003e,bool\u003e",
-                  "required": true
+                  "required": false
+                },
+                {
+                  "name": "ctx",
+                  "type": "optional\u003cfloat\u003e",
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.relay.event.RelayEvent"
@@ -12420,7 +12424,7 @@
                 {
                   "name": "contexts",
                   "type": "list\u003cstring\u003e",
-                  "required": false
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -12490,7 +12494,7 @@
                 {
                   "name": "contexts",
                   "type": "list\u003cstring\u003e",
-                  "required": false
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -14177,7 +14181,7 @@
                 {
                   "name": "params",
                   "type": "dict\u003cstring,string\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "opts",
@@ -14201,7 +14205,7 @@
                 {
                   "name": "body",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "opts",
@@ -14225,12 +14229,12 @@
                 {
                   "name": "body",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "params",
                   "type": "dict\u003cstring,string\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "opts",
@@ -14254,7 +14258,7 @@
                 {
                   "name": "body",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "opts",
@@ -15375,7 +15379,7 @@
                   "name": "global_data",
                   "kind": "keyword",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "extras",
@@ -15522,13 +15526,13 @@
                   "name": "digits",
                   "kind": "keyword",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "speech",
                   "kind": "keyword",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "continuous",
@@ -15880,7 +15884,7 @@
                   "name": "status_events",
                   "kind": "keyword",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "url_method",
@@ -15898,7 +15902,7 @@
                   "name": "codecs",
                   "kind": "keyword",
                   "type": "any",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "swml",
@@ -16441,7 +16445,7 @@
                   "name": "audio",
                   "kind": "keyword",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "status_url",
@@ -16753,7 +16757,7 @@
                   "name": "custom_parameters",
                   "kind": "keyword",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "extras",
@@ -17432,7 +17436,7 @@
                   "name": "tags",
                   "kind": "keyword",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "document_id",
@@ -17462,7 +17466,7 @@
                   "name": "pos_to_expand",
                   "kind": "keyword",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "max_synonyms",
@@ -18059,7 +18063,7 @@
                   "name": "voice_method",
                   "kind": "keyword",
                   "type": "any",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "voice_fallback_url",
@@ -18071,7 +18075,7 @@
                   "name": "voice_fallback_method",
                   "kind": "keyword",
                   "type": "any",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "status_callback",
@@ -18083,7 +18087,7 @@
                   "name": "status_callback_method",
                   "kind": "keyword",
                   "type": "any",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "sms_url",
@@ -18095,7 +18099,7 @@
                   "name": "sms_method",
                   "kind": "keyword",
                   "type": "any",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "sms_fallback_url",
@@ -18107,7 +18111,7 @@
                   "name": "sms_fallback_method",
                   "kind": "keyword",
                   "type": "any",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "sms_status_callback",
@@ -18119,7 +18123,7 @@
                   "name": "sms_status_callback_method",
                   "kind": "keyword",
                   "type": "any",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "extras",
@@ -19258,13 +19262,13 @@
                   "name": "ciphers",
                   "kind": "keyword",
                   "type": "list\u003cclass:signalwire.rest.namespaces.fabric_types_generated.Ciphers\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "codecs",
                   "kind": "keyword",
                   "type": "list\u003cclass:signalwire.rest.namespaces.fabric_types_generated.Codecs\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "encryption",
@@ -19477,13 +19481,13 @@
                   "name": "ciphers",
                   "kind": "keyword",
                   "type": "list\u003cclass:signalwire.rest.namespaces.fabric_types_generated.Ciphers\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "codecs",
                   "kind": "keyword",
                   "type": "list\u003cclass:signalwire.rest.namespaces.fabric_types_generated.Codecs\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "encryption",
@@ -19869,7 +19873,7 @@
                   "name": "media",
                   "kind": "keyword",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "send_as_mms",
@@ -19887,7 +19891,7 @@
                   "name": "custom_variables",
                   "kind": "keyword",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "extras",
@@ -20083,7 +20087,7 @@
                   "name": "permissions",
                   "kind": "keyword",
                   "type": "list\u003cclass:signalwire.rest.namespaces.project_types_generated.TokenPermission\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "extras",
@@ -20547,7 +20551,7 @@
                   "name": "capabilities",
                   "kind": "keyword",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "extras",
@@ -21930,7 +21934,7 @@
                   "name": "phone_numbers",
                   "kind": "keyword",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "status_callback_url",
@@ -22433,13 +22437,13 @@
                   "name": "default_codecs",
                   "kind": "keyword",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "default_ciphers",
                   "kind": "keyword",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "default_encryption",
@@ -23217,7 +23221,7 @@
                   "name": "permissions",
                   "kind": "keyword",
                   "type": "list\u003cclass:signalwire.rest.namespaces.video_types_generated.RoomTokenPermission\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "join_from",
@@ -23295,13 +23299,13 @@
                   "name": "room_meta",
                   "kind": "keyword",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "meta",
                   "kind": "keyword",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "sync_audio_video",
@@ -24119,12 +24123,12 @@
                 {
                   "name": "ssl_cert",
                   "type": "string",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "ssl_key",
                   "type": "string",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "any"

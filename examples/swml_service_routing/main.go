@@ -29,7 +29,7 @@ func main() {
 
 	// Register a routing callback at /dispatch: inspect the body and redirect
 	// callers to a dedicated endpoint based on the "department" field.
-	svc.RegisterRoutingCallback("/dispatch", func(body map[string]any, headers map[string]any) *string {
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 		dept, _ := body["department"].(string)
 		switch dept {
 		case "customer":
@@ -41,7 +41,7 @@ func main() {
 		default:
 			return nil // no redirect — serve the default document
 		}
-	})
+	}, "/dispatch")
 
 	fmt.Println("Starting RoutingExample on :3026 ...")
 	fmt.Println("  Main:     /main")

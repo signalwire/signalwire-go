@@ -191,3 +191,51 @@ func TestFindConfigFile(t *testing.T) {
 		t.Errorf("FindConfigFile = %q, want mysvc_config.json (service-specific wins)", got)
 	}
 }
+
+// TestConfigLoader_OmittedDefaults covers the DECLINED-argument path of the two
+// wrappers that carry a non-zero reference default. Every other test in this
+// file supplies the argument explicitly, which proves nothing about what an
+// omitting caller gets — and the two defaults below are exactly where the port
+// used to diverge (a zero maxDepth returned the value UNSUBSTITUTED; an empty
+// envPrefix matched EVERY environment variable).
+func TestConfigLoader_OmittedDefaults(t *testing.T) {
+	t.Run("substitute_vars max_depth omitted defaults to 10", func(t *testing.T) {
+		t.Setenv("CFGTEST_OMIT", "resolved")
+		c := NewConfigLoader([]string{filepath.Join(t.TempDir(), "absent.json")})
+
+		// The reference's `substitute_vars(value)` — max_depth omitted.
+		if got := c.SubstituteVars("${CFGTEST_OMIT}", 0); got != "resolved" {
+			t.Errorf("SubstituteVars with maxDepth omitted = %v, want resolved "+
+				"(the reference's max_depth=10 default must apply)", got)
+		}
+		// It must agree with the explicit reference default.
+		if got, want := c.SubstituteVars("${CFGTEST_OMIT}", 0),
+			c.SubstituteVars("${CFGTEST_OMIT}", 10); got != want {
+			t.Errorf("omitted maxDepth = %v, explicit 10 = %v; they must agree", got, want)
+		}
+	})
+
+	t.Run("merge_with_env env_prefix omitted defaults to SWML_", func(t *testing.T) {
+		dir := t.TempDir()
+		path := writeJSON(t, dir, "m.json", `{"ssl": {"enabled": "from-file"}}`)
+		t.Setenv("SWML_OMIT_KEY", "folded")
+
+		// The reference's `merge_with_env()` — env_prefix omitted.
+		merged := NewConfigLoader([]string{path}).MergeWithEnv("")
+
+		omit, ok := merged["omit"].(map[string]any)
+		if !ok {
+			t.Fatalf("merged[omit] = %T, want map — the omitted env_prefix must "+
+				"default to SWML_ so SWML_OMIT_KEY folds to omit.key", merged["omit"])
+		}
+		if omit["key"] != "folded" {
+			t.Errorf("merged omit.key = %v, want folded", omit["key"])
+		}
+		// An omitted prefix must NOT behave like a bare "" prefix, which would
+		// fold every unrelated environment variable into the merged config.
+		if _, leaked := merged["path"]; leaked {
+			t.Error("omitted env_prefix folded in PATH — it matched every env var " +
+				"instead of defaulting to SWML_")
+		}
+	})
+}

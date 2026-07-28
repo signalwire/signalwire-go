@@ -123,8 +123,8 @@ func main() {
 	{
 		svc := swml.NewService(swml.WithName("svc"), swml.WithRoute("/svc"))
 		noop := func(map[string]any, map[string]any) *string { return nil }
-		svc.RegisterRoutingCallback("/sip/", noop)
-		svc.RegisterRoutingCallback("voice", noop)
+		svc.RegisterRoutingCallback(noop, "/sip/")
+		svc.RegisterRoutingCallback(noop, "voice")
 		out["state_register_routing_callback"] = svc.RoutingCallbackPaths()
 	}
 

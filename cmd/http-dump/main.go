@@ -124,7 +124,7 @@ func main() {
 	// ---- handle_request: 307 redirect via routing callback ----
 	{
 		svc := newSWMLService()
-		svc.RegisterRoutingCallback("/sip", redirectCB)
+		svc.RegisterRoutingCallback(redirectCB, "/sip")
 		status, headers, body := svc.HandleRequest("POST", "http://localhost:3000/swml/sip",
 			map[string]string{"Authorization": basicAuth(user, password)},
 			map[string]any{"call": map[string]any{"to": "sip:redirect-me@space"}})
@@ -133,7 +133,7 @@ func main() {
 	// ---- handle_request: callback returns nil -> normal 200 SWML ----
 	{
 		svc := newSWMLService()
-		svc.RegisterRoutingCallback("/sip", redirectCB)
+		svc.RegisterRoutingCallback(redirectCB, "/sip")
 		status, headers, body := svc.HandleRequest("POST", "http://localhost:3000/swml/sip",
 			map[string]string{"Authorization": basicAuth(user, password)},
 			map[string]any{"call": map[string]any{"to": "sip:keep@space"}})

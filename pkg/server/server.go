@@ -338,13 +338,19 @@ func (s *AgentServer) ServeStaticFiles(directory, route string) {
 //
 // This is the Go equivalent of Python's
 // AgentServer.register_global_routing_callback(callback_fn, path).
-func (s *AgentServer) RegisterGlobalRoutingCallback(path string, cb swml.RoutingCallback) {
+// Parameter ORDER follows the reference — `(callback_fn, path)`, callback first.
+func (s *AgentServer) RegisterGlobalRoutingCallback(cb swml.RoutingCallback, path string) {
 	// Trim trailing slashes first — matches Python's path.rstrip("/") so
 	// callers passing "agents/" register under "/agents" (not "/agents/").
 	path = strings.TrimRight(path, "/")
 
-	// Normalise the path to start with "/"
-	if len(path) == 0 || path[0] != '/' {
+	// Normalise the path to start with "/", matching Python's
+	// `if not path.startswith("/"): path = f"/{path}"`. Written as HasPrefix
+	// rather than `len(path) == 0 || path[0] != '/'`: the reference declares no
+	// default for `path`, so the empty string is not a supported "leave it to
+	// me" input here (unlike register_routing_callback's `path="/sip"`), and a
+	// leading `len(path) == 0` disjunct would state the opposite.
+	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 

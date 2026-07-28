@@ -250,7 +250,12 @@ func (c *Client) Notify(method string, params map[string]any) error {
 // Receive subscribes to additional contexts for inbound events after the
 // client is already connected. Sends signalwire.receive on the assigned
 // protocol. Mirrors Python's async receive(contexts).
-func (c *Client) Receive(contexts ...string) error {
+//
+// contexts is a REQUIRED slice, not a variadic: the reference's
+// `receive(contexts: list[str])` obliges the caller to name the list it is
+// subscribing to. A variadic would make the empty call `Receive()` legal and
+// silently no-op, widening the contract past the reference.
+func (c *Client) Receive(contexts []string) error {
 	if len(contexts) == 0 {
 		return nil
 	}
@@ -262,8 +267,8 @@ func (c *Client) Receive(contexts ...string) error {
 
 // Unreceive unsubscribes from contexts for inbound events. Sends
 // signalwire.unreceive on the assigned protocol. Mirrors Python's async
-// unreceive(contexts).
-func (c *Client) Unreceive(contexts ...string) error {
+// unreceive(contexts). Takes a REQUIRED slice for the same reason Receive does.
+func (c *Client) Unreceive(contexts []string) error {
 	if len(contexts) == 0 {
 		return nil
 	}

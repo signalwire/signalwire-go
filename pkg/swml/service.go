@@ -1180,7 +1180,14 @@ func platformBaseURL(mode ExecutionMode) string {
 // added — matching Python's register_routing_callback (swml_service.py:919):
 // normalized = path.rstrip("/"); if not startswith("/"): "/" + normalized.
 // So "/sip/" and "voice" both normalize to "/sip" and "/voice".
-func (s *Service) RegisterRoutingCallback(path string, cb RoutingCallback) {
+// Parameter ORDER follows the reference — `(callback_fn, path="/sip")`, callback
+// first — and path is OPTIONAL: the empty string substitutes the reference's
+// "/sip" default, so `RegisterRoutingCallback(cb, "")` is the reference's
+// one-argument call.
+func (s *Service) RegisterRoutingCallback(cb RoutingCallback, path string) {
+	if path == "" {
+		path = "/sip"
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.routingCallbacks[normalizeCallbackPath(path)] = cb

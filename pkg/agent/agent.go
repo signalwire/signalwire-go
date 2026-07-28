@@ -2514,7 +2514,7 @@ func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
 	if path == "" {
 		path = "/sip"
 	}
-	a.Service.RegisterRoutingCallback(path, cb)
+	a.Service.RegisterRoutingCallback(cb, path)
 
 	a.mu.Lock()
 	a.sipRoutingEnabled = true
@@ -2539,8 +2539,15 @@ func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
 // the request (the framework issues an HTTP 307 Temporary Redirect preserving
 // method + body) or nil to let normal SWML processing continue. This method
 // delegates to swml.Service.RegisterRoutingCallback.
+// path is OPTIONAL — the empty string substitutes the reference's "/sip"
+// default. The substitution is written here rather than left to
+// normalizeCallbackPath so the declined-argument case is visible at the
+// signature it belongs to.
 func (a *AgentBase) RegisterRoutingCallback(callbackFn swml.RoutingCallback, path string) {
-	a.Service.RegisterRoutingCallback(normalizeCallbackPath(path), callbackFn)
+	if path == "" {
+		path = "/sip"
+	}
+	a.Service.RegisterRoutingCallback(callbackFn, normalizeCallbackPath(path))
 }
 
 // normalizeCallbackPath mirrors Python web_mixin.register_routing_callback's

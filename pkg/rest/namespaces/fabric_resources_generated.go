@@ -59,9 +59,9 @@ func (r *GenericResources) ListAddresses(ctx context.Context, id string, params 
 
 // GenericResourcesAssignPhoneRouteParams holds the named optional parameters for GenericResources.AssignPhoneRoute.
 type GenericResourcesAssignPhoneRouteParams struct {
-	PhoneRouteID Uuid
-	Handler      UsedForType
-	Extras       map[string]any
+	PhoneRouteID Uuid           `sw:"required"`
+	Handler      UsedForType    `sw:"required"`
+	Extras       map[string]any `sw:"optional"`
 }
 
 func (r *GenericResources) AssignPhoneRoute(ctx context.Context, id string, params GenericResourcesAssignPhoneRouteParams, opts ...*RequestOptions) (*PhoneRouteResponse, error) {
@@ -74,8 +74,8 @@ func (r *GenericResources) AssignPhoneRoute(ctx context.Context, id string, para
 
 // GenericResourcesAssignDomainApplicationParams holds the named optional parameters for GenericResources.AssignDomainApplication.
 type GenericResourcesAssignDomainApplicationParams struct {
-	DomainApplicationID Uuid
-	Extras              map[string]any
+	DomainApplicationID Uuid           `sw:"required"`
+	Extras              map[string]any `sw:"optional"`
 }
 
 func (r *GenericResources) AssignDomainApplication(ctx context.Context, id string, params GenericResourcesAssignDomainApplicationParams, opts ...*RequestOptions) (*DomainApplicationResponse, error) {
@@ -151,21 +151,21 @@ func (r *CxmlApplicationsResource) Get(ctx context.Context, id string, params ma
 
 // CxmlApplicationsResourceUpdateParams holds the named optional parameters for CxmlApplicationsResource.Update.
 type CxmlApplicationsResourceUpdateParams struct {
-	DisplayName             *string
-	AccountSid              *Uuid
-	VoiceURL                *string
-	VoiceMethod             any
-	VoiceFallbackURL        *string
-	VoiceFallbackMethod     any
-	StatusCallback          *string
-	StatusCallbackMethod    any
-	SmsURL                  *string
-	SmsMethod               any
-	SmsFallbackURL          *string
-	SmsFallbackMethod       any
-	SmsStatusCallback       *string
-	SmsStatusCallbackMethod any
-	Extras                  map[string]any
+	DisplayName             *string        `sw:"optional"`
+	AccountSid              *Uuid          `sw:"optional"`
+	VoiceURL                *string        `sw:"optional"`
+	VoiceMethod             any            `sw:"optional"`
+	VoiceFallbackURL        *string        `sw:"optional"`
+	VoiceFallbackMethod     any            `sw:"optional"`
+	StatusCallback          *string        `sw:"optional"`
+	StatusCallbackMethod    any            `sw:"optional"`
+	SmsURL                  *string        `sw:"optional"`
+	SmsMethod               any            `sw:"optional"`
+	SmsFallbackURL          *string        `sw:"optional"`
+	SmsFallbackMethod       any            `sw:"optional"`
+	SmsStatusCallback       *string        `sw:"optional"`
+	SmsStatusCallbackMethod any            `sw:"optional"`
+	Extras                  map[string]any `sw:"optional"`
 }
 
 func (r *CxmlApplicationsResource) Update(ctx context.Context, id string, params CxmlApplicationsResourceUpdateParams, opts ...*RequestOptions) (*CxmlApplicationResponse, error) {
@@ -300,14 +300,14 @@ func (r *SubscribersResource) ListSIPEndpoints(ctx context.Context, subscriberID
 
 // SubscribersResourceCreateSIPEndpointParams holds the named optional parameters for SubscribersResource.CreateSIPEndpoint.
 type SubscribersResourceCreateSIPEndpointParams struct {
-	Username   string
-	Password   string
-	CallerID   *string
-	SendAs     *string
-	Ciphers    []Ciphers
-	Codecs     []Codecs
-	Encryption *Encryption
-	Extras     map[string]any
+	Username   string         `sw:"required"`
+	Password   string         `sw:"required"`
+	CallerID   *string        `sw:"optional"`
+	SendAs     *string        `sw:"optional"`
+	Ciphers    []Ciphers      `sw:"optional"`
+	Codecs     []Codecs       `sw:"optional"`
+	Encryption *Encryption    `sw:"optional"`
+	Extras     map[string]any `sw:"optional"`
 }
 
 func (r *SubscribersResource) CreateSIPEndpoint(ctx context.Context, subscriberID string, params SubscribersResourceCreateSIPEndpointParams, opts ...*RequestOptions) (*SubscriberSIPEndpoint, error) {
@@ -339,14 +339,14 @@ func (r *SubscribersResource) GetSIPEndpoint(ctx context.Context, subscriberID s
 
 // SubscribersResourceUpdateSIPEndpointParams holds the named optional parameters for SubscribersResource.UpdateSIPEndpoint.
 type SubscribersResourceUpdateSIPEndpointParams struct {
-	Username   *string
-	Password   *string
-	CallerID   *string
-	SendAs     *string
-	Ciphers    []Ciphers
-	Codecs     []Codecs
-	Encryption *Encryption
-	Extras     map[string]any
+	Username   *string        `sw:"optional"`
+	Password   *string        `sw:"optional"`
+	CallerID   *string        `sw:"optional"`
+	SendAs     *string        `sw:"optional"`
+	Ciphers    []Ciphers      `sw:"optional"`
+	Codecs     []Codecs       `sw:"optional"`
+	Encryption *Encryption    `sw:"optional"`
+	Extras     map[string]any `sw:"optional"`
 }
 
 func (r *SubscribersResource) UpdateSIPEndpoint(ctx context.Context, subscriberID string, id string, params SubscribersResourceUpdateSIPEndpointParams, opts ...*RequestOptions) (*SubscriberSIPEndpoint, error) {
@@ -412,19 +412,19 @@ func NewFabricTokens(client HTTPClient) *FabricTokens {
 
 // FabricTokensCreateSubscriberTokenParams holds the named optional parameters for FabricTokens.CreateSubscriberToken.
 type FabricTokensCreateSubscriberTokenParams struct {
-	Reference     string
-	ExpireAt      *int
-	ApplicationID *Uuid
-	Password      *string
-	FirstName     *string
-	LastName      *string
-	DisplayName   *string
-	JobTitle      *string
-	TimeZone      *string
-	Country       *string
-	Region        *string
-	CompanyName   *string
-	Extras        map[string]any
+	Reference     string         `sw:"required"`
+	ExpireAt      *int           `sw:"optional"`
+	ApplicationID *Uuid          `sw:"optional"`
+	Password      *string        `sw:"optional"`
+	FirstName     *string        `sw:"optional"`
+	LastName      *string        `sw:"optional"`
+	DisplayName   *string        `sw:"optional"`
+	JobTitle      *string        `sw:"optional"`
+	TimeZone      *string        `sw:"optional"`
+	Country       *string        `sw:"optional"`
+	Region        *string        `sw:"optional"`
+	CompanyName   *string        `sw:"optional"`
+	Extras        map[string]any `sw:"optional"`
 }
 
 func (r *FabricTokens) CreateSubscriberToken(ctx context.Context, params FabricTokensCreateSubscriberTokenParams, opts ...*RequestOptions) (*SubscriberTokenResponse, error) {
@@ -469,8 +469,8 @@ func (r *FabricTokens) CreateSubscriberToken(ctx context.Context, params FabricT
 
 // FabricTokensRefreshSubscriberTokenParams holds the named optional parameters for FabricTokens.RefreshSubscriberToken.
 type FabricTokensRefreshSubscriberTokenParams struct {
-	RefreshToken Jwt
-	Extras       map[string]any
+	RefreshToken Jwt            `sw:"required"`
+	Extras       map[string]any `sw:"optional"`
 }
 
 func (r *FabricTokens) RefreshSubscriberToken(ctx context.Context, params FabricTokensRefreshSubscriberTokenParams, opts ...*RequestOptions) (*SubscriberRefreshTokenResponse, error) {
@@ -482,9 +482,9 @@ func (r *FabricTokens) RefreshSubscriberToken(ctx context.Context, params Fabric
 
 // FabricTokensCreateInviteTokenParams holds the named optional parameters for FabricTokens.CreateInviteToken.
 type FabricTokensCreateInviteTokenParams struct {
-	AddressID Uuid
-	ExpiresAt *int
-	Extras    map[string]any
+	AddressID Uuid           `sw:"required"`
+	ExpiresAt *int           `sw:"optional"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (r *FabricTokens) CreateInviteToken(ctx context.Context, params FabricTokensCreateInviteTokenParams, opts ...*RequestOptions) (*SubscriberInviteTokenCreateResponse, error) {
@@ -499,9 +499,9 @@ func (r *FabricTokens) CreateInviteToken(ctx context.Context, params FabricToken
 
 // FabricTokensCreateGuestTokenParams holds the named optional parameters for FabricTokens.CreateGuestToken.
 type FabricTokensCreateGuestTokenParams struct {
-	AllowedAddresses []Uuid
-	ExpireAt         *int
-	Extras           map[string]any
+	AllowedAddresses []Uuid         `sw:"required"`
+	ExpireAt         *int           `sw:"optional"`
+	Extras           map[string]any `sw:"optional"`
 }
 
 func (r *FabricTokens) CreateGuestToken(ctx context.Context, params FabricTokensCreateGuestTokenParams, opts ...*RequestOptions) (*SubscriberGuestTokenCreateResponse, error) {
@@ -518,8 +518,8 @@ func (r *FabricTokens) CreateGuestToken(ctx context.Context, params FabricTokens
 
 // FabricTokensCreateEmbedTokenParams holds the named optional parameters for FabricTokens.CreateEmbedToken.
 type FabricTokensCreateEmbedTokenParams struct {
-	Token  string
-	Extras map[string]any
+	Token  string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (r *FabricTokens) CreateEmbedToken(ctx context.Context, params FabricTokensCreateEmbedTokenParams, opts ...*RequestOptions) (*EmbedsTokensResponse, error) {

@@ -41,6 +41,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -276,6 +277,33 @@ var handOptionsStructs = map[string]bool{
 type paramsStructField struct {
 	name    string // exported Go field name (e.g. "QueryString", "Extras")
 	typeStr string // source-level type expression (e.g. "any", "map[string]any")
+	// required carries the SPEC's required flag, read from the generated
+	// `sw:"required"` / `sw:"optional"` struct tag. nil when the struct has no
+	// tag (a hand-written options struct), in which case the caller falls back
+	// to pointer-ness. See swRequiredTag + the REST-unfold in
+	// toCanonicalSignature for why the tag is load-bearing: a COMPOSITE field
+	// (`[]T` / `map[K]V`) is spelled identically whether the spec requires it or
+	// not, so pointer-ness alone cannot recover its contract.
+	required *bool
+}
+
+// swRequiredTag reads the generated `sw:"required"` / `sw:"optional"` tag off a
+// params-struct field, returning nil when the field carries no such tag.
+func swRequiredTag(tag *ast.BasicLit) *bool {
+	if tag == nil {
+		return nil
+	}
+	lit, err := strconv.Unquote(tag.Value)
+	if err != nil {
+		return nil
+	}
+	switch reflect.StructTag(lit).Get("sw") {
+	case "required":
+		return boolPtr(true)
+	case "optional":
+		return boolPtr(false)
+	}
+	return nil
 }
 
 // paramsStructFields maps a generated-REST `<...>Params` struct's SHORT type name
@@ -524,6 +552,468 @@ func collectGenPayload(file *ast.File, module string, payloads *genPayloadFacts)
 	}
 }
 
+// guardedFields indexes, per FILE, the struct fields whose every READ in that
+// file sits behind a zero/nil guard on the field itself. Keyed
+// "<Struct>.<Field>".
+//
+// Why this exists: the port frequently models "the caller may decline this
+// argument" ONE HOP away from the signature. `Step.SetGatherInfo(outputKey,
+// completionAction, prompt string, isolated bool)` stores its four params
+// verbatim into a `GatherInfo` literal and never guards them; the substitution
+// happens in `GatherInfo.ToMap`, which emits each wire key only when the field
+// is non-zero:
+//
+//	if g.Prompt != "" { m["prompt"] = g.Prompt }
+//
+// So `SetGatherInfo("", "", "", false)` IS a supported call producing exactly
+// the reference's `output_key=None, completion_action=None, prompt=None,
+// isolated=False` document — but a body-local scan sees only an unconditional
+// store and calls all four required. Same shape in `DataMap.Webhook` /
+// `DataMap.Parameter` (stored into webhookDef / paramDef, guarded at
+// serialize time).
+//
+// The index is deliberately CONSERVATIVE, in the direction that keeps a param
+// REQUIRED:
+//   - a field with ZERO reads is not guarded (nothing proves the zero value is
+//     handled);
+//   - a single read outside a guard on that same field disqualifies it;
+//   - the analysis is FILE-scoped, so a field read in another file of the same
+//     package is invisible — and, being invisible, cannot vouch for the field.
+//     Only a struct whose declaration and whose every use live in one file can
+//     qualify.
+func guardedFieldIndex(file *ast.File) map[string]bool {
+	reads := map[string]int{}   // "Struct.Field" -> total reads
+	guarded := map[string]int{} // "Struct.Field" -> reads inside a guard on it
+	// fieldStruct resolves "<Struct>.<field>" -> the named struct type that
+	// field holds, so a TWO-HOP read (`dm.webhookConfig.headers`) resolves to
+	// "webhookDef.headers". DataMap.Webhook / .Parameter store their params
+	// into exactly such a nested struct, and the guards live on the nested
+	// fields at serialize time.
+	fieldStruct := map[string]string{}
+	for _, decl := range file.Decls {
+		gd, ok := decl.(*ast.GenDecl)
+		if !ok || gd.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range gd.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+			st, ok := ts.Type.(*ast.StructType)
+			if !ok || st.Fields == nil {
+				continue
+			}
+			for _, f := range st.Fields.List {
+				ft := exprString(f.Type)
+				// A `[]T` field binds its ELEMENT type: a `for _, p := range
+				// dm.parameters` loop reads `p.<Field>` on the element struct,
+				// and the emptiness guards that vouch for an optional param
+				// live exactly there (DataMap.Parameter stores into a
+				// []paramDef whose enum/required are guarded in ToSwaigFunction).
+				ft = strings.TrimPrefix(ft, "[]")
+				ft = strings.TrimPrefix(ft, "*")
+				if ft == "" || strings.ContainsAny(ft, "[]{}( )") {
+					continue
+				}
+				if i := strings.LastIndex(ft, "."); i >= 0 {
+					ft = ft[i+1:]
+				}
+				for _, n := range f.Names {
+					fieldStruct[ts.Name.Name+"."+n.Name] = ft
+				}
+			}
+		}
+	}
+	// resolveSel maps a selector expression to its "<Struct>.<Field>" key given
+	// the receiver variable name + its struct type. Handles the direct
+	// `<rv>.<Field>` and the one-level-nested `<rv>.<container>.<Field>`.
+	resolveSel := func(sel *ast.SelectorExpr, rv, st string) string {
+		switch x := sel.X.(type) {
+		case *ast.Ident:
+			if x.Name == rv {
+				return st + "." + sel.Sel.Name
+			}
+		case *ast.SelectorExpr:
+			inner, ok := x.X.(*ast.Ident)
+			if ok && inner.Name == rv {
+				if nested, ok := fieldStruct[st+"."+x.Sel.Name]; ok {
+					return nested + "." + sel.Sel.Name
+				}
+			}
+		}
+		return ""
+	}
+	// recvStruct maps a method's receiver VARIABLE name to its struct type, so
+	// `g.Prompt` inside a `func (g *GatherInfo)` method resolves to
+	// "GatherInfo.Prompt".
+	for _, decl := range file.Decls {
+		fd, ok := decl.(*ast.FuncDecl)
+		if !ok || fd.Body == nil || fd.Recv == nil || len(fd.Recv.List) == 0 {
+			continue
+		}
+		st := recvTypeName(fd.Recv.List[0].Type)
+		if st == "" || len(fd.Recv.List[0].Names) == 0 {
+			continue
+		}
+		rv := fd.Recv.List[0].Names[0].Name
+		if rv == "" || rv == "_" {
+			continue
+		}
+		// Walk, tracking which field names are currently "in scope" as guarded
+		// by an enclosing `if <rv>.<Field> <zero-test>` condition.
+		// rangeVar binds a `for _, v := range <rv>.<field>` loop variable to the
+		// element struct type, so `v.<Field>` resolves like `<rv>.<field>.<Field>`.
+		rangeVar := map[string]string{}
+		ast.Inspect(fd.Body, func(n ast.Node) bool {
+			rs, ok := n.(*ast.RangeStmt)
+			if !ok || rs.Value == nil {
+				return true
+			}
+			v, ok := rs.Value.(*ast.Ident)
+			if !ok || v.Name == "_" {
+				return true
+			}
+			sel, ok := rs.X.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			id, ok := sel.X.(*ast.Ident)
+			if !ok || id.Name != rv {
+				return true
+			}
+			if elem, ok := fieldStruct[st+"."+sel.Sel.Name]; ok {
+				rangeVar[v.Name] = elem
+			}
+			return true
+		})
+		var walk func(n ast.Node, inGuard map[string]bool)
+		resolve := func(sel *ast.SelectorExpr) string {
+			if id, ok := sel.X.(*ast.Ident); ok {
+				if elem, ok := rangeVar[id.Name]; ok {
+					return elem + "." + sel.Sel.Name
+				}
+			}
+			return resolveSel(sel, rv, st)
+		}
+		countRead := func(sel *ast.SelectorExpr, inGuard map[string]bool) {
+			key := resolve(sel)
+			if key == "" {
+				return
+			}
+			reads[key]++
+			if inGuard[key] {
+				guarded[key]++
+			}
+		}
+		walk = func(n ast.Node, inGuard map[string]bool) {
+			switch t := n.(type) {
+			case *ast.IfStmt:
+				// Fields this condition zero-tests become guarded inside the body.
+				inner := map[string]bool{}
+				for k, v := range inGuard {
+					inner[k] = v
+				}
+				for _, f := range condGuardedFields(t.Cond, rv, st, func(sel *ast.SelectorExpr, _, _ string) string {
+					return resolve(sel)
+				}) {
+					inner[f] = true
+				}
+				if t.Init != nil {
+					walk(t.Init, inGuard)
+				}
+				// The CONDITION's own reads are the test itself — count them as
+				// guarded, since evaluating `g.Prompt != ""` never misuses a zero.
+				// The condition's own reads count as GUARDED only for the
+				// fields this condition actually zero-tests. A field merely
+				// MENTIONED in the condition (`if w.eventType ==
+				// event.EventType` — a match against another value) is a real
+				// read of a value the caller must have supplied, so it counts
+				// as UNGUARDED and disqualifies the field.
+				condZero := map[string]bool{}
+				for _, f := range condGuardedFields(t.Cond, rv, st, func(sel *ast.SelectorExpr, _, _ string) string {
+					return resolve(sel)
+				}) {
+					condZero[f] = true
+				}
+				ast.Inspect(t.Cond, func(c ast.Node) bool {
+					if sel, ok := c.(*ast.SelectorExpr); ok {
+						if key := resolve(sel); key != "" {
+							reads[key]++
+							if condZero[key] {
+								guarded[key]++
+							}
+						}
+						return false
+					}
+					return true
+				})
+				if t.Body != nil {
+					walk(t.Body, inner)
+				}
+				if t.Else != nil {
+					walk(t.Else, inGuard)
+				}
+				return
+			case *ast.SelectorExpr:
+				countRead(t, inGuard)
+				return
+			}
+			// Default: recurse into children with the same guard set.
+			var kids []ast.Node
+			ast.Inspect(n, func(c ast.Node) bool {
+				if c == nil || c == n {
+					return c == n
+				}
+				kids = append(kids, c)
+				return false
+			})
+			for _, k := range kids {
+				walk(k, inGuard)
+			}
+		}
+		walk(fd.Body, map[string]bool{})
+	}
+	out := map[string]bool{}
+	for k, n := range reads {
+		if n > 0 && guarded[k] == n {
+			out[k] = true
+		}
+	}
+	return out
+}
+
+// exprIsZeroLiteral reports whether expr is a zero-value LITERAL — `""`, `0`,
+// `false`, or the untyped `nil`. Type-agnostic on purpose: the caller has the
+// field name but not its declared type, and any of these literals appearing as
+// the comparand makes the test an absence test.
+func exprIsZeroLiteral(e ast.Expr) bool {
+	switch t := e.(type) {
+	case *ast.Ident:
+		return t.Name == "nil" || t.Name == "false"
+	case *ast.BasicLit:
+		switch t.Kind {
+		case token.STRING:
+			return t.Value == `""` || t.Value == "``"
+		case token.INT, token.FLOAT:
+			return t.Value == "0" || t.Value == "0.0"
+		default:
+			// CHAR / IMAG and every non-literal token: not a zero value we vouch for.
+			return false
+		}
+	}
+	return false
+}
+
+// condGuardedFields returns the receiver-field names an `if` condition
+// zero/nil-tests, through `&&` / `||` nesting. `if g.Prompt != ""` guards
+// "Prompt"; `if g.Isolated` guards "Isolated" (a bare bool IS its own test).
+func condGuardedFields(expr ast.Expr, rv, st string,
+	resolveSel func(*ast.SelectorExpr, string, string) string) []string {
+	var out []string
+	var rec func(e ast.Expr)
+	fieldOf := func(e ast.Expr) string {
+		sel, ok := e.(*ast.SelectorExpr)
+		if !ok {
+			return ""
+		}
+		return resolveSel(sel, rv, st)
+	}
+	rec = func(e ast.Expr) {
+		switch t := e.(type) {
+		case *ast.ParenExpr:
+			rec(t.X)
+		case *ast.UnaryExpr:
+			if t.Op == token.NOT {
+				rec(t.X)
+			}
+		case *ast.SelectorExpr:
+			if f := fieldOf(t); f != "" {
+				out = append(out, f)
+			}
+		case *ast.BinaryExpr:
+			if t.Op == token.LAND || t.Op == token.LOR {
+				rec(t.X)
+				rec(t.Y)
+				return
+			}
+			if t.Op != token.EQL && t.Op != token.NEQ &&
+				t.Op != token.LSS && t.Op != token.GTR &&
+				t.Op != token.LEQ && t.Op != token.GEQ {
+				return
+			}
+			// The comparand must be the ZERO value. `if w.eventType ==
+			// event.EventType` is a MATCH against another value, not an
+			// absence test — treating it as a guard made Call.wait_for's
+			// `event_type` read optional against a reference that requires it
+			// (measured: exactly one manufactured reverse flip). Only a literal
+			// zero (`""`, `0`, `false`, `nil`) vouches for the field.
+			if f := fieldOf(t.X); f != "" && exprIsZeroLiteral(t.Y) {
+				out = append(out, f)
+			}
+			if f := fieldOf(t.Y); f != "" && exprIsZeroLiteral(t.X) {
+				out = append(out, f)
+			}
+			// `len(g.Questions) > 0`
+			if call, ok := t.X.(*ast.CallExpr); ok && len(call.Args) == 1 {
+				if fn, ok := call.Fun.(*ast.Ident); ok && fn.Name == "len" {
+					if f := fieldOf(call.Args[0]); f != "" {
+						out = append(out, f)
+					}
+				}
+			}
+		}
+	}
+	rec(expr)
+	return out
+}
+
+// paramStoredIntoGuardedField reports whether param is stored VERBATIM into a
+// struct-literal field that guardedFieldIndex vouched for — i.e. the port
+// accepts the param's zero value and drops it at serialize time, so the caller
+// may decline the argument.
+func paramStoredIntoGuardedField(fd *ast.FuncDecl, param string, guarded map[string]bool) bool {
+	if fd == nil || fd.Body == nil || len(guarded) == 0 {
+		return false
+	}
+	found := false
+	ast.Inspect(fd.Body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		cl, ok := n.(*ast.CompositeLit)
+		if !ok {
+			return true
+		}
+		st := ""
+		switch t := cl.Type.(type) {
+		case *ast.Ident:
+			st = t.Name
+		case *ast.SelectorExpr:
+			st = t.Sel.Name
+		}
+		if st == "" {
+			return true
+		}
+		for _, el := range cl.Elts {
+			kv, ok := el.(*ast.KeyValueExpr)
+			if !ok {
+				continue
+			}
+			key, ok := kv.Key.(*ast.Ident)
+			if !ok {
+				continue
+			}
+			// The value must be the BARE param ident — a wrapped/derived value
+			// (`strings.ToUpper(method)`) is a different quantity whose zero the
+			// field guard does not speak for.
+			val, ok := kv.Value.(*ast.Ident)
+			if !ok || val.Name != param {
+				continue
+			}
+			if guarded[st+"."+key.Name] {
+				found = true
+				return false
+			}
+		}
+		return true
+	})
+	return found
+}
+
+// nilPassedSiblingArgs indexes, per FILE, the (callee, argument-position) pairs
+// where SOME call in that file passes a literal `nil`. Keyed "<callee>#<idx>".
+//
+// A sibling passing nil is a PROOF, written in the port's own code, that the
+// callee accepts nil in that slot. `HTTPClient.Post(path, body, params, opts)`
+// forwards body/params straight into `doRequestContextOpts(ctx, "POST", path,
+// body, params, opts)`, and the sibling `Delete` calls the same function as
+// `doRequestContextOpts(ctx, "DELETE", path, nil, nil, opts)` — so `Post(p,
+// nil, nil, nil)` is a supported call, exactly the reference's `body: Any =
+// None, params: dict | None = None`.
+//
+// Conservative by construction: it only records positions a real call already
+// nils, and it is FILE-scoped, so it can never vouch for a callee it has not
+// seen nilled.
+func nilPassedSiblingArgs(file *ast.File) map[string]bool {
+	out := map[string]bool{}
+	ast.Inspect(file, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		callee := calleeName(call.Fun)
+		if callee == "" {
+			return true
+		}
+		for i, a := range call.Args {
+			if id, ok := a.(*ast.Ident); ok && id.Name == "nil" {
+				out[calleeSlotKey(callee, len(call.Args), i)] = true
+			}
+		}
+		return true
+	})
+	return out
+}
+
+// calleeSlotKey keys a callee argument slot by NAME, ARITY and INDEX. Arity is
+// part of the key because a bare method name is ambiguous across overloaded-ish
+// shapes: the generated REST tree calls both `HTTP.Get(ctx, path, nil, opts...)`
+// and `HTTP.Post(ctx, path, data, nil, opts...)`. Keying on name+index alone
+// made Get's nilled slot-2 vouch for Post's slot-2 `data`, which the reference
+// records REQUIRED — a manufactured reverse flip, caught by the drift gate.
+func calleeSlotKey(callee string, arity, idx int) string {
+	return callee + "/" + strconv.Itoa(arity) + "#" + strconv.Itoa(idx)
+}
+
+// calleeName renders a call target as a stable key: the bare function name, or
+// `<sel>` for a method call (the receiver EXPRESSION is dropped so
+// `c.doRequestContextOpts` and `a.doRequestContextOpts` share a key — they are
+// the same method).
+func calleeName(fun ast.Expr) string {
+	switch t := fun.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.SelectorExpr:
+		return t.Sel.Name
+	}
+	return ""
+}
+
+// paramForwardedToNilledSlot reports whether param is passed VERBATIM into a
+// callee argument position that some sibling call in the same file nils.
+func paramForwardedToNilledSlot(fd *ast.FuncDecl, param string, nilled map[string]bool) bool {
+	if fd == nil || fd.Body == nil || len(nilled) == 0 {
+		return false
+	}
+	found := false
+	ast.Inspect(fd.Body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		callee := calleeName(call.Fun)
+		if callee == "" {
+			return true
+		}
+		for i, a := range call.Args {
+			id, ok := a.(*ast.Ident)
+			if !ok || id.Name != param {
+				continue
+			}
+			if nilled[calleeSlotKey(callee, len(call.Args), i)] {
+				found = true
+				return false
+			}
+		}
+		return true
+	})
+	return found
+}
+
 func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts) error {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
@@ -572,6 +1062,21 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 		}
 		return nil
 	}
+	// FILE-scoped index of struct fields whose every read is zero-guarded; feeds
+	// extractParamOptionality mechanism (4).
+	guardedFields := guardedFieldIndex(file)
+	// FILE-scoped index of callee arg positions a sibling call already nils;
+	// feeds extractParamOptionality mechanism (5).
+	// NOT applied to generated REST resources: there the param's requiredness
+	// comes from the SPEC (carried by the `sw:` params-struct tag), and a
+	// bodyless operation legitimately calls the SAME verb with a nil body
+	// (`RegistryBrands.RequestVerification` posts nil) — which would falsely
+	// vouch for a sibling's spec-REQUIRED body. Measured: enabling it there
+	// manufactured exactly one reverse flip, RegistryBrands.create_campaign.
+	var nilledArgs map[string]bool
+	if !isRestResource {
+		nilledArgs = nilPassedSiblingArgs(file)
+	}
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
@@ -595,8 +1100,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 					var fields []paramsStructField
 					for _, f := range st.Fields.List {
 						typeStr := exprString(f.Type)
+						req := swRequiredTag(f.Tag)
 						for _, n := range f.Names {
-							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr})
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr, required: req})
 						}
 					}
 					paramsStructFields[ts.Name.Name] = fields
@@ -609,8 +1115,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 					var fields []paramsStructField
 					for _, f := range st.Fields.List {
 						typeStr := exprString(f.Type)
+						req := swRequiredTag(f.Tag)
 						for _, n := range f.Names {
-							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr})
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr, required: req})
 						}
 					}
 					paramsStructFields[ts.Name.Name] = fields
@@ -697,7 +1204,7 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 			if !ast.IsExported(d.Name.Name) {
 				continue
 			}
-			sig := buildSignature(pkgName, d)
+			sig := buildSignature(pkgName, d, guardedFields, nilledArgs)
 			if isRestResource {
 				sig.restResource = true
 			}
@@ -794,6 +1301,17 @@ func zeroLiteralFor(typeStr string) (string, bool) {
 		return "0", true
 	case "float32", "float64":
 		return "0", true
+	}
+	// A Tier-1 closed-set DEFINED STRING type (`type TapDirection string`, the
+	// closedSetUnions table) has the same zero value as its underlying string,
+	// so `if direction != "" { … }` is the identical absence test the plain
+	// `string` form gets. Without this, typing a param as its closed set (a
+	// pure DX improvement) silently flipped it from optional to required —
+	// FunctionResult.Tap's `direction`/`codec` and RecordCall's `format`/
+	// `direction` all read as required despite bodies that omit the wire key
+	// on the zero value.
+	if _, ok := closedSetUnions[strings.TrimSpace(typeStr)]; ok {
+		return `""`, true
 	}
 	return "", false
 }
@@ -1169,7 +1687,15 @@ func defaultingZeroGuard(stmt ast.Stmt, param, typeStr string) bool {
 	}
 	// (a) REJECTION — the zero-value branch leaves the function. The argument is
 	// refused, not defaulted.
-	if blockTerminates(ifStmt.Body) {
+	//
+	// EXCEPT a productive DISPATCH: `if wait { return fr.AddAction("playback_bg",
+	// map[...]{…, "wait": true}) }` followed by `return fr.AddAction("playback_bg",
+	// filename)` does not refuse the zero — it picks the OTHER shape for it, which
+	// is exactly what an omitted argument means (the reference's `wait: bool =
+	// False`). A rejection returns nothing useful (`return`, `return false`,
+	// `return nil, err`) or panics; a dispatch returns a CALL result and the
+	// function keeps going past the guard with its own productive return.
+	if blockTerminates(ifStmt.Body) && !isProductiveDispatch(ifStmt.Body) {
 		return false
 	}
 	// An `else` that terminates is the same rejection written the other way
@@ -1195,6 +1721,89 @@ func defaultingZeroGuard(stmt ast.Stmt, param, typeStr string) bool {
 		}
 	}
 	return true
+}
+
+// paramPassthroughGuard reports whether stmt is `if <param> != <zero> { return
+// <param> }` — the "use what was supplied, otherwise fall through and
+// substitute" idiom. The zero value is neither refused nor clamped: control
+// continues past the guard to build the default, which is precisely what the
+// reference's `= None` slot means.
+func paramPassthroughGuard(stmt ast.Stmt, param, typeStr string) bool {
+	ifStmt, ok := stmt.(*ast.IfStmt)
+	if !ok || ifStmt.Cond == nil || ifStmt.Body == nil || ifStmt.Else != nil {
+		return false
+	}
+	// The condition must be the NON-zero test (`p != ""`), not the zero test.
+	bin, ok := ifStmt.Cond.(*ast.BinaryExpr)
+	if !ok || bin.Op != token.NEQ {
+		return false
+	}
+	if !condTestsZeroValue(ifStmt.Cond, param, typeStr) {
+		return false
+	}
+	if len(ifStmt.Body.List) != 1 {
+		return false
+	}
+	ret, ok := ifStmt.Body.List[0].(*ast.ReturnStmt)
+	if !ok || len(ret.Results) != 1 {
+		return false
+	}
+	id, ok := ret.Results[0].(*ast.Ident)
+	return ok && id.Name == param
+}
+
+// isProductiveDispatch reports whether a terminating guard body returns a
+// COMPUTED value — a function/method CALL result — rather than refusing the
+// input. `return fr.AddAction(…)` builds and returns the alternate shape for the
+// zero value; `return`, `return false`, `return nil, err` and `panic(…)` refuse
+// it. Only a single-statement return of one call expression counts, which keeps
+// the rule narrow: a guard that logs then bails, or returns a zero literal, is
+// still read as a rejection.
+func isProductiveDispatch(b *ast.BlockStmt) bool {
+	if b == nil || len(b.List) != 1 {
+		return false
+	}
+	ret, ok := b.List[0].(*ast.ReturnStmt)
+	if !ok || len(ret.Results) != 1 {
+		return false
+	}
+	call, isCall := ret.Results[0].(*ast.CallExpr)
+	if !isCall {
+		return false
+	}
+	// An ERROR CONSTRUCTION is a rejection wearing a call's clothes:
+	// `AddSkillDirectory(path)` does `if path == "" { return errors.New("… must
+	// be non-empty") }`, and the reference records `path` REQUIRED. Refuse the
+	// known error constructors so a returned error never reads as a default.
+	// (Measured: without this the rule manufactured exactly this reverse flip.)
+	if isErrorConstruction(call) {
+		return false
+	}
+	return true
+}
+
+// isErrorConstruction reports whether a call builds an error value —
+// `errors.New(…)`, `fmt.Errorf(…)`, or any `New*Error(…)` / `*Error(…)`
+// constructor.
+func isErrorConstruction(call *ast.CallExpr) bool {
+	name := ""
+	pkg := ""
+	switch t := call.Fun.(type) {
+	case *ast.Ident:
+		name = t.Name
+	case *ast.SelectorExpr:
+		name = t.Sel.Name
+		if id, ok := t.X.(*ast.Ident); ok {
+			pkg = id.Name
+		}
+	}
+	if pkg == "errors" && name == "New" {
+		return true
+	}
+	if pkg == "fmt" && name == "Errorf" {
+		return true
+	}
+	return strings.HasSuffix(name, "Error") || strings.HasSuffix(name, "Errorf")
 }
 
 // blockTerminates reports whether every path through the block leaves the
@@ -1298,6 +1907,12 @@ func exprIsZeroValue(expr ast.Expr, typeStr string) bool {
 	return ok && got == zero
 }
 
+// isNilableParamType reports whether a param's declared type can hold nil, so
+// that a nilled callee slot is evidence about THIS param.
+func isNilableParamType(typeStr string) bool {
+	return isNilableType(typeStr)
+}
+
 // isNilableType reports whether typeStr's zero value is `nil` — i.e. comparing
 // the param to nil is a well-formed absence test.
 func isNilableType(typeStr string) bool {
@@ -1311,7 +1926,7 @@ func isNilableType(typeStr string) bool {
 // extractParamOptionality populates each param's `optional` flag per the
 // mechanisms documented above. Params with no absence-modelling are left
 // required — the honest record for a bare Go parameter.
-func extractParamOptionality(sig *goSignature, fd *ast.FuncDecl) {
+func extractParamOptionality(sig *goSignature, fd *ast.FuncDecl, guardedFields, nilledArgs map[string]bool) {
 	for i := range sig.params {
 		p := &sig.params[i]
 		// (1) variadic is visible in the TYPE alone and holds whether or not the
@@ -1333,6 +1948,16 @@ func extractParamOptionality(sig *goSignature, fd *ast.FuncDecl) {
 			if p.optional {
 				return false
 			}
+			// Do NOT descend into a nested function literal. A guard inside a
+			// returned CLOSURE tests a CAPTURED variable at call time, not the
+			// caller's argument: `CreateTypedHandlerWrapper(fn, hasRawData)`
+			// returns `func(args, rawData) { if hasRawData { … } … }`, whose
+			// dispatch says nothing about whether the CALLER may omit
+			// hasRawData — and the reference records it REQUIRED. (Measured: a
+			// version that descended manufactured exactly this reverse flip.)
+			if _, isFuncLit := n.(*ast.FuncLit); isFuncLit {
+				return false
+			}
 			if stmt, ok := n.(ast.Stmt); ok && defaultingZeroGuard(stmt, p.name, p.typeStr) {
 				p.optional = true
 				return false
@@ -1351,6 +1976,35 @@ func extractParamOptionality(sig *goSignature, fd *ast.FuncDecl) {
 		// the caller MUST supply a value and the param stays required.
 		if !p.optional && strings.HasPrefix(p.typeStr, "*") &&
 			!pointerDerefUnguarded(fd, p.name) {
+			p.optional = true
+		}
+		// (4) STORED INTO A GUARDED FIELD. The port models the declined argument
+		// one hop from the signature: the param goes verbatim into a struct
+		// literal, and the struct's serializer emits the wire key only when the
+		// field is non-zero. See guardedFieldIndex.
+		if !p.optional && paramStoredIntoGuardedField(fd, p.name, guardedFields) {
+			p.optional = true
+		}
+		// (6) PARAM-PASSTHROUGH GUARD. `CreateSession(callID string)` does
+		// `if callID != "" { return callID }` and otherwise GENERATES one. The
+		// guard returns the PARAM ITSELF — it neither rejects the zero nor
+		// clamps it; the fall-through IS the substituted default, exactly the
+		// reference's `call_id: str | None = None`. Narrow on purpose: the
+		// returned expression must be the bare param ident, which a rejection
+		// (`return false`, `return errors.New(…)`) never is.
+		if !p.optional && fd != nil && fd.Body != nil {
+			for _, stmt := range fd.Body.List {
+				if paramPassthroughGuard(stmt, p.name, p.typeStr) {
+					p.optional = true
+					break
+				}
+			}
+		}
+		// (5) FORWARDED TO A SLOT A SIBLING NILS. Scoped to nil-able types: a
+		// value-typed param has no nil to pass, so a nilled slot says nothing
+		// about it. See nilPassedSiblingArgs.
+		if !p.optional && isNilableParamType(p.typeStr) &&
+			paramForwardedToNilledSlot(fd, p.name, nilledArgs) {
 			p.optional = true
 		}
 	}
@@ -1436,7 +2090,7 @@ func condTestsNilOfParam(expr ast.Expr, param string) bool {
 	return false
 }
 
-func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
+func buildSignature(pkg string, fd *ast.FuncDecl, guardedFields, nilledArgs map[string]bool) *goSignature {
 	sig := &goSignature{pkg: pkg, name: fd.Name.Name, params: []goParam{}}
 	if fd.Type.Params != nil {
 		for _, field := range fd.Type.Params.List {
@@ -1478,7 +2132,7 @@ func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
 		}
 	}
 	extractParamDefaults(sig, fd)
-	extractParamOptionality(sig, fd)
+	extractParamOptionality(sig, fd, guardedFields, nilledArgs)
 	return sig
 }
 
@@ -1769,6 +2423,16 @@ var goLocalAliases = map[string]string{
 	// the two functions' signatures compare EQUAL (idiom in the alias table).
 	"EffectiveOptions":      "class:signalwire.rest._request_options._EffectiveOptions",
 	"rest.EffectiveOptions": "class:signalwire.rest._request_options._EffectiveOptions",
+}
+
+// ctxTailMethods names the methods whose Python reference declares a TRAILING
+// optional `timeout` — the slot the Go leading `ctx context.Context` stands in
+// for. On these the enumerator moves the recorded ctx param to the tail so it
+// aligns with the reference's timeout instead of shifting every other param by
+// one. Keyed by the reference QN (module.Class.method). Methods whose reference
+// has NO timeout are absent: their extra leading ctx is absorbed by the diff.
+var ctxTailMethods = map[string]bool{
+	"signalwire.relay.call.Call.wait_for": true,
 }
 
 // closedSetUnions maps the Go defined-string closed-set types (and their
@@ -2435,22 +3099,21 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 					// away and was the single largest source of go's
 					// `required-flip` findings (148 of 285).
 					//
-					// POINTER-NESS, NOT NIL-ABILITY, is the discriminator. A
-					// COMPOSITE field is spelled as the bare `[]T` / `map[K]V`
-					// whether the spec makes it required or optional — the
-					// generator has no `*[]T` spelling — so it is nil-guarded in
-					// BOTH cases and its guard proves nothing. `Calling.play`'s
-					// `Play []map[string]any` is nil-guarded and the oracle records
-					// it REQUIRED; `Calling.collect`'s `Digits map[string]any` is
-					// nil-guarded and the oracle records it OPTIONAL. Treating
-					// nil-ability as optionality was measured: it resolved 14
-					// findings and manufactured 10 new ones in the opposite
+					// For a COMPOSITE field that reasoning runs out: `[]T` /
+					// `map[K]V` is spelled identically whether the spec requires it
+					// or not (the generator has no `*[]T` form), so it is
+					// nil-guarded in BOTH cases and the guard proves nothing.
+					// `Calling.play`'s `Play []map[string]any` is nil-guarded and
+					// the oracle records it REQUIRED; `Calling.collect`'s
+					// `Digits map[string]any` is nil-guarded and OPTIONAL.
+					// Inferring optionality from nil-ability was measured: it
+					// resolved 14 findings and manufactured 10 in the opposite
 					// direction (a port claiming optional where the spec requires),
-					// which is the worse error — it hides a REAL gap behind the
-					// enumerator. A composite's required flag is not recoverable
-					// from Go syntax; it needs the generator to carry the spec's
-					// flag into the emitted code, which is a GENERATOR change, not
-					// an enumerator one.
+					// the worse error. The fix is upstream: `generate-rest` now
+					// emits the spec's flag as a `sw:"required"`/`sw:"optional"`
+					// struct tag (paramsStructFieldDef), and this unfold reads it.
+					// Pointer-ness remains only as the fallback for a struct with
+					// no tag.
 					if f.name == "Extras" {
 						// `Extras` is the open-ended overflow bag, merged via the
 						// nil-safe mergeExtra; the oracle records it optional.
@@ -2464,9 +3127,16 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 						})
 						continue
 					}
+					// The generated `sw:"..."` tag carries the SPEC's flag
+					// verbatim; use it whenever present. Only a params struct
+					// emitted before the tag existed falls back to pointer-ness.
+					req := f.required
+					if req == nil {
+						req = boolPtr(!strings.HasPrefix(f.typeStr, "*"))
+					}
 					params = append(params, canonicalParam{
 						Name: goNameToSnake(f.name), Kind: "keyword", Type: fCanon,
-						Required: boolPtr(!strings.HasPrefix(f.typeStr, "*")),
+						Required: req,
 					})
 				}
 				continue
@@ -2570,6 +3240,23 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			out = append(out, ro)
 			out = append(out, params[firstVK:]...)
 			params = out
+		}
+	}
+	// ctx ORDERING (the timeout-slot analog of the request_options reorder above).
+	// A leading `ctx context.Context` records as the reference's `optional<float>`
+	// timeout slot. On a method whose reference declares NO timeout, the diff
+	// absorbs the extra leading ctx and the prefix aligns. But when the reference
+	// DOES declare a trailing `timeout: float | None = None` (Call.wait_for), the
+	// two sides have the SAME arity, absorption does not fire, and the port's ctx
+	// sits at slot 0 against the reference's slot-2 timeout — misaligning every
+	// param between them. Move the ctx to the TAIL for exactly those methods so
+	// the slots line up. Table-gated on the reference QN, so a ctx on any other
+	// method keeps its leading position and the absorption path.
+	if ctxTailMethods[ctx] {
+		if ci := indexOfParam(params, "ctx"); ci >= 0 {
+			cparam := params[ci]
+			params = append(params[:ci], params[ci+1:]...)
+			params = append(params, cparam)
 		}
 	}
 	returns := "void"

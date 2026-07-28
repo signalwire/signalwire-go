@@ -760,9 +760,9 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 				bodyOrder = append(bodyOrder, f)
 				ftype := paramFieldType(fieldTypes[f], fieldReq[f])
 				bodyFieldPtr[f] = isNilableGoType(ftype)
-				fieldDefs = append(fieldDefs, "\t"+fn+" "+ftype)
+				fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, ftype, fieldReq[f]))
 			}
-			fieldDefs = append(fieldDefs, "\tExtras map[string]any")
+			fieldDefs = append(fieldDefs, paramsStructFieldDef("Extras", "map[string]any", false))
 			structDef = fmt.Sprintf("// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 				structName, recv, goName, structName, strings.Join(fieldDefs, "\n"))
 			params = append(params, "params "+structName)
@@ -1302,9 +1302,9 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 			// type (e.g. swml → *SWMLObject), a union → any, an array → []T.
 			ftype := paramFieldType(cmdFieldTypes[f], cmdFieldReq[f])
 			fieldPtr[f] = isNilableGoType(ftype)
-			fieldDefs = append(fieldDefs, "\t"+fn+" "+ftype)
+			fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, ftype, cmdFieldReq[f]))
 		}
-		fieldDefs = append(fieldDefs, "\tExtras map[string]any")
+		fieldDefs = append(fieldDefs, paramsStructFieldDef("Extras", "map[string]any", false))
 		fmt.Fprintf(b, "// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 			structName, goName, mName, structName, strings.Join(fieldDefs, "\n"))
 		var sigParams []string

@@ -129,7 +129,15 @@ func (c *Call) On(eventType string, handler func(*RelayEvent)) {
 
 // WaitFor blocks until an event matching the given type and predicate is
 // received, or the context expires.
+//
+// predicate is OPTIONAL — pass nil to accept the first event of eventType,
+// matching the reference's `predicate: Callable | None = None`. The nil case is
+// normalised to a match-all here rather than being handled at dispatch, so the
+// substituted default is visible at the point the caller declines the argument.
 func (c *Call) WaitFor(ctx context.Context, eventType string, predicate func(*RelayEvent) bool) (*RelayEvent, error) {
+	if predicate == nil {
+		predicate = func(*RelayEvent) bool { return true }
+	}
 	ch := make(chan *RelayEvent, 1)
 	c.mu.Lock()
 	c.waiters = append(c.waiters, waiter{

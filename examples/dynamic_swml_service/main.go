@@ -36,14 +36,14 @@ func main() {
 
 	// Register a routing callback: redirect VIP callers to a priority endpoint;
 	// everyone else falls through to the default document.
-	svc.RegisterRoutingCallback("/greeting", func(body map[string]any, headers map[string]any) *string {
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 		callerType, _ := body["caller_type"].(string)
 		if strings.ToLower(callerType) == "vip" {
 			route := "/priority"
 			return &route
 		}
 		return nil // no redirect — serve the default document
-	})
+	}, "/greeting")
 
 	fmt.Println("Starting DynamicGreeting on :3024/greeting ...")
 	fmt.Println("  Default: generic menu")

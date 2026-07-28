@@ -233,13 +233,13 @@ func TestServiceRoutingCallback(t *testing.T) {
 
 	// A routing callback returns a route string to redirect (307), or nil to
 	// continue to the default document, per (body, headers) -> *string.
-	svc.RegisterRoutingCallback("/custom", func(body map[string]any, headers map[string]any) *string {
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 		if dept, _ := body["department"].(string); dept == "sales" {
 			route := "/sales"
 			return &route
 		}
 		return nil
-	})
+	}, "/custom")
 
 	authHdr := map[string]string{"Authorization": "Basic dTpw"} // base64("u:p")
 

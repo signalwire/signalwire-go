@@ -41,7 +41,14 @@ func (c *ConfigLoader) GetConfig() map[string]any { return c.inner.Config() }
 // maps and slices. Resolved scalar strings that look like a bool/int/float are
 // converted to that type, matching the Python coercion behaviour. maxDepth
 // guards against runaway recursion.
+// maxDepth is OPTIONAL: 0 substitutes the reference's `max_depth: int = 10`, so
+// `SubstituteVars(v, 0)` is the reference's one-argument call. Without the
+// substitution a zero maxDepth returned the value UNSUBSTITUTED — the opposite
+// of what omitting the argument means in the reference.
 func (c *ConfigLoader) SubstituteVars(value any, maxDepth int) any {
+	if maxDepth == 0 {
+		maxDepth = 10
+	}
 	return c.inner.SubstituteVars(value, maxDepth)
 }
 
@@ -59,7 +66,13 @@ func (c *ConfigLoader) GetSection(section string) map[string]any {
 // names start with envPrefix. Config-file values take precedence; a prefixed env
 // var whose nested key is absent from the config is folded in (SWML_SSL_ENABLED
 // → ssl.enabled).
+// envPrefix is OPTIONAL: the empty string substitutes the reference's
+// `env_prefix: str = "SWML_"`. Without it, an omitting caller got a bare ""
+// prefix, which matches EVERY environment variable.
 func (c *ConfigLoader) MergeWithEnv(envPrefix string) map[string]any {
+	if envPrefix == "" {
+		envPrefix = "SWML_"
+	}
 	return c.inner.MergeWithEnv(envPrefix)
 }
 

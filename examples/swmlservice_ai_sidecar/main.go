@@ -109,14 +109,14 @@ func main() {
 	// 3. (Optional) Mount an event sink for ai_sidecar lifecycle events at
 	//    POST /sales-sidecar/events. Remove this if you don't need it; the
 	//    sidecar runtime POSTs each event as JSON.
-	svc.RegisterRoutingCallback("/events", func(body map[string]any, headers map[string]any) *string {
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 		eventType, _ := body["type"].(string)
 		if eventType == "" {
 			eventType = "<unknown>"
 		}
 		fmt.Printf("[sidecar event] type=%s body=%v\n", eventType, body)
 		return nil // nil = continue normally; return &route to 307-redirect.
-	})
+	}, "/events")
 
 	pretty, err := svc.RenderPretty()
 	if err != nil {
