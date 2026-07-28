@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 382867170272da34ba98e83bfe9f3042c756690c (go/ast walker)",
+  "generated_from": "signalwire-go @ 73d75ce2e76fcce3b38f386e8a2c26605afd36ed (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -219,7 +219,8 @@
                 {
                   "name": "route",
                   "type": "string",
-                  "required": true
+                  "required": false,
+                  "default": "/"
                 }
               ],
               "returns": "void"
@@ -233,7 +234,8 @@
                 {
                   "name": "route",
                   "type": "string",
-                  "required": true
+                  "required": false,
+                  "default": "/sip"
                 },
                 {
                   "name": "auto_map",
@@ -1159,7 +1161,7 @@
                 {
                   "name": "config",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -1318,7 +1320,7 @@
                 {
                   "name": "include_auth",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "string"
@@ -1595,12 +1597,12 @@
             {
               "name": "service_name",
               "type": "string",
-              "required": true
+              "required": false
             },
             {
               "name": "additional_paths",
               "type": "list\u003cstring\u003e",
-              "required": true
+              "required": false
             }
           ],
           "returns": "string"
@@ -2586,7 +2588,7 @@
                 {
                   "name": "result",
                   "type": "class:signalwire.core.function_result.FunctionResult",
-                  "required": false
+                  "required": true
                 }
               ],
               "returns": "class:signalwire.core.data_map.DataMap"
@@ -2637,7 +2639,7 @@
                 {
                   "name": "result",
                   "type": "class:signalwire.core.function_result.FunctionResult",
-                  "required": false
+                  "required": true
                 }
               ],
               "returns": "class:signalwire.core.data_map.DataMap"
@@ -2810,17 +2812,18 @@
             {
               "name": "parameters",
               "type": "dict\u003cstring,dict\u003cstring,any\u003e\u003e",
-              "required": true
+              "required": false
             },
             {
               "name": "method",
               "type": "string",
-              "required": true
+              "required": false,
+              "default": "GET"
             },
             {
               "name": "headers",
               "type": "dict\u003cstring,string\u003e",
-              "required": true
+              "required": false
             },
             {
               "name": "body",
@@ -2924,13 +2927,13 @@
                 },
                 {
                   "name": "final",
-                  "type": "bool",
-                  "required": true
+                  "type": "optional\u003cbool\u003e",
+                  "required": false
                 },
                 {
                   "name": "from",
                   "type": "string",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -2944,7 +2947,7 @@
                 {
                   "name": "enabled",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -2958,7 +2961,7 @@
                 {
                   "name": "enabled",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3029,7 +3032,7 @@
                 {
                   "name": "timeout",
                   "type": "int",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3185,7 +3188,7 @@
                 {
                   "name": "text",
                   "type": "any",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3544,9 +3547,9 @@
                   "required": true
                 },
                 {
-                  "name": "final",
+                  "name": "final_arg",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3674,7 +3677,7 @@
                 {
                   "name": "answer_first",
                   "type": "bool",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3723,7 +3726,7 @@
                 {
                   "name": "functions",
                   "type": "list\u003cstring\u003e",
-                  "required": false
+                  "required": true
                 },
                 {
                   "name": "meta_data",
@@ -3836,9 +3839,8 @@
                 },
                 {
                   "name": "ignore_case",
-                  "type": "list\u003cbool\u003e",
-                  "required": false,
-                  "default": false
+                  "type": "bool",
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -3861,9 +3863,8 @@
                 },
                 {
                   "name": "ignore_case",
-                  "type": "list\u003cbool\u003e",
-                  "required": false,
-                  "default": false
+                  "type": "bool",
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -3877,7 +3878,7 @@
                 {
                   "name": "level",
                   "type": "int",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -3961,7 +3962,7 @@
                 {
                   "name": "params",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": false
+                  "required": true
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -3989,7 +3990,7 @@
                 {
                   "name": "config",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": false
+                  "required": true
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -4474,7 +4475,7 @@
                 {
                   "name": "raw_data",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "any"
@@ -4542,12 +4543,12 @@
                 {
                   "name": "request_data",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "callback_path",
                   "type": "string",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -4561,12 +4562,12 @@
                 {
                   "name": "request_data",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "callback_path",
                   "type": "string",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "r",
@@ -5787,7 +5788,7 @@
                 {
                   "name": "prompt_pom",
                   "type": "list\u003cdict\u003cstring,any\u003e\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "post_prompt",
@@ -5802,7 +5803,7 @@
                 {
                   "name": "swaig",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "kwargs",
@@ -5861,7 +5862,7 @@
                 {
                   "name": "urls",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "volume",
@@ -6294,12 +6295,12 @@
                 {
                   "name": "request_data",
                   "type": "dict\u003cstring,any\u003e",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "callback_path",
                   "type": "string",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "dict\u003cstring,any\u003e"
@@ -10384,7 +10385,7 @@
                 {
                   "name": "indent",
                   "type": "int",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "section_number",
@@ -14601,7 +14602,7 @@
             {
               "name": "per_request",
               "type": "class:signalwire.rest._request_options.RequestOptions",
-              "required": false
+              "required": true
             }
           ],
           "returns": "class:signalwire.rest._request_options._EffectiveOptions"
@@ -23973,7 +23974,7 @@
             {
               "name": "allow_private",
               "type": "bool",
-              "required": true
+              "required": false
             }
           ],
           "returns": "bool"

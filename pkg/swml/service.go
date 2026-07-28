@@ -813,9 +813,15 @@ func (s *Service) Hangup(reason *string) error {
 // options value. Set only the fields you need — a caller reads
 // `svc.Play(swml.PlayOptions{URL: &u})` rather than passing a long list of
 // positional pointers. Provide exactly one of URL or URLs.
+//
+// The `sw:"optional"` tag on URLs records that the caller may decline the field.
+// Go has no `*[]T` spelling, so a slice field looks the same whether it is
+// required or not; the tag carries the contract (`play(urls=None)`) into the
+// source for the signature enumerator. It is inert at runtime — PlayOptions is
+// read field-by-field into the verb config and never JSON-marshaled.
 type PlayOptions struct {
 	URL         *string
-	URLs        []string
+	URLs        []string `sw:"optional"`
 	Volume      *float64
 	SayVoice    *string
 	SayLanguage *string
@@ -932,12 +938,16 @@ func (s *Service) SIPRefer(config map[string]any) error {
 // AIOptions carries the parameters of [Service.AI] as a single named options
 // value. Set only the fields you need. Provide at most one of PromptText or
 // PromptPOM; Extra holds any additional AI parameters merged into the verb config.
+// PromptPOM and Swaig carry `sw:"optional"` for the same reason PlayOptions.URLs
+// does: Go has no `*[]T` / `*map[K]V` spelling, so a composite field is
+// indistinguishable from a required one by type alone. The reference declares
+// both `= None`. The tag is inert at runtime.
 type AIOptions struct {
 	PromptText    *string
-	PromptPOM     []map[string]any
+	PromptPOM     []map[string]any `sw:"optional"`
 	PostPrompt    *string
 	PostPromptURL *string
-	Swaig         map[string]any
+	Swaig         map[string]any `sw:"optional"`
 	Extra         map[string]any
 }
 
@@ -1247,6 +1257,15 @@ func (s *Service) RoutingCallbackPaths() []string {
 // routing-callback role into HandleRequest, where a registered callback returns
 // a route string that triggers a 307 redirect (see RoutingCallback and
 // HandleRequest). OnRequest's role is now purely document generation / override.
+//
+// Both parameters are optional, matching the reference
+// `on_request(request_data=None, callback_path=None)`: this is an OVERRIDE HOOK
+// the framework calls, and the base implementation reads neither — the SWML
+// document is returned unchanged whether or not request context was available.
+// A caller (or an overriding subclass invoking super) may decline either.
+//
+//sw:param requestData optional
+//sw:param callbackPath optional
 func (s *Service) OnRequest(requestData map[string]any, callbackPath string) map[string]any {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -101,18 +101,31 @@ func (fr *FunctionResult) ToMap() map[string]any {
 // named options value, so a call site reads `result.Connect(swaig.ConnectOptions{
 // Destination: n, Final: false, From: cid})` instead of an opaque list of
 // positional arguments. From sets the caller ID (leave empty for the default).
+//
+// Final is a *bool, not a bool, because the reference defaults it to TRUE
+// (`connect(destination, final=True, from_addr=None)`) and Go's bool zero value
+// is false — a plain `bool` field would silently turn an omitted Final into a
+// TEMPORARY transfer, the opposite of the contract. nil means "not supplied" and
+// takes the reference default. From carries `sw:"optional"`: its zero value ""
+// is the supported "use the call default" input (the body already omits the
+// wire key for it), which pointer-ness alone cannot express for a string field
+// whose reference default is None. The tag is inert at runtime.
 type ConnectOptions struct {
 	Destination string
-	Final       bool
-	From        string
+	Final       *bool
+	From        string `sw:"optional"`
 }
 
 // Connect adds a connect action to transfer/connect the call to another destination.
-// If Final is true, the call permanently transfers (exits the agent).
-// If Final is false, the call returns to the agent when the far end hangs up.
-// From sets the caller ID; leave empty to use the call's default.
+// If Final is true (the default when nil), the call permanently transfers (exits
+// the agent). If Final is false, the call returns to the agent when the far end
+// hangs up. From sets the caller ID; leave empty to use the call's default.
 func (fr *FunctionResult) Connect(opts ConnectOptions) *FunctionResult {
-	destination, final, from := opts.Destination, opts.Final, opts.From
+	final := true // reference default: connect(final=True)
+	if opts.Final != nil {
+		final = *opts.Final
+	}
+	destination, from := opts.Destination, opts.From
 	connectParams := map[string]any{"to": destination}
 	if from != "" {
 		connectParams["from"] = from
@@ -135,7 +148,16 @@ func (fr *FunctionResult) Connect(opts ConnectOptions) *FunctionResult {
 }
 
 // SwmlTransfer adds a SWML transfer action with an AI response for when control returns.
-func (fr *FunctionResult) SwmlTransfer(dest string, aiResponse string, final bool) *FunctionResult {
+//
+// final is variadic because the reference defaults it to TRUE
+// (`swml_transfer(dest, ai_response, final=True)`) and Go's bool zero is false —
+// a plain `bool` would silently make an omitted final a TEMPORARY transfer.
+// Omit it for a permanent transfer; pass false for a temporary one.
+func (fr *FunctionResult) SwmlTransfer(dest string, aiResponse string, finalArg ...bool) *FunctionResult {
+	final := true // reference default: swml_transfer(final=True)
+	if len(finalArg) > 0 {
+		final = finalArg[0]
+	}
 	swmlAction := map[string]any{
 		"SWML": map[string]any{
 			"version": "1.0.0",
@@ -160,14 +182,24 @@ func (fr *FunctionResult) Hangup() *FunctionResult {
 
 // Hold puts the call on hold with the given timeout in seconds.
 // Timeout is clamped to the range [0, 900].
-func (fr *FunctionResult) Hold(timeout int) *FunctionResult {
-	if timeout < 0 {
-		timeout = 0
+//
+// timeout is variadic because the reference defaults it to 300
+// (`hold(timeout=300)`) and Go's int zero is 0 — which this method CLAMPS to a
+// meaningful "hold for zero seconds" rather than treating as unset, so a plain
+// `int` parameter cannot express "not supplied". Call it with no argument for
+// the 300-second default.
+func (fr *FunctionResult) Hold(timeout ...int) *FunctionResult {
+	seconds := 300 // reference default: hold(timeout=300)
+	if len(timeout) > 0 {
+		seconds = timeout[0]
 	}
-	if timeout > 900 {
-		timeout = 900
+	if seconds < 0 {
+		seconds = 0
 	}
-	return fr.AddAction("hold", timeout)
+	if seconds > 900 {
+		seconds = 900
+	}
+	return fr.AddAction("hold", seconds)
 }
 
 // WaitForUserOptions carries the parameters of [FunctionResult.WaitForUser] as a
@@ -175,10 +207,16 @@ func (fr *FunctionResult) Hold(timeout int) *FunctionResult {
 // `result.WaitForUser(swaig.WaitForUserOptions{Timeout: &t})` instead of a list
 // of positional pointers. Leave Enabled/Timeout nil to omit them; if AnswerFirst
 // is true the value is set to "answer_first" regardless of the other fields.
+//
+// AnswerFirst carries `sw:"optional"`: the reference declares
+// `answer_first: bool = False`, whose default IS Go's zero value, so leaving the
+// field unset is a supported call that the body honours (it falls through to the
+// Timeout/Enabled arms). A plain `bool` field is indistinguishable from a
+// required one by type, so the tag carries the contract. Inert at runtime.
 type WaitForUserOptions struct {
 	Enabled     *bool
 	Timeout     *int
-	AnswerFirst bool
+	AnswerFirst bool `sw:"optional"`
 }
 
 // WaitForUser controls how the agent waits for user input.
@@ -299,7 +337,14 @@ func (fr *FunctionResult) SwitchContext(systemPrompt, userPrompt string, consoli
 // ReplaceInHistory replaces the tool call and result pair in conversation history.
 // If text is a string, the tool call is replaced with an assistant message containing that text.
 // If text is a bool and true, the pair is removed from history entirely.
+// text is optional: nil means "not supplied" and takes the reference default of
+// true (`replace_in_history(text: str | bool = True)`), i.e. remove the tool
+// call/result pair from history. `any` has a nil zero value distinct from every
+// supported argument, so the absence is expressible without changing the type.
 func (fr *FunctionResult) ReplaceInHistory(text any) *FunctionResult {
+	if text == nil {
+		text = true // reference default: replace_in_history(text=True)
+	}
 	switch v := text.(type) {
 	case bool:
 		return fr.AddAction("replace_in_history", v)
@@ -475,13 +520,29 @@ func (fr *FunctionResult) ToggleFunctions(toggles []map[string]any) *FunctionRes
 }
 
 // EnableFunctionsOnTimeout enables or disables function calls on speaker timeout.
-func (fr *FunctionResult) EnableFunctionsOnTimeout(enabled bool) *FunctionResult {
-	return fr.AddAction("functions_on_speaker_timeout", enabled)
+//
+// enabled is variadic because the reference defaults it to TRUE
+// (`enable_functions_on_timeout(enabled=True)`) and Go's bool zero is false — a
+// plain `bool` parameter has no spelling for "not supplied" that does not also
+// mean "disable". Call it with no argument to enable, or pass false to disable.
+func (fr *FunctionResult) EnableFunctionsOnTimeout(enabled ...bool) *FunctionResult {
+	on := true // reference default: enable_functions_on_timeout(enabled=True)
+	if len(enabled) > 0 {
+		on = enabled[0]
+	}
+	return fr.AddAction("functions_on_speaker_timeout", on)
 }
 
 // EnableExtensiveData sends full data to LLM for this turn only.
-func (fr *FunctionResult) EnableExtensiveData(enabled bool) *FunctionResult {
-	return fr.AddAction("extensive_data", enabled)
+//
+// enabled is variadic for the same reason as EnableFunctionsOnTimeout: the
+// reference defaults it to TRUE (`enable_extensive_data(enabled=True)`).
+func (fr *FunctionResult) EnableExtensiveData(enabled ...bool) *FunctionResult {
+	on := true // reference default: enable_extensive_data(enabled=True)
+	if len(enabled) > 0 {
+		on = enabled[0]
+	}
+	return fr.AddAction("extensive_data", on)
 }
 
 // UpdateSettings updates agent runtime settings such as temperature, top_p, etc.

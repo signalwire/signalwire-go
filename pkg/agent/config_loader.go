@@ -78,7 +78,17 @@ func (c *ConfigLoader) MergeWithEnv(envPrefix string) map[string]any {
 
 // FindConfigFile locates a config file for a service, searching service-specific
 // names then generic defaults plus any additionalPaths. Returns "" if none
-// exists. Mirrors the Python @staticmethod ConfigLoader.find_config_file.
+// exists. Mirrors the Python @staticmethod
+// ConfigLoader.find_config_file(service_name=None, additional_paths=None).
+//
+// Both parameters are optional and the delegate honours their zero values:
+// config.FindFile skips the service-specific candidate names when serviceName
+// is "" and falls through to the generic defaults, and appends nothing for a nil
+// additionalPaths. This wrapper delegates in one line, so no guard in THIS body
+// carries that fact.
+//
+//sw:param serviceName optional
+//sw:param additionalPaths optional
 func FindConfigFile(serviceName string, additionalPaths []string) string {
 	return config.FindFile(serviceName, additionalPaths)
 }

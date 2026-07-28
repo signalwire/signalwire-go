@@ -69,13 +69,13 @@ var corpus = []entry{
 
 	// ---- connect ------------------------------------------------------------
 	{"connect.final_true", func() *swaig.FunctionResult {
-		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})
+		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: ptrBool(true)})
 	}},
 	{"connect.final_false", func() *swaig.FunctionResult {
-		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: false})
+		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: ptrBool(false)})
 	}},
 	{"connect.from_addr", func() *swaig.FunctionResult {
-		return fr("").Connect(swaig.ConnectOptions{Destination: "support@example.com", Final: false, From: "+15559876543"})
+		return fr("").Connect(swaig.ConnectOptions{Destination: "support@example.com", Final: ptrBool(false), From: "+15559876543"})
 	}},
 
 	// ---- swml_transfer ------------------------------------------------------

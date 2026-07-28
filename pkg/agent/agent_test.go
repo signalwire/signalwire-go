@@ -515,6 +515,20 @@ func TestEnableDebugEvents(t *testing.T) {
 	}
 }
 
+// TestEnableDebugEvents_OmittedDefaults covers the path an omitting caller
+// takes. Level 0 is a meaningful value here (debug events OFF), so a plain `int`
+// parameter would have made an omitted level DISABLE debug events — the opposite
+// of the reference's `enable_debug_events(level=1)`.
+func TestEnableDebugEvents_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	a := NewAgentBase()
+	a.EnableDebugEvents()
+	if a.debugEventsLevel != 1 {
+		t.Errorf("omitted level: debugEventsLevel = %d, want 1 (reference default level=1)",
+			a.debugEventsLevel)
+	}
+}
+
 func TestFunctionIncludes(t *testing.T) {
 	a := NewAgentBase()
 	a.AddFunctionInclude("https://remote.com/swaig", []string{"tool1"}, map[string]any{"key": "val"})

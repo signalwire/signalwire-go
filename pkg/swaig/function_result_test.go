@@ -224,8 +224,9 @@ func TestAddActions(t *testing.T) {
 // --- Call Control Actions ---
 
 func TestConnect(t *testing.T) {
+	final := true
 	fr := NewFunctionResult("Transferring").
-		Connect(ConnectOptions{Destination: "+15551234567", Final: true, From: "+15559876543"})
+		Connect(ConnectOptions{Destination: "+15551234567", Final: &final, From: "+15559876543"})
 
 	m := fr.ToMap()
 	actions, ok := m["action"].([]map[string]any)
@@ -270,9 +271,40 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-func TestConnectNoFrom(t *testing.T) {
+// TestConnectOmittedDefaults exercises the OMITTED path: neither Final nor From
+// is supplied, so Connect must apply the reference's `final=True` default and
+// leave the `from` wire key out entirely. This is the case a plain `bool` Final
+// field got wrong — its zero value made an omitted Final a TEMPORARY transfer.
+func TestConnectOmittedDefaults(t *testing.T) {
+	t.Parallel()
 	fr := NewFunctionResult("Transferring").
-		Connect(ConnectOptions{Destination: "+15551234567", Final: false})
+		Connect(ConnectOptions{Destination: "+15551234567"})
+
+	actions := as[[]map[string]any](t, fr.ToMap()["action"])
+	action := actions[0]
+	if action["transfer"] != "true" {
+		t.Errorf("omitted Final: transfer = %v, want %q (reference default final=True)",
+			action["transfer"], "true")
+	}
+
+	swml := as[map[string]any](t, action["SWML"])
+	sections := as[map[string]any](t, swml["sections"])
+	main := as[[]any](t, sections["main"])
+	connectVerb := as[map[string]any](t, main[0])
+	connectParams := as[map[string]any](t, connectVerb["connect"])
+	if connectParams["to"] != "+15551234567" {
+		t.Errorf("to = %v, want +15551234567", connectParams["to"])
+	}
+	if _, present := connectParams["from"]; present {
+		t.Errorf("omitted From: %q must not appear in the connect params, got %v",
+			"from", connectParams["from"])
+	}
+}
+
+func TestConnectNoFrom(t *testing.T) {
+	final := false
+	fr := NewFunctionResult("Transferring").
+		Connect(ConnectOptions{Destination: "+15551234567", Final: &final})
 
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	action := actions[0]
@@ -1978,6 +2010,80 @@ func TestCreatePaymentPrompt_EmptyActions(t *testing.T) {
 	}
 	if len(acts) != 0 {
 		t.Errorf("actions length = %d, want 0", len(acts))
+	}
+}
+
+// --- OMITTED-ARGUMENT DEFAULTS ---
+//
+// Every other test in this file SUPPLIES the optional argument, so none of them
+// covers the path an omitting caller takes. These do. Each asserts the wire value
+// the reference produces when the parameter is left out, which is the whole point
+// of the variadic/pointer spellings these methods use: a plain `bool` / `int`
+// parameter would have silently emitted Go's zero value (false / 0 seconds /
+// debug off) where the reference emits its non-zero default.
+
+func TestHold_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	fr := NewFunctionResult("Please hold").Hold()
+	actions := as[[]map[string]any](t, fr.ToMap()["action"])
+	if actions[0]["hold"] != 300 {
+		t.Errorf("omitted timeout: hold = %v, want 300 (reference default hold(timeout=300))",
+			actions[0]["hold"])
+	}
+}
+
+func TestEnableFunctionsOnTimeout_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	fr := NewFunctionResult("timeout").EnableFunctionsOnTimeout()
+	actions := as[[]map[string]any](t, fr.ToMap()["action"])
+	if actions[0]["functions_on_speaker_timeout"] != true {
+		t.Errorf("omitted enabled: functions_on_speaker_timeout = %v, want true (reference default enabled=True)",
+			actions[0]["functions_on_speaker_timeout"])
+	}
+}
+
+func TestEnableExtensiveData_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	fr := NewFunctionResult("data").EnableExtensiveData()
+	actions := as[[]map[string]any](t, fr.ToMap()["action"])
+	if actions[0]["extensive_data"] != true {
+		t.Errorf("omitted enabled: extensive_data = %v, want true (reference default enabled=True)",
+			actions[0]["extensive_data"])
+	}
+}
+
+func TestSwmlTransfer_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	fr := NewFunctionResult("Transferring").
+		SwmlTransfer("https://dest.example.com/swml", "Welcome back!")
+	actions := as[[]map[string]any](t, fr.ToMap()["action"])
+	if actions[0]["transfer"] != "true" {
+		t.Errorf("omitted final: transfer = %v, want %q (reference default final=True)",
+			actions[0]["transfer"], "true")
+	}
+}
+
+func TestReplaceInHistory_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	// nil is how an `any` parameter spells "not supplied".
+	fr := NewFunctionResult("history").ReplaceInHistory(nil)
+	actions := as[[]map[string]any](t, fr.ToMap()["action"])
+	if actions[0]["replace_in_history"] != true {
+		t.Errorf("omitted text: replace_in_history = %v, want true (reference default text=True)",
+			actions[0]["replace_in_history"])
+	}
+}
+
+func TestWaitForUser_OmittedAnswerFirst(t *testing.T) {
+	t.Parallel()
+	// AnswerFirst left at its zero value — the reference's `answer_first=False`
+	// default — so the call must fall through to the plain enable form rather
+	// than emitting "answer_first".
+	fr := NewFunctionResult("wait").WaitForUser(WaitForUserOptions{})
+	actions := as[[]map[string]any](t, fr.ToMap()["action"])
+	if actions[0]["wait_for_user"] != true {
+		t.Errorf("omitted AnswerFirst: wait_for_user = %v, want true (reference default answer_first=False)",
+			actions[0]["wait_for_user"])
 	}
 }
 

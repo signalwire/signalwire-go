@@ -282,12 +282,25 @@ func (dm *DataMap) Foreach(config map[string]any) *DataMap {
 }
 
 // Output sets the output result for the current webhook.
+//
+// `result` is a pointer because that is how Go passes a FunctionResult, not
+// because nil is a supported argument: a webhook with no output is not a usable
+// tool. Mirrors the reference `DataMap.output(self, result: FunctionResult)`,
+// which declares no default.
+//
+//sw:param result required
 func (dm *DataMap) Output(result *swaig.FunctionResult) *DataMap {
 	dm.outputResult = result
 	return dm
 }
 
 // FallbackOutput sets the fallback output result used when all webhooks fail.
+//
+// As with Output, the pointer is Go's calling convention, not an optionality
+// signal. Mirrors the reference `DataMap.fallback_output(self, result:
+// FunctionResult)`, which declares no default.
+//
+//sw:param result required
 func (dm *DataMap) FallbackOutput(result *swaig.FunctionResult) *DataMap {
 	dm.fallbackResult = result
 	return dm
@@ -392,11 +405,27 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 // url is the API endpoint URL.
 // responseTemplate is the template for formatting the response.
 // parameters maps parameter names to their definitions (each with "type", "description", "required" keys).
-// method is the HTTP method (e.g., "GET", "POST").
+// method is the HTTP method; empty selects "GET", the reference default.
 // headers are optional HTTP headers (can be nil).
 // body is an optional request body for POST/PUT (can be nil).
 // errorKeys are optional error indicator keys (can be nil).
+//
+// Mirrors the reference `create_simple_api_tool(name, url, response_template,
+// parameters=None, method="GET", headers=None, body=None, error_keys=None)`.
+// parameters and headers carry a directive rather than a guard: both are
+// nil-able composites whose absence the body already tolerates (ranging nil
+// yields no parameters; a nil headers map emits no header keys), and Go has no
+// type-level spelling that distinguishes an optional composite from a required
+// one.
+//
+//sw:param parameters optional
+//sw:param headers optional
 func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, body map[string]any, errorKeys []string) *DataMap {
+	// An empty method would otherwise reach the webhook as a blank HTTP verb.
+	if method == "" {
+		method = "GET"
+	}
+
 	dm := New(name)
 
 	// Add parameters

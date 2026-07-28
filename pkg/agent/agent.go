@@ -641,6 +641,13 @@ func (a *AgentBase) GetName() string {
 // Cloud Functions / Azure) inline. In the Go SDK, serverless URL construction
 // lives in pkg/lambda; this method delegates server-mode URL building to the
 // embedded swml.Service and matches Python's server-mode behavior.
+//
+// includeAuth's reference default (`get_full_url(include_auth=False)`) IS Go's
+// bool zero value, so passing nothing and passing false are the same call and
+// the body treats false as the ordinary path — the caller can decline. This
+// method delegates, so no guard in THIS body carries that fact.
+//
+//sw:param includeAuth optional
 func (a *AgentBase) GetFullURL(includeAuth bool) string {
 	return a.Service.GetFullURL(includeAuth)
 }
@@ -1130,6 +1137,12 @@ func (a *AgentBase) DefineTools() []*ToolDefinition {
 }
 
 // OnFunctionCall dispatches a SWAIG function call to the registered handler.
+//
+// rawData is the unparsed SWAIG POST body, forwarded to the handler untouched;
+// this body never reads it, and a handler that does not need it is called with
+// nil. Matches the reference `on_function_call(name, args, raw_data=None)`.
+//
+//sw:param rawData optional
 func (a *AgentBase) OnFunctionCall(name string, args map[string]any, rawData map[string]any) (any, error) {
 	a.mu.RLock()
 	tool, ok := a.tools[name]
@@ -1309,6 +1322,12 @@ func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, fu
 //   - params: engine-specific params dict to attach. Empty/nil removes the key.
 //
 // Returns the AgentBase for chaining. No-op if the code isn't found.
+//
+// The `len(params) > 0` branch removes the key rather than defaulting it, so an
+// empty params dict is a MEANINGFUL argument ("clear the params"), not an
+// omitted one. The reference declares `params: dict[str, Any]` with no default.
+//
+//sw:param params required
 func (a *AgentBase) SetLanguageParams(code string, params map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1371,6 +1390,15 @@ func (a *AgentBase) SetLanguages(languages []map[string]any) *AgentBase {
 // Parameters:
 //   - config: the multilingual config object (languages, allowed,
 //     start_language, min_switch_words, fillers, etc.).
+//
+// The `len(config) > 0` guard is a defensive no-op, not a default: there is no
+// multilingual configuration to fall back to, so calling this with nothing
+// configures nothing. The reference declares `config: dict[str, Any]` with no
+// default. (Structurally identical to AddAnswerVerb's `config`, which the
+// reference DOES default to None — the discriminator is the contract, not the
+// Go source, which is why it is declared here.)
+//
+//sw:param config required
 func (a *AgentBase) SetMultilingual(config map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1628,14 +1656,32 @@ func (a *AgentBase) AddInternalFiller(funcName, langCode string, fillers []strin
 }
 
 // EnableDebugEvents sets the debug events level (0 = off).
-func (a *AgentBase) EnableDebugEvents(level int) *AgentBase {
+//
+// level is variadic because the reference defaults it to 1
+// (`enable_debug_events(level=1)`) while Go's int zero, 0, is a MEANINGFUL
+// value here — it turns debug events OFF. A plain `int` parameter therefore has
+// no spelling for "not supplied" that does not also mean "disable". Call it with
+// no argument for level 1.
+func (a *AgentBase) EnableDebugEvents(level ...int) *AgentBase {
+	lvl := 1 // reference default: enable_debug_events(level=1)
+	if len(level) > 0 {
+		lvl = level[0]
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.debugEventsLevel = level
+	a.debugEventsLevel = lvl
 	return a
 }
 
 // AddFunctionInclude adds a remote SWAIG function include.
+//
+// `functions` names which remote functions to include; an include that names
+// none includes nothing, so the caller must supply it. The `len(functions) > 0`
+// guard omits an empty wire key, which is not the same as accepting an omitted
+// argument. Mirrors the reference `add_function_include(url, functions,
+// meta_data=None)` — only meta_data is defaulted.
+//
+//sw:param functions required
 func (a *AgentBase) AddFunctionInclude(url string, functions []string, metaData map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1782,6 +1828,15 @@ func (a *AgentBase) AddPreAnswerVerb(verbName string, config map[string]any) *Ag
 }
 
 // AddAnswerVerb configures the answer verb. Merged with defaults at render time.
+//
+// config is optional per the reference `add_answer_verb(config=None)`: calling
+// with nothing enables the answer verb with its render-time defaults, which is
+// the common case. The body's `range config` tolerates nil, but that is an
+// emergent property of a range loop rather than a declared contract — hence the
+// directive. (Contrast SetMultilingual's `config`, spelled identically and
+// declared REQUIRED; the difference lives only in the reference.)
+//
+//sw:param config optional
 func (a *AgentBase) AddAnswerVerb(config map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -2112,6 +2167,14 @@ func (a *AgentBase) EnableDebugRoutes() *AgentBase {
 //
 // Returns nil to proceed with default rendering, or a non-nil map containing
 // SWML document overrides.
+//
+// Both parameters are optional per the reference
+// `on_request(request_data=None, callback_path=None)`. This is an override hook
+// the framework calls with whatever request context it has; it forwards both
+// through to OnSwmlRequest, which nil-tolerates them.
+//
+//sw:param requestData optional
+//sw:param callbackPath optional
 func (a *AgentBase) OnRequest(requestData map[string]any, callbackPath string) map[string]any {
 	return a.OnSwmlRequest(requestData, callbackPath, nil)
 }
@@ -2130,6 +2193,14 @@ func (a *AgentBase) OnRequest(requestData map[string]any, callbackPath string) m
 // (the cross-language audit projects only the first two args). Returning a
 // non-nil map applies modifications to the rendered SWML; returning nil
 // uses the default rendering unchanged.
+//
+// requestData and callbackPath are optional per the reference
+// `on_swml_request(request_data=None, callback_path=None, request=None)`: the
+// hook is invoked with whatever request context exists, and the base
+// implementation forwards both to the registered hook without reading them.
+//
+//sw:param requestData optional
+//sw:param callbackPath optional
 func (a *AgentBase) OnSwmlRequest(requestData map[string]any, callbackPath string, r *http.Request) map[string]any {
 	a.mu.RLock()
 	hook := a.onSwmlRequestHook

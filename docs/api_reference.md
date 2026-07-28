@@ -615,14 +615,14 @@ a.ClearSwaigQueryParams()
 
 ### Debug Events
 
-##### `EnableDebugEvents(level int) *AgentBase`
+##### `EnableDebugEvents(level ...int) *AgentBase`
 Enable the debug event webhook for this agent. When enabled, the AI module POSTs real-time debug events to a `/debug_events` endpoint on this agent during calls. Events are automatically logged via the agent's structured logger and can optionally be handled with a custom callback via `OnDebugEvent`.
 
 **Parameters:**
-- `level` (int): Debug event verbosity level. `1` = high-level events (barge, errors, session start/end, step changes). `2+` = adds high-volume events (every LLM request/response, conversation_add).
+- `level` (variadic int): Debug event verbosity level, defaulting to `1` when omitted. `1` = high-level events (barge, errors, session start/end, step changes). `2+` = adds high-volume events (every LLM request/response, conversation_add). `0` turns debug events off.
 
 ```go
-a.EnableDebugEvents(1) // level 1
+a.EnableDebugEvents()  // level 1 (the default)
 a.EnableDebugEvents(2) // include high-volume events
 ```
 
@@ -1023,18 +1023,19 @@ Other response accessors: `Response()`, `Actions()`, `PostProcess()`.
 #### Call Transfer and Connection
 
 ##### `Connect(opts ConnectOptions) *FunctionResult`
-Transfer or connect the call to another destination. `Final: true` is a permanent transfer (call exits the agent); `Final: false` returns the call to the agent if the far end hangs up. Leave `From` empty to keep the caller ID.
+Transfer or connect the call to another destination. `Final` is a `*bool`: leave it nil for a permanent transfer (the default — the call exits the agent), or point it at `false` to return the call to the agent if the far end hangs up. Leave `From` empty to keep the caller ID.
 
 ```go
-// Permanent transfer to phone number
-result.Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})
+// Permanent transfer to phone number (Final omitted = permanent)
+result.Connect(swaig.ConnectOptions{Destination: "+15551234567"})
 
 // Temporary transfer to SIP address with custom caller ID
-result.Connect(swaig.ConnectOptions{Destination: "support@company.com", Final: false, From: "+15559876543"})
+temporary := false
+result.Connect(swaig.ConnectOptions{Destination: "support@company.com", Final: &temporary, From: "+15559876543"})
 ```
 
-##### `SwmlTransfer(dest, aiResponse string, final bool) *FunctionResult`
-Create a SWML-based transfer with an AI response for when the transfer completes.
+##### `SwmlTransfer(dest, aiResponse string, final ...bool) *FunctionResult`
+Create a SWML-based transfer with an AI response for when the transfer completes. `final` is variadic — omit it for a permanent transfer (the default), or pass `false` for a temporary one.
 
 ```go
 result.SwmlTransfer(
@@ -1060,11 +1061,12 @@ End the call immediately.
 result = swaig.NewFunctionResult("Thank you for calling. Goodbye!").Hangup()
 ```
 
-##### `Hold(timeout int) *FunctionResult`
-Put the call on hold for `timeout` seconds.
+##### `Hold(timeout ...int) *FunctionResult`
+Put the call on hold for `timeout` seconds, clamped to [0, 900]. Omit `timeout` for the 300-second default.
 
 ```go
 result = swaig.NewFunctionResult("Please hold while I look that up").Hold(60)
+result = swaig.NewFunctionResult("Please hold").Hold() // 300 seconds
 ```
 
 ##### `Stop() *FunctionResult`
@@ -2249,7 +2251,7 @@ func newComprehensiveAgent() *agent.AgentBase {
 		Handler: func(args, rawData map[string]any) *swaig.FunctionResult {
 			return swaig.NewFunctionResult("Transferring you to our billing department").
 				UpdateGlobalData(map[string]any{"last_action": "transfer_to_billing"}).
-				Connect(swaig.ConnectOptions{Destination: "billing@company.com", Final: false})
+				Connect(swaig.ConnectOptions{Destination: "billing@company.com"})
 		},
 	})
 

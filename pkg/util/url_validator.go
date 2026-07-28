@@ -68,6 +68,13 @@ var resolveHost = net.LookupIP
 //
 // This function is projected onto the Python free function name
 // validate_url via internal/surface/tables.go.
+//
+// allowPrivate's reference default (`validate_url(url, allow_private=False)`) IS
+// Go's bool zero, and false is the ordinary strict path — the guard
+// `if allowPrivate || envAllowsPrivate()` reads the zero as "do the blocklist
+// check", not as a missing argument to reject.
+//
+//sw:param allowPrivate optional
 func ValidateURL(url_ string, allowPrivate bool) bool {
 	parsed, err := url.Parse(url_)
 	if err != nil {

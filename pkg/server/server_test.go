@@ -352,6 +352,24 @@ func TestServeStaticFiles_Setup(t *testing.T) {
 	}
 }
 
+// TestServeStaticFiles_OmittedRoute covers the path a caller takes when it
+// declines the route. The reference defaults it to "/"
+// (`serve_static_files(directory, route="/")`); before the guard, an empty
+// route registered the directory under the empty key and served nothing.
+func TestServeStaticFiles_OmittedRoute(t *testing.T) {
+	t.Parallel()
+	s := NewAgentServer()
+	s.ServeStaticFiles("/var/www", "")
+
+	if s.staticDirs["/"] != "/var/www" {
+		t.Errorf("omitted route: staticDirs[/] = %q, want %q (reference default route=\"/\")",
+			s.staticDirs["/"], "/var/www")
+	}
+	if _, stranded := s.staticDirs[""]; stranded {
+		t.Error("omitted route must not register under the empty key")
+	}
+}
+
 func TestServeStaticFiles_HTTP(t *testing.T) {
 	// Create a temp directory with a test file
 	dir := t.TempDir()

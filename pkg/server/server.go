@@ -257,15 +257,23 @@ func (s *AgentServer) GetAgent(route string) *agent.AgentBase {
 // SetupSIPRouting enables a central SIP routing endpoint.  When autoMap is
 // true, all currently registered agents are automatically mapped using their
 // route as the SIP username.
+//
+// Both parameters are optional. An empty route selects "/sip", the reference
+// default (`setup_sip_routing(route="/sip", auto_map=True)`), so a caller may
+// pass "" to mean "wherever you normally put it".
 func (s *AgentServer) SetupSIPRouting(route string, autoMap bool) {
+	// Normalise the argument up front rather than after storing it, so the
+	// "empty means the default" contract is visible on the PARAMETER — which is
+	// what the caller observes, and what the signature enumerator reads.
+	if route == "" {
+		route = "/sip"
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.sipEnabled = true
 	s.sipRoute = route
-	if s.sipRoute == "" {
-		s.sipRoute = "/sip"
-	}
 
 	if autoMap {
 		for r := range s.agents {
@@ -319,7 +327,15 @@ func (s *AgentServer) SIPUsernameMapping() map[string]string {
 // ---------------------------------------------------------------------------
 
 // ServeStaticFiles registers a directory to be served at the given route.
+//
+// route is optional: an empty route serves the directory at "/", the reference
+// default (`serve_static_files(directory, route="/")`). directory is required —
+// there is nothing to serve without it.
 func (s *AgentServer) ServeStaticFiles(directory, route string) {
+	if route == "" {
+		route = "/"
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.staticDirs[route] = directory

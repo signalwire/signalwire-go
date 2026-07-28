@@ -366,6 +366,42 @@ func TestExpressionNilOutputPanics(t *testing.T) {
 	New("h").Expression("${args.x}", "^foo$", nil, nil)
 }
 
+// TestCreateSimpleApiTool_OmittedDefaults covers the path a caller takes when it
+// declines method, parameters and headers. The reference defaults method to
+// "GET" (`create_simple_api_tool(..., method="GET", ...)`); before the guard an
+// empty method reached the webhook as a BLANK HTTP verb.
+func TestCreateSimpleApiTool_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	dm := CreateSimpleAPITool(
+		"ping",
+		"https://api.example.com/ping",
+		"${response.status}",
+		nil, // parameters omitted
+		"",  // method omitted
+		nil, // headers omitted
+		nil,
+		nil,
+	)
+
+	result := dm.ToSwaigFunction()
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
+	if len(webhooks) != 1 {
+		t.Fatalf("expected 1 webhook, got %d", len(webhooks))
+	}
+	if webhooks[0]["method"] != "GET" {
+		t.Errorf("omitted method: method = %v, want %q (reference default method=\"GET\")",
+			webhooks[0]["method"], "GET")
+	}
+
+	// Omitted parameters must produce an empty property set, not a crash.
+	params := as[map[string]any](t, result["parameters"])
+	props, ok := params["properties"].(map[string]any)
+	if ok && len(props) != 0 {
+		t.Errorf("omitted parameters: properties = %v, want empty", props)
+	}
+}
+
 func TestCreateSimpleApiTool(t *testing.T) {
 	dm := CreateSimpleAPITool(
 		"get_stock",

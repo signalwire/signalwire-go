@@ -105,6 +105,37 @@ var optionalTailVariadicMethods = map[string]bool{
 	"signalwire.relay.call.CollectAction.pause": true,
 }
 
+// optionalScalarVariadicElemTypes are the element types for which a TRAILING
+// variadic is the Go idiom for "an optional scalar whose reference default is
+// non-zero" rather than a genuine multi-argument list. Bools and numerics only:
+// their Go zero value is itself a meaningful argument (false / 0), so a plain
+// parameter cannot express absence, which is exactly the condition that forces
+// the variadic. Strings are excluded — the pause-control table above handles the
+// one string case, whose reference type is `str | None` rather than a bare `str`
+// — as are composites, where a variadic really does mean "zero or more".
+var optionalScalarVariadicElemTypes = map[string]bool{
+	"bool":    true,
+	"int":     true,
+	"int8":    true,
+	"int16":   true,
+	"int32":   true,
+	"int64":   true,
+	"uint":    true,
+	"uint8":   true,
+	"uint16":  true,
+	"uint32":  true,
+	"uint64":  true,
+	"float32": true,
+	"float64": true,
+}
+
+// optionalScalarVariadicElem returns the element type of a `...T` whose T is one
+// of the optional-scalar element types above, and whether it qualified.
+func optionalScalarVariadicElem(typeStr string) (string, bool) {
+	elem := strings.TrimPrefix(typeStr, "...")
+	return elem, optionalScalarVariadicElemTypes[elem]
+}
+
 // optionalRequestOptionsTailMethods lists the fully-qualified Python reference
 // methods whose LAST param is the optional `request_options: RequestOptions |
 // None = None`, which the Go constructors spell as a trailing variadic
@@ -1016,7 +1047,10 @@ func paramForwardedToNilledSlot(fd *ast.FuncDecl, param string, nilled map[strin
 
 func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads *genPayloadFacts) error {
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
+	// ParseComments is required for the `//sw:param` directives (see
+	// applyParamDirectives) — without it every FuncDecl.Doc is nil and the
+	// directives silently do nothing.
+	file, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution|parser.ParseComments)
 	if err != nil {
 		return fmt.Errorf("parse %s: %w", path, err)
 	}
@@ -2133,7 +2167,80 @@ func buildSignature(pkg string, fd *ast.FuncDecl, guardedFields, nilledArgs map[
 	}
 	extractParamDefaults(sig, fd)
 	extractParamOptionality(sig, fd, guardedFields, nilledArgs)
+	applyParamDirectives(sig, fd)
 	return sig
+}
+
+// ---------------------------------------------------------------------------
+// `//sw:param <name> required|optional` — the DECLARED-CONTRACT escape hatch
+//
+// The syntactic mechanisms above recover optionality from what the body DOES.
+// They are complete for every shape where Go can express the difference, but a
+// residue of parameters exists where the reference contract and the Go source
+// are genuinely indistinguishable by syntax, in BOTH directions:
+//
+//   * `set_multilingual(config)` REQUIRES config and `add_answer_verb(config=None)`
+//     does not, yet both are spelled `config map[string]any` and both bodies
+//     write `if len(config) > 0 { … }` / `range config`. The `len(p) == 0`
+//     absence test cannot tell them apart — a blanket rule in either direction
+//     manufactures flips in the other (measured: a `len()`-is-optional rule took
+//     the count from 60 to 67).
+//
+//   * `DataMap.Output(result *swaig.FunctionResult)` stores its pointer without
+//     dereferencing, which mechanism (3) reads as "nil is supported" — but the
+//     reference declares `result` REQUIRED, because a DataMap with a nil output
+//     is not a usable tool. The absence of a dereference is a property of a
+//     one-line setter, not a declared contract.
+//
+// For those, the fact lives ONLY in the reference contract, so the honest fix is
+// to CARRY it into the Go source rather than to guess it. This directive is that
+// carrier: it is source, it is reviewable next to the function it describes, and
+// it is inert at runtime (a comment).
+//
+// Discipline — this is NOT an allow-list and must not become one:
+//   * It states the CONTRACT ("must the caller supply this?"), which is exactly
+//     what `required` means; it never excuses a difference or hides a finding.
+//     A directive that disagrees with the reference is a BUG, and the drift gate
+//     still reports the flip, so a wrong one cannot go green.
+//   * Reach for it only after the syntactic mechanisms have been checked and the
+//     shape is provably ambiguous. If the body genuinely models absence, fix the
+//     mechanism instead — that generalises, a directive does not.
+//   * Every use names the reference declaration it mirrors.
+// ---------------------------------------------------------------------------
+
+// paramDirectiveRe matches `//sw:param <name> required` / `//sw:param <name> optional`
+// in a function's doc comment. Trailing prose after the verb is allowed so the
+// directive can carry its own justification on the same line.
+var paramDirectiveRe = regexp.MustCompile(`^//sw:param\s+(\S+)\s+(required|optional)\b`)
+
+// applyParamDirectives overrides the inferred optionality of any param named by a
+// `//sw:param` directive in fd's doc comment. Applied AFTER the syntactic
+// mechanisms so it is the final word; a directive naming an unknown param is a
+// fail-loud error rather than a silent no-op, so a rename cannot strand it.
+func applyParamDirectives(sig *goSignature, fd *ast.FuncDecl) {
+	if fd == nil || fd.Doc == nil {
+		return
+	}
+	for _, c := range fd.Doc.List {
+		m := paramDirectiveRe.FindStringSubmatch(strings.TrimSpace(c.Text))
+		if m == nil {
+			continue
+		}
+		name, verb := m[1], m[2]
+		found := false
+		for i := range sig.params {
+			if sig.params[i].name == name {
+				sig.params[i].optional = verb == "optional"
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Fprintf(os.Stderr,
+				"enumerate-signatures: //sw:param names %q, which %s has no parameter for\n",
+				name, sig.name)
+		}
+	}
 }
 
 // loggerHandleTypes are the Go type spellings of a per-instance logging handle.
@@ -2969,15 +3076,30 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 						failures = append(failures, *fail)
 						continue
 					}
-					// Same pointer-is-optional rule as the generated-REST unfold
-					// below: a hand options struct spells an omittable field `*T`
-					// and the verb builder nil-guards it before emitting the SWML
-					// key (`if o.Volume != nil { m["volume"] = *o.Volume }`), so a
-					// caller who leaves the field zero has genuinely declined it.
-					// A non-pointer field is read unconditionally and IS required.
+					// Requiredness comes from the field's `sw:"required"` /
+					// `sw:"optional"` tag when the struct declares one — the same
+					// mechanism the generated-REST unfold uses, and for the same
+					// reason. Pointer-ness answers this correctly only for a SCALAR
+					// field: Go spells an omittable `*bool` / `*int` but has no
+					// `*[]T` / `*map[K]V` form, so a COMPOSITE field is `[]T` /
+					// `map[K]V` whether the reference requires it or not
+					// (AIOptions.PromptPOM is optional, Play's `urls` optional,
+					// while a required composite would look identical). Nor does
+					// pointer-ness reach a non-pointer field whose reference default
+					// is a NON-ZERO scalar (`connect(final: bool = True)`,
+					// `wait_for_user(answer_first: bool = False)`), where the Go
+					// zero value is a supported "leave it" input the verb builder
+					// honours. The tag carries that fact from the reference contract
+					// into the source; it is inert at runtime (these structs are
+					// read field-by-field into the verb config and never
+					// JSON-marshaled). Untagged fields fall back to pointer-ness.
+					fieldRequired := !strings.HasPrefix(f.typeStr, "*")
+					if f.required != nil {
+						fieldRequired = *f.required
+					}
 					params = append(params, canonicalParam{
 						Name: goFieldToPython(f.name), Type: fCanon,
-						Required: boolPtr(!strings.HasPrefix(f.typeStr, "*")),
+						Required: boolPtr(fieldRequired),
 					})
 				}
 				continue
@@ -3009,6 +3131,39 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 				Required: boolPtr(false),
 			})
 			continue
+		}
+		// A trailing variadic of a BOOL or NUMERIC scalar is the Go idiom for a
+		// reference parameter whose default is a NON-ZERO scalar —
+		// `hold(timeout=300)`, `enable_debug_events(level=1)`,
+		// `swml_transfer(final=True)`. Go's zero value is itself a meaningful
+		// argument for those (0 seconds, level off, temporary transfer), so a plain
+		// `int`/`bool` parameter has no spelling for "not supplied"; `...int` /
+		// `...bool` (call with 0 or 1 argument) is the idiom that does, and the body
+		// substitutes the reference default for the empty case.
+		//
+		// The raw translation would record `list<int>` / `list<bool>` required:true,
+		// which mismatches the reference's scalar. Reclassify to the SCALAR the
+		// variadic carries — NOT `optional<T>`: the reference types these as plain
+		// `bool` / `int` (a non-None default does not widen the annotation), so
+		// `optional<>` would trade a param-mismatch for a different one.
+		//
+		// Deliberately NOT applied to `...string` (handled above, and where the
+		// reference DOES use `str | None`), nor to composite element types, where a
+		// trailing variadic is a genuine multi-argument list rather than an
+		// optional-scalar idiom.
+		if pi == len(sig.params)-1 && strings.HasPrefix(p.typeStr, "...") {
+			if elem, ok := optionalScalarVariadicElem(p.typeStr); ok {
+				elemCanon, fail := translateType(elem, aliases, ctx)
+				if fail != nil {
+					failures = append(failures, *fail)
+				} else {
+					params = append(params, canonicalParam{
+						Name: goNameToSnake(p.name), Type: elemCanon,
+						Required: boolPtr(false),
+					})
+					continue
+				}
+			}
 		}
 		// A ctor's trailing variadic `...*RequestOptions` is the Go idiom for the
 		// reference's optional `request_options: RequestOptions | None = None`.

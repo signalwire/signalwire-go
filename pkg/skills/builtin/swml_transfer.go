@@ -186,12 +186,15 @@ func (s *SWMLTransferSkill) handleTransfer(args map[string]any, _ map[string]any
 		}
 		result.SwmlTransfer(urlDest, returnMsg, isFinal)
 	} else if addr, ok := config["address"].(string); ok && addr != "" {
-		isFinal := true
+		// Leave Final nil when the config does not specify one, so Connect
+		// applies the reference default (`final=True`) rather than this call
+		// site duplicating it.
+		var final *bool
 		if f, ok := config["final"].(bool); ok {
-			isFinal = f
+			final = &f
 		}
 		fromAddr, _ := config["from_addr"].(string)
-		result.Connect(swaig.ConnectOptions{Destination: addr, Final: isFinal, From: fromAddr})
+		result.Connect(swaig.ConnectOptions{Destination: addr, Final: final, From: fromAddr})
 	}
 
 	return result

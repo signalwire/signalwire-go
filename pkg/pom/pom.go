@@ -257,7 +257,13 @@ func (s *Section) RenderMarkdown(level int, sectionNumber []int) string {
 // RenderXML returns this section (and its subsections) as a chunk of
 // XML.  indent is the starting indent level (each level == 2 spaces).
 //
-// Python equivalent: Section.render_xml
+// Python equivalent: Section.render_xml(indent=0, section_number=None)
+//
+// indent's reference default is 0, which IS Go's int zero value, and the body
+// treats it as the ordinary top-level case (`strings.Repeat("  ", 0)` is the
+// empty prefix). Passing nothing and passing 0 are the same call.
+//
+//sw:param indent optional
 func (s *Section) RenderXML(indent int, sectionNumber []int) string {
 	indentStr := strings.Repeat("  ", indent)
 	var xml []string

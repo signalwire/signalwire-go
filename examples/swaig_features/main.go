@@ -40,7 +40,8 @@ func main() {
 	// ---- Connect (transfer call) ----
 	fmt.Println("=== Connect ===")
 	connectResult := swaig.NewFunctionResult("Transferring you to sales").
-		Connect(swaig.ConnectOptions{Destination: "+15551001001", Final: true, From: "+15559990000"})
+		// Final omitted — a permanent transfer, the reference default.
+		Connect(swaig.ConnectOptions{Destination: "+15551001001", From: "+15559990000"})
 	printResult(connectResult)
 
 	// ---- SendSms ----

@@ -237,7 +237,9 @@ func (ra *ReceptionistAgent) registerTools() {
 			if dept.TransferSWML {
 				result.SwmlTransfer(dept.Number, "Transferring you now.", true)
 			} else {
-				result.Connect(swaig.ConnectOptions{Destination: dept.Number, Final: true})
+				// Final omitted: a department transfer is permanent, which is
+				// the reference default (`connect(final=True)`).
+				result.Connect(swaig.ConnectOptions{Destination: dept.Number})
 			}
 
 			return result

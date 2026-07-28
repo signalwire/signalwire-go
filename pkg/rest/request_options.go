@@ -56,6 +56,14 @@ type EffectiveOptions struct {
 // Resolve resolves the effective options: per-request over client-default over
 // built-in. A nil field inherits the next level down; the built-in defaults are
 // the floor. The result has every field concrete. Mirrors the reference resolve().
+//
+// Both parameters are positionally required. `Merge` never dereferences
+// perRequest, so nothing in this body proves the caller may omit it — and the
+// reference `resolve(client_default, per_request)` declares no default for
+// either. Passing an explicit nil is how a caller says "no per-request
+// overrides"; declining the argument is not part of the contract.
+//
+//sw:param perRequest required
 func Resolve(clientDefault, perRequest *RequestOptions) EffectiveOptions {
 	merged := clientDefault.Merge(perRequest)
 	eff := EffectiveOptions{
