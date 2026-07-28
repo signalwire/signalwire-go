@@ -78,9 +78,10 @@ Each excused divergence falls into one of:
   `ALLOWLIST_DISCIPLINE.md` §7 (the "ctor / dunder" row) it is folded at the
   diff — the CONSTRUCTION contract (`§10`, the top-level `construction` node)
   compares the same capability keyed by NAME instead of by position, which is
-  the comparison that is actually meaningful against a Go factory. The one
-  ctor still listed below is one the reference publishes NO construction entry
-  for, so its member comparison is still the only comparison there is.
+  the comparison that is actually meaningful against a Go factory. As of
+  2026-07-28 there is NO ctor left in this file: the last one
+  (`VerbHandlerRegistry.__init__`) was retired as a dead entry — see the note at
+  its former site.
 - **Sum types** (`go-multi-union`): a single static Go type cannot represent a
   Python `union<A,B>`; Go picks one member (wire-neutral).
 - **Wire-neutral spellings** (`go-wire-neutral-string`): a Go bare `string`
@@ -181,14 +182,34 @@ signalwire.relay.call.Call.queue_leave: go-no-keyword-only — Go QueueLeave(nam
 signalwire.core.security.webhook_middleware.validate: go-no-keyword-only — Go security.Validate(method, url string, headers map[string]string, body, signingKey string) takes Python's keyword-only signing_key as a trailing positional (Go has no keyword-only params); returns *WebhookRejection (nil=pass, {Status,Headers,Body}=reject) aliased to the oracle's optional<tuple<int,dict<string,string>,string>>; identical decomposed webhook-validation contract
 
 ## RELAY Call: typed handler / event-loop idioms (go-typed-handler)
-signalwire.relay.call.Call.on: go-typed-handler — Go On(eventType string, handler func(*RelayEvent)) takes a concrete Go func value where Python's EventHandler is a class-typed callback; equivalent contract
+# `Call.on` was excused here as "Python's EventHandler is a class-typed callback".
+# That was never true of the reference: relay/call.py:56 declares
+# `EventHandler = Callable[[RelayEvent], Coroutine[Any, Any, None] | None]` — a type
+# ALIAS, not a class. The excuse was describing an ORACLE ARTIFACT: _resolve_class_ref
+# returned griffe's canonical_path without checking the target's KIND, so the oracle
+# emitted a dangling `class:EventHandler` ref naming a class defined nowhere.
+# porting-sdk 85e12c7 expanded the alias to the callable type it always denoted, and
+# go's `On(eventType string, handler func(*RelayEvent))` now compares BYTE-IDENTICAL
+# to the reference. Entry retired 2026-07-28 (removing it changes drift by 0).
 signalwire.relay.call.Call.wait_for: go-context-signature — Go WaitFor(ctx context.Context, eventType string, predicate func(*RelayEvent) bool) uses Go's context idiom + a typed predicate; Python's wait_for(event_type, predicate, timeout) folds timeout into ctx and types the predicate/event as Go funcs — same wait contract
 
 ## RELAY Client: functional-options / typed-handler idioms
 signalwire.relay.client.RelayClient.dial: go-idiom-options-collapse — Go Dial(devices, opts ...DialOption) collapses Python's tag/max_duration/dial_timeout into one variadic options arg (WithDial* helpers); same dial contract
 signalwire.relay.client.RelayClient.send_message: go-idiom-options-collapse — Go SendMessage(to, from, body string, opts ...MessageOption) collapses Python's context/media/tags/region/on_completed into one variadic options arg (WithMessage* helpers); same messaging.send params
-signalwire.relay.client.RelayClient.on_call: go-typed-handler — Go OnCall(handler func(*Call)) takes a concrete Go func value where Python's on_call registers a CallHandler class; Go returns void (register-only) vs Python returns the handler; equivalent registration contract
-signalwire.relay.client.RelayClient.on_message: go-typed-handler — Go OnMessage(handler func(*Message)) takes a concrete Go func value where Python's on_message registers a MessageHandler class; Go returns void; equivalent registration contract
+# RE-DERIVED 2026-07-28. The previous rationale for both lines said Python "registers
+# a CallHandler / MessageHandler class". That was FALSE — relay/client.py:74-75
+# declare `CallHandler = Callable[["Call"], Coroutine[Any, Any, None]]` and the
+# MessageHandler twin: type ALIASES, never classes. The claim was reading an oracle
+# artifact (a dangling `class:` ref) as a Python fact; porting-sdk 85e12c7 expanded
+# the aliases, and the PARAM now compares EQUAL on both lines. What actually remains
+# is the RETURN only: reference `on_call`/`on_message` return the handler because they
+# are used as DECORATORS (`@client.on_call`) — client.py:327-335 is literally
+# `self._on_call_handler = handler; return handler`. Go has no decorator syntax, so
+# the returned value has no caller. NOTE (not re-excused, reported): rust and dotnet
+# both DO return a registration handle here, so a Go fold is expressible; changing
+# these two public signatures is an API change outside this lane's scope.
+signalwire.relay.client.RelayClient.on_call: go-typed-handler — param compares EQUAL; only the RETURN diverges: Go OnCall(handler func(*Call)) returns void where the reference returns the handler back for decorator use (`@client.on_call`), a Python-syntax affordance Go has no counterpart for; same registration contract
+signalwire.relay.client.RelayClient.on_message: go-typed-handler — param compares EQUAL; only the RETURN diverges: Go OnMessage(handler func(*Message)) returns void where the reference returns the handler back for decorator use; same registration contract
 
 ## AgentBase / mixins: options-struct + typed-handler + fluent idioms
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: go-idiom-options-struct — Go DefineTool(def ToolDefinition) accepts a single typed struct in place of Python's 11 kwargs (name/description/parameters/handler/secure/fillers/webhook_url/required/is_typed_handler/swaig_fields); returns *AgentBase for chaining; same tool registration
@@ -202,7 +223,18 @@ signalwire.core.mixins.prompt_mixin.PromptMixin.define_contexts: go-fluent-build
 signalwire.core.mixins.web_mixin.WebMixin.run: go-idiom-noargs — Go Run() runs the agent HTTP server; Python run(event, context, force_mode, host, port) folds the serving knobs into the agent/server config (Go host/port set via options); same serve behavior
 signalwire.core.mixins.web_mixin.WebMixin.serve: go-idiom-noargs — Go Serve() serves with configured host/port; Python serve(host, port) passes them per-call (Go configures them on the agent); same serve behavior
 signalwire.core.mixins.web_mixin.WebMixin.set_dynamic_config_callback: go-typed-handler — Go SetDynamicConfigCallback(cb DynamicConfigCallback) takes a concrete Go func-typed callback where Python takes an untyped callable; same callback contract
-signalwire.core.agent_base.AgentBase.on_debug_event: go-typed-handler — Go OnDebugEvent(cb DebugEventHandler) takes a concrete Go func-typed handler and returns *AgentBase for chaining where Python's on_debug_event takes/returns a callable; same debug-event contract
+# RE-DERIVED 2026-07-28 against the source, and it is NOT the same shape the old
+# rationale claimed ("takes/returns a callable ... same debug-event contract").
+# Reference (agent_base.py:523) is a DECORATOR: `on_debug_event(handler) -> handler`,
+# and web_mixin.py:1197 invokes it with TWO args — `handler(event_type, body)`, where
+# web_mixin.py:1182 derives `event_type = body.get("label") or body.get("action",
+# "unknown")`. Go's `DebugEventHandler` is `func(event map[string]any)` (agent.go:51)
+# and agent.go:4282 invokes it with ONE arg — the whole decoded body.
+# Information-complete (the label lives in the body Go passes, so a Go caller reads
+# `event["label"]`), but the caller must re-derive what the reference hands it
+# pre-split. REPORTED, not laundered as idiom: the honest fix is a 2-arg Go handler
+# type; that is a public-API change outside this lane's scope.
+signalwire.core.agent_base.AgentBase.on_debug_event: go-typed-handler — Go OnDebugEvent(cb DebugEventHandler) takes a 1-arg func(map[string]any) receiving the whole debug body and returns *AgentBase for chaining, where the reference takes a 2-arg (event_type, data) callable and returns it for decorator use; the event_type the reference pre-derives from body["label"]/body["action"] is reachable in the map Go passes
 signalwire.core.agent_base.AgentBase.on_summary: go-typed-handler — Go OnSummary(cb SummaryCallback) takes a func-typed callback in place of Python's (summary, raw_data) positional handler shape; same summary contract
 signalwire.core.skill_manager.SkillManager.load_skill: go-idiom-typed — Go LoadSkill(skill SkillBase) takes a constructed SkillBase and returns (bool, string) multi-return where Python load_skill(skill_name, skill_class, params) takes a name+class+params triple and returns a tuple<bool,string>; same load-outcome contract
 signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: go-typed-handler — Go SetQuestionCallback takes a Go func-typed callback returning []Question where Python's callback returns a list of dicts; same question-callback contract
@@ -253,7 +285,13 @@ signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_ai_ag
 ## Surface-reconcile signature idiom (2026-07: surface parity → 0)
 
 # Constructors take a Go options struct / functional options, not Python kwargs.
-signalwire.core.swml_handler.VerbHandlerRegistry.__init__: Go swml.NewService takes functional options; Python VerbHandlerRegistry() takes none (the registry is an inline map on Service)
+# `VerbHandlerRegistry.__init__` was the one ctor still listed here. It is retired
+# 2026-07-28 as a DEAD entry: the reference records `__init__(self)` and go records
+# `__init__(self, opts list<class:ServiceOption>)`, and because go's single extra
+# param is OPTIONAL the differ's functional-parity rule
+# (diff_port_signatures.py:1054 — "port extras all optional ⇒ compatible") already
+# accepts it. Removing the line changes drift by 0. The header note above about "the
+# one ctor still listed below" therefore no longer applies to anything.
 
 # Fluent builders return the receiver (*Self chaining); Python returns None/bool.
 signalwire.core.swml_builder.SWMLBuilder.add_section: Go returns the builder (*PomBuilder/*Service) for chaining; Python returns None

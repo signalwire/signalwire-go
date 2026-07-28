@@ -51,33 +51,44 @@ type BearerCredentials struct {
 	Credentials string
 }
 
-// NO `NewBasicCredentials` / `NewBearerCredentials` FACTORY — deliberate, and the
-// reason is an ORACLE INCONSISTENCY, not a port choice. Recorded here because the
-// obvious next edit is to add one.
+// The reference declares all four fields REQUIRED, and `required` is contract. A Go
+// composite literal cannot carry that (an omitted field zero-values), so on its own
+// the construction contract reads all four as optional and the signature differ
+// emits a `construction-required-flip` on each. A `New<Struct>` factory IS the Go
+// mechanism that carries a requirement — the enumerator reads a factory's params as
+// required (cmd/enumerate-signatures/main.go, `factoryRequired`) — so the two
+// factories below resolve all four flips.
 //
-// The reference declares all four fields REQUIRED, and `required` is contract. Go's
-// composite literal cannot express that (an omitted field zero-values), so the
-// construction contract reads all four as optional and the signature differ emits a
-// `construction-required-flip` on each. A `New<Struct>` factory is exactly the Go
-// mechanism that carries a requirement, and the enumerator already reads a factory's
-// params as required — so adding one resolves all four flips.
-//
-// It cannot be added, because the two oracles disagree about these two classes:
+// An earlier turn wrote these, measured them, and correctly REVERTED them, because
+// the two oracles disagreed about these two classes at the time:
 //
 //	python_signatures.json  BasicCredentials -> [__init__, password, username]
 //	python_surface.json     BasicCredentials -> [password, username]
 //
-// Mapping a factory to `__init__` satisfies the signatures oracle and immediately
-// violates the surface oracle, which lists no `__init__` for these classes — the
-// emitted `__init__` lands as an unexcused SURFACE-DIFF extra. Measured both ways:
-// with the factory, excused falls by 4 (a REPORT-ONLY bucket) and SURFACE-DIFF gains
-// 2 hard extras (an ENFORCING gate). Without it, SURFACE-DIFF is clean and the 4
-// flips sit in the report-only construction bucket alongside go's 24 pre-existing
-// ones.
+// Mapping a factory to `__init__` satisfied the signatures oracle and immediately
+// violated the surface one, landing the emitted `__init__` as an unexcused
+// SURFACE-DIFF extra — trading a clean ENFORCING gate for a REPORT-ONLY gain, which
+// is the wrong trade. porting-sdk 8828dd2 fixed the oracle (python_surface.json now
+// records the synthesized dataclass `__init__` for all 30 affected classes, these
+// two among them), so that trade no longer exists and the factories are back.
 //
-// This asymmetry is specific to the two classes porting-sdk dcff742 hand-filled;
-// the hand-written AuthHandler in the same module carries `__init__` in BOTH
-// oracles. The fix belongs in the oracle (add `__init__` to python_surface.json's
-// entry for these two classes, as griffe records for every other dataclass), not in
-// a port working around it. Once the oracles agree, add the two factories and map
-// them to `__init__`.
+// They are constructors, not convenience helpers: each takes exactly the reference
+// ctor's parameters, in the reference's order, and is mapped to `__init__` in
+// internal/surface/tables.go. Composite-literal construction remains available and
+// is what the transport-free note above describes.
+
+// NewBasicCredentials builds a BasicCredentials from a decoded `Basic` credential
+// pair. Mirrors the reference constructor
+// signalwire.core.auth_handler.BasicCredentials(username, password), whose two
+// fields are both required.
+func NewBasicCredentials(username, password string) *BasicCredentials {
+	return &BasicCredentials{Username: username, Password: password}
+}
+
+// NewBearerCredentials builds a BearerCredentials from a parsed Authorization
+// header. Mirrors the reference constructor
+// signalwire.core.auth_handler.BearerCredentials(scheme, credentials), whose two
+// fields are both required. Scheme is preserved verbatim, not normalized.
+func NewBearerCredentials(scheme, credentials string) *BearerCredentials {
+	return &BearerCredentials{Scheme: scheme, Credentials: credentials}
+}

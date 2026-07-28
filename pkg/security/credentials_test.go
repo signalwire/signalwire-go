@@ -98,6 +98,61 @@ func TestBearerCredentialsSplitAuthorizationHeader(t *testing.T) {
 	}
 }
 
+// TestCredentialConstructorsDriveTheSameVerification pins that the two
+// constructors are real constructors, not decoration: a carrier built by
+// NewBasicCredentials / NewBearerCredentials must reach the SAME auth verdict, and
+// carry the same field values, as the composite literal the other tests build.
+//
+// This is the behavioural half of mapping NewX -> __init__ in
+// internal/surface/tables.go. The constructors exist because the reference declares
+// all four fields REQUIRED and a Go composite literal cannot express that (an
+// omitted field zero-values); asserting only that they assign fields would not
+// catch a constructor that assigned them in the wrong ORDER, which is exactly the
+// mistake a two-same-typed-string signature invites — so both cases below would
+// fail on a swap.
+func TestCredentialConstructorsDriveTheSameVerification(t *testing.T) {
+	h := NewAuthHandler(&SecurityConfig{
+		BasicAuthUser:     "alice",
+		BasicAuthPassword: "s3cret",
+	})
+
+	t.Run("basic", func(t *testing.T) {
+		// Correct pair verifies; the arguments must land username-then-password.
+		// A swapped constructor turns this into ("s3cret","alice") and fails.
+		built := NewBasicCredentials("alice", "s3cret")
+		literal := BasicCredentials{Username: "alice", Password: "s3cret"}
+
+		if *built != literal {
+			t.Fatalf("NewBasicCredentials = %+v, want %+v", *built, literal)
+		}
+		if !h.VerifyBasicAuthPair(built.Username, built.Password) {
+			t.Fatalf("constructed credential failed verification that the literal passes")
+		}
+		// And a wrong pair must still be rejected through the constructed carrier.
+		bad := NewBasicCredentials("alice", "wrong")
+		if h.VerifyBasicAuthPair(bad.Username, bad.Password) {
+			t.Fatalf("constructed credential wrongly verified a bad password")
+		}
+	})
+
+	t.Run("bearer", func(t *testing.T) {
+		// Scheme-then-credentials. A swapped constructor yields
+		// Scheme="abc123.def456", which both checks below catch.
+		built := NewBearerCredentials("Bearer", "abc123.def456")
+		literal := BearerCredentials{Scheme: "Bearer", Credentials: "abc123.def456"}
+
+		if *built != literal {
+			t.Fatalf("NewBearerCredentials = %+v, want %+v", *built, literal)
+		}
+		if built.Scheme != "Bearer" {
+			t.Fatalf("Scheme = %q, want %q", built.Scheme, "Bearer")
+		}
+		if built.Credentials != "abc123.def456" {
+			t.Fatalf("Credentials = %q, want %q", built.Credentials, "abc123.def456")
+		}
+	})
+}
+
 // TestBearerCredentialsPreserveNonBearerScheme pins that the carrier is
 // scheme-agnostic: the reference's HTTPAuthorizationCredentials records whatever
 // scheme arrived and leaves the scheme check to the verifier. A carrier that

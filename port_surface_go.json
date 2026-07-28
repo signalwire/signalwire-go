@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 13596f89819f2d483993b9bcd8eccf7b82751a1e",
+  "generated_from": "signalwire-go (go-native) @ 54f4ea33bccd4b7219321d54863eadfbe63a2e2a",
   "modules": {
     "agent": {
       "classes": {
@@ -1538,6 +1538,8 @@
         "FilterSensitiveHeaders",
         "IsValidHostname",
         "NewAuthHandler",
+        "NewBasicCredentials",
+        "NewBearerCredentials",
         "NewSecurityConfig",
         "NewSessionManager",
         "RawBodyFromContext",

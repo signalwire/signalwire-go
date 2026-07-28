@@ -337,18 +337,28 @@ var StructTable = map[string][]ClassTarget{
 	// `Scheme`/`Credentials` fold to the reference member names and emit only
 	// because the reference records them on these same classes.
 	//
-	// No Methods entry, and NO `NewX` factory mapped to `__init__`. That is not
-	// laziness: the two oracles disagree about these two classes — signatures lists
-	// `__init__`, surface does not — so mapping a factory fixes the construction
-	// contract and simultaneously emits a SURFACE-DIFF extra. See the block comment
-	// in pkg/security/credentials.go for the measurement and the oracle-side fix.
+	// `NewX` -> `__init__` is the ordinary Go-factory-as-constructor fold used by
+	// ~20 other classes in this table. The prior turn deliberately withheld it
+	// because the two oracles disagreed — python_signatures.json listed `__init__`
+	// for these classes and python_surface.json did not — so mapping a factory
+	// fixed the construction contract and simultaneously landed as a SURFACE-DIFF
+	// extra. porting-sdk 8828dd2 closed that gap (python_surface.json now records
+	// the synthesized dataclass `__init__` for all 30 affected classes, these two
+	// included), so the trade the prior turn declined no longer exists: the mapping
+	// is now what makes BOTH oracles compare equal. It also carries the reference's
+	// `required` on all four fields, which a composite literal cannot express — see
+	// the block comment in pkg/security/credentials.go.
 	"security.BasicCredentials": {{
 		Module: "signalwire.core.auth_handler", Class: "BasicCredentials",
-		Methods: map[string]string{},
+		Methods: map[string]string{
+			"NewBasicCredentials": "__init__",
+		},
 	}},
 	"security.BearerCredentials": {{
 		Module: "signalwire.core.auth_handler", Class: "BearerCredentials",
-		Methods: map[string]string{},
+		Methods: map[string]string{
+			"NewBearerCredentials": "__init__",
+		},
 	}},
 
 	// --- server package ---------------------------------------------------
@@ -877,9 +887,10 @@ var StructTable = map[string][]ClassTarget{
 		// public exception constructor). Go builds it via a struct literal /
 		// newTypedError, so enumerate-surface emits the __init__ NAME via this
 		// synthetic; enumerate-signatures synthesizes its full (code, message)
-		// signature from aiChatCtorSigs. (ConversationInfo/ChatResponse/ChatLog carry
-		// __init__ only at the SIGNATURE layer — their surface member set is empty —
-		// so they need no surface synthetic here.)
+		// signature from aiChatCtorSigs. ConversationInfo/ChatResponse/ChatLog now
+		// carry the same synthetic for the same reason — porting-sdk 8828dd2 taught
+		// python_surface.json to record the SYNTHESIZED dataclass __init__ these
+		// three had been missing, so their surface member set is no longer empty.
 		SyntheticMethods: []string{"__init__"},
 	}},
 	"aichat.AuthenticationError": {{
@@ -897,15 +908,23 @@ var StructTable = map[string][]ClassTarget{
 	"aichat.SummaryError": {{
 		Module: "signalwire.ai_chat.client", Class: "SummaryError",
 	}},
-	// The AI-Chat data-transfer structs -> the reference's method-less dataclasses.
+	// The AI-Chat data-transfer structs -> the reference's dataclasses. Their
+	// public FIELDS are emitted oracle-gated by the @dataclass field pass in
+	// enumerate-surface; `__init__` is the generated dataclass constructor, which
+	// porting-sdk 8828dd2 taught python_surface.json to record. Go builds these
+	// with a composite literal, so there is no exported Go member to fold onto it
+	// — same synthetic-constructor case as aichat.AIChatError above.
 	"aichat.ConversationInfo": {{
 		Module: "signalwire.ai_chat.client", Class: "ConversationInfo",
+		SyntheticMethods: []string{"__init__"},
 	}},
 	"aichat.ChatResponse": {{
 		Module: "signalwire.ai_chat.client", Class: "ChatResponse",
+		SyntheticMethods: []string{"__init__"},
 	}},
 	"aichat.ChatLog": {{
 		Module: "signalwire.ai_chat.client", Class: "ChatLog",
+		SyntheticMethods: []string{"__init__"},
 	}},
 
 	// --- rest package -----------------------------------------------------
@@ -919,9 +938,11 @@ var StructTable = map[string][]ClassTarget{
 	// it as a value struct with public fields (Timeout/Retries/RetryOnStatus/
 	// RetryBackoff/AbortSignal) plus a Merge method — the reference
 	// RequestOptions with its merge(). Construction is a Go struct literal (no
-	// NewRequestOptions factory), so __init__ + the abort_signal accessor are
-	// signature-only idiom divergences (PORT_SIGNATURE_OMISSIONS.md); the SURFACE
-	// oracle records only merge(), which this mapping projects.
+	// NewRequestOptions factory), so the abort_signal accessor stays a
+	// signature-only idiom divergence (PORT_SIGNATURE_OMISSIONS.md). `__init__` is
+	// no longer signature-only: porting-sdk 8828dd2 taught python_surface.json to
+	// record the synthesized @dataclass constructor, so the surface oracle now
+	// lists `__init__` alongside merge() and this mapping projects both.
 	//
 	// The struct + its Merge method live in the `namespaces` package (GO-1 /
 	// PY-7): the generated resource verbs name it in their `opts ...*RequestOptions`
@@ -935,6 +956,7 @@ var StructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"Merge": "merge",
 		},
+		SyntheticMethods: []string{"__init__"},
 	}},
 	"rest.HTTPClient": {{
 		Module: "signalwire.rest._base", Class: "HttpClient",
@@ -1672,12 +1694,19 @@ var SkillContractTable = []SkillContract{
 // eventTarget builds the standard relay event class target: the class is
 // present, plus “from_payload“ emitted synthetically when Go's factory
 // “New<Event>“ is present.
+//
+// “__init__“ is synthesised for the same reason the sibling relay ACTION
+// targets synthesise it (see relay.Action / relay.PlayAction above): the Go
+// event structs are built by a composite literal or an unexported factory, so
+// there is no exported Go member whose name folds onto the reference's
+// constructor — but the reference publishes that constructor as part of the
+// event's public surface, so the port must present it too.
 func eventTarget(cls string) ClassTarget {
 	return ClassTarget{
 		Module:           "signalwire.relay.event",
 		Class:            cls,
 		Methods:          map[string]string{},
-		SyntheticMethods: []string{"from_payload"},
+		SyntheticMethods: []string{"from_payload", "__init__"},
 		Alias:            true,
 	}
 }
