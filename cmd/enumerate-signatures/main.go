@@ -344,6 +344,14 @@ type goParam struct {
 	// (the caller must always pass it). See extractParamDefaults for the three
 	// Go mechanisms this is recovered from and the ones it deliberately refuses.
 	defaultJSON string
+	// optional records that the port DOES model this argument's ABSENCE — a
+	// caller can decline to supply a value and the method still behaves. See
+	// extractParamOptionality for the three Go mechanisms that constitute
+	// absence-modelling and the ones deliberately refused. Distinct from
+	// defaultJSON: a parameter can be omittable without this extractor being able
+	// to name the resulting VALUE (a guard falling back to a method call), and
+	// `required` is the flag the drift gate compares.
+	optional bool
 }
 
 type goSignature struct {
@@ -1076,6 +1084,358 @@ func extractParamDefaults(sig *goSignature, fd *ast.FuncDecl) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// PARAMETER OPTIONALITY
+//
+// `required` is a CONTRACT the caller observes: must I supply a value for this
+// argument? Go has no default-argument syntax, so the enumerator used to answer
+// "required" for EVERY parameter — a CONFIDENT WRONG value everywhere the SDK
+// does model absence, and the reason the unified drift checker reported 285
+// `required-flip` findings the moment it began comparing `required` outside
+// `__init__`.
+//
+// A Go parameter is OPTIONAL when the port gives the caller a way to say
+// "nothing here" and the body HONOURS it — supplies its own value, or skips the
+// work the argument would have driven. Three mechanisms:
+//
+//  1. VARIADIC — `...T`. The argument list can end before it, so omitting is
+//     legal by construction. (`opts ...*RequestOptions`, `ignoreCase ...bool`.)
+//
+//  2. DEFAULTING ZERO-VALUE GUARD — the body tests the parameter against its
+//     zero value and, in that branch, either substitutes a value or scopes the
+//     optional work:
+//
+//     if route == "" { route = a.GetRoute() }        // AgentServer.Register
+//     if temperature != 0 { b.temp = temperature }   // BedrockAgent.SetInferenceParams
+//     if autoMap { … }                               // AgentServer.SetupSIPRouting
+//
+//     Passing the zero value is a SUPPORTED call meaning "leave it alone", so
+//     the caller can decline. Broader than sentinelGuardDefault, which
+//     additionally demands a resolvable literal so it can name the resulting
+//     VALUE; optionality only needs the guard to exist and to be a DEFAULTING
+//     one. A guard whose fallback is a method call (`a.GetRoute()`) makes the
+//     param omittable even though no static default is recordable — precisely
+//     the reference's `route: Optional[str] = None` shape.
+//
+//  3. SAFE-NIL POINTER — a `*T` the body never reads THROUGH outside a nil
+//     guard. `Say(text string, voice, language, gender *string, volume
+//     *float64)` only forwards its pointers into a nil-guarded options struct,
+//     so `Say("hi", nil, nil, nil, nil)` is a supported call — exactly the
+//     reference's five `= None` defaults. See pointerDerefUnguarded.
+//
+// DELIBERATELY REFUSED — each of these matched an earlier, looser revision of
+// this rule and produced a WRONG `required: false` that the drift checker caught
+// as a flip in the opposite direction:
+//
+//   - A REJECTION guard. `IsValidHostname(host)` does `if host == "" { return
+//     false }`; `AddSkillDirectory(path)` does `if path == "" { return
+//     errors.New(…) }`; `AddPatternHint` does `if hint == "" || … { return a }`.
+//     The zero value is REFUSED, not defaulted — the caller must supply a real
+//     one, and the reference agrees (`required: true`). Detected by the guard
+//     body terminating the function (`return` / `panic` / `os.Exit`), possibly
+//     after logging.
+//
+//   - A CLAMP. `Context.MoveStep(name, position int)` does `if position < 0 {
+//     position = 0 }` — that bounds a SUPPLIED value into range; passing 0
+//     still means "index 0", not "unspecified". Refused by requiring an
+//     assignment in the guard body to assign something OTHER than the zero
+//     value being tested (the same discrimination sentinelGuardDefault makes).
+//
+//   - A DEREFERENCED POINTER. `*T` is also how Go passes a struct at all —
+//     `AgentServer.Register(a *agent.AgentBase, …)` calls `a.GetRoute()` and the
+//     reference records `agent` required. Pointer-ness alone proves nothing;
+//     see mechanism (3), which requires the body to leave the pointee untouched
+//     outside a nil guard.
+//
+//   - A nil-able map/slice with no guard. `AddAnswerVerb(config map[string]any)`
+//     happens to no-op on nil because `range nil` iterates zero times, but that
+//     is an emergent property of one body shape, not a declared contract; a
+//     sibling that indexes the map panics on nil. Only an explicit guard counts.
+//
+// This changes ONLY the `required` flag. Parameter identity, order, type and
+// kind are untouched, and it never invents a `default`.
+// ---------------------------------------------------------------------------
+
+// defaultingZeroGuard reports whether stmt is an `if` that (a) tests param
+// against its zero value and (b) treats that case as "not supplied" rather than
+// rejecting it or clamping it. See the refusal list above.
+func defaultingZeroGuard(stmt ast.Stmt, param, typeStr string) bool {
+	ifStmt, ok := stmt.(*ast.IfStmt)
+	if !ok || ifStmt.Cond == nil || ifStmt.Body == nil {
+		return false
+	}
+	if !condTestsZeroValue(ifStmt.Cond, param, typeStr) {
+		return false
+	}
+	// (a) REJECTION — the zero-value branch leaves the function. The argument is
+	// refused, not defaulted.
+	if blockTerminates(ifStmt.Body) {
+		return false
+	}
+	// An `else` that terminates is the same rejection written the other way
+	// round (`if p != "" { … } else { return }`).
+	if ifStmt.Else != nil {
+		if eb, ok := ifStmt.Else.(*ast.BlockStmt); ok && blockTerminates(eb) {
+			return false
+		}
+	}
+	// (b) CLAMP — the branch assigns the param the very zero value it just
+	// tested for (`if position < 0 { position = 0 }`). That bounds a supplied
+	// value; it does not accept an absent one.
+	if len(ifStmt.Body.List) == 1 {
+		if assign, ok := ifStmt.Body.List[0].(*ast.AssignStmt); ok &&
+			len(assign.Lhs) == 1 && len(assign.Rhs) == 1 {
+			if target, ok := assign.Lhs[0].(*ast.Ident); ok && target.Name == param {
+				if zero, known := zeroLiteralFor(typeStr); known {
+					if got, ok := basicLitJSON(assign.Rhs[0]); ok && got == zero {
+						return false
+					}
+				}
+			}
+		}
+	}
+	return true
+}
+
+// blockTerminates reports whether every path through the block leaves the
+// enclosing function — a `return`, a `panic(…)`, or an `os.Exit(…)` as the
+// FINAL statement. Preceding statements (a log line, an error wrap) do not
+// change that, so only the last one is inspected.
+func blockTerminates(b *ast.BlockStmt) bool {
+	if b == nil || len(b.List) == 0 {
+		return false
+	}
+	switch last := b.List[len(b.List)-1].(type) {
+	case *ast.ReturnStmt:
+		return true
+	case *ast.BranchStmt:
+		// `continue` / `break` / `goto` inside a loop body skips the iteration —
+		// the same "refuse this input" meaning.
+		return true
+	case *ast.ExprStmt:
+		call, ok := last.X.(*ast.CallExpr)
+		if !ok {
+			return false
+		}
+		switch fn := call.Fun.(type) {
+		case *ast.Ident:
+			return fn.Name == "panic"
+		case *ast.SelectorExpr:
+			pkg, ok := fn.X.(*ast.Ident)
+			return ok && pkg.Name == "os" && fn.Sel.Name == "Exit"
+		}
+	}
+	return false
+}
+
+// condTestsZeroValue reports whether expr tests param against the zero value of
+// typeStr. Recurses through `&&` / `||` so a compound guard
+// (`if path == "" || path == "/"`) still counts.
+func condTestsZeroValue(expr ast.Expr, param, typeStr string) bool {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		// `if autoMap { … }` — a bare bool param IS the test; false is the zero.
+		return typeStr == "bool" && t.Name == param
+	case *ast.UnaryExpr:
+		if t.Op == token.NOT {
+			return condTestsZeroValue(t.X, param, typeStr)
+		}
+		return false
+	case *ast.ParenExpr:
+		return condTestsZeroValue(t.X, param, typeStr)
+	case *ast.BinaryExpr:
+		switch t.Op {
+		case token.LAND, token.LOR:
+			return condTestsZeroValue(t.X, param, typeStr) ||
+				condTestsZeroValue(t.Y, param, typeStr)
+		case token.EQL, token.NEQ, token.LEQ, token.LSS, token.GTR, token.GEQ:
+			// `p <op> <zero>` (or the mirrored `<zero> <op> p`). Both directions
+			// are absence tests when the comparand is the ZERO value: `if realm
+			// == "" { … }` normalises the unset case, `if maxTriggers > 0 {
+			// p["max_triggers"] = maxTriggers }` includes the key only when it
+			// WAS supplied. An upper-bound clamp (`if timeout > 900 { timeout =
+			// 900 }`) compares against a NON-zero literal and so fails
+			// exprIsZeroValue below; a floor clamp (`if position < 0 { position
+			// = 0 }`) does compare against zero and is caught by
+			// defaultingZeroGuard's clamp test instead.
+		default:
+			return false
+		}
+		lhs, lok := t.X.(*ast.Ident)
+		rhs, rok := t.Y.(*ast.Ident)
+		switch {
+		case lok && lhs.Name == param:
+			return exprIsZeroValue(t.Y, typeStr)
+		case rok && rhs.Name == param:
+			return exprIsZeroValue(t.X, typeStr)
+		}
+		// `len(p) == 0` on a nil-able slice/map is an explicit absence test.
+		if call, ok := t.X.(*ast.CallExpr); ok && len(call.Args) == 1 {
+			if fn, ok := call.Fun.(*ast.Ident); ok && fn.Name == "len" {
+				if arg, ok := call.Args[0].(*ast.Ident); ok && arg.Name == param {
+					if lit, ok := t.Y.(*ast.BasicLit); ok && lit.Value == "0" {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+	return false
+}
+
+// exprIsZeroValue reports whether expr is the zero-value literal for typeStr —
+// `""`, `0`, `false`, or the untyped `nil` for a nil-able type.
+func exprIsZeroValue(expr ast.Expr, typeStr string) bool {
+	if id, ok := expr.(*ast.Ident); ok && id.Name == "nil" {
+		return isNilableType(typeStr)
+	}
+	zero, known := zeroLiteralFor(typeStr)
+	if !known {
+		return false
+	}
+	got, ok := basicLitJSON(expr)
+	return ok && got == zero
+}
+
+// isNilableType reports whether typeStr's zero value is `nil` — i.e. comparing
+// the param to nil is a well-formed absence test.
+func isNilableType(typeStr string) bool {
+	s := strings.TrimSpace(typeStr)
+	return strings.HasPrefix(s, "*") || strings.HasPrefix(s, "[]") ||
+		strings.HasPrefix(s, "map[") || strings.HasPrefix(s, "chan ") ||
+		strings.HasPrefix(s, "func(") || s == "error" || s == "any" ||
+		s == "interface{}"
+}
+
+// extractParamOptionality populates each param's `optional` flag per the
+// mechanisms documented above. Params with no absence-modelling are left
+// required — the honest record for a bare Go parameter.
+func extractParamOptionality(sig *goSignature, fd *ast.FuncDecl) {
+	for i := range sig.params {
+		p := &sig.params[i]
+		// (1) variadic is visible in the TYPE alone and holds whether or not the
+		// function has a body (interface methods included).
+		if strings.HasPrefix(p.typeStr, "...") {
+			p.optional = true
+			continue
+		}
+		if fd == nil || fd.Body == nil {
+			continue
+		}
+		// (2) defaulting zero-value guard, scanned over the WHOLE body rather
+		// than just the leading statements the way extractParamDefaults scopes
+		// its search. A default VALUE must come from the "normalise the argument
+		// up front" idiom to be trustworthy, but OPTIONALITY only asks whether
+		// the zero value is a supported input, and `if autoMap { … }`
+		// legitimately sits at the point of use rather than the top.
+		ast.Inspect(fd.Body, func(n ast.Node) bool {
+			if p.optional {
+				return false
+			}
+			if stmt, ok := n.(ast.Stmt); ok && defaultingZeroGuard(stmt, p.name, p.typeStr) {
+				p.optional = true
+				return false
+			}
+			return true
+		})
+		// (3) SAFE-NIL POINTER. `*T` alone proves nothing — it is also how Go
+		// passes a struct at all (`Register(a *agent.AgentBase)`, which the
+		// reference records REQUIRED). What proves optionality is the body never
+		// TOUCHING the pointee without a guard: `Say(text string, voice,
+		// language, gender *string, volume *float64)` only forwards its pointers
+		// into a nil-guarded options struct, so `Say("hi", nil, nil, nil, nil)`
+		// is a supported call — exactly the reference's five `= None` defaults.
+		// A body that dereferences (`*p`) or selects through the pointer
+		// (`p.Field`, `p.Method()`) outside a nil guard would panic on nil, so
+		// the caller MUST supply a value and the param stays required.
+		if !p.optional && strings.HasPrefix(p.typeStr, "*") &&
+			!pointerDerefUnguarded(fd, p.name) {
+			p.optional = true
+		}
+	}
+}
+
+// pointerDerefUnguarded reports whether the body reads THROUGH the pointer
+// param — `*p`, `p.Field`, `p.Method()`, `p[i]` — anywhere outside a statement
+// guarded by a nil test on that same param. Such a body panics when handed nil,
+// so the caller cannot decline the argument.
+//
+// Conservative in the direction that keeps a param REQUIRED: any dereference it
+// cannot prove is nil-guarded counts as unguarded.
+func pointerDerefUnguarded(fd *ast.FuncDecl, param string) bool {
+	if fd == nil || fd.Body == nil {
+		// No body to inspect (an interface method): cannot prove safety.
+		return true
+	}
+	unguarded := false
+	ast.Inspect(fd.Body, func(n ast.Node) bool {
+		if unguarded {
+			return false
+		}
+		switch t := n.(type) {
+		case *ast.IfStmt:
+			if t.Cond != nil && condTestsNilOfParam(t.Cond, param) {
+				// A nil test whose branch LEAVES THE FUNCTION is a REJECTION —
+				// `if output == nil { panic("… must not be nil") }`. Nil is
+				// refused, so the caller must supply a value: same verdict as an
+				// unguarded dereference. (DataMap.Expression does exactly this
+				// and the reference records `output` required.)
+				if blockTerminates(t.Body) {
+					unguarded = true
+					return false
+				}
+				// Otherwise `if p != nil { … }` — the arms are reached only with
+				// the nil-ness known, so dereferences inside are safe. Skip the
+				// whole statement.
+				return false
+			}
+		case *ast.StarExpr:
+			if id, ok := t.X.(*ast.Ident); ok && id.Name == param {
+				unguarded = true
+				return false
+			}
+		case *ast.SelectorExpr:
+			if id, ok := t.X.(*ast.Ident); ok && id.Name == param {
+				unguarded = true
+				return false
+			}
+		case *ast.IndexExpr:
+			if id, ok := t.X.(*ast.Ident); ok && id.Name == param {
+				unguarded = true
+				return false
+			}
+		}
+		return true
+	})
+	return unguarded
+}
+
+// condTestsNilOfParam reports whether expr compares param against nil, through
+// any `&&` / `||` nesting.
+func condTestsNilOfParam(expr ast.Expr, param string) bool {
+	switch t := expr.(type) {
+	case *ast.ParenExpr:
+		return condTestsNilOfParam(t.X, param)
+	case *ast.BinaryExpr:
+		if t.Op == token.LAND || t.Op == token.LOR {
+			return condTestsNilOfParam(t.X, param) || condTestsNilOfParam(t.Y, param)
+		}
+		if t.Op != token.EQL && t.Op != token.NEQ {
+			return false
+		}
+		lhs, lok := t.X.(*ast.Ident)
+		rhs, rok := t.Y.(*ast.Ident)
+		if lok && lhs.Name == param && rok && rhs.Name == "nil" {
+			return true
+		}
+		if rok && rhs.Name == param && lok && lhs.Name == "nil" {
+			return true
+		}
+	}
+	return false
+}
+
 func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
 	sig := &goSignature{pkg: pkg, name: fd.Name.Name, params: []goParam{}}
 	if fd.Type.Params != nil {
@@ -1118,6 +1478,7 @@ func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
 		}
 	}
 	extractParamDefaults(sig, fd)
+	extractParamOptionality(sig, fd)
 	return sig
 }
 
@@ -1944,8 +2305,15 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 						failures = append(failures, *fail)
 						continue
 					}
+					// Same pointer-is-optional rule as the generated-REST unfold
+					// below: a hand options struct spells an omittable field `*T`
+					// and the verb builder nil-guards it before emitting the SWML
+					// key (`if o.Volume != nil { m["volume"] = *o.Volume }`), so a
+					// caller who leaves the field zero has genuinely declined it.
+					// A non-pointer field is read unconditionally and IS required.
 					params = append(params, canonicalParam{
-						Name: goFieldToPython(f.name), Type: fCanon, Required: boolPtr(true),
+						Name: goFieldToPython(f.name), Type: fCanon,
+						Required: boolPtr(!strings.HasPrefix(f.typeStr, "*")),
 					})
 				}
 				continue
@@ -2048,10 +2416,47 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 						failures = append(failures, *fail)
 						continue
 					}
+					// The REST generator ALREADY encodes each SCALAR field's
+					// optionality in its Go type, and the emitted method body
+					// proves it: a POINTER field is nil-guarded before it reaches
+					// the wire
+					//
+					//     if params.AddressType != nil { body["address_type"] = … }
+					//
+					// so omitting it is a supported call, while a VALUE field is
+					// serialized unconditionally
+					//
+					//     body["label"] = params.Label
+					//
+					// so the caller must supply it. Addresses.create's 9 value
+					// fields are exactly the oracle's 9 `required: true` params and
+					// its 2 pointer fields the oracle's 2 `required: false` ones.
+					// Recording every unfolded field `required: true` threw that
+					// away and was the single largest source of go's
+					// `required-flip` findings (148 of 285).
+					//
+					// POINTER-NESS, NOT NIL-ABILITY, is the discriminator. A
+					// COMPOSITE field is spelled as the bare `[]T` / `map[K]V`
+					// whether the spec makes it required or optional — the
+					// generator has no `*[]T` spelling — so it is nil-guarded in
+					// BOTH cases and its guard proves nothing. `Calling.play`'s
+					// `Play []map[string]any` is nil-guarded and the oracle records
+					// it REQUIRED; `Calling.collect`'s `Digits map[string]any` is
+					// nil-guarded and the oracle records it OPTIONAL. Treating
+					// nil-ability as optionality was measured: it resolved 14
+					// findings and manufactured 10 new ones in the opposite
+					// direction (a port claiming optional where the spec requires),
+					// which is the worse error — it hides a REAL gap behind the
+					// enumerator. A composite's required flag is not recoverable
+					// from Go syntax; it needs the generator to carry the spec's
+					// flag into the emitted code, which is a GENERATOR change, not
+					// an enumerator one.
 					if f.name == "Extras" {
+						// `Extras` is the open-ended overflow bag, merged via the
+						// nil-safe mergeExtra; the oracle records it optional.
 						params = append(params, canonicalParam{
 							Name: "extras", Kind: "keyword", Type: fCanon,
-							Required: boolPtr(true),
+							Required: boolPtr(false),
 						})
 						params = append(params, canonicalParam{
 							Name: "kwargs", Kind: "var_keyword", Type: "any",
@@ -2061,7 +2466,7 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 					}
 					params = append(params, canonicalParam{
 						Name: goNameToSnake(f.name), Kind: "keyword", Type: fCanon,
-						Required: boolPtr(true),
+						Required: boolPtr(!strings.HasPrefix(f.typeStr, "*")),
 					})
 				}
 				continue
@@ -2073,9 +2478,14 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			continue
 		}
 		cp := canonicalParam{
-			Name:     goNameToSnake(p.name),
-			Type:     canon,
-			Required: boolPtr(true), // Go has no LANGUAGE-LEVEL defaults
+			Name: goNameToSnake(p.name),
+			Type: canon,
+			// Go has no LANGUAGE-LEVEL defaults, but `required` is not about
+			// default SYNTAX — it is the caller-observable contract "must I
+			// supply this?". Required unless the port models the argument's
+			// absence (pointer / variadic / zero-value guard); see
+			// extractParamOptionality.
+			Required: boolPtr(!p.optional),
 		}
 		// Where the port DOES give a caller an omittable argument — a sentinel
 		// guard or a zero-length variadic fallback (see extractParamDefaults) —
