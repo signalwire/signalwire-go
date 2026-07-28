@@ -377,6 +377,9 @@ func TestRelay_PlayAndCollectJournalsPlayAndCollect(t *testing.T) {
 		t.Errorf("call_id = %v, want call-pac", params["call_id"])
 	}
 	playList, _ := params["play"].([]any)
+	if len(playList) == 0 {
+		t.Fatalf("play list is empty; got params=%v", params)
+	}
 	first, _ := playList[0].(map[string]any)
 	if first["type"] != "tts" {
 		t.Errorf("play[0].type = %v, want tts", first["type"])
@@ -1205,6 +1208,71 @@ func TestRelay_AIParamsNestedUnderParamsKey(t *testing.T) {
 	}
 	if _, spilled := params["temperature"]; spilled {
 		t.Error("ai_params keys must not spill onto the top-level frame")
+	}
+}
+
+// TestRelay_PlayMediaEmitsPlayWireKey is a wire-fidelity regression test:
+// Python's play(media=...) puts the media list on the wire under the "play"
+// key, not "media" (call.py:567 params = {"control_id": cid, "play": media}).
+// The API name and the wire key differ, so a port that ships the caller's list
+// under the API name sends a frame the server rejects.
+func TestRelay_PlayMediaEmitsPlayWireKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-play-remap")
+	_ = call.Play(
+		[]map[string]any{{"type": "tts", "params": map[string]any{"text": "remap"}}},
+		relay.WithPlayControlID("play-remap-ctl"),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.play")
+	params, _ := entry.FrameParams()
+	playList, ok := params["play"].([]any)
+	if !ok || len(playList) == 0 {
+		t.Fatalf("media must be emitted under the 'play' wire key; got params=%v", params)
+	}
+	first, _ := playList[0].(map[string]any)
+	if first["type"] != "tts" {
+		t.Errorf("play[0].type = %v, want tts", first["type"])
+	}
+	if _, leaked := params["media"]; leaked {
+		t.Error("the API name 'media' must not appear on the wire")
+	}
+}
+
+// TestRelay_PlayAndCollectMediaEmitsPlayWireKey is the same wire-fidelity
+// regression for play_and_collect: Python remaps media -> "play" there too
+// (call.py:844), while `collect` keeps its own name.
+func TestRelay_PlayAndCollectMediaEmitsPlayWireKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-pac-remap")
+	_ = call.PlayAndCollect(
+		[]map[string]any{{"type": "tts", "params": map[string]any{"text": "remap"}}},
+		map[string]any{"digits": map[string]any{"max": 1}},
+		relay.WithPlayControlID("pac-remap-ctl"),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.play_and_collect")
+	params, _ := entry.FrameParams()
+	playList, ok := params["play"].([]any)
+	if !ok || len(playList) == 0 {
+		t.Fatalf("media must be emitted under the 'play' wire key; got params=%v", params)
+	}
+	first, _ := playList[0].(map[string]any)
+	if first["type"] != "tts" {
+		t.Errorf("play[0].type = %v, want tts", first["type"])
+	}
+	if _, leaked := params["media"]; leaked {
+		t.Error("the API name 'media' must not appear on the wire")
+	}
+	// The sibling `collect` param is NOT remapped — it keeps its own name.
+	if _, ok := params["collect"].(map[string]any); !ok {
+		t.Errorf("collect must be emitted under 'collect'; got params=%v", params)
 	}
 }
 
