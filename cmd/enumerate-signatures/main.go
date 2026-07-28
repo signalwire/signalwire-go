@@ -2542,6 +2542,28 @@ var ctxTailMethods = map[string]bool{
 	"signalwire.relay.call.Call.wait_for": true,
 }
 
+// collectedRegistrationVoid names the methods whose reference returns `None`
+// because Python registers by MUTATION (the body calls `self.agent.define_tool(...)`
+// for each tool and returns nothing), while Go registers by COLLECTION — the
+// `SkillBase` interface declares `RegisterTools() []ToolRegistration`
+// (pkg/skills/skill_base.go:52) and the SkillManager consumes the returned slice.
+// Both register exactly the same tools; the difference is WHO performs the
+// mutation, which is a registration-idiom difference, not a capability one.
+//
+// Go cannot express the Python form without giving up its own contract: a
+// `RegisterTools()` with no return value would have to reach into the agent and
+// mutate it, which is precisely the interface Go's composition-over-inheritance
+// skill model exists to avoid. So the collected-slice return folds to the
+// reference's `void` HERE, at the enumerator, where the params keep comparing —
+// rather than being excused in PORT_SIGNATURE_OMISSIONS.md, which would stop
+// comparing the symbol altogether.
+//
+// Keyed by the reference QN (module.Class.method) so the fold is scoped to the
+// skill-registration contract and no other method returning a slice is affected.
+var collectedRegistrationVoid = map[string]bool{
+	"signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.register_tools": true,
+}
+
 // closedSetUnions maps the Go defined-string closed-set types (and their
 // bare/qualified spellings) to the canonical union<class:...,string> the
 // audit vocabulary expects. The string member absorbs against the reference's
@@ -3415,9 +3437,14 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 		}
 	}
 	returns := "void"
-	if isCtor {
+	switch {
+	case isCtor:
 		returns = "void"
-	} else {
+	case collectedRegistrationVoid[ctx]:
+		// Go's collect-and-return registration idiom folds to the reference's
+		// mutate-and-return-None. See collectedRegistrationVoid.
+		returns = "void"
+	default:
 		canon, fail := translateType(sig.returns, aliases, ctx+"[->]")
 		if fail != nil {
 			failures = append(failures, *fail)

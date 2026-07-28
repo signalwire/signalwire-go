@@ -1224,19 +1224,40 @@ var StructTable = map[string][]ClassTarget{
 		// have no BaseSkill equivalent (impossible-tagged in PORT_OMISSIONS).
 		SyntheticMethods: []string{"__init__", "register_tools", "setup"},
 	}},
-	// The signature enumerator otherwise does not project the concrete builtin
-	// skill packages (their PascalCase contract methods are reconciled in
-	// PORT_SIGNATURE_OMISSIONS.md). SpiderSkill is mapped for ONE member:
-	// remove_xpaths is a public ATTRIBUTE both reference oracles record — a
-	// caller-observable configuration VALUE, not a contract method — so it compares
-	// on the signature AND the surface axis, and Go expresses it as the RemoveXPaths
-	// accessor over the prefilled removeXPaths field. The Methods map is a strict
-	// allowlist, so mapping this struct projects only this member and does not flood
-	// the surface with the skill's other methods.
+	// The signature enumerator projects a concrete builtin skill package ONLY
+	// where the reference signature oracle records members for it; the Methods
+	// map is a strict allowlist, so mapping a struct projects only the listed
+	// members and does not flood the surface with the skill's other methods.
+	//
+	// SpiderSkill is mapped for ONE member: remove_xpaths is a public ATTRIBUTE
+	// both reference oracles record — a caller-observable configuration VALUE,
+	// not a contract method — so it compares on the signature AND the surface
+	// axis, and Go expresses it as the RemoveXPaths accessor over the prefilled
+	// removeXPaths field.
 	"spider.SpiderSkill": {{
 		Module: "signalwire.skills.spider.skill", Class: "SpiderSkill",
 		Methods: map[string]string{
 			"RemoveXPaths": "remove_xpaths",
+		},
+	}},
+	// MCPGatewaySkill is the cross-port MCP-gateway CLIENT skill, and the
+	// reference signature oracle records all SIX of its contract methods on the
+	// concrete class (not just on SkillBase). Go declares every one of them as a
+	// real public method on *MCPGatewaySkill (pkg/skills/builtin/mcp_gateway.go
+	// lines 47/146/393/407/417/438); the ONLY difference is Go's exported
+	// PascalCase spelling, which is pure language convention. A convention rename
+	// belongs in this rename table — where the signature (params AND return type)
+	// KEEPS being compared against the reference — and never in
+	// PORT_SIGNATURE_OMISSIONS.md, which would stop comparing the symbol entirely.
+	"builtin.MCPGatewaySkill": {{
+		Module: "signalwire.skills.mcp_gateway.skill", Class: "MCPGatewaySkill",
+		Methods: map[string]string{
+			"Setup":              "setup",
+			"RegisterTools":      "register_tools",
+			"GetGlobalData":      "get_global_data",
+			"GetHints":           "get_hints",
+			"GetPromptSections":  "get_prompt_sections",
+			"GetParameterSchema": "get_parameter_schema",
 		},
 	}},
 	"skills.SkillRegistry": {{
@@ -1560,15 +1581,19 @@ type SkillContract struct {
 	Synthetic []string
 }
 
-// SkillContractTable is the per-built-in-skill projection consumed by BOTH
-// cmd/enumerate-surface and cmd/enumerate-signatures (kept in lockstep). The
-// method sets are the Python reference's own per-skill surface (each skill
-// records a DIFFERENT subset — see signalwire-python/signalwire/skills/<n>/skill.py).
-// mcp_gateway is now part of the Python reference surface
+// SkillContractTable is the per-built-in-skill projection consumed by
+// cmd/enumerate-surface ONLY — it drives the SURFACE axis (which members exist).
+// The SIGNATURE axis is driven by StructTable above; a skill whose signatures the
+// Python reference records needs an entry in BOTH tables (see
+// `builtin.MCPGatewaySkill` / `spider.SpiderSkill` in StructTable). The method sets
+// are the Python reference's own per-skill surface (each skill records a DIFFERENT
+// subset — see signalwire-python/signalwire/skills/<n>/skill.py).
+// mcp_gateway is part of the Python reference surface
 // (signalwire.skills.mcp_gateway.skill.MCPGatewaySkill, a cross-port CLIENT skill);
 // Go's *MCPGatewaySkill implements the SAME 6 contract methods (Setup/RegisterTools/
 // GetGlobalData/GetHints/GetPromptSections/GetParameterSchema — the snake↔PascalCase
-// rename is reconciled by skillLeafToGoMethod), so it is projected here in lockstep.
+// rename is reconciled by skillLeafToGoMethod here, and by the StructTable Methods
+// map on the signature side).
 var SkillContractTable = []SkillContract{
 	{GoStruct: "builtin.APINinjasTriviaSkill", Module: "signalwire.skills.api_ninjas_trivia.skill", ClassName: "ApiNinjasTriviaSkill",
 		Methods:   []string{"get_instance_key", "get_parameter_schema", "register_tools", "setup"},

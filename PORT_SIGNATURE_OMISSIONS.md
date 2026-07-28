@@ -109,7 +109,7 @@ signalwire.core.agent.tools.registry.ToolRegistry.get_all_functions: Go's ToolRe
 
 ## Idiom: Go typed options vs Python kwargs / typed signature divergences
 
-signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: Go's GetBasicAuthCredentials returns the resolved auth string only (no include_source kwarg); Python supports an include_source flag that causes it to return a (user, pass, source) tuple
+signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: impossible: a Go function's return ARITY is fixed at compile time and cannot depend on an argument's VALUE. The reference is `get_basic_auth_credentials(include_source: bool = False) -> tuple[str,str] | tuple[str,str,str]` — the `include_source` VALUE selects a 2- vs 3-tuple. Go has no literal types and no variadic return, so a single `GetBasicAuthCredentials(bool)` would have to return the 3-value shape unconditionally, INVENTING a shape the reference never returns when passed false. Go therefore splits the contract into `GetBasicAuthCredentials() (string, string)` (pkg/agent/agent.go:2279, pkg/swml/service.go:495) and `GetBasicAuthCredentialsWithSource() (string, string, string)` (agent.go:2288, service.go:502) — the same credential contract, both arities reachable. Same fleet-wide ceiling as rust/java/php/cpp/dotnet; only perl (dynamic return) and TypeScript (literal-typed overloads) can express the reference form.
 signalwire.core.security.security_utils.filter_sensitive_headers: type-idiom divergence — Python parametrizes the header dict with a generic ``_V`` TypeVar (``dict[str, _V]`` in and out); Go uses a concrete ``map[string]string``. Same wire behavior (headers are string→string); Go has no need for the value-type generic.
 
 ## POM (signalwire.pom.pom) — Go idiom
@@ -281,26 +281,11 @@ signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_tools: 
 signalwire.skills.weather_api.skill.WeatherApiSkill.get_tools: Go returns the tool list via RegisterTools (no separate get_tools method)
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.search_wiki: Go registers the wiki search as a tool handler (handleSearch), not a public search_wiki method
 
-# mcp_gateway CLIENT skill (MCPGatewaySkill) — Go-idiom method rename (NOT an omission).
-# Go implements ALL SIX oracle methods as real public methods on *MCPGatewaySkill
-# (pkg/skills/builtin/mcp_gateway.go); each is the SAME canonical method, only spelled
-# in Go's exported PascalCase. The go signature enumerator does not walk the builtin
-# concrete-skill packages (it enumerates the core surface), so these snake↔PascalCase
-# renames are reconciled here in the adapter rather than emitted — the wire/behaviour
-# contract is identical (secure-default verify_ssl opt-in verified by verify_ssl_parity +
-# tls_verify). go-idiom-pascalcase rename:
-#   setup                 -> Setup()                    (skills.go:47)
-#   register_tools        -> RegisterTools()            (skills.go:146)
-#   get_global_data       -> GetGlobalData()            (skills.go:393)
-#   get_hints             -> GetHints()                 (skills.go:407)
-#   get_prompt_sections   -> GetPromptSections()        (skills.go:417)
-#   get_parameter_schema  -> GetParameterSchema()       (skills.go:438)
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.setup: go-idiom-pascalcase rename — Go Setup() is the same canonical method; the go enumerator does not walk builtin concrete-skill packages, so the snake↔PascalCase rename is reconciled in the adapter
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.register_tools: go-idiom-pascalcase rename — Go RegisterTools() is the same canonical method (returns the tool list), reconciled in the adapter (enumerator does not walk builtin skills)
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_global_data: go-idiom-pascalcase rename — Go GetGlobalData() is the same canonical method, reconciled in the adapter (enumerator does not walk builtin skills)
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_hints: go-idiom-pascalcase rename — Go GetHints() is the same canonical method, reconciled in the adapter (enumerator does not walk builtin skills)
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_prompt_sections: go-idiom-pascalcase rename — Go GetPromptSections() is the same canonical method, reconciled in the adapter (enumerator does not walk builtin skills)
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_parameter_schema: go-idiom-pascalcase rename — Go GetParameterSchema() is the same canonical method, reconciled in the adapter (enumerator does not walk builtin skills)
+# mcp_gateway CLIENT skill (MCPGatewaySkill): the six PascalCase↔snake_case contract
+# methods are NO LONGER EXCUSED. Go declares all six as real public methods on
+# *MCPGatewaySkill; the rename is reconciled in the adapter rename table
+# (internal/surface/tables.go, StructTable key `builtin.MCPGatewaySkill`), where the
+# signature KEEPS being compared instead of being blinded by an omission.
 
 ## BedrockAgent (C2-BEDROCK, Wave 2): reference now HAS the signatures
 # Cluster-1 C1-O1 added BedrockAgent to python_signatures (it was previously only

@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 73d75ce2e76fcce3b38f386e8a2c26605afd36ed (go/ast walker)",
+  "generated_from": "signalwire-go @ ebbb555b841c1ea83e112ae4b67f342e3e2afc4e (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -23694,6 +23694,68 @@
                 }
               ],
               "returns": "class:signalwire.rest._pagination.PaginatedIterator"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.skills.mcp_gateway.skill": {
+      "classes": {
+        "MCPGatewaySkill": {
+          "methods": {
+            "get_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict\u003cstring,any\u003e"
+            },
+            "get_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list\u003cstring\u003e"
+            },
+            "get_parameter_schema": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
+            },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "setup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             }
           }
         }
