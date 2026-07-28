@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ e57337ea3d95cd1051a43a9ec471eba24411d1fc (go/ast walker)",
+  "generated_from": "signalwire-go @ ed55d7f65c3e90a316e4da52226ae899e56fb07a (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -1303,7 +1303,8 @@
                 {
                   "name": "path",
                   "type": "string",
-                  "required": true
+                  "required": true,
+                  "default": "/sip"
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -2477,7 +2478,8 @@
             {
               "name": "name",
               "type": "string",
-              "required": true
+              "required": true,
+              "default": "default"
             }
           ],
           "returns": "class:signalwire.core.contexts.Context"
@@ -3214,7 +3216,8 @@
                 {
                   "name": "role",
                   "type": "string",
-                  "required": true
+                  "required": true,
+                  "default": "system"
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3257,7 +3260,8 @@
                 {
                   "name": "device_type",
                   "type": "string",
-                  "required": true
+                  "required": true,
+                  "default": "phone"
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3831,7 +3835,8 @@
                 {
                   "name": "ignore_case",
                   "type": "list\u003cbool\u003e",
-                  "required": true
+                  "required": true,
+                  "default": false
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -3855,7 +3860,8 @@
                 {
                   "name": "ignore_case",
                   "type": "list\u003cbool\u003e",
-                  "required": true
+                  "required": true,
+                  "default": false
                 }
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
@@ -4957,7 +4963,8 @@
                 {
                   "name": "token_expiry_secs",
                   "type": "int",
-                  "required": true
+                  "required": true,
+                  "default": 900
                 },
                 {
                   "name": "opts",
@@ -10353,7 +10360,8 @@
                 {
                   "name": "level",
                   "type": "int",
-                  "required": true
+                  "required": true,
+                  "default": 2
                 },
                 {
                   "name": "section_number",
@@ -14370,7 +14378,8 @@
                 {
                   "name": "method",
                   "type": "string",
-                  "required": true
+                  "required": true,
+                  "default": "GET"
                 },
                 {
                   "name": "headers",
@@ -14462,7 +14471,8 @@
                 {
                   "name": "method",
                   "type": "string",
-                  "required": true
+                  "required": true,
+                  "default": "GET"
                 }
               ],
               "returns": "void"
@@ -14504,7 +14514,8 @@
                 {
                   "name": "data_key",
                   "type": "string",
-                  "required": true
+                  "required": true,
+                  "default": "data"
                 },
                 {
                   "name": "opts",
@@ -24097,7 +24108,8 @@
                 {
                   "name": "host",
                   "type": "string",
-                  "required": true
+                  "required": true,
+                  "default": "0.0.0.0"
                 },
                 {
                   "name": "port",

@@ -43,6 +43,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -338,6 +339,11 @@ func genLeaf(t string) string {
 type goParam struct {
 	name    string // canonical Go name (already snake-style? No, Go uses camelCase; we'll snake_case at translation time)
 	typeStr string // source-level type expression
+	// defaultJSON is the JSON encoding of the value a caller ACTUALLY GETS when
+	// they do not supply this argument, or "" when the parameter has no default
+	// (the caller must always pass it). See extractParamDefaults for the three
+	// Go mechanisms this is recovered from and the ones it deliberately refuses.
+	defaultJSON string
 }
 
 type goSignature struct {
@@ -709,6 +715,367 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 	return nil
 }
 
+// ---------------------------------------------------------------------------
+// PARAMETER DEFAULT VALUES
+//
+// Go HAS NO DEFAULT PARAMETER VALUES. There is no `func f(x int = 5)`, so the
+// question "what is this parameter's default" has no syntactic answer the way it
+// does in Ruby (`def m(b = 42)`) or C# (`int b = 42`). What the reference oracle
+// records as a default is, operationally, "the value a caller gets when they do
+// not supply that argument" — so THAT is what is recovered here, from the two
+// mechanisms by which this SDK actually gives a Go caller an omittable argument.
+// Anything else emits NO default, because for a plain Go param there IS none: a
+// caller MUST pass it, and `required: true` with no default is the honest record.
+//
+// RECOVERED (a caller can genuinely omit the argument):
+//
+//  1. SENTINEL GUARD — a leading `if <param> <op> <zero> { <param> = <literal> }`
+//     at the top of the body, where <zero> is the param type's zero value. The
+//     SDK's convention for "pass the zero value to mean 'give me the default'":
+//
+//         func NewSessionManager(tokenExpirySecs int, ...) *SessionManager {
+//             if tokenExpirySecs <= 0 { tokenExpirySecs = 900 }
+//
+//     Passing 0 yields 900, so 900 IS the default — and it is exactly what the
+//     reference records (`token_expiry_secs=900`, pinned by
+//     pkg/security/session_manager_test.go).
+//
+//  2. TRAILING VARIADIC with a zero-length fallback — `ignoreCase ...bool` read
+//     as `len(ignoreCase) > 0 && ignoreCase[0]`. Omitting the argument entirely
+//     is legal and yields the fallback, so the fallback IS the default:
+//
+//         func (a *AgentBase) AddPatternHint(..., ignoreCase ...bool) *AgentBase {
+//             ... "ignore_case": len(ignoreCase) > 0 && ignoreCase[0],
+//
+//     Omit it → false, matching the reference's `ignore_case=False`.
+//
+// DELIBERATELY REFUSED (would be a confident WRONG value):
+//
+//   - A CLAMP is not a default. `FunctionResult.Hold(timeout int)` does
+//     `if timeout < 0 { timeout = 0 }; if timeout > 900 { timeout = 900 }` —
+//     that bounds the range, it does not supply an omitted value. Passing the
+//     zero value yields 0, NOT the reference's 300. Recording 300 (or 0) would
+//     be a fabricated default. Refused by requiring the assigned literal to
+//     differ from the compared-against zero value, and by only accepting the
+//     `== zero` / `<= 0` / `== ""` guard forms — never a `>` upper bound.
+//   - A guard in a HELPER the body delegates to (agent.RegisterRoutingCallback
+//     passes `path` through `normalizeCallbackPath`, which maps "" -> "/sip").
+//     The value is real but recovering it needs interprocedural analysis that
+//     would just as happily follow a helper that ISN'T defaulting. Left absent.
+//   - Everything else: a plain Go param with no guard at all (GetFullURL's
+//     `includeAuth bool`, GetSecurityHeaders' `isHTTPS bool`). The caller must
+//     pass a value; there is no default to record.
+//
+// This is ADDITIVE — it only ever populates goParam.defaultJSON. It never
+// changes which params are enumerated, their order, their types, or their
+// `required` flags.
+// ---------------------------------------------------------------------------
+
+// zeroLiteralFor returns the JSON encoding of the zero value of a Go type, and
+// whether the type is one whose zero value this extractor understands. Only
+// scalar types participate — a sentinel guard on a slice/map/pointer is testing
+// nil-ness, which carries no defaultable literal.
+func zeroLiteralFor(typeStr string) (string, bool) {
+	switch strings.TrimSpace(typeStr) {
+	case "string":
+		return `""`, true
+	case "bool":
+		return "false", true
+	case "int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64":
+		return "0", true
+	case "float32", "float64":
+		return "0", true
+	}
+	return "", false
+}
+
+// basicLitJSON renders a Go literal expression as its JSON encoding, or ("",
+// false) when it is not a plain literal this extractor will vouch for. Handles
+// the string/int/float/bool literal forms plus a unary minus, and a conversion
+// wrapping a literal (`RecordFormat("wav")`) so a defined-string-type constant
+// still yields its underlying value. A named constant, a function call, or any
+// computed expression is REFUSED — resolving it needs go/types, and a guessed
+// value is worse than none.
+func basicLitJSON(e ast.Expr) (string, bool) {
+	switch t := e.(type) {
+	case *ast.BasicLit:
+		switch t.Kind {
+		case token.STRING:
+			s, err := strconv.Unquote(t.Value)
+			if err != nil {
+				return "", false
+			}
+			b, err := json.Marshal(s)
+			if err != nil {
+				return "", false
+			}
+			return string(b), true
+		case token.INT, token.FLOAT:
+			return t.Value, true
+		default:
+			// CHAR / IMAG and every non-literal token: no JSON-comparable value.
+			return "", false
+		}
+	case *ast.Ident:
+		// Only the predeclared booleans; any other identifier is a named
+		// constant this extractor will not resolve.
+		if t.Name == "true" || t.Name == "false" {
+			return t.Name, true
+		}
+		return "", false
+	case *ast.UnaryExpr:
+		if t.Op == token.SUB {
+			if inner, ok := basicLitJSON(t.X); ok {
+				return "-" + inner, true
+			}
+		}
+		return "", false
+	case *ast.CallExpr:
+		// A single-argument CONVERSION of a literal — `RecordFormat("wav")`,
+		// `float64(44)` — carries the literal's value through. A FUNCTION CALL
+		// does not, and the two are syntactically identical without go/types.
+		//
+		// Getting this wrong produces a confidently WRONG default: an earlier
+		// revision accepted any single-arg call, so `NewRestClient`'s
+		// `project = os.Getenv("SIGNALWIRE_PROJECT_ID")` unwrapped to the
+		// literal and recorded the ENV VAR NAME as the default value of
+		// `project`. Only a callee that is a bare identifier naming a
+		// PREDECLARED numeric/string/bool type is accepted; a package-qualified
+		// callee (`os.Getenv`, `strconv.Itoa`) is always a function call and is
+		// refused outright, as is any user-defined type name (whose underlying
+		// type cannot be confirmed here). Refusing a real conversion costs a
+		// missing default; accepting a call invents a wrong one.
+		if len(t.Args) != 1 {
+			return "", false
+		}
+		fn, ok := t.Fun.(*ast.Ident)
+		if !ok || !isPredeclaredConversionType(fn.Name) {
+			return "", false
+		}
+		return basicLitJSON(t.Args[0])
+	}
+	return "", false
+}
+
+// isPredeclaredConversionType reports whether name is a Go predeclared scalar
+// type, i.e. a `name(literal)` expression is certainly a value-preserving
+// CONVERSION and not a function call. See the CallExpr case of basicLitJSON.
+func isPredeclaredConversionType(name string) bool {
+	switch name {
+	case "string", "bool",
+		"int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
+		"float32", "float64", "byte", "rune":
+		return true
+	}
+	return false
+}
+
+// sentinelGuardDefault inspects ONE statement for the sentinel-guard shape
+//
+//	if <param> <op> <zero> { <param> = <literal> }
+//
+// and returns the literal's JSON encoding when it matches. op must be one of
+// `==` / `<=` / `<` — the "unset or below the floor" forms. A `>` / `>=` guard
+// is an UPPER bound (a clamp) and is refused, as is an assignment whose literal
+// equals the zero value being tested (also a clamp, e.g. `if t < 0 { t = 0 }`).
+// The body must be exactly the one assignment, so a guard with side effects is
+// not mistaken for a default.
+func sentinelGuardDefault(stmt ast.Stmt, param, typeStr string) (string, bool) {
+	ifStmt, ok := stmt.(*ast.IfStmt)
+	if !ok || ifStmt.Init != nil || ifStmt.Else != nil || ifStmt.Body == nil {
+		return "", false
+	}
+	if len(ifStmt.Body.List) != 1 {
+		return "", false
+	}
+	zero, known := zeroLiteralFor(typeStr)
+	if !known {
+		return "", false
+	}
+	// Condition: `<param> <op> <zero-ish literal>`.
+	cond, ok := ifStmt.Cond.(*ast.BinaryExpr)
+	if !ok {
+		return "", false
+	}
+	switch cond.Op {
+	case token.EQL, token.LEQ, token.LSS:
+	default:
+		return "", false // `>`/`>=`/`!=` — an upper bound or a negation, not an unset test
+	}
+	lhs, ok := cond.X.(*ast.Ident)
+	if !ok || lhs.Name != param {
+		return "", false
+	}
+	rhsJSON, ok := basicLitJSON(cond.Y)
+	if !ok || rhsJSON != zero {
+		return "", false // compared against something other than the zero value
+	}
+	// Body: `<param> = <literal>`.
+	assign, ok := ifStmt.Body.List[0].(*ast.AssignStmt)
+	if !ok || assign.Tok != token.ASSIGN ||
+		len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		return "", false
+	}
+	target, ok := assign.Lhs[0].(*ast.Ident)
+	if !ok || target.Name != param {
+		return "", false
+	}
+	valJSON, ok := basicLitJSON(assign.Rhs[0])
+	if !ok {
+		return "", false
+	}
+	if valJSON == zero {
+		// `if t < 0 { t = 0 }` — a floor clamp, not a default.
+		return "", false
+	}
+	return valJSON, true
+}
+
+// variadicFallbackDefault recovers the default of a TRAILING variadic scalar
+// param whose body reads it with a zero-length fallback. Two shapes are
+// recognized, both of which mean "omit the argument and you get <default>":
+//
+//	len(p) > 0 && p[0]                     -> false   (bool)
+//	if len(p) > 0 { x = p[0] }             -> the value x held before the if
+//
+// Only the FIRST is claimed here — it is unambiguous and self-contained. The
+// second requires tracking the prior assignment and is left to the sentinel
+// path when it happens to be expressible. A variadic used any other way (a
+// genuine multi-value list) yields no default.
+func variadicFallbackDefault(fd *ast.FuncDecl, param, elemType string) (string, bool) {
+	if fd.Body == nil {
+		return "", false
+	}
+	if elemType != "bool" {
+		return "", false
+	}
+	found := false
+	ast.Inspect(fd.Body, func(n ast.Node) bool {
+		be, ok := n.(*ast.BinaryExpr)
+		if !ok || be.Op != token.LAND {
+			return true
+		}
+		// LHS: len(<param>) > 0
+		lb, ok := be.X.(*ast.BinaryExpr)
+		if !ok || lb.Op != token.GTR {
+			return true
+		}
+		call, ok := lb.X.(*ast.CallExpr)
+		if !ok || len(call.Args) != 1 {
+			return true
+		}
+		fn, ok := call.Fun.(*ast.Ident)
+		if !ok || fn.Name != "len" {
+			return true
+		}
+		arg, ok := call.Args[0].(*ast.Ident)
+		if !ok || arg.Name != param {
+			return true
+		}
+		if lit, ok := lb.Y.(*ast.BasicLit); !ok || lit.Value != "0" {
+			return true
+		}
+		// RHS: <param>[0]
+		ix, ok := be.Y.(*ast.IndexExpr)
+		if !ok {
+			return true
+		}
+		base, ok := ix.X.(*ast.Ident)
+		if !ok || base.Name != param {
+			return true
+		}
+		found = true
+		return false
+	})
+	if !found {
+		return "", false
+	}
+	// `len(p) > 0 && p[0]` evaluates to FALSE when the argument is omitted.
+	return "false", true
+}
+
+// guardTargetsParam reports whether stmt is an `if` whose condition tests param
+// AND whose body assigns to param — i.e. it is a guard ABOUT this parameter,
+// regardless of whether its assigned value is a literal this extractor accepts.
+// extractParamDefaults uses it to find the FIRST arm of a fallback chain, so an
+// unresolvable first arm suppresses a later arm's literal instead of letting it
+// masquerade as the default.
+func guardTargetsParam(stmt ast.Stmt, param string) bool {
+	ifStmt, ok := stmt.(*ast.IfStmt)
+	if !ok || ifStmt.Body == nil || len(ifStmt.Body.List) != 1 {
+		return false
+	}
+	cond, ok := ifStmt.Cond.(*ast.BinaryExpr)
+	if !ok {
+		return false
+	}
+	lhs, ok := cond.X.(*ast.Ident)
+	if !ok || lhs.Name != param {
+		return false
+	}
+	assign, ok := ifStmt.Body.List[0].(*ast.AssignStmt)
+	if !ok || len(assign.Lhs) != 1 {
+		return false
+	}
+	target, ok := assign.Lhs[0].(*ast.Ident)
+	return ok && target.Name == param
+}
+
+// extractParamDefaults populates each param's defaultJSON from the function
+// body, per the mechanisms documented above. Params with no recoverable default
+// are left untouched (defaultJSON stays "").
+func extractParamDefaults(sig *goSignature, fd *ast.FuncDecl) {
+	if fd.Body == nil {
+		return
+	}
+	for i := range sig.params {
+		p := &sig.params[i]
+		// (2) trailing variadic scalar with a zero-length fallback.
+		if strings.HasPrefix(p.typeStr, "...") {
+			if def, ok := variadicFallbackDefault(fd, p.name, p.typeStr[3:]); ok {
+				p.defaultJSON = def
+			}
+			continue
+		}
+		// (1) sentinel guard. Scoped to the LEADING statements of the body —
+		// a guard buried after real work is not the "unset argument" idiom, and
+		// scanning the whole body would pick up an unrelated reassignment.
+		//
+		// Only the FIRST guard on this param counts, and if it does not yield a
+		// literal the param gets NO default. A CHAINED fallback must not leak
+		// its terminal literal: AgentServer.Register does
+		//
+		//     if route == "" { route = a.GetRoute() }   // <- the real default
+		//     if route == "" { route = "/" }            // <- only if THAT is empty
+		//
+		// so the value an omitting caller gets is `a.GetRoute()`, not "/". The
+		// reference agrees, recording `route`'s default as None (resolved
+		// dynamically). Taking "/" would assert a static default the port does
+		// not have. Stopping at the first guard on the param makes the
+		// unresolvable first arm suppress the whole chain.
+		for _, stmt := range fd.Body.List {
+			if _, isIf := stmt.(*ast.IfStmt); !isIf {
+				if _, isAssign := stmt.(*ast.AssignStmt); isAssign {
+					continue // a local setup assignment; keep scanning
+				}
+				if _, isDecl := stmt.(*ast.DeclStmt); isDecl {
+					continue
+				}
+				break
+			}
+			if !guardTargetsParam(stmt, p.name) {
+				continue // an unrelated guard; keep scanning for this param's
+			}
+			if def, ok := sentinelGuardDefault(stmt, p.name, p.typeStr); ok {
+				p.defaultJSON = def
+			}
+			break // first guard on this param decides — chained arms are refused
+		}
+	}
+}
+
 func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
 	sig := &goSignature{pkg: pkg, name: fd.Name.Name, params: []goParam{}}
 	if fd.Type.Params != nil {
@@ -750,6 +1117,7 @@ func buildSignature(pkg string, fd *ast.FuncDecl) *goSignature {
 			sig.returns = rets[0]
 		}
 	}
+	extractParamDefaults(sig, fd)
 	return sig
 }
 
@@ -1707,7 +2075,15 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 		cp := canonicalParam{
 			Name:     goNameToSnake(p.name),
 			Type:     canon,
-			Required: boolPtr(true), // Go has no defaults; every param is required
+			Required: boolPtr(true), // Go has no LANGUAGE-LEVEL defaults
+		}
+		// Where the port DOES give a caller an omittable argument — a sentinel
+		// guard or a zero-length variadic fallback (see extractParamDefaults) —
+		// record the value the caller actually gets. This is ADDITIVE: it sets
+		// only Default and deliberately leaves Required alone, so the param set,
+		// order, types and required flags are untouched.
+		if p.defaultJSON != "" {
+			cp.Default = json.RawMessage(p.defaultJSON)
 		}
 		// A leading `ctx context.Context` (translated to optional<float>, the
 		// reference's timeout=None slot) is OPTIONAL, not required: a caller can pass
