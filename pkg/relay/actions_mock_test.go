@@ -1039,6 +1039,118 @@ func TestRelay_BindDigitEmitsBindMethodWireKey(t *testing.T) {
 	}
 }
 
+// TestRelay_BindDigitParamsNestedUnderParamsKey is a wire-fidelity regression
+// test: Python's bind_digit(bind_params=...) writes the map under the "params"
+// wire key (call.py:1359 `params["params"] = bind_params`), NOT under
+// "bind_params". A port that spreads an opaque options bag verbatim cannot
+// carry this knob at all.
+func TestRelay_BindDigitParamsNestedUnderParamsKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-bindparams")
+	_ = call.BindDigit("456", "my.method", map[string]any{"foo": "bar"}, "", 0)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.bind_digit")
+	params, _ := entry.FrameParams()
+	nested, ok := params["params"].(map[string]any)
+	if !ok {
+		t.Fatalf("bind_params must be nested under 'params' key; got params=%v", params)
+	}
+	if nested["foo"] != "bar" {
+		t.Errorf("params.foo = %v, want bar", nested["foo"])
+	}
+	if _, has := params["bind_params"]; has {
+		t.Error("must not emit 'bind_params' key — Python uses 'params'")
+	}
+}
+
+// TestRelay_AmazonBedrockAIParamsNestedUnderParamsKey is a wire-fidelity
+// regression test: Python's amazon_bedrock(ai_params=...) writes the map under
+// the "params" wire key (call.py:1502 `params["params"] = ai_params`), NOT
+// under "ai_params".
+func TestRelay_AmazonBedrockAIParamsNestedUnderParamsKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-bedrockparams")
+	_ = call.AmazonBedrock(
+		relay.WithAIParams(map[string]any{"temperature": 0.3}),
+		relay.WithAIControlID("bedrock-aip"),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.amazon_bedrock")
+	params, _ := entry.FrameParams()
+	nested, ok := params["params"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai_params must be nested under 'params' key; got params=%v", params)
+	}
+	if nested["temperature"] != 0.3 {
+		t.Errorf("params.temperature = %v, want 0.3", nested["temperature"])
+	}
+	if _, has := params["ai_params"]; has {
+		t.Error("must not emit 'ai_params' key — Python uses 'params'")
+	}
+	if _, spilled := params["temperature"]; spilled {
+		t.Error("ai_params keys must not spill onto the top-level frame")
+	}
+}
+
+// TestRelay_PayInputMethodEmitsInputWireKey is a wire-fidelity regression test:
+// Python's pay(input_method=...) writes the value under the "input" wire key
+// (call.py:1024 `params["input"] = input_method`), NOT under "input_method".
+// This is the third API-name→wire-key remap in the reference's call surface.
+func TestRelay_PayInputMethodEmitsInputWireKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-payinput")
+	_ = call.Pay("https://example.com/pay",
+		relay.WithPayInputMethod("dtmf"),
+		relay.WithPayControlID("pay-ctl"),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.pay")
+	params, _ := entry.FrameParams()
+	if params["input"] != "dtmf" {
+		t.Errorf("input = %v, want dtmf (Python wire key)", params["input"])
+	}
+	if _, has := params["input_method"]; has {
+		t.Error("must not emit 'input_method' key — Python uses 'input'")
+	}
+}
+
+// TestRelay_JoinConferenceStreamObjEmitsStreamWireKey is a wire-fidelity
+// regression test: Python's join_conference(stream_obj=...) writes the map
+// under the "stream" wire key (call.py:1260 `params["stream"] = stream_obj`),
+// NOT under "stream_obj". Fourth API-name→wire-key remap in the reference.
+func TestRelay_JoinConferenceStreamObjEmitsStreamWireKey(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	call := answeredInboundCall(t, client, h, "call-confstream")
+	_ = call.JoinConference("room-1",
+		relay.WithConferenceStream(map[string]any{"url": "wss://example.com/s"}),
+	)
+	time.Sleep(150 * time.Millisecond)
+	entry := h.JournalLast(t, "calling.join_conference")
+	params, _ := entry.FrameParams()
+	nested, ok := params["stream"].(map[string]any)
+	if !ok {
+		t.Fatalf("stream_obj must be emitted under 'stream' key; got params=%v", params)
+	}
+	if nested["url"] != "wss://example.com/s" {
+		t.Errorf("stream.url = %v, want wss://example.com/s", nested["url"])
+	}
+	if _, has := params["stream_obj"]; has {
+		t.Error("must not emit 'stream_obj' key — Python uses 'stream'")
+	}
+}
+
 // TestRelay_AmazonBedrockDispatchesOwnMethod is a wire-fidelity regression test:
 // Python's amazon_bedrock() calls _execute("amazon_bedrock", params) — the
 // dedicated RELAY method — with NO "engine" field. A prior Go bug routed it to
