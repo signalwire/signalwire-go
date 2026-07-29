@@ -292,7 +292,14 @@ signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_ai_ag
 # accepts it. Removing the line changes drift by 0. The header note above about "the
 # one ctor still listed below" therefore no longer applies to anything.
 
-# Fluent builders return the receiver (*Self chaining); Python returns None/bool.
+# SWMLBuilder return-type divergence. The REFERENCE returns `Self` for chaining
+# (core/swml_builder.py:235 add_section, :266 reset). Go's equivalents do not:
+# pkg/swml/service.go:659 AddSection returns bool, pkg/swml/document.go:36 Reset
+# returns nothing. Verified at source 2026-07-29. (The previous wording here said
+# "Python returns None/bool", which is wrong in the reference's direction — but a
+# REAL return divergence does exist, so these entries stay until it is folded.)
+signalwire.core.swml_builder.SWMLBuilder.add_section: return-type divergence — reference returns Self for chaining (core/swml_builder.py:235); Go AddSection (pkg/swml/service.go:659) returns bool, reporting whether the section was newly created. Folding to the receiver would DESTROY that signal, so this needs a ruling on how Go surfaces the bool, not a silent fold.
+signalwire.core.swml_builder.SWMLBuilder.reset: return-type divergence — reference returns Self for chaining (core/swml_builder.py:266); Go Reset (pkg/swml/document.go:36) returns nothing. Foldable in principle by returning the receiver — that is a go surface change, tracked rather than excused permanently.
 
 # Go accessors/handlers use Go-idiomatic types (structs, error tuples folded to
 # multi-return, RawMessage) that differ from the Python signature shapes.
