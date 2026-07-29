@@ -242,15 +242,6 @@ signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: go-typ
 ## SWMLService: Go-idiomatic serve/auth/routing signatures
 signalwire.core.swml_service.SWMLService.serve: go-idiom-noargs — Go Serve() serves with configured host/port/TLS where Python serve(host, port, ssl_cert, ssl_key, ssl_enabled, domain) passes them per-call (Go configures them on the service); same serve behavior
 signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: go-multi-return — Go GetBasicAuthCredentials() returns (user, pass) as a two-value multi-return; Python get_basic_auth_credentials(include_source) has an include_source flag toggling a 2- vs 3-tuple return (GetBasicAuthCredentialsWithSource is the Go 3-value variant); same credential contract
-# register_routing_callback: entry DELETED 2026-07-29 as PROVEN FALSE. It claimed
-# "Go RegisterRoutingCallback(path string, cb swml.RoutingCallback) places the path
-# first ... Pure param-order swap". The real declarations are CALLBACK-first on both
-# sides — pkg/swml/service.go:1197 `RegisterRoutingCallback(cb RoutingCallback, path
-# string)`, pkg/agent/agent.go:2617 `RegisterRoutingCallback(callbackFn
-# swml.RoutingCallback, path string)`, reference core/swml_service.py:918 +
-# core/mixins/web_mixin.py:1281 `register_routing_callback(callback_fn, path="/sip")`.
-# The entry excused a divergence that does not exist; removing it changes drift by 0
-# and restores the symbol to normal comparison.
 
 ## FunctionResult: functional-options + genuine port extension
 signalwire.core.function_result.FunctionResult.join_conference: go-idiom-options-collapse — Go JoinConference(name, opts ...) collapses Python's 17 conference keyword args into functional options; same conference action
@@ -302,12 +293,9 @@ signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.set_ai_ag
 # one ctor still listed below" therefore no longer applies to anything.
 
 # Fluent builders return the receiver (*Self chaining); Python returns None/bool.
-signalwire.core.swml_builder.SWMLBuilder.add_section: Go returns the builder (*PomBuilder/*Service) for chaining; Python returns None
-signalwire.core.swml_builder.SWMLBuilder.reset: Go returns the builder for chaining; Python returns None
 
 # Go accessors/handlers use Go-idiomatic types (structs, error tuples folded to
 # multi-return, RawMessage) that differ from the Python signature shapes.
-signalwire.agent_server.AgentServer.register_global_routing_callback: go-idiom param-order — Go RegisterGlobalRoutingCallback(path string, cb swml.RoutingCallback) places the path first (Go registration convention) where Python register_global_routing_callback(callback_fn, path) places the callback first; the callback TYPE now matches exactly (callable<list<dict<string,any>,dict<string,any>>,optional<string>>). Pure param-order swap.
 signalwire.core.security.session_manager.SessionManager.set_session_metadata: Go SetSessionMetadata(sessionID, metadata map) stores a map and returns void; Python set_session_metadata(call_id,key,value) sets one key and returns bool
 signalwire.core.pom_builder.PomBuilder.add_section: Go AddSection omits the nested `subsections` kwarg (subsections are added via AddSubsection); param shape differs
 signalwire.core.pom_builder.PomBuilder.add_to_section: Go AddToSection takes (title, body, bullets); Python also accepts a singular `bullet` — folded into `bullets` in Go
