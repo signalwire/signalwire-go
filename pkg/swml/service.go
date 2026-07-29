@@ -971,13 +971,21 @@ func (s *Service) AI(opts AIOptions) error {
 	// {"prompt": {"pom": ...}}, matching Python SWMLBuilder.ai. Prior Go
 	// code emitted a bare string/slice under "prompt" which passed when no
 	// handler validated the ai verb, but fails the handler added in PR #86.
+	// The object form is not merely canonical — it is a WIRE requirement: the
+	// AI engine (mod_openai app_config.c) checks !cJSON_IsObject(prompt) and
+	// aborts the call on a bare value. The same contract applies to
+	// post_prompt below, which the handler validates for neither.
 	if opts.PromptText != nil {
 		cfg["prompt"] = map[string]any{"text": *opts.PromptText}
 	} else if len(opts.PromptPOM) > 0 {
 		cfg["prompt"] = map[string]any{"pom": opts.PromptPOM}
 	}
+	// post_prompt carries the SAME object contract as prompt: the engine checks
+	// `!cJSON_IsObject(post_prompt)` (mod_openai app_config.c) and, on a bare
+	// value, fires calling.error with fatal:true and ABORTS THE CALL. Wrap it
+	// exactly as AIVerbHandler.BuildConfig and the reference SWMLBuilder.ai do.
 	if opts.PostPrompt != nil {
-		cfg["post_prompt"] = *opts.PostPrompt
+		cfg["post_prompt"] = map[string]any{"text": *opts.PostPrompt}
 	}
 	if opts.PostPromptURL != nil {
 		cfg["post_prompt_url"] = *opts.PostPromptURL
