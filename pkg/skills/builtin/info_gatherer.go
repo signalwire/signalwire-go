@@ -30,8 +30,14 @@ func NewInfoGatherer(params map[string]any) skills.SkillBase {
 	}
 }
 
+// SupportsMultipleInstances returns true: several question sets can run on one
+// agent, distinguished by the "prefix" param.
 func (s *InfoGathererSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "info_gatherer_<prefix>", or the bare "info_gatherer"
+// when no prefix is configured. Note the prefix is read from the struct field,
+// which Setup populates — SkillManager.LoadSkill computes the instance key
+// BEFORE calling Setup, so at dedup time this always reports the unprefixed key.
 func (s *InfoGathererSkill) GetInstanceKey() string {
 	if s.prefix != "" {
 		return "info_gatherer_" + s.prefix
@@ -39,6 +45,13 @@ func (s *InfoGathererSkill) GetInstanceKey() string {
 	return "info_gatherer"
 }
 
+// Setup reads the required "questions" param, which must be a non-empty []any
+// of maps each carrying a string "key_name" and "question_text"; unlike
+// custom_skills, a malformed entry fails the whole load rather than being
+// skipped. It then reads the optional "prefix", which namespaces both tool names
+// ("<prefix>_start_questions" / "<prefix>_submit_answer", else
+// "start_questions" / "submit_answer") and the global-data namespace, and the
+// optional "completion_message" returned once every question is answered.
 func (s *InfoGathererSkill) Setup() bool {
 	questionsRaw, ok := s.Params["questions"]
 	if !ok {
@@ -81,6 +94,14 @@ func (s *InfoGathererSkill) Setup() bool {
 	return true
 }
 
+// RegisterTools returns the two question-flow tools, both handled locally in Go.
+// The start tool takes no arguments and returns the first question; the submit
+// tool records the caller's "answer", optionally gated on "confirmed_by_user",
+// advances the question index, and returns the next question or the completion
+// message. Progress lives in the agent's global data under this instance's
+// namespace, not in the skill struct, so the flow is stateless across requests.
+// Neither tool marks any parameter required, matching the reference
+// (info_gatherer/skill.py:170).
 func (s *InfoGathererSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
@@ -247,6 +268,9 @@ func (s *InfoGathererSkill) getNamespace() string {
 	return "skill:" + s.GetInstanceKey()
 }
 
+// GetGlobalData seeds this instance's namespace in the agent's global data with
+// the question list, a question_index of 0, and an empty answers array — the
+// state the submit-answer handler reads and rewrites on every call.
 func (s *InfoGathererSkill) GetGlobalData() map[string]any {
 	return map[string]any{
 		s.getNamespace(): map[string]any{
@@ -257,6 +281,10 @@ func (s *InfoGathererSkill) GetGlobalData() map[string]any {
 	}
 }
 
+// GetPromptSections returns one POM section, titled with the instance key, that
+// instructs the agent to confirm readiness, call the start tool, then submit each
+// answer in turn. Every configured question is listed as a numbered bullet, so
+// the model can see the full sequence up front.
 func (s *InfoGathererSkill) GetPromptSections() []map[string]any {
 	var questionBullets []string
 	for i, q := range s.questions {
@@ -280,6 +308,9 @@ func (s *InfoGathererSkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetParameterSchema extends the common skill parameters with the required
+// "questions" array (each item taking key_name, question_text, and the optional
+// confirm and prompt_add) plus the optional "prefix" and "completion_message".
 func (s *InfoGathererSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["questions"] = map[string]any{

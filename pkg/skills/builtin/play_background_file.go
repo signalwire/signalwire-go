@@ -30,13 +30,25 @@ func NewPlayBackgroundFile(params map[string]any) skills.SkillBase {
 	}
 }
 
+// SupportsMultipleInstances returns true: several playback sets can coexist on
+// one agent, each under its own "tool_name".
 func (s *PlayBackgroundFileSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "play_background_file_<tool_name>", defaulting
+// tool_name to "play_background_file".
 func (s *PlayBackgroundFileSkill) GetInstanceKey() string {
 	name := s.GetParamString("tool_name", "play_background_file")
 	return "play_background_file_" + name
 }
 
+// Setup reads the required "files" param, a non-empty []any of file
+// configurations. Per entry, a non-map, or one missing "key" or "url", is
+// skipped; but an entry that HAS both and then fails validation FAILS the whole
+// load — that is, an empty "description", a "key" containing anything outside
+// [A-Za-z0-9_-], or a "wait" field that is not a bool. The key charset is
+// enforced because the key is concatenated into the tool's "start_<key>" enum
+// values. Setup returns false when "files" is absent, not a []any, empty, or
+// when every entry was skipped.
 func (s *PlayBackgroundFileSkill) Setup() bool {
 	s.toolName = s.GetParamString("tool_name", "play_background_file")
 
@@ -81,6 +93,13 @@ func (s *PlayBackgroundFileSkill) Setup() bool {
 	return len(s.files) > 0
 }
 
+// RegisterTools returns one playback-control tool whose required "action"
+// argument is enum-constrained to "start_<key>" for each configured file plus
+// "stop"; each option's description is folded into the parameter description so
+// the model can choose by content. The handler emits the SWAIG
+// play_background_file action (with per-file "wait", and post-process set) or
+// stop_background_file. wait_for_fillers and skip_fillers are set on the tool,
+// matching the reference, so filler audio does not overlap the playback.
 func (s *PlayBackgroundFileSkill) RegisterTools() []skills.ToolRegistration {
 	// Build enum values and dynamic action description matching Python get_tools() behavior.
 	enumVals := make([]string, 0, len(s.files)+1)
@@ -155,6 +174,9 @@ func (s *PlayBackgroundFileSkill) handlePlayback(args map[string]any, _ map[stri
 	return swaig.NewFunctionResult("Unknown action. Use start_<key> or stop.")
 }
 
+// GetParameterSchema extends the common skill parameters with the required
+// "files" array, each item requiring key, description and url, with an optional
+// boolean "wait" defaulting to false.
 func (s *PlayBackgroundFileSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["files"] = map[string]any{

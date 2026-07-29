@@ -575,14 +575,27 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 // is otherwise a straight pass-through.
 type skillAgent struct{ a *AgentBase }
 
+// AddHints appends speech-recognition hints to the agent's hint list. Hints
+// accumulate; they are neither deduplicated nor replaced.
 func (s *skillAgent) AddHints(hints []string) { s.a.AddHints(hints) }
 
+// UpdateGlobalData merges data into the agent's global data — a shallow
+// key-by-key merge, so an existing key is overwritten and keys absent from data
+// survive.
 func (s *skillAgent) UpdateGlobalData(data map[string]any) { s.a.UpdateGlobalData(data) }
 
+// PromptAddSection appends a POM section titled title. An empty body or an
+// empty bullets slice is omitted from the rendered section rather than emitted
+// as an empty value.
 func (s *skillAgent) PromptAddSection(title, body string, bullets []string) {
 	s.a.PromptAddSection(title, body, bullets)
 }
 
+// DefineTool registers reg as a SWAIG tool on the agent, translating the
+// skills.ToolRegistration into an agent.ToolDefinition. Registration is keyed by
+// reg.Name, so re-registering the same name replaces the previous definition
+// while keeping its position in the tool order. Secure is passed through
+// unchanged, preserving the tri-state contract in which nil means SECURE.
 func (s *skillAgent) DefineTool(reg skills.ToolRegistration) {
 	handler := reg.Handler
 	td := ToolDefinition{

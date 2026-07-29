@@ -47,8 +47,14 @@ func NewNativeVectorSearch(params map[string]any) skills.SkillBase {
 	}
 }
 
+// SupportsMultipleInstances returns true: one agent can search several indexes,
+// each instance under its own tool name and index.
 func (s *NativeVectorSearchSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "native_vector_search_<tool_name>_<index_name>",
+// defaulting to "search_knowledge" and "default". Including the index in the key
+// means the same tool name against two different indexes is two distinct
+// instances.
 func (s *NativeVectorSearchSkill) GetInstanceKey() string {
 	toolName := s.GetParamString("tool_name", "search_knowledge")
 	indexName := s.GetParamString("index_name", "default")
@@ -113,6 +119,20 @@ func allowPrivateURLs() bool {
 	return false
 }
 
+// Setup configures the remote search client and PROBES it before accepting the
+// load. "remote_url" is required; it is checked by validateRemoteURL (SSRF
+// guard: http/https only, hostname must resolve, and no loopback, link-local or
+// private-range address is accepted unless SWML_ALLOW_PRIVATE_URLS is truthy).
+// Credentials embedded as user:pass@host are extracted into a base64 basic-auth
+// header and STRIPPED from the stored base URL, so they are not re-sent in a
+// URL or logged with it. Setup then issues GET <base>/health with a 5s timeout
+// and returns false — aborting the load — on a build/connect error, a 401, or
+// any non-200 status.
+//
+// Other params: tool_name (default "search_knowledge"), index_name ("default"),
+// count (5), similarity_threshold (0.0), tags, response_prefix/postfix,
+// max_content_length (32768), and no_results_message, whose {query} placeholder
+// is filled at call time.
 func (s *NativeVectorSearchSkill) Setup() bool {
 	s.toolName = s.GetParamString("tool_name", "search_knowledge")
 	s.remoteURL = s.GetParamString("remote_url", "")
@@ -197,6 +217,12 @@ func (s *NativeVectorSearchSkill) Setup() bool {
 	return true
 }
 
+// RegisterTools returns the single search tool, whose description is
+// overridable via the "description" param. It takes a "query" string and an
+// optional per-call "count" that overrides the configured default. The handler
+// runs locally in Go, POSTing to the remote search server with the basic-auth
+// header derived in Setup, and formats the hits into one response bounded by
+// max_content_length.
 func (s *NativeVectorSearchSkill) RegisterTools() []skills.ToolRegistration {
 	desc := s.GetParamString("description", "Search the knowledge base for information")
 	return []skills.ToolRegistration{
@@ -351,6 +377,9 @@ func (s *NativeVectorSearchSkill) handleSearch(args map[string]any, _ map[string
 	return swaig.NewFunctionResult(sb.String())
 }
 
+// GetHints returns generic search vocabulary plus any strings supplied in the
+// "hints" param, so a deployment can bias recognition toward its own domain
+// terms.
 func (s *NativeVectorSearchSkill) GetHints() []string {
 	hints := []string{"search", "find", "look up", "documentation", "knowledge base"}
 	if customHints, ok := s.Params["hints"].([]any); ok {
@@ -363,6 +392,9 @@ func (s *NativeVectorSearchSkill) GetHints() []string {
 	return hints
 }
 
+// GetPromptSections returns one POM section naming the configured tool, or nil
+// when the "skip_prompt" param is true — the guard every concrete override owes
+// the base class.
 func (s *NativeVectorSearchSkill) GetPromptSections() []map[string]any {
 	// Honor skip_prompt param (mirrors Python SkillBase.get_prompt_sections() check)
 	if s.GetParamBool("skip_prompt", false) {
@@ -381,12 +413,20 @@ func (s *NativeVectorSearchSkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetGlobalData publishes a search_mode sentinel of "remote". The reference
+// returns an empty dict in remote mode because it has no local search-engine
+// stats to report; this returns an equivalent non-nil map carrying the mode.
 func (s *NativeVectorSearchSkill) GetGlobalData() map[string]any {
 	// Python returns {} for remote mode (no local search engine stats available).
 	// Go returns an equivalent non-nil map with a mode sentinel.
 	return map[string]any{"search_mode": "remote"}
 }
 
+// GetParameterSchema extends the common skill parameters with the search
+// configuration: the required remote_url, plus index_name, count (1-20),
+// similarity_threshold (0.0-1.0), tags, response_prefix, response_postfix,
+// max_content_length (minimum 1000), no_results_message, hints, and the tool
+// description.
 func (s *NativeVectorSearchSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["remote_url"] = map[string]any{

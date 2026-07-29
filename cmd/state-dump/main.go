@@ -33,10 +33,18 @@ import (
 // analog of the corpus's throwaway __register_verb__ handler.
 type greetVerbHandler struct{ name string }
 
+// GetVerbName returns the SWML verb name this handler is registered under
+// ("greet" for the corpus case).
 func (h greetVerbHandler) GetVerbName() string { return h.name }
+
+// ValidateConfig accepts any config: it always reports valid with no error
+// strings, since the corpus case only exercises registration, not validation.
 func (h greetVerbHandler) ValidateConfig(map[string]any) (bool, []string) {
 	return true, nil
 }
+
+// BuildConfig returns params unchanged — the identity build, so the verb
+// renders exactly what the caller supplied.
 func (h greetVerbHandler) BuildConfig(params map[string]any) (map[string]any, error) {
 	return params, nil
 }

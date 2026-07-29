@@ -119,13 +119,28 @@ func (s *SpiderSkill) SetRemoveXPaths(xpaths []string) {
 	s.removeXPaths = append([]string(nil), xpaths...)
 }
 
+// SupportsMultipleInstances returns true: several spider configurations can
+// coexist on one agent, each under its own "tool_name".
 func (s *SpiderSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "spider_<tool_name>", defaulting tool_name to
+// "spider". Note the default differs from RegisterTools, which treats an unset
+// tool_name as "no prefix" rather than the literal "spider".
 func (s *SpiderSkill) GetInstanceKey() string {
 	name := s.GetParamString("tool_name", "spider")
 	return "spider_" + name
 }
 
+// Setup reads the crawl configuration and validates the numeric bounds. It
+// returns false — aborting the load — when "delay" is negative,
+// "concurrent_requests" is outside 1..20, "max_pages" is below 1, or
+// "max_depth" is negative. All other params take defaults: max_text_length
+// 3000, timeout 5s, tool_name "" (no tool-name prefix), delay 0.1s,
+// concurrent_requests 5, max_pages 1, max_depth 0, extract_type "fast_text",
+// clean_text true, cache_enabled true, follow_robots_txt FALSE, and user_agent
+// "Spider/1.0 (SignalWire AI Agent)". Non-string values in the "headers" map
+// are dropped rather than rejected. When caching is enabled the in-memory page
+// cache is allocated here; Cleanup releases it.
 func (s *SpiderSkill) Setup() bool {
 	// Core params
 	s.maxTextLength = s.GetParamInt("max_text_length", 3000)
@@ -289,6 +304,18 @@ func (s *SpiderSkill) GetParameterSchema() map[string]map[string]any {
 	return schema
 }
 
+// RegisterTools returns the three scraping tools — scrape_url, crawl_site and
+// extract_structured_data — each prefixed with "<tool_name>_" when a tool_name
+// was configured, so two instances do not collide. All three are handled
+// locally in Go: they GET the target with the configured user agent, headers
+// and timeout, honoring the page cache.
+//
+// scrape_url takes a required "url" and returns extracted text truncated to
+// max_text_length. crawl_site takes a required "start_url" and walks up to
+// max_pages/max_depth. extract_structured_data takes a required "url" and
+// applies the CSS/XPath expressions from the skill's "selectors" CONFIG param —
+// not a call argument — so it replies "No selectors configured" when that param
+// is absent or empty.
 func (s *SpiderSkill) RegisterTools() []skills.ToolRegistration {
 	prefix := ""
 	if s.toolName != "" {
@@ -799,6 +826,8 @@ func stripHTMLTags(s string) string {
 	return s
 }
 
+// GetHints returns speech-recognition hints for scraping and crawling
+// vocabulary.
 func (s *SpiderSkill) GetHints() []string {
 	return []string{"scrape", "crawl", "extract", "web page", "website", "get content from", "fetch data from", "spider"}
 }

@@ -624,11 +624,19 @@ func pythonTypeAnnotation(def any) string {
 // fancy-regex semantics of Python's jsonschema-rs).
 type regexp2Regexp regexp2.Regexp
 
+// MatchString reports whether the pattern matches anywhere in str. The
+// jsonschema.Regexp interface has no error channel, so a regexp2 evaluation
+// error (e.g. the backtracking-timeout guard tripping) is treated as "no
+// match" — the same conservative outcome as a pattern that simply does not
+// match, which keeps a pathological input from failing the whole validation
+// with an unrelated engine error.
 func (r *regexp2Regexp) MatchString(str string) bool {
 	matched, err := (*regexp2.Regexp)(r).MatchString(str)
 	return err == nil && matched
 }
 
+// String returns the original pattern source the regexp was compiled from,
+// which the validator embeds in "does not match pattern ..." error messages.
 func (r *regexp2Regexp) String() string {
 	return (*regexp2.Regexp)(r).String()
 }

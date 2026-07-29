@@ -29,8 +29,17 @@ func NewMath(params map[string]any) skills.SkillBase {
 	}
 }
 
+// Setup always succeeds: the skill takes no configuration and evaluates
+// expressions entirely in-process.
 func (s *MathSkill) Setup() bool { return true }
 
+// RegisterTools returns the single "calculate" tool, taking one "expression"
+// string. Evaluation is local: the expression is parsed with Go's own
+// go/parser and walked, so only numeric literals, parentheses, unary +/-, and
+// the binary operators + - * / % are accepted — identifiers, calls, and the
+// power operator are rejected, and division or modulo by zero is an error. Any
+// rejection surfaces to the caller as one generic "Invalid expression" reply.
+// No parameter is marked required, matching the reference (math/skill.py:33).
 func (s *MathSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
@@ -140,6 +149,8 @@ func evalNode(node ast.Expr) (float64, error) {
 	}
 }
 
+// GetPromptSections returns one POM section describing the calculate tool, the
+// supported operators, and parenthesized expressions.
 func (s *MathSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{

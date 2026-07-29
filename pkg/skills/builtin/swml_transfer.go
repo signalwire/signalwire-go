@@ -33,13 +33,25 @@ func NewSWMLTransfer(params map[string]any) skills.SkillBase {
 	}
 }
 
+// SupportsMultipleInstances returns true: several transfer tables can coexist on
+// one agent, each under its own "tool_name".
 func (s *SWMLTransferSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "swml_transfer_<tool_name>", defaulting tool_name to
+// "transfer_call".
 func (s *SWMLTransferSkill) GetInstanceKey() string {
 	name := s.GetParamString("tool_name", "transfer_call")
 	return "swml_transfer_" + name
 }
 
+// Setup reads the transfer table and tool wording. "transfers" is required: a
+// non-empty map from destination pattern to a destination config, and Setup
+// returns false — aborting the load — when it is absent, not a map, or empty.
+// The optional "required_fields" maps a field name to its description; non-string
+// values are dropped rather than rejected. Other params: tool_name
+// ("transfer_call"), description, parameter_name ("transfer_type"),
+// parameter_description, default_message (the reply when nothing matches) and
+// default_post_process (false).
 func (s *SWMLTransferSkill) Setup() bool {
 	s.toolName = s.GetParamString("tool_name", "transfer_call")
 	s.description = s.GetParamString("description", "Transfer call based on pattern matching")
@@ -72,6 +84,23 @@ func (s *SWMLTransferSkill) Setup() bool {
 	return true
 }
 
+// RegisterTools returns the single transfer tool. Its parameter schema is the
+// primary transfer-type param (named by parameter_name) plus one string
+// parameter per configured required field, all marked required. The primary
+// param carries NO enum of the transfer keys, matching the reference
+// (swml_transfer/skill.py:186): the keys are pattern-matching expressions, not
+// a closed value set.
+//
+// The handler resolves the caller's transfer type against the transfers table
+// by EXACT key lookup, so a config key written as a regex literal (/sales/i)
+// matches only a caller value spelled the same way. On a hit it replies with the
+// config's "message" (default "Transferring you now...") and emits either an
+// swml_transfer action for a "url" destination or a connect action for an
+// "address" destination; "final" defaults to true for url, and is left unset for
+// address so Connect applies the reference default. On a miss it replies with
+// default_message and performs no transfer. Either way, any collected required
+// fields are written to global data under "call_data" so the next agent can read
+// them.
 func (s *SWMLTransferSkill) RegisterTools() []skills.ToolRegistration {
 	// Build properties: primary param + required_fields. The primary param is a
 	// plain required string with NO enum — Python's swml_transfer does not put
@@ -218,6 +247,11 @@ func cleanPattern(pattern string) (string, bool) {
 	return p, true
 }
 
+// GetHints derives speech-recognition hints from the transfer keys: each key is
+// stripped of its /.../ or /.../i regex delimiters, alternations are split on
+// "|" into separate hints, and catch-all patterns (empty, or starting with ".")
+// are skipped. The generic words "transfer", "connect", "speak to" and "talk to"
+// are appended, in the reference's order.
 func (s *SWMLTransferSkill) GetHints() []string {
 	hints := []string{}
 
@@ -244,6 +278,12 @@ func (s *SWMLTransferSkill) GetHints() []string {
 	return hints
 }
 
+// GetPromptSections returns two POM sections — "Transferring", listing each
+// non-catch-all pattern with the destination it resolves to, and "Transfer
+// Instructions", covering how to call the tool, which parameter carries the
+// destination type, the required fields to collect first (noting they are saved
+// under "call_data"), and that control returns to the agent afterward. It
+// returns an empty slice when no transfers are configured.
 func (s *SWMLTransferSkill) GetPromptSections() []map[string]any {
 	if len(s.transfers) == 0 {
 		return []map[string]any{}
@@ -301,6 +341,10 @@ func (s *SWMLTransferSkill) GetPromptSections() []map[string]any {
 	return sections
 }
 
+// GetParameterSchema extends the common skill parameters with the required
+// "transfers" table plus the optional description, parameter_name,
+// parameter_description, default_message, default_post_process and
+// required_fields.
 func (s *SWMLTransferSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["transfers"] = map[string]any{
