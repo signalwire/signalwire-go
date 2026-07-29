@@ -242,7 +242,15 @@ signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: go-typ
 ## SWMLService: Go-idiomatic serve/auth/routing signatures
 signalwire.core.swml_service.SWMLService.serve: go-idiom-noargs — Go Serve() serves with configured host/port/TLS where Python serve(host, port, ssl_cert, ssl_key, ssl_enabled, domain) passes them per-call (Go configures them on the service); same serve behavior
 signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: go-multi-return — Go GetBasicAuthCredentials() returns (user, pass) as a two-value multi-return; Python get_basic_auth_credentials(include_source) has an include_source flag toggling a 2- vs 3-tuple return (GetBasicAuthCredentialsWithSource is the Go 3-value variant); same credential contract
-signalwire.core.swml_service.SWMLService.register_routing_callback: go-idiom param-order — Go RegisterRoutingCallback(path string, cb swml.RoutingCallback) places the path first (consistent with every other Go registration method: RegisterVerbHandler, RegisterGlobalRoutingCallback) where Python register_routing_callback(callback_fn, path="/sip") places the callback first; the callback TYPE now matches exactly (callable<list<dict<string,any>,dict<string,any>>,optional<string>> = (body, headers) -> route|nil). Pure param-order swap, same routing registration (dotnet documents the identical (path, callback) swap).
+# register_routing_callback: entry DELETED 2026-07-29 as PROVEN FALSE. It claimed
+# "Go RegisterRoutingCallback(path string, cb swml.RoutingCallback) places the path
+# first ... Pure param-order swap". The real declarations are CALLBACK-first on both
+# sides — pkg/swml/service.go:1197 `RegisterRoutingCallback(cb RoutingCallback, path
+# string)`, pkg/agent/agent.go:2617 `RegisterRoutingCallback(callbackFn
+# swml.RoutingCallback, path string)`, reference core/swml_service.py:918 +
+# core/mixins/web_mixin.py:1281 `register_routing_callback(callback_fn, path="/sip")`.
+# The entry excused a divergence that does not exist; removing it changes drift by 0
+# and restores the symbol to normal comparison.
 
 ## FunctionResult: functional-options + genuine port extension
 signalwire.core.function_result.FunctionResult.join_conference: go-idiom-options-collapse — Go JoinConference(name, opts ...) collapses Python's 17 conference keyword args into functional options; same conference action
