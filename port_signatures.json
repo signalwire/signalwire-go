@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 54f4ea33bccd4b7219321d54863eadfbe63a2e2a (go/ast walker)",
+  "generated_from": "signalwire-go @ d2359cb17094ad601bceb7f2209081c64e1da8b8 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -3787,6 +3787,16 @@
         "reset_logging_configuration": {
           "params": [],
           "returns": "void"
+        },
+        "strip_control_chars": {
+          "params": [
+            {
+              "name": "event_dict",
+              "type": "dict\u003cstring,any\u003e",
+              "required": true
+            }
+          ],
+          "returns": "dict\u003cstring,any\u003e"
         }
       }
     },

@@ -120,6 +120,44 @@ func IsSuppressed() bool {
 	return suppressed
 }
 
+// isControlChar reports whether r is one of the control characters the
+// reference strips: the C0 range minus tab/newline/carriage-return, plus DEL and
+// the C1 range. Mirrors the reference's `_CONTROL_CHAR_RE`
+// (`[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]`) — tab (0x09), LF (0x0a) and CR (0x0d)
+// are legal in a log line and deliberately survive.
+func isControlChar(r rune) bool {
+	return (r >= 0x00 && r <= 0x08) ||
+		r == 0x0b || r == 0x0c ||
+		(r >= 0x0e && r <= 0x1f) ||
+		(r >= 0x7f && r <= 0x9f)
+}
+
+// stripControlCharsValue removes control characters from a single string. This is
+// the unit the log emitter needs: StripControlChars is the reference's event-map
+// contract, but a line-oriented writer has one string, not a map. Both go through
+// this function so the two can never diverge.
+func stripControlCharsValue(value string) string {
+	return strings.Map(func(r rune) rune {
+		if isControlChar(r) {
+			return -1
+		}
+		return r
+	}, value)
+}
+
+// StripControlChars removes control characters from every string value of a log
+// event map, preventing log injection. Non-string values pass through untouched
+// (the reference's `isinstance(value, str)` guard). The map is modified in place
+// and returned, mirroring the reference's structlog processor.
+func StripControlChars(eventDict map[string]any) map[string]any {
+	for key, value := range eventDict {
+		if s, ok := value.(string); ok {
+			eventDict[key] = stripControlCharsValue(s)
+		}
+	}
+	return eventDict
+}
+
 // Logger is a named logger that respects global log level settings.
 type Logger struct {
 	name   string
@@ -145,7 +183,12 @@ func (l *Logger) log(level Level, format string, args ...any) {
 		return
 	}
 	prefix := fmt.Sprintf("[%s] [%s] ", levelNames[level], l.name)
-	msg := fmt.Sprintf(format, args...)
+	// Scrub control characters BEFORE emitting — log-injection defence, and the
+	// reason the reference registers strip_control_chars in both of its structlog
+	// processor chains. Scrubbing the FORMATTED message (not the format string)
+	// is what matters: the injected bytes arrive through args at every real call
+	// site, so scrubbing earlier would miss them entirely.
+	msg := stripControlCharsValue(fmt.Sprintf(format, args...))
 	l.logger.Print(prefix + msg)
 }
 

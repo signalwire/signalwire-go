@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 54f4ea33bccd4b7219321d54863eadfbe63a2e2a",
+  "generated_from": "signalwire-go (go-native) @ d2359cb17094ad601bceb7f2209081c64e1da8b8",
   "modules": {
     "agent": {
       "classes": {
@@ -512,6 +512,7 @@
         "ParseLevel",
         "ResetLoggingConfiguration",
         "SetGlobalLevel",
+        "StripControlChars",
         "Suppress",
         "Unsuppress"
       ]

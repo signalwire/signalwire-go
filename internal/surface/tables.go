@@ -1549,8 +1549,14 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	//   - reset_logging_configuration() re-derives global config from the env
 	//     ==  logging.ResetLoggingConfiguration() (self-documented as the Go
 	//     equivalent in pkg/logging/logger.go).
+	//   - strip_control_chars(event_dict) scrubs the string values of a log event
+	//     ==  logging.StripControlChars(map[string]any). This was carried as a
+	//     PORT_OMISSIONS entry claiming "Go pkg/logging sanitises inline"; the
+	//     package contained no sanitising code at all and every log line went out
+	//     unscrubbed, so the function was implemented and the false entry removed.
 	"logging.New":                       {Module: "signalwire.core.logging_config", Name: "get_logger"},
 	"logging.ResetLoggingConfiguration": {Module: "signalwire.core.logging_config", Name: "reset_logging_configuration"},
+	"logging.StripControlChars":         {Module: "signalwire.core.logging_config", Name: "strip_control_chars"},
 
 	// Livewire
 	"livewire.FunctionTool": {Module: "signalwire.livewire", Name: "function_tool"},
