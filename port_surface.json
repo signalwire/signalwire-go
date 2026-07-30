@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 31fe57b6b96bef71d8a8554ec4be04cb4fa336e9",
+  "generated_from": "signalwire-go @ e8275884587311e1aae8a9ed4a942f73972e25c1",
   "modules": {
     "signalwire": {
       "classes": {},

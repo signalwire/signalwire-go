@@ -112,6 +112,8 @@ type CallingCollectStopParams struct {
 	NodeId    string `json:"node_id,omitempty"`
 }
 
+type CallingConferenceParams map[string]any
+
 type CallingConnectParams struct {
 	CallId            string             `json:"call_id,omitempty"`
 	Devices           [][]map[string]any `json:"devices,omitempty"`
@@ -599,6 +601,8 @@ type CallingCollectStopResult struct {
 	Data      map[string]any `json:"data,omitempty"`
 	Message   *string        `json:"message,omitempty"`
 }
+
+type CallingConferenceResult map[string]any
 
 type CallingConnectResult struct {
 	Code        string         `json:"code,omitempty"`
