@@ -105,6 +105,27 @@ var optionalTailVariadicMethods = map[string]bool{
 	"signalwire.relay.call.CollectAction.pause": true,
 }
 
+// optionalTailVariadicComposite is the COMPOSITE-element analog of the table
+// above: reference methods whose final parameter is a single optional
+// non-scalar (`headers: dict[str, str] | None = None`) that Go spells as a
+// trailing variadic of that composite (call with 0 or 1 argument). The
+// optionalScalarVariadicElemTypes fold deliberately excludes composites,
+// because for most of them a variadic genuinely means "zero or more" — so the
+// composite cases are opted in ONE AT A TIME here, each verified against both
+// the reference signature and the Go body.
+//
+// The raw translation records `list<optional<dict<string,string>>>`
+// required:false, which mismatches the reference's `optional<dict<string,string>>`;
+// this reclassifies it to the ELEMENT type so the port compares EQUAL.
+//
+// Verified: signalwire/rest/_base.py SignalWireRestError.__init__(..., headers:
+// dict[str, str] | None = None); Go NewSignalWireRestError reads only
+// `headers[0]` and treats an empty variadic as nil (client.go), i.e. exactly
+// "zero or one", never a list.
+var optionalTailVariadicComposite = map[string]bool{
+	"signalwire.rest._base.SignalWireRestError.__init__": true,
+}
+
 // optionalScalarVariadicElemTypes are the element types for which a TRAILING
 // variadic is the Go idiom for "an optional scalar whose reference default is
 // non-zero" rather than a genuine multi-argument list. Bools and numerics only:
@@ -3187,6 +3208,23 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 				}
 			}
 		}
+		// The COMPOSITE-element analog, opted in per method by
+		// optionalTailVariadicComposite: a trailing variadic of a non-scalar that
+		// the body reads as "zero or one" rather than as a list. Reclassify to the
+		// ELEMENT type, preserving whatever optional<> the element already carries.
+		if pi == len(sig.params)-1 && strings.HasPrefix(p.typeStr, "...") &&
+			optionalTailVariadicComposite[ctx] {
+			elemCanon, fail := translateType(strings.TrimPrefix(p.typeStr, "..."), aliases, ctx)
+			if fail != nil {
+				failures = append(failures, *fail)
+			} else {
+				params = append(params, canonicalParam{
+					Name: goNameToSnake(p.name), Type: elemCanon,
+					Required: boolPtr(false),
+				})
+				continue
+			}
+		}
 		// A ctor's trailing variadic `...*RequestOptions` is the Go idiom for the
 		// reference's optional `request_options: RequestOptions | None = None`.
 		// Reclassify it to the single optional class param so it compares EQUAL
@@ -3884,6 +3922,8 @@ var optionConstructs = map[string]string{
 	"server.ServerOption":           "signalwire.agent_server.AgentServer",
 	"aichat.Option":                 "signalwire.ai_chat.client.AIChatClient",
 	"security.Option":               "signalwire.core.security.session_manager.SessionManager",
+	"security.ConfigOption":         "signalwire.core.security_config.SecurityConfig",
+	"swml.SchemaUtilsOption":        "signalwire.utils.schema_utils.SchemaUtils",
 	"pom.SectionOption":             "signalwire.pom.pom.Section",
 	"contexts.GatherQuestionOption": "signalwire.core.contexts.GatherQuestion",
 	"prefabs.SurveyQuestionOption":  "signalwire.prefabs.survey.SurveyQuestion",
@@ -3918,6 +3958,13 @@ var optionParamRenames = map[string]string{ //nolint:gosec // G101: these are PA
 	// The reference Section ctor spells this one in camelCase (it is a POM
 	// wire key, not a Python identifier convention).
 	"signalwire.pom.pom.Section.numbered_bullets": "numberedBullets",
+	// swml.WithSchemaUtilsPath / WithSchemaUtilsValidation carry the
+	// `SchemaUtils` infix only to disambiguate them from the ServiceOption pair
+	// of the same plain name in the same package (service.go WithSchemaPath /
+	// WithSchemaValidation); they configure SchemaUtils' schema_path /
+	// schema_validation exactly as the reference names them.
+	"signalwire.utils.schema_utils.SchemaUtils.schema_utils_path":       "schema_path",
+	"signalwire.utils.schema_utils.SchemaUtils.schema_utils_validation": "schema_validation",
 }
 
 // ctorOptionsStructConstructs binds a CONSTRUCTOR options struct (`<pkg>.<Name>`

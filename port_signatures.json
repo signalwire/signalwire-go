@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ fb212d6607fc406d13ff7fc65508cb97699568e6 (go/ast walker)",
+  "generated_from": "signalwire-go @ 173608aef87b81f728da24f127933cf37a2a2899 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -1561,7 +1561,7 @@
                 {
                   "name": "config_paths",
                   "type": "list\u003cstring\u003e",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "void"
@@ -5347,14 +5347,9 @@
                   "kind": "self"
                 },
                 {
-                  "name": "config_file",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "service_name",
-                  "type": "string",
-                  "required": true
+                  "name": "opts",
+                  "type": "list\u003cclass:ConfigOption\u003e",
+                  "required": false
                 }
               ],
               "returns": "void"
@@ -10339,9 +10334,9 @@
                   "kind": "self"
                 },
                 {
-                  "name": "title",
-                  "type": "string",
-                  "required": true
+                  "name": "opts",
+                  "type": "list\u003cclass:SectionOption\u003e",
+                  "required": false
                 }
               ],
               "returns": "void"
@@ -14462,7 +14457,7 @@
                 {
                   "name": "headers",
                   "type": "optional\u003cdict\u003cstring,string\u003e\u003e",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "void"
@@ -23901,14 +23896,9 @@
                   "kind": "self"
                 },
                 {
-                  "name": "schema_path",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "schema_validation",
-                  "type": "bool",
-                  "required": true
+                  "name": "opts",
+                  "type": "list\u003cclass:SchemaUtilsOption\u003e",
+                  "required": false
                 }
               ],
               "returns": "void"
@@ -24644,7 +24634,7 @@
       "params": {
         "config_paths": {
           "type": "list\u003cstring\u003e",
-          "required": true
+          "required": false
         }
       }
     },
@@ -24788,11 +24778,11 @@
       "params": {
         "config_file": {
           "type": "string",
-          "required": true
+          "required": false
         },
         "service_name": {
           "type": "string",
-          "required": true
+          "required": false
         }
       }
     },
@@ -25016,7 +25006,7 @@
         },
         "title": {
           "type": "string",
-          "required": true
+          "required": false
         }
       }
     },
@@ -26212,7 +26202,7 @@
         },
         "headers": {
           "type": "optional\u003cdict\u003cstring,string\u003e\u003e",
-          "required": true
+          "required": false
         },
         "method": {
           "type": "string",
@@ -26760,11 +26750,11 @@
       "params": {
         "schema_path": {
           "type": "string",
-          "required": true
+          "required": false
         },
         "schema_validation": {
           "type": "bool",
-          "required": true
+          "required": false
         }
       }
     },
