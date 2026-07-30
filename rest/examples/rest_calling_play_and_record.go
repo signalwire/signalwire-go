@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -43,7 +44,8 @@ func main() {
 		URL:  &callURL,
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Dial failed (expected in demo): %d\n", restErr.StatusCode)
 		} else {
 			fmt.Printf("  Dial failed: %v\n", err)
@@ -63,7 +65,8 @@ func main() {
 		Play: []map[string]any{{"type": "tts", "params": map[string]any{"text": "Welcome to SignalWire."}}},
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Play failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -91,7 +94,8 @@ func main() {
 	} {
 		_, err := op.fn()
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  %s: failed (%d)\n", op.label, restErr.StatusCode)
 			}
 		} else {
@@ -103,7 +107,8 @@ func main() {
 	fmt.Println("\nRecording call...")
 	_, err = client.Calling.Record(context.Background(), callID, namespaces.CallingNamespaceRecordParams{Extras: map[string]any{"beep": true, "format": "mp3"}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Record failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -128,7 +133,8 @@ func main() {
 	} {
 		_, err := op.fn()
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  %s: failed (%d)\n", op.label, restErr.StatusCode)
 			}
 		} else {
@@ -140,7 +146,8 @@ func main() {
 	fmt.Println("\nTranscribing call...")
 	_, err = client.Calling.Transcribe(context.Background(), callID, namespaces.CallingNamespaceTranscribeParams{Extras: map[string]any{"language": "en-US"}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Transcribe failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -153,7 +160,8 @@ func main() {
 	fmt.Println("\nEnabling denoise...")
 	_, err = client.Calling.Denoise(context.Background(), callID, namespaces.CallingNamespaceDenoiseParams{})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Denoise failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -167,7 +175,8 @@ func main() {
 	hangupReason := namespaces.HangupReasonHangup
 	_, err = client.Calling.End(context.Background(), callID, namespaces.CallingNamespaceEndParams{Reason: &hangupReason})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  End call failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {

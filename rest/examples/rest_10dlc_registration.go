@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -36,7 +37,8 @@ func deref(s *string) string {
 func safe(label string, fn func() (string, error)) string {
 	id, err := fn()
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  %s: failed (%d)\n", label, restErr.StatusCode)
 		} else {
 			fmt.Printf("  %s: failed (%v)\n", label, err)
@@ -134,8 +136,11 @@ func main() {
 		}})
 		if err == nil {
 			fmt.Println("  Campaign description updated")
-		} else if restErr, ok := err.(*rest.SignalWireRestError); ok {
-			fmt.Printf("  Campaign update failed: %d\n", restErr.StatusCode)
+		} else {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
+				fmt.Printf("  Campaign update failed: %d\n", restErr.StatusCode)
+			}
 		}
 	}
 
@@ -191,8 +196,11 @@ func main() {
 				nID := string(n.ID)
 				if _, delErr := client.Registry.Numbers.Delete(context.Background(), nID); delErr == nil {
 					fmt.Printf("  Unassigned number %s\n", nID)
-				} else if restErr, ok := delErr.(*rest.SignalWireRestError); ok {
-					fmt.Printf("  Unassign failed: %d\n", restErr.StatusCode)
+				} else {
+					var restErr *rest.SignalWireRestError
+					if errors.As(delErr, &restErr) {
+						fmt.Printf("  Unassign failed: %d\n", restErr.StatusCode)
+					}
 				}
 			}
 		}

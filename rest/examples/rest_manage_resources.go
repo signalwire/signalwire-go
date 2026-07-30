@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -78,7 +79,8 @@ func main() {
 		URL:  &callURL,
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Call failed (expected in demo): %d\n", restErr.StatusCode)
 		} else {
 			fmt.Printf("  Call failed: %v\n", err)

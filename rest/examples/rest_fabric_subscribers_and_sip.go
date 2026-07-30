@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -97,7 +98,8 @@ func main() {
 	fmt.Println("\nListing fabric addresses...")
 	addresses, err := client.Fabric.Addresses.List(context.Background(), nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Fabric addresses failed: %d\n", restErr.StatusCode)
 		}
 	} else if data, ok := addresses["data"].([]any); ok {
@@ -131,7 +133,8 @@ func main() {
 		Extras:    map[string]any{"subscriber_id": innerSubID},
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Token generation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {

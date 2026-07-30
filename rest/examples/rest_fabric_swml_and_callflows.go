@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -74,7 +75,8 @@ func main() {
 	fmt.Println("\nDeploying call flow version...")
 	version, err := client.Fabric.CallFlows.DeployVersion(context.Background(), flowID, map[string]any{"label": "v1"})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Deploy failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -85,7 +87,8 @@ func main() {
 	fmt.Println("\nListing call flow versions...")
 	versions, err := client.Fabric.CallFlows.ListVersions(context.Background(), flowID, nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  List versions failed: %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -98,7 +101,8 @@ func main() {
 	fmt.Println("\nListing call flow addresses...")
 	cfAddrs, err := client.Fabric.CallFlows.ListAddresses(context.Background(), flowID, nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  List addresses failed: %d\n", restErr.StatusCode)
 		}
 	} else {

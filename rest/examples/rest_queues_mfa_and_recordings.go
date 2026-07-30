@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -36,7 +37,8 @@ func main() {
 	var queueID string
 	queue, err := client.Queues.Create(context.Background(), map[string]any{"name": "Support Queue", "max_size": 50})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Queue creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -83,7 +85,8 @@ func main() {
 		fmt.Println("\nListing queue members...")
 		members, err := client.Queues.ListMembers(context.Background(), queueID, nil)
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  Member ops failed (expected if queue empty): %d\n", restErr.StatusCode)
 			}
 		} else {
@@ -140,7 +143,8 @@ func main() {
 		"token_length": 6,
 	}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  MFA SMS failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -157,7 +161,8 @@ func main() {
 		"token_length": 6,
 	}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  MFA call failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -169,7 +174,8 @@ func main() {
 		fmt.Println("\nVerifying MFA token...")
 		verify, err := client.MFA.Verify(context.Background(), requestID, namespaces.MFANamespaceVerifyParams{Extras: map[string]any{"token": "123456"}})
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  Verify failed (expected in demo): %d\n", restErr.StatusCode)
 			}
 		} else {

@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -31,7 +32,8 @@ const callID = "demo-call-id"
 func safeCall(label string, fn func() (*namespaces.CallResponse, error)) *namespaces.CallResponse {
 	result, err := fn()
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  %s: failed (%d)\n", label, restErr.StatusCode)
 		} else {
 			fmt.Printf("  %s: failed (%v)\n", label, err)

@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -43,7 +44,8 @@ func main() {
 	fmt.Println("\nListing conference room addresses...")
 	addrs, err := client.Fabric.ConferenceRooms.ListAddresses(context.Background(), roomID, nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  List addresses failed: %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -131,7 +133,8 @@ func main() {
 		"domain": "app.example.com",
 	}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Domain assignment failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -142,7 +145,8 @@ func main() {
 	fmt.Println("\nGenerating tokens...")
 	guest, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Guest token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -155,7 +159,8 @@ func main() {
 
 	invite, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Invite token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -168,7 +173,8 @@ func main() {
 
 	embed, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Embed token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
