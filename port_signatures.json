@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ d2359cb17094ad601bceb7f2209081c64e1da8b8 (go/ast walker)",
+  "generated_from": "signalwire-go @ 97bffba3a939cacb7780bc979856d489a1058441 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2905,11 +2905,6 @@
             {
               "name": "headers",
               "type": "dict\u003cstring,string\u003e",
-              "required": false
-            },
-            {
-              "name": "body",
-              "type": "dict\u003cstring,any\u003e",
               "required": false
             },
             {
