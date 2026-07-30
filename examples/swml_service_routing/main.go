@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: swml_service_routing
 //

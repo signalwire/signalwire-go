@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Video rooms for team standup and conference streaming.
 //

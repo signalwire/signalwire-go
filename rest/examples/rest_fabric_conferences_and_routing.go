@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Conference infrastructure, cXML resources, generic routing, and tokens.
 //

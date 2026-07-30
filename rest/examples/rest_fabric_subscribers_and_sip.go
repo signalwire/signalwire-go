@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Provision a SIP-enabled user on Fabric.
 //

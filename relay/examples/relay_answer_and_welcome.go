@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Answer an inbound call and say "Welcome to SignalWire!"
 //

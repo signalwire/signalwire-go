@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Deploy a voice application end-to-end with SWML and call flows.
 //

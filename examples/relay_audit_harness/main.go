@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: relay_audit_harness
 //

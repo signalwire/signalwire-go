@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Control an active call with media operations (play, record, transcribe, denoise).
 //

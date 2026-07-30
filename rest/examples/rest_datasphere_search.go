@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Upload a document to Datasphere and run a semantic search.
 //

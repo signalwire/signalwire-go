@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: quickstart_agent
 //

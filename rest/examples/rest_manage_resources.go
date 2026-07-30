@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Create an AI agent, assign a phone number, and place a test call.
 //

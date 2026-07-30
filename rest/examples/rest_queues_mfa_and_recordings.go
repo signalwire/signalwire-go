@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Call queues, recording review, and MFA verification.
 //

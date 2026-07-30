@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: IVR menu with DTMF collection, playback, and call connect.
 //

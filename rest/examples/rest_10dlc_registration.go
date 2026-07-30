@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: 10DLC brand and campaign compliance registration.
 //

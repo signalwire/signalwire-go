@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Dial a number and play "Welcome to SignalWire" using the RELAY client.
 //

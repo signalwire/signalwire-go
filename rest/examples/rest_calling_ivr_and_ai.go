@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: IVR input collection, AI operations, and advanced call control.
 //

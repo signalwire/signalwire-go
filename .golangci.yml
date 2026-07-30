@@ -113,6 +113,17 @@ linters:
       # //exhaustive:ignore with its rationale. exhaustive still fires on a
       # genuinely missing arm in a default-less switch — the bug we want caught.
       default-signifies-exhaustive: true
+  # SCOPE: the whole tree. There are no directory-level carve-outs — library,
+  # tests, generated code, dev/codegen tooling under cmd/, and the example
+  # programs are all linted by this one config, at one bar.
+  #
+  # The example trees need a mechanical assist rather than an exclusion:
+  # examples/, rest/examples/ and relay/examples/ are standalone `package main`
+  # demos tagged `//go:build swexample`, so `./...` does not reach them. They
+  # are linted by a dedicated pass in scripts/run-lint.sh (layer 3) against THIS
+  # config — same rules, no relaxations. See that script's "example coverage"
+  # header for why the tag is `swexample` and not `ignore`, and why the
+  # multi-main directories are linted file by file.
   exclusions:
     # Lint GENERATED code too. golangci-lint's default (`lax`) auto-skips files
     # carrying the `// Code generated … DO NOT EDIT.` header — so the whole

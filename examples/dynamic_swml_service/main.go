@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: dynamic_swml_service
 //
