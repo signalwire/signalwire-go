@@ -13,8 +13,9 @@
 //
 // The corpus sentinels (__AUTH__/__AUTH_BAD__ Basic headers, __SIG__ webhook
 // signature, __REDIRECT_CB__ routing callback, __HELLO_HANDLER__ SWAIG handler,
-// __JSON__: lambda body prefix) are materialized here as the oracle materializes
-// them, so the interop cases are reproducible.
+// __JSON__: lambda body prefix, __TOKEN__:<fn>:<call_id> minted SWAIG token) are
+// materialized here as the oracle materializes them, so the interop cases are
+// reproducible.
 //
 // Run from the signalwire-go repo root:
 //
@@ -29,6 +30,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"sort"
 
@@ -162,6 +164,7 @@ func main() {
 
 	// ---- serverless (lambda) ----
 	out["http_serverless_lambda_swaig"] = serverlessSwaig()
+	out["http_serverless_lambda_swaig_valid_token"] = serverlessSwaigValidToken()
 	out["http_serverless_lambda_noauth_401"] = serverlessNoAuth()
 
 	enc := json.NewEncoder(os.Stdout)
@@ -199,11 +202,13 @@ func webhookDecision(method, url, body string, headers map[string]string, key st
 	return map[string]any{"decision": "reject", "status": rej.Status}
 }
 
-// serverlessSwaig drives the lambda adapter for the /swaig dispatch case. The
-// agent is built at route "/" so the event's root-relative "/swaig" path routes
-// correctly — matching Python's serverless dispatch, which strips the route and
-// treats rawPath as agent-relative.
-func serverlessSwaig() map[string]any {
+// newServerlessSwaigAgent builds the agent both serverless SWAIG cases drive:
+// one tool named say_hello, left at define_tool's DEFAULT security (SECURE), so
+// the token contract is actually under test. The agent is built at route "/" so
+// the event's root-relative "/swaig" path routes correctly — matching Python's
+// serverless dispatch, which strips the route and treats rawPath as
+// agent-relative.
+func newServerlessSwaigAgent() *agent.AgentBase {
 	a := agent.NewAgentBase(
 		agent.WithName("demo"),
 		agent.WithRoute("/"),
@@ -217,9 +222,16 @@ func serverlessSwaig() map[string]any {
 			return swaig.NewFunctionResult("hello there")
 		},
 	})
+	return a
+}
+
+// serverlessSwaigDispatch POSTs the corpus SWAIG body at /swaig through the
+// lambda adapter, with rawQuery appended to the path verbatim.
+func serverlessSwaigDispatch(a *agent.AgentBase, rawQuery, label string) map[string]any {
 	h := lambda.NewHandler(a.AsRouter())
 	req := events.LambdaFunctionURLRequest{
-		RawPath: "/swaig",
+		RawPath:        "/swaig",
+		RawQueryString: rawQuery,
 		Headers: map[string]string{
 			"authorization": basicAuth(user, password),
 			"content-type":  "application/json",
@@ -231,10 +243,42 @@ func serverlessSwaig() map[string]any {
 	}
 	resp, err := h.HandleFunctionURL(context.Background(), req)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "http-dump: serverless swaig failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "http-dump: serverless %s failed: %v\n", label, err)
 		os.Exit(1)
 	}
 	return reduceLambda(resp)
+}
+
+// serverlessSwaig is the NEGATIVE half of the serverless token contract: a
+// secure tool invoked with NO __token anywhere. The golden pins the REFUSAL.
+func serverlessSwaig() map[string]any {
+	return serverlessSwaigDispatch(newServerlessSwaigAgent(), "", "swaig")
+}
+
+// serverlessSwaigValidToken is the POSITIVE half: identical in every respect
+// EXCEPT that it carries a GENUINELY MINTED __token, so it pins that a valid
+// credential is ACCEPTED and the secure tool RUNS. Without it the contract
+// would only ever be proven in the refusing direction, and a port that refuses
+// EVERYTHING would sail through.
+//
+// __TOKEN__:say_hello:c1 is a DIRECTIVE, never a literal — the token is an
+// HMAC keyed by this agent's per-process SessionManager secret and it expires,
+// so it MUST be minted from the SAME agent instance the fixture drives
+// (CreateToolToken, the analog of the reference's create_tool_token).
+//
+// The token rides the QUERY STRING and the call_id rides the POST BODY —
+// the identical split the HTTP path uses. Go's lambda adapter reconstructs the
+// URL from RawQueryString (the AWS Function URL / API Gateway v2 raw field),
+// so that is where the credential is placed.
+func serverlessSwaigValidToken() map[string]any {
+	a := newServerlessSwaigAgent()
+	token := a.CreateToolToken("say_hello", "c1")
+	if token == "" {
+		fmt.Fprintln(os.Stderr, "http-dump: serverless valid-token case could not mint a token")
+		os.Exit(1)
+	}
+	rawQuery := url.Values{"__token": {token}}.Encode()
+	return serverlessSwaigDispatch(a, rawQuery, "swaig valid token")
 }
 
 func serverlessNoAuth() map[string]any {
