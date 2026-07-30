@@ -37,7 +37,11 @@ func main() {
 		fmt.Printf("  Create conference room failed: %v\n", err)
 		return
 	}
-	roomID := room["id"].(string)
+	roomID, roomIDOK := room["id"].(string)
+	if !roomIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created conference room: %s\n", roomID)
 
 	// 2. List conference room addresses
@@ -64,7 +68,11 @@ func main() {
 		fmt.Printf("  Create cXML script failed: %v\n", err)
 		return
 	}
-	cxmlID := cxml["id"].(string)
+	cxmlID, cxmlIDOK := cxml["id"].(string)
+	if !cxmlIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created cXML script: %s\n", cxmlID)
 
 	// 4. Create a cXML webhook
@@ -77,7 +85,11 @@ func main() {
 		fmt.Printf("  Create cXML webhook failed: %v\n", err)
 		return
 	}
-	cxmlWHID := cxmlWH["id"].(string)
+	cxmlWHID, cxmlWHIDOK := cxmlWH["id"].(string)
+	if !cxmlWHIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created cXML webhook: %s\n", cxmlWHID)
 
 	// 5. Create a relay application
@@ -90,7 +102,11 @@ func main() {
 		fmt.Printf("  Create relay application failed: %v\n", err)
 		return
 	}
-	relayID := relayApp["id"].(string)
+	relayID, relayIDOK := relayApp["id"].(string)
+	if !relayIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created relay application: %s\n", relayID)
 
 	// 6. Generic resources: list all
@@ -164,7 +180,7 @@ func main() {
 			fmt.Printf("  Invite token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		token := string(invite.Token)
+		token := invite.Token
 		if len(token) > 40 {
 			token = token[:40]
 		}
@@ -178,7 +194,7 @@ func main() {
 			fmt.Printf("  Embed token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		token := string(embed.Token)
+		token := embed.Token
 		if len(token) > 40 {
 			token = token[:40]
 		}

@@ -41,9 +41,11 @@ func main() {
 		if errors.As(err, &restErr) {
 			fmt.Printf("  Queue creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		queueID = queue["id"].(string)
+	} else if id, ok := queue["id"].(string); ok {
+		queueID = id
 		fmt.Printf("  Created queue: %s\n", queueID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 2. List queues

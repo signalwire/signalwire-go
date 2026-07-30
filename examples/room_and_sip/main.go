@@ -50,7 +50,7 @@ func main() {
 
 	// ---- Advanced SIP REFER with metadata ----
 	fmt.Println("=== Advanced SIP REFER ===")
-	advSip := swaig.NewFunctionResult("Transferring to technical support").
+	advSIP := swaig.NewFunctionResult("Transferring to technical support").
 		SetMetadata(map[string]any{
 			"transfer_type":   "technical_support",
 			"priority":        "high",
@@ -62,7 +62,7 @@ func main() {
 			"transfer_completed":   true,
 			"transfer_destination": "tech-specialist@pbx.company.com",
 		})
-	printResult(advSip)
+	printResult(advSIP)
 
 	// ---- Join conference ----
 	fmt.Println("=== Join Conference ===")
@@ -80,7 +80,11 @@ func main() {
 }
 
 func printResult(fr *swaig.FunctionResult) {
-	data, _ := json.MarshalIndent(fr.ToMap(), "", "  ")
+	data, err := json.MarshalIndent(fr.ToMap(), "", "  ")
+	if err != nil {
+		fmt.Printf("  render failed: %v\n", err)
+		return
+	}
 	fmt.Println(string(data))
 	fmt.Println()
 }

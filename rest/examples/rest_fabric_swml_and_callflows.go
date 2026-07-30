@@ -45,7 +45,11 @@ func main() {
 		fmt.Printf("  Create SWML script failed: %v\n", err)
 		return
 	}
-	swmlID := swml["id"].(string)
+	swmlID, swmlIDOK := swml["id"].(string)
+	if !swmlIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created SWML script: %s\n", swmlID)
 
 	// 2. List SWML scripts to confirm
@@ -68,7 +72,11 @@ func main() {
 		fmt.Printf("  Create call flow failed: %v\n", err)
 		return
 	}
-	flowID := flow["id"].(string)
+	flowID, flowIDOK := flow["id"].(string)
+	if !flowIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created call flow: %s\n", flowID)
 
 	// 4. Deploy a version of the call flow
@@ -121,7 +129,11 @@ func main() {
 		fmt.Printf("  Create webhook failed: %v\n", err)
 		return
 	}
-	webhookID := webhook["id"].(string)
+	webhookID, webhookIDOK := webhook["id"].(string)
+	if !webhookIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created webhook: %s\n", webhookID)
 
 	// 8. Clean up

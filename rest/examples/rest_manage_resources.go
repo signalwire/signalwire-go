@@ -40,7 +40,11 @@ func main() {
 		fmt.Printf("  Create agent failed: %v\n", err)
 		return
 	}
-	agentID := agent["id"].(string)
+	agentID, agentIDOK := agent["id"].(string)
+	if !agentIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created agent: %s\n", agentID)
 
 	// 2. List all AI agents

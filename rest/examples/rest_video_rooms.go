@@ -44,7 +44,11 @@ func main() {
 		fmt.Printf("  Create room failed: %v\n", err)
 		return
 	}
-	roomID := room["id"].(string)
+	roomID, roomIDOK := room["id"].(string)
+	if !roomIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created room: %s\n", roomID)
 
 	// 2. List video rooms
@@ -175,9 +179,11 @@ func main() {
 		if errors.As(err, &restErr) {
 			fmt.Printf("  Conference creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		confID = conf["id"].(string)
+	} else if id, ok := conf["id"].(string); ok {
+		confID = id
 		fmt.Printf("  Created conference: %s\n", confID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 8. List conference tokens

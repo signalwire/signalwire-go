@@ -304,6 +304,10 @@ func emitWebSearchRawBody(args map[string]any) {
 	v.Set("q", q)
 	v.Set("num", "1")
 	urlStr := base + "/customsearch/v1?" + v.Encode()
+	//nolint:gosec // G107: not SSRF — the host/scheme come from a fixed,
+	// operator-configured base URL (WEB_SEARCH_BASE_URL, defaulting to
+	// googleapis.com); only query VALUES vary and url.Values.Encode escapes
+	// them. Same justification as the shipped web_search skill.
 	resp, err := http.Get(urlStr)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "emitWebSearchRawBody: %v\n", err)

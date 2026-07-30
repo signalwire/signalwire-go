@@ -57,9 +57,11 @@ func main() {
 		if errors.As(err, &restErr) {
 			fmt.Printf("  Purchase failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		numID = number["id"].(string)
+	} else if id, ok := number["id"].(string); ok {
+		numID = id
 		fmt.Printf("  Purchased: %s\n", numID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 3. List and get owned numbers
@@ -104,9 +106,11 @@ func main() {
 		if errors.As(err, &restErr) {
 			fmt.Printf("  Group creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		groupID = group["id"].(string)
+	} else if id, ok := group["id"].(string); ok {
+		groupID = id
 		fmt.Printf("  Created group: %s\n", groupID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 6. Lookup carrier info
@@ -130,9 +134,11 @@ func main() {
 		if errors.As(err, &restErr) {
 			fmt.Printf("  Verified caller failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		callerID = caller["id"].(string)
+	} else if id, ok := caller["id"].(string); ok {
+		callerID = id
 		fmt.Printf("  Created verified caller: %s\n", callerID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 8. Get SIP profile

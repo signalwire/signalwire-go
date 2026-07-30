@@ -40,7 +40,11 @@ func main() {
 		fmt.Printf("  Create subscriber failed: %v\n", err)
 		return
 	}
-	subID := subscriber["id"].(string)
+	subID, subIDOK := subscriber["id"].(string)
+	if !subIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	innerSubID := subID
 	if sub, ok := subscriber["subscriber"].(map[string]any); ok {
 		if id, ok := sub["id"].(string); ok {
@@ -91,7 +95,11 @@ func main() {
 		fmt.Printf("  Create SIP gateway failed: %v\n", err)
 		return
 	}
-	gwID := gateway["id"].(string)
+	gwID, gwIDOK := gateway["id"].(string)
+	if !gwIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created SIP gateway: %s\n", gwID)
 
 	// 6. List fabric addresses

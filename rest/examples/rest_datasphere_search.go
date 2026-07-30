@@ -40,12 +40,16 @@ func main() {
 		fmt.Printf("  Upload failed: %v\n", err)
 		return
 	}
-	docID := doc["id"].(string)
+	docID, docIDOK := doc["id"].(string)
+	if !docIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Document created: %s (status: %v)\n", docID, doc["status"])
 
 	// 2. Wait for vectorization to complete
 	fmt.Println("\nWaiting for document to be vectorized...")
-	for i := 0; i < 30; i++ {
+	for i := range 30 {
 		time.Sleep(2 * time.Second)
 		docStatus, err := client.Datasphere.Documents.Get(context.Background(), docID)
 		if err != nil {
