@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ 37a0ea73331c4d54e5fa5cf4b1262945649721ae",
+  "generated_from": "signalwire-go @ 31fe57b6b96bef71d8a8554ec4be04cb4fa336e9",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
@@ -13,6 +13,7 @@
     "builtin.GoogleMapsSkill",
     "builtin.InfoGathererSkill",
     "builtin.JokeSkill",
+    "builtin.MCPGatewaySkill",
     "builtin.MathSkill",
     "builtin.NativeVectorSearchSkill",
     "builtin.PlayBackgroundFileSkill",

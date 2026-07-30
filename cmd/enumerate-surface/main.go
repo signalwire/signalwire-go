@@ -861,12 +861,39 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 	// compares EQUAL — not omitted). Verify each mapped method is actually
 	// present on the struct (declared or promoted) so a renamed/removed skill
 	// member fails loud instead of emitting a phantom.
+	//
+	// ORACLE-GATED, not list-gated. `SkillContractTable`'s per-skill `Methods`
+	// lists are HAND-KEPT and therefore go stale the moment the reference moves a
+	// member. They did: the reference made `SkillBase.get_prompt_sections()` a
+	// final template method that applies the `skip_prompt` guard and delegates to
+	// a PROTECTED `_get_prompt_sections()` hook (signalwire-python
+	// core/skill_base.py), so the public member now exists on the BASE ONLY while
+	// every subclass overrides the protected one. The oracle dropped the public
+	// member from 11 skills; the hand list still named it, so the projection kept
+	// emitting public surface the reference does not expose — 11 phantom
+	// missing-reference additions.
+	//
+	// So the hand list is an UPPER BOUND intersected with what the surface oracle
+	// LIVE records for that class. A member the reference stops exposing stops
+	// being projected on the next regen, with no hand edit. This is the same
+	// discipline §2's field/accessor fold uses, for the same reason: emit a member
+	// only when the Go struct genuinely has it AND the reference genuinely records
+	// it. `Synthetic` is exempt — those are members Go expresses via a factory /
+	// tool registration and the reference records under a shape the class member
+	// set does not carry 1:1 (see the SkillContract doc comment).
+	//
+	// Fail-safe: if the oracle has no member set for this (module, class) at all,
+	// fall back to the hand list rather than silently emitting an EMPTY class
+	// surface (which would read as a mass deletion of real port members). The
+	// per-leaf struct-presence panic above is unaffected — a renamed/removed Go
+	// skill member still fails loud even when the reference no longer records it.
 	for _, sc := range surfacepkg.SkillContractTable {
 		facts, ok := structs[sc.GoStruct]
 		if !ok {
 			panic(fmt.Sprintf("enumerate-surface: skill struct %q in SkillContractTable not found in walk", sc.GoStruct))
 		}
 		addClass(sc.Module, sc.ClassName)
+		refMembers := oracle[sc.Module][sc.ClassName]
 		for _, leaf := range sc.Methods {
 			goMethod := surfacepkg.SkillLeafToGoMethod(leaf)
 			// The method is satisfied either by a direct override on the skill
@@ -879,6 +906,10 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 			// on the struct fails loud.
 			if _, declared := facts.methods[goMethod]; !declared && !surfacepkg.BaseSkillProvides[goMethod] {
 				panic(fmt.Sprintf("enumerate-surface: skill %s expects Go method %q (for %q) but it is neither declared nor a BaseSkill default", sc.GoStruct, goMethod, leaf))
+			}
+			// Intersect the hand list with the LIVE oracle (see the block comment).
+			if len(refMembers) > 0 && !refMembers[leaf] {
+				continue
 			}
 			addMethod(sc.Module, sc.ClassName, leaf)
 		}

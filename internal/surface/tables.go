@@ -1300,26 +1300,24 @@ var StructTable = map[string][]ClassTarget{
 			"RemoveXPaths": "remove_xpaths",
 		},
 	}},
-	// MCPGatewaySkill is the cross-port MCP-gateway CLIENT skill, and the
-	// reference signature oracle records all SIX of its contract methods on the
-	// concrete class (not just on SkillBase). Go declares every one of them as a
-	// real public method on *MCPGatewaySkill (pkg/skills/builtin/mcp_gateway.go
-	// lines 47/146/393/407/417/438); the ONLY difference is Go's exported
-	// PascalCase spelling, which is pure language convention. A convention rename
-	// belongs in this rename table — where the signature (params AND return type)
-	// KEEPS being compared against the reference — and never in
-	// PORT_SIGNATURE_OMISSIONS.md, which would stop comparing the symbol entirely.
-	"builtin.MCPGatewaySkill": {{
-		Module: "signalwire.skills.mcp_gateway.skill", Class: "MCPGatewaySkill",
-		Methods: map[string]string{
-			"Setup":              "setup",
-			"RegisterTools":      "register_tools",
-			"GetGlobalData":      "get_global_data",
-			"GetHints":           "get_hints",
-			"GetPromptSections":  "get_prompt_sections",
-			"GetParameterSchema": "get_parameter_schema",
-		},
-	}},
+	// DELETED: "builtin.MCPGatewaySkill".
+	//
+	// It listed exactly the SIX SkillBase contract methods SkillContractTable
+	// already projects for the same (module, class) — a duplicate hand list, and
+	// the LAST one on either axis that was not gated by a reference oracle. That
+	// made it the only path by which a member the reference stopped exposing could
+	// still be emitted: when SkillBase.get_prompt_sections() became a final
+	// template method delegating to the protected _get_prompt_sections() hook, both
+	// oracles dropped the public member from MCPGatewaySkill, the oracle-gated
+	// SkillContractTable path correctly stopped emitting it, and THIS entry kept
+	// emitting it anyway — one surviving phantom addition after the other ten were
+	// fixed.
+	//
+	// Nothing is lost by the deletion: the member sets were identical, and the
+	// PascalCase↔snake_case reconciliation the entry's rationale was about is
+	// SkillLeafToGoMethod's job, applied by both enumerators on the surviving path.
+	// The unlisted-here entries above (spider.SpiderSkill) stay because each
+	// genuinely carries a member OUTSIDE the SkillBase contract set.
 	"skills.SkillRegistry": {{
 		// Python's `signalwire.skills.registry.SkillRegistry` is an
 		// instance class with `add_skill_directory` + `_external_paths`.
@@ -1654,6 +1652,17 @@ type SkillContract struct {
 // `builtin.MCPGatewaySkill` / `spider.SpiderSkill` in StructTable). The method sets
 // are the Python reference's own per-skill surface (each skill records a DIFFERENT
 // subset — see signalwire-python/signalwire/skills/<n>/skill.py).
+//
+// The Methods lists are an UPPER BOUND, not the emitted set. BOTH enumerators
+// intersect them with their OWN reference oracle (surface: python_surface.json;
+// signature: python_signatures.json), so a member the reference stops exposing
+// stops being emitted on the next regen with no hand edit here. That is not a
+// nicety: the reference made SkillBase.get_prompt_sections() a final template
+// method delegating to a PROTECTED _get_prompt_sections() hook, dropping the
+// public member from 11 skills — and this hand list, trusted directly, emitted 11
+// phantom additions on the surface axis. Keep the lists as the "what could Go
+// possibly satisfy" bound and let the oracles decide what ships.
+//
 // mcp_gateway is part of the Python reference surface
 // (signalwire.skills.mcp_gateway.skill.MCPGatewaySkill, a cross-port CLIENT skill);
 // Go's *MCPGatewaySkill implements the SAME 6 contract methods (Setup/RegisterTools/

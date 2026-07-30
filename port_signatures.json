@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 37a0ea73331c4d54e5fa5cf4b1262945649721ae (go/ast walker)",
+  "generated_from": "signalwire-go @ 31fe57b6b96bef71d8a8554ec4be04cb4fa336e9 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -23869,15 +23869,6 @@
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
-            },
             "register_tools": {
               "params": [
                 {
@@ -23940,15 +23931,6 @@
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
-            },
             "register_tools": {
               "params": [
                 {
@@ -23993,15 +23975,6 @@
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
-            },
             "register_tools": {
               "params": [
                 {
@@ -24045,15 +24018,6 @@
                 }
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
             },
             "register_tools": {
               "params": [
@@ -24161,15 +24125,6 @@
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
-            },
             "register_tools": {
               "params": [
                 {
@@ -24213,15 +24168,6 @@
                 }
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
             },
             "register_tools": {
               "params": [
@@ -24275,15 +24221,6 @@
                 }
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
             },
             "register_tools": {
               "params": [
@@ -24355,15 +24292,6 @@
                 }
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
             },
             "register_tools": {
               "params": [
@@ -24466,15 +24394,6 @@
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
-            },
             "register_tools": {
               "params": [
                 {
@@ -24536,15 +24455,6 @@
                 }
               ],
               "returns": "dict\u003cstring,dict\u003cstring,any\u003e\u003e"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list\u003cdict\u003cstring,any\u003e\u003e"
             },
             "register_tools": {
               "params": [
