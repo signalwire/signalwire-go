@@ -270,6 +270,12 @@ func (dm *DataMap) Body(data map[string]any) *DataMap {
 }
 
 // Params sets the request params for the current webhook.
+//
+// This is NOT an alias for Body: the two write different webhook keys (`params`
+// vs `body`), and only `params` is part of the webhook contract — schema.json
+// `$defs/Webhook` lists `params` among its ten permitted properties and forbids
+// everything else, and the engine's webhook readers look up `params` and never
+// `body`. Use this method for POST/PUT request data.
 func (dm *DataMap) Params(data map[string]any) *DataMap {
 	dm.paramsData = data
 	return dm
@@ -407,20 +413,27 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 // parameters maps parameter names to their definitions (each with "type", "description", "required" keys).
 // method is the HTTP method; empty selects "GET", the reference default.
 // headers are optional HTTP headers (can be nil).
-// body is an optional request body for POST/PUT (can be nil).
 // errorKeys are optional error indicator keys (can be nil).
 //
+// There is deliberately no body parameter. `body` is not a valid webhook key:
+// schema.json `$defs/Webhook` permits exactly ten properties (error_keys,
+// expressions, foreach, headers, input_args_as_params, method, output, params,
+// require_args, url) under `unevaluatedProperties: {"not": {}}`, and the engine's
+// webhook readers (mod_openai/actions.c, mod_openai/bedrock.c) never look it up.
+// Forwarding a caller-supplied body wrote an unread key onto the wire and
+// silently discarded the payload. Use Params for POST/PUT request data.
+//
 // Mirrors the reference `create_simple_api_tool(name, url, response_template,
-// parameters=None, method="GET", headers=None, body=None, error_keys=None)`.
+// parameters=None, method="GET", headers=None, error_keys=None)`.
 // parameters and headers carry a directive rather than a guard: both are
-// nil-able composites whose absence the body already tolerates (ranging nil
+// nil-able composites whose absence this function already tolerates (ranging nil
 // yields no parameters; a nil headers map emits no header keys), and Go has no
 // type-level spelling that distinguishes an optional composite from a required
 // one.
 //
 //sw:param parameters optional
 //sw:param headers optional
-func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, body map[string]any, errorKeys []string) *DataMap {
+func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, errorKeys []string) *DataMap {
 	// An empty method would otherwise reach the webhook as a blank HTTP verb.
 	if method == "" {
 		method = "GET"
@@ -445,11 +458,6 @@ func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[stri
 
 	// Add webhook
 	dm.Webhook(method, url, headers, "", false, nil)
-
-	// Add body if provided
-	if body != nil {
-		dm.Body(body)
-	}
 
 	// Add error keys if provided
 	if len(errorKeys) > 0 {

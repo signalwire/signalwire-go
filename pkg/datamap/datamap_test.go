@@ -379,8 +379,7 @@ func TestCreateSimpleApiTool_OmittedDefaults(t *testing.T) {
 		nil, // parameters omitted
 		"",  // method omitted
 		nil, // headers omitted
-		nil,
-		nil,
+		nil, // errorKeys omitted
 	)
 
 	result := dm.ToSwaigFunction()
@@ -416,7 +415,6 @@ func TestCreateSimpleApiTool(t *testing.T) {
 		},
 		"GET",
 		map[string]string{"X-Api-Key": "key123"},
-		nil,
 		[]string{"error", "message"},
 	)
 
@@ -461,7 +459,21 @@ func TestCreateSimpleApiTool(t *testing.T) {
 	}
 }
 
-func TestCreateSimpleApiToolWithBody(t *testing.T) {
+// TestCreateSimpleApiTool_EmitsNoBodyKey pins that the POST path emits NO `body`
+// key on the webhook.
+//
+// `body` is not a valid webhook key. porting-sdk/schema.json `$defs/Webhook`
+// declares exactly ten properties — error_keys, expressions, foreach, headers,
+// input_args_as_params, method, output, params, require_args, url — under
+// `unevaluatedProperties: {"not": {}}`, so anything else is a schema violation.
+// Neither engine reader looks `body` up: mod_openai/actions.c:735-739 and
+// mod_openai/bedrock.c:4920-4926 read url, method, form_param, params and
+// headers, and `grep -n '"body"'` across both files returns zero matches.
+// CreateSimpleAPITool used to accept a `body` argument and forward it to
+// DataMap.Body(), which wrote that unread key — silently discarding the
+// caller's payload onto the wire. Mirrors the reference's
+// test_create_simple_api_tool_emits_no_body_key (signalwire-python f171ce3).
+func TestCreateSimpleApiTool_EmitsNoBodyKey(t *testing.T) {
 	dm := CreateSimpleAPITool(
 		"search",
 		"https://api.search.com/query",
@@ -474,26 +486,43 @@ func TestCreateSimpleApiToolWithBody(t *testing.T) {
 			},
 		},
 		"POST",
-		nil,
-		map[string]any{"q": "${args.query}", "limit": 5},
-		nil,
+		map[string]string{"Authorization": "Bearer TOKEN"},
+		[]string{"error"},
 	)
 
 	result := dm.ToSwaigFunction()
 	dataMap := as[map[string]any](t, result["data_map"])
 	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
+	if len(webhooks) != 1 {
+		t.Fatalf("expected 1 webhook, got %d", len(webhooks))
+	}
 	wh := webhooks[0]
 
 	if wh["method"] != "POST" {
 		t.Errorf("expected POST, got %v", wh["method"])
 	}
 
-	body := as[map[string]any](t, wh["body"])
-	if body["q"] != "${args.query}" {
-		t.Errorf("unexpected body q: %v", body["q"])
+	if _, present := wh["body"]; present {
+		t.Errorf("webhook carries a body key: %v", wh)
 	}
-	if body["limit"] != 5 {
-		t.Errorf("unexpected body limit: %v", body["limit"])
+
+	// The emitted key set must stay inside schema.json $defs/Webhook.
+	allowed := map[string]bool{
+		"error_keys":           true,
+		"expressions":          true,
+		"foreach":              true,
+		"headers":              true,
+		"input_args_as_params": true,
+		"method":               true,
+		"output":               true,
+		"params":               true,
+		"require_args":         true,
+		"url":                  true,
+	}
+	for k := range wh {
+		if !allowed[k] {
+			t.Errorf("webhook has key %q outside schema.json $defs/Webhook", k)
+		}
 	}
 }
 

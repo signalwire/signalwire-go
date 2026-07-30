@@ -1772,9 +1772,13 @@ a.RegisterSwaigFunction(swaigFunction)
 
 The SDK provides helper functions for common DataMap patterns:
 
-##### `CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, body map[string]any, errorKeys []string) *DataMap`
+##### `CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, errorKeys []string) *DataMap`
 
 Create a simple API integration tool.
+
+There is no `body` parameter: `body` is not a permitted webhook key (`schema.json`
+`$defs/Webhook` forbids it) and the engine never reads it. Use `Params` for
+POST/PUT request data.
 
 ```go
 weather := datamap.CreateSimpleAPITool(
@@ -1784,7 +1788,7 @@ weather := datamap.CreateSimpleAPITool(
 	map[string]map[string]any{
 		"location": {"type": "string", "description": "City name", "required": true},
 	},
-	"GET", nil, nil, nil,
+	"GET", nil, nil,
 )
 
 a.RegisterSwaigFunction(weather.ToSwaigFunction())
