@@ -170,6 +170,22 @@ sched_gate TEST defer=1 desc="go test ./... (scripts/run-tests.sh)" \
 sched_gate SURFACE res=surface desc="surface parity suite (SIGNATURES/DRIFT/SURFACE-FRESH/SURFACE-DIFF/SEMVER-DIFF/GEN-TYPE-DEGENERACY/GEN-IDIOM/ROUTE-COLLISION)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/surface.py" --port go --repo "$PORT_ROOT"
 
+# SIGNATURES-FRESH: the committed port_signatures.json must match a fresh regen.
+# SURFACE-FRESH (inside the SURFACE suite above) guards ONLY port_surface.json —
+# nothing guarded the signatures artifact, and that artifact is DRIFT's INPUT, so a
+# stale one silently makes the whole parity gate compare against a fiction.
+#
+# Standalone sched_gate, deliberately NOT a _surface_commands.py table entry: only 8
+# of the 10 run-ci scripts read that table (rust and python never do), so a table
+# entry would be silently skipped on two ports.
+#
+# res=surface: the checker regenerates to .sw-tmp (never the tree) and TreeGuards
+# port_signatures.json, but it runs the SAME go enumerator SURFACE-FRESH does — so
+# it shares the surface resource rather than racing that regen.
+sched_gate SIGNATURES-FRESH res=surface desc="committed port_signatures.json matches a fresh regen" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/_signatures_fresh.py" \
+        --port go --repo "$PORT_ROOT" --porting-sdk "$PORTING_SDK_DIR"
+
 # TYPE-EROSION: a port may not erase a type the reference DECLARES. compare_param treats
 # `any` on EITHER side as matching anything, so a port emitting `any` silently satisfies
 # every reference declaration — an unlimited opt-out. ConciergeAgent.hours_of_operation is
