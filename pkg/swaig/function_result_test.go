@@ -2,6 +2,7 @@ package swaig
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -27,6 +28,37 @@ func TestNewFunctionResultEmptyResponse(t *testing.T) {
 	m := fr.ToMap()
 	if m["response"] != "Action completed." {
 		t.Errorf("response = %v, want %q", m["response"], "Action completed.")
+	}
+}
+
+func TestNewFunctionResultOmittedResponse(t *testing.T) {
+	// `response` is OPTIONAL, matching the reference
+	// `FunctionResult(response: str | None = None, ...)`. The zero-argument form
+	// must COMPILE and must produce the same result the reference's `None` does:
+	// the reference coerces None to "" (`response if response is not None else
+	// ""`), so an action-only result renders identically to NewFunctionResult("").
+	omitted := NewFunctionResult()
+	if omitted.Response() != "" {
+		t.Errorf("Response() = %q, want empty", omitted.Response())
+	}
+	if omitted.Actions() == nil {
+		t.Error("Actions() = nil, want an initialised empty slice")
+	}
+	explicit := NewFunctionResult("")
+	if !reflect.DeepEqual(omitted.ToMap(), explicit.ToMap()) {
+		t.Errorf("NewFunctionResult() = %v, want the same as NewFunctionResult(\"\") = %v",
+			omitted.ToMap(), explicit.ToMap())
+	}
+
+	// It still carries actions, which is the whole point of an action-only reply.
+	withAction := NewFunctionResult().AddAction("stop", true)
+	if withAction.ToMap()["action"] == nil {
+		t.Error("action-only result dropped its action")
+	}
+
+	// Only the first response is used; extras are ignored, never joined.
+	if got := NewFunctionResult("first", "second").Response(); got != "first" {
+		t.Errorf("Response() = %q, want %q", got, "first")
 	}
 }
 

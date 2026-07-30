@@ -22,9 +22,25 @@ type FunctionResult struct {
 }
 
 // NewFunctionResult creates a new FunctionResult with the given response text.
-func NewFunctionResult(response string) *FunctionResult {
+//
+// response is OPTIONAL, matching the reference
+// (`FunctionResult(response: str | None = None, ...)`): call it with no
+// arguments to build an action-only result and set the text later with
+// SetResponse, or never — a result carrying only actions is a valid SWAIG
+// reply. The reference coerces its `None` to the empty string
+// (`self.response = response if response is not None else ""`), which is
+// exactly the zero value Go produces when the argument is omitted, so the two
+// agree on the wire.
+//
+// Only the first response is used; passing more than one is a caller error and
+// the extras are ignored. This is the "zero or one" variadic, not a list.
+func NewFunctionResult(response ...string) *FunctionResult {
+	var text string
+	if len(response) > 0 {
+		text = response[0]
+	}
 	return &FunctionResult{
-		response: response,
+		response: text,
 		actions:  []map[string]any{},
 	}
 }

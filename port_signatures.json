@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 1b5ee3605c24bf9092c7ffa65a52e6e4dbbd16ee (go/ast walker)",
+  "generated_from": "signalwire-go @ 783d1e342472902a438feaefee7cbab25ba5d91d (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2915,8 +2915,8 @@
                 },
                 {
                   "name": "response",
-                  "type": "string",
-                  "required": true
+                  "type": "optional\u003cstring\u003e",
+                  "required": false
                 }
               ],
               "returns": "void"
@@ -25388,8 +25388,8 @@
     "signalwire.core.function_result.FunctionResult": {
       "params": {
         "response": {
-          "type": "string",
-          "required": true
+          "type": "optional\u003cstring\u003e",
+          "required": false
         }
       }
     },

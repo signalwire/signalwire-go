@@ -99,10 +99,18 @@ var kwargsTailMethods = map[string]bool{
 // tail table above), keyed by reference QN; a genuine required `[]string` /
 // multi-arg variadic elsewhere is untouched. Verified against the reference:
 // signalwire/relay/call.py PausableAction.pause(self, behavior: str | None = None).
+//
+// FunctionResult.__init__ is the same shape on the CONSTRUCTION path: the
+// reference is `FunctionResult(response: str | None = None, post_process: bool =
+// False)` and coerces `None` to `""`
+// (`self.response = response if response is not None else ""`), which is exactly
+// the zero value Go produces for an omitted `response ...string`. Go's
+// NewFunctionResult reads only `response[0]`, i.e. "zero or one", never a list.
 var optionalTailVariadicMethods = map[string]bool{
-	"signalwire.relay.call.PlayAction.pause":    true,
-	"signalwire.relay.call.RecordAction.pause":  true,
-	"signalwire.relay.call.CollectAction.pause": true,
+	"signalwire.relay.call.PlayAction.pause":                  true,
+	"signalwire.relay.call.RecordAction.pause":                true,
+	"signalwire.relay.call.CollectAction.pause":               true,
+	"signalwire.core.function_result.FunctionResult.__init__": true,
 }
 
 // optionalTailVariadicComposite is the COMPOSITE-element analog of the table
