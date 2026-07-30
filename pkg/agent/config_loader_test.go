@@ -36,7 +36,7 @@ func TestConfigLoader_LoadsAndReadsSections(t *testing.T) {
 		"security": {"ssl_enabled": true, "ssl_cert_path": "/c.pem"}
 	}`)
 
-	c := NewConfigLoader([]string{path})
+	c := NewConfigLoader(path)
 
 	if !c.HasConfig() {
 		t.Fatal("HasConfig() = false after loading a valid file")
@@ -71,7 +71,7 @@ func TestConfigLoader_LoadsAndReadsSections(t *testing.T) {
 func TestConfigLoader_SubstituteVars(t *testing.T) {
 	t.Setenv("CFGTEST_PRESENT", "from-env")
 
-	c := NewConfigLoader([]string{filepath.Join(t.TempDir(), "absent.json")})
+	c := NewConfigLoader(filepath.Join(t.TempDir(), "absent.json"))
 
 	if got := c.SubstituteVars("${CFGTEST_PRESENT}", 10); got != "from-env" {
 		t.Errorf("substitution of a set var = %v, want from-env", got)
@@ -111,7 +111,7 @@ func TestConfigLoader_FirstExistingFileWins(t *testing.T) {
 	good := writeJSON(t, dir, "good.json", `{"service": {"name": "second"}}`)
 
 	// A missing file and an unparseable one are both skipped, not fatal.
-	c := NewConfigLoader([]string{missing, broken, good})
+	c := NewConfigLoader(missing, broken, good)
 	if c.GetConfigFile() != good {
 		t.Errorf("GetConfigFile() = %q, want %q (missing/broken should be skipped)",
 			c.GetConfigFile(), good)
@@ -122,7 +122,7 @@ func TestConfigLoader_FirstExistingFileWins(t *testing.T) {
 }
 
 func TestConfigLoader_NoConfigIsEmptyNotNil(t *testing.T) {
-	c := NewConfigLoader([]string{filepath.Join(t.TempDir(), "nope.json")})
+	c := NewConfigLoader(filepath.Join(t.TempDir(), "nope.json"))
 	if c.HasConfig() {
 		t.Error("HasConfig() = true with no readable file")
 	}
@@ -145,7 +145,7 @@ func TestConfigLoader_MergeWithEnv(t *testing.T) {
 	t.Setenv("SWML_SSL_ENABLED", "from-env")
 	t.Setenv("SWML_NEW_KEY", "folded")
 
-	merged := NewConfigLoader([]string{path}).MergeWithEnv("SWML_")
+	merged := NewConfigLoader(path).MergeWithEnv("SWML_")
 
 	ssl, ok := merged["ssl"].(map[string]any)
 	if !ok {
@@ -201,7 +201,7 @@ func TestFindConfigFile(t *testing.T) {
 func TestConfigLoader_OmittedDefaults(t *testing.T) {
 	t.Run("substitute_vars max_depth omitted defaults to 10", func(t *testing.T) {
 		t.Setenv("CFGTEST_OMIT", "resolved")
-		c := NewConfigLoader([]string{filepath.Join(t.TempDir(), "absent.json")})
+		c := NewConfigLoader(filepath.Join(t.TempDir(), "absent.json"))
 
 		// The reference's `substitute_vars(value)` — max_depth omitted.
 		if got := c.SubstituteVars("${CFGTEST_OMIT}", 0); got != "resolved" {
@@ -221,7 +221,7 @@ func TestConfigLoader_OmittedDefaults(t *testing.T) {
 		t.Setenv("SWML_OMIT_KEY", "folded")
 
 		// The reference's `merge_with_env()` — env_prefix omitted.
-		merged := NewConfigLoader([]string{path}).MergeWithEnv("")
+		merged := NewConfigLoader(path).MergeWithEnv("")
 
 		omit, ok := merged["omit"].(map[string]any)
 		if !ok {

@@ -17,9 +17,18 @@ type ConfigLoader struct {
 	inner *config.Loader
 }
 
-// NewConfigLoader creates a ConfigLoader. When configPaths is nil the default
-// search paths are used. The first existing, parseable file wins.
-func NewConfigLoader(configPaths []string) *ConfigLoader {
+// NewConfigLoader creates a ConfigLoader. `configPaths` is OPTIONAL, matching
+// the reference (`config_paths: list[str] | None = None`): call it with no
+// arguments — or with an empty list — to use the default search paths. The
+// first existing, parseable file wins.
+func NewConfigLoader(configPaths ...string) *ConfigLoader {
+	// An EMPTY variadic must reach config.New as nil, not as a non-nil empty
+	// slice: config.New substitutes DefaultPaths() only on nil, so
+	// `NewConfigLoader()` and `NewConfigLoader(pathsThatWereNil...)` would
+	// otherwise search nothing at all instead of the defaults.
+	if len(configPaths) == 0 {
+		configPaths = nil
+	}
 	return &ConfigLoader{inner: config.New(configPaths)}
 }
 

@@ -58,12 +58,22 @@ type Section struct {
 	NumberedBullets bool
 }
 
-// NewSection returns a new Section with the supplied title (which may be
-// empty to indicate untitled).  Body, bullets, and subsections start
-// empty; populate them via AddBody / AddBullets / AddSubsection.
-func NewSection(title string) *Section {
-	t := title
-	return &Section{Title: &t}
+// NewSection returns a new Section. Every field is optional, matching the
+// reference (pom.Section's `title` defaults to None) — call it with no
+// arguments for an untitled section, or pass WithTitle/WithBody/WithBullets/
+// WithNumbered/WithNumberedBullets to configure it. Body, bullets, and
+// subsections start empty; they can also be populated after construction via
+// AddBody / AddBullets / AddSubsection.
+// The zero-argument form leaves Title nil — "untitled" — which is exactly the
+// reference's `title=None` default (pom.py Section.__init__ :24), not an empty
+// string. A nil Title is omitted from ToMap/orderedKeys and renders no heading;
+// a &"" would render an empty one.
+func NewSection(opts ...SectionOption) *Section {
+	s := &Section{}
+	for _, o := range opts {
+		o(s)
+	}
+	return s
 }
 
 // AddBody sets (or replaces) the section body text: despite the name it
@@ -85,7 +95,7 @@ func (s *Section) AddSubsection(title string, opts ...SectionOption) (*Section, 
 	if title == "" {
 		return nil, errors.New("pom: subsections must have a non-empty title")
 	}
-	sub := NewSection(title)
+	sub := NewSection(WithTitle(title))
 	for _, o := range opts {
 		o(sub)
 	}
@@ -96,6 +106,11 @@ func (s *Section) AddSubsection(title string, opts ...SectionOption) (*Section, 
 // SectionOption configures a Section at construction (used by
 // AddSubsection and PromptObjectModel.AddSection).
 type SectionOption func(*Section)
+
+// WithTitle sets the section title.
+func WithTitle(title string) SectionOption {
+	return func(s *Section) { t := title; s.Title = &t }
+}
 
 // WithBody sets the section body.
 func WithBody(body string) SectionOption { return func(s *Section) { s.Body = body } }
@@ -339,7 +354,7 @@ func (p *PromptObjectModel) AddSection(title string, opts ...SectionOption) (*Se
 	if title == "" {
 		s = &Section{}
 	} else {
-		s = NewSection(title)
+		s = NewSection(WithTitle(title))
 	}
 	for _, o := range opts {
 		o(s)
