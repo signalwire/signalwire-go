@@ -45,8 +45,7 @@ func (c *RestClient) SetBaseURL(url string) {
 	c.http.SetBaseURL(url)
 }
 
-// HTTPClient exposes the underlying HTTP transport. It is the public form
-// of Python's “signalwire_client._http“ and is the entry point for callers
+// HTTPClient exposes the underlying HTTP transport — the entry point for callers
 // that need raw GET/POST access without going through a namespace resource.
 func (c *RestClient) HTTPClient() *HTTPClient {
 	return c.http

@@ -28,9 +28,8 @@ type AIChatError struct {
 	Message string
 }
 
-// Error implements the error interface, mirroring the Python reference's
-// "[code] message" formatting. When HasCode is false the code renders as <nil>,
-// matching the reference's None.
+// Error implements the error interface, rendering as "[code] message".
+// When HasCode is false the code renders as <nil>.
 func (e *AIChatError) Error() string {
 	if e.HasCode {
 		return fmt.Sprintf("[%d] %s", e.Code, e.Message)

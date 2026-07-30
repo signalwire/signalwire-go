@@ -317,7 +317,7 @@ func (c *SecurityConfig) ValidateSSLConfig() (bool, string) {
 
 // GetBasicAuth returns the configured basic-auth credentials, defaulting the
 // username to "signalwire". A random password is generated (once) when none is
-// configured, matching the Python fallback.
+// configured.
 func (c *SecurityConfig) GetBasicAuth() (string, string) {
 	username := c.BasicAuthUser
 	if username == "" {
@@ -369,7 +369,7 @@ func (c *SecurityConfig) GetCORSConfig() map[string]any {
 }
 
 // GetSSLContextKwargs returns the SSL parameters (primitive path strings) used
-// to configure the HTTPS listener, mirroring Python's get_ssl_context_kwargs.
+// to configure the HTTPS listener.
 // The returned map is the primitive-dict form of the SSLCertPath/SSLKeyPath
 // fields — the Go server feeds these into crypto/tls via swml.WithTLS. Returns
 // an empty map when SSL is disabled or the SSL config fails validation.

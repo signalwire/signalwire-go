@@ -28,12 +28,11 @@ type ToolHandler func(args map[string]any, rawData map[string]any) any
 
 // ToolDefinition is a SWAIG tool registered on the Service.
 //
-// There is deliberately NO Secure flag here. The reference's per-tool
-// `secure` flag gates SWAIG *token validation*, and that machinery — the
-// SessionManager that mints a per-(tool, call) HMAC token and the validator
-// that checks it — lives entirely on AgentBase (reference:
-// agent_base.py + mixins/state_mixin.py; Go: pkg/agent, agent.ToolDefinition
-// .Secure, a tri-state *bool defaulting to SECURE). A bare SWMLService has no
+// There is deliberately NO Secure flag here. The per-tool `secure` flag gates
+// SWAIG *token validation*, and that machinery — the SessionManager that mints
+// a per-(tool, call) HMAC token and the validator that checks it — lives
+// entirely on AgentBase (agent.ToolDefinition.Secure, a tri-state *bool
+// defaulting to SECURE). A bare SWMLService has no
 // session manager and mints no tokens, so a secure flag at this level has
 // nothing to gate. `secure` is also not a SWML/SWAIG wire field — it never
 // appears in the rendered document or the function payload.
@@ -56,9 +55,9 @@ type ToolDefinition struct {
 //     the POST method and body);
 //   - nil if normal processing should continue (the default document is served).
 //
-// This framework-free (body, headers) -> *string shape matches the reference
-// signalwire.core.swml_service.SWMLService.register_routing_callback and the
-// decomposed HandleRequest dispatch core, and is uniform across the SDK ports.
+// The framework-free (body, headers) -> *string shape is what the decomposed
+// HandleRequest dispatch core invokes, so a callback works identically whether
+// it is reached through net/http or through HandleRequest directly.
 type RoutingCallback func(body map[string]any, headers map[string]any) *string
 
 // (VerbHandler interface is defined in verb_handler.go.)
@@ -73,8 +72,6 @@ type RoutingCallback func(body map[string]any, headers map[string]any) *string
 //   - BearerToken — Expected value of the "Authorization: Bearer <token>" header.
 //   - APIKey — Expected API key value.
 //   - APIKeyHeader — Header name to read the API key from (default "X-API-Key").
-//
-// Mirrors Python's SecurityConfig dataclass.
 type SecurityConfig struct {
 	BasicAuthUser     string
 	BasicAuthPassword string
@@ -114,12 +111,11 @@ type Service struct {
 	// TLS / SSL
 	tlsCertFile string // path to TLS certificate file
 	tlsKeyFile  string // path to TLS key file
-	// sslEnabled is the reference's `ssl_enabled` switch (SWML_SSL_ENABLED env
-	// var / the config file's security.ssl_enabled). It is resolved through
+	// sslEnabled is the `ssl_enabled` switch (SWML_SSL_ENABLED env var / the
+	// config file's security.ssl_enabled). It is resolved through
 	// security.SecurityConfig (defaults -> env -> config file, config file
 	// highest) and is the master switch Serve() consults: a cert/key pair with
-	// ssl_enabled false serves plain HTTP, exactly as the reference does
-	// (swml_service.serve only takes the ssl branch when self.ssl_enabled).
+	// ssl_enabled false serves plain HTTP.
 	//
 	// It is NOT set by WithTLS: passing an explicit cert+key IS the caller
 	// asking for TLS, so WithTLS sets sslEnabledExplicit instead (see
@@ -136,12 +132,10 @@ type Service struct {
 
 	// Schema validation
 	// schemaValidation controls whether verb schema validation is active.
-	// Mirrors Python's schema_validation constructor param and
-	// SWML_SKIP_SCHEMA_VALIDATION=1 env var.
+	// Set via WithSchemaValidation; SWML_SKIP_SCHEMA_VALIDATION=1 overrides it.
 	schemaValidation bool
 	// schemaPath is an optional override path for the schema JSON file.
-	// When empty the embedded schema is used (default). Mirrors Python's
-	// schema_path constructor parameter.
+	// When empty the embedded schema is used (default).
 	schemaPath string
 
 	// SWML document
@@ -150,9 +144,8 @@ type Service struct {
 	// Schema for verb validation
 	schema *Schema
 
-	// schemaUtils provides the cross-language SchemaUtils surface
-	// (Python: signalwire.utils.schema_utils.SchemaUtils).  Built once
-	// during NewService when validation is enabled.
+	// schemaUtils provides verb-metadata extraction and validation.
+	// Built once during NewService when validation is enabled.
 	schemaUtils *SchemaUtils
 
 	// Proxy detection
@@ -213,8 +206,6 @@ func WithBasicAuth(user, password string) ServiceOption {
 // withSecurity middleware accepts requests carrying an
 // "Authorization: Bearer <token>" header that matches token in addition to
 // (or instead of) Basic Auth.
-// Mirrors Python's SecurityConfig.bearer_token field and the AuthHandler
-// verify_bearer_token / flask_decorator behaviour.
 func WithBearerToken(token string) ServiceOption {
 	return func(s *Service) { s.bearerToken = token }
 }
@@ -223,8 +214,6 @@ func WithBearerToken(token string) ServiceOption {
 // middleware accepts requests where the header named by header equals key.
 // header is the HTTP header name (e.g. "X-API-Key"); pass an empty string to
 // use the default "X-API-Key".
-// Mirrors Python's SecurityConfig.api_key / api_key_header fields and the
-// AuthHandler verify_api_key / flask_decorator behaviour.
 func WithAPIKey(key, header string) ServiceOption {
 	return func(s *Service) {
 		s.apiKey = key
@@ -236,9 +225,8 @@ func WithAPIKey(key, header string) ServiceOption {
 }
 
 // WithSecurityConfig applies a SecurityConfig bundle, setting Basic Auth,
-// Bearer token, and API key configuration in one call.
-// This is the Go equivalent of Python's AuthHandler(security_config=...) pattern:
-// it maps each SecurityConfig field to the corresponding WithXxx option.
+// Bearer token, and API key configuration in one call: it maps each
+// SecurityConfig field to the corresponding WithXxx option.
 func WithSecurityConfig(cfg SecurityConfig) ServiceOption {
 	return func(s *Service) {
 		if cfg.BasicAuthUser != "" {
@@ -262,8 +250,7 @@ func WithSecurityConfig(cfg SecurityConfig) ServiceOption {
 }
 
 // WithTLS configures TLS for the service. When set, Serve() calls
-// ListenAndServeTLS instead of ListenAndServe. Mirrors Python's
-// ssl_cert / ssl_key serve() parameters and ssl_enabled property.
+// ListenAndServeTLS instead of ListenAndServe.
 func WithTLS(certFile, keyFile string) ServiceOption {
 	return func(s *Service) {
 		s.tlsCertFile = certFile
@@ -278,7 +265,7 @@ func WithTLS(certFile, keyFile string) ServiceOption {
 }
 
 // WithDomain sets the domain name used in URL generation when TLS is enabled.
-// Mirrors Python's SecurityConfig.domain / SWML_DOMAIN env var.
+// Also settable via the SWML_DOMAIN env var.
 func WithDomain(domain string) ServiceOption {
 	return func(s *Service) { s.Domain = domain }
 }
@@ -286,16 +273,13 @@ func WithDomain(domain string) ServiceOption {
 // WithSchemaPath overrides the schema file path used for verb validation.
 // By default the embedded schema.json is used. Pass a custom path when testing
 // or when deploying a modified schema alongside your binary.
-// Mirrors Python's schema_path constructor parameter.
 func WithSchemaPath(path string) ServiceOption {
 	return func(s *Service) { s.schemaPath = path }
 }
 
 // WithConfigFile loads a configuration file and applies its `security` section
-// to the Service. Mirrors Python's SecurityConfig(config_file=...) loader
-// (signalwire/core/security_config.py _load_config_file). The canonical format
-// is JSON, matching the reference; the equivalent YAML is also accepted. The
-// expected schema is:
+// to the Service. The canonical format is JSON; the equivalent YAML is also
+// accepted. The expected schema is:
 //
 //	security:
 //	  ssl_enabled: true
@@ -312,12 +296,12 @@ func WithSchemaPath(path string) ServiceOption {
 //
 // Settings from the file are applied AFTER the SWML_* environment variables and
 // after the explicit WithBasicAuth / WithBearerToken / WithAPIKey / WithTLS /
-// WithDomain options, so config-file values take precedence — the reference's
-// documented defaults -> env -> config-file load order. In particular a cert
-// and key supplied only here DO put the server on HTTPS. If the file cannot be
-// read or parsed, NewService logs a warning and keeps running with the
-// previously-set values; this matches Python's "best-effort" load behaviour and
-// avoids crashing services whose config is missing.
+// WithDomain options, so config-file values take precedence — the documented
+// defaults -> env -> config-file load order. In particular a cert and key
+// supplied only here DO put the server on HTTPS. If the file cannot be read or
+// parsed, NewService logs a warning and keeps running with the previously-set
+// values (a best-effort load), rather than crashing a service whose config is
+// missing.
 func WithConfigFile(path string) ServiceOption {
 	return func(s *Service) { s.configFile = path }
 }
@@ -325,7 +309,6 @@ func WithConfigFile(path string) ServiceOption {
 // WithSchemaValidation enables or disables SWML schema validation.
 // Defaults to true (validation on). Set to false, or export
 // SWML_SKIP_SCHEMA_VALIDATION=1, to bypass schema checks.
-// Mirrors Python's schema_validation constructor parameter.
 func WithSchemaValidation(enabled bool) ServiceOption {
 	return func(s *Service) { s.schemaValidation = enabled }
 }
@@ -343,7 +326,7 @@ func NewService(opts ...ServiceOption) *Service {
 		tools:            make(map[string]*ToolDefinition),
 		verbCache:        make(map[string]bool),
 		verbHandlers:     make(map[string]VerbHandler),
-		// Schema validation is on by default (matches Python default True).
+		// Schema validation is on by default.
 		// Can be overridden by WithSchemaValidation(false) or
 		// SWML_SKIP_SCHEMA_VALIDATION=1.
 		schemaValidation: true,
@@ -354,28 +337,26 @@ func NewService(opts ...ServiceOption) *Service {
 		opt(s)
 	}
 
-	// Honour SWML_SKIP_SCHEMA_VALIDATION=1 env var (mirrors Python behaviour).
+	// Honour the SWML_SKIP_SCHEMA_VALIDATION=1 env var.
 	if os.Getenv("SWML_SKIP_SCHEMA_VALIDATION") == "1" {
 		s.schemaValidation = false
 	}
 
-	// Resolve the security settings the way the reference does — defaults, then
+	// Resolve the security settings in the documented order — defaults, then
 	// SWML_* env vars, then the config file (config file HIGHEST priority) —
-	// and hoist the TLS values onto the service, mirroring
-	// SWMLService.__init__'s `self.ssl_enabled = self.security.ssl_enabled`
-	// (and domain / ssl_cert_path / ssl_key_path). Serve() then serves off
-	// these fields rather than re-reading the environment, so an operator who
-	// supplies a cert/key ONLY in a config file actually gets HTTPS.
+	// and hoist ssl_enabled / domain / ssl_cert_path / ssl_key_path onto the
+	// service. Serve() then serves off these fields rather than re-reading the
+	// environment, so an operator who supplies a cert/key ONLY in a config file
+	// actually gets HTTPS.
 	//
 	// The config file is the explicit WithConfigFile path when given, else the
-	// one auto-discovered for this service's name (Python:
-	// ConfigLoader.find_config_file(service_name)).
+	// one auto-discovered for this service's name.
 	s.applyResolvedSecurity(security.NewSecurityConfig(s.configFile, s.Name))
 
-	// The same file also carries the auth keys that are specific to the Go
-	// service (bearer token / API key) and are not part of the reference's
-	// SecurityConfig, plus the YAML spelling of the security block. Apply it
-	// last so the config file remains the highest-priority layer.
+	// The same file also carries the bearer-token / API-key auth settings, which
+	// live outside the security.SecurityConfig block, plus the YAML spelling of
+	// that block. Apply it last so the config file remains the
+	// highest-priority layer.
 	if s.configFile != "" {
 		applyConfigFile(s, s.configFile)
 	}
@@ -439,13 +420,11 @@ func NewService(opts ...ServiceOption) *Service {
 		}
 	}
 
-	// Build SchemaUtils — the cross-language surface for verb metadata
-	// extraction and validation (Python parity at
-	// signalwire.utils.schema_utils.SchemaUtils).  Honours the same
-	// schema_path / schema_validation knobs as Python.
+	// Build SchemaUtils — verb-metadata extraction and validation. It honours
+	// the same schemaPath / schemaValidation settings resolved above.
 	s.schemaUtils = NewSchemaUtils(s.schemaPath, s.schemaValidation)
 
-	// Register built-in verb handlers (mirrors Python VerbHandlerRegistry.__init__).
+	// Register the built-in verb handlers.
 	s.RegisterVerbHandler(NewAIVerbHandler())
 
 	return s
@@ -477,16 +456,13 @@ func (s *Service) ResetDocument() {
 
 // ServiceRef returns the Service itself.
 //
-// Go merges the reference's fluent SWMLBuilder INTO Service (the verb methods ARE
-// Service methods), so the SWMLService the builder wraps — `SWMLBuilder.service`,
-// swml_builder.py:57 — resolves to this Service. Returning `s` is the honest
-// answer under that composition. Named ServiceRef because `Service` is the type
-// name and cannot also be a method name on it.
+// The fluent SWML builder is merged INTO Service here — the verb methods ARE
+// Service methods — so the service a builder would otherwise wrap is this
+// Service itself, and returning `s` is the honest answer. Named ServiceRef
+// because `Service` is the type name and cannot also be a method name on it.
 func (s *Service) ServiceRef() *Service { return s }
 
 // SchemaUtils returns the SchemaUtils helper bound to this Service.
-// Mirrors Python's “self.schema_utils“ instance attribute exposed
-// publicly on signalwire.core.swml_service.SWMLService.
 func (s *Service) SchemaUtils() *SchemaUtils {
 	return s.schemaUtils
 }
@@ -498,7 +474,6 @@ func (s *Service) GetBasicAuthCredentials() (string, string) {
 
 // GetBasicAuthCredentialsWithSource returns (username, password, source) where
 // source is one of "environment", "explicit", or "auto-generated".
-// Mirrors Python's get_basic_auth_credentials(include_source=True) three-tuple return.
 func (s *Service) GetBasicAuthCredentialsWithSource() (string, string, string) {
 	user := s.basicAuthUser
 	pass := s.basicAuthPassword
@@ -524,8 +499,7 @@ func (s *Service) GetBasicAuthCredentialsWithSource() (string, string, string) {
 //
 // This exposes the same check that withSecurity applies inside the HTTP
 // middleware, making auth testable in isolation without an HTTP round-trip.
-// Mirrors Python AuthHandler.verify_basic_auth(credentials) -> bool using
-// secrets.compare_digest (equivalent: crypto/subtle.ConstantTimeCompare).
+// The comparison is crypto/subtle.ConstantTimeCompare, not ==.
 func (s *Service) VerifyBasicAuth(username, password string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -541,7 +515,6 @@ func (s *Service) VerifyBasicAuth(username, password string) bool {
 //
 // Callers typically extract the token from the "Authorization: Bearer <token>"
 // header before calling this method.
-// Mirrors Python AuthHandler.verify_bearer_token(credentials) -> bool.
 func (s *Service) VerifyBearerToken(token string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -556,7 +529,6 @@ func (s *Service) VerifyBearerToken(token string) bool {
 // Returns false when no API key is configured (i.e. WithAPIKey was not called).
 //
 // Callers typically read the key from the header returned by APIKeyHeader().
-// Mirrors Python AuthHandler.verify_api_key(api_key: str) -> bool.
 func (s *Service) VerifyAPIKey(key string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -567,7 +539,7 @@ func (s *Service) VerifyAPIKey(key string) bool {
 }
 
 // GetAuthInfo returns a map describing every configured authentication method.
-// The map mirrors the Python AuthHandler.get_auth_info() return value:
+// The map has one entry per enabled method:
 //
 //   - "basic"   → {"enabled": true, "username": "<user>"}
 //   - "bearer"  → {"enabled": true, "hint": "Use Authorization: Bearer <token>"}
@@ -576,7 +548,6 @@ func (s *Service) VerifyAPIKey(key string) bool {
 // Only methods that are actively configured appear in the map. Basic auth is
 // always present because the service always has a username/password (either
 // explicit or auto-generated).
-// Mirrors Python AuthHandler.get_auth_info() -> Dict[str, Any].
 func (s *Service) GetAuthInfo() map[string]any {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -611,16 +582,13 @@ func (s *Service) GetAuthInfo() map[string]any {
 }
 
 // TLSEnabled reports whether TLS is configured for this service — i.e. whether
-// Serve() will bind an HTTPS listener. Mirrors Python's ssl_enabled attribute on
-// SWMLService as consumed by serve(), which requires BOTH the ssl_enabled switch
-// and a usable cert/key pair (`if self.ssl_enabled and ssl_cert_path and
-// ssl_key_path`).
+// Serve() will bind an HTTPS listener. It requires BOTH the ssl_enabled switch
+// and a usable cert/key pair.
 //
 // The switch is on when the caller passed an explicit cert+key (WithTLS), or
 // when the resolved ssl_enabled — SWML_SSL_ENABLED, overridden by the config
 // file's security.ssl_enabled — is true. An explicit `ssl_enabled: false` in the
-// config file turns it back off even with a cert/key present, matching the
-// reference.
+// config file turns it back off even with a cert/key present.
 func (s *Service) TLSEnabled() bool {
 	if s.tlsCertFile == "" || s.tlsKeyFile == "" {
 		return false
@@ -628,24 +596,23 @@ func (s *Service) TLSEnabled() bool {
 	return s.sslEnabled || s.sslEnabledExplicit
 }
 
-// TLSCertPath returns the configured TLS certificate path ("" when unset).
-// Mirrors Python's ssl_cert_path attribute on SWMLService: the resolved value a
-// caller can read back after construction, whether it came from WithTLS, the
-// config file, or SWML_SSL_CERT_PATH.
+// TLSCertPath returns the configured TLS certificate path ("" when unset) —
+// the resolved value a caller can read back after construction, whether it came
+// from WithTLS, the config file, or SWML_SSL_CERT_PATH.
 func (s *Service) TLSCertPath() string {
 	return s.tlsCertFile
 }
 
-// TLSKeyPath returns the configured TLS private-key path ("" when unset).
-// Mirrors Python's ssl_key_path attribute on SWMLService — the read-back twin of
-// TLSCertPath, resolved from WithTLS, the config file, or SWML_SSL_KEY_PATH.
+// TLSKeyPath returns the configured TLS private-key path ("" when unset) — the
+// read-back twin of TLSCertPath, resolved from WithTLS, the config file, or
+// SWML_SSL_KEY_PATH.
 func (s *Service) TLSKeyPath() string {
 	return s.tlsKeyFile
 }
 
 // FullValidationEnabled reports whether schema validation is active.
 // Returns true when a schema was successfully loaded and schemaValidation
-// is on. Mirrors Python's full_validation_enabled property.
+// is on.
 func (s *Service) FullValidationEnabled() bool {
 	return s.schema != nil
 }
@@ -654,22 +621,19 @@ func (s *Service) FullValidationEnabled() bool {
 
 // AddSection adds a new named section to the SWML document.
 // Returns false if the section already exists.
-// Delegates to Document.AddSection. Mirrors Python's add_section method
-// which was only on the Document in Go but is on SWMLService in Python.
+// Delegates to Document.AddSection.
 func (s *Service) AddSection(name string) bool {
 	return s.document.AddSection(name)
 }
 
 // AsRouter returns an http.Handler that serves this service's endpoints.
 // Use this to embed the service in a custom HTTP mux or router.
-// Mirrors Python's as_router() -> APIRouter method on SWMLService.
 func (s *Service) AsRouter() http.Handler {
 	return s.buildMux()
 }
 
 // ManualSetProxyURL overrides the proxy URL base used for URL generation.
 // Call this at runtime to set or update the proxy URL (e.g. an ngrok URL).
-// Mirrors Python's manual_set_proxy_url(proxy_url: str) on SWMLService.
 func (s *Service) ManualSetProxyURL(url string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -699,13 +663,13 @@ func (s *Service) ExecuteVerbToSection(section, verbName string, config any) err
 }
 
 // validateVerb runs the shared verb-validation pipeline that both ExecuteVerb
-// and ExecuteVerbToSection use, mirroring Python SWMLService.add_verb:
+// and ExecuteVerbToSection use:
 //
 //  1. sleep with a bare integer config bypasses validation (direct-value verb);
-//  2. a non-map config for any other verb is passed through unvalidated —
-//     Python's add_verb only schema-validates dict configs, and some verbs
-//     legitimately carry a non-map wire value (cond -> array, label/unset ->
-//     string|array), so raising here would be stricter than the reference;
+//  2. a non-map config for any other verb is passed through unvalidated — only
+//     object configs are schema-validated, and some verbs legitimately carry a
+//     non-map wire value (cond -> array, label/unset -> string|array), so
+//     raising here would reject valid documents;
 //  3. a registered handler's ValidateConfig runs first (verb-specific
 //     diagnostics such as the ai verb's prompt/SWAIG shape check);
 //  4. the schema pass (schemaUtils.ValidateVerb) ALWAYS runs when the config is
@@ -726,14 +690,11 @@ func (s *Service) validateVerb(verbName string, config any) error {
 
 	cfgMap, isMap := config.(map[string]any)
 	if !isMap {
-		// Non-map config for a non-direct-value verb. The python reference's
-		// add_verb only schema-validates dict configs (a non-dict, non-sleep
-		// config is dropped via a warning + return False, never raised). Some
-		// verbs legitimately carry a non-map value on the wire (cond -> array,
-		// label -> string, unset -> string|array); we do not raise on those and
-		// do not run the closed-key schema pass (which is defined over object
-		// configs). Being stricter here than the reference is forbidden, so we
-		// pass such configs through unvalidated.
+		// Non-map config for a non-direct-value verb. Only object configs are
+		// schema-validated. Some verbs legitimately carry a non-map value on the
+		// wire (cond -> array, label -> string, unset -> string|array); we do not
+		// raise on those and do not run the closed-key schema pass (which is
+		// defined over object configs), so such configs pass through unvalidated.
 		return nil
 	}
 
@@ -754,11 +715,10 @@ func (s *Service) validateVerb(verbName string, config any) error {
 		// its verb — a VALID document rejected, not an invalid one caught.
 		//
 		// This BORROWS the ai handler rather than REGISTERING one under
-		// amazon_bedrock, deliberately: the registry is observable state that the
-		// reference's VerbHandlerRegistry ships containing exactly the ai
-		// handler, and a second entry is a real parity divergence (the
-		// state_register_verb_handler corpus case reads the registry's verb list
-		// and would see the extra name).
+		// amazon_bedrock, deliberately: the registry is observable state that
+		// ships containing exactly the ai handler, and a second entry would be a
+		// visible behaviour change (the state_register_verb_handler corpus case
+		// reads the registry's verb list and would see the extra name).
 		handler, hasHandler = s.verbHandlers["ai"]
 	}
 	s.mu.RUnlock()
@@ -777,8 +737,7 @@ func (s *Service) validateVerb(verbName string, config any) error {
 		return nil
 	}
 
-	// The schema pass differs by verb kind, matching the python reference's
-	// add_verb dispatch:
+	// The schema pass differs by verb kind:
 	//
 	//   - Handler verbs (the ai verb): a SHALLOW top-level-key check only —
 	//     reject unknown/misspelled TOP-LEVEL keys (temperatur, zzz) while
@@ -808,7 +767,7 @@ func (s *Service) validateVerb(verbName string, config any) error {
 // Answer adds the answer verb to the document.
 // maxDuration sets the maximum call duration in seconds (optional).
 // codecs sets a comma-separated list of allowed codecs (optional).
-// Mirrors Python SWMLBuilder.answer(max_duration, codecs).
+// They ride as the max_duration and codecs keys of the answer verb.
 func (s *Service) Answer(maxDuration *int, codecs *string) error {
 	cfg := map[string]any{}
 	if maxDuration != nil {
@@ -821,8 +780,7 @@ func (s *Service) Answer(maxDuration *int, codecs *string) error {
 }
 
 // Hangup adds the hangup verb.
-// reason is an optional reason string for the hangup.
-// Mirrors Python SWMLBuilder.hangup(reason).
+// reason is an optional reason string, emitted as the verb's reason key.
 func (s *Service) Hangup(reason *string) error {
 	cfg := map[string]any{}
 	if reason != nil {
@@ -838,9 +796,9 @@ func (s *Service) Hangup(reason *string) error {
 //
 // The `sw:"optional"` tag on URLs records that the caller may decline the field.
 // Go has no `*[]T` spelling, so a slice field looks the same whether it is
-// required or not; the tag carries the contract (`play(urls=None)`) into the
-// source for the signature enumerator. It is inert at runtime — PlayOptions is
-// read field-by-field into the verb config and never JSON-marshaled.
+// required or not; the tag carries the optional-ness into the source for the
+// signature enumerator. It is inert at runtime — PlayOptions is read
+// field-by-field into the verb config and never JSON-marshaled.
 type PlayOptions struct {
 	URL         *string
 	URLs        []string `sw:"optional"`
@@ -856,7 +814,8 @@ type PlayOptions struct {
 // Volume sets the playback volume (-40 to 40, optional).
 // SayVoice, SayLanguage, SayGender configure text-to-speech (optional).
 // AutoAnswer controls whether to auto-answer the call (optional).
-// Mirrors Python SWMLBuilder.play(url, urls, volume, say_voice, say_language, say_gender, auto_answer).
+// The fields ride as the url / urls / volume / say_voice / say_language /
+// say_gender / auto_answer keys of the play verb.
 //
 // Pass a PlayOptions value:
 //
@@ -895,7 +854,6 @@ func (s *Service) Play(opts PlayOptions) error {
 // Say adds a play verb with a "say:" prefix for text-to-speech.
 // voice, language, and gender configure the TTS voice (optional).
 // volume sets the playback volume (-40 to 40, optional).
-// Mirrors Python SWMLBuilder.say(text, voice, language, gender, volume).
 func (s *Service) Say(text string, voice, language, gender *string, volume *float64) error {
 	sayURL := "say:" + text
 	return s.Play(PlayOptions{
@@ -962,8 +920,8 @@ func (s *Service) SIPRefer(config map[string]any) error {
 // PromptPOM; Extra holds any additional AI parameters merged into the verb config.
 // PromptPOM and Swaig carry `sw:"optional"` for the same reason PlayOptions.URLs
 // does: Go has no `*[]T` / `*map[K]V` spelling, so a composite field is
-// indistinguishable from a required one by type alone. The reference declares
-// both `= None`. The tag is inert at runtime.
+// indistinguishable from a required one by type alone. Both are optional; the
+// tag records that. It is inert at runtime.
 type AIOptions struct {
 	PromptText    *string
 	PromptPOM     []map[string]any `sw:"optional"`
@@ -979,7 +937,8 @@ type AIOptions struct {
 // PostPrompt and PostPromptURL configure post-prompt behavior (optional).
 // Swaig supplies SWAIG configuration (optional).
 // Extra is a map of additional AI parameters merged into the verb config (optional).
-// Mirrors Python SWMLBuilder.ai(prompt_text, prompt_pom, post_prompt, post_prompt_url, swaig, **kwargs).
+// The fields ride as the prompt / post_prompt / post_prompt_url / SWAIG keys of
+// the ai verb; Extra's entries are merged in at the same top level.
 //
 // Pass an AIOptions value:
 //
@@ -990,9 +949,9 @@ func (s *Service) AI(opts AIOptions) error {
 	}
 	cfg := map[string]any{}
 	// AIVerbHandler expects the wrapped form {"prompt": {"text": ...}} or
-	// {"prompt": {"pom": ...}}, matching Python SWMLBuilder.ai. Prior Go
-	// code emitted a bare string/slice under "prompt" which passed when no
-	// handler validated the ai verb, but fails the handler added in PR #86.
+	// {"prompt": {"pom": ...}}. Earlier code here emitted a bare string/slice
+	// under "prompt", which passed when no handler validated the ai verb but
+	// fails the handler added in PR #86.
 	// The object form is not merely canonical — it is a WIRE requirement: the
 	// AI engine (mod_openai app_config.c) checks !cJSON_IsObject(prompt) and
 	// aborts the call on a bare value. The same contract applies to
@@ -1005,7 +964,7 @@ func (s *Service) AI(opts AIOptions) error {
 	// post_prompt carries the SAME object contract as prompt: the engine checks
 	// `!cJSON_IsObject(post_prompt)` (mod_openai app_config.c) and, on a bare
 	// value, fires calling.error with fatal:true and ABORTS THE CALL. Wrap it
-	// exactly as AIVerbHandler.BuildConfig and the reference SWMLBuilder.ai do.
+	// exactly as AIVerbHandler.BuildConfig does.
 	if opts.PostPrompt != nil {
 		cfg["post_prompt"] = map[string]any{"text": *opts.PostPrompt}
 	}
@@ -1181,7 +1140,7 @@ func (s *Service) GetFullURL(includeAuth bool) string {
 		scheme = "https"
 	}
 
-	// Use domain when TLS + domain is set (mirrors Python's _get_base_url logic).
+	// Use domain when TLS + domain is set.
 	host := s.Host
 	if s.TLSEnabled() && s.Domain != "" {
 		host = s.Domain
@@ -1217,13 +1176,11 @@ func platformBaseURL(mode ExecutionMode) string {
 
 // RegisterRoutingCallback registers a callback for a specific path. The path is
 // normalized for consistent lookup — trailing slash stripped, leading slash
-// added — matching Python's register_routing_callback (swml_service.py:919):
-// normalized = path.rstrip("/"); if not startswith("/"): "/" + normalized.
-// So "/sip/" and "voice" both normalize to "/sip" and "/voice".
-// Parameter ORDER follows the reference — `(callback_fn, path="/sip")`, callback
-// first — and path is OPTIONAL: the empty string substitutes the reference's
-// "/sip" default, so `RegisterRoutingCallback(cb, "")` is the reference's
-// one-argument call.
+// added: the trailing slash is stripped, then a leading slash prepended if
+// absent. So "/sip/" and "voice" normalize to "/sip" and "/voice".
+// The callback comes FIRST and path is OPTIONAL: passing the empty string
+// substitutes the "/sip" default, so `RegisterRoutingCallback(cb, "")` is the
+// one-argument form.
 func (s *Service) RegisterRoutingCallback(cb RoutingCallback, path string) {
 	if path == "" {
 		path = "/sip"
@@ -1256,9 +1213,8 @@ func (s *Service) RoutingCallbackFor(path string) (RoutingCallback, bool) {
 }
 
 // RoutingCallbackPaths returns the paths that have routing callbacks
-// registered. Callers use this to register corresponding HTTP endpoints
-// (mirrors Python web_mixin.py line 428 which iterates
-// self._routing_callbacks to register callback endpoints on the router).
+// registered. Callers iterate this to register the corresponding callback
+// endpoints on their router.
 // Paths are returned in sorted order for deterministic HTTP registration.
 func (s *Service) RoutingCallbackPaths() []string {
 	s.mu.RLock()
@@ -1280,19 +1236,17 @@ func (s *Service) RoutingCallbackPaths() []string {
 // OnRequest is called when SWML is requested, with the parsed request data when
 // available, and returns the SWML document to serve. Subclasses (AgentBase) may
 // override it to inspect or modify SWML based on the request; a nil return means
-// "use the default document unchanged" (matching Python's Optional[dict] return
-// for on_request).
+// "use the default document unchanged".
 //
-// Routing callbacks are no longer consulted here: the reference decomposed the
-// routing-callback role into HandleRequest, where a registered callback returns
-// a route string that triggers a 307 redirect (see RoutingCallback and
-// HandleRequest). OnRequest's role is now purely document generation / override.
+// Routing callbacks are no longer consulted here: the routing-callback role
+// moved into HandleRequest, where a registered callback returns a route string
+// that triggers a 307 redirect (see RoutingCallback and HandleRequest).
+// OnRequest's role is now purely document generation / override.
 //
-// Both parameters are optional, matching the reference
-// `on_request(request_data=None, callback_path=None)`: this is an OVERRIDE HOOK
-// the framework calls, and the base implementation reads neither — the SWML
-// document is returned unchanged whether or not request context was available.
-// A caller (or an overriding subclass invoking super) may decline either.
+// Both parameters are optional: this is an OVERRIDE HOOK the framework calls,
+// and the base implementation reads neither — the SWML document is returned
+// unchanged whether or not request context was available. A caller (or an
+// overriding implementation delegating to this one) may decline either.
 //
 //sw:param requestData optional
 //sw:param callbackPath optional
@@ -1305,12 +1259,10 @@ func (s *Service) OnRequest(requestData map[string]any, callbackPath string) map
 
 // HandleRequest is the framework-free request-dispatch core.
 //
-// This is the primitive dispatch surface the SDK ports share (mirrors, e.g., the
-// Python signalwire.core.swml_service.SWMLService.handle_request and the .NET
-// (int, Dictionary, string) HandleRequest(method, path, headers, body)). It
-// performs proxy detection, basic-auth, the routing-callback check, and the
+// It performs proxy detection, basic-auth, the routing-callback check, and the
 // on_request document override exactly as the net/http serve path does, but over
-// plain primitives instead of *http.Request / http.ResponseWriter objects.
+// plain primitives instead of *http.Request / http.ResponseWriter objects — so
+// it is usable from a serverless host that never constructs either.
 //
 // The net/http handlers (handleSWML) delegate here so both paths produce
 // identical responses (same status codes, headers, and body).
@@ -1361,10 +1313,10 @@ func (s *Service) HandleRequest(method string, url string, headers map[string]st
 	if err != nil {
 		return 500, map[string]string{}, `{"error":"render failed"}`
 	}
-	// Empty headers on 200 — matching Python's framework-free _handle_request_core,
-	// which returns (200, {}, body). The Content-Type is a concern of the HTTP
-	// wrapper layer (the net/http handler sets it when marshaling the response),
-	// not the shared primitive-dispatch contract the ports byte-compare.
+	// Empty headers on 200: the contract of this primitive-dispatch surface is
+	// (200, {}, body). The Content-Type is a concern of the HTTP wrapper layer
+	// (the net/http handler sets it when marshaling the response), not of this
+	// core.
 	return 200, map[string]string{}, string(out)
 }
 
@@ -1399,9 +1351,9 @@ func (s *Service) CallbackPathForURL(rawURL string) string {
 }
 
 // CheckBasicAuthHeaders is the framework-free basic-auth check driven by a plain
-// headers map, mirroring Python's _check_basic_auth_headers. It returns true when
-// no basic-auth credentials are configured (nothing to enforce) or when the
-// Authorization header carries matching credentials.
+// headers map. It returns true when no basic-auth credentials are configured
+// (nothing to enforce) or when the Authorization header carries matching
+// credentials.
 func (s *Service) CheckBasicAuthHeaders(headers map[string]string) bool {
 	s.mu.RLock()
 	user, pass := s.basicAuthUser, s.basicAuthPassword
@@ -1436,8 +1388,9 @@ func (s *Service) CheckBasicAuthHeaders(headers map[string]string) bool {
 }
 
 // DetectProxyFromPrimitives auto-configures proxyURLBase from X-Forwarded-*
-// headers (the common ngrok / reverse-proxy case), mirroring the primary path of
-// Python's _detect_proxy_from_primitives. It never overrides an already-set base.
+// headers (the common ngrok / reverse-proxy case). X-Forwarded-Host supplies the
+// host and X-Forwarded-Proto the scheme (defaulting to http). It never overrides
+// an already-set base.
 func (s *Service) DetectProxyFromPrimitives(_ string, headers map[string]string) {
 	s.mu.RLock()
 	already := s.proxyURLBase != ""
@@ -1467,8 +1420,7 @@ func (s *Service) DetectProxyFromPrimitives(_ string, headers map[string]string)
 }
 
 // headerStringMap copies a map[string]string into a map[string]any so it can be
-// passed to a RoutingCallback (which takes headers as map[string]any to mirror
-// the reference's dict[str, str] header argument).
+// passed to a RoutingCallback, whose headers argument is map[string]any.
 func headerStringMap(h map[string]string) map[string]any {
 	out := make(map[string]any, len(h))
 	for k, v := range h {
@@ -1498,7 +1450,7 @@ func ExtractSIPUsername(body map[string]any) string {
 	if !ok {
 		return ""
 	}
-	// Mirror Python's extract_sip_username (swml_service.py:948) branches:
+	// Branch on the 'to' field's URI scheme:
 	//   sip:username@domain -> the username part (between "sip:" and "@")
 	//   tel:+1234567890     -> the phone number part (after "tel:")
 	//   otherwise           -> the whole 'to' field.
@@ -1518,8 +1470,8 @@ func ExtractSIPUsername(body map[string]any) string {
 
 // --- Helpers ---
 
-// filterNilValues removes nil values from a map, matching Python's behavior
-// of skipping None kwargs in verb methods.
+// filterNilValues removes nil values from a map so that an unset verb parameter
+// is omitted from the emitted config rather than sent as a null.
 func filterNilValues(m map[string]any) map[string]any {
 	if m == nil {
 		return map[string]any{}
@@ -1609,8 +1561,8 @@ func (s *Service) maybeEmitListToolsSentinels() bool {
 // Serve starts the HTTP server. This is a blocking call.
 //
 // When TLS is configured via WithTLS (or SWML_SSL_CERT_PATH / SWML_SSL_KEY_PATH
-// env vars), ListenAndServeTLS is called automatically. Mirrors Python's
-// serve() ssl_cert / ssl_key / ssl_enabled parameter support.
+// env vars), ListenAndServeTLS is called automatically — see TLSEnabled for the
+// exact ssl_enabled + cert/key precondition.
 //
 // If SWAIG_LIST_TOOLS is set in the environment, Serve() does NOT bind a
 // port; instead it prints the registered tool registry sandwiched by
@@ -1636,7 +1588,7 @@ func (s *Service) Serve() error {
 		ReadHeaderTimeout: 20 * time.Second,
 	}
 	if s.TLSEnabled() {
-		// Require TLS 1.2+ (mirrors Python's CERT_REQUIRED ssl_verify_mode default).
+		// Require TLS 1.2+; older versions are refused outright.
 		s.server.TLSConfig = &tls.Config{
 			MinVersion: tls.VersionTLS12,
 		}
@@ -1949,7 +1901,7 @@ func flattenHeaders(h http.Header) map[string]string {
 // withSecurity wraps a handler with auth and security headers.
 // withSecurity wraps a handler with security headers and multi-method auth.
 //
-// Auth check order (mirrors Python AuthHandler.flask_decorator / get_fastapi_dependency):
+// Auth check order:
 //  1. Bearer token — "Authorization: Bearer <token>" header (if configured).
 //  2. API key — configured header name (if configured).
 //  3. HTTP Basic Auth — always checked as the final fallback.

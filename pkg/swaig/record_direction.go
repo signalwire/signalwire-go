@@ -13,24 +13,20 @@ package swaig
 //	fr.RecordCall("id", true, swaig.FormatWAV, "listen", nil)                    // bare string still compiles
 //
 // RecordDirection is a string subtype, so the value written into the SWML
-// record_call params is byte-identical to the bare string the reference uses —
-// compatibility with Python's record_call(direction=...) keyword (a plain str). The
-// enumerator emits the direction param as union<RecordDirection,string>, so
-// signature drift stays 0 against the reference's str (the string member
-// absorbs).
+// record_call params is byte-identical to the bare string it wraps. The
+// enumerator emits the direction param as union<RecordDirection,string>, so a bare
+// string is equally accepted.
 //
 // IMPORTANT: this set ({speak, listen, both}) is DISTINCT from TapDirection
-// ({speak, hear, both}) — record_call uses "listen" where tap uses "hear". The
-// Python reference validates the two with two different lists
-// (function_result.py:917 vs :1212), so they are modelled as two separate types
-// and must never be unified. (And both differ again from the RELAY play/record/
+// ({speak, hear, both}) — record_call uses "listen" where tap uses "hear".
+// The two are validated against two different lists on the wire, so they are
+// modelled as two separate types and must never be unified. (And both differ again from the RELAY play/record/
 // tap direction vocabulary — three distinct vocabularies in all.)
 type RecordDirection string
 
 // Audio directions for RecordCall. These are exactly the strings the SWML
 // record_call verb accepts for direction; the values are emitted verbatim into
-// the record_call params (matching the Python reference's
-// valid_directions = ["speak", "listen", "both"]).
+// the record_call params.
 const (
 	RecordDirectionSpeak  RecordDirection = "speak"  // what the party says
 	RecordDirectionListen RecordDirection = "listen" // what the party hears

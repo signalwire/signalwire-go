@@ -87,7 +87,7 @@ func (s *WebSearchSkill) RequiredEnvVars() []string {
 func (s *WebSearchSkill) SupportsMultipleInstances() bool { return true }
 
 // GetInstanceKey returns a unique key incorporating both searchEngineID and toolName,
-// matching Python's f"{SKILL_NAME}_{search_engine_id}_{tool_name}" pattern.
+// following the "{skill_name}_{search_engine_id}_{tool_name}" pattern.
 // Both fields are populated by Setup, and SkillManager.LoadSkill computes the
 // instance key BEFORE calling Setup, so at dedup time this reports
 // "web_search__".
@@ -932,7 +932,7 @@ func (s *WebSearchSkill) wrapResponse(response string) string {
 }
 
 // GetGlobalData returns global context data signalling that quality-filtered web
-// search is available. Mirrors Python's get_global_data return value.
+// search is available.
 func (s *WebSearchSkill) GetGlobalData() map[string]any {
 	return map[string]any{
 		"web_search_enabled": true,

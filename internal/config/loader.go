@@ -99,7 +99,7 @@ func (c *Loader) Config() map[string]any {
 
 // SubstituteVars recursively resolves ${VAR|default} references in strings,
 // maps and slices. Resolved scalar strings that look like a bool/int/float are
-// converted to that type, matching the Python coercion behaviour. maxDepth
+// coerced to that type. maxDepth
 // guards against runaway recursion.
 func (c *Loader) SubstituteVars(value any, maxDepth int) any {
 	if maxDepth <= 0 {
@@ -261,7 +261,7 @@ func setNestedKey(data map[string]any, keyPath string, value any) {
 
 // FindFile locates a config file for a service, searching service-specific
 // names then generic defaults plus any additionalPaths. Returns "" if none
-// exists. Mirrors the Python @staticmethod ConfigLoader.find_config_file.
+// exists.
 func FindFile(serviceName string, additionalPaths []string) string {
 	var paths []string
 	if serviceName != "" {

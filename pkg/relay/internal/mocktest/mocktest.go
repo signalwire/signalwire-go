@@ -6,10 +6,9 @@
 // See LICENSE file in the project root for full license information.
 
 // Package mocktest is the Go test helper for the shared mock_relay server
-// WebSocket server. It mirrors the Python conftest fixtures
-// (signalwire_relay_client + mock_relay) so unit tests can drive the real
-// RELAY client over a real WebSocket connection against a schema-driven
-// mock that journals every frame.
+// WebSocket server. It provides the client + mock_relay fixtures so unit
+// tests can drive the real RELAY client over a real WebSocket connection
+// against a schema-driven mock that journals every frame.
 //
 // The mock server's lifetime is per-process: the first New call probes
 // http://127.0.0.1:<HTTP_PORT>/__mock__/health and either confirms a
@@ -18,7 +17,7 @@
 // entries.
 //
 // Defaults:
-//   - WebSocket port: 8775 (Go's relay slot in the per-port matrix)
+//   - WebSocket port: 8775 (this SDK's assigned relay slot)
 //   - HTTP control port: WebSocket port + 1000 (so 9775)
 //
 // Override with MOCK_RELAY_PORT in the test environment if a different
@@ -568,8 +567,8 @@ type serverState struct {
 
 var state serverState
 
-// defaultWSPort is the Go relay slot in the per-port matrix. Override
-// via MOCK_RELAY_PORT.
+// defaultWSPort is this SDK's assigned relay slot. Override via
+// MOCK_RELAY_PORT.
 const defaultWSPort = 8775
 
 // startupTimeout caps the time we wait for the mock-relay subprocess to
@@ -771,8 +770,7 @@ func probeHealth(client *http.Client, base string) bool {
 // *relay.Client wired up to the mock's WebSocket via SIGNALWIRE_RELAY_HOST
 // + SIGNALWIRE_RELAY_SCHEME=ws (the same host-override env vars the
 // audit_relay_handshake.py fixture uses). The client is started with
-// project=test_proj / token=test_tok / contexts=["default"] — matching
-// the Python signalwire_relay_client fixture.
+// project=test_proj / token=test_tok / contexts=["default"].
 //
 // The mock's journal + scenarios are reset before the test runs, and the
 // reset is repeated via t.Cleanup so accidental leftover state from a

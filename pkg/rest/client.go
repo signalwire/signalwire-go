@@ -76,13 +76,12 @@ type SignalWireRestError struct {
 
 // Unwrap returns the underlying transport error (or nil for an HTTP-status error),
 // so errors.Is / errors.As see through a transport-wrapped *SignalWireRestError to
-// the original cause (e.g. context.Canceled, a *net.OpError). This preserves the
-// error chain the way Python's “raise SignalWireRestTransportError(...) from exc“
-// does, while still presenting the typed REST error family at the top.
+// the original cause (e.g. context.Canceled, a *net.OpError). The error CHAIN is
+// preserved while the typed REST error family still presents at the top.
 func (e *SignalWireRestError) Unwrap() error { return e.cause }
 
 // Error implements the error interface. When a platform RequestID was captured it
-// is appended for observability, matching the Python reference (plan 6.6).
+// is appended for observability (plan 6.6).
 func (e *SignalWireRestError) Error() string {
 	var msg string
 	if e.Transport {
@@ -116,10 +115,9 @@ func extractRequestID(h http.Header) string {
 }
 
 // NewSignalWireRestError constructs a SignalWireRestError for an HTTP-status
-// failure, substituting "GET" as the method when method is empty — matches
-// Python's default. headers is the response header map (may be nil — e.g. a
-// hand-built error); when present the platform request-id is extracted from it
-// (plan 6.6 error-observability, mirroring the reference's optional headers param).
+// failure, substituting "GET" as the method when method is empty. headers is the
+// response header map and may be nil (e.g. a hand-built error); when present the
+// platform request-id is extracted from it (plan 6.6 error-observability).
 func NewSignalWireRestError(statusCode int, body, url, method string, headers http.Header) *SignalWireRestError {
 	if method == "" {
 		method = "GET"

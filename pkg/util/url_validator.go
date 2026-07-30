@@ -1,8 +1,7 @@
 // Package util provides cross-cutting helpers used across the Go SDK.
 //
-// validate_url is the SSRF-prevention guard applied to user-supplied
-// URLs before they are fetched.  It must mirror the Python reference
-// at signalwire.utils.url_validator.validate_url:
+// ValidateURL is the SSRF-prevention guard applied to user-supplied
+// URLs before they are fetched.  The contract is:
 //
 //   - require http or https scheme
 //   - require a hostname
@@ -53,8 +52,7 @@ var resolveHost = net.LookupIP
 
 // ValidateURL reports whether the supplied URL is safe to fetch.
 //
-// Mirrors Python's validate_url(url, allow_private=False) -> bool.
-// Returns false (without raising) for any of:
+// allow_private defaults to false. Returns false (never panics) for any of:
 //
 //   - parse failure
 //   - scheme not http/https

@@ -95,8 +95,8 @@ func (m *Message) Reason() string {
 func (m *Message) Tags() []string { return m.tags }
 
 // Result returns the terminal RelayEvent if the message has reached a terminal
-// state, or nil if not yet done. This is the non-blocking equivalent of
-// Python's Message.result property.
+// state, or nil if not yet done. This is the NON-BLOCKING accessor; use Wait
+// to block until the message reaches a terminal state.
 func (m *Message) Result() *RelayEvent {
 	m.mu.Lock()
 	defer m.mu.Unlock()

@@ -415,7 +415,7 @@ func (s *MCPGatewaySkill) callMCPTool(serviceName, toolName string, args map[str
 }
 
 // GetGlobalData returns MCP gateway state for DataMap variable expansion.
-// Mirrors Python get_global_data: mcp_gateway_url, mcp_session_id, mcp_services.
+// The keys are mcp_gateway_url, mcp_session_id and mcp_services.
 func (s *MCPGatewaySkill) GetGlobalData() map[string]any {
 	serviceNames := make([]string, 0, len(s.services))
 	for _, svc := range s.services {

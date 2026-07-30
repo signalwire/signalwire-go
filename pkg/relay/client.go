@@ -77,9 +77,7 @@ type Client struct {
 // After explicit options are applied, any remaining unset auth/space
 // fields fall back to SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN,
 // SIGNALWIRE_JWT_TOKEN, SIGNALWIRE_SPACE, and RELAY_MAX_ACTIVE_CALLS
-// environment variables — matching Python RelayClient.__init__'s
-// automatic env-var fallback (relay/client.py:115-119). Explicit
-// options always win.
+// environment variables. Explicit options always win.
 func NewRelayClient(opts ...ClientOption) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Client{
@@ -120,8 +118,7 @@ func (c *Client) OnMessage(handler func(*Message)) {
 // frame, AFTER type-specific routing (call, messaging) has run. The
 // handler receives the raw event_type string and params map. This is
 // the lowest-level event hook — most callers should use OnCall or
-// OnMessage instead. Mirrors Python RelayClient's public event-tap
-// surface used by integration tests.
+// OnMessage instead.
 func (c *Client) OnEvent(handler func(eventType string, params map[string]any)) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -129,8 +126,7 @@ func (c *Client) OnEvent(handler func(eventType string, params map[string]any)) 
 }
 
 // RelayProtocol returns the server-assigned protocol string received during
-// authentication. Mirrors Python's relay_protocol property. The value is empty
-// until after a successful Connect/Run.
+// authentication. The value is empty until after a successful Connect/Run.
 func (c *Client) RelayProtocol() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -141,17 +137,16 @@ func (c *Client) RelayProtocol() string {
 // signalwire.connect handshake (the connect result's `sessionid`). It is empty
 // until after a successful Connect+Authenticate.
 //
-// This is test-support surface, not part of the Python-mapped public API:
-// Python's RelayClient keeps the session id internal (TS keeps it as a private
-// `_sessionId`), so SessionID is deliberately NOT in the cross-port surface
+// This is test-support surface, not part of the tracked public API: the session
+// id is an internal detail, so SessionID is deliberately NOT in the surface
 // translation table (internal/surface/tables.go) and is invisible to the
 // SURFACE-DIFF gate — exactly like the other connection-lifecycle helpers
 // (Authenticate, StartReadLoop, SubscribeContexts) that the mock test harness
-// needs but Python does not expose. Go's `export_test.go` mechanism is
+// needs but the public API does not expose. Go's `export_test.go` mechanism is
 // same-package-only and cannot reach across to the separate
-// pkg/relay/internal/mocktest package, so unlike TS (which casts to the private
-// field) the accessor must be an exported method here; it remains off the
-// tracked surface, so no PORT_ADDITIONS entry is required.
+// pkg/relay/internal/mocktest package, so the accessor must be an exported
+// method here; it remains off the tracked surface, so no PORT_ADDITIONS entry
+// is required.
 //
 // The mock harness reads it to scope its journal/scenario control-plane calls
 // to this client's session, making the shared mock safe under parallel tests.
@@ -161,45 +156,41 @@ func (c *Client) SessionID() string {
 	return c.sessionID
 }
 
-// ProjectID returns the configured project ID. Mirrors Python's public
-// client.project attribute, allowing callers to read back the value
-// supplied via WithProject(...) or the SIGNALWIRE_PROJECT_ID env var.
+// ProjectID returns the configured project ID, allowing callers to read back
+// the value supplied via WithProject(...) or the SIGNALWIRE_PROJECT_ID env var.
 func (c *Client) ProjectID() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.projectID
 }
 
-// Token returns the configured API token. Mirrors Python's public
-// client.token attribute, allowing callers to read back the value
-// supplied via WithToken(...) or the SIGNALWIRE_API_TOKEN env var.
+// Token returns the configured API token, allowing callers to read back the
+// value supplied via WithToken(...) or the SIGNALWIRE_API_TOKEN env var.
 func (c *Client) Token() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.token
 }
 
-// JWTToken returns the configured JWT. Mirrors Python's public
-// client.jwt_token attribute, allowing callers to read back the value
-// supplied via WithJWT(...).
+// JWTToken returns the configured JWT, allowing callers to read back the
+// value supplied via WithJWT(...).
 func (c *Client) JWTToken() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.jwtToken
 }
 
-// Space returns the configured SignalWire space hostname. Mirrors Python's
-// public client.host attribute (Python uses the term "host"; Go uses
-// "space" because that's the more accurate noun — see WithSpace).
+// Space returns the configured SignalWire space hostname. This is the value
+// other SDKs surface as "host"; Go names it "space" because that is the more
+// accurate noun — see WithSpace.
 func (c *Client) Space() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.space
 }
 
-// Contexts returns a copy of the configured RELAY contexts. Mirrors
-// Python's public client.contexts attribute. The returned slice is a
-// copy — mutating it does not affect the client.
+// Contexts returns a copy of the configured RELAY contexts. The returned
+// slice is a copy — mutating it does not affect the client.
 func (c *Client) Contexts() []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -207,10 +198,9 @@ func (c *Client) Contexts() []string {
 }
 
 // AuthorizationState returns the most recent encrypted authorization
-// state blob received via signalwire.authorization.state events.
-// Mirrors Python's RelayClient._authorization_state used during
-// reconnection (relay/client.py:174). Empty until the server pushes
-// such an event.
+// state blob received via signalwire.authorization.state events. It is the
+// material replayed during reconnection. Empty until the server pushes such
+// an event.
 func (c *Client) AuthorizationState() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -218,8 +208,7 @@ func (c *Client) AuthorizationState() string {
 }
 
 // Connect establishes the WebSocket connection to SignalWire. This is the
-// public equivalent of the internal connect() method, mirroring Python's
-// async connect() which is also used in the async-with context manager.
+// public equivalent of the internal connect() method.
 // In most cases callers should use Run() which calls Connect internally and
 // then drives the read loop.
 func (c *Client) Connect() error {
@@ -227,8 +216,8 @@ func (c *Client) Connect() error {
 }
 
 // Execute sends a JSON-RPC request over the WebSocket and waits for the
-// response. Mirrors Python's async execute(method, params) which is the
-// public arbitrary-RPC surface used by callers that need low-level access.
+// response. This is the public arbitrary-RPC surface for callers that need
+// low-level access.
 func (c *Client) Execute(method string, params map[string]any) (json.RawMessage, error) {
 	return c.execute(method, params)
 }
@@ -249,12 +238,12 @@ func (c *Client) Notify(method string, params map[string]any) error {
 
 // Receive subscribes to additional contexts for inbound events after the
 // client is already connected. Sends signalwire.receive on the assigned
-// protocol. Mirrors Python's async receive(contexts).
+// protocol.
 //
-// contexts is a REQUIRED slice, not a variadic: the reference's
-// `receive(contexts: list[str])` obliges the caller to name the list it is
-// subscribing to. A variadic would make the empty call `Receive()` legal and
-// silently no-op, widening the contract past the reference.
+// contexts is a REQUIRED slice, not a variadic: the wire-level operation is
+// receive(contexts: list[str]), which obliges the caller to name the list it
+// is subscribing to. A variadic would make the empty call `Receive()` legal
+// and silently no-op, widening the contract.
 func (c *Client) Receive(contexts []string) error {
 	if len(contexts) == 0 {
 		return nil
@@ -266,8 +255,8 @@ func (c *Client) Receive(contexts []string) error {
 }
 
 // Unreceive unsubscribes from contexts for inbound events. Sends
-// signalwire.unreceive on the assigned protocol. Mirrors Python's async
-// unreceive(contexts). Takes a REQUIRED slice for the same reason Receive does.
+// signalwire.unreceive on the assigned protocol. Takes a REQUIRED slice for
+// the same reason Receive does.
 func (c *Client) Unreceive(contexts []string) error {
 	if len(contexts) == 0 {
 		return nil
@@ -300,8 +289,8 @@ func (c *Client) Run() error {
 // ctx.Err() (wrapping context.Canceled / context.DeadlineExceeded); on a
 // caller Stop() it returns nil, matching Run.
 //
-// This is a Go-port addition (the Python reference's run()/serve loop has no
-// caller-supplied cancellation token); documented in PORT_ADDITIONS.md.
+// The caller-supplied cancellation token is a Go addition over the plain
+// run()/serve loop; documented in PORT_ADDITIONS.md.
 func (c *Client) RunContext(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -360,8 +349,8 @@ func (c *Client) RunContext(ctx context.Context) error {
 }
 
 // Authenticate runs the signalwire.connect handshake and stores the
-// server-issued protocol string. Mirrors Python's RelayClient.connect()
-// auth phase. Use Connect first to establish the WebSocket; this call
+// server-issued protocol string — the auth phase of connecting.
+// Use Connect first to establish the WebSocket; this call
 // reads the auth response synchronously (the read loop has not yet
 // started so no other reader is contending for the socket).
 func (c *Client) Authenticate() error {
@@ -387,9 +376,8 @@ func (c *Client) SubscribeContexts() error {
 
 // Stop gracefully shuts down the client connection.
 //
-// Equivalent to Python's RelayClient.disconnect() (relay/client.py:286).
-// Python users porting code can search for "disconnect" and find this
-// method by its rename.
+// This is the client's disconnect operation, renamed to Stop to match Go's
+// lifecycle naming.
 func (c *Client) Stop() {
 	c.running.Store(false)
 	c.cancel()
@@ -516,15 +504,15 @@ func (c *Client) pingPeer() bool {
 // parameter is a list of serial/parallel device groups (same structure as
 // the Blade calling.dial devices field).
 //
-// Mirrors Python's RelayClient.dial(devices, *, tag=None, max_duration=None,
-// dial_timeout=None). The calling.dial RPC response only contains
+// The wire-level operation is dial(devices, *, tag, max_duration,
+// dial_timeout). The calling.dial RPC response only contains
 // {"code": "200", "message": "Dialing"} — no call_id. The real call_id and
 // node_id arrive via subsequent calling.call.dial events keyed by tag.
 // This method waits for that event so the returned Call always has valid
 // identifiers.
 //
 // To pass a caller-supplied tag, use WithDialTag. Without it the SDK
-// generates a UUID, matching Python's tag = tag or str(uuid.uuid4()).
+// generates a UUID.
 //
 // Dial delegates to DialContext with context.Background(); use DialContext to
 // abort the dial via a caller-controlled context (cancellation or deadline).
@@ -535,9 +523,9 @@ func (c *Client) Dial(devices [][]map[string]any, opts ...DialOption) (*Call, er
 // DialContext is the context-aware form of Dial: in addition to the
 // dial-timeout and the client's own lifecycle, it aborts when ctx is
 // cancelled or its deadline passes, returning ctx.Err() (wrapping
-// context.Canceled / context.DeadlineExceeded). This is a Go-port addition —
-// the Python reference's dial() has no caller-cancellation channel
-// (documented in PORT_ADDITIONS.md).
+// context.Canceled / context.DeadlineExceeded). The caller-cancellation
+// channel is a Go addition over the plain dial() operation (documented in
+// PORT_ADDITIONS.md).
 //
 // Error sentinels (errors.Is-able): a per-dial timeout wraps ErrDialTimeout,
 // a server "failed" dial_state wraps ErrDialFailed, and an RPC-send failure
@@ -558,8 +546,7 @@ func (c *Client) DialContext(ctx context.Context, devices [][]map[string]any, op
 		opt(params)
 	}
 
-	// If no caller-supplied tag, mint one. Mirrors Python's
-	//   dial_tag = tag or str(uuid.uuid4())
+	// If no caller-supplied tag, mint a UUID.
 	tag, _ := params["tag"].(string)
 	if tag == "" {
 		tag = uuid.New().String()
@@ -616,8 +603,8 @@ func (c *Client) DialContext(ctx context.Context, devices [][]map[string]any, op
 // used to track delivery.
 //
 // The context option (WithMessageContext) sets the routing context for the
-// message; it defaults to the relay protocol when omitted, matching Python SDK
-// behaviour. The on_completed option (WithMessageOnCompleted) registers a
+// message; it defaults to the relay protocol when omitted. The on_completed
+// option (WithMessageOnCompleted) registers a
 // callback fired when the message reaches a terminal state.
 func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Message, error) {
 	params := map[string]any{
@@ -659,8 +646,7 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 	}
 
 	msg := newMessage(result.MessageID, DirectionOutbound, from, to, body)
-	// Mirrors Python: outbound messages start in "queued" state
-	// (relay/client.py:468, Message(... state="queued")).
+	// Outbound messages start in the "queued" state.
 	msg.state = MessageStateQueued
 	if onCompleted != nil {
 		msg.onCompleted = onCompleted
@@ -693,9 +679,9 @@ func (c *Client) SendMessage(to, from, body string, opts ...MessageOption) (*Mes
 // per-port harness contract documented in the shared test harness
 // SUBAGENT_PLAYBOOK.
 // validateCredentials fails PRE-CONNECT with a per-variable actionable error
-// when a required credential is missing, mirroring python RelayClient
-// (relay/client.py:132-154): a JWT alone is sufficient; otherwise BOTH project
-// and token are required, and the error names the specific missing credential +
+// when a required credential is missing: a JWT alone is sufficient; otherwise
+// BOTH project and token are required, and the error names the specific
+// missing credential +
 // its env var so the fix is obvious. This runs before any socket work so a
 // misconfiguration surfaces immediately instead of as an opaque connect/auth
 // failure.
@@ -804,8 +790,8 @@ func (c *Client) authenticate() error {
 			"minor":    ProtocolVersionMinor,
 			"revision": ProtocolVersionRevision,
 		},
-		// Mirrors Python connect_params at relay/client.py:265-267:
-		// {"version": ..., "agent": AGENT_STRING, "event_acks": True}.
+		// The connect params are
+		// {"version": ..., "agent": AGENT_STRING, "event_acks": true}.
 		// event_acks=true tells the server to expect JSON-RPC ACKs for
 		// each pushed signalwire.event. If we omit this, the server may
 		// fall back to fire-and-forget event delivery.
@@ -815,15 +801,14 @@ func (c *Client) authenticate() error {
 
 	c.mu.RLock()
 	if len(c.contexts) > 0 {
-		// Python sends contexts on the connect frame itself (the same
-		// `subscriptions` set the connect result echoes back). Mirrors
-		// relay/client.py where the contexts list flows into connect.
+		// Contexts ride on the connect frame itself — the same
+		// `subscriptions` set the connect result echoes back.
 		connectParams["contexts"] = append([]string(nil), c.contexts...)
 	}
 	if c.protocol != "" {
 		// Reconnect-with-protocol path: the protocol string the server
 		// previously issued goes on the wire so the server can resume
-		// the session. Mirrors Python's _relay_protocol-on-reconnect.
+		// the session.
 		connectParams["protocol"] = c.protocol
 	}
 	if c.authorizationState != "" {
@@ -901,9 +886,9 @@ func (c *Client) authenticate() error {
 			c.mu.Lock()
 			c.protocol = authResult.Protocol
 			// Capture the server-assigned session id from the connect handshake.
-			// Kept off the public surface (Python's RelayClient does not expose it
-			// either — see PORT parity); tests read it via the test-only accessor
-			// in export_test.go to scope the mock harness to this client's session.
+			// Kept off the public surface; tests read it via the test-only
+			// accessor in export_test.go to scope the mock harness to this
+			// client's session.
 			if authResult.SessionID != "" {
 				c.sessionID = authResult.SessionID
 			}
@@ -1021,7 +1006,7 @@ func (c *Client) readLoop() {
 // execute sends a JSON-RPC request and waits for the response.
 // successCodeRE matches a 2xx calling.* result code ("200".."299"). Anything else
 // (a "404"/"410" call-gone, a "500" server failure, etc.) is a non-success the
-// SDK must surface — mirrors python _SUCCESS_CODE_RE (relay/client.py).
+// SDK must surface.
 var successCodeRE = regexp.MustCompile(`^2\d\d$`)
 
 func (c *Client) execute(method string, params map[string]any) (json.RawMessage, error) {
@@ -1036,11 +1021,10 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 
 	// NOTE: the server-issued `protocol` string is echoed back only on the
 	// signalwire.connect frame (see authenticate / reconnect), NOT injected into
-	// every calling.*/messaging.* command's params. Python's _send_request sends
-	// the caller's params verbatim; injecting `protocol` here produced a frame
-	// that diverged from the Python oracle on every RELAY command. The protocol
-	// is a session property carried by the connect handshake, not a per-command
-	// param.
+	// every calling.*/messaging.* command's params. The caller's params go out
+	// verbatim; injecting `protocol` here produced a divergent frame on every
+	// RELAY command. The protocol is a session property carried by the connect
+	// handshake, not a per-command param.
 
 	ch := make(chan json.RawMessage, 1)
 	c.mu.Lock()
@@ -1079,9 +1063,9 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 		// non-2xx code is a server-side failure that must RAISE (A2/B7): the prior
 		// int-only decode silently swallowed every string code, so a failed verb
 		// looked like success. signalwire.connect returns no such code and is
-		// exempt (its result is the auth envelope). Mirrors python _handle_response
-		// (relay/client.py:887-901): raise RelayError(int(code), message) on a
-		// non-2xx result code; the Call layer then swallows only 404/410.
+		// exempt (its result is the auth envelope). The contract is: raise
+		// RelayError(int(code), message) on a non-2xx result code; the Call layer
+		// then swallows only 404/410.
 		if method != MethodSignalWireConnect {
 			var codeResp struct {
 				Code    string `json:"code"`
@@ -1119,8 +1103,8 @@ func (c *Client) execute(method string, params map[string]any) (json.RawMessage,
 func (c *Client) handleEvent(eventType string, params map[string]any) {
 	switch {
 	case eventType == EventAuthorizationState:
-		// Mirrors Python relay/client.py:796. Encrypted blob the
-		// server hands back so a reconnect can resume seamlessly.
+		// Encrypted blob the server hands back so a reconnect can resume
+		// seamlessly.
 		if as, _ := params["authorization_state"].(string); as != "" {
 			c.mu.Lock()
 			c.authorizationState = as
@@ -1175,8 +1159,7 @@ func (c *Client) handleCallingEvent(eventType string, params map[string]any) {
 		}
 		c.mu.Lock()
 		// Overload protection: drop the inbound call when the active-call cap is
-		// reached, mirroring python _handle_inbound_call (relay/client.py:1020-1024)
-		// — do NOT register it and do NOT invoke the on_call handler. The cap is
+		// reached — do NOT register it and do NOT invoke the on_call handler. The cap is
 		// always positive (DefaultMaxActiveCalls when unset), so this is a real
 		// ceiling, not a no-op knob.
 		if c.maxActiveCalls > 0 && len(c.calls) >= c.maxActiveCalls {
@@ -1205,7 +1188,6 @@ func (c *Client) handleCallingEvent(eventType string, params map[string]any) {
 
 	// Handle calling.call.dial events — these carry the winner via
 	// nested params.call.{call_id,node_id}, NOT a top-level call_id.
-	// Mirrors Python's _handle_dial_event at relay/client.py:945.
 	if eventType == EventCallingCallDial {
 		dialState, _ := params["dial_state"].(string)
 		callInfo, _ := params["call"].(map[string]any)

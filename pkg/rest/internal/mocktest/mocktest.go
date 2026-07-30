@@ -6,8 +6,7 @@
 // See LICENSE file in the project root for full license information.
 
 // Package mocktest is the Go test helper for the shared mock_signalwire server
-// HTTP server. It mirrors the Python conftest fixtures (signalwire_client +
-// mock) so unit tests can exercise the real SDK code path against a real
+// HTTP server, so unit tests can exercise the real SDK code path against a real
 // HTTP server backed by SignalWire's 13 OpenAPI specs.
 //
 // The mock server's lifetime is per-process: the first New call probes
@@ -15,7 +14,7 @@
 // server or starts one as a subprocess. Each test gets a freshly reset
 // journal/scenario state via t.Cleanup. Tests do not share journal entries.
 //
-// The default port is 8765 (matching the Python harness default). Override
+// The default port is 8765 — the shared harness default. Override
 // with MOCK_SIGNALWIRE_PORT in the test environment if a different mock
 // instance is already running.
 package mocktest

@@ -39,7 +39,7 @@ func (c *ConfigLoader) GetConfig() map[string]any { return c.inner.Config() }
 
 // SubstituteVars recursively resolves ${VAR|default} references in strings,
 // maps and slices. Resolved scalar strings that look like a bool/int/float are
-// converted to that type, matching the Python coercion behaviour. maxDepth
+// coerced to that type. maxDepth
 // guards against runaway recursion.
 // maxDepth is OPTIONAL: 0 substitutes the reference's `max_depth: int = 10`, so
 // `SubstituteVars(v, 0)` is the reference's one-argument call. Without the
@@ -78,7 +78,7 @@ func (c *ConfigLoader) MergeWithEnv(envPrefix string) map[string]any {
 
 // FindConfigFile locates a config file for a service, searching service-specific
 // names then generic defaults plus any additionalPaths. Returns "" if none
-// exists. Mirrors the Python @staticmethod
+// exists.
 // ConfigLoader.find_config_file(service_name=None, additional_paths=None).
 //
 // Both parameters are optional and the delegate honours their zero values:

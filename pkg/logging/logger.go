@@ -77,8 +77,8 @@ func init() {
 
 // ResetLoggingConfiguration re-reads SIGNALWIRE_LOG_LEVEL and SIGNALWIRE_LOG_MODE
 // from the environment and resets globalLevel and suppressed to the env-derived
-// defaults. It is the Go equivalent of Python's reset_logging_configuration() and
-// is intended for test teardown and env-var-driven reconfiguration at runtime.
+// defaults. It is intended for test teardown and env-var-driven
+// reconfiguration at runtime.
 func ResetLoggingConfiguration() {
 	globalMu.Lock()
 	defer globalMu.Unlock()

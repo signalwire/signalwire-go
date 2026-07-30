@@ -78,15 +78,14 @@ func WithServerPort(port int) ServerOption {
 
 // WithLogLevel sets the global log level for the server.
 // Accepted values (case-insensitive): "debug", "info", "warn", "warning",
-// "error", "off" — see the logging.LevelName* typed constants.  Mirrors Python
-// AgentServer(log_level=...) behavior: the level is applied globally via
-// logging.SetGlobalLevel so all loggers in the process are affected.  The
+// "error", "off" — see the logging.LevelName* typed constants.  The level is
+// applied globally via logging.SetGlobalLevel, so all loggers in the process
+// are affected.  The
 // default level is "info".
 //
 // The parameter is the defined string type logging.LogLevel: the typed
 // constants give autocomplete + a compile-time typo check, while Go's
-// untyped-constant auto-conversion keeps a bare "debug" literal compiling —
-// compatibility with the Python reference's plain str log_level.
+// untyped-constant auto-conversion keeps a bare "debug" literal compiling.
 func WithLogLevel(level logging.LogLevel) ServerOption {
 	return func(s *AgentServer) {
 		// Record what the caller asked for (readable via LogLevel()), then apply
@@ -291,9 +290,7 @@ func (s *AgentServer) SetupSIPRouting(route string, autoMap bool) {
 
 // RegisterSIPUsername maps a SIP username to an agent route so that
 // inbound SIP calls for that username are routed to the correct agent. The
-// username is stored case-folded (lowercased) — matching Python's
-// register_sip_username, which stores self._sip_username_mapping[username.lower()]
-// — so lookups are case-insensitive.
+// username is stored case-folded (lowercased), so lookups are case-insensitive.
 func (s *AgentServer) RegisterSIPUsername(username, route string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -302,8 +299,7 @@ func (s *AgentServer) RegisterSIPUsername(username, route string) {
 }
 
 // LookupSIPRoute returns the agent route mapped to the given SIP username, or
-// ("", false) if unmapped. Lookup is case-insensitive (mirrors Python's
-// _lookup_sip_route, which returns self._sip_username_mapping.get(username.lower())).
+// ("", false) if unmapped. Lookup is case-insensitive.
 func (s *AgentServer) LookupSIPRoute(username string) (string, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -352,9 +348,7 @@ func (s *AgentServer) ServeStaticFiles(directory, route string) {
 // non-nil route string to redirect (HTTP 307) or nil to fall through to the
 // agent's default response.
 //
-// This is the Go equivalent of Python's
-// AgentServer.register_global_routing_callback(callback_fn, path).
-// Parameter ORDER follows the reference — `(callback_fn, path)`, callback first.
+// Parameter ORDER is `(callback_fn, path)` — callback FIRST.
 func (s *AgentServer) RegisterGlobalRoutingCallback(cb swml.RoutingCallback, path string) {
 	// Trim trailing slashes first — matches Python's path.rstrip("/") so
 	// callers passing "agents/" register under "/agents" (not "/agents/").
@@ -383,11 +377,11 @@ func (s *AgentServer) RegisterGlobalRoutingCallback(cb swml.RoutingCallback, pat
 // RegisterGlobalSIPRoutingCallback registers a SIP redirect-routing callback
 // across all currently-registered agents at the given path. The callback
 // returns a route string; on a non-empty return the framework responds with
-// HTTP 307 Temporary Redirect (matching Python register_routing_callback
-// semantics — see AgentBase.RegisterSIPRoutingCallback for details).
+// HTTP 307 Temporary Redirect — see AgentBase.RegisterSIPRoutingCallback for
+// details.
 //
-// Use this form when porting Python AgentServer code that registers a
-// redirect-style global routing callback. For a global response-document
+// Use this form for a redirect-style global routing callback. For a global
+// response-document
 // override (the richer Go-only mechanism), use RegisterGlobalRoutingCallback.
 func (s *AgentServer) RegisterGlobalSIPRoutingCallback(
 	path string,
@@ -415,10 +409,9 @@ func (s *AgentServer) RegisterGlobalSIPRoutingCallback(
 // Run starts the HTTP server.  This is a blocking call.  Optional RunOption
 // values can override host and port at start time.
 //
-// Serverless dispatch: unlike Python's AgentServer.run() which auto-detects
-// CGI and Lambda environments, Run() is HTTP-server-only.  For AWS Lambda
-// deployments use the pkg/lambda package instead.  CGI mode has no Go
-// equivalent; deploy as a standard HTTP service behind a reverse proxy.
+// Serverless dispatch: Run() is HTTP-server-only and does NOT auto-detect a
+// serverless environment.  For AWS Lambda use pkg/lambda; for CGI or Google
+// Cloud Functions use pkg/serverless.
 //
 // Run delegates to RunContext with context.Background(); use RunContext to
 // drive shutdown from a context, or call Shutdown from another goroutine.
@@ -432,8 +425,8 @@ func (s *AgentServer) Run(opts ...RunOption) error {
 // — then returns nil. A concurrent Shutdown call has the same effect. Any
 // other listen error is returned as-is.
 //
-// This is a Go-port addition (the Python reference's AgentServer.run() has no
-// caller-supplied cancellation token); documented in PORT_ADDITIONS.md.
+// Run takes no cancellation token; RunContext is the context-aware form.
+// Documented in PORT_ADDITIONS.md.
 func (s *AgentServer) RunContext(ctx context.Context, opts ...RunOption) error {
 	if ctx == nil {
 		ctx = context.Background()

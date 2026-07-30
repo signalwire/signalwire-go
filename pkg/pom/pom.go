@@ -1,9 +1,7 @@
 // Package pom provides a typed Prompt Object Model — a structured tree of
-// sections that can be rendered to Markdown, XML, JSON, or YAML.  The
-// rendered output matches the Python reference at
-// signalwire/signalwire/pom/pom.py byte-for-byte for the canonical
-// scenarios covered by the cross-language behavior tests under
-// tests/unit/pom/ in the Python reference.
+// sections that can be rendered to Markdown, XML, JSON, or YAML.  Each
+// renderer's output is byte-for-byte stable and is pinned by the POM
+// behavior tests.
 //
 // Two types make up the API:
 //
@@ -35,14 +33,13 @@ import (
 
 // Section is one node in the POM tree.
 //
-// Python equivalent: signalwire.pom.pom.Section.  The exported field
-// names match the JSON / YAML schema:
+// The exported field names match the JSON / YAML schema:
 //
 //	{"title": "...", "body": "...", "bullets": [...],
 //	 "subsections": [...], "numbered": true, "numberedBullets": true}
 //
-// Title is a *string (not string) to faithfully model Python's
-// "title may be None" semantics for the optional first top-level section.
+// Title is a *string (not string) so that "no title at all" is
+// representable — the optional first top-level section may omit it.
 // All other fields use zero values to mean "absent".
 type Section struct {
 	// Title is the section heading.  nil means untitled (only legal for
@@ -64,24 +61,18 @@ type Section struct {
 // NewSection returns a new Section with the supplied title (which may be
 // empty to indicate untitled).  Body, bullets, and subsections start
 // empty; populate them via AddBody / AddBullets / AddSubsection.
-//
-// Python equivalent: Section.__init__
 func NewSection(title string) *Section {
 	t := title
 	return &Section{Title: &t}
 }
 
-// AddBody sets (or replaces) the section body text.
-//
-// Python equivalent: Section.add_body — the docstring says "Add OR
-// REPLACE the body text"; this is a setter, not an appender.
+// AddBody sets (or replaces) the section body text: despite the name it
+// is a setter, not an appender.
 func (s *Section) AddBody(body string) {
 	s.Body = body
 }
 
-// AddBullets appends bullet points to the section.
-//
-// Python equivalent: Section.add_bullets — the Python contract is to
+// AddBullets appends bullet points to the section: the contract is to
 // extend (not replace) the existing bullet list.
 func (s *Section) AddBullets(bullets []string) {
 	s.Bullets = append(s.Bullets, bullets...)
@@ -90,8 +81,6 @@ func (s *Section) AddBullets(bullets []string) {
 // AddSubsection creates and appends a subsection under this section.
 // title must be non-empty (subsections always require a title).
 // Returns the new *Section so callers can keep building.
-//
-// Python equivalent: Section.add_subsection
 func (s *Section) AddSubsection(title string, opts ...SectionOption) (*Section, error) {
 	if title == "" {
 		return nil, errors.New("pom: subsections must have a non-empty title")
@@ -126,13 +115,11 @@ func WithNumberedBullets(v bool) SectionOption {
 
 // ToMap returns the section as a map[string]any with keys in canonical
 // order (title, body, bullets, subsections, numbered, numberedBullets).
-// Empty-or-zero fields are omitted to match Python's to_dict behavior.
+// Empty-or-zero fields are omitted from the map entirely.
 //
 // The returned value is intended for JSON / YAML serialization; callers
 // that need a plain Go map (and don't care about key order) can
 // type-assert each value.
-//
-// Python equivalent: Section.to_dict
 func (s *Section) ToMap() map[string]any {
 	m := make(map[string]any)
 	if s.Title != nil {
@@ -160,10 +147,9 @@ func (s *Section) ToMap() map[string]any {
 	return m
 }
 
-// orderedKeys returns the section's fields in the canonical Python
-// to_dict order: title, body, bullets, subsections, numbered,
-// numberedBullets.  Used by JSON / YAML renderers that must preserve
-// key order.
+// orderedKeys returns the section's fields in the canonical serialization
+// order: title, body, bullets, subsections, numbered, numberedBullets.
+// Used by JSON / YAML renderers that must preserve key order.
 func (s *Section) orderedKeys() []string {
 	keys := make([]string, 0, 6)
 	if s.Title != nil {
@@ -191,8 +177,6 @@ func (s *Section) orderedKeys() []string {
 // Markdown string.  level controls the starting heading level (default
 // 2 == "##"); sectionNumber is the optional dotted prefix the section
 // inherits when its parent is numbered.
-//
-// Python equivalent: Section.render_markdown
 func (s *Section) RenderMarkdown(level int, sectionNumber []int) string {
 	if level == 0 {
 		level = 2
@@ -257,11 +241,10 @@ func (s *Section) RenderMarkdown(level int, sectionNumber []int) string {
 // RenderXML returns this section (and its subsections) as a chunk of
 // XML.  indent is the starting indent level (each level == 2 spaces).
 //
-// Python equivalent: Section.render_xml(indent=0, section_number=None)
-//
-// indent's reference default is 0, which IS Go's int zero value, and the body
-// treats it as the ordinary top-level case (`strings.Repeat("  ", 0)` is the
-// empty prefix). Passing nothing and passing 0 are the same call.
+// indent is an optional parameter whose default is 0, which IS Go's int zero
+// value, and the body treats it as the ordinary top-level case
+// (`strings.Repeat("  ", 0)` is the empty prefix). Passing nothing and passing
+// 0 are the same call. sectionNumber may be nil for an unnumbered section.
 //
 //sw:param indent optional
 func (s *Section) RenderXML(indent int, sectionNumber []int) string {
@@ -330,30 +313,24 @@ func (s *Section) RenderXML(indent int, sectionNumber []int) string {
 // PromptObjectModel is the root container — a list of top-level Sections
 // plus serialization / rendering helpers.  Use NewPromptObjectModel() to
 // construct one, or FromJSON / FromYAML to parse one.
-//
-// Python equivalent: signalwire.pom.pom.PromptObjectModel
 type PromptObjectModel struct {
 	// Sections is the ordered list of top-level sections.  Only the
 	// first section may have a nil Title.
 	Sections []*Section
-	// Debug, when true, prints rendering decisions to stderr (matches
-	// the Python flag).  Off by default.
+	// Debug, when true, prints rendering decisions to stderr.
+	// Off by default.
 	Debug bool
 }
 
 // NewPromptObjectModel returns an empty POM ready for AddSection calls.
-//
-// Python equivalent: PromptObjectModel.__init__
 func NewPromptObjectModel() *PromptObjectModel {
 	return &PromptObjectModel{Sections: nil}
 }
 
 // AddSection appends a top-level section.  title may be empty only for
-// the first section (Python contract: "Only the first section can have
-// no title").  The returned *Section can be configured further (for
+// the first section — only the first section can have no title.  The
+// returned *Section can be configured further (for
 // example, by calling AddSubsection on it).
-//
-// Python equivalent: PromptObjectModel.add_section
 func (p *PromptObjectModel) AddSection(title string, opts ...SectionOption) (*Section, error) {
 	if title == "" && len(p.Sections) > 0 {
 		return nil, errors.New("pom: only the first section can have no title")
@@ -373,8 +350,6 @@ func (p *PromptObjectModel) AddSection(title string, opts ...SectionOption) (*Se
 
 // FindSection performs a recursive depth-first search for a section
 // whose Title matches.  Returns nil if no match is found.
-//
-// Python equivalent: PromptObjectModel.find_section
 func (p *PromptObjectModel) FindSection(title string) *Section {
 	return findSection(p.Sections, title)
 }
@@ -391,10 +366,8 @@ func findSection(sections []*Section, title string) *Section {
 	return nil
 }
 
-// ToList returns the POM as []map[string]any (one entry per top-level
-// section), matching Python's to_dict.
-//
-// Python equivalent: PromptObjectModel.to_dict
+// ToList returns the POM as []map[string]any — one entry per top-level
+// section, each in the canonical key order.
 func (p *PromptObjectModel) ToList() []map[string]any {
 	out := make([]map[string]any, len(p.Sections))
 	for i, s := range p.Sections {
@@ -403,10 +376,8 @@ func (p *PromptObjectModel) ToList() []map[string]any {
 	return out
 }
 
-// ToJSON serializes the POM to a JSON string.  Matches Python's
-// json.dumps(..., indent=2) byte-for-byte for the canonical fixtures.
-//
-// Python equivalent: PromptObjectModel.to_json
+// ToJSON serializes the POM to a JSON string, pretty-printed with a
+// 2-space indent and the canonical key order.
 func (p *PromptObjectModel) ToJSON() (string, error) {
 	if len(p.Sections) == 0 {
 		return "[]", nil
@@ -501,14 +472,12 @@ func writeJSONStringList(buf *bytes.Buffer, items []string, indent int) error {
 	return nil
 }
 
-// ToYAML serializes the POM to a YAML string in the same shape as
-// Python's yaml.dump(..., default_flow_style=False, sort_keys=False).
-// PyYAML uses block-sequence-with-indent-0 by default (the leading "-"
-// of each list item aligns with the parent's mapping key, not after
-// it); gopkg.in/yaml.v3 cannot be configured to do the same, so this
-// renderer writes the YAML structure manually for byte-for-byte fidelity.
-//
-// Python equivalent: PromptObjectModel.to_yaml
+// ToYAML serializes the POM to a YAML string: block style throughout,
+// keys emitted in the canonical order rather than sorted. The canonical
+// layout is block-sequence-with-indent-0 — the leading "-" of each list
+// item aligns with the parent's mapping key, not after it — and
+// gopkg.in/yaml.v3 cannot be configured to emit that, so this renderer
+// writes the YAML structure manually for byte-for-byte fidelity.
 func (p *PromptObjectModel) ToYAML() string {
 	if len(p.Sections) == 0 {
 		return "[]\n"
@@ -584,8 +553,6 @@ func yamlScalar(v string) string {
 // FromJSON parses a JSON string (an array of section maps) and returns
 // a populated *PromptObjectModel.  Subsections are validated to require
 // a title; any section without body/bullets/subsections is rejected.
-//
-// Python equivalent: PromptObjectModel.from_json
 func FromJSON(jsonStr string) (*PromptObjectModel, error) {
 	var data []map[string]any
 	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
@@ -596,8 +563,6 @@ func FromJSON(jsonStr string) (*PromptObjectModel, error) {
 
 // FromYAML parses a YAML string (an array of section maps) and returns
 // a populated *PromptObjectModel.
-//
-// Python equivalent: PromptObjectModel.from_yaml
 func FromYAML(yamlStr string) (*PromptObjectModel, error) {
 	var data []map[string]any
 	if err := yaml.Unmarshal([]byte(yamlStr), &data); err != nil {
@@ -608,10 +573,8 @@ func FromYAML(yamlStr string) (*PromptObjectModel, error) {
 
 // FromList builds a POM from a pre-parsed []map[string]any (callers can
 // use this when they already have the dict form, e.g. from a database
-// row or another config source).
-//
-// Python equivalent: PromptObjectModel._from_dict (the internal helper
-// shared by from_json / from_yaml).
+// row or another config source).  FromJSON and FromYAML both funnel into
+// the same builder, so all three accept identical section maps.
 func FromList(data []map[string]any) (*PromptObjectModel, error) {
 	return fromList(data)
 }
@@ -777,8 +740,6 @@ func listToMaps(v any) []map[string]any {
 }
 
 // RenderMarkdown renders the entire POM as a Markdown document.
-//
-// Python equivalent: PromptObjectModel.render_markdown
 func (p *PromptObjectModel) RenderMarkdown() string {
 	anyNumbered := false
 	for _, s := range p.Sections {
@@ -804,8 +765,6 @@ func (p *PromptObjectModel) RenderMarkdown() string {
 
 // RenderXML renders the entire POM as an XML document with the
 // canonical “<?xml ...?><prompt> ... </prompt>“ envelope.
-//
-// Python equivalent: PromptObjectModel.render_xml
 func (p *PromptObjectModel) RenderXML() string {
 	xml := make([]string, 0, 2+len(p.Sections)+1)
 	xml = append(xml, `<?xml version="1.0" encoding="UTF-8"?>`)
@@ -835,8 +794,6 @@ func (p *PromptObjectModel) RenderXML() string {
 // AddPomAsSubsection attaches every top-level section of pomToAdd
 // underneath the section identified by target — either the title of an
 // existing section in this POM, or a *Section pointer.
-//
-// Python equivalent: PromptObjectModel.add_pom_as_subsection
 func (p *PromptObjectModel) AddPomAsSubsection(target any, pomToAdd *PromptObjectModel) error {
 	var host *Section
 	switch t := target.(type) {

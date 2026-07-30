@@ -147,11 +147,9 @@ func (dm *DataMap) Parameter(name, paramType, desc string, required bool, enum [
 // testValue is the template string to test (e.g., "${args.command}").
 // pattern is the regex pattern to match against.
 // output is the FunctionResult returned when the pattern matches. It is REQUIRED
-// and must not be nil — a nil output panics here (at the call site), mirroring
-// the Python reference, whose expression() calls output.to_dict() immediately
-// and so raises on a None output at build time. Failing here (rather than later
-// at serialize time, where the value would otherwise be dereferenced) keeps the
-// error at the point of misuse.
+// and must not be nil — a nil output panics here, at the call site. Failing
+// here (rather than later at serialize time, where the value would otherwise be
+// dereferenced) keeps the error at the point of misuse.
 // nomatchOutput is an optional FunctionResult returned when the pattern does not match (can be nil).
 func (dm *DataMap) Expression(testValue, pattern string, output *swaig.FunctionResult, nomatchOutput *swaig.FunctionResult) *DataMap {
 	if output == nil {
@@ -167,9 +165,8 @@ func (dm *DataMap) Expression(testValue, pattern string, output *swaig.FunctionR
 }
 
 // ExpressionRegexp adds a pattern-matching expression using a compiled *regexp.Regexp.
-// This mirrors Python's expression() which accepts either a plain string or a compiled
-// re.Pattern object — when a compiled pattern is passed, Python extracts pattern.pattern
-// (the raw string). Here, pattern.String() serves the same role.
+// The wire form of an expression's pattern is always the raw pattern string, so
+// pattern.String() is what gets emitted.
 //
 // testValue is the template string to test (e.g., "${args.command}").
 // pattern is a compiled regexp whose string representation is used as the match pattern.
@@ -268,7 +265,7 @@ func (dm *DataMap) WebhookExpressions(expressions []map[string]any) *DataMap {
 // mod_openai/bedrock.c:4920-4926) look up `params` and never `body`. DataMap
 // used to expose a `Body` builder that wrote that key; it produced an invalid
 // document while silently discarding the caller's payload, and was removed
-// 2026-07-29 alongside the reference (signalwire-python 71eed0c).
+// 2026-07-29.
 func (dm *DataMap) Params(data map[string]any) *DataMap {
 	dm.paramsData = data
 	return dm
@@ -284,8 +281,7 @@ func (dm *DataMap) Foreach(config map[string]any) *DataMap {
 //
 // `result` is a pointer because that is how Go passes a FunctionResult, not
 // because nil is a supported argument: a webhook with no output is not a usable
-// tool. Mirrors the reference `DataMap.output(self, result: FunctionResult)`,
-// which declares no default.
+// tool, so the parameter is required and has no default.
 //
 //sw:param result required
 func (dm *DataMap) Output(result *swaig.FunctionResult) *DataMap {
@@ -296,8 +292,7 @@ func (dm *DataMap) Output(result *swaig.FunctionResult) *DataMap {
 // FallbackOutput sets the fallback output result used when all webhooks fail.
 //
 // As with Output, the pointer is Go's calling convention, not an optionality
-// signal. Mirrors the reference `DataMap.fallback_output(self, result:
-// FunctionResult)`, which declares no default.
+// signal: the parameter is required and has no default.
 //
 //sw:param result required
 func (dm *DataMap) FallbackOutput(result *swaig.FunctionResult) *DataMap {
@@ -404,7 +399,7 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 // url is the API endpoint URL.
 // responseTemplate is the template for formatting the response.
 // parameters maps parameter names to their definitions (each with "type", "description", "required" keys).
-// method is the HTTP method; empty selects "GET", the reference default.
+// method is the HTTP method; empty selects the "GET" default.
 // headers are optional HTTP headers (can be nil).
 // errorKeys are optional error indicator keys (can be nil).
 //
@@ -464,8 +459,8 @@ func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[stri
 }
 
 // ExpressionPattern pairs a regex pattern string with a FunctionResult
-// to execute when test_value matches the pattern. Go equivalent of
-// Python's Tuple[str, FunctionResult] entry in create_expression_tool patterns.
+// to execute when test_value matches the pattern. Each entry of the patterns
+// map passed to CreateExpressionTool is one of these.
 type ExpressionPattern struct {
 	Pattern string
 	Result  *swaig.FunctionResult

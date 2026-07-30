@@ -253,8 +253,8 @@ func (fr *FunctionResult) RemoveGlobalData(keys []string) *FunctionResult {
 }
 
 // RemoveGlobalDataKey removes a single global agent data variable by key.
-// This matches the Python SDK's Union[str, List[str]] behavior for a bare string argument,
-// which emits the key as a string (not a one-element array) in the action payload.
+// The action payload accepts either a string or an array of strings; this
+// single-key form emits the key as a bare string, NOT a one-element array.
 func (fr *FunctionResult) RemoveGlobalDataKey(key string) *FunctionResult {
 	return fr.AddAction("unset_global_data", key)
 }
@@ -270,8 +270,8 @@ func (fr *FunctionResult) RemoveMetadata(keys []string) *FunctionResult {
 }
 
 // RemoveMetadataKey removes a single metadata key from the current function's scope.
-// This matches the Python SDK's Union[str, List[str]] behavior for a bare string argument,
-// which emits the key as a string (not a one-element array) in the action payload.
+// The action payload accepts either a string or an array of strings; this
+// single-key form emits the key as a bare string, NOT a one-element array.
 func (fr *FunctionResult) RemoveMetadataKey(key string) *FunctionResult {
 	return fr.AddAction("unset_meta_data", key)
 }
@@ -294,15 +294,13 @@ func (fr *FunctionResult) SwmlUserEvent(eventData map[string]any) *FunctionResul
 }
 
 // SwmlChangeStep transitions to a different conversation step.
-// Emits action key "change_step" with the step name as a plain string value,
-// matching the Python SDK's add_action("change_step", step_name).
+// Emits action key "change_step" with the step name as a plain string value.
 func (fr *FunctionResult) SwmlChangeStep(stepName string) *FunctionResult {
 	return fr.AddAction("change_step", stepName)
 }
 
 // SwmlChangeContext transitions to a different conversation context.
-// Emits action key "change_context" with the context name as a plain string value,
-// matching the Python SDK's add_action("change_context", context_name).
+// Emits action key "change_context" with the context name as a plain string value.
 func (fr *FunctionResult) SwmlChangeContext(contextName string) *FunctionResult {
 	return fr.AddAction("change_context", contextName)
 }
@@ -1053,7 +1051,7 @@ func (fr *FunctionResult) ExecuteRPC(method string, params map[string]any, callI
 
 // RPCDial dials out to a number with a destination SWML URL using execute_rpc.
 // deviceType defaults to "phone" when empty.
-// This matches the Python SDK's rpc_dial() which calls execute_rpc(method="dial", ...).
+// Emitted as execute_rpc with method="dial".
 func (fr *FunctionResult) RPCDial(toNumber, fromNumber, destSwml string, deviceType string) *FunctionResult {
 	if deviceType == "" {
 		deviceType = "phone"
@@ -1073,8 +1071,8 @@ func (fr *FunctionResult) RPCDial(toNumber, fromNumber, destSwml string, deviceT
 }
 
 // RPCAiMessage injects a message into an AI agent on another call.
-// role defaults to "system" when empty, matching the Python SDK default.
-// This matches the Python SDK's rpc_ai_message() which calls execute_rpc(method="ai_message", ...).
+// role defaults to "system" when empty.
+// Emitted as execute_rpc with method="ai_message".
 func (fr *FunctionResult) RPCAiMessage(callID, messageText, role string) *FunctionResult {
 	if role == "" {
 		role = "system"
@@ -1086,13 +1084,13 @@ func (fr *FunctionResult) RPCAiMessage(callID, messageText, role string) *Functi
 }
 
 // RPCAiUnhold unholds another call.
-// This matches the Python SDK's rpc_ai_unhold() which calls execute_rpc(method="ai_unhold", ...).
+// Emitted as execute_rpc with method="ai_unhold".
 func (fr *FunctionResult) RPCAiUnhold(callID string) *FunctionResult {
 	return fr.ExecuteRPC("ai_unhold", map[string]any{}, callID, "")
 }
 
 // SimulateUserInput queues simulated user input text.
-// Emits action key "user_input" matching the Python SDK's add_action("user_input", text).
+// Emits action key "user_input" with the text as a plain string value.
 func (fr *FunctionResult) SimulateUserInput(text string) *FunctionResult {
 	return fr.AddAction("user_input", text)
 }
@@ -1101,7 +1099,6 @@ func (fr *FunctionResult) SimulateUserInput(text string) *FunctionResult {
 
 // CreatePaymentPrompt creates a payment prompt configuration.
 // cardType and errorType are optional; pass empty strings to omit them.
-// This matches the Python SDK's create_payment_prompt() static method signature.
 func CreatePaymentPrompt(forSituation string, actions []map[string]string, cardType string, errorType string) map[string]any {
 	prompt := map[string]any{
 		"for":     forSituation,

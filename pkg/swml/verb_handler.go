@@ -12,8 +12,7 @@ import "sort"
 // VerbHandler defines the contract for specialized SWML verb handlers.
 //
 // Implementations provide verb-specific validation and configuration-building
-// logic for complex SWML verbs that cannot be handled generically. This is
-// the Go equivalent of the Python SWMLVerbHandler abstract base class.
+// logic for complex SWML verbs that cannot be handled generically.
 type VerbHandler interface {
 	// GetVerbName returns the name of the SWML verb this handler handles.
 	//
@@ -33,17 +32,16 @@ type VerbHandler interface {
 	// BuildConfig builds a configuration map for this verb from the provided
 	// parameters.
 	//
-	// params contains keyword arguments specific to this verb, mirroring the
-	// **kwargs pattern from Python. It returns the constructed configuration
-	// map, or an error if the provided parameters are insufficient or
-	// contradictory.
+	// params contains the verb-specific named arguments, keyed by the name
+	// each one carries in the emitted verb config. It returns the constructed
+	// configuration map, or an error if the provided parameters are
+	// insufficient or contradictory.
 	BuildConfig(params map[string]any) (map[string]any, error)
 }
 
 // RegisterVerbHandler registers a custom handler for a SWML verb, keyed by
 // the name returned by h.GetVerbName(). A subsequent call with the same verb
-// name replaces the previous handler. This is the Go equivalent of Python's
-// VerbHandlerRegistry.register_handler.
+// name replaces the previous handler.
 func (s *Service) RegisterVerbHandler(h VerbHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -54,8 +52,7 @@ func (s *Service) RegisterVerbHandler(h VerbHandler) {
 }
 
 // GetVerbHandler returns the registered handler for verbName, or nil if no
-// handler has been registered for that verb. This is the Go equivalent of
-// Python's VerbHandlerRegistry.get_handler.
+// handler has been registered for that verb.
 func (s *Service) GetVerbHandler(verbName string) VerbHandler {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -63,7 +60,6 @@ func (s *Service) GetVerbHandler(verbName string) VerbHandler {
 }
 
 // HasVerbHandler reports whether a custom handler is registered for verbName.
-// This is the Go equivalent of Python's VerbHandlerRegistry.has_handler.
 func (s *Service) HasVerbHandler(verbName string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -71,8 +67,8 @@ func (s *Service) HasVerbHandler(verbName string) bool {
 	return ok
 }
 
-// VerbHandlerNames returns the sorted names of the registered verb handlers —
-// the compatibility accessor for Python's sorted(VerbHandlerRegistry._handlers.keys()).
+// VerbHandlerNames returns the names of the registered verb handlers, sorted
+// lexically so the result is stable across calls.
 func (s *Service) VerbHandlerNames() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

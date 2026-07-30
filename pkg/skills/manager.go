@@ -50,8 +50,7 @@ func (sm *SkillManager) SetAgent(a SkillAgent) {
 // When a skill with the same instance key is already loaded, the behavior
 // depends on SupportsMultipleInstances():
 //   - false (default): returns (false, error) — duplicate is an error.
-//   - true: returns (true, "") — duplicate instance is silently accepted,
-//     matching Python's SkillManager.load_skill() warning-and-continue behavior.
+//   - true: returns (true, "") — a duplicate instance warns and is accepted.
 func (sm *SkillManager) LoadSkill(skill SkillBase) (bool, string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()

@@ -12,8 +12,7 @@ import "fmt"
 // AIVerbHandler is a concrete VerbHandler for the SWML "ai" verb.
 //
 // It implements the VerbHandler interface and provides validation and
-// configuration-building logic for the AI verb. This is the Go equivalent
-// of the Python AIVerbHandler class in core/swml_handler.py.
+// configuration-building logic for the AI verb.
 //
 // The AI verb is complex and requires specialized handling, particularly
 // for managing prompts, SWAIG functions, and AI configurations.
@@ -35,7 +34,7 @@ func (h *AIVerbHandler) GetVerbName() string {
 
 // ValidateConfig validates the configuration map for the AI verb.
 //
-// Validation rules (ported from Python AIVerbHandler.validate_config):
+// Validation rules:
 //   - "prompt" key must be present and must be a map[string]any.
 //   - "prompt" must contain exactly one of "text" or "pom" (mutually exclusive).
 //   - If "prompt.contexts" is present it must be a map[string]any.
@@ -110,7 +109,7 @@ func (h *AIVerbHandler) ValidateConfig(config map[string]any) (bool, []string) {
 
 // BuildConfig assembles an AI verb configuration map from the provided params.
 //
-// Recognised keys in params (ported from Python AIVerbHandler.build_config):
+// Recognised keys in params:
 //
 //   - "prompt_text"     (string)          — text prompt; mutually exclusive with "prompt_pom"
 //   - "prompt_pom"      ([]any or similar) — POM structure; mutually exclusive with "prompt_text"
@@ -119,7 +118,7 @@ func (h *AIVerbHandler) ValidateConfig(config map[string]any) (bool, []string) {
 //   - "post_prompt_url" (string)          — optional post-prompt URL
 //   - "swaig"           (map[string]any)  — optional SWAIG configuration; emitted as "SWAIG"
 //
-// Additional keys in params are handled as follows (matching Python **kwargs logic):
+// Additional keys in params are handled as follows:
 //   - "languages", "hints", "pronounce", "global_data" — emitted as top-level keys.
 //   - All other extra keys are collected under a nested "params" map.
 //
@@ -128,7 +127,7 @@ func (h *AIVerbHandler) ValidateConfig(config map[string]any) (bool, []string) {
 func (h *AIVerbHandler) BuildConfig(params map[string]any) (map[string]any, error) {
 	config := make(map[string]any)
 
-	// Extract named params — mirroring Python's named arguments.
+	// Extract the recognised named params.
 	promptText := params["prompt_text"]
 	promptPom := params["prompt_pom"]
 	contexts := params["contexts"]
@@ -165,7 +164,7 @@ func (h *AIVerbHandler) BuildConfig(params map[string]any) (map[string]any, erro
 	}
 	config["prompt"] = promptConfig
 
-	// Post-prompt: wrapped in {"text": value} to match Python behaviour.
+	// Post-prompt: wrapped in {"text": value} — the engine requires an object.
 	if postPrompt != nil {
 		config["post_prompt"] = map[string]any{"text": postPrompt}
 	}
@@ -180,7 +179,7 @@ func (h *AIVerbHandler) BuildConfig(params map[string]any) (map[string]any, erro
 		config["SWAIG"] = swaig
 	}
 
-	// Pass-through kwargs — mirroring Python's **kwargs handling.
+	// Pass-through of any remaining caller-supplied keys.
 	// "languages", "hints", "pronounce", "global_data" go to the top level;
 	// everything else accumulates under "params".
 	topLevelKeys := map[string]bool{
@@ -199,8 +198,8 @@ func (h *AIVerbHandler) BuildConfig(params map[string]any) (map[string]any, erro
 			extraParams[k] = v
 		}
 	}
-	// Always emit "params" (even if empty) to match Python's AIVerbHandler.build_config,
-	// which initializes config["params"] = {} before the kwargs loop.
+	// Always emit "params", even when empty: the key is initialized before the
+	// extra-key loop and is present unconditionally in the emitted config.
 	config["params"] = extraParams
 
 	return config, nil
