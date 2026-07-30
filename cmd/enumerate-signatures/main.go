@@ -4299,8 +4299,13 @@ func run() error {
 	var (
 		outputPath  = flag.String("output", "port_signatures.json", "Write JSON to this path")
 		aliasesPath = flag.String("aliases", "", "Path to porting-sdk/type_aliases.yaml (autodetected if empty)")
-		strict      = flag.Bool("strict", false, "Exit non-zero on any translation failure")
-		stdoutFlag  = flag.Bool("stdout", false, "Print to stdout")
+		// Fail-loud is the DEFAULT, not an opt-in. As `false` this flag was dead
+		// code: the usage header advertised it, but no gate ever passed it, so a
+		// type that failed to translate silently DROPPED THE WHOLE SYMBOL and the
+		// artifact was written anyway at exit 0 -- the port then got blamed for an
+		// omission it never had. Use -strict=false to opt out explicitly.
+		strict     = flag.Bool("strict", true, "Exit non-zero on any translation failure (default true)")
+		stdoutFlag = flag.Bool("stdout", false, "Print to stdout")
 	)
 	flag.Parse()
 
