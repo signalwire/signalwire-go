@@ -296,19 +296,22 @@ func run() int {
 }
 
 // tokenQuery resolves a fixture's token DIRECTIVE into the query params to send.
-// Non-token fixtures get nil — byte-identical to the pre-token behavior, so the
-// two original fixtures are untouched.
+// Non-token fixtures and the ABSENT directive get an EMPTY url.Values — never a
+// bare nil alongside a nil error, which would be an ambiguous "no result / no
+// error" signal (nilnil). url.Values is a map, so an empty one IS the valid
+// representation of "send no query params": postSwaig's len(query) > 0 guard
+// treats it byte-identically to nil, so the two original fixtures are untouched.
 //
 // "valid" must be MINTED here, not read from a constant: the token is an
 // HMAC-SHA256 keyed by this agent's SessionManager secret (a per-process random
 // value) and it expires, so no literal could ever be valid.
 func tokenQuery(a *agent.AgentBase, f fixture) (url.Values, error) {
 	if f.kind != kindToken {
-		return nil, nil
+		return url.Values{}, nil
 	}
 	switch f.token {
 	case tokenAbsent:
-		return nil, nil
+		return url.Values{}, nil
 	case tokenForged:
 		return url.Values{tokenParam: []string{forgedToken}}, nil
 	case tokenValid:
