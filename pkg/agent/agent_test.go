@@ -1322,8 +1322,14 @@ func TestHTTP_SWMLEndpoint_ReturnsSWML(t *testing.T) {
 
 func TestHTTP_SwaigEndpoint(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("u", "p"))
+	// secure=false: this test pins ARGUMENT EXTRACTION, not the inbound
+	// __token gate. ToolDefinition.Secure is a tri-state *bool whose nil means
+	// SECURE, so a tool that omits the field is refused when called without a
+	// token (see swaig_token_validation_test.go, which owns that contract).
+	insecure := false
 	a.DefineTool(ToolDefinition{
-		Name: "greet",
+		Name:   "greet",
+		Secure: &insecure,
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
 			name, _ := args["name"].(string)
 			return swaig.NewFunctionResult("Hi, " + name)
@@ -1385,8 +1391,12 @@ func TestHTTP_SwaigEndpoint_ArgUnwrap(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := NewAgentBase(WithBasicAuth("u", "p"))
+			// secure=false — this case pins argument extraction, not the
+			// inbound __token gate (owned by swaig_token_validation_test.go).
+			insecure := false
 			a.DefineTool(ToolDefinition{
-				Name: "greet",
+				Name:   "greet",
+				Secure: &insecure,
 				Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
 					name, _ := args["name"].(string)
 					return swaig.NewFunctionResult("Hi, " + name)

@@ -4219,6 +4219,75 @@ func extractSwaigArgs(body map[string]any) map[string]any {
 	return map[string]any{}
 }
 
+// swaigTokenRefusalText is the response a refused secure tool reports. The
+// wording mirrors the reference (agent_base.py _swaig_pre_dispatch) and is what
+// the cross-port differ's refusal predicate keys on: it must name the token and
+// say it is invalid or expired.
+const swaigTokenRefusalText = "I'm sorry, the security token for this function is invalid " +
+	"or expired. I cannot execute this action."
+
+// swaigTokenRefusal validates the inbound SWAIG security token for a POST
+// /swaig dispatch. It returns nil when the call is cleared to run, or the
+// FunctionResult body to send instead when a SECURE tool must be refused.
+//
+// Mirrors the reference, signalwire-python core/agent_base.py
+// _swaig_pre_dispatch:
+//
+//   - the token is read from the “__token“ query param, falling back to a plain
+//     “token“ (both spellings reach the validator);
+//   - validity is computed ONCE and is true only when a token is present AND a
+//     call_id is present AND the SessionManager verifies the HMAC. A token can
+//     only be validated against a call_id — without one there is nothing to
+//     check it against, so a missing call_id counts as UNVALIDATED, never as a
+//     bypass;
+//   - an unvalidated call is refused only when the target tool is SECURE. An
+//     insecure tool is not gated, so the check never becomes a blanket gate;
+//   - an ABSENT token is refused exactly like a forged one. Omitting the
+//     credential must never be weaker than presenting a wrong one, or “secure“
+//     would be a flag that permits anonymous calls;
+//   - the refusal is a 200 + FunctionResult BODY, never an HTTP error status:
+//     the engine (mod_openai) has no handling for a SWAIG refusal status code,
+//     so the tool reports that it cannot execute and the model relays it.
+//
+// Before this existed the port MINTED a per-tool “__token“ into every secure
+// tool's web_hook_url but validated nothing coming back in, so a secure tool
+// ran for a forged token and for no token at all.
+func (a *AgentBase) swaigTokenRefusal(r *http.Request, body map[string]any, funcName string) map[string]any {
+	tool := a.Function(funcName)
+	if tool == nil {
+		// Unknown function — dispatch reports it; there is nothing to gate.
+		return nil
+	}
+
+	query := r.URL.Query()
+	token := query.Get("__token")
+	if token == "" {
+		token = query.Get("token")
+	}
+	callID := callIDFromRequestData(body)
+
+	if token != "" {
+		a.Logger.Debug("swaig token_found: function=%s token_length=%d", funcName, len(token))
+	} else {
+		a.Logger.Warn("swaig token_missing: function=%s", funcName)
+	}
+
+	isValid := token != "" && callID != "" && a.ValidateToolToken(funcName, token, callID)
+	if isValid {
+		a.Logger.Debug("swaig token_valid: function=%s", funcName)
+		return nil
+	}
+	if token != "" {
+		a.Logger.Warn("swaig token_invalid: function=%s", funcName)
+	}
+	if !tool.IsSecure() {
+		// An insecure tool is not gated.
+		return nil
+	}
+	a.Logger.Warn("swaig secure_function_refused: function=%s token_present=%t", funcName, token != "")
+	return swaig.NewFunctionResult(swaigTokenRefusalText).ToMap()
+}
+
 func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -4247,6 +4316,17 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 	// args, so on a real platform call the handler received {"parsed":..,"raw":..}
 	// (i.e. NO real args) — SWAIG-HTTP fixture PSDK-7's platform_nested case.
 	args := extractSwaigArgs(body)
+
+	// Inbound security-token validation. This runs BETWEEN argument extraction
+	// and dispatch, exactly where the reference puts it. A nil return means the
+	// call is cleared to dispatch; a non-nil return is the refusal body.
+	if refusal := a.swaigTokenRefusal(r, body, funcName); refusal != nil {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(refusal); err != nil {
+			a.Logger.Warn("failed to write SWAIG token-refusal response: %s", err)
+		}
+		return
+	}
 
 	result, err := a.OnFunctionCall(funcName, args, body)
 	if err != nil {

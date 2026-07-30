@@ -148,9 +148,15 @@ func TestLambdaHandler_DispatchesSwaigFunctionCall(t *testing.T) {
 		agent.WithRoute("/bot"),
 		agent.WithBasicAuth(user, pass),
 	)
+	// secure=false: this test pins the LAMBDA TRANSPORT reaching /swaig, not
+	// the inbound __token gate. ToolDefinition.Secure is a tri-state *bool
+	// whose nil means SECURE, so a tool omitting the field is refused when
+	// invoked without a token.
+	insecure := false
 	a.DefineTool(agent.ToolDefinition{
 		Name:        "greet",
 		Description: "Greet",
+		Secure:      &insecure,
 		Parameters:  map[string]any{"name": map[string]any{"type": "string"}},
 		Handler: func(args map[string]any, raw map[string]any) *swaig.FunctionResult {
 			return swaig.NewFunctionResult(fmt.Sprintf("hello %v", args["name"]))
