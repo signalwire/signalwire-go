@@ -321,7 +321,7 @@ func ensureServer(t *testing.T) *Harness {
 		// child's pipes before exiting, which would hang the test process
 		// for the full WaitDelay (60s by default) when the subprocess
 		// stays alive across the test binary lifetime.
-		cmd := exec.Command("python", "-m", "mock_signalwire",
+		cmd := exec.Command("python", "-m", "mock_signalwire", //nolint:gosec // G204: fixed program "python -m mock_signalwire" with locally-derived ports; test harness only.
 			"--host", "127.0.0.1",
 			"--port", strconv.Itoa(port),
 			"--log-level", "error",

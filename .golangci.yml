@@ -149,19 +149,12 @@ linters:
         linters:
           - gosec
         text: "G101|G204|G304|G306|G705"
-      # gosec on the INTERNAL mock harnesses only. `internal/surface` holds the
-      # doc-symbol mapping tables that trip G101 on method-name strings, and
-      # pkg/{relay,rest}/internal/mocktest is the test mock-server harness —
-      # neither is production attack surface.
-      #
-      # `cmd/` is deliberately NOT excluded: cmd/swaig-test is a SHIPPED CLI
-      # tool, so it is held to the same bar as the library. The dev/codegen
-      # binaries under cmd/ are linted too; where one genuinely needs to read a
-      # variable path or spawn a subprocess, that carries a per-line
-      # //nolint:gosec with its G-code and reason.
-      - path: (^|/)internal/
-        linters:
-          - gosec
+      # (There is no path-based gosec exclusion for cmd/ or internal/. Both used
+      # to be blanket-excluded as "not shipped", but cmd/swaig-test IS a shipped
+      # CLI, and the blanket also hid the internal/ and codegen trees from every
+      # gosec check rather than the few that genuinely do not apply. gosec now
+      # runs everywhere; the individual justified sites carry a per-line
+      # //nolint:gosec with their G-code and reason.)
       # gosec G101 on GENERATED REST wire-type enum constants: the emitter names
       # permission/scope enum types like `RoomTokenPermission` and gives them wire
       # string VALUES (e.g. "room.set_position") — gosec's credential heuristic

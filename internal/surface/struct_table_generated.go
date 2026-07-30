@@ -154,7 +154,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 	}},
 	"namespaces.FabricTokens": {{
 		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "FabricTokens",
-		Methods: map[string]string{
+		Methods: map[string]string{ //nolint:gosec // G101: doc-symbol MAPPING TABLE of method names, not credentials — gosec matches on "token"/"key" appearing in a mapped symbol name.
 			"CreateEmbedToken":       "create_embed_token",
 			"CreateGuestToken":       "create_guest_token",
 			"CreateInviteToken":      "create_invite_token",

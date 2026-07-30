@@ -154,7 +154,7 @@ var StructTable = map[string][]ClassTarget{
 		},
 		ClassTarget{
 			Module: "signalwire.core.mixins.auth_mixin", Class: "AuthMixin",
-			Methods: map[string]string{
+			Methods: map[string]string{ //nolint:gosec // G101: doc-symbol MAPPING TABLE of method names, not credentials — gosec matches on "token"/"key" appearing in a mapped symbol name.
 				"ValidateBasicAuth":       "validate_basic_auth",
 				"GetBasicAuthCredentials": "get_basic_auth_credentials",
 			},
@@ -436,7 +436,7 @@ var StructTable = map[string][]ClassTarget{
 	"swml.Service": {
 		{
 			Module: "signalwire.core.swml_service", Class: "SWMLService",
-			Methods: map[string]string{
+			Methods: map[string]string{ //nolint:gosec // G101: doc-symbol MAPPING TABLE of method names, not credentials — gosec matches on "token"/"key" appearing in a mapped symbol name.
 				"NewService":              "__init__",
 				"GetDocument":             "get_document",
 				"ResetDocument":           "reset_document",
