@@ -949,10 +949,18 @@ func TestRenderSWML_WithPostPrompt(t *testing.T) {
 	t.Error("AI verb not found")
 }
 
+// native_functions is a property of the SWAIG object, NOT of the ai object.
+// The reference emits swaig_obj["native_functions"] (agent_base.py:1017-1018)
+// and schema.json declares it under SWAIG with a CLOSED value enum
+// ($defs/SWAIGNativeFunction: check_time, wait_seconds, wait_for_user,
+// adjust_response_latency). This test previously asserted the key at
+// ai.native_functions with the values ["transfer","hangup"] — wrong level AND
+// wrong values, both of which the engine discards. It asserted the defect, so it
+// is replaced rather than adjusted.
 func TestRenderSWML_WithNativeFunctions(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("u", "p"))
 	a.SetPromptText("Bot").
-		SetNativeFunctions([]string{"transfer", "hangup"})
+		SetNativeFunctions([]string{"check_time", "wait_seconds"})
 
 	doc := a.RenderSWML(nil, nil)
 	sections := as[map[string]any](t, doc["sections"])
@@ -961,9 +969,17 @@ func TestRenderSWML_WithNativeFunctions(t *testing.T) {
 	for _, v := range main {
 		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			nf, ok := aiCfg["native_functions"].([]string)
+			if _, wrongLevel := aiCfg["native_functions"]; wrongLevel {
+				t.Error("native_functions must not be emitted at the ai top level; " +
+					"it belongs under ai.SWAIG")
+			}
+			swaigCfg, ok := aiCfg["SWAIG"].(map[string]any)
 			if !ok {
-				t.Fatal("expected native_functions")
+				t.Fatal("expected a SWAIG object to host native_functions")
+			}
+			nf, ok := swaigCfg["native_functions"].([]string)
+			if !ok {
+				t.Fatal("expected SWAIG.native_functions")
 			}
 			if len(nf) != 2 {
 				t.Errorf("expected 2 native functions, got %d", len(nf))
@@ -974,6 +990,12 @@ func TestRenderSWML_WithNativeFunctions(t *testing.T) {
 	t.Error("AI verb not found")
 }
 
+// contexts is a property of the PROMPT object, NOT of the ai object. The
+// reference sets prompt_config["contexts"] (swml_handler.py:190-191) and
+// validates it as 'prompt.contexts' (swml_handler.py:119-122); the ai object's
+// closed key set has no `contexts` member. This test previously asserted the key
+// at ai.contexts, where the engine never reads it — it asserted the defect, so it
+// is replaced rather than adjusted.
 func TestRenderSWML_WithContexts(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("u", "p"))
 	a.SetPromptText("Bot")
@@ -987,9 +1009,17 @@ func TestRenderSWML_WithContexts(t *testing.T) {
 	for _, v := range main {
 		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			ctxs, ok := aiCfg["contexts"].(map[string]any)
+			if _, wrongLevel := aiCfg["contexts"]; wrongLevel {
+				t.Error("contexts must not be emitted at the ai top level; " +
+					"it belongs under ai.prompt")
+			}
+			promptCfg, ok := aiCfg["prompt"].(map[string]any)
 			if !ok {
-				t.Fatal("expected contexts in AI config")
+				t.Fatal("expected a prompt object to host contexts")
+			}
+			ctxs, ok := promptCfg["contexts"].(map[string]any)
+			if !ok {
+				t.Fatal("expected prompt.contexts in AI config")
 			}
 			if _, ok := ctxs["default"]; !ok {
 				t.Error("expected 'default' context")

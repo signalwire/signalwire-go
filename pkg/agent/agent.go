@@ -3149,11 +3149,40 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	doc := swml.NewDocument()
+	// addVerb is the VALIDATING emission path for this render: it runs the
+	// agent's own embedded swml.Service schema validation and only then writes
+	// the verb into this call's document. It mirrors the reference, whose
+	// _render_swml adds every one of its six phases through the validating
+	// SWMLService.add_verb (agent_base.py:1194,1199,1206,1216,1367,1372).
+	//
+	// Every phase below previously called the RAW (*swml.Document).AddVerb, which
+	// checks only that the verb NAME is non-empty. `doc` is not bound to a
+	// Service, so the schema was never consulted for ANY rendered verb —
+	// including the caller-supplied pre-answer / post-answer / post-AI verbs,
+	// whose arbitrary names and configs reached the wire completely unchecked. A
+	// schema-invalid verb is now dropped with a warning instead of being emitted.
+	//
+	// Two deliberate structural choices:
+	//
+	//  1. The document stays LOCAL to this call instead of rendering onto the
+	//     Service's own document the way the reference does. RenderSWMLForCall is
+	//     reached from the concurrent HTTP handler (:3882), so a shared document
+	//     would let two in-flight renders interleave verbs into one section.
+	//  2. Validation therefore goes through a scratch Service rather than
+	//     `a.Service.ExecuteVerb`, which would write into that shared document.
+	//     It is built ONCE per render and reused across all six phases.
+	//
+	// The read lock above is load-bearing and must NOT be upgraded to a write
+	// lock: the ai-verb phase calls ContextBuilder.ToMap -> Validate ->
+	// AgentBase.ListToolNames (:2081), which re-takes a.mu.RLock(). Go's RWMutex
+	// is not reentrant, so a write lock here self-deadlocks.
+	validator := swml.NewService(swml.WithSchemaValidation(true))
+	doc := validator.GetDocument()
+	addVerb := validator.ExecuteVerb
 
 	// 1. Pre-answer verbs
 	for _, v := range a.preAnswerVerbs {
-		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+		if err := addVerb(v.Name, v.Config); err != nil {
 			a.Logger.Warn("failed to add pre-answer verb %q: %s", v.Name, err)
 		}
 	}
@@ -3166,7 +3195,7 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 		for k, v := range a.answerConfig {
 			answerCfg[k] = v
 		}
-		if err := doc.AddVerb("answer", answerCfg); err != nil {
+		if err := addVerb("answer", answerCfg); err != nil {
 			a.Logger.Warn("failed to add answer verb: %s", err)
 		}
 	}
@@ -3177,14 +3206,14 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 			"format": a.recordFormat,
 			"stereo": a.recordStereo,
 		}
-		if err := doc.AddVerb("record_call", recordCfg); err != nil {
+		if err := addVerb("record_call", recordCfg); err != nil {
 			a.Logger.Warn("failed to add record_call verb: %s", err)
 		}
 	}
 
 	// 4. Post-answer verbs
 	for _, v := range a.postAnswerVerbs {
-		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+		if err := addVerb(v.Name, v.Config); err != nil {
 			a.Logger.Warn("failed to add post-answer verb %q: %s", v.Name, err)
 		}
 	}
@@ -3285,19 +3314,45 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 		aiConfig["global_data"] = a.globalData
 	}
 
-	// Native functions
+	// Native functions live INSIDE the SWAIG object, not at the ai top level.
+	// The reference sets swaig_obj["native_functions"] (agent_base.py:1017-1018)
+	// and schema.json declares native_functions as a property of SWAIG (items:
+	// $defs/SWAIGNativeFunction) with no such key on the ai object at all — the
+	// ai object's closed key set is
+	// [SWAIG global_data hints languages params post_prompt post_prompt_url prompt pronounce].
+	// This used to emit aiConfig["native_functions"], one level too high, where
+	// the engine never reads it: a caller's WithNativeFunctions(...) was silently
+	// discarded on the wire. It shipped because the render path bypassed the
+	// schema entirely (see addVerb above).
 	if len(a.nativeFunctions) > 0 {
-		aiConfig["native_functions"] = a.nativeFunctions
+		swaigConfig, ok := aiConfig["SWAIG"].(map[string]any)
+		if !ok {
+			swaigConfig = map[string]any{}
+			aiConfig["SWAIG"] = swaigConfig
+		}
+		swaigConfig["native_functions"] = a.nativeFunctions
 	}
 
 	// (Pattern hints are merged into the "hints" array above, matching Python;
 	// there is no separate pattern_hints key in the SWML ai block.)
 
-	// Contexts
+	// Contexts live INSIDE the prompt object, not at the ai top level. The
+	// reference sets prompt_config["contexts"] (swml_handler.py:190-191) and
+	// validates it as 'prompt.contexts' (swml_handler.py:119-122); the ai
+	// object's closed key set has no `contexts` member. This used to emit
+	// aiConfig["contexts"], one level too high, where the engine never reads it:
+	// an agent's whole contexts/steps workflow was silently dropped on the wire.
+	// It shipped because the render path bypassed the schema entirely (see
+	// addVerb above).
 	if a.contextBuilder != nil {
 		ctxMap, err := a.contextBuilder.ToMap()
 		if err == nil && len(ctxMap) > 0 {
-			aiConfig["contexts"] = ctxMap
+			promptCfg, ok := aiConfig["prompt"].(map[string]any)
+			if !ok {
+				promptCfg = map[string]any{}
+				aiConfig["prompt"] = promptCfg
+			}
+			promptCfg["contexts"] = ctxMap
 		}
 	}
 
@@ -3335,9 +3390,20 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 		params["debug_webhook_level"] = a.debugEventsLevel
 	}
 
-	// MCP servers
+	// MCP servers live INSIDE the SWAIG object, not at the ai top level. The
+	// reference sets swaig_obj["mcp_servers"] (agent_base.py:1152-1153), and the
+	// ai object's closed key set has no `mcp_servers` member. This used to emit
+	// aiConfig["mcp_servers"], one level too high, where the engine never reads
+	// it: every configured MCP server was silently dropped on the wire. It
+	// shipped because the render path bypassed the schema entirely (see addVerb
+	// above).
 	if len(a.mcpServers) > 0 {
-		aiConfig["mcp_servers"] = a.mcpServers
+		swaigConfig, ok := aiConfig["SWAIG"].(map[string]any)
+		if !ok {
+			swaigConfig = map[string]any{}
+			aiConfig["SWAIG"] = swaigConfig
+		}
+		swaigConfig["mcp_servers"] = a.mcpServers
 	}
 
 	// Apply prompt transformer (used by specialised agents like BedrockAgent)
@@ -3352,13 +3418,13 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 	if verbName == "" {
 		verbName = "ai"
 	}
-	if err := doc.AddVerb(verbName, aiConfig); err != nil {
+	if err := addVerb(verbName, aiConfig); err != nil {
 		a.Logger.Warn("failed to add AI verb %q: %s", verbName, err)
 	}
 
 	// 7. Post-AI verbs
 	for _, v := range a.postAiVerbs {
-		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+		if err := addVerb(v.Name, v.Config); err != nil {
 			a.Logger.Warn("failed to add post-AI verb %q: %s", v.Name, err)
 		}
 	}

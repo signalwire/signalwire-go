@@ -390,7 +390,30 @@ func (s *SchemaUtils) verbTopLevelPropertyNames(verbName string) (map[string]str
 	for k := range propMap {
 		known[k] = struct{}{}
 	}
+	for _, k := range schemaGapKeys[verbName] {
+		known[k] = struct{}{}
+	}
 	return known, true
+}
+
+// schemaGapKeys lists config keys the REFERENCE deliberately emits that the
+// bundled schema.json does not (yet) declare. They are accepted by the shallow
+// top-level-key check so that binding an emitter to the validating path does not
+// DELETE a feature the reference ships.
+//
+// This is not an allow-list for port-invented surface: every entry must be a key
+// the python reference itself writes, cited below. The right long-term fix is in
+// the schema, not here — each entry is a SCHEMA GAP awaiting an owner ruling, and
+// the entry disappears the moment the schema declares the key.
+//
+//   - ai.multilingual — the reference sets ai_config["multilingual"] at the ai
+//     top level (agent_base.py:1272-1273 and again at :1353-1354, ASR-driven
+//     "Mode B", emitted right alongside `languages`). $defs/AIObject is closed
+//     over nine keys and multilingual is not among them, so the schema and the
+//     reference genuinely disagree. Rejecting it would drop a shipped feature on
+//     the wire; the schema is the side that is behind.
+var schemaGapKeys = map[string][]string{
+	"ai": {"multilingual"},
 }
 
 // ValidateVerbTopLevelKeys is the SHALLOW strict-render check: reject

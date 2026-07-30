@@ -739,6 +739,28 @@ func (s *Service) validateVerb(verbName string, config any) error {
 
 	s.mu.RLock()
 	handler, hasHandler := s.verbHandlers[verbName]
+	if !hasHandler && verbName == "amazon_bedrock" {
+		// amazon_bedrock is the ai verb's sibling and shares its validation
+		// policy. schema.json's $defs/AmazonBedrockObject is a strict SUBSET of
+		// $defs/AIObject (SWAIG, global_data, params, post_prompt,
+		// post_prompt_url, prompt — the ai object's nine minus
+		// hints/languages/pronounce), so the two verbs have the same config
+		// shape. Having a handler is what selects the SHALLOW top-level-key
+		// check over the FULL deep schema pass below, and the AI family requires
+		// the shallow one: the deep pass false-rejects legitimate SDK-emitted
+		// prompt shapes (an empty prompt.pom, the SWAIG function shape). Without
+		// this, binding the agent render path to the validating entry point made
+		// every BedrockAgent document fail at '/amazon_bedrock/prompt' and drop
+		// its verb — a VALID document rejected, not an invalid one caught.
+		//
+		// This BORROWS the ai handler rather than REGISTERING one under
+		// amazon_bedrock, deliberately: the registry is observable state that the
+		// reference's VerbHandlerRegistry ships containing exactly the ai
+		// handler, and a second entry is a real parity divergence (the
+		// state_register_verb_handler corpus case reads the registry's verb list
+		// and would see the extra name).
+		handler, hasHandler = s.verbHandlers["ai"]
+	}
 	s.mu.RUnlock()
 
 	if hasHandler {
