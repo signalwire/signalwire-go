@@ -70,7 +70,7 @@ func NewWebService(opts Options) *WebService {
 		// Passing Options.ConfigFile through is what makes a cert/key (and
 		// ssl_enabled) supplied by the config file actually reach the service;
 		// it was previously dropped on the floor.
-		securityConfig: security.NewSecurityConfig(opts.ConfigFile, "web"),
+		securityConfig: security.NewSecurityConfig(security.WithConfigFile(opts.ConfigFile), security.WithServiceName("web")),
 		directories:    map[string]string{},
 	}
 	for route, dir := range opts.Directories {

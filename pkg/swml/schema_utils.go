@@ -84,16 +84,25 @@ type SchemaUtils struct {
 	fullValidator *jsonschema.Schema
 }
 
-// NewSchemaUtils constructs a SchemaUtils.
+// NewSchemaUtils constructs a SchemaUtils. BOTH inputs are OPTIONAL, matching
+// the reference (`schema_path: str | None = None, schema_validation: bool =
+// True`): calling it with no arguments uses the embedded schema.json bundled
+// with the SDK and leaves validation ENABLED.
 //
-// Pass schemaPath="" to use the embedded schema.json bundled with the SDK.
-// schemaValidation=false disables validation; the env var
-// SWML_SKIP_SCHEMA_VALIDATION=1/true/yes also disables it.
-func NewSchemaUtils(schemaPath string, schemaValidation bool) *SchemaUtils {
+// WithSchemaUtilsPath overrides the embedded schema. WithSchemaUtilsValidation(false)
+// disables validation; the env var SWML_SKIP_SCHEMA_VALIDATION=1/true/yes also
+// disables it, regardless of the option.
+func NewSchemaUtils(opts ...SchemaUtilsOption) *SchemaUtils {
+	// validation defaults to TRUE, mirroring the reference's
+	// `schema_validation: bool = True`.
+	cfg := schemaUtilsOptions{schemaValidation: true}
+	for _, o := range opts {
+		o(&cfg)
+	}
 	envSkip := envBoolish(os.Getenv("SWML_SKIP_SCHEMA_VALIDATION"))
 	su := &SchemaUtils{
-		schemaPath:        schemaPath,
-		validationEnabled: schemaValidation && !envSkip,
+		schemaPath:        cfg.schemaPath,
+		validationEnabled: cfg.schemaValidation && !envSkip,
 		verbs:             map[string]*VerbInfo{},
 	}
 	su.schema = su.LoadSchema()
@@ -102,6 +111,31 @@ func NewSchemaUtils(schemaPath string, schemaValidation bool) *SchemaUtils {
 		su.initFullValidator()
 	}
 	return su
+}
+
+// schemaUtilsOptions accumulates SchemaUtils' optional construction inputs.
+type schemaUtilsOptions struct {
+	schemaPath       string
+	schemaValidation bool
+}
+
+// SchemaUtilsOption configures a SchemaUtils at construction. The names carry a
+// `SchemaUtils` infix because this package's plain `WithSchemaPath` /
+// `WithSchemaValidation` are already taken by ServiceOption (service.go); the
+// `With` PREFIX is kept because it is the convention every option family in this
+// SDK follows and the surface enumerator keys construction params off it.
+type SchemaUtilsOption func(*schemaUtilsOptions)
+
+// WithSchemaUtilsPath loads the schema from an explicit path instead of the
+// schema.json embedded in the SDK.
+func WithSchemaUtilsPath(path string) SchemaUtilsOption {
+	return func(o *schemaUtilsOptions) { o.schemaPath = path }
+}
+
+// WithSchemaUtilsValidation enables or disables schema validation. It defaults
+// to enabled; SWML_SKIP_SCHEMA_VALIDATION disables it regardless.
+func WithSchemaUtilsValidation(enabled bool) SchemaUtilsOption {
+	return func(o *schemaUtilsOptions) { o.schemaValidation = enabled }
 }
 
 func envBoolish(v string) bool {

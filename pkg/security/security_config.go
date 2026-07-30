@@ -38,23 +38,53 @@ type SecurityConfig struct {
 // the config file being HIGHEST priority
 // (signalwire.core.security_config.SecurityConfig.__init__).
 //
-// configFile is an explicit path; when empty the loader auto-discovers one for
-// serviceName (serviceName_config.json, serviceName.json, .swml/serviceName.json,
-// then the generic defaults), exactly as the reference's
-// ConfigLoader.find_config_file does. Pass "" for both to get the plain
-// defaults-then-env resolution.
+// BOTH inputs are OPTIONAL, matching the reference
+// (`config_file: str | None = None, service_name: str | None = None`) — call it
+// with no arguments for the plain defaults-then-env resolution, or pass
+// WithConfigFile / WithServiceName.
+//
+// WithConfigFile is an explicit path; when it is absent the loader
+// auto-discovers one for the service name (serviceName_config.json,
+// serviceName.json, .swml/serviceName.json, then the generic defaults), exactly
+// as the reference's ConfigLoader.find_config_file does.
 //
 // The config-file layer is load-bearing for security: an operator who supplies
 // ssl_enabled/ssl_cert_path/ssl_key_path only in a config file must get TLS. A
 // config file that is absent, unreadable, unparseable, or has no `security`
 // section leaves the env/default resolution untouched (the reference's
 // best-effort load).
-func NewSecurityConfig(configFile, serviceName string) *SecurityConfig {
+func NewSecurityConfig(opts ...ConfigOption) *SecurityConfig {
+	var cfg securityConfigOptions
+	for _, o := range opts {
+		o(&cfg)
+	}
 	c := &SecurityConfig{}
 	c.setDefaults()
 	c.LoadFromEnv()
-	c.loadConfigFile(configFile, serviceName)
+	c.loadConfigFile(cfg.configFile, cfg.serviceName)
 	return c
+}
+
+// securityConfigOptions accumulates the optional construction inputs.
+type securityConfigOptions struct {
+	configFile  string
+	serviceName string
+}
+
+// ConfigOption configures a SecurityConfig at construction.
+type ConfigOption func(*securityConfigOptions)
+
+// WithConfigFile sets an explicit config-file path to load the `security`
+// section from. When omitted, the path is auto-discovered from the service name.
+func WithConfigFile(path string) ConfigOption {
+	return func(o *securityConfigOptions) { o.configFile = path }
+}
+
+// WithServiceName sets the service name used to auto-discover a config file
+// (serviceName_config.json, serviceName.json, .swml/serviceName.json, then the
+// generic defaults).
+func WithServiceName(name string) ConfigOption {
+	return func(o *securityConfigOptions) { o.serviceName = name }
 }
 
 func (c *SecurityConfig) setDefaults() {

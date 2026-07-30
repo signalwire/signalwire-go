@@ -115,20 +115,28 @@ func extractRequestID(h http.Header) string {
 }
 
 // NewSignalWireRestError constructs a SignalWireRestError for an HTTP-status
-// failure, substituting "GET" as the method when method is empty. headers is the
-// response header map and may be nil (e.g. a hand-built error); when present the
-// platform request-id is extracted from it (plan 6.6 error-observability).
-func NewSignalWireRestError(statusCode int, body, url, method string, headers http.Header) *SignalWireRestError {
+// failure, substituting "GET" as the method when method is empty.
+//
+// headers is OPTIONAL, matching the reference (`headers: dict[str, str] | None =
+// None`): omit it entirely for a hand-built error. When supplied, the platform
+// request-id is extracted from it (plan 6.6 error-observability). Only the first
+// header map is used; passing more than one is a caller error and the extras are
+// ignored.
+func NewSignalWireRestError(statusCode int, body, url, method string, headers ...http.Header) *SignalWireRestError {
 	if method == "" {
 		method = "GET"
+	}
+	var hdr http.Header
+	if len(headers) > 0 {
+		hdr = headers[0]
 	}
 	return &SignalWireRestError{
 		StatusCode: statusCode,
 		Body:       body,
 		URL:        url,
 		Method:     method,
-		Headers:    headers,
-		RequestID:  extractRequestID(headers),
+		Headers:    hdr,
+		RequestID:  extractRequestID(hdr),
 	}
 }
 

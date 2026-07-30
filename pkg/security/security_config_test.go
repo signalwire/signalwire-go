@@ -90,7 +90,7 @@ func TestConfigFileSuppliesSSL(t *testing.T) {
 		"domain": "file.example.com"
 	}`)
 
-	c := NewSecurityConfig(path, "")
+	c := NewSecurityConfig(WithConfigFile(path))
 
 	if !c.SSLEnabled {
 		t.Error("SSLEnabled = false; the config file's ssl_enabled:true was ignored")
@@ -124,7 +124,7 @@ func TestConfigFileOverridesEnv(t *testing.T) {
 		"domain": "file.example.com"
 	}`)
 
-	c := NewSecurityConfig(path, "")
+	c := NewSecurityConfig(WithConfigFile(path))
 
 	if c.SSLCertPath != "/from/file.crt" {
 		t.Errorf("SSLCertPath = %q; the env value won over the config file", c.SSLCertPath)
@@ -152,7 +152,7 @@ func TestConfigFileSSLEnabledFalseOverridesEnv(t *testing.T) {
 
 	path := writeSecurityConfigFile(t, `{"ssl_enabled": false}`)
 
-	c := NewSecurityConfig(path, "")
+	c := NewSecurityConfig(WithConfigFile(path))
 	if c.SSLEnabled {
 		t.Error("SSLEnabled = true; the config file's explicit ssl_enabled:false was ignored")
 	}
@@ -176,7 +176,7 @@ func TestConfigFileNonSSLSection(t *testing.T) {
 		"auth": {"basic": {"user": "alice", "password": "s3cr3t"}}
 	}`)
 
-	c := NewSecurityConfig(path, "")
+	c := NewSecurityConfig(WithConfigFile(path))
 
 	if len(c.AllowedHosts) != 2 || c.AllowedHosts[0] != "a.example.com" {
 		t.Errorf("AllowedHosts = %v, want [a.example.com b.example.com]", c.AllowedHosts)
@@ -217,7 +217,7 @@ func TestConfigFileAbsentIsNoOp(t *testing.T) {
 	t.Setenv("SWML_SSL_ENABLED", "true")
 	t.Setenv("SWML_SSL_CERT_PATH", "/from/env.crt")
 
-	c := NewSecurityConfig(filepath.Join(t.TempDir(), "nope.json"), "")
+	c := NewSecurityConfig(WithConfigFile(filepath.Join(t.TempDir(), "nope.json")))
 	if !c.SSLEnabled || c.SSLCertPath != "/from/env.crt" {
 		t.Errorf("a missing config file perturbed the env resolution: enabled=%v cert=%q",
 			c.SSLEnabled, c.SSLCertPath)
@@ -232,7 +232,7 @@ func TestDomainReadsCanonicalEnvVar(t *testing.T) {
 	clearSecurityEnv(t)
 	t.Setenv("SWML_DOMAIN", "canonical.example.com")
 
-	c := NewSecurityConfig("", "")
+	c := NewSecurityConfig()
 	if c.Domain != "canonical.example.com" {
 		t.Errorf("Domain = %q, want canonical.example.com (SWML_DOMAIN was ignored)", c.Domain)
 	}

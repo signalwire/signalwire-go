@@ -34,7 +34,7 @@ import (
 // on — the default production configuration.
 func widenTestSU(t *testing.T) *SchemaUtils {
 	t.Helper()
-	su := NewSchemaUtils("", true)
+	su := NewSchemaUtils()
 	if !su.FullValidationAvailable() {
 		t.Fatalf("full validator unavailable — this test asserts the behaviour OF that " +
 			"validator, so without it the assertions would be vacuous")

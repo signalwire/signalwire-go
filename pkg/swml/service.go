@@ -351,7 +351,7 @@ func NewService(opts ...ServiceOption) *Service {
 	//
 	// The config file is the explicit WithConfigFile path when given, else the
 	// one auto-discovered for this service's name.
-	s.applyResolvedSecurity(security.NewSecurityConfig(s.configFile, s.Name))
+	s.applyResolvedSecurity(security.NewSecurityConfig(security.WithConfigFile(s.configFile), security.WithServiceName(s.Name)))
 
 	// The same file also carries the bearer-token / API-key auth settings, which
 	// live outside the security.SecurityConfig block, plus the YAML spelling of
@@ -422,7 +422,7 @@ func NewService(opts ...ServiceOption) *Service {
 
 	// Build SchemaUtils — verb-metadata extraction and validation. It honours
 	// the same schemaPath / schemaValidation settings resolved above.
-	s.schemaUtils = NewSchemaUtils(s.schemaPath, s.schemaValidation)
+	s.schemaUtils = NewSchemaUtils(WithSchemaUtilsPath(s.schemaPath), WithSchemaUtilsValidation(s.schemaValidation))
 
 	// Register the built-in verb handlers.
 	s.RegisterVerbHandler(NewAIVerbHandler())
