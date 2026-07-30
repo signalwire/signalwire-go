@@ -1276,10 +1276,18 @@ var StructTable = map[string][]ClassTarget{
 		// have no BaseSkill equivalent (impossible-tagged in PORT_OMISSIONS).
 		SyntheticMethods: []string{"__init__", "register_tools", "setup"},
 	}},
-	// The signature enumerator projects a concrete builtin skill package ONLY
-	// where the reference signature oracle records members for it; the Methods
-	// map is a strict allowlist, so mapping a struct projects only the listed
-	// members and does not flood the surface with the skill's other methods.
+	// The two entries below are NOT the skill projection — that lives in
+	// SkillContractTable and is consumed by BOTH enumerators (see its doc comment).
+	// They exist here only because each carries a member OUTSIDE the SkillBase
+	// contract set that SkillContractTable does not model.
+	//
+	// (Historical note: this used to read "the signature enumerator projects a
+	// concrete builtin skill package ONLY where the reference signature oracle
+	// records members for it." That premise held while the signature oracle
+	// recorded 7 of 18 skill modules and DIED on 2026-07-30 with porting-sdk
+	// 8496c77, which fixed the oracle bug that erased any class whose every method
+	// was a base-identical override. The oracle now records 18 of 18 and the
+	// signature axis reads SkillContractTable like the surface axis does.)
 	//
 	// SpiderSkill is mapped for ONE member: remove_xpaths is a public ATTRIBUTE
 	// both reference oracles record — a caller-observable configuration VALUE,
@@ -1715,4 +1723,53 @@ func eventTarget(cls string) ClassTarget {
 		SyntheticMethods: []string{"from_payload", "__init__"},
 		Alias:            true,
 	}
+}
+
+// BaseSkillProvides is the set of Go methods the embedded `skills.BaseSkill`
+// supplies as defaults (pkg/skills/skill_base.go), promoted onto every concrete
+// built-in skill struct. `skills.BaseSkill` is a QUALIFIED cross-package embed,
+// which a same-package embed walker cannot resolve, so both enumerators use this
+// set to accept a skill-contract method the skill inherits rather than overrides.
+var BaseSkillProvides = map[string]bool{
+	"GetHints":           true,
+	"Cleanup":            true,
+	"GetParameterSchema": true,
+	"GetInstanceKey":     true,
+	"GetGlobalData":      true,
+	"GetPromptSections":  true,
+}
+
+// SkillLeafToGoMethod reverse-maps a Python-canonical skill-contract method leaf
+// to the Go member that satisfies it (declared override or BaseSkill-promoted).
+// These are the fixed SkillBase contract methods; the mapping is the inverse of
+// goNameToSnake for the specific SDK-initialism-free names in play.
+//
+// Shared by BOTH enumerators: cmd/enumerate-surface drives the surface axis and
+// cmd/enumerate-signatures the signature axis off the same SkillContractTable, so
+// the leaf->member mapping must be one definition, not two that can drift.
+func SkillLeafToGoMethod(leaf string) string {
+	switch leaf {
+	case "register_tools":
+		return "RegisterTools"
+	case "get_hints":
+		return "GetHints"
+	case "setup":
+		return "Setup"
+	case "cleanup":
+		return "Cleanup"
+	case "get_parameter_schema":
+		return "GetParameterSchema"
+	case "get_instance_key":
+		return "GetInstanceKey"
+	case "get_global_data":
+		return "GetGlobalData"
+	case "get_prompt_sections":
+		return "GetPromptSections"
+	case "remove_xpaths":
+		// Not a SkillBase contract method: a public ATTRIBUTE on the reference's
+		// SpiderSkill (the prefilled XPath list stripped before text extraction),
+		// expressed in Go as an accessor over the unexported removeXPaths field.
+		return "RemoveXPaths"
+	}
+	panic(fmt.Sprintf("surface: no Go member mapping for skill contract leaf %q", leaf))
 }

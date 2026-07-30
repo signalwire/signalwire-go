@@ -619,51 +619,6 @@ type moduleInventory struct {
 	Functions []string            `json:"functions"`
 }
 
-// baseSkillProvides is the set of Go methods the embedded skills.BaseSkill
-// supplies as defaults (pkg/skills/skill_base.go), promoted onto every concrete
-// built-in skill struct. Used to accept a skill-contract method that the skill
-// does not override but inherits (the qualified cross-package embed the walker
-// cannot resolve automatically).
-var baseSkillProvides = map[string]bool{
-	"GetHints":           true,
-	"Cleanup":            true,
-	"GetParameterSchema": true,
-	"GetInstanceKey":     true,
-	"GetGlobalData":      true,
-	"GetPromptSections":  true,
-}
-
-// skillLeafToGoMethod reverse-maps a Python-canonical skill-contract method leaf
-// to the Go member that satisfies it (declared override or BaseSkill-promoted).
-// These are the fixed SkillBase contract methods; the mapping is the inverse of
-// goNameToSnake for the specific SDK-initialism-free names in play.
-func skillLeafToGoMethod(leaf string) string {
-	switch leaf {
-	case "register_tools":
-		return "RegisterTools"
-	case "get_hints":
-		return "GetHints"
-	case "setup":
-		return "Setup"
-	case "cleanup":
-		return "Cleanup"
-	case "get_parameter_schema":
-		return "GetParameterSchema"
-	case "get_instance_key":
-		return "GetInstanceKey"
-	case "get_global_data":
-		return "GetGlobalData"
-	case "get_prompt_sections":
-		return "GetPromptSections"
-	case "remove_xpaths":
-		// Not a SkillBase contract method: a public ATTRIBUTE on the reference's
-		// SpiderSkill (the prefilled XPath list stripped before text extraction),
-		// expressed in Go as an accessor over the unexported removeXPaths field.
-		return "RemoveXPaths"
-	}
-	panic(fmt.Sprintf("enumerate-surface: no Go member mapping for skill contract leaf %q", leaf))
-}
-
 // promotedFieldNames returns every exported FIELD name reachable on facts — its
 // own plus the ones Go promotes through the anonymous-embed chain.
 //
@@ -913,7 +868,7 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 		}
 		addClass(sc.Module, sc.ClassName)
 		for _, leaf := range sc.Methods {
-			goMethod := skillLeafToGoMethod(leaf)
+			goMethod := surfacepkg.SkillLeafToGoMethod(leaf)
 			// The method is satisfied either by a direct override on the skill
 			// struct or by the embedded skills.BaseSkill default. BaseSkill lives
 			// in a DIFFERENT package (`skills`) via a QUALIFIED embed
@@ -922,7 +877,7 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 			// the known BaseSkill-provided set (verified against
 			// pkg/skills/skill_base.go). A non-BaseSkill leaf that isn't declared
 			// on the struct fails loud.
-			if _, declared := facts.methods[goMethod]; !declared && !baseSkillProvides[goMethod] {
+			if _, declared := facts.methods[goMethod]; !declared && !surfacepkg.BaseSkillProvides[goMethod] {
 				panic(fmt.Sprintf("enumerate-surface: skill %s expects Go method %q (for %q) but it is neither declared nor a BaseSkill default", sc.GoStruct, goMethod, leaf))
 			}
 			addMethod(sc.Module, sc.ClassName, leaf)

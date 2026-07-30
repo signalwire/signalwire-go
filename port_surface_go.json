@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ fb212d6607fc406d13ff7fc65508cb97699568e6",
+  "generated_from": "signalwire-go (go-native) @ 1b5ee3605c24bf9092c7ffa65a52e6e4dbbd16ee",
   "modules": {
     "agent": {
       "classes": {
@@ -1005,7 +1005,8 @@
         "WithBody",
         "WithBullets",
         "WithNumbered",
-        "WithNumberedBullets"
+        "WithNumberedBullets",
+        "WithTitle"
       ]
     },
     "prefabs": {
@@ -1550,9 +1551,11 @@
         "ValidateWebhookSignature",
         "ValidateWebhookSignatureE",
         "WebhookMiddleware",
+        "WithConfigFile",
         "WithDebugMode",
         "WithSecret",
-        "WithSecretKey"
+        "WithSecretKey",
+        "WithServiceName"
       ]
     },
     "server": {
@@ -1934,6 +1937,8 @@
         "WithPort",
         "WithRoute",
         "WithSchemaPath",
+        "WithSchemaUtilsPath",
+        "WithSchemaUtilsValidation",
         "WithSchemaValidation",
         "WithSecurityConfig",
         "WithTLS"

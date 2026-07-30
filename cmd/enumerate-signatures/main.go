@@ -2581,9 +2581,27 @@ var ctxTailMethods = map[string]bool{
 //
 // Keyed by the reference QN (module.Class.method) so the fold is scoped to the
 // skill-registration contract and no other method returning a slice is affected.
-var collectedRegistrationVoid = map[string]bool{
-	"signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.register_tools": true,
-}
+//
+// DERIVED, not hand-listed. This used to be a size-1 map holding only
+// MCPGatewaySkill — correct while the signature oracle recorded 7 of 18 skill
+// modules and MCPGatewaySkill was the only concrete skill whose register_tools
+// the signature axis projected. porting-sdk 8496c77 (2026-07-30) made the oracle
+// record all 18, and every one of them declares the SAME
+// `RegisterTools() []ToolRegistration` against the same reference `-> None`. A
+// hand list would have to be re-edited on every skill added; deriving it from
+// SkillContractTable means the fold covers exactly the skills the projection
+// emits, automatically.
+var collectedRegistrationVoid = func() map[string]bool {
+	m := map[string]bool{}
+	for _, sc := range surfacepkg.SkillContractTable {
+		for _, leaf := range sc.Methods {
+			if leaf == "register_tools" {
+				m[sc.Module+"."+sc.ClassName+".register_tools"] = true
+			}
+		}
+	}
+	return m
+}()
 
 // closedSetUnions maps the Go defined-string closed-set types (and their
 // bare/qualified spellings) to the canonical union<class:...,string> the
@@ -3809,6 +3827,85 @@ func build(structs map[string]*goStructFacts, funcs map[string]*goFunc, payloads
 				sig, fails := toCanonicalSignature(fSig, aliases, true, false, fmt.Sprintf("%s.%s.%s", target.Module, target.Class, pyName))
 				failures = append(failures, fails...)
 				addClassMethod(target.Module, target.Class, pyName, sig)
+			}
+		}
+	}
+
+	// --- 1b. Built-in skill contract methods (SkillContractTable) ---
+	//
+	// Every Go built-in *Skill struct (pkg/skills/builtin/*.go, plus spider's own
+	// sub-package) embeds `skills.BaseSkill` and OVERRIDES a subset of the
+	// SkillBase contract; the rest is PROMOTED from BaseSkill. So the concrete
+	// struct genuinely PROVIDES every contract method the reference records for
+	// it — Go's embedding is the same inheritance the reference expresses with a
+	// Python base class.
+	//
+	// This projection was previously SURFACE-ONLY (cmd/enumerate-surface consumes
+	// SkillContractTable; the signature side had hand-written StructTable entries
+	// for exactly TWO skills, MCPGatewaySkill and SpiderSkill). The premise, stated
+	// in tables.go, was that "the signature enumerator projects a concrete builtin
+	// skill package ONLY where the reference signature oracle records members for
+	// it" — true when the oracle recorded 7 of 18 skill modules, FALSE since
+	// porting-sdk 8496c77 (2026-07-30) fixed the oracle bug where a class whose
+	// every method was a base-identical override vanished entirely. The oracle now
+	// records 18 of 18, and the two axes must agree: SURFACE and SIGNATURE read the
+	// SAME SkillContractTable, so a skill can never be present on one axis and
+	// absent on the other again.
+	//
+	// The signature comes from the struct's own override when it declares one, else
+	// from the embedded `skills.BaseSkill` default (the mirror of what Go's method
+	// set actually resolves at a call site). BaseSkill is a QUALIFIED cross-package
+	// embed, which resolvePromotedMethod's same-package embed walk cannot follow, so
+	// it is resolved explicitly here from the `skills` package structs.
+	//
+	// ORACLE-GATED, and that gate is load-bearing. The SURFACE oracle records all
+	// 18 skills' full contract sets; the SIGNATURE oracle does NOT — 8496c77 fixed
+	// only the case where a base-identical-override skip erased the WHOLE class, and
+	// left the M2 case (a base-identical override on a class that retains OTHER
+	// members) still dropped, explicitly flagged in that commit as needing its own
+	// ruling. Five skills (api_ninjas_trivia, play_background_file, spider,
+	// weather_api, wikipedia_search) survived the old bug only because each happens
+	// to declare one signature-DIFFERING member (`get_tools` / `remove_xpaths` /
+	// `search_wiki`), so their `register_tools`/`setup`/… are still absent from the
+	// signature oracle while present in the surface oracle. Emitting the full
+	// SkillContractTable set unconditionally would manufacture port-only signature
+	// symbols the reference does not record. So the surface axis emits the full set
+	// (its oracle has it) and the signature axis emits the intersection with what the
+	// signature oracle records — the two axes stay driven by ONE table, each gated by
+	// its own oracle.
+	//
+	// Fail-loud: a contract leaf that is neither declared on the struct nor provided
+	// by BaseSkill is a renamed/removed skill member, not something to skip — it
+	// panics, exactly as the surface side does.
+	{
+		baseSkill := structs["skills.BaseSkill"]
+		if baseSkill == nil {
+			panic("enumerate-signatures: skills.BaseSkill not found in walk (skill contract projection needs its promoted defaults)")
+		}
+		for _, sc := range surfacepkg.SkillContractTable {
+			facts, ok := structs[sc.GoStruct]
+			if !ok {
+				panic(fmt.Sprintf("enumerate-signatures: skill struct %q in SkillContractTable not found in walk", sc.GoStruct))
+			}
+			oracleMembers := sigOracle[sc.Module][sc.ClassName]
+			for _, leaf := range sc.Methods {
+				if !oracleMembers[leaf] {
+					continue
+				}
+				goMethod := surfacepkg.SkillLeafToGoMethod(leaf)
+				mSig, declared := facts.methods[goMethod]
+				if !declared {
+					if !surfacepkg.BaseSkillProvides[goMethod] {
+						panic(fmt.Sprintf("enumerate-signatures: skill %s expects Go method %q (for %q) but it is neither declared nor a BaseSkill default", sc.GoStruct, goMethod, leaf))
+					}
+					mSig = baseSkill.methods[goMethod]
+				}
+				if mSig == nil {
+					panic(fmt.Sprintf("enumerate-signatures: skill %s expects Go method %q (for %q) but it is neither declared nor a BaseSkill default", sc.GoStruct, goMethod, leaf))
+				}
+				sig, fails := toCanonicalSignature(mSig, aliases, true, false, fmt.Sprintf("%s.%s.%s", sc.Module, sc.ClassName, leaf))
+				failures = append(failures, fails...)
+				addClassMethod(sc.Module, sc.ClassName, leaf, sig)
 			}
 		}
 	}
