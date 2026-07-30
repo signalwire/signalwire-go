@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ d2359cb17094ad601bceb7f2209081c64e1da8b8",
+  "generated_from": "signalwire-go @ fb212d6607fc406d13ff7fc65508cb97699568e6",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",

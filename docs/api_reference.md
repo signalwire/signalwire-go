@@ -1515,22 +1515,10 @@ dm.Webhook("POST", "https://api.company.com/search",
 dm.Webhook("GET", "https://api.service.com/data?id=${args.customer_id}", nil, "", false, []string{"customer_id"})
 ```
 
-##### `Body(data map[string]any) *DataMap`
-Set the JSON body for POST/PUT requests (supports `${variable}` substitution).
-
-```go
-dm.Body(map[string]any{
-	"query": "${args.search_term}",
-	"limit": 5,
-	"filters": map[string]any{
-		"category": "${args.category}",
-		"active":   true,
-	},
-})
-```
-
 ##### `Params(data map[string]any) *DataMap`
-Set URL query parameters (supports `${variable}` substitution).
+Set the webhook request params (supports `${variable}` substitution). This is
+also the method for POST/PUT request data — `params` is the webhook key the
+engine reads.
 
 ```go
 dm.Params(map[string]any{
@@ -1718,7 +1706,7 @@ searchTool := datamap.New("search_knowledge").
 	Parameter("category", "string", "Search category", false, []string{"docs", "faq", "policies"}).
 	Webhook("POST", "https://api.company.com/search",
 		map[string]string{"Authorization": "Bearer TOKEN"}, "", false, nil).
-	Body(map[string]any{
+	Params(map[string]any{
 		"query":    "${args.query}",
 		"category": "${args.category}",
 		"limit":    5,

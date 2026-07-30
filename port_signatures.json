@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 97bffba3a939cacb7780bc979856d489a1058441 (go/ast walker)",
+  "generated_from": "signalwire-go @ fb212d6607fc406d13ff7fc65508cb97699568e6 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2589,20 +2589,6 @@
                 }
               ],
               "returns": "void"
-            },
-            "body": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "data",
-                  "type": "dict\u003cstring,any\u003e",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.core.data_map.DataMap"
             },
             "description": {
               "params": [

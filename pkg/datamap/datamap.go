@@ -56,7 +56,6 @@ type DataMap struct {
 	expressions         []expressionDef
 	webhookConfig       *webhookDef
 	webhookExprs        []map[string]any
-	bodyData            map[string]any
 	paramsData          map[string]any
 	foreachConfig       map[string]any
 	outputResult        *swaig.FunctionResult
@@ -65,7 +64,7 @@ type DataMap struct {
 	globalErrorKeysList []string
 
 	// Internal: accumulated webhooks for multi-webhook support.
-	// Each entry is built from webhookConfig + body/params/output/foreach/error_keys
+	// Each entry is built from webhookConfig + params/output/foreach/error_keys
 	// when a new Webhook() call is made.
 	webhooks []map[string]any
 }
@@ -203,9 +202,6 @@ func (dm *DataMap) flushCurrentWebhook() {
 	if len(dm.webhookConfig.requireArgs) > 0 {
 		wh["require_args"] = dm.webhookConfig.requireArgs
 	}
-	if dm.bodyData != nil {
-		wh["body"] = dm.bodyData
-	}
 	if dm.paramsData != nil {
 		wh["params"] = dm.paramsData
 	}
@@ -226,7 +222,6 @@ func (dm *DataMap) flushCurrentWebhook() {
 
 	// Reset per-webhook state
 	dm.webhookConfig = nil
-	dm.bodyData = nil
 	dm.paramsData = nil
 	dm.foreachConfig = nil
 	dm.outputResult = nil
@@ -263,19 +258,17 @@ func (dm *DataMap) WebhookExpressions(expressions []map[string]any) *DataMap {
 	return dm
 }
 
-// Body sets the request body for the current webhook (for POST/PUT requests).
-func (dm *DataMap) Body(data map[string]any) *DataMap {
-	dm.bodyData = data
-	return dm
-}
-
 // Params sets the request params for the current webhook.
 //
-// This is NOT an alias for Body: the two write different webhook keys (`params`
-// vs `body`), and only `params` is part of the webhook contract — schema.json
-// `$defs/Webhook` lists `params` among its ten permitted properties and forbids
-// everything else, and the engine's webhook readers look up `params` and never
-// `body`. Use this method for POST/PUT request data.
+// This is the method for POST/PUT request data. There is deliberately no Body
+// method: a `body` webhook key is not part of the contract — schema.json
+// `$defs/Webhook` lists exactly ten permitted properties (including `params`)
+// under `unevaluatedProperties: {"not": {}}` and forbids everything else, and
+// the engine's webhook readers (mod_openai/actions.c:735-739,
+// mod_openai/bedrock.c:4920-4926) look up `params` and never `body`. DataMap
+// used to expose a `Body` builder that wrote that key; it produced an invalid
+// document while silently discarding the caller's payload, and was removed
+// 2026-07-29 alongside the reference (signalwire-python 71eed0c).
 func (dm *DataMap) Params(data map[string]any) *DataMap {
 	dm.paramsData = data
 	return dm
