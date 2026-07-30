@@ -187,7 +187,10 @@ func TestApplySDKWidenStripsOnlyMarkedNodes(t *testing.T) {
 		t.Fatalf("applySDKWiden returned %T, want map", applySDKWiden(in))
 	}
 
-	marked := out["marked"].(map[string]any)
+	marked, ok := out["marked"].(map[string]any)
+	if !ok {
+		t.Fatalf("marked node is %T, want map", out["marked"])
+	}
 	if _, has := marked["anyOf"]; has {
 		t.Errorf("marked node must lose anyOf; got %#v", marked)
 	}
@@ -198,12 +201,22 @@ func TestApplySDKWidenStripsOnlyMarkedNodes(t *testing.T) {
 		t.Errorf("widening must preserve non-constraint keywords; got %#v", marked)
 	}
 
-	unmarked := out["unmarked"].(map[string]any)
+	unmarked, ok := out["unmarked"].(map[string]any)
+	if !ok {
+		t.Fatalf("unmarked node is %T, want map", out["unmarked"])
+	}
 	if _, has := unmarked["anyOf"]; !has {
 		t.Errorf("unmarked node must keep anyOf; got %#v", unmarked)
 	}
 
-	nested := out["nested"].([]any)[0].(map[string]any)
+	nestedArr, ok := out["nested"].([]any)
+	if !ok || len(nestedArr) == 0 {
+		t.Fatalf("nested is %T, want a non-empty array", out["nested"])
+	}
+	nested, ok := nestedArr[0].(map[string]any)
+	if !ok {
+		t.Fatalf("nested[0] is %T, want map", nestedArr[0])
+	}
 	if _, has := nested["enum"]; has {
 		t.Errorf("widening must recurse into arrays; nested node kept enum: %#v", nested)
 	}
@@ -212,7 +225,8 @@ func TestApplySDKWidenStripsOnlyMarkedNodes(t *testing.T) {
 	}
 
 	// The INPUT must be untouched — the transform returns a copy.
-	if _, has := in["marked"].(map[string]any)["anyOf"]; !has {
+	origMarked, _ := in["marked"].(map[string]any)
+	if _, has := origMarked["anyOf"]; !has {
 		t.Errorf("applySDKWiden must not mutate its input")
 	}
 }
