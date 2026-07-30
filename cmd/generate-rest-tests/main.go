@@ -177,7 +177,7 @@ func join(routes []routeRec, psdk string, specDirs []string) ([]joinedRow, error
 	verbs := []string{"get", "post", "put", "patch", "delete"}
 
 	for _, spec := range specDirs {
-		raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", spec, "openapi.yaml"))
+		raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", spec, "openapi.yaml")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 		if err != nil {
 			return nil, err
 		}
@@ -722,7 +722,7 @@ func findRepoRoot(start string) (string, error) {
 
 func resolvePortingSDK(repoRoot string) (string, error) {
 	if p := os.Getenv("PORTING_SDK"); p != "" {
-		if _, err := os.Stat(filepath.Join(p, "rest-apis")); err == nil {
+		if _, err := os.Stat(filepath.Join(p, "rest-apis")); err == nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 			return p, nil
 		}
 	}
@@ -770,7 +770,7 @@ func run() error {
 	// Load each spec doc once (for body-field fill).
 	specDocs := map[string]*yaml.Node{}
 	for _, spec := range specDirs {
-		raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", spec, "openapi.yaml"))
+		raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", spec, "openapi.yaml")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 		if err != nil {
 			return err
 		}
@@ -843,12 +843,12 @@ func run() error {
 		}
 		outPath := filepath.Join(nsDir, strings.ReplaceAll(spec, "-", "_")+"_generated_test.go")
 		if *check {
-			existing, err := os.ReadFile(outPath)
+			existing, err := os.ReadFile(outPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 			if err != nil || !bytes.Equal(existing, formatted) {
 				stale = append(stale, outPath)
 			}
 		} else {
-			if err := os.WriteFile(outPath, formatted, 0o644); err != nil {
+			if err := os.WriteFile(outPath, formatted, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 				return err
 			}
 			fmt.Printf("generated %s (%d routes, %d tests)\n", outPath, len(rws), len(rws)*2)

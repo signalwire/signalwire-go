@@ -55,7 +55,7 @@ func run() error {
 		return nil
 	}
 
-	raw, err := os.ReadFile(filepath.Join(psdk, "schema.json"))
+	raw, err := os.ReadFile(filepath.Join(psdk, "schema.json")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return err
 	}

@@ -2486,7 +2486,7 @@ type translationFailure struct {
 }
 
 func loadAliases(path string) (map[string]string, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, err
 	}
@@ -2995,7 +2995,7 @@ func resolvePortingSDK(repoRoot string) (string, error) {
 		filepath.Join(repoRoot, "porting-sdk"),
 	)
 	for _, c := range candidates {
-		if _, err := os.Stat(filepath.Join(c, "python_signatures.json")); err == nil {
+		if _, err := os.Stat(filepath.Join(c, "python_signatures.json")); err == nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 			return c, nil
 		}
 	}
@@ -3012,7 +3012,7 @@ func loadSigOracle(repoRoot string) (sigOracleMembers, error) {
 		return nil, err
 	}
 	path := filepath.Join(psdk, "python_signatures.json")
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, fmt.Errorf("read oracle %s: %w", path, err)
 	}
@@ -3899,7 +3899,7 @@ var optionConstructs = map[string]string{
 //
 // Key is `<canonical class>.<derived name>` so a rename is scoped to the class
 // whose contract it belongs to.
-var optionParamRenames = map[string]string{
+var optionParamRenames = map[string]string{ //nolint:gosec // G101: these are PARAMETER NAMES in a rename table (…AgentBase.token_expiry), not credentials — gosec matches on "token" in the key.
 	// WithTokenExpiry(secs int) -> a.tokenExpirySecs (agent.go:192).
 	"signalwire.core.agent_base.AgentBase.token_expiry": "token_expiry_secs",
 	// WithSigningKeyTrustProxy(trust bool) -> a.signingKeyTrustProxy, the
@@ -4269,7 +4269,7 @@ func optionParamType(fn *goFunc, aliases map[string]string, ctx string) string {
 // ---------------------------------------------------------------------------
 
 func goSHA(repo string) string {
-	cmd := exec.Command("git", "-C", repo, "rev-parse", "HEAD")
+	cmd := exec.Command("git", "-C", repo, "rev-parse", "HEAD") //nolint:gosec // G204: fixed program "git" with a repo path the developer already controls.
 	o, err := cmd.Output()
 	if err != nil {
 		return "N/A"
@@ -4330,7 +4330,7 @@ func run() error {
 			filepath.Join(repoRoot, "porting-sdk", "type_aliases.yaml"),
 		)
 		for _, c := range candidates {
-			if _, err := os.Stat(c); err == nil {
+			if _, err := os.Stat(c); err == nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 				aliasFile = c
 				break
 			}
@@ -4392,7 +4392,7 @@ func run() error {
 		_, err := os.Stdout.Write(rendered)
 		return err
 	}
-	return os.WriteFile(*outputPath, rendered, 0o644)
+	return os.WriteFile(*outputPath, rendered, 0o644) //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 }
 
 func main() {

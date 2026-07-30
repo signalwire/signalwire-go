@@ -560,7 +560,7 @@ func resolvePortingSDK(repoRoot string) (string, error) {
 		filepath.Join(repoRoot, "porting-sdk"),
 	)
 	for _, c := range candidates {
-		if _, err := os.Stat(filepath.Join(c, "python_surface.json")); err == nil {
+		if _, err := os.Stat(filepath.Join(c, "python_surface.json")); err == nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 			return c, nil
 		}
 	}
@@ -578,7 +578,7 @@ func loadOracleMembers(repoRoot string) (oracleModuleMembers, error) {
 		return nil, err
 	}
 	path := filepath.Join(psdk, "python_surface.json")
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, fmt.Errorf("read oracle %s: %w", path, err)
 	}
@@ -1252,7 +1252,7 @@ func isCompositionReturn(ret string) bool {
 // other than the receiver) AND returns an SDK class per isCompositionReturn.
 func enrichCompositionAttributes(snapshot *surface, repoRoot string) error {
 	sigPath := filepath.Join(repoRoot, "port_signatures.json")
-	raw, err := os.ReadFile(sigPath)
+	raw, err := os.ReadFile(sigPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -1320,7 +1320,7 @@ func enrichCompositionAttributes(snapshot *surface, repoRoot string) error {
 
 // goSHA returns the signalwire-go repo HEAD SHA (or "N/A").
 func goSHA(repoRoot string) string {
-	cmd := exec.Command("git", "-C", repoRoot, "rev-parse", "HEAD")
+	cmd := exec.Command("git", "-C", repoRoot, "rev-parse", "HEAD") //nolint:gosec // G204: fixed program "git" with a repo path the developer already controls.
 	out, err := cmd.Output()
 	if err != nil {
 		return "N/A"
@@ -1462,13 +1462,13 @@ func run() error {
 		_, err := os.Stdout.Write(rendered)
 		return err
 	}
-	if err := os.WriteFile(*outputPath, rendered, 0o644); err != nil {
+	if err := os.WriteFile(*outputPath, rendered, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 		return err
 	}
-	if err := os.WriteFile(*goOutputPath, goRendered, 0o644); err != nil {
+	if err := os.WriteFile(*goOutputPath, goRendered, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 		return err
 	}
-	return os.WriteFile(*additionsOutput, addRendered, 0o644)
+	return os.WriteFile(*additionsOutput, addRendered, 0o644) //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 }
 
 func stripGen(b []byte) string {

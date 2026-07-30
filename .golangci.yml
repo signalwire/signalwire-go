@@ -133,20 +133,33 @@ linters:
     # heuristic — it STILL excludes; `disable` is the real opt-in.)
     generated: disable
     rules:
-      # gosec on TEST files: hardcoded test credentials (G101), and the
-      # subprocess / file-inclusion / file-perm patterns in test + mock
-      # harnesses (G204/G304/G306/G705) are test-only and not production attack
-      # surface. Scoped here rather than scattering ~40 //nolint across tests.
+      # gosec on TEST files, NARROWED to the five codes the rationale actually
+      # justifies: hardcoded test credentials (G101) and the subprocess /
+      # file-inclusion / file-perm patterns in test + mock harnesses
+      # (G204/G304/G306/G705). Each is a construct a test legitimately performs
+      # — fixture credentials, spawning a mock server, reading a testdata path,
+      # writing a temp file — and none is production attack surface.
+      #
+      # The `text:` filter is load-bearing. Without it this rule disabled the
+      # WHOLE gosec linter over every _test.go, which silently also dropped
+      # G104 unhandled errors, G107 SSRF, G401/G501 weak crypto and the rest —
+      # real checks, off by accident rather than by decision. Everything not
+      # named here stays red in tests, exactly as it is in shipped code.
       - path: _test\.go
         linters:
           - gosec
-      # gosec on DEV/CODEGEN tooling and internal mock harnesses — not shipped,
-      # not production attack surface. `cmd/*`: signature/surface enumerators,
-      # swaig-test CLI, emit-skills, route-registry. `internal/*`: top-level
-      # internal/surface (the doc-symbol mapping tables that trip G101 on
-      # method-name strings) AND pkg/{relay,rest}/internal/mocktest (test mock
-      # servers — those internal dirs contain only the mocktest harness).
-      - path: (^|/)(cmd|internal)/
+        text: "G101|G204|G304|G306|G705"
+      # gosec on the INTERNAL mock harnesses only. `internal/surface` holds the
+      # doc-symbol mapping tables that trip G101 on method-name strings, and
+      # pkg/{relay,rest}/internal/mocktest is the test mock-server harness —
+      # neither is production attack surface.
+      #
+      # `cmd/` is deliberately NOT excluded: cmd/swaig-test is a SHIPPED CLI
+      # tool, so it is held to the same bar as the library. The dev/codegen
+      # binaries under cmd/ are linted too; where one genuinely needs to read a
+      # variable path or spawn a subprocess, that carries a per-line
+      # //nolint:gosec with its G-code and reason.
+      - path: (^|/)internal/
         linters:
           - gosec
       # gosec G101 on GENERATED REST wire-type enum constants: the emitter names

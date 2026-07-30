@@ -160,7 +160,7 @@ func rootOf(doc *yaml.Node) *yaml.Node {
 // ---------------------------------------------------------------------------
 
 func loadBases(psdk string) (map[string]*baseSpec, error) {
-	raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "x-sdk-bases.yaml"))
+	raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "x-sdk-bases.yaml")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func loadBases(psdk string) (map[string]*baseSpec, error) {
 		out[name] = bs
 	}
 	// FabricResource is defined in the per-namespace fabric bases file; load it too.
-	fabRaw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "fabric", "x-sdk-bases.yaml"))
+	fabRaw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "fabric", "x-sdk-bases.yaml")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err == nil {
 		var fdoc yaml.Node
 		if err := yaml.Unmarshal(fabRaw, &fdoc); err == nil {
@@ -246,7 +246,7 @@ func loadBases(psdk string) (map[string]*baseSpec, error) {
 
 func loadSpec(psdk, ns string) (*specDoc, error) {
 	rawPath := filepath.Join(psdk, "rest-apis", ns, "openapi.yaml")
-	raw, err := os.ReadFile(rawPath)
+	raw, err := os.ReadFile(rawPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, err
 	}
@@ -2214,7 +2214,7 @@ func discoverSpecs(psdk string) (resourceSpecs, typesOnlySpecs []string, err err
 		}
 		ns := e.Name()
 		specPath := filepath.Join(restAPIs, ns, "openapi.yaml")
-		raw, rerr := os.ReadFile(specPath)
+		raw, rerr := os.ReadFile(specPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 		if rerr != nil {
 			continue // dir without an openapi.yaml is not a spec
 		}
@@ -2308,7 +2308,7 @@ func findRepoRoot(start string) (string, error) {
 
 func resolvePortingSDK(repoRoot string) (string, error) {
 	if p := os.Getenv("PORTING_SDK"); p != "" {
-		if _, err := os.Stat(filepath.Join(p, "rest-apis")); err == nil {
+		if _, err := os.Stat(filepath.Join(p, "rest-apis")); err == nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 			return p, nil
 		}
 	}
@@ -2484,10 +2484,10 @@ func run() error {
 			}
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(o.path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(o.path), 0o755); err != nil { //nolint:gosec // G301: output dir for generated SOURCE CODE committed to the repo; 0750 would break every consumer.
 			return err
 		}
-		if err := os.WriteFile(o.path, formatted, 0o644); err != nil {
+		if err := os.WriteFile(o.path, formatted, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 			return err
 		}
 		fmt.Printf("generated %s\n", o.path)

@@ -730,7 +730,7 @@ func doExampleListTools(cfg config) error {
 		return err
 	}
 
-	cmd := exec.Command("go", "run", target)
+	cmd := exec.Command("go", "run", target) //nolint:gosec // G204: fixed program "go run"; target is the agent file the user explicitly asked this CLI to run.
 	cmd.Env = append(os.Environ(), "SWAIG_LIST_TOOLS=1")
 	if cfg.verbose {
 		fmt.Fprintf(os.Stderr, ">> exec: go run %s (SWAIG_LIST_TOOLS=1)\n", target)

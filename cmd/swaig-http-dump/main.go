@@ -75,7 +75,7 @@ const tokenParam = "__token"
 // tokenCallID is the session id token fixtures mint/validate against
 // (swaig_http_corpus.TOKEN_CALL_ID). It rides in the BODY, because that is where
 // the reference reads it (core/swml_service.py :877) — NOT the query string.
-const tokenCallID = "corpus-call-7fc2"
+const tokenCallID = "corpus-call-7fc2" //nolint:gosec // G101: a fixture CALL ID, not a credential — gosec matches on "token" appearing in the name.
 
 // forgedToken mirrors swaig_http_corpus.FORGED_TOKEN verbatim: base64url of
 // "<call_id>.<function>.<far-future-expiry>.<nonce>.<garbage-signature>". It
