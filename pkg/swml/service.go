@@ -596,6 +596,50 @@ func (s *Service) TLSEnabled() bool {
 	return s.sslEnabled || s.sslEnabledExplicit
 }
 
+// TLSRequestedWithoutMaterial reports the SECURITY-CRITICAL misconfiguration:
+// the ssl_enabled switch is ON but the cert/key resolution came back empty, so
+// TLSEnabled() is false and Serve()'s TLS branch is skipped.
+//
+// Before this check, that combination bound a working PLAIN-HTTP listener with
+// no error and no warning — an operator who wrote `SWML_SSL_ENABLED=true` (or
+// `security.ssl_enabled: true` in a config file) but no cert/key path got
+// CLEARTEXT and was never told. That is the "silently-plain-HTTP" failure mode:
+// the SDK cannot supply what was asked for, and the only safe response is to
+// refuse to serve rather than to serve it unencrypted.
+//
+// A missing/unreadable cert FILE is already loud (ListenAndServeTLS returns the
+// open error); this covers the case where there is no path to open at all.
+// Exported because pkg/agent's AgentBase builds its own http.Server off this
+// Service's resolved settings and must make the identical refusal — an agent is
+// the far more common way an operator actually exposes a listener.
+func (s *Service) TLSRequestedWithoutMaterial() bool {
+	if !s.sslEnabled && !s.sslEnabledExplicit {
+		return false // TLS was never requested; plain HTTP is the intent
+	}
+	return s.tlsCertFile == "" || s.tlsKeyFile == ""
+}
+
+// TLSMisconfigurationError returns the error Serve() refuses with when
+// TLSRequestedWithoutMaterial reports true, and nil otherwise. Shared so
+// swml.Service.Serve and agent.AgentBase.buildAndServe refuse identically.
+func (s *Service) TLSMisconfigurationError() error {
+	if !s.TLSRequestedWithoutMaterial() {
+		return nil
+	}
+	missing := "ssl_cert_path (SWML_SSL_CERT_PATH)"
+	switch {
+	case s.tlsCertFile == "" && s.tlsKeyFile == "":
+		missing = "ssl_cert_path (SWML_SSL_CERT_PATH) and ssl_key_path (SWML_SSL_KEY_PATH)"
+	case s.tlsCertFile != "":
+		missing = "ssl_key_path (SWML_SSL_KEY_PATH)"
+	}
+	return fmt.Errorf(
+		"refusing to serve: ssl_enabled is on but %s is not set — "+
+			"serving plain HTTP here would silently give you cleartext when you "+
+			"asked for TLS; set the cert and key, or turn ssl_enabled off to serve "+
+			"HTTP deliberately", missing)
+}
+
 // TLSCertPath returns the configured TLS certificate path ("" when unset) —
 // the resolved value a caller can read back after construction, whether it came
 // from WithTLS, the config file, or SWML_SSL_CERT_PATH.
@@ -1572,6 +1616,13 @@ func (s *Service) maybeEmitListToolsSentinels() bool {
 func (s *Service) Serve() error {
 	if s.maybeEmitListToolsSentinels() {
 		os.Exit(0)
+	}
+
+	// SECURITY: refuse to serve rather than silently downgrade to cleartext.
+	// See TLSRequestedWithoutMaterial — this must run BEFORE any listener is
+	// bound, so a misconfigured service never accepts a single plaintext byte.
+	if err := s.TLSMisconfigurationError(); err != nil {
+		return err
 	}
 
 	mux := s.buildMux()

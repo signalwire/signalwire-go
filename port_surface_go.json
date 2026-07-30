@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 1b5ee3605c24bf9092c7ffa65a52e6e4dbbd16ee",
+  "generated_from": "signalwire-go (go-native) @ 37a0ea73331c4d54e5fa5cf4b1262945649721ae",
   "modules": {
     "agent": {
       "classes": {
@@ -1902,6 +1902,8 @@
           "TLSCertPath",
           "TLSEnabled",
           "TLSKeyPath",
+          "TLSMisconfigurationError",
+          "TLSRequestedWithoutMaterial",
           "Tap",
           "Transfer",
           "Unset",

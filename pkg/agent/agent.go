@@ -3453,6 +3453,16 @@ func (a *AgentBase) AsRouter() http.Handler {
 // SetupGracefulShutdown was called before Run, it honours the shutdown channel
 // and performs a graceful server shutdown on signal receipt.
 func (a *AgentBase) buildAndServe() error {
+	// SECURITY: refuse to serve rather than silently downgrade to cleartext.
+	// The agent builds its own http.Server off the Service's RESOLVED ssl
+	// settings, so it does NOT inherit swml.Service.Serve's refusal and must
+	// make the identical one — before any listener is bound, so a misconfigured
+	// agent never accepts a single plaintext byte. See
+	// swml.Service.TLSRequestedWithoutMaterial.
+	if err := a.Service.TLSMisconfigurationError(); err != nil {
+		return err
+	}
+
 	mux := a.buildMux()
 
 	user, pass, source := a.Service.GetBasicAuthCredentialsWithSource()
