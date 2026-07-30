@@ -6,10 +6,16 @@
 // run without a JSON Schema validator dependency; the surface mirrors
 // the Python reference so cross-language audits see identical methods.
 //
-// The Go SDK does not currently bundle a JSON Schema validator, so
-// full_validation_available is gated on whether one has been wired
-// in (see schemaValidator field).  Lightweight mode is the default
-// and matches Python's behaviour when jsonschema_rs is unavailable.
+// The Go SDK DOES bundle a full JSON Schema validator — Draft 2020-12 via
+// santhosh-tekuri/jsonschema/v6, compiled in initFullValidator (the analogue of
+// Python's jsonschema-rs Draft202012Validator). So const/enum VALUES are
+// enforced, not just required properties. full_validation_available reports
+// whether that compile succeeded; on failure the lightweight required-property
+// check remains the fallback, matching Python's behaviour when jsonschema-rs is
+// unavailable.
+//
+// Because values ARE enforced, `x-sdk-widen` is load-bearing here: see
+// applySDKWiden.
 //
 // SWML_SKIP_SCHEMA_VALIDATION=1 disables validation regardless of the
 // constructor argument, mirroring Python's env-var override.
@@ -21,6 +27,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -212,7 +219,13 @@ func (s *SchemaUtils) initFullValidator() {
 	// The compiler wants a json-decoded document that uses json.Number for all
 	// numbers (jsonschema.UnmarshalJSON sets UseNumber); re-encode our schema
 	// map and decode it back through that helper so number semantics match.
-	raw, err := json.Marshal(s.schema)
+	//
+	// applySDKWiden runs on the way in: fields marked x-sdk-widen have their
+	// const/enum union dropped BEFORE compilation, so the validator never
+	// enforces a value set the platform does not enforce. s.schema itself is
+	// untouched — callers reading it (GetVerbParameters, codegen, docs) still
+	// see the documented values.
+	raw, err := json.Marshal(applySDKWiden(s.schema))
 	if err != nil {
 		return
 	}
@@ -238,6 +251,102 @@ func (s *SchemaUtils) initFullValidator() {
 	}
 	s.fullValidator = compiled
 	s.schemaValidator = compiled
+}
+
+// widenStrippedKeys are the keywords removed from a property whose value set is
+// advisory — the ones that pin it to a fixed set of VALUES. The base `type` is
+// deliberately NOT among them: widening drops the value constraint, never the
+// type, or the marker would be a blanket opt-out of validation.
+//
+// Mirrors ruby's WIDEN_STRIPPED_KEYS (lib/signalwire/utils/schema_utils.rb).
+var widenStrippedKeys = []string{"anyOf", "oneOf", "enum", "const", "x-sdk-enum-literal"}
+
+// applySDKWiden returns a copy of a decoded JSON-Schema node with the value
+// constraints stripped from every subschema marked `x-sdk-widen`.
+//
+// Some schema properties mark their enum/const union as ADVISORY: the listed
+// values are the documented ones, but the platform accepts any value of the
+// same base scalar type. `$defs/Hangup.reason` is the standing example — its
+// `hangup|busy|decline` union is a hint, and any string is valid on the wire.
+//
+// Validating against the raw union makes this SDK reject documents the platform
+// ACCEPTS. That is the failure direction nobody audits for: a validator gets
+// checked for being too loose, and this one was too strict — Service.Hangup
+// returned a SchemaValidationError for a real platform reason such as
+// "no_answer". So the constraint is dropped on marked properties before the
+// validator is compiled.
+//
+// The input is never mutated: this returns a widened COPY, so the schema map
+// callers read (GetVerbParameters, codegen, docs) still shows the documented
+// values. Widening is strictly opt-in per field — an unmarked union stays
+// enforced.
+func applySDKWiden(node any) any {
+	switch n := node.(type) {
+	case []any:
+		out := make([]any, len(n))
+		for i, item := range n {
+			out[i] = applySDKWiden(item)
+		}
+		return out
+	case map[string]any:
+		if w, ok := n["x-sdk-widen"].(bool); ok && w {
+			return widenedScalar(n)
+		}
+		out := make(map[string]any, len(n))
+		for k, v := range n {
+			out[k] = applySDKWiden(v)
+		}
+		return out
+	default:
+		return node
+	}
+}
+
+// widenedScalar is a widened copy of one marked property: the keywords that pin
+// it to a fixed value set are removed, leaving the base scalar type — recovered
+// from the const-union's branches when the property declares no `type` of its
+// own. When the branches do not agree on a type the property is left
+// unconstrained rather than guessing.
+func widenedScalar(node map[string]any) map[string]any {
+	out := make(map[string]any, len(node))
+	for k, v := range node {
+		if slices.Contains(widenStrippedKeys, k) {
+			continue
+		}
+		out[k] = applySDKWiden(v)
+	}
+	if _, hasType := out["type"]; !hasType {
+		if base := widenBaseType(node); base != "" {
+			out["type"] = base
+		}
+	}
+	return out
+}
+
+// widenBaseType is the base scalar type a const-union widens to: whatever
+// `type` its branches agree on, or "" when they do not agree.
+func widenBaseType(node map[string]any) string {
+	branches, _ := node["anyOf"].([]any)
+	if branches == nil {
+		branches, _ = node["oneOf"].([]any)
+	}
+	base := ""
+	for _, b := range branches {
+		bm, ok := b.(map[string]any)
+		if !ok {
+			continue
+		}
+		t, ok := bm["type"].(string)
+		if !ok {
+			continue
+		}
+		if base == "" {
+			base = t
+		} else if base != t {
+			return ""
+		}
+	}
+	return base
 }
 
 // FullValidationAvailable reports whether the full JSON Schema
