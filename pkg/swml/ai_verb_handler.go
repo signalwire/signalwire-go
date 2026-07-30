@@ -39,6 +39,7 @@ func (h *AIVerbHandler) GetVerbName() string {
 //   - "prompt" key must be present and must be a map[string]any.
 //   - "prompt" must contain exactly one of "text" or "pom" (mutually exclusive).
 //   - If "prompt.contexts" is present it must be a map[string]any.
+//   - If "post_prompt" is present it must be a map[string]any.
 //   - If "SWAIG" is present it must be a map[string]any.
 //
 // Returns (true, nil) when the config is valid; (false, errors) when it is not.
@@ -79,6 +80,21 @@ func (h *AIVerbHandler) ValidateConfig(config map[string]any) (bool, []string) {
 	if rawContexts, exists := prompt["contexts"]; exists {
 		if _, ok := rawContexts.(map[string]any); !ok {
 			errors = append(errors, "'prompt.contexts' must be an object")
+		}
+	}
+
+	// post_prompt is OPTIONAL, but when present the engine holds it to the SAME
+	// contract as prompt: mod_openai/app_config.c checks
+	// !cJSON_IsObject(assistant_prompt) at :3193 and !cJSON_IsObject(post_prompt)
+	// at :3219 -- same structure, same fatal:true calling.error, and both error
+	// payloads read "must be an object with 'text' or 'pom' field". Validating one
+	// and not the other reported configs VALID that abort the call on the wire;
+	// BuildConfig has always emitted the right shape, so the hole was only
+	// reachable by a caller hand-assembling a config -- which is exactly how this
+	// port shipped a bare-string post_prompt from Service.AI (fixed in 51934ec).
+	if rawPostPrompt, exists := config["post_prompt"]; exists {
+		if _, ok := rawPostPrompt.(map[string]any); !ok {
+			errors = append(errors, "'post_prompt' must be an object")
 		}
 	}
 

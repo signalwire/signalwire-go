@@ -974,7 +974,7 @@ func (s *Service) AI(opts AIOptions) error {
 	// The object form is not merely canonical — it is a WIRE requirement: the
 	// AI engine (mod_openai app_config.c) checks !cJSON_IsObject(prompt) and
 	// aborts the call on a bare value. The same contract applies to
-	// post_prompt below, which the handler validates for neither.
+	// post_prompt below, which ValidateConfig now also checks.
 	if opts.PromptText != nil {
 		cfg["prompt"] = map[string]any{"text": *opts.PromptText}
 	} else if len(opts.PromptPOM) > 0 {

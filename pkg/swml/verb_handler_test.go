@@ -130,6 +130,101 @@ func TestAIVerbHandlerValidateConfigTextAndPOMMutuallyExclusive(t *testing.T) {
 	}
 }
 
+// --- AIVerbHandler.ValidateConfig: post_prompt shape ---
+//
+// THE ENGINE TREATS post_prompt AND prompt IDENTICALLY. mod_openai/app_config.c
+// checks !cJSON_IsObject(assistant_prompt) at :3193 and !cJSON_IsObject(post_prompt)
+// at :3219 — same structure, same fatal:true calling.error, 26 lines apart. Both
+// error payloads read "must be an object with 'text' or 'pom' field"; post_prompt's
+// names the array case explicitly.
+//
+// ValidateConfig checked prompt four ways and post_prompt zero times, so a
+// hand-assembled config the engine kills the call over was reported valid. That
+// blind spot is not theoretical — it is exactly how this port shipped a bare-string
+// post_prompt from Service.AI (fixed in 51934ec): the validator faithfully mirrored
+// the reference's, so nothing flagged it. Rippled from signalwire-python 4371610.
+
+func TestAIVerbHandlerValidateConfigRejectsBareStringPostPrompt(t *testing.T) {
+	h := NewAIVerbHandler()
+	valid, errs := h.ValidateConfig(map[string]any{
+		"prompt":      map[string]any{"text": "You are helpful."},
+		"post_prompt": "Summarize.",
+	})
+	if valid {
+		t.Fatalf("ValidateConfig should reject a bare-string post_prompt")
+	}
+	if !containsString(errs, "'post_prompt' must be an object") {
+		t.Fatalf("expected \"'post_prompt' must be an object\", got: %v", errs)
+	}
+}
+
+func TestAIVerbHandlerValidateConfigRejectsArrayPostPrompt(t *testing.T) {
+	// The array case the engine names by name in its error payload.
+	h := NewAIVerbHandler()
+	valid, errs := h.ValidateConfig(map[string]any{
+		"prompt":      map[string]any{"text": "hi"},
+		"post_prompt": []any{map[string]any{"say": "x"}},
+	})
+	if valid {
+		t.Fatalf("ValidateConfig should reject an array post_prompt")
+	}
+	if !containsString(errs, "'post_prompt' must be an object") {
+		t.Fatalf("expected \"'post_prompt' must be an object\", got: %v", errs)
+	}
+}
+
+func TestAIVerbHandlerValidateConfigAcceptsObjectPostPrompt(t *testing.T) {
+	// The shape BuildConfig emits must stay valid.
+	h := NewAIVerbHandler()
+	valid, errs := h.ValidateConfig(map[string]any{
+		"prompt":      map[string]any{"text": "hi"},
+		"post_prompt": map[string]any{"text": "Summarize."},
+	})
+	if !valid {
+		t.Fatalf("ValidateConfig should accept an object post_prompt, got errors: %v", errs)
+	}
+}
+
+func TestAIVerbHandlerValidateConfigAcceptsAbsentPostPrompt(t *testing.T) {
+	// post_prompt is OPTIONAL — absence must not become an error.
+	h := NewAIVerbHandler()
+	valid, errs := h.ValidateConfig(map[string]any{
+		"prompt": map[string]any{"text": "hi"},
+	})
+	if !valid {
+		t.Fatalf("ValidateConfig should accept an absent post_prompt, got errors: %v", errs)
+	}
+}
+
+func TestAIVerbHandlerBuildConfigPostPromptValidates(t *testing.T) {
+	// The builder and the validator must agree — round-trip guard.
+	h := NewAIVerbHandler()
+	cfg, err := h.BuildConfig(map[string]any{
+		"prompt_text": "You are helpful.",
+		"post_prompt": "Summarize.",
+	})
+	if err != nil {
+		t.Fatalf("BuildConfig returned error: %v", err)
+	}
+	pp, ok := cfg["post_prompt"].(map[string]any)
+	if !ok || pp["text"] != "Summarize." {
+		t.Fatalf("BuildConfig should wrap post_prompt as {\"text\": ...}, got: %#v", cfg["post_prompt"])
+	}
+	valid, errs := h.ValidateConfig(cfg)
+	if !valid {
+		t.Fatalf("BuildConfig output must validate, got errors: %v", errs)
+	}
+}
+
+func containsString(haystack []string, needle string) bool {
+	for _, s := range haystack {
+		if s == needle {
+			return true
+		}
+	}
+	return false
+}
+
 // --- AIVerbHandler.BuildConfig ---
 
 func TestAIVerbHandlerBuildConfigAlwaysEmitsParams(t *testing.T) {
