@@ -152,8 +152,11 @@ func main() {
 		}
 	} else {
 		fmt.Println("  Transcription started")
-		client.Calling.TranscribeStop(context.Background(), callID, namespaces.CallingNamespaceTranscribeStopParams{})
-		fmt.Println("  Transcription stopped")
+		if _, err := client.Calling.TranscribeStop(context.Background(), callID, namespaces.CallingNamespaceTranscribeStopParams{}); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Println("  Transcription stopped")
+		}
 	}
 
 	// 7. Denoise the call
@@ -166,8 +169,11 @@ func main() {
 		}
 	} else {
 		fmt.Println("  Denoise started")
-		client.Calling.DenoiseStop(context.Background(), callID, namespaces.CallingNamespaceDenoiseStopParams{})
-		fmt.Println("  Denoise stopped")
+		if _, err := client.Calling.DenoiseStop(context.Background(), callID, namespaces.CallingNamespaceDenoiseStopParams{}); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Println("  Denoise stopped")
+		}
 	}
 
 	// 8. End the call

@@ -187,12 +187,24 @@ func main() {
 
 	// 10. Clean up
 	fmt.Println("\nCleaning up...")
-	client.Fabric.RelayApplications.Delete(context.Background(), relayID)
-	fmt.Printf("  Deleted relay application %s\n", relayID)
-	client.Fabric.CXMLWebhooks.Delete(context.Background(), cxmlWHID)
-	fmt.Printf("  Deleted cXML webhook %s\n", cxmlWHID)
-	client.Fabric.CXMLScripts.Delete(context.Background(), cxmlID)
-	fmt.Printf("  Deleted cXML script %s\n", cxmlID)
-	client.Fabric.ConferenceRooms.Delete(context.Background(), roomID)
-	fmt.Printf("  Deleted conference room %s\n", roomID)
+	if _, err := client.Fabric.RelayApplications.Delete(context.Background(), relayID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted relay application %s\n", relayID)
+	}
+	if _, err := client.Fabric.CXMLWebhooks.Delete(context.Background(), cxmlWHID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted cXML webhook %s\n", cxmlWHID)
+	}
+	if _, err := client.Fabric.CXMLScripts.Delete(context.Background(), cxmlID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted cXML script %s\n", cxmlID)
+	}
+	if _, err := client.Fabric.ConferenceRooms.Delete(context.Background(), roomID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted conference room %s\n", roomID)
+	}
 }

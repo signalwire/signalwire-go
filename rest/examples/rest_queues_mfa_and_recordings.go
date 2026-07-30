@@ -186,7 +186,10 @@ func main() {
 	// 10. Clean up
 	fmt.Println("\nCleaning up...")
 	if queueID != "" {
-		client.Queues.Delete(context.Background(), queueID)
-		fmt.Printf("  Deleted queue %s\n", queueID)
+		if _, err := client.Queues.Delete(context.Background(), queueID); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Printf("  Deleted queue %s\n", queueID)
+		}
 	}
 }

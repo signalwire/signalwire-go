@@ -147,10 +147,19 @@ func main() {
 
 	// 9. Clean up
 	fmt.Println("\nCleaning up...")
-	client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), subID, epID)
-	fmt.Printf("  Deleted SIP endpoint %s\n", epID)
-	client.Fabric.Subscribers.Delete(context.Background(), subID)
-	fmt.Printf("  Deleted subscriber %s\n", subID)
-	client.Fabric.SIPGateways.Delete(context.Background(), gwID)
-	fmt.Printf("  Deleted SIP gateway %s\n", gwID)
+	if _, err := client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), subID, epID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted SIP endpoint %s\n", epID)
+	}
+	if _, err := client.Fabric.Subscribers.Delete(context.Background(), subID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted subscriber %s\n", subID)
+	}
+	if _, err := client.Fabric.SIPGateways.Delete(context.Background(), gwID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted SIP gateway %s\n", gwID)
+	}
 }

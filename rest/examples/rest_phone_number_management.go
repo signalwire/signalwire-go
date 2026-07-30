@@ -185,8 +185,11 @@ func main() {
 	// 11. Clean up
 	fmt.Println("\nCleaning up...")
 	if addrID != "" {
-		client.Addresses.Delete(context.Background(), addrID)
-		fmt.Printf("  Deleted address %s\n", addrID)
+		if _, err := client.Addresses.Delete(context.Background(), addrID); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Printf("  Deleted address %s\n", addrID)
+		}
 	}
 	if callerID != "" {
 		if _, err := client.VerifiedCallers.Delete(context.Background(), callerID); err != nil {
@@ -199,8 +202,11 @@ func main() {
 		}
 	}
 	if groupID != "" {
-		client.NumberGroups.Delete(context.Background(), groupID)
-		fmt.Printf("  Deleted number group %s\n", groupID)
+		if _, err := client.NumberGroups.Delete(context.Background(), groupID); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Printf("  Deleted number group %s\n", groupID)
+		}
 	}
 	if numID != "" {
 		if _, err := client.PhoneNumbers.Delete(context.Background(), numID); err != nil {

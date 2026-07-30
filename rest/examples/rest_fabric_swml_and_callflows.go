@@ -126,10 +126,19 @@ func main() {
 
 	// 8. Clean up
 	fmt.Println("\nCleaning up...")
-	client.Fabric.SWMLWebhooks.Delete(context.Background(), webhookID)
-	fmt.Printf("  Deleted webhook %s\n", webhookID)
-	client.Fabric.CallFlows.Delete(context.Background(), flowID)
-	fmt.Printf("  Deleted call flow %s\n", flowID)
-	client.Fabric.SWMLScripts.Delete(context.Background(), swmlID)
-	fmt.Printf("  Deleted SWML script %s\n", swmlID)
+	if _, err := client.Fabric.SWMLWebhooks.Delete(context.Background(), webhookID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted webhook %s\n", webhookID)
+	}
+	if _, err := client.Fabric.CallFlows.Delete(context.Background(), flowID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted call flow %s\n", flowID)
+	}
+	if _, err := client.Fabric.SWMLScripts.Delete(context.Background(), swmlID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted SWML script %s\n", swmlID)
+	}
 }

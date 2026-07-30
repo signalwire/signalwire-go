@@ -248,9 +248,15 @@ func main() {
 		}
 	}
 	if confID != "" {
-		client.Video.Conferences.Delete(context.Background(), confID)
-		fmt.Printf("  Deleted conference %s\n", confID)
+		if _, err := client.Video.Conferences.Delete(context.Background(), confID); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Printf("  Deleted conference %s\n", confID)
+		}
 	}
-	client.Video.Rooms.Delete(context.Background(), roomID)
-	fmt.Printf("  Deleted room %s\n", roomID)
+	if _, err := client.Video.Rooms.Delete(context.Background(), roomID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted room %s\n", roomID)
+	}
 }

@@ -9,9 +9,21 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
+
+// must stops the example on a verb error. Each svc.* call returns an error when
+// the verb is rejected (bad arguments, unknown verb); ignoring it would render a
+// document that is silently missing a step, which is the last thing a demo
+// should teach.
+func must(what string, err error) {
+	if err != nil {
+		fmt.Printf("%s failed: %v\n", what, err)
+		os.Exit(1)
+	}
+}
 
 func main() {
 	// Create a basic SWML service for an IVR menu
@@ -23,18 +35,18 @@ func main() {
 
 	// Build the SWML document: answer, greet, prompt, and route
 	maxDuration := 7200
-	svc.Answer(&maxDuration, nil)
+	must("answer", svc.Answer(&maxDuration, nil))
 
 	welcome := "say:Welcome to our service. Press 1 for sales, 2 for support, or 3 to leave a message."
-	svc.Play(swml.PlayOptions{URL: &welcome})
+	must("play", svc.Play(swml.PlayOptions{URL: &welcome}))
 
-	svc.Prompt(map[string]any{
+	must("prompt", svc.Prompt(map[string]any{
 		"play":        "say:Please make your selection now.",
 		"max_digits":  1,
 		"terminators": "#",
-	})
+	}))
 
-	svc.Switch(map[string]any{
+	must("switch", svc.Switch(map[string]any{
 		"variable": "prompt_digits",
 		"case": map[string]any{
 			"1": []any{
@@ -55,9 +67,9 @@ func main() {
 		"default": []any{
 			map[string]any{"play": map[string]any{"url": "say:Sorry, I did not understand your selection."}},
 		},
-	})
+	}))
 
-	svc.Hangup(nil)
+	must("hangup", svc.Hangup(nil))
 
 	// Print the rendered SWML document
 	pretty, err := svc.RenderPretty()

@@ -60,12 +60,16 @@ func main() {
 		}
 		if status == "error" || status == "failed" {
 			fmt.Printf("  Document processing failed: %s\n", status)
-			client.Datasphere.Documents.Delete(context.Background(), docID)
+			if _, err := client.Datasphere.Documents.Delete(context.Background(), docID); err != nil {
+				fmt.Printf("  cleanup failed: %v\n", err)
+			}
 			return
 		}
 		if i == 29 {
 			fmt.Println("  Timed out waiting for vectorization.")
-			client.Datasphere.Documents.Delete(context.Background(), docID)
+			if _, err := client.Datasphere.Documents.Delete(context.Background(), docID); err != nil {
+				fmt.Printf("  cleanup failed: %v\n", err)
+			}
 			return
 		}
 	}

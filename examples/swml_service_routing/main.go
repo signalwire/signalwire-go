@@ -10,9 +10,21 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/signalwire/signalwire-go/v3/pkg/swml"
 )
+
+// must stops the example on a verb error. Each svc.* call returns an error when
+// the verb is rejected (bad arguments, unknown verb); ignoring it would render a
+// document that is silently missing a step, which is the last thing a demo
+// should teach.
+func must(what string, err error) {
+	if err != nil {
+		fmt.Printf("%s failed: %v\n", what, err)
+		os.Exit(1)
+	}
+}
 
 func main() {
 	svc := swml.NewService(
@@ -22,10 +34,10 @@ func main() {
 	)
 
 	// Build the default (main) SWML document
-	svc.Answer(nil, nil)
+	must("answer", svc.Answer(nil, nil))
 	greeting := "say:Hello from the main service!"
-	svc.Play(swml.PlayOptions{URL: &greeting})
-	svc.Hangup(nil)
+	must("play", svc.Play(swml.PlayOptions{URL: &greeting}))
+	must("hangup", svc.Hangup(nil))
 
 	// Register a routing callback at /dispatch: inspect the body and redirect
 	// callers to a dedicated endpoint based on the "department" field.
