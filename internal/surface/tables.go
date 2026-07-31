@@ -1654,14 +1654,14 @@ type SkillContract struct {
 // subset — see signalwire-python/signalwire/skills/<n>/skill.py).
 //
 // The Methods lists are an UPPER BOUND, not the emitted set. BOTH enumerators
-// intersect them with their OWN reference oracle (surface: python_surface.json;
+// intersect them with their OWN reference inventory (surface: python_surface.json;
 // signature: python_signatures.json), so a member the reference stops exposing
 // stops being emitted on the next regen with no hand edit here. That is not a
 // nicety: the reference made SkillBase.get_prompt_sections() a final template
 // method delegating to a PROTECTED _get_prompt_sections() hook, dropping the
 // public member from 11 skills — and this hand list, trusted directly, emitted 11
 // phantom additions on the surface axis. Keep the lists as the "what could Go
-// possibly satisfy" bound and let the oracles decide what ships.
+// possibly satisfy" bound and let the reference inventories decide what ships.
 //
 // mcp_gateway is part of the Python reference surface
 // (signalwire.skills.mcp_gateway.skill.MCPGatewaySkill, a cross-port CLIENT skill);
