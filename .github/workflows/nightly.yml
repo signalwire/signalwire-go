@@ -125,8 +125,13 @@ jobs:
       # Install actionlint (native binary) so run-ci.sh's ACTIONLINT gate
       # (porting-sdk/scripts/actionlint_gate.py) finds it on PATH. The gate
       # fails LOUD if the binary is absent, so it MUST be declared here.
+      # VERSION PINNED in lockstep with scripts/_env.sh's ACTIONLINT_VERSION and
+      # test.yml — see the same step there for why `@latest` was a CI-only red.
       - name: Install actionlint
-        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          actionlint --version
+          actionlint --version | grep -qw '1\.7\.12' || { echo "FATAL: actionlint is not the pinned v1.7.12" >&2; exit 1; }
 
       - name: Set up Python (porting-sdk audit scripts + mock servers)
         uses: actions/setup-python@v6

@@ -71,8 +71,16 @@ jobs:
       # Install actionlint (native binary) so run-ci.sh's ACTIONLINT gate
       # (porting-sdk/scripts/actionlint_gate.py) finds it on PATH. The gate
       # fails LOUD if the binary is absent, so it MUST be declared here.
+      #
+      # VERSION PINNED, in lockstep with ACTIONLINT_VERSION in scripts/_env.sh —
+      # exactly how golangci-lint is pinned above. `@latest` resolved the newest
+      # release at CI time while local dev ran whatever it had, so a new actionlint
+      # (they add checks regularly) failed this gate on an UNCHANGED workflow file.
       - name: Install actionlint
-        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          actionlint --version
+          actionlint --version | grep -qw '1\.7\.12' || { echo "FATAL: actionlint is not the pinned v1.7.12" >&2; exit 1; }
 
       - name: Set up Python (porting-sdk audit scripts + mock servers)
         uses: actions/setup-python@v6

@@ -266,8 +266,12 @@ sched_gate COORDINATED-REFS desc="every coordinated-set checkout (porting-sdk + 
 sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override documented + canonical CA env names (SIGNALWIRE_REST_BASE_URL / SIGNALWIRE_REST_CA_FILE / SIGNALWIRE_RELAY_CA_FILE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/env_var_consistency.py" --port go --repo "$PORT_ROOT"
 
+# Routed through scripts/run-actionlint.sh (not the porting-sdk script directly) so
+# the PINNED actionlint is bootstrapped/version-checked first — same contract as
+# run-lint.sh + ensure_golangci. An unpinned actionlint changes this gate's verdict
+# with the calendar rather than with the workflow files.
 sched_gate ACTIONLINT desc="GitHub Actions workflow YAML is valid (incl. no step-level secrets.* in if:)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/actionlint_gate.py" --repo "$PORT_ROOT"
+    -- bash "$PORT_ROOT/scripts/run-actionlint.sh"
 
 sched_gate FMT defer=1 desc="gofmt via scripts/run-format.sh (local: auto-fix; CI: --check)" \
     -- bash "$PORT_ROOT/scripts/run-format.sh" ${CI:+--check}
