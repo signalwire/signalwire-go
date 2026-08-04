@@ -63,7 +63,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	src, err := payloadgen.EmitSwmlVerbs(raw, ov)
+	src, err := payloadgen.EmitSwmlVerbs(raw, ov, psdk)
 	if err != nil {
 		return err
 	}

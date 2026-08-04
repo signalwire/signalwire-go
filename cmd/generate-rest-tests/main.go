@@ -518,12 +518,25 @@ func requiredFields(schemas, node *yaml.Node) []string {
 }
 
 // resolveRef follows a $ref one level within components.schemas.
+//
+// SAME-DOCUMENT refs only. The last-segment lookup below DISCARDS any file part, so a
+// cross-file `other.yaml#/components/schemas/Foo` would either bind to a same-named
+// local schema or miss (mapChild -> nil, ending the loop and returning the unresolved
+// ref node) — both silent. rest-apis has zero refs with a file part (measured
+// 2026-08-04); the panic makes the day one appears loud. The verifying resolver to copy
+// is crossFileResolver in cmd/internal/payloadgen.
 func resolveRef(schemas, node *yaml.Node) *yaml.Node {
 	visited := map[string]bool{}
 	for node != nil {
 		ref := scalarChild(node, "$ref")
 		if ref == "" {
 			return node
+		}
+		if i := strings.IndexByte(ref, '#'); i > 0 {
+			panic(fmt.Sprintf("generate-rest-tests: cross-file $ref %q — this generator "+
+				"resolves same-document refs only. Give it a verifying cross-file resolver "+
+				"(see cmd/internal/payloadgen crossFileResolver) rather than letting the "+
+				"file part be discarded", ref))
 		}
 		leaf := ref
 		if i := strings.LastIndexByte(ref, '/'); i >= 0 {

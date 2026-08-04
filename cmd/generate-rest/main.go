@@ -1425,7 +1425,23 @@ func componentsSchemas(sd *specDoc) (*yaml.Node, error) {
 }
 
 // refLeaf returns the final component name of a "#/components/schemas/Foo" ref.
+//
+// SAME-DOCUMENT refs only. Taking the last path segment DISCARDS the file part, so a
+// cross-file `other.yaml#/components/schemas/Foo` would resolve to whatever local
+// schema happens to be named Foo — or, via resolveSchema's mapChild miss, to nil and
+// then silently back to the unresolved ref node. rest-apis carries 3420 refs and ZERO
+// with a file part (measured 2026-08-04), so this generator has no cross-file link to
+// resolve; the panic makes the day one appears a loud failure instead of a wrong type.
+// The verifying resolver to copy if that day comes is crossFileResolver in
+// cmd/internal/payloadgen, which the swaig-specs generator needs because post-prompt
+// .yaml does carry three of them.
 func refLeaf(ref string) string {
+	if i := strings.Index(ref, "#"); i > 0 {
+		panic(fmt.Sprintf("generate-rest: cross-file $ref %q — this generator resolves "+
+			"same-document refs only. Give it a verifying cross-file resolver (see "+
+			"cmd/internal/payloadgen crossFileResolver) rather than letting the file part "+
+			"be discarded", ref))
+	}
 	if i := strings.LastIndex(ref, "/"); i >= 0 {
 		return ref[i+1:]
 	}
