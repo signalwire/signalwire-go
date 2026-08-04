@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ e8275884587311e1aae8a9ed4a942f73972e25c1 (go/ast walker)",
+  "generated_from": "signalwire-go @ 0bd5886d86066d2e565b44c00ff6fb90df720788 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -4949,6 +4949,15 @@
         },
         "PostPromptSwaigLogEntry": {
           "methods": {
+            "delayed_post_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.core.swaig_actions_generated.SwaigResponse"
+            },
             "post_data": {
               "params": [
                 {
@@ -4957,6 +4966,15 @@
                 }
               ],
               "returns": "class:signalwire.core.swaig_request_generated.SwaigRequest"
+            },
+            "post_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.core.swaig_actions_generated.SwaigResponse"
             }
           }
         },
@@ -5658,6 +5676,63 @@
                 }
               ],
               "returns": "bool"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.swaig_actions_generated": {
+      "classes": {
+        "SwaigAction": {
+          "methods": {
+            "context_switch": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003cstring,class:signalwire.core.swaig_actions_generated.ContextSwitchAction\u003e"
+            },
+            "hold": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003cint,string,class:signalwire.core.swaig_actions_generated.HoldAction\u003e"
+            },
+            "playback_bg": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003cstring,class:signalwire.core.swaig_actions_generated.PlaybackBgAction\u003e"
+            },
+            "transfer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003cstring,class:signalwire.core.swaig_actions_generated.TransferAction\u003e"
+            }
+          }
+        },
+        "SwaigResponse": {
+          "methods": {
+            "action": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union\u003cclass:signalwire.core.swaig_actions_generated.SwaigAction,list\u003cclass:signalwire.core.swaig_actions_generated.SwaigAction\u003e\u003e"
             }
           }
         }

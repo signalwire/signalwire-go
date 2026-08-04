@@ -248,6 +248,8 @@ func canonModule(kind string) string {
 		return "signalwire.core.post_prompt_generated"
 	case "swaig_request":
 		return "signalwire.core.swaig_request_generated"
+	case "swaig_actions":
+		return "signalwire.core.swaig_actions_generated"
 	default:
 		return "signalwire.core.swaig_request_generated"
 	}
@@ -660,6 +662,14 @@ func EmitPostPrompt(raw []byte) (string, error) {
 		refModule: map[string]string{
 			"SwaigRequest":  canonModule("swaig_request"),
 			"SwaigArgument": canonModule("swaig_request"),
+			// post-prompt.yaml cross-file-refs swaig-response.yaml for
+			// post_response / delayed_post_response. The reference generator
+			// hosts those schemas in swaig_actions_generated (CROSS_FILE_MODULES
+			// in generate_python_rest_types.py), so the canonical type must name
+			// THAT module, not the emitting one — otherwise the audit tag claims
+			// post_prompt_generated declares SwaigResponse, which it does not.
+			"SwaigResponse": canonModule("swaig_actions"),
+			"SwaigAction":   canonModule("swaig_actions"),
 		},
 	}
 	var decls []string
@@ -689,7 +699,7 @@ func EmitSwaigActions(raw []byte) (string, error) {
 	if sa == nil || len(sa.Properties) == 0 {
 		return "", fmt.Errorf("swaig-response.yaml: missing SwaigAction.properties")
 	}
-	g := &gen{module: canonModule("swaig_request"), refModule: map[string]string{}}
+	g := &gen{module: canonModule("swaig_actions"), refModule: map[string]string{}}
 	isObj := func(s *schema) bool {
 		if s == nil {
 			return false
@@ -707,6 +717,13 @@ func EmitSwaigActions(raw []byte) (string, error) {
 		verbSchema[p.name] = p.sch
 	}
 	var decls []string
+	// envProps carries one entry per action verb for the SwaigAction ENVELOPE. Every
+	// inline-object branch that lifted to a named <Verb>Action struct is replaced by
+	// a local $ref to it, so the ENVELOPE field's canonical type NAMES the lifted
+	// class — `union<string,class:….ContextSwitchAction>` — exactly as the reference
+	// records it. Leaving the inline object in place would widen the audit type to
+	// `dict<string,any>` and read as a missing field to the DRIFT gate.
+	envProps := make([]propEntry, 0, len(verbs))
 	for _, verb := range verbs {
 		s := verbSchema[verb]
 		var branches []*schema
@@ -716,8 +733,11 @@ func EmitSwaigActions(raw []byte) (string, error) {
 			branches = []*schema{s}
 		}
 		objIdx := 0
+		// envBranches mirrors `branches` with each lifted object swapped for its $ref.
+		envBranches := make([]*schema, 0, len(branches))
 		for _, b := range branches {
 			if !isObj(b) {
+				envBranches = append(envBranches, b)
 				continue
 			}
 			objIdx++
@@ -726,13 +746,49 @@ func EmitSwaigActions(raw []byte) (string, error) {
 				name += fmt.Sprintf("%d", objIdx)
 			}
 			decls = append(decls, g.declaration(name, &schema{Type: "object", Properties: b.Properties}))
+			envBranches = append(envBranches, &schema{Ref: "#/components/schemas/" + name})
 		}
+		switch {
+		case objIdx == 0:
+			// Nothing lifted (scalar / array / open object): the spec schema already
+			// canonicalizes correctly.
+			envProps = append(envProps, propEntry{name: verb, sch: s})
+		case len(s.OneOf) == 0:
+			// A single object-with-properties: one named struct, referenced directly.
+			envProps = append(envProps, propEntry{
+				name: verb,
+				sch:  &schema{Ref: envBranches[0].Ref, Description: s.Description},
+			})
+		default:
+			// A union: keep it a union, with the object branches now naming their
+			// lifted structs. goType still widens the Go field to `any` (Go has no
+			// sum type) while the canonical tag stays precise.
+			envProps = append(envProps, propEntry{
+				name: verb,
+				sch:  &schema{OneOf: envBranches, Description: s.Description},
+			})
+		}
+	}
+	// The response ENVELOPE types. SwaigAction is the action OBJECT (one or more
+	// action keys set at once — the engine dispatches every recognized key), and
+	// SwaigResponse is the {response, action, post_process} body a handler returns.
+	// They live here, alongside the per-action value types, because this is the
+	// module that owns swaig-response.yaml — which is what makes
+	// `swaig-response.yaml#/components/schemas/SwaigResponse` resolvable from
+	// post-prompt.yaml (see EmitPostPrompt's refModule).
+	decls = append(decls, g.declaration("SwaigAction", &schema{
+		Type: "object", Properties: envProps, Description: sa.Description,
+	}))
+	if sr := schemas["SwaigResponse"]; sr != nil {
+		decls = append(decls, g.declaration("SwaigResponse", sr))
+	} else {
+		return "", fmt.Errorf("swaig-response.yaml: missing SwaigResponse")
 	}
 	body := strings.Join(decls, "\n")
 	src := fmt.Sprintf(genHeaderTmpl,
 		"generate-swaig-payloads",
 		"porting-sdk/swaig-specs/swaig-response.yaml",
-		"The typed SWAIG response-action CONFIG types (one <Verb>Action per object-\n// shaped action value). The ergonomic builder methods live on FunctionResult.",
+		"The typed SWAIG response-action CONFIG types (one <Verb>Action per object-\n// shaped action value) plus the SwaigAction/SwaigResponse envelope. The\n// ergonomic builder methods live on FunctionResult.",
 		"swaig") + "\n" + body
 	return src, nil
 }

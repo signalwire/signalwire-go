@@ -9,11 +9,11 @@
 package swaig
 
 type SwaigArgument struct {
-	// Parsed JSON objects parsed from the model's argument string (always an array, possibly empty).
-	Parsed []any `json:"parsed,omitempty" gen:"list<any>"`
-	// Raw The original argument string.
+	// Parsed JSON values scraped from the model's tool-call argument string (always an array, possibly empty). Each element is an object or an array -- never a scalar.
+	Parsed []any `json:"parsed,omitempty" gen:"list<union<dict<string,any>,list<any>>>"`
+	// Raw the model's tool-call argument string, verbatim.
 	Raw string `json:"raw,omitempty" gen:"string"`
-	// Substituted The argument string with JSON blocks replaced.
+	// Substituted the model's tool-call argument string with the extracted JSON removed. Absent when the last extraction left no leading text (swaig.c:637-639).
 	Substituted string `json:"substituted,omitempty" gen:"string"`
 }
 
@@ -31,7 +31,7 @@ type SwaigRequest struct {
 	// CallId Always present.
 	CallId string `json:"call_id,omitempty" gen:"string"`
 	// CallLog only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`).
-	CallLog []any `json:"call_log,omitempty" gen:"list<any>"`
+	CallLog []map[string]any `json:"call_log,omitempty" gen:"list<dict<string,any>>"`
 	// CallerIdName only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`.
 	CallerIdName string `json:"caller_id_name,omitempty" gen:"string"`
 	// CallerIdNum only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`.
@@ -67,7 +67,7 @@ type SwaigRequest struct {
 	// ProjectId only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`).
 	ProjectId string `json:"project_id,omitempty" gen:"string"`
 	// RawCallLog only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`).
-	RawCallLog []any `json:"raw_call_log,omitempty" gen:"list<any>"`
+	RawCallLog []map[string]any `json:"raw_call_log,omitempty" gen:"list<dict<string,any>>"`
 	// SpaceId only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`).
 	SpaceId string `json:"space_id,omitempty" gen:"string"`
 	// Version Always present.
