@@ -10,14 +10,12 @@
 package swaig
 
 type ContextSwitchAction struct {
-	Consolidate bool `json:"consolidate,omitempty" gen:"bool"`
-	FullReset   bool `json:"full_reset,omitempty" gen:"bool"`
-	// SystemPom read by the engine; no predicate types it here
+	Consolidate  bool           `json:"consolidate,omitempty" gen:"bool"`
+	FullReset    bool           `json:"full_reset,omitempty" gen:"bool"`
 	SystemPom    map[string]any `json:"system_pom,omitempty" gen:"dict<string,any>"`
 	SystemPrompt string         `json:"system_prompt,omitempty" gen:"string"`
-	// UserPom read by the engine; no predicate types it here
-	UserPom    map[string]any `json:"user_pom,omitempty" gen:"dict<string,any>"`
-	UserPrompt string         `json:"user_prompt,omitempty" gen:"string"`
+	UserPom      map[string]any `json:"user_pom,omitempty" gen:"dict<string,any>"`
+	UserPrompt   string         `json:"user_prompt,omitempty" gen:"string"`
 }
 
 type HoldAction struct {
@@ -45,7 +43,7 @@ type SwaigAction struct {
 	// ChangeStep Switch to a named **step** (or `"next"`)
 	ChangeStep string `json:"change_step,omitempty" gen:"string"`
 	// ClearDynamicHints Clear both dynamic hint lists and restart speech detection
-	ClearDynamicHints map[string]any `json:"clear_dynamic_hints,omitempty" gen:"dict<string,any>"`
+	ClearDynamicHints any `json:"clear_dynamic_hints,omitempty" gen:"union<bool,string>"`
 	// ContextSwitch Replace the system prompt / start a new conversation context. Object form: `{system_prompt, user_prompt, system_pom, user_pom, consolidate, full_reset}`. `system_pom`/`user_pom` render to prompt text; prompts are expanded against prompt vars + post_data; `consolidate:true` summarizes first
 	ContextSwitch any `json:"context_switch,omitempty" gen:"union<string,class:signalwire.core.swaig_actions_generated.ContextSwitchAction>"`
 	// EndOfSpeechTimeout Set end-of-speech detection timeout (must be >0)
@@ -55,7 +53,7 @@ type SwaigAction struct {
 	// FunctionsOnSpeakerTimeout Set whether functions may fire on speaker timeout
 	FunctionsOnSpeakerTimeout bool `json:"functions_on_speaker_timeout,omitempty" gen:"bool"`
 	// Hangup Set `offhook = 0` (hang up). Note: a graceful "say goodbye" hangup is the **built-in `hangup` function**, not this action
-	Hangup map[string]any `json:"hangup,omitempty" gen:"dict<string,any>"`
+	Hangup any `json:"hangup,omitempty" gen:"union<bool,string>"`
 	// Hold Put the call on hold for N seconds. Accepts a number, a time string (`"5m"`, `"1:30"` via `parse_time`), or `{timeout}`. Default 300s; values <0 or >900 clamp to 300
 	Hold any `json:"hold,omitempty" gen:"union<int,string,class:signalwire.core.swaig_actions_generated.HoldAction>"`
 	// PlaybackBg Play an audio file in the background. `{wait:true}` makes the agent wait for it. Replaces any currently-open background file
@@ -73,9 +71,9 @@ type SwaigAction struct {
 	// SpeechEventTimeout Set speech event timeout (must be >0)
 	SpeechEventTimeout int `json:"speech_event_timeout,omitempty" gen:"int"`
 	// Stop Stop the AI agent immediately (interrupt + `running = 0`)
-	Stop map[string]any `json:"stop,omitempty" gen:"dict<string,any>"`
+	Stop any `json:"stop,omitempty" gen:"union<bool,string>"`
 	// StopPlaybackBg Stop/close the background audio file
-	StopPlaybackBg map[string]any `json:"stop_playback_bg,omitempty" gen:"dict<string,any>"`
+	StopPlaybackBg any `json:"stop_playback_bg,omitempty" gen:"optional<union<bool,string,int,dict<string,any>,list<any>>>"`
 	// ToggleFunctions Enable/disable functions. `active` via `check_active`: `-1` default/toggle, `0` off, `1+` use-count. **Only affects functions sharing the calling function's `meta_data_token`** (`actions.c:419-420`)
 	ToggleFunctions []map[string]any `json:"toggle_functions,omitempty" gen:"list<dict<string,any>>"`
 	// Transfer Transfer the call to `dest`. `summarize:true` sets `transfer_summary`. Sets `openai_transfer_check` var, interrupts, stops the loop. Ignored if already interrupted

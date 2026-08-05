@@ -139,7 +139,7 @@ type PostPromptSystemLogEntry struct {
 	Role      string `json:"role,omitempty" gen:"string"`
 	Content   string `json:"content,omitempty" gen:"string"`
 	Timestamp int    `json:"timestamp,omitempty" gen:"int"`
-	// Action closed set of 27 values, from two producers: `ai_conversation_system_log` (7); `tl_make_entry` (21). Derived from the call sites, not hand-listed.
+	// Action closed set of 28 values, from two producers: `ai_conversation_system_log` (8); `tl_make_entry` (21). Derived from the call sites, not hand-listed.
 	Action      string `json:"action,omitempty" gen:"string"`
 	Lang        string `json:"lang,omitempty" gen:"string"`
 	Tokens      int    `json:"tokens,omitempty" gen:"int"`
