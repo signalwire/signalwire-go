@@ -76,11 +76,21 @@ jobs:
       # exactly how golangci-lint is pinned above. `@latest` resolved the newest
       # release at CI time while local dev ran whatever it had, so a new actionlint
       # (they add checks regularly) failed this gate on an UNCHANGED workflow file.
+      #
+      # The read-back NORMALIZES before comparing, exactly as ensure_actionlint()
+      # in scripts/_env.sh does. `actionlint --version` prints a v-prefixed
+      # "v1.7.12" when built from source by `go install` but a bare "1.7.12" from a
+      # release archive/brew, and it prints two more lines after it (one naming the
+      # Go toolchain, e.g. "built with go1.25.0 compiler"). A `grep -qw '1\.7\.12'`
+      # over that output REJECTS the correctly-pinned binary: -w demands a
+      # non-word character before the match and the preceding char is the `v`.
+      # That is what reddened this job on d40bd40 with the RIGHT version installed.
       - name: Install actionlint
         run: |
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           actionlint --version
-          actionlint --version | grep -qw '1\.7\.12' || { echo "FATAL: actionlint is not the pinned v1.7.12" >&2; exit 1; }
+          have=$(actionlint --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          [ "$have" = "1.7.12" ] || { echo "FATAL: actionlint is '${have:-unknown}', not the pinned v1.7.12" >&2; exit 1; }
 
       - name: Set up Python (porting-sdk audit scripts + mock servers)
         uses: actions/setup-python@v6
