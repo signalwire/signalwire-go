@@ -480,10 +480,27 @@ type goStructFacts struct {
 // FIELDS. Without special handling the drift gate can't SEE them and reports
 // every field the Python/TS reference records as `missing-port`. So, SCOPED to
 // the generated-payload files only (by filename), we emit each struct's exported
-// FIELDS as zero-arg members — matching the reference `_is_sdk_class_type` rule:
-// only a CLASS-typed field (a `$ref` to another generated payload struct, a list
-// of one, or a union carrying one) is part of the cross-port surface; a
-// primitive/plain-dict field is Python-internal scaffolding the reference skips.
+// FIELDS as zero-arg members — EVERY exported wire field, whatever its type.
+//
+// This used to filter to CLASS-typed fields only (a `$ref` to another generated
+// payload struct, a list of one, or a union carrying one), on the premise that a
+// primitive-typed field was Python-internal scaffolding the reference skipped.
+// That premise was true only of a DEFECTIVE reference: porting-sdk's oracle
+// enumerated each payload TypedDict's class-typed fields and dropped the
+// primitive ones, so `ai_name: str` never reached it. porting-sdk e432177
+// ("record EVERY TypedDict field, not only class-typed ones") corrected that,
+// and the corrected oracle carries the primitives.
+//
+// Measured across the two oracle revisions, for `AIParams`:
+//
+//	reference members   pre-e432177: 60    post-e432177: 87
+//	go source json keys (swml_verbs_generated.go)          87
+//	port_signatures.json under the old filter              60
+//
+// The 60 was not a coincidence — the port was reproducing the reference's bug
+// exactly. Every one of these fields IS declared by the port and IS a wire key;
+// filtering them lost real surface. A generated-payload struct declares no
+// scaffolding: each field is a wire key, so there is nothing here to skip.
 //
 // Each generated field carries a `gen:"<canonical-audit-type>"` struct tag (Go
 // has no union type, so a `union<int,class:SWMLVar>` field is `any` at runtime
@@ -536,12 +553,6 @@ var genTagRe = regexp.MustCompile(`gen:"([^"]*)"`)
 // TypedDict field (its member name IS the wire key).
 var jsonTagRe = regexp.MustCompile(`json:"([^",]*)`)
 
-// isGenClassType applies the reference `_is_sdk_class_type` rule to a canonical
-// type string: emit the field only when it carries a class ref.
-func isGenClassType(canon string) bool {
-	return strings.Contains(canon, "class:")
-}
-
 func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, *genPayloadFacts, error) {
 	structs := map[string]*goStructFacts{}
 	funcs := map[string]*goFunc{}
@@ -567,7 +578,7 @@ func walk(root string) (map[string]*goStructFacts, map[string]*goFunc, *genPaylo
 }
 
 // collectGenPayload walks a generated-payload file's structs and records each
-// exported, class-typed field as a member (keyed by wire name).
+// exported field as a member (keyed by wire name), whatever its type.
 func collectGenPayload(file *ast.File, module string, payloads *genPayloadFacts) {
 	for _, decl := range file.Decls {
 		gd, ok := decl.(*ast.GenDecl)
@@ -594,11 +605,6 @@ func collectGenPayload(file *ast.File, module string, payloads *genPayloadFacts)
 					continue
 				}
 				canon := gm[1]
-				// Only class-typed fields are part of the cross-port surface
-				// (the reference _is_sdk_class_type rule).
-				if !isGenClassType(canon) {
-					continue
-				}
 				member := ""
 				if jm := jsonTagRe.FindStringSubmatch(tag); jm != nil {
 					member = jm[1]
