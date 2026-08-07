@@ -34,6 +34,8 @@ type TransferAction struct {
 
 // SwaigAction A response-action object. The keys below are the full vocabulary dispatched by actions.c::process_action; an action object sets one or more of them. Each key's source line is the engine dispatch site.
 type SwaigAction struct {
+	// SWML Execute a SWML document inline, or with sibling `transfer:true` transfer the call into it. Gated by `swaig_allow_swml`. **Transfer additionally requires `from_relay`** (`actions.c:142-145`); inline execution captures an optional `ai_response` SWML var back into the conversation
+	SWML any `json:"SWML,omitempty" gen:"union<string,dict<string,any>>"`
 	// AddDynamicHints Add ASR hints. Strings go to `dynamic_hints`; `{hint, ...}` objects go to `dynamic_hearing_hints` (and the `hint` value is also added to `dynamic_hints`). Restarts speech detection
 	AddDynamicHints []any `json:"add_dynamic_hints,omitempty" gen:"list<union<dict<string,any>,string>>"`
 	// BackToBackFunctions Allow consecutive function calls without a user turn. `true` = `1`, `"forever"` = `2`
@@ -49,9 +51,9 @@ type SwaigAction struct {
 	// EndOfSpeechTimeout Set end-of-speech detection timeout (must be >0)
 	EndOfSpeechTimeout int `json:"end_of_speech_timeout,omitempty" gen:"int"`
 	// ExtensiveData Enable extensive data in the function/conversation log
-	ExtensiveData bool `json:"extensive_data,omitempty" gen:"bool"`
+	ExtensiveData any `json:"extensive_data,omitempty" gen:"union<bool,string>"`
 	// FunctionsOnSpeakerTimeout Set whether functions may fire on speaker timeout
-	FunctionsOnSpeakerTimeout bool `json:"functions_on_speaker_timeout,omitempty" gen:"bool"`
+	FunctionsOnSpeakerTimeout any `json:"functions_on_speaker_timeout,omitempty" gen:"union<bool,string>"`
 	// Hangup Set `offhook = 0` (hang up). Note: a graceful "say goodbye" hangup is the **built-in `hangup` function**, not this action
 	Hangup any `json:"hangup,omitempty" gen:"union<bool,string>"`
 	// Hold Put the call on hold for N seconds. Accepts a number, a time string (`"5m"`, `"1:30"` via `parse_time`), or `{timeout}`. Default 300s; values <0 or >900 clamp to 300

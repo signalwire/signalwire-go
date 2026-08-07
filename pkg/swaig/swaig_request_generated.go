@@ -19,6 +19,10 @@ type SwaigArgument struct {
 
 // SwaigRequest Built in execute_user_function (actions.c:2012-2140). Open shape: conditional fields appear only when their precondition holds.
 type SwaigRequest struct {
+	// SWMLCall only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`).
+	SWMLCall map[string]any `json:"SWMLCall,omitempty" gen:"dict<string,any>"`
+	// SWMLVars only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`).
+	SWMLVars map[string]any `json:"SWMLVars,omitempty" gen:"dict<string,any>"`
 	// AiSessionId Always present.
 	AiSessionId string `json:"ai_session_id,omitempty" gen:"string"`
 	// AppName Always present.
