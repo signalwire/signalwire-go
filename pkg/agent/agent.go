@@ -934,6 +934,29 @@ func (a *AgentBase) GetContexts() map[string]any {
 	return m
 }
 
+// contextsSnapshot serialises the agent's ContextBuilder with a.mu NOT held.
+//
+// It takes the read guard only long enough to copy the builder POINTER out, then
+// releases it before calling ToMap(), because ToMap() -> Validate() reenters the
+// agent through cb.agent.ListToolNames() (contexts.go:1137 -> agent.go:2004).
+// Returns nil when no contexts are defined or serialisation fails, which is the
+// same "omit the key" outcome the inline code produced.
+//
+// Callers must invoke this BEFORE acquiring a.mu.
+func (a *AgentBase) contextsSnapshot() map[string]any {
+	a.mu.RLock()
+	cb := a.contextBuilder
+	a.mu.RUnlock()
+	if cb == nil {
+		return nil
+	}
+	m, err := cb.ToMap()
+	if err != nil {
+		return nil
+	}
+	return m
+}
+
 // ---------------------------------------------------------------------------
 // Tool methods
 // ---------------------------------------------------------------------------
@@ -3023,6 +3046,20 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 // session without a request body). Matches the reference's
 // “_render_swml(call_id=…)“.
 func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.Request, callID string) map[string]any {
+	// Serialise the contexts BEFORE taking a.mu. ContextBuilder.ToMap() calls
+	// Validate() (pkg/contexts/contexts.go:1227), which calls back into this
+	// agent via cb.agent.ListToolNames() (contexts.go:1137 -> agent.go:2004) —
+	// and ListToolNames takes a.mu.RLock(). sync.RWMutex is writer-preferring,
+	// so that recursive RLock parks as soon as any writer is queued, while the
+	// queued writer waits on the read guard this same goroutine holds: a
+	// three-way deadlock that only appears under concurrent load. Go's deadlock
+	// detector does not fire for it (it needs every goroutine asleep), so in
+	// production the render hangs silently.
+	//
+	// This is the snapshot-then-call shape GetContexts already uses on the
+	// identical call (agent.go:954-966).
+	ctxMap := a.contextsSnapshot()
+
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -3221,16 +3258,16 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 	// an agent's whole contexts/steps workflow was silently dropped on the wire.
 	// It shipped because the render path bypassed the schema entirely (see
 	// addVerb above).
-	if a.contextBuilder != nil {
-		ctxMap, err := a.contextBuilder.ToMap()
-		if err == nil && len(ctxMap) > 0 {
-			promptCfg, ok := aiConfig["prompt"].(map[string]any)
-			if !ok {
-				promptCfg = map[string]any{}
-				aiConfig["prompt"] = promptCfg
-			}
-			promptCfg["contexts"] = ctxMap
+	//
+	// ctxMap was serialised ABOVE, before a.mu was taken — see the comment at
+	// contextsSnapshot's call site for why ToMap() must not run under the lock.
+	if len(ctxMap) > 0 {
+		promptCfg, ok := aiConfig["prompt"].(map[string]any)
+		if !ok {
+			promptCfg = map[string]any{}
+			aiConfig["prompt"] = promptCfg
 		}
+		promptCfg["contexts"] = ctxMap
 	}
 
 	// Prompt LLM params

@@ -50,16 +50,45 @@ func (sm *SkillManager) SetAgent(a SkillAgent) {
 // When a skill with the same instance key is already loaded, the behavior
 // depends on SupportsMultipleInstances():
 //   - false (default): returns (false, error) — duplicate is an error.
-//   - true: returns (true, "") — a duplicate instance warns and is accepted.
+//   - true: returns (true, "") — duplicate instance is silently accepted,
+//     matching Python's SkillManager.load_skill() warning-and-continue behavior.
+//
+// No caller-supplied method is invoked while sm.mu is held. Every method on
+// SkillBase is caller-supplied (SkillBase is a public interface, skill_base.go:37),
+// and sm.mu is a non-reentrant sync.RWMutex, so any of them that calls back into
+// the manager — LoadSkill, UnloadSkill, HasSkill, GetSkill, ListLoadedSkills —
+// would self-deadlock on a lock its own caller still holds. The live case is a
+// skill that loads a SUB-SKILL from its Setup(): AgentBase.AddSkill
+// (pkg/agent/agent.go:2662) calls LoadSkill, so `skill.Setup() -> agent.AddSkill
+// -> LoadSkill` hangs. Go's deadlock detector does not fire for it (it needs
+// every goroutine asleep), so in production it hangs silently.
+//
+// Reentrant loads are ALLOWED, not rejected. The reference does not serialise
+// this at all — signalwire-python's SkillManager.load_skill takes no lock, doing
+// setup() (skill_manager.py:166) and then loaded_skills[key] = ...
+// (skill_manager.py:189) unsynchronised — so "register and set up atomically" is
+// not part of the contract and a sentinel that rejected a nested load would
+// invent a failure mode no other port has. The lock's job here is only to keep
+// the loadedSkills MAP consistent.
+//
+// Moving Setup() out does open a check-then-act window on the duplicate key, so
+// the key is re-checked under the lock before registering (see below). That
+// makes concurrent duplicate loads lose the race cleanly instead of silently
+// overwriting a registered skill.
 func (sm *SkillManager) LoadSkill(skill SkillBase) (bool, string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
+	// Caller-supplied, so read outside the lock.
 	key := skill.GetInstanceKey()
+	multi := skill.SupportsMultipleInstances()
+	requiredEnv := skill.RequiredEnvVars()
 
-	// Check if already loaded
-	if _, exists := sm.loadedSkills[key]; exists {
-		if skill.SupportsMultipleInstances() {
+	duplicate := func() bool {
+		sm.mu.RLock()
+		defer sm.mu.RUnlock()
+		_, exists := sm.loadedSkills[key]
+		return exists
+	}()
+	if duplicate {
+		if multi {
 			// Multi-instance skill: duplicate instance key is acceptable.
 			// Python warns and returns True, "". Mirror that here.
 			return true, ""
@@ -68,7 +97,7 @@ func (sm *SkillManager) LoadSkill(skill SkillBase) (bool, string) {
 	}
 
 	// Validate required environment variables
-	for _, envVar := range skill.RequiredEnvVars() {
+	for _, envVar := range requiredEnv {
 		if os.Getenv(envVar) == "" {
 			return false, fmt.Sprintf("missing required environment variable: %s", envVar)
 		}
@@ -77,31 +106,54 @@ func (sm *SkillManager) LoadSkill(skill SkillBase) (bool, string) {
 	// Hand the skill its agent BEFORE Setup, so Setup can already configure the
 	// agent — the reference assigns self.agent in SkillBase.__init__, i.e. before
 	// any setup work runs.
-	if sm.agent != nil {
-		skill.SetAgent(sm.agent)
+	agent := sm.Agent()
+	if agent != nil {
+		skill.SetAgent(agent)
 	}
 
-	// Call Setup
+	// Call Setup with NO lock held: it may load sub-skills.
 	if !skill.Setup() {
 		return false, fmt.Sprintf("skill '%s' setup failed", skill.Name())
 	}
 
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	// Re-check under the write lock: another goroutine may have registered this
+	// key while Setup() ran, and so may Setup() itself via a sub-skill load.
+	if _, exists := sm.loadedSkills[key]; exists {
+		if multi {
+			return true, ""
+		}
+		return false, fmt.Sprintf("skill '%s' is already loaded and does not support multiple instances", key)
+	}
 	sm.loadedSkills[key] = skill
 	return true, ""
 }
 
 // UnloadSkill removes a skill by its instance key. Returns true if found and removed.
+//
+// Cleanup() is caller-supplied and is invoked with the lock RELEASED, for the
+// same reason as Setup() in LoadSkill: a Cleanup() that touches the manager
+// would otherwise self-deadlock on the non-reentrant sm.mu. The entry is removed
+// from the map BEFORE Cleanup() runs, so a reentrant HasSkill/GetSkill during
+// cleanup sees the skill as already gone (it is being torn down) and the removal
+// cannot be lost if Cleanup() panics.
 func (sm *SkillManager) UnloadSkill(key string) bool {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	skill, exists := sm.loadedSkills[key]
+	skill, exists := func() (SkillBase, bool) {
+		sm.mu.Lock()
+		defer sm.mu.Unlock()
+		s, ok := sm.loadedSkills[key]
+		if !ok {
+			return nil, false
+		}
+		delete(sm.loadedSkills, key)
+		return s, true
+	}()
 	if !exists {
 		return false
 	}
 
 	skill.Cleanup()
-	delete(sm.loadedSkills, key)
 	return true
 }
 
