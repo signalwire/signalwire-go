@@ -452,10 +452,15 @@ func (s *SchemaUtils) ValidateVerb(verbName string, verbConfig map[string]any) V
 }
 
 // verbTopLevelPropertyNames resolves the set of KNOWN top-level property names
-// for a verb's config object, following a single $ref (e.g. AI -> AIObject).
-// Returns (nil, false) when the verb's config schema is not a closed
-// object-with-properties — i.e. there is no enumerable known-key set, so no
-// shallow check applies.
+// for a verb's config object, following a single $ref (e.g. AI -> AIObject) and
+// UNIONING the branches of an anyOf/oneOf union. Returns (nil, false) only when
+// there is genuinely no enumerable closed key-set, so no shallow check applies.
+// Mirrors python _verb_top_level_property_names.
+//
+// The per-verb schemaGapKeys are folded in HERE rather than inside closedKeySet:
+// they are a property of the VERB (which emitter writes which undeclared key),
+// not of any one schema node, and closedKeySet recurses over $ref/union branches
+// where no single verb name is in scope.
 func (s *SchemaUtils) verbTopLevelPropertyNames(verbName string) (map[string]struct{}, bool) {
 	v, ok := s.verbs[verbName]
 	if !ok {
@@ -469,20 +474,90 @@ func (s *SchemaUtils) verbTopLevelPropertyNames(verbName string) (map[string]str
 	if !ok {
 		return nil, false
 	}
-	// Follow a single $ref (AI -> AIObject) to the object that declares the
-	// verb config's own properties.
+	known, ok := s.closedKeySet(body, 0)
+	if !ok {
+		return nil, false
+	}
+	for _, k := range schemaGapKeys[verbName] {
+		known[k] = struct{}{}
+	}
+	return known, true
+}
+
+// maxSchemaResolveDepth bounds $ref / union following so a schema with a
+// self-referential $ref cannot spin the resolver. Eight levels is well past
+// anything the SWML schema needs (verb body -> $ref -> union branch -> $ref).
+const maxSchemaResolveDepth = 8
+
+// closedKeySet resolves ONE schema node to the set of top-level property names
+// it closes over, returning (nil, false) when the node has no such enumerable
+// closed key-set.
+//
+// Three node shapes are handled, and the union case is the one that matters:
+//
+//   - `$ref` — followed into $defs and resolved recursively (ai -> AIObject).
+//   - `anyOf` / `oneOf` — resolved BRANCH BY BRANCH and UNIONED. Without this the
+//     resolver used to bail on the first `type != "object"` test, because a union
+//     node carries no `type` of its own. That bail silently DISENGAGED the
+//     closed-key check: ValidateVerbTopLevelKeys got (nil, false) and reported
+//     Valid for any key whatsoever. Five verbs in the shipped schema are
+//     union-shaped — connect, play, send_sms, sleep, unset — so the check was
+//     doing nothing for all of them. A union's known-key set is the union of its
+//     object branches' keys: a config satisfying the union satisfies SOME branch,
+//     so a key belonging to no branch belongs to no valid document. Non-object
+//     branches (sleep's bare `integer`, SWMLVar) contribute no keys and are
+//     skipped — they constrain the config to not be an object at all, which is a
+//     different check than "which keys may an object config carry".
+//   - a plain closed object — its own `properties`.
+func (s *SchemaUtils) closedKeySet(body map[string]any, depth int) (map[string]struct{}, bool) {
+	if body == nil || depth > maxSchemaResolveDepth {
+		return nil, false
+	}
+
+	// Follow a $ref (ai -> AIObject) to the node that declares the properties.
 	if ref, ok := body["$ref"].(string); ok {
 		refName := ref
 		if i := strings.LastIndex(ref, "/"); i >= 0 {
 			refName = ref[i+1:]
 		}
 		defs, _ := s.schema["$defs"].(map[string]any)
-		if rd, ok := defs[refName].(map[string]any); ok {
-			body = rd
-		} else {
+		rd, ok := defs[refName].(map[string]any)
+		if !ok {
 			return nil, false
 		}
+		return s.closedKeySet(rd, depth+1)
 	}
+
+	// A union node: resolve every branch and union the ones that yield a set.
+	branches, _ := body["anyOf"].([]any)
+	if branches == nil {
+		branches, _ = body["oneOf"].([]any)
+	}
+	if branches != nil {
+		union := map[string]struct{}{}
+		found := false
+		for _, b := range branches {
+			bm, ok := b.(map[string]any)
+			if !ok {
+				continue
+			}
+			keys, ok := s.closedKeySet(bm, depth+1)
+			if !ok {
+				continue
+			}
+			found = true
+			for k := range keys {
+				union[k] = struct{}{}
+			}
+		}
+		if !found {
+			// No branch is a closed object (e.g. unset: string | array-of-string).
+			// There is no key-set to enforce; the deep validator owns this shape.
+			return nil, false
+		}
+		return union, true
+	}
+
 	if t, _ := body["type"].(string); t != "object" {
 		return nil, false
 	}
@@ -516,9 +591,6 @@ func (s *SchemaUtils) verbTopLevelPropertyNames(verbName string) (map[string]str
 	for k := range propMap {
 		known[k] = struct{}{}
 	}
-	for _, k := range schemaGapKeys[verbName] {
-		known[k] = struct{}{}
-	}
 	return known, true
 }
 
@@ -548,7 +620,9 @@ var schemaGapKeys = map[string][]string{
 // legitimate deep emissions such as the ai verb's empty prompt.pom, SWAIG
 // defaults, or functions[].web_hook_url/__token). Used for handler verbs (the
 // ai verb) whose deep shapes the handler owns. A no-op when validation is
-// disabled or when the verb has no enumerable closed key-set.
+// disabled or when the verb genuinely has no enumerable closed key-set (an open
+// object such as `set`, or a union with no object branch such as `unset`).
+// Mirrors python validate_verb_top_level_keys.
 func (s *SchemaUtils) ValidateVerbTopLevelKeys(verbName string, verbConfig map[string]any) ValidationResult {
 	if !s.validationEnabled {
 		return ValidationResult{Valid: true, Errors: []string{}}
