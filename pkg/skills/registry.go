@@ -151,13 +151,37 @@ func ListSkills() []string {
 // ListSkillsWithParams returns the complete parameter schema for all registered skills.
 // It instantiates each skill with nil params to obtain its GetParameterSchema output.
 // The returned map has skill names as keys and their parameter schemas as values.
+//
+// The registry lock is held only long enough to SNAPSHOT the name -> factory
+// pairs, and is released before any of them is invoked. Both `factory(nil)` and
+// `instance.GetParameterSchema()` are caller-supplied code (SkillBase is a
+// public interface any third party implements), and caller-supplied code must
+// never run under the registry lock:
+//   - a factory or schema method that calls back into the registry —
+//     RegisterSkill, GetSkillFactory, ListSkills — self-deadlocks, because
+//     registryMu is not reentrant and RegisterSkill needs the WRITE lock that
+//     the read lock held here can never be upgraded to; and
+//   - a slow factory would otherwise block every registry reader and writer
+//     process-wide for its whole duration.
 func ListSkillsWithParams() map[string]map[string]map[string]any {
-	registryMu.RLock()
-	defer registryMu.RUnlock()
-	result := make(map[string]map[string]map[string]any, len(registry))
-	for name, factory := range registry {
-		instance := factory(nil)
-		result[name] = instance.GetParameterSchema()
+	type entry struct {
+		name    string
+		factory func(params map[string]any) SkillBase
+	}
+	var snapshot []entry
+	func() {
+		registryMu.RLock()
+		defer registryMu.RUnlock()
+		snapshot = make([]entry, 0, len(registry))
+		for name, factory := range registry {
+			snapshot = append(snapshot, entry{name: name, factory: factory})
+		}
+	}()
+
+	result := make(map[string]map[string]map[string]any, len(snapshot))
+	for _, e := range snapshot {
+		instance := e.factory(nil)
+		result[e.name] = instance.GetParameterSchema()
 	}
 	return result
 }
