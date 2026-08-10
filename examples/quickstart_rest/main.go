@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: quickstart_rest
 //
@@ -26,16 +26,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	client.Fabric.AIAgents.Create(context.Background(), map[string]any{
+	if _, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{
 		"name":   "Support Bot",
 		"prompt": map[string]any{"text": "You are helpful."},
-	})
+	}); err != nil {
+		fmt.Printf("Create AI agent failed: %v\n", err)
+	}
 
-	client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
+	if _, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
 		To:   "+15551234567",
 		URL:  ptr("https://example.com/call-handler"),
-	})
+	}); err != nil {
+		fmt.Printf("Dial failed: %v\n", err)
+	}
 
 	results, _ := client.PhoneNumbers.Search(context.Background(), map[string]string{"areacode": "512"})
 	fmt.Println(results)

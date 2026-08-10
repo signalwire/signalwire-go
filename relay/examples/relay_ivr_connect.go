@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: IVR menu with DTMF collection, playback, and call connect.
 //
@@ -72,7 +72,9 @@ func main() {
 		resultEvent, err := collectAction.Wait(ctx)
 		if err != nil {
 			fmt.Printf("Collect failed: %v\n", err)
-			call.Hangup("")
+			if err := call.Hangup(""); err != nil {
+				fmt.Printf("hangup failed: %v\n", err)
+			}
 			return
 		}
 
@@ -96,21 +98,27 @@ func main() {
 			action := call.Play([]map[string]any{
 				tts("Thank you for your interest! A sales representative will be with you shortly."),
 			})
-			action.Wait(playCtx)
+			if _, err := action.Wait(playCtx); err != nil {
+				fmt.Printf("play did not finish: %v\n", err)
+			}
 
 		case resultType == "digit" && digits == "2":
 			// Support
 			action := call.Play([]map[string]any{
 				tts("Please hold while we connect you to our support team."),
 			})
-			action.Wait(playCtx)
+			if _, err := action.Wait(playCtx); err != nil {
+				fmt.Printf("play did not finish: %v\n", err)
+			}
 
 		case resultType == "digit" && digits == "0":
 			// Connect to live agent
 			action := call.Play([]map[string]any{
 				tts("Connecting you to an agent now. Please hold."),
 			})
-			action.Wait(playCtx)
+			if _, err := action.Wait(playCtx); err != nil {
+				fmt.Printf("play did not finish: %v\n", err)
+			}
 
 			fmt.Printf("Connecting to %s\n", agentNumber)
 
@@ -132,16 +140,18 @@ func main() {
 			)
 			if err != nil {
 				fmt.Printf("Connect failed: %v\n", err)
-				call.Hangup("")
+				if err := call.Hangup(""); err != nil {
+					fmt.Printf("hangup failed: %v\n", err)
+				}
 				return
 			}
 
 			// Stay on the call until the bridge ends
 			endCtx, endCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer endCancel()
-			call.WaitFor(endCtx, "calling.call.state", func(e *relay.RelayEvent) bool {
-				return e.GetString("call_state") == relay.CallStateEnded
-			})
+			if _, err := call.WaitForEnded(endCtx); err != nil {
+				fmt.Printf("did not observe call end: %v\n", err)
+			}
 			fmt.Printf("Connected call ended: %s\n", call.CallID())
 			return
 
@@ -150,10 +160,14 @@ func main() {
 			action := call.Play([]map[string]any{
 				tts("We didn't receive a valid selection."),
 			})
-			action.Wait(playCtx)
+			if _, err := action.Wait(playCtx); err != nil {
+				fmt.Printf("play did not finish: %v\n", err)
+			}
 		}
 
-		call.Hangup("")
+		if err := call.Hangup(""); err != nil {
+			fmt.Printf("hangup failed: %v\n", err)
+		}
 		fmt.Printf("Call ended: %s\n", call.CallID())
 	})
 

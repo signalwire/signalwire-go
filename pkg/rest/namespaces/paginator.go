@@ -19,7 +19,7 @@ import (
 
 // Paginator walks every page of a list endpoint, following the response's
 // links.next cursor. It is the value returned by CrudResource.Paginate and is
-// the Go-idiom equivalent of Python's ReadResource.paginate()'s PaginatedIterator
+// the Go-idiom form of the paginated iterator
 // (signalwire/rest/_base.py + _pagination.py): it extracts resp[dataKey] as the
 // page's items and follows resp["links"]["next"], carrying that URL's query
 // params into the next fetch until no next link remains.
@@ -58,7 +58,7 @@ func NewPaginator(ctx context.Context, client HTTPClient, path string, params ma
 // Next fetches the next page. It returns the page's items, hasMore (true when a
 // links.next cursor was present so a further Next will fetch more), and any
 // error. Once exhausted it returns (nil, false, nil) on every subsequent call —
-// the Go-idiom equivalent of Python's StopIteration.
+// the Go-idiom end-of-iteration signal.
 func (p *Paginator) Next() ([]map[string]any, bool, error) {
 	if p.done {
 		return nil, false, nil

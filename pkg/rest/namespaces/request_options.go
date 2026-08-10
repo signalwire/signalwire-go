@@ -12,8 +12,7 @@ import "context"
 // RequestOptions is the REST request-options envelope (plan 4.2): a single value
 // object controlling per-request transport behavior — timeout, an
 // idempotency-aware retry policy with exponential backoff, and cooperative
-// cancellation. It mirrors the Python reference
-// (signalwire.rest._request_options.RequestOptions).
+// cancellation.
 //
 // It lives in the namespaces package (not the parent rest package) so the
 // generated resource verbs can name it in their `opts ...*RequestOptions` tail
@@ -35,8 +34,7 @@ import "context"
 //     then the built-in default.
 //
 // Every field is a pointer so "unset" (nil) is distinguishable from a deliberate
-// zero value ("inherit" vs. "0 retries" / "0s timeout"). The Python reference
-// uses None for the same reason; Go uses nil pointers.
+// zero value ("inherit" vs. "0 retries" / "0s timeout").
 type RequestOptions struct {
 	// Timeout is the max wall-clock duration per attempt (in seconds; a float to
 	// match the reference's fractional-second timeouts). Built-in default 30.0s.

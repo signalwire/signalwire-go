@@ -43,6 +43,10 @@ func NewDataSphere(params map[string]any) skills.SkillBase {
 	}
 }
 
+// RequiredEnvVars returns SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN and
+// SIGNALWIRE_SPACE_NAME. It returns nil when the "space_name", "project_id" and
+// "token" params are ALL supplied inline — a partial set still requires the env
+// vars.
 func (s *DataSphereSkill) RequiredEnvVars() []string {
 	if s.Params != nil {
 		_, hasSpace := s.Params["space_name"]
@@ -55,13 +59,26 @@ func (s *DataSphereSkill) RequiredEnvVars() []string {
 	return []string{"SIGNALWIRE_PROJECT_ID", "SIGNALWIRE_API_TOKEN", "SIGNALWIRE_SPACE_NAME"}
 }
 
+// SupportsMultipleInstances returns true: one agent can search several
+// DataSphere documents, each instance under its own "tool_name".
 func (s *DataSphereSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "datasphere_<tool_name>", defaulting tool_name to
+// "search_knowledge".
 func (s *DataSphereSkill) GetInstanceKey() string {
 	toolName := s.GetParamString("tool_name", "search_knowledge")
 	return "datasphere_" + toolName
 }
 
+// Setup resolves credentials from params, falling back to SIGNALWIRE_SPACE_NAME,
+// SIGNALWIRE_PROJECT_ID and SIGNALWIRE_API_TOKEN, and returns false — aborting
+// the load — if the space, project, token, or "document_id" is empty. It then
+// reads the search tuning params: count (default 1), distance (default 3.0),
+// tool_name (default "search_knowledge"), and the optional tags, language,
+// pos_to_expand, max_synonyms (-1 meaning unset, so it is omitted from the
+// request) and no_results_message, whose %s is filled with the query. The
+// search endpoint is https://<space>.signalwire.com/api/datasphere/documents/search,
+// overridable in whole via DATASPHERE_BASE_URL so an audit fixture can stand in.
 func (s *DataSphereSkill) Setup() bool {
 	s.spaceName = s.GetParamString("space_name", os.Getenv("SIGNALWIRE_SPACE_NAME"))
 	s.projectID = s.GetParamString("project_id", os.Getenv("SIGNALWIRE_PROJECT_ID"))
@@ -121,6 +138,11 @@ func (s *DataSphereSkill) Setup() bool {
 	return true
 }
 
+// RegisterTools returns the single knowledge-search tool, taking one string
+// "query" argument. No parameter is marked required, matching the reference
+// (datasphere/skill.py:171). Execution is a local Go handler that POSTs to the
+// DataSphere search endpoint with HTTP basic auth (project ID as user, API
+// token as password) and a 30s timeout.
 func (s *DataSphereSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
@@ -221,6 +243,11 @@ func (s *DataSphereSkill) handleSearch(args map[string]any, _ map[string]any) *s
 	return swaig.NewFunctionResult(sb.String())
 }
 
+// GetGlobalData publishes datasphere_enabled, the configured document_id, and
+// the knowledge_provider name into the agent's global data, so the prompt and
+// downstream tools can see which document backs the search. Note document_id is
+// NOT instance-namespaced: with multiple DataSphere instances loaded, the last
+// one applied wins this key.
 func (s *DataSphereSkill) GetGlobalData() map[string]any {
 	return map[string]any{
 		"datasphere_enabled": true,
@@ -229,6 +256,9 @@ func (s *DataSphereSkill) GetGlobalData() map[string]any {
 	}
 }
 
+// GetPromptSections returns one POM section, naming the configured tool, that
+// tells the agent when to search, to summarize results, and to suggest
+// rephrasing when nothing is found.
 func (s *DataSphereSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{
@@ -244,6 +274,11 @@ func (s *DataSphereSkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetParameterSchema extends the common skill parameters with the DataSphere
+// configuration: the required space_name, project_id, token (hidden) and
+// document_id; and the optional count (1-10), distance (0.0-10.0), tags,
+// language, pos_to_expand (NOUN/VERB/ADJ/ADV), max_synonyms (1-10) and
+// no_results_message.
 func (s *DataSphereSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["space_name"] = map[string]any{"type": "string", "description": "SignalWire space name", "required": true}

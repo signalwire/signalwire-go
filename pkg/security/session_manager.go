@@ -51,9 +51,9 @@ func WithSecret(key []byte) Option {
 	}
 }
 
-// WithSecretKey injects the shared secret as a STRING — the reference's
-// `secret_key` parameter shape. Equivalent to WithSecret([]byte(key)), and the
-// form to use for cross-port/cross-language token interop.
+// WithSecretKey injects the shared secret as a STRING. Equivalent to
+// WithSecret([]byte(key)), and the form to use for cross-language token
+// interop, where the secret is exchanged as text.
 func WithSecretKey(key string) Option {
 	return func(sm *SessionManager) {
 		if key != "" {
@@ -71,8 +71,8 @@ func WithDebugMode(enabled bool) Option {
 }
 
 // NewSessionManager creates a new SessionManager. If tokenExpirySecs is <= 0,
-// a default of 900 seconds (15 minutes) is used, matching the Python SDK
-// default. Provide functional options (e.g. WithSecret) to customise behaviour.
+// a default of 900 seconds (15 minutes) is used. Provide functional options
+// (e.g. WithSecret) to customise behaviour.
 func NewSessionManager(tokenExpirySecs int, opts ...Option) *SessionManager {
 	if tokenExpirySecs <= 0 {
 		tokenExpirySecs = 900
@@ -119,9 +119,8 @@ func (sm *SessionManager) SecretKey() string { return string(sm.secret) }
 func (sm *SessionManager) TokenExpirySecs() int { return sm.tokenExpirySecs }
 
 // CreateSession returns callID unchanged if it is non-empty; otherwise it
-// generates a cryptographically random URL-safe string (matches Python
-// secrets.token_urlsafe(16) — 16 bytes of entropy, base64url-encoded without
-// padding).
+// generates a cryptographically random URL-safe string: 16 bytes of entropy,
+// base64url-encoded without padding.
 func (sm *SessionManager) CreateSession(callID string) string {
 	if callID != "" {
 		return callID
@@ -147,7 +146,7 @@ func newNonce() string {
 // CreateToken generates an HMAC-SHA256 signed token for the given function
 // name and call ID. The token embeds an expiry timestamp and a per-mint nonce
 // and is returned as a base64url-encoded string. The DECODED token is the
-// 5-field dot-joined form matching the Python reference:
+// canonical 5-field dot-joined form:
 // {call_id}.{function_name}.{expiry}.{nonce}.{signature}, where the signed
 // message is {call_id}:{function_name}:{expiry}:{nonce}.
 func (sm *SessionManager) CreateToken(functionName string, callID string) string {

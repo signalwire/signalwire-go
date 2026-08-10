@@ -233,13 +233,13 @@ func TestServiceRoutingCallback(t *testing.T) {
 
 	// A routing callback returns a route string to redirect (307), or nil to
 	// continue to the default document, per (body, headers) -> *string.
-	svc.RegisterRoutingCallback("/custom", func(body map[string]any, headers map[string]any) *string {
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 		if dept, _ := body["department"].(string); dept == "sales" {
 			route := "/sales"
 			return &route
 		}
 		return nil
-	})
+	}, "/custom")
 
 	authHdr := map[string]string{"Authorization": "Basic dTpw"} // base64("u:p")
 
@@ -344,5 +344,124 @@ func TestFilterNilValuesNilInput(t *testing.T) {
 	}
 	if len(result) != 0 {
 		t.Error("should return empty map")
+	}
+}
+
+// TestServiceAIWireShape renders a real document through Service.AI and PARSES
+// the emitted JSON, asserting the actual keys and value KINDS of the ai verb —
+// not a substring match on the blob, which passes for any shape.
+//
+// The SWML `ai` verb requires BOTH `prompt` and `post_prompt` to be JSON
+// OBJECTS — {"text": ...} or {"pom": [...]}. A bare string is FATAL on the
+// wire, not merely non-canonical: the AI engine (mod_openai app_config.c)
+// checks `!cJSON_IsObject(assistant_prompt)` and `!cJSON_IsObject(post_prompt)`
+// and, on either, fires a `calling.error` with fatal:true and ABORTS THE CALL.
+// Service.AI previously emitted post_prompt as a bare string while the
+// neighbouring AIVerbHandler.BuildConfig — which owns the same rule — wrapped
+// it correctly; this test is what keeps the two paths from diverging again.
+func TestServiceAIWireShape(t *testing.T) {
+	svc := NewService(WithName("test"))
+	promptText := "You are a helpful assistant."
+	postPrompt := "Summarize the conversation."
+	postPromptURL := "https://example.com/post_prompt"
+	if err := svc.AI(AIOptions{
+		PromptText:    &promptText,
+		PostPrompt:    &postPrompt,
+		PostPromptURL: &postPromptURL,
+	}); err != nil {
+		t.Fatalf("AI: %v", err)
+	}
+
+	rendered, err := svc.GetDocument().Render()
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(rendered), &doc); err != nil {
+		t.Fatalf("emitted document is not valid JSON: %v\n%s", err, rendered)
+	}
+
+	sections, ok := doc["sections"].(map[string]any)
+	if !ok {
+		t.Fatalf("sections is %T, want object; doc=%s", doc["sections"], rendered)
+	}
+	main, ok := sections["main"].([]any)
+	if !ok || len(main) == 0 {
+		t.Fatalf("sections.main is %T (len check failed), want non-empty array; doc=%s", sections["main"], rendered)
+	}
+	verb, ok := main[0].(map[string]any)
+	if !ok {
+		t.Fatalf("sections.main[0] is %T, want object; doc=%s", main[0], rendered)
+	}
+	aiCfg, ok := verb["ai"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai verb config is %T, want object; doc=%s", verb["ai"], rendered)
+	}
+
+	// prompt MUST be an object carrying "text".
+	prompt, ok := aiCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai.prompt is %T (%v), want object {\"text\": ...} — a bare value is FATAL on the wire; doc=%s",
+			aiCfg["prompt"], aiCfg["prompt"], rendered)
+	}
+	if prompt["text"] != promptText {
+		t.Errorf("ai.prompt.text = %v, want %q", prompt["text"], promptText)
+	}
+
+	// post_prompt MUST be an object carrying "text" — same contract as prompt.
+	pp, ok := aiCfg["post_prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai.post_prompt is %T (%v), want object {\"text\": ...} — a bare string aborts the call (app_config.c !cJSON_IsObject(post_prompt)); doc=%s",
+			aiCfg["post_prompt"], aiCfg["post_prompt"], rendered)
+	}
+	if pp["text"] != postPrompt {
+		t.Errorf("ai.post_prompt.text = %v, want %q", pp["text"], postPrompt)
+	}
+
+	// post_prompt_url stays a bare string (it is a URL, not a prompt object).
+	if got, ok := aiCfg["post_prompt_url"].(string); !ok || got != postPromptURL {
+		t.Errorf("ai.post_prompt_url = %v (%T), want string %q", aiCfg["post_prompt_url"], aiCfg["post_prompt_url"], postPromptURL)
+	}
+}
+
+// TestServiceAIWireShapePOM is the POM half: prompt must be {"pom": [...]},
+// an object whose "pom" value is an ARRAY.
+func TestServiceAIWireShapePOM(t *testing.T) {
+	svc := NewService(WithName("test"))
+	pom := []map[string]any{{"title": "Role", "body": "You are a helpful assistant."}}
+	if err := svc.AI(AIOptions{PromptPOM: pom}); err != nil {
+		t.Fatalf("AI: %v", err)
+	}
+	rendered, err := svc.GetDocument().Render()
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(rendered), &doc); err != nil {
+		t.Fatalf("emitted document is not valid JSON: %v\n%s", err, rendered)
+	}
+	sections, ok := doc["sections"].(map[string]any)
+	if !ok {
+		t.Fatalf("sections is %T, want object; doc=%s", doc["sections"], rendered)
+	}
+	main, ok := sections["main"].([]any)
+	if !ok || len(main) == 0 {
+		t.Fatalf("sections.main is %T (len check failed), want non-empty array; doc=%s", sections["main"], rendered)
+	}
+	verb, ok := main[0].(map[string]any)
+	if !ok {
+		t.Fatalf("sections.main[0] is %T, want object; doc=%s", main[0], rendered)
+	}
+	aiCfg, ok := verb["ai"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai verb config is %T, want object; doc=%s", verb["ai"], rendered)
+	}
+	prompt, ok := aiCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai.prompt is %T, want object {\"pom\": [...]}; doc=%s", aiCfg["prompt"], rendered)
+	}
+	entries, ok := prompt["pom"].([]any)
+	if !ok || len(entries) != 1 {
+		t.Fatalf("ai.prompt.pom is %T (want array of 1); doc=%s", prompt["pom"], rendered)
 	}
 }

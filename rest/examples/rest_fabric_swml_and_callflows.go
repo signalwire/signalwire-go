@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Deploy a voice application end-to-end with SWML and call flows.
 //
@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -44,7 +45,11 @@ func main() {
 		fmt.Printf("  Create SWML script failed: %v\n", err)
 		return
 	}
-	swmlID := swml["id"].(string)
+	swmlID, swmlIDOK := swml["id"].(string)
+	if !swmlIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created SWML script: %s\n", swmlID)
 
 	// 2. List SWML scripts to confirm
@@ -67,14 +72,19 @@ func main() {
 		fmt.Printf("  Create call flow failed: %v\n", err)
 		return
 	}
-	flowID := flow["id"].(string)
+	flowID, flowIDOK := flow["id"].(string)
+	if !flowIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created call flow: %s\n", flowID)
 
 	// 4. Deploy a version of the call flow
 	fmt.Println("\nDeploying call flow version...")
 	version, err := client.Fabric.CallFlows.DeployVersion(context.Background(), flowID, map[string]any{"label": "v1"})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Deploy failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -85,7 +95,8 @@ func main() {
 	fmt.Println("\nListing call flow versions...")
 	versions, err := client.Fabric.CallFlows.ListVersions(context.Background(), flowID, nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  List versions failed: %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -98,7 +109,8 @@ func main() {
 	fmt.Println("\nListing call flow addresses...")
 	cfAddrs, err := client.Fabric.CallFlows.ListAddresses(context.Background(), flowID, nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  List addresses failed: %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -117,15 +129,28 @@ func main() {
 		fmt.Printf("  Create webhook failed: %v\n", err)
 		return
 	}
-	webhookID := webhook["id"].(string)
+	webhookID, webhookIDOK := webhook["id"].(string)
+	if !webhookIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created webhook: %s\n", webhookID)
 
 	// 8. Clean up
 	fmt.Println("\nCleaning up...")
-	client.Fabric.SWMLWebhooks.Delete(context.Background(), webhookID)
-	fmt.Printf("  Deleted webhook %s\n", webhookID)
-	client.Fabric.CallFlows.Delete(context.Background(), flowID)
-	fmt.Printf("  Deleted call flow %s\n", flowID)
-	client.Fabric.SWMLScripts.Delete(context.Background(), swmlID)
-	fmt.Printf("  Deleted SWML script %s\n", swmlID)
+	if _, err := client.Fabric.SWMLWebhooks.Delete(context.Background(), webhookID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted webhook %s\n", webhookID)
+	}
+	if _, err := client.Fabric.CallFlows.Delete(context.Background(), flowID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted call flow %s\n", flowID)
+	}
+	if _, err := client.Fabric.SWMLScripts.Delete(context.Background(), swmlID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted SWML script %s\n", swmlID)
+	}
 }

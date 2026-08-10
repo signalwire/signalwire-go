@@ -72,7 +72,9 @@ func main() {
 		},
 	})
 
-	a.Run()
+	if err := a.Run(); err != nil {
+		fmt.Printf("agent stopped: %v\n", err)
+	}
 }
 ```
 
@@ -158,18 +160,27 @@ func main() {
 	)
 
 	client.OnCall(func(call *relay.Call) {
-		call.Answer()
+		if err := call.Answer(); err != nil {
+			fmt.Printf("answer failed: %v\n", err)
+			return
+		}
 		action := call.Play([]map[string]any{
 			{"type": "tts", "params": map[string]any{"text": "Welcome to SignalWire!"}},
 		})
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		action.Wait(ctx)
-		call.Hangup("")
+		if _, err := action.Wait(ctx); err != nil {
+			fmt.Printf("play did not finish: %v\n", err)
+		}
+		if err := call.Hangup(""); err != nil {
+			fmt.Printf("hangup failed: %v\n", err)
+		}
 	})
 
 	fmt.Println("Waiting for inbound calls ...")
-	client.Run()
+	if err := client.Run(); err != nil {
+		fmt.Printf("relay client stopped: %v\n", err)
+	}
 }
 ```
 
@@ -207,16 +218,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	client.Fabric.AIAgents.Create(context.Background(), map[string]any{
+	if _, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{
 		"name":   "Support Bot",
 		"prompt": map[string]any{"text": "You are helpful."},
-	})
+	}); err != nil {
+		fmt.Printf("Create AI agent failed: %v\n", err)
+	}
 
-	client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
+	if _, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
 		To:   "+15551234567",
 		URL:  ptr("https://example.com/call-handler"),
-	})
+	}); err != nil {
+		fmt.Printf("Dial failed: %v\n", err)
+	}
 
 	results, _ := client.PhoneNumbers.Search(context.Background(), map[string]string{"areacode": "512"})
 	fmt.Println(results)

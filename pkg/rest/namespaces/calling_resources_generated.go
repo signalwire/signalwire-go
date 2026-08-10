@@ -29,17 +29,17 @@ func (c *CallingNamespace) execute(ctx context.Context, command string, callID s
 
 // CallingNamespaceDialParams holds the named optional parameters for CallingNamespace.Dial.
 type CallingNamespaceDialParams struct {
-	From         string
-	To           string
-	CallerID     *string
-	FallbackURL  *string
-	StatusURL    *string
-	StatusEvents []string
-	URLMethod    *string
-	URL          *string
-	Codecs       any
-	Swml         *SWMLObject
-	Extras       map[string]any
+	From         string         `sw:"required"`
+	To           string         `sw:"required"`
+	CallerID     *string        `sw:"optional"`
+	FallbackURL  *string        `sw:"optional"`
+	StatusURL    *string        `sw:"optional"`
+	StatusEvents []string       `sw:"optional"`
+	URLMethod    *string        `sw:"optional"`
+	URL          *string        `sw:"optional"`
+	Codecs       any            `sw:"optional"`
+	Swml         *SWMLObject    `sw:"optional"`
+	Extras       map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Dial(ctx context.Context, params CallingNamespaceDialParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -76,13 +76,13 @@ func (c *CallingNamespace) Dial(ctx context.Context, params CallingNamespaceDial
 
 // CallingNamespaceUpdateParams holds the named optional parameters for CallingNamespace.Update.
 type CallingNamespaceUpdateParams struct {
-	ID          Uuid
-	FallbackURL *string
-	Status      *string
-	StatusURL   *string
-	URL         *string
-	Swml        *SWMLObject
-	Extras      map[string]any
+	ID          Uuid           `sw:"required"`
+	FallbackURL *string        `sw:"optional"`
+	Status      *string        `sw:"optional"`
+	StatusURL   *string        `sw:"optional"`
+	URL         *string        `sw:"optional"`
+	Swml        *SWMLObject    `sw:"optional"`
+	Extras      map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Update(ctx context.Context, params CallingNamespaceUpdateParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -109,8 +109,8 @@ func (c *CallingNamespace) Update(ctx context.Context, params CallingNamespaceUp
 
 // CallingNamespaceEndParams holds the named optional parameters for CallingNamespace.End.
 type CallingNamespaceEndParams struct {
-	Reason *HangupReason
-	Extras map[string]any
+	Reason *HangupReason  `sw:"optional"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) End(ctx context.Context, callID string, params CallingNamespaceEndParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -124,9 +124,9 @@ func (c *CallingNamespace) End(ctx context.Context, callID string, params Callin
 
 // CallingNamespaceAIHoldParams holds the named optional parameters for CallingNamespace.AIHold.
 type CallingNamespaceAIHoldParams struct {
-	Timeout *int
-	Prompt  *string
-	Extras  map[string]any
+	Timeout *int           `sw:"optional"`
+	Prompt  *string        `sw:"optional"`
+	Extras  map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) AIHold(ctx context.Context, callID string, params CallingNamespaceAIHoldParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -143,8 +143,8 @@ func (c *CallingNamespace) AIHold(ctx context.Context, callID string, params Cal
 
 // CallingNamespaceAIUnholdParams holds the named optional parameters for CallingNamespace.AIUnhold.
 type CallingNamespaceAIUnholdParams struct {
-	Prompt *string
-	Extras map[string]any
+	Prompt *string        `sw:"optional"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) AIUnhold(ctx context.Context, callID string, params CallingNamespaceAIUnholdParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -158,11 +158,11 @@ func (c *CallingNamespace) AIUnhold(ctx context.Context, callID string, params C
 
 // CallingNamespaceAIMessageParams holds the named optional parameters for CallingNamespace.AIMessage.
 type CallingNamespaceAIMessageParams struct {
-	Role        *string
-	MessageText *string
-	Reset       *CallAIMessageResetParams
-	GlobalData  map[string]any
-	Extras      map[string]any
+	Role        *string                   `sw:"optional"`
+	MessageText *string                   `sw:"optional"`
+	Reset       *CallAIMessageResetParams `sw:"optional"`
+	GlobalData  map[string]any            `sw:"optional"`
+	Extras      map[string]any            `sw:"optional"`
 }
 
 func (c *CallingNamespace) AIMessage(ctx context.Context, callID string, params CallingNamespaceAIMessageParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -185,8 +185,8 @@ func (c *CallingNamespace) AIMessage(ctx context.Context, callID string, params 
 
 // CallingNamespaceLiveTranscribeParams holds the named optional parameters for CallingNamespace.LiveTranscribe.
 type CallingNamespaceLiveTranscribeParams struct {
-	Action any
-	Extras map[string]any
+	Action any            `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) LiveTranscribe(ctx context.Context, callID string, params CallingNamespaceLiveTranscribeParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -200,9 +200,9 @@ func (c *CallingNamespace) LiveTranscribe(ctx context.Context, callID string, pa
 
 // CallingNamespaceLiveTranslateParams holds the named optional parameters for CallingNamespace.LiveTranslate.
 type CallingNamespaceLiveTranslateParams struct {
-	Action    any
-	StatusURL *string
-	Extras    map[string]any
+	Action    any            `sw:"required"`
+	StatusURL *string        `sw:"optional"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) LiveTranslate(ctx context.Context, callID string, params CallingNamespaceLiveTranslateParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -219,8 +219,8 @@ func (c *CallingNamespace) LiveTranslate(ctx context.Context, callID string, par
 
 // CallingNamespaceTransferParams holds the named optional parameters for CallingNamespace.Transfer.
 type CallingNamespaceTransferParams struct {
-	Dest   any
-	Extras map[string]any
+	Dest   any            `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Transfer(ctx context.Context, callID string, params CallingNamespaceTransferParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -234,8 +234,8 @@ func (c *CallingNamespace) Transfer(ctx context.Context, callID string, params C
 
 // CallingNamespaceUserEventParams holds the named optional parameters for CallingNamespace.UserEvent.
 type CallingNamespaceUserEventParams struct {
-	Event  map[string]any
-	Extras map[string]any
+	Event  map[string]any `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) UserEvent(ctx context.Context, callID string, params CallingNamespaceUserEventParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -249,7 +249,7 @@ func (c *CallingNamespace) UserEvent(ctx context.Context, callID string, params 
 
 // CallingNamespaceDisconnectParams holds the named optional parameters for CallingNamespace.Disconnect.
 type CallingNamespaceDisconnectParams struct {
-	Extras map[string]any
+	Extras map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Disconnect(ctx context.Context, callID string, params CallingNamespaceDisconnectParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -260,13 +260,13 @@ func (c *CallingNamespace) Disconnect(ctx context.Context, callID string, params
 
 // CallingNamespacePlayParams holds the named optional parameters for CallingNamespace.Play.
 type CallingNamespacePlayParams struct {
-	Play      []map[string]any
-	ControlID *string
-	Volume    *float64
-	Direction *string
-	Loop      *int
-	StatusURL *string
-	Extras    map[string]any
+	Play      []map[string]any `sw:"required"`
+	ControlID *string          `sw:"optional"`
+	Volume    *float64         `sw:"optional"`
+	Direction *string          `sw:"optional"`
+	Loop      *int             `sw:"optional"`
+	StatusURL *string          `sw:"optional"`
+	Extras    map[string]any   `sw:"optional"`
 }
 
 func (c *CallingNamespace) Play(ctx context.Context, callID string, params CallingNamespacePlayParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -295,8 +295,8 @@ func (c *CallingNamespace) Play(ctx context.Context, callID string, params Calli
 
 // CallingNamespacePlayPauseParams holds the named optional parameters for CallingNamespace.PlayPause.
 type CallingNamespacePlayPauseParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) PlayPause(ctx context.Context, callID string, params CallingNamespacePlayPauseParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -308,8 +308,8 @@ func (c *CallingNamespace) PlayPause(ctx context.Context, callID string, params 
 
 // CallingNamespacePlayResumeParams holds the named optional parameters for CallingNamespace.PlayResume.
 type CallingNamespacePlayResumeParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) PlayResume(ctx context.Context, callID string, params CallingNamespacePlayResumeParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -321,8 +321,8 @@ func (c *CallingNamespace) PlayResume(ctx context.Context, callID string, params
 
 // CallingNamespacePlayStopParams holds the named optional parameters for CallingNamespace.PlayStop.
 type CallingNamespacePlayStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) PlayStop(ctx context.Context, callID string, params CallingNamespacePlayStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -334,9 +334,9 @@ func (c *CallingNamespace) PlayStop(ctx context.Context, callID string, params C
 
 // CallingNamespacePlayVolumeParams holds the named optional parameters for CallingNamespace.PlayVolume.
 type CallingNamespacePlayVolumeParams struct {
-	ControlID string
-	Volume    float64
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Volume    float64        `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) PlayVolume(ctx context.Context, callID string, params CallingNamespacePlayVolumeParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -349,10 +349,10 @@ func (c *CallingNamespace) PlayVolume(ctx context.Context, callID string, params
 
 // CallingNamespaceRecordParams holds the named optional parameters for CallingNamespace.Record.
 type CallingNamespaceRecordParams struct {
-	ControlID *string
-	Audio     map[string]any
-	StatusURL *string
-	Extras    map[string]any
+	ControlID *string        `sw:"optional"`
+	Audio     map[string]any `sw:"optional"`
+	StatusURL *string        `sw:"optional"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Record(ctx context.Context, callID string, params CallingNamespaceRecordParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -372,8 +372,8 @@ func (c *CallingNamespace) Record(ctx context.Context, callID string, params Cal
 
 // CallingNamespaceRecordPauseParams holds the named optional parameters for CallingNamespace.RecordPause.
 type CallingNamespaceRecordPauseParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) RecordPause(ctx context.Context, callID string, params CallingNamespaceRecordPauseParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -385,8 +385,8 @@ func (c *CallingNamespace) RecordPause(ctx context.Context, callID string, param
 
 // CallingNamespaceRecordResumeParams holds the named optional parameters for CallingNamespace.RecordResume.
 type CallingNamespaceRecordResumeParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) RecordResume(ctx context.Context, callID string, params CallingNamespaceRecordResumeParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -398,8 +398,8 @@ func (c *CallingNamespace) RecordResume(ctx context.Context, callID string, para
 
 // CallingNamespaceRecordStopParams holds the named optional parameters for CallingNamespace.RecordStop.
 type CallingNamespaceRecordStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) RecordStop(ctx context.Context, callID string, params CallingNamespaceRecordStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -411,13 +411,13 @@ func (c *CallingNamespace) RecordStop(ctx context.Context, callID string, params
 
 // CallingNamespaceCollectParams holds the named optional parameters for CallingNamespace.Collect.
 type CallingNamespaceCollectParams struct {
-	ControlID      *string
-	InitialTimeout *float64
-	Digits         map[string]any
-	Speech         map[string]any
-	Continuous     *bool
-	PartialResults *bool
-	Extras         map[string]any
+	ControlID      *string        `sw:"optional"`
+	InitialTimeout *float64       `sw:"optional"`
+	Digits         map[string]any `sw:"optional"`
+	Speech         map[string]any `sw:"optional"`
+	Continuous     *bool          `sw:"optional"`
+	PartialResults *bool          `sw:"optional"`
+	Extras         map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Collect(ctx context.Context, callID string, params CallingNamespaceCollectParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -446,8 +446,8 @@ func (c *CallingNamespace) Collect(ctx context.Context, callID string, params Ca
 
 // CallingNamespaceCollectStopParams holds the named optional parameters for CallingNamespace.CollectStop.
 type CallingNamespaceCollectStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) CollectStop(ctx context.Context, callID string, params CallingNamespaceCollectStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -459,8 +459,8 @@ func (c *CallingNamespace) CollectStop(ctx context.Context, callID string, param
 
 // CallingNamespaceCollectStartInputTimersParams holds the named optional parameters for CallingNamespace.CollectStartInputTimers.
 type CallingNamespaceCollectStartInputTimersParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) CollectStartInputTimers(ctx context.Context, callID string, params CallingNamespaceCollectStartInputTimersParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -472,10 +472,10 @@ func (c *CallingNamespace) CollectStartInputTimers(ctx context.Context, callID s
 
 // CallingNamespaceDetectParams holds the named optional parameters for CallingNamespace.Detect.
 type CallingNamespaceDetectParams struct {
-	Detect    map[string]any
-	ControlID *string
-	Timeout   *float64
-	Extras    map[string]any
+	Detect    map[string]any `sw:"required"`
+	ControlID *string        `sw:"optional"`
+	Timeout   *float64       `sw:"optional"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Detect(ctx context.Context, callID string, params CallingNamespaceDetectParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -495,8 +495,8 @@ func (c *CallingNamespace) Detect(ctx context.Context, callID string, params Cal
 
 // CallingNamespaceDetectStopParams holds the named optional parameters for CallingNamespace.DetectStop.
 type CallingNamespaceDetectStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) DetectStop(ctx context.Context, callID string, params CallingNamespaceDetectStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -508,10 +508,10 @@ func (c *CallingNamespace) DetectStop(ctx context.Context, callID string, params
 
 // CallingNamespaceTapParams holds the named optional parameters for CallingNamespace.Tap.
 type CallingNamespaceTapParams struct {
-	Tap       map[string]any
-	Device    map[string]any
-	ControlID *string
-	Extras    map[string]any
+	Tap       map[string]any `sw:"required"`
+	Device    map[string]any `sw:"required"`
+	ControlID *string        `sw:"optional"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Tap(ctx context.Context, callID string, params CallingNamespaceTapParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -531,8 +531,8 @@ func (c *CallingNamespace) Tap(ctx context.Context, callID string, params Callin
 
 // CallingNamespaceTapStopParams holds the named optional parameters for CallingNamespace.TapStop.
 type CallingNamespaceTapStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) TapStop(ctx context.Context, callID string, params CallingNamespaceTapStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -544,13 +544,13 @@ func (c *CallingNamespace) TapStop(ctx context.Context, callID string, params Ca
 
 // CallingNamespaceStreamParams holds the named optional parameters for CallingNamespace.Stream.
 type CallingNamespaceStreamParams struct {
-	URL                      string
-	ControlID                *string
-	Codec                    *string
-	Track                    *string
-	AuthorizationBearerToken *string
-	CustomParameters         map[string]any
-	Extras                   map[string]any
+	URL                      string         `sw:"required"`
+	ControlID                *string        `sw:"optional"`
+	Codec                    *string        `sw:"optional"`
+	Track                    *string        `sw:"optional"`
+	AuthorizationBearerToken *string        `sw:"optional"`
+	CustomParameters         map[string]any `sw:"optional"`
+	Extras                   map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Stream(ctx context.Context, callID string, params CallingNamespaceStreamParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -577,8 +577,8 @@ func (c *CallingNamespace) Stream(ctx context.Context, callID string, params Cal
 
 // CallingNamespaceStreamStopParams holds the named optional parameters for CallingNamespace.StreamStop.
 type CallingNamespaceStreamStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) StreamStop(ctx context.Context, callID string, params CallingNamespaceStreamStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -590,7 +590,7 @@ func (c *CallingNamespace) StreamStop(ctx context.Context, callID string, params
 
 // CallingNamespaceDenoiseParams holds the named optional parameters for CallingNamespace.Denoise.
 type CallingNamespaceDenoiseParams struct {
-	Extras map[string]any
+	Extras map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Denoise(ctx context.Context, callID string, params CallingNamespaceDenoiseParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -601,7 +601,7 @@ func (c *CallingNamespace) Denoise(ctx context.Context, callID string, params Ca
 
 // CallingNamespaceDenoiseStopParams holds the named optional parameters for CallingNamespace.DenoiseStop.
 type CallingNamespaceDenoiseStopParams struct {
-	Extras map[string]any
+	Extras map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) DenoiseStop(ctx context.Context, callID string, params CallingNamespaceDenoiseStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -612,9 +612,9 @@ func (c *CallingNamespace) DenoiseStop(ctx context.Context, callID string, param
 
 // CallingNamespaceTranscribeParams holds the named optional parameters for CallingNamespace.Transcribe.
 type CallingNamespaceTranscribeParams struct {
-	ControlID *string
-	StatusURL *string
-	Extras    map[string]any
+	ControlID *string        `sw:"optional"`
+	StatusURL *string        `sw:"optional"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Transcribe(ctx context.Context, callID string, params CallingNamespaceTranscribeParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -631,8 +631,8 @@ func (c *CallingNamespace) Transcribe(ctx context.Context, callID string, params
 
 // CallingNamespaceTranscribeStopParams holds the named optional parameters for CallingNamespace.TranscribeStop.
 type CallingNamespaceTranscribeStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) TranscribeStop(ctx context.Context, callID string, params CallingNamespaceTranscribeStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -644,8 +644,8 @@ func (c *CallingNamespace) TranscribeStop(ctx context.Context, callID string, pa
 
 // CallingNamespaceAIStopParams holds the named optional parameters for CallingNamespace.AIStop.
 type CallingNamespaceAIStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) AIStop(ctx context.Context, callID string, params CallingNamespaceAIStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -657,8 +657,8 @@ func (c *CallingNamespace) AIStop(ctx context.Context, callID string, params Cal
 
 // CallingNamespaceSendFaxStopParams holds the named optional parameters for CallingNamespace.SendFaxStop.
 type CallingNamespaceSendFaxStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) SendFaxStop(ctx context.Context, callID string, params CallingNamespaceSendFaxStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -670,8 +670,8 @@ func (c *CallingNamespace) SendFaxStop(ctx context.Context, callID string, param
 
 // CallingNamespaceReceiveFaxStopParams holds the named optional parameters for CallingNamespace.ReceiveFaxStop.
 type CallingNamespaceReceiveFaxStopParams struct {
-	ControlID string
-	Extras    map[string]any
+	ControlID string         `sw:"required"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) ReceiveFaxStop(ctx context.Context, callID string, params CallingNamespaceReceiveFaxStopParams, opts ...*RequestOptions) (*CallResponse, error) {
@@ -683,9 +683,9 @@ func (c *CallingNamespace) ReceiveFaxStop(ctx context.Context, callID string, pa
 
 // CallingNamespaceReferParams holds the named optional parameters for CallingNamespace.Refer.
 type CallingNamespaceReferParams struct {
-	Device    map[string]any
-	StatusURL *string
-	Extras    map[string]any
+	Device    map[string]any `sw:"required"`
+	StatusURL *string        `sw:"optional"`
+	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Refer(ctx context.Context, callID string, params CallingNamespaceReferParams, opts ...*RequestOptions) (*CallResponse, error) {

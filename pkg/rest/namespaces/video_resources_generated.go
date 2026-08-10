@@ -47,8 +47,8 @@ func (r *VideoConferences) ListStreams(ctx context.Context, id string, params ma
 
 // VideoConferencesCreateStreamParams holds the named optional parameters for VideoConferences.CreateStream.
 type VideoConferencesCreateStreamParams struct {
-	URL    string
-	Extras map[string]any
+	URL    string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (r *VideoConferences) CreateStream(ctx context.Context, id string, params VideoConferencesCreateStreamParams, opts ...*RequestOptions) (*Stream, error) {
@@ -130,25 +130,25 @@ func NewVideoRoomTokens(client HTTPClient) *VideoRoomTokens {
 
 // VideoRoomTokensCreateParams holds the named optional parameters for VideoRoomTokens.Create.
 type VideoRoomTokensCreateParams struct {
-	RoomName                  string
-	UserName                  *string
-	Permissions               []RoomTokenPermission
-	JoinFrom                  *string
-	JoinUntil                 *string
-	RemoveAt                  *string
-	RemoveAfterSecondsElapsed *int
-	JoinAudioMuted            *bool
-	JoinVideoMuted            *bool
-	AutoCreateRoom            *bool
-	EnableRoomPreviews        *bool
-	RoomDisplayName           *string
-	EndRoomSessionOnLeave     *bool
-	JoinAs                    *JoinAsType
-	MediaAllowed              *MediaAllowedType
-	RoomMeta                  map[string]any
-	Meta                      map[string]any
-	SyncAudioVideo            *bool
-	Extras                    map[string]any
+	RoomName                  string                `sw:"required"`
+	UserName                  *string               `sw:"optional"`
+	Permissions               []RoomTokenPermission `sw:"optional"`
+	JoinFrom                  *string               `sw:"optional"`
+	JoinUntil                 *string               `sw:"optional"`
+	RemoveAt                  *string               `sw:"optional"`
+	RemoveAfterSecondsElapsed *int                  `sw:"optional"`
+	JoinAudioMuted            *bool                 `sw:"optional"`
+	JoinVideoMuted            *bool                 `sw:"optional"`
+	AutoCreateRoom            *bool                 `sw:"optional"`
+	EnableRoomPreviews        *bool                 `sw:"optional"`
+	RoomDisplayName           *string               `sw:"optional"`
+	EndRoomSessionOnLeave     *bool                 `sw:"optional"`
+	JoinAs                    *JoinAsType           `sw:"optional"`
+	MediaAllowed              *MediaAllowedType     `sw:"optional"`
+	RoomMeta                  map[string]any        `sw:"optional"`
+	Meta                      map[string]any        `sw:"optional"`
+	SyncAudioVideo            *bool                 `sw:"optional"`
+	Extras                    map[string]any        `sw:"optional"`
 }
 
 func (r *VideoRoomTokens) Create(ctx context.Context, params VideoRoomTokensCreateParams, opts ...*RequestOptions) (*RoomTokenResponse, error) {
@@ -225,8 +225,8 @@ func (r *VideoRooms) ListStreams(ctx context.Context, id string, params map[stri
 
 // VideoRoomsCreateStreamParams holds the named optional parameters for VideoRooms.CreateStream.
 type VideoRoomsCreateStreamParams struct {
-	URL    string
-	Extras map[string]any
+	URL    string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (r *VideoRooms) CreateStream(ctx context.Context, id string, params VideoRoomsCreateStreamParams, opts ...*RequestOptions) (*Stream, error) {
@@ -252,8 +252,8 @@ func (r *VideoStreams) Get(ctx context.Context, id string, params map[string]str
 
 // VideoStreamsUpdateParams holds the named optional parameters for VideoStreams.Update.
 type VideoStreamsUpdateParams struct {
-	URL    string
-	Extras map[string]any
+	URL    string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (r *VideoStreams) Update(ctx context.Context, id string, params VideoStreamsUpdateParams, opts ...*RequestOptions) (*Stream, error) {

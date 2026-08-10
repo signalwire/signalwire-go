@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: bind an inbound phone number to an SWML webhook (the happy path).
 //

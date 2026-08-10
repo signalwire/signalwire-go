@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: advanced_datamap
 //
@@ -145,7 +145,11 @@ func main() {
 	fmt.Println("Advanced DataMap Demo - Tool Definitions:")
 	for _, tool := range a.DefineTools() {
 		if tool.SwaigFields != nil {
-			data, _ := json.MarshalIndent(tool.SwaigFields, "", "  ")
+			data, err := json.MarshalIndent(tool.SwaigFields, "", "  ")
+			if err != nil {
+				fmt.Printf("  render failed: %v\n", err)
+				continue
+			}
 			fmt.Printf("\n%s:\n%s\n", tool.Name, string(data))
 		}
 	}

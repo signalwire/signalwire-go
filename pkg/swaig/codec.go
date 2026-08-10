@@ -13,13 +13,11 @@ package swaig
 //	fr.Tap("rtp://h:1", "id", "both", "PCMA", 0, "")                          // bare string still compiles
 //
 // Codec is a string subtype, so the value written into the SWML tap params is
-// byte-identical to the bare string the reference uses — compatibility with Python's
-// tap(codec=...) keyword (a plain str). The enumerator emits the codec param as
-// union<Codec,string>, so signature drift stays 0 against the reference's str
-// (the string member absorbs).
+// byte-identical to the bare string it wraps. The enumerator emits the codec
+// param as union<Codec,string>, so a bare string is equally accepted.
 //
-// IMPORTANT: this 2-value SWAIG-tap set ({PCMU, PCMA}, validated at
-// function_result.py:1217) is DISTINCT from the larger RELAY connect/stream
+// IMPORTANT: this 2-value SWAIG-tap set ({PCMU, PCMA}) is DISTINCT from the
+// larger RELAY connect/stream
 // device codec superset ({PCMU, PCMA, OPUS, G729, G722, VP8, H264, ...},
 // comma-joinable). The relay codec is genuinely open/multi-value and is
 // deliberately left a bare string (see PORT_ADDITIONS / the journal §3) — this

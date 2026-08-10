@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ ba245e14931421910f54992ee577ee7eed79d672",
+  "generated_from": "signalwire-go (go-native) @ a0bba17610622aa54e8741c022871f22576f1590",
   "modules": {
     "agent": {
       "classes": {
@@ -460,7 +460,6 @@
     "datamap": {
       "classes": {
         "DataMap": [
-          "Body",
           "Description",
           "ErrorKeys",
           "Expression",
@@ -512,6 +511,7 @@
         "ParseLevel",
         "ResetLoggingConfiguration",
         "SetGlobalLevel",
+        "StripControlChars",
         "Suppress",
         "Unsuppress"
       ]
@@ -1005,7 +1005,8 @@
         "WithBody",
         "WithBullets",
         "WithNumbered",
-        "WithNumberedBullets"
+        "WithNumberedBullets",
+        "WithTitle"
       ]
     },
     "prefabs": {
@@ -1504,6 +1505,8 @@
           "VerifyBasicAuth",
           "VerifyBasicAuthPair"
         ],
+        "BasicCredentials": [],
+        "BearerCredentials": [],
         "SecurityConfig": [
           "GetBasicAuth",
           "GetCORSConfig",
@@ -1536,6 +1539,8 @@
         "FilterSensitiveHeaders",
         "IsValidHostname",
         "NewAuthHandler",
+        "NewBasicCredentials",
+        "NewBearerCredentials",
         "NewSecurityConfig",
         "NewSessionManager",
         "RawBodyFromContext",
@@ -1546,9 +1551,11 @@
         "ValidateWebhookSignature",
         "ValidateWebhookSignatureE",
         "WebhookMiddleware",
+        "WithConfigFile",
         "WithDebugMode",
         "WithSecret",
-        "WithSecretKey"
+        "WithSecretKey",
+        "WithServiceName"
       ]
     },
     "server": {
@@ -1660,6 +1667,8 @@
           "GetInstanceKey",
           "GetParameterSchema",
           "RegisterTools",
+          "RemoveXPaths",
+          "SetRemoveXPaths",
           "Setup",
           "SupportsMultipleInstances"
         ]
@@ -1890,7 +1899,11 @@
           "StopTap",
           "SwaigPreDispatch",
           "Switch",
+          "TLSCertPath",
           "TLSEnabled",
+          "TLSKeyPath",
+          "TLSMisconfigurationError",
+          "TLSRequestedWithoutMaterial",
           "Tap",
           "Transfer",
           "Unset",
@@ -1926,6 +1939,8 @@
         "WithPort",
         "WithRoute",
         "WithSchemaPath",
+        "WithSchemaUtilsPath",
+        "WithSchemaUtilsValidation",
         "WithSchemaValidation",
         "WithSecurityConfig",
         "WithTLS"

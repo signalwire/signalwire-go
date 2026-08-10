@@ -1,18 +1,17 @@
-// SchemaUtils — Go port of signalwire.utils.schema_utils.SchemaUtils.
+// SchemaUtils loads the SWML JSON Schema, extracts verb definitions, and
+// validates either a single verb config or a complete SWML document.
 //
-// Loads the SWML JSON Schema, extracts verb definitions, and validates
-// either a single verb config or a complete SWML document.  Validation
-// is lightweight (verb existence + required-property check) when
-// run without a JSON Schema validator dependency; the surface mirrors
-// the Python reference so cross-language audits see identical methods.
+// This SDK bundles a full JSON Schema validator — Draft 2020-12 via
+// santhosh-tekuri/jsonschema/v6, compiled in initFullValidator. So const/enum
+// VALUES are enforced, not just required properties. FullValidationAvailable
+// reports whether that compile succeeded; on failure validation degrades to a
+// lightweight check (verb existence + required properties).
 //
-// The Go SDK does not currently bundle a JSON Schema validator, so
-// full_validation_available is gated on whether one has been wired
-// in (see schemaValidator field).  Lightweight mode is the default
-// and matches Python's behaviour when jsonschema_rs is unavailable.
+// Because values ARE enforced, the schema's advisory-value marker is
+// load-bearing here: see applySDKWiden.
 //
 // SWML_SKIP_SCHEMA_VALIDATION=1 disables validation regardless of the
-// constructor argument, mirroring Python's env-var override.
+// constructor argument.
 
 package swml
 
@@ -21,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -28,15 +28,14 @@ import (
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-// SchemaValidationError is the canonical error type raised when SWML
-// schema validation fails.  Mirrors Python's SchemaValidationError.
+// SchemaValidationError is the canonical error type returned when SWML
+// schema validation fails.
 type SchemaValidationError struct {
 	VerbName string
 	Errors   []string
 }
 
 // NewSchemaValidationError constructs a SchemaValidationError.
-// Mirrors Python's SchemaValidationError.__init__(verb_name, errors).
 func NewSchemaValidationError(verbName string, errors []string) *SchemaValidationError {
 	return &SchemaValidationError{VerbName: verbName, Errors: errors}
 }
@@ -49,17 +48,14 @@ func (e *SchemaValidationError) Error() string {
 	)
 }
 
-// ValidationResult mirrors Python's “Tuple[bool, List[str]]“ return
-// shape used by ValidateVerb / ValidateDocument.
-//
-// The cross-language type alias table maps this struct to the canonical
-// “tuple<bool,list<string>>“ so audits accept it as Python-shaped.
+// ValidationResult is the “(valid, errors)“ pair returned by ValidateVerb
+// and ValidateDocument. Errors is empty whenever Valid is true.
 type ValidationResult struct {
 	Valid  bool
 	Errors []string
 }
 
-// SchemaUtils is the Go port of signalwire.utils.schema_utils.SchemaUtils.
+// SchemaUtils holds the loaded SWML schema and its extracted verb table.
 //
 // Construction rules:
 //   - schemaPath empty + SWML_SKIP_SCHEMA_VALIDATION unset → load embedded.
@@ -72,33 +68,41 @@ type SchemaUtils struct {
 	// schemaPath is the resolved location the schema was loaded from
 	// (or "" when the embedded schema was used).
 	schemaPath string
-	// validationEnabled mirrors Python's _validation_enabled.
+	// validationEnabled records whether validation is switched on for this
+	// instance (constructor argument AND env-var override).
 	validationEnabled bool
 	// verbs is the extracted verb table keyed by actual verb name
 	// (e.g. "ai", "answer", "sip_refer").
 	verbs map[string]*VerbInfo
 	// schemaValidator is the optional full JSON Schema validator. It holds a
 	// compiled *jsonschema.Schema (Draft 2020-12) when full validation is wired
-	// and available — the Go analogue of Python's jsonschema-rs
-	// Draft202012Validator. nil = lightweight (required-property) fallback.
+	// and available. nil = lightweight (required-property) fallback.
 	schemaValidator any
 	// fullValidator is the concretely-typed compiled schema used by the full
-	// validation path; kept separate from schemaValidator (which stays `any` to
-	// preserve the FullValidationAvailable() surface parity with Python).
+	// validation path; kept separate from schemaValidator, which stays `any` so
+	// the validator implementation is not part of the exported surface.
 	fullValidator *jsonschema.Schema
 }
 
-// NewSchemaUtils constructs a SchemaUtils.
-// Mirrors Python's “SchemaUtils(schema_path, schema_validation=True)“.
+// NewSchemaUtils constructs a SchemaUtils. BOTH inputs are OPTIONAL, matching
+// the reference (`schema_path: str | None = None, schema_validation: bool =
+// True`): calling it with no arguments uses the embedded schema.json bundled
+// with the SDK and leaves validation ENABLED.
 //
-// Pass schemaPath="" to use the embedded schema.json bundled with the SDK.
-// schemaValidation=false disables validation; the env var
-// SWML_SKIP_SCHEMA_VALIDATION=1/true/yes also disables it.
-func NewSchemaUtils(schemaPath string, schemaValidation bool) *SchemaUtils {
+// WithSchemaUtilsPath overrides the embedded schema. WithSchemaUtilsValidation(false)
+// disables validation; the env var SWML_SKIP_SCHEMA_VALIDATION=1/true/yes also
+// disables it, regardless of the option.
+func NewSchemaUtils(opts ...SchemaUtilsOption) *SchemaUtils {
+	// validation defaults to TRUE, mirroring the reference's
+	// `schema_validation: bool = True`.
+	cfg := schemaUtilsOptions{schemaValidation: true}
+	for _, o := range opts {
+		o(&cfg)
+	}
 	envSkip := envBoolish(os.Getenv("SWML_SKIP_SCHEMA_VALIDATION"))
 	su := &SchemaUtils{
-		schemaPath:        schemaPath,
-		validationEnabled: schemaValidation && !envSkip,
+		schemaPath:        cfg.schemaPath,
+		validationEnabled: cfg.schemaValidation && !envSkip,
 		verbs:             map[string]*VerbInfo{},
 	}
 	su.schema = su.LoadSchema()
@@ -107,6 +111,31 @@ func NewSchemaUtils(schemaPath string, schemaValidation bool) *SchemaUtils {
 		su.initFullValidator()
 	}
 	return su
+}
+
+// schemaUtilsOptions accumulates SchemaUtils' optional construction inputs.
+type schemaUtilsOptions struct {
+	schemaPath       string
+	schemaValidation bool
+}
+
+// SchemaUtilsOption configures a SchemaUtils at construction. The names carry a
+// `SchemaUtils` infix because this package's plain `WithSchemaPath` /
+// `WithSchemaValidation` are already taken by ServiceOption (service.go); the
+// `With` PREFIX is kept because it is the convention every option family in this
+// SDK follows and the surface enumerator keys construction params off it.
+type SchemaUtilsOption func(*schemaUtilsOptions)
+
+// WithSchemaUtilsPath loads the schema from an explicit path instead of the
+// schema.json embedded in the SDK.
+func WithSchemaUtilsPath(path string) SchemaUtilsOption {
+	return func(o *schemaUtilsOptions) { o.schemaPath = path }
+}
+
+// WithSchemaUtilsValidation enables or disables schema validation. It defaults
+// to enabled; SWML_SKIP_SCHEMA_VALIDATION disables it regardless.
+func WithSchemaUtilsValidation(enabled bool) SchemaUtilsOption {
+	return func(o *schemaUtilsOptions) { o.schemaValidation = enabled }
 }
 
 func envBoolish(v string) bool {
@@ -118,16 +147,15 @@ func envBoolish(v string) bool {
 }
 
 // SchemaPath returns the location the schema was loaded from, or "" when the
-// embedded schema was used (Python: schema_path).
+// embedded schema was used.
 func (s *SchemaUtils) SchemaPath() string { return s.schemaPath }
 
 // LoadSchema reads and parses the JSON Schema.
-// Mirrors Python's “load_schema()“.
 func (s *SchemaUtils) LoadSchema() map[string]any {
 	if s.schemaPath != "" {
 		return s.loadFromPath(s.schemaPath)
 	}
-	// Default: use embedded schema (matches Python's _get_default_schema_path).
+	// Default: use the embedded schema.json bundled with the SDK.
 	data, err := schemaFS.ReadFile("schema.json")
 	if err != nil {
 		return map[string]any{}
@@ -195,16 +223,15 @@ func (s *SchemaUtils) extractVerbs() {
 				SchemaName: schemaName,
 				Definition: defn,
 			}
-			break // first key only — matches Python
+			break // first key only
 		}
 	}
 }
 
 // initFullValidator compiles the embedded SWML JSON Schema into a Draft
-// 2020-12 validator (santhosh-tekuri/jsonschema/v6), the Go analogue of
-// Python's jsonschema-rs Draft202012Validator. On any compile failure it
+// 2020-12 validator (santhosh-tekuri/jsonschema/v6). On any compile failure it
 // leaves the validator nil so the lightweight required-property check remains
-// the fallback (matching Python's behaviour when jsonschema-rs is unavailable).
+// the fallback.
 func (s *SchemaUtils) initFullValidator() {
 	if len(s.schema) == 0 {
 		return
@@ -212,7 +239,13 @@ func (s *SchemaUtils) initFullValidator() {
 	// The compiler wants a json-decoded document that uses json.Number for all
 	// numbers (jsonschema.UnmarshalJSON sets UseNumber); re-encode our schema
 	// map and decode it back through that helper so number semantics match.
-	raw, err := json.Marshal(s.schema)
+	//
+	// applySDKWiden runs on the way in: fields marked x-sdk-widen have their
+	// const/enum union dropped BEFORE compilation, so the validator never
+	// enforces a value set the platform does not enforce. s.schema itself is
+	// untouched — callers reading it (GetVerbParameters, codegen, docs) still
+	// see the documented values.
+	raw, err := json.Marshal(applySDKWiden(s.schema))
 	if err != nil {
 		return
 	}
@@ -224,8 +257,7 @@ func (s *SchemaUtils) initFullValidator() {
 	c := jsonschema.NewCompiler()
 	// Use an ECMAScript-compatible regexp engine (dlclark/regexp2) instead of
 	// Go's RE2. The SWML schema uses negative-lookahead patterns (e.g. a step
-	// name pattern "^(?!next$).*$") that RE2 cannot parse — the same fancy-regex
-	// lookahead support Python's jsonschema-rs relies on. Without this the
+	// name pattern "^(?!next$).*$") that RE2 cannot parse. Without this the
 	// metaschema pass rejects the schema at compile time and the validator would
 	// silently fall back to the lightweight (required-only) check.
 	c.UseRegexpEngine(regexp2Engine)
@@ -240,14 +272,112 @@ func (s *SchemaUtils) initFullValidator() {
 	s.schemaValidator = compiled
 }
 
+// widenStrippedKeys are the keywords removed from a property whose value set is
+// advisory — the ones that pin it to a fixed set of VALUES. The base `type` is
+// deliberately NOT among them: widening drops the value constraint, never the
+// type, or the marker would be a blanket opt-out of validation.
+// widenMarkerKey is the schema keyword that flags a property's const/enum union
+// as ADVISORY rather than closed.
+const widenMarkerKey = "x-sdk-widen"
+
+var widenStrippedKeys = []string{"anyOf", "oneOf", "enum", "const", "x-sdk-enum-literal"}
+
+// applySDKWiden returns a copy of a decoded JSON-Schema node with the value
+// constraints stripped from every subschema flagged as advisory by the
+// widen marker (see widenMarkerKey).
+//
+// Some schema properties mark their enum/const union as ADVISORY: the listed
+// values are the documented ones, but the platform accepts any value of the
+// same base scalar type. `$defs/Hangup.reason` is the standing example — its
+// `hangup|busy|decline` union is a hint, and any string is valid on the wire.
+//
+// Validating against the raw union makes this SDK reject documents the platform
+// ACCEPTS. That is the failure direction nobody audits for: a validator gets
+// checked for being too loose, and this one was too strict — Service.Hangup
+// returned a SchemaValidationError for a real platform reason such as
+// "no_answer". So the constraint is dropped on marked properties before the
+// validator is compiled.
+//
+// The input is never mutated: this returns a widened COPY, so the schema map
+// callers read (GetVerbParameters, codegen, docs) still shows the documented
+// values. Widening is strictly opt-in per field — an unmarked union stays
+// enforced.
+func applySDKWiden(node any) any {
+	switch n := node.(type) {
+	case []any:
+		out := make([]any, len(n))
+		for i, item := range n {
+			out[i] = applySDKWiden(item)
+		}
+		return out
+	case map[string]any:
+		if w, ok := n[widenMarkerKey].(bool); ok && w {
+			return widenedScalar(n)
+		}
+		out := make(map[string]any, len(n))
+		for k, v := range n {
+			out[k] = applySDKWiden(v)
+		}
+		return out
+	default:
+		return node
+	}
+}
+
+// widenedScalar is a widened copy of one marked property: the keywords that pin
+// it to a fixed value set are removed, leaving the base scalar type — recovered
+// from the const-union's branches when the property declares no `type` of its
+// own. When the branches do not agree on a type the property is left
+// unconstrained rather than guessing.
+func widenedScalar(node map[string]any) map[string]any {
+	out := make(map[string]any, len(node))
+	for k, v := range node {
+		if slices.Contains(widenStrippedKeys, k) {
+			continue
+		}
+		out[k] = applySDKWiden(v)
+	}
+	if _, hasType := out["type"]; !hasType {
+		if base := widenBaseType(node); base != "" {
+			out["type"] = base
+		}
+	}
+	return out
+}
+
+// widenBaseType is the base scalar type a const-union widens to: whatever
+// `type` its branches agree on, or "" when they do not agree.
+func widenBaseType(node map[string]any) string {
+	branches, _ := node["anyOf"].([]any)
+	if branches == nil {
+		branches, _ = node["oneOf"].([]any)
+	}
+	base := ""
+	for _, b := range branches {
+		bm, ok := b.(map[string]any)
+		if !ok {
+			continue
+		}
+		t, ok := bm["type"].(string)
+		if !ok {
+			continue
+		}
+		if base == "" {
+			base = t
+		} else if base != t {
+			return ""
+		}
+	}
+	return base
+}
+
 // FullValidationAvailable reports whether the full JSON Schema
-// validator is wired up.  Mirrors Python's full_validation_available.
+// validator is wired up.
 func (s *SchemaUtils) FullValidationAvailable() bool {
 	return s.schemaValidator != nil
 }
 
 // GetAllVerbNames returns the sorted list of all known verb names.
-// Mirrors Python's “get_all_verb_names()“.
 func (s *SchemaUtils) GetAllVerbNames() []string {
 	out := make([]string, 0, len(s.verbs))
 	for k := range s.verbs {
@@ -259,7 +389,6 @@ func (s *SchemaUtils) GetAllVerbNames() []string {
 
 // GetVerbProperties returns the inner “properties[verb_name]“ block
 // for a verb, or an empty map when the verb is unknown.
-// Mirrors Python's “get_verb_properties(verb_name)“.
 func (s *SchemaUtils) GetVerbProperties(verbName string) map[string]any {
 	v, ok := s.verbs[verbName]
 	if !ok {
@@ -277,7 +406,6 @@ func (s *SchemaUtils) GetVerbProperties(verbName string) map[string]any {
 }
 
 // GetVerbRequiredProperties returns the “required“ list for a verb.
-// Mirrors Python's “get_verb_required_properties(verb_name)“.
 func (s *SchemaUtils) GetVerbRequiredProperties(verbName string) []string {
 	inner := s.GetVerbProperties(verbName)
 	req, ok := inner["required"].([]any)
@@ -295,7 +423,6 @@ func (s *SchemaUtils) GetVerbRequiredProperties(verbName string) []string {
 
 // GetVerbParameters returns the parameter-definition block used for
 // codegen — verb_props["properties"].
-// Mirrors Python's “get_verb_parameters(verb_name)“.
 func (s *SchemaUtils) GetVerbParameters(verbName string) map[string]any {
 	inner := s.GetVerbProperties(verbName)
 	params, ok := inner["properties"].(map[string]any)
@@ -306,7 +433,6 @@ func (s *SchemaUtils) GetVerbParameters(verbName string) map[string]any {
 }
 
 // ValidateVerb validates a verb config against the schema.
-// Mirrors Python's “validate_verb(verb_name, verb_config)“.
 //
 // When validation is disabled returns Valid=true.  When the verb name
 // is unknown returns Valid=false with a single "Unknown verb" error.
@@ -326,10 +452,15 @@ func (s *SchemaUtils) ValidateVerb(verbName string, verbConfig map[string]any) V
 }
 
 // verbTopLevelPropertyNames resolves the set of KNOWN top-level property names
-// for a verb's config object, following a single $ref (e.g. AI -> AIObject).
-// Returns (nil, false) when the verb's config schema is not a closed
-// object-with-properties — i.e. there is no enumerable known-key set, so no
-// shallow check applies. Mirrors python _verb_top_level_property_names.
+// for a verb's config object, following a single $ref (e.g. AI -> AIObject) and
+// UNIONING the branches of an anyOf/oneOf union. Returns (nil, false) only when
+// there is genuinely no enumerable closed key-set, so no shallow check applies.
+// Mirrors python _verb_top_level_property_names.
+//
+// The per-verb schemaGapKeys are folded in HERE rather than inside closedKeySet:
+// they are a property of the VERB (which emitter writes which undeclared key),
+// not of any one schema node, and closedKeySet recurses over $ref/union branches
+// where no single verb name is in scope.
 func (s *SchemaUtils) verbTopLevelPropertyNames(verbName string) (map[string]struct{}, bool) {
 	v, ok := s.verbs[verbName]
 	if !ok {
@@ -343,20 +474,90 @@ func (s *SchemaUtils) verbTopLevelPropertyNames(verbName string) (map[string]str
 	if !ok {
 		return nil, false
 	}
-	// Follow a single $ref (AI -> AIObject) to the object that declares the
-	// verb config's own properties.
+	known, ok := s.closedKeySet(body, 0)
+	if !ok {
+		return nil, false
+	}
+	for _, k := range schemaGapKeys[verbName] {
+		known[k] = struct{}{}
+	}
+	return known, true
+}
+
+// maxSchemaResolveDepth bounds $ref / union following so a schema with a
+// self-referential $ref cannot spin the resolver. Eight levels is well past
+// anything the SWML schema needs (verb body -> $ref -> union branch -> $ref).
+const maxSchemaResolveDepth = 8
+
+// closedKeySet resolves ONE schema node to the set of top-level property names
+// it closes over, returning (nil, false) when the node has no such enumerable
+// closed key-set.
+//
+// Three node shapes are handled, and the union case is the one that matters:
+//
+//   - `$ref` — followed into $defs and resolved recursively (ai -> AIObject).
+//   - `anyOf` / `oneOf` — resolved BRANCH BY BRANCH and UNIONED. Without this the
+//     resolver used to bail on the first `type != "object"` test, because a union
+//     node carries no `type` of its own. That bail silently DISENGAGED the
+//     closed-key check: ValidateVerbTopLevelKeys got (nil, false) and reported
+//     Valid for any key whatsoever. Five verbs in the shipped schema are
+//     union-shaped — connect, play, send_sms, sleep, unset — so the check was
+//     doing nothing for all of them. A union's known-key set is the union of its
+//     object branches' keys: a config satisfying the union satisfies SOME branch,
+//     so a key belonging to no branch belongs to no valid document. Non-object
+//     branches (sleep's bare `integer`, SWMLVar) contribute no keys and are
+//     skipped — they constrain the config to not be an object at all, which is a
+//     different check than "which keys may an object config carry".
+//   - a plain closed object — its own `properties`.
+func (s *SchemaUtils) closedKeySet(body map[string]any, depth int) (map[string]struct{}, bool) {
+	if body == nil || depth > maxSchemaResolveDepth {
+		return nil, false
+	}
+
+	// Follow a $ref (ai -> AIObject) to the node that declares the properties.
 	if ref, ok := body["$ref"].(string); ok {
 		refName := ref
 		if i := strings.LastIndex(ref, "/"); i >= 0 {
 			refName = ref[i+1:]
 		}
 		defs, _ := s.schema["$defs"].(map[string]any)
-		if rd, ok := defs[refName].(map[string]any); ok {
-			body = rd
-		} else {
+		rd, ok := defs[refName].(map[string]any)
+		if !ok {
 			return nil, false
 		}
+		return s.closedKeySet(rd, depth+1)
 	}
+
+	// A union node: resolve every branch and union the ones that yield a set.
+	branches, _ := body["anyOf"].([]any)
+	if branches == nil {
+		branches, _ = body["oneOf"].([]any)
+	}
+	if branches != nil {
+		union := map[string]struct{}{}
+		found := false
+		for _, b := range branches {
+			bm, ok := b.(map[string]any)
+			if !ok {
+				continue
+			}
+			keys, ok := s.closedKeySet(bm, depth+1)
+			if !ok {
+				continue
+			}
+			found = true
+			for k := range keys {
+				union[k] = struct{}{}
+			}
+		}
+		if !found {
+			// No branch is a closed object (e.g. unset: string | array-of-string).
+			// There is no key-set to enforce; the deep validator owns this shape.
+			return nil, false
+		}
+		return union, true
+	}
+
 	if t, _ := body["type"].(string); t != "object" {
 		return nil, false
 	}
@@ -393,13 +594,34 @@ func (s *SchemaUtils) verbTopLevelPropertyNames(verbName string) (map[string]str
 	return known, true
 }
 
+// schemaGapKeys lists config keys this SDK deliberately emits that the bundled
+// schema.json does not (yet) declare. They are accepted by the shallow
+// top-level-key check so that binding an emitter to the validating path does not
+// DELETE a shipped feature.
+//
+// This is not an allow-list for invented surface: every entry must be a key an
+// emitter here actually writes, cited below. The right long-term fix is in the
+// schema, not here — each entry is a SCHEMA GAP awaiting an owner ruling, and
+// the entry disappears the moment the schema declares the key.
+//
+//   - ai.multilingual — SetMultilingual sets aiConfig["multilingual"] at the ai
+//     top level (pkg/agent/agent.go:3167-3169, ASR-driven "Mode B", emitted
+//     right alongside `languages`). $defs/AIObject is closed over nine keys and
+//     multilingual is not among them, so the schema and the emitter genuinely
+//     disagree. Rejecting it would drop a shipped feature on the wire; the
+//     schema is the side that is behind.
+var schemaGapKeys = map[string][]string{
+	"ai": {"multilingual"},
+}
+
 // ValidateVerbTopLevelKeys is the SHALLOW strict-render check: reject
 // unknown/misspelled TOP-LEVEL keys in a verb config against the schema's known
 // property set, WITHOUT running the full deep schema (which would false-reject
 // legitimate deep emissions such as the ai verb's empty prompt.pom, SWAIG
 // defaults, or functions[].web_hook_url/__token). Used for handler verbs (the
 // ai verb) whose deep shapes the handler owns. A no-op when validation is
-// disabled or when the verb has no enumerable closed key-set.
+// disabled or when the verb genuinely has no enumerable closed key-set (an open
+// object such as `set`, or a union with no object branch such as `unset`).
 // Mirrors python validate_verb_top_level_keys.
 func (s *SchemaUtils) ValidateVerbTopLevelKeys(verbName string, verbConfig map[string]any) ValidationResult {
 	if !s.validationEnabled {
@@ -439,13 +661,13 @@ func (s *SchemaUtils) validateVerbFull(verbName string, verbConfig map[string]an
 		return s.validateVerbLightweight(verbName, verbConfig)
 	}
 	// Use lightweight for partial/test schemas that lack the full document
-	// structure (no "sections" in properties) — mirrors Python's guard.
+	// structure (no "sections" in properties).
 	props, _ := s.schema["properties"].(map[string]any)
 	if _, ok := props["sections"]; !ok {
 		return s.validateVerbLightweight(verbName, verbConfig)
 	}
 
-	// Wrap the verb in a minimal SWML document, exactly as Python does, so the
+	// Wrap the verb in a minimal SWML document so the
 	// schema's closed-object (unevaluatedProperties) + type + required checks
 	// fire against the real document context.
 	minimalDoc := map[string]any{
@@ -483,12 +705,11 @@ func (s *SchemaUtils) validateVerbLightweight(verbName string, verbConfig map[st
 	return ValidationResult{Valid: len(errors) == 0, Errors: errors}
 }
 
-// ValidateDocument validates a complete SWML document against the
-// schema.  Mirrors Python's “validate_document(document)“.
+// ValidateDocument validates a complete SWML document against the schema.
 //
-// When the full validator is unavailable Python returns
-// “(False, ["Schema validator not initialized"])“; the Go port
-// matches that contract bit-for-bit.
+// When the full validator is unavailable it returns
+// “(false, ["Schema validator not initialized"])“ — an unavailable validator
+// is reported as a failure, never silently as a pass.
 func (s *SchemaUtils) ValidateDocument(document map[string]any) ValidationResult {
 	if s.fullValidator == nil {
 		return ValidationResult{Valid: false, Errors: []string{"Schema validator not initialized"}}
@@ -511,9 +732,9 @@ func (s *SchemaUtils) ValidateDocument(document map[string]any) ValidationResult
 	return ValidationResult{Valid: true, Errors: []string{}}
 }
 
-// GenerateMethodSignature renders a Python-style method signature
-// for a verb — used by code-gen tooling.  Mirrors Python's
-// “generate_method_signature(verb_name)“.
+// GenerateMethodSignature renders a Python-style method signature for a verb —
+// used by code-gen tooling. The emitted text IS Python source: the annotations
+// it prints come from pythonTypeAnnotation.
 func (s *SchemaUtils) GenerateMethodSignature(verbName string) string {
 	params := s.GetVerbParameters(verbName)
 	required := map[string]bool{}
@@ -553,8 +774,8 @@ func (s *SchemaUtils) GenerateMethodSignature(verbName string) string {
 	return fmt.Sprintf("def %s(%s) -> bool:\n%s", verbName, strings.Join(parts, ", "), docstring)
 }
 
-// GenerateMethodBody renders a Python-style method body for a verb.
-// Mirrors Python's “generate_method_body(verb_name)“.
+// GenerateMethodBody renders the Python source of a method body for a verb,
+// the counterpart to GenerateMethodSignature.
 func (s *SchemaUtils) GenerateMethodBody(verbName string) string {
 	params := s.GetVerbParameters(verbName)
 	keys := make([]string, 0, len(params))
@@ -581,8 +802,9 @@ func (s *SchemaUtils) GenerateMethodBody(verbName string) string {
 	return strings.Join(lines, "\n")
 }
 
-// pythonTypeAnnotation maps a JSON-Schema parameter definition to a
-// Python type annotation string, mirroring Python's “_get_type_annotation“.
+// pythonTypeAnnotation maps a JSON-Schema parameter definition to the Python
+// type-annotation string the code-gen output prints (str / int / float / bool /
+// List[…] / Dict[str, Any], falling back to Any).
 func pythonTypeAnnotation(def any) string {
 	d, ok := def.(map[string]any)
 	if !ok {
@@ -620,15 +842,23 @@ func pythonTypeAnnotation(def any) string {
 }
 
 // regexp2Regexp adapts a *regexp2.Regexp to the jsonschema.Regexp interface
-// (an ECMAScript-mode engine with lookahead/lookbehind support, matching the
-// fancy-regex semantics of Python's jsonschema-rs).
+// (an ECMAScript-mode engine with lookahead/lookbehind support, which the SWML
+// schema's patterns require and Go's RE2 cannot provide).
 type regexp2Regexp regexp2.Regexp
 
+// MatchString reports whether the pattern matches anywhere in str. The
+// jsonschema.Regexp interface has no error channel, so a regexp2 evaluation
+// error (e.g. the backtracking-timeout guard tripping) is treated as "no
+// match" — the same conservative outcome as a pattern that simply does not
+// match, which keeps a pathological input from failing the whole validation
+// with an unrelated engine error.
 func (r *regexp2Regexp) MatchString(str string) bool {
 	matched, err := (*regexp2.Regexp)(r).MatchString(str)
 	return err == nil && matched
 }
 
+// String returns the original pattern source the regexp was compiled from,
+// which the validator embeds in "does not match pattern ..." error messages.
 func (r *regexp2Regexp) String() string {
 	return (*regexp2.Regexp)(r).String()
 }

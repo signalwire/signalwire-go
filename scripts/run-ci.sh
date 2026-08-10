@@ -170,14 +170,30 @@ sched_gate TEST defer=1 desc="go test ./... (scripts/run-tests.sh)" \
 sched_gate SURFACE res=surface desc="surface parity suite (SIGNATURES/DRIFT/SURFACE-FRESH/SURFACE-DIFF/SEMVER-DIFF/GEN-TYPE-DEGENERACY/GEN-IDIOM/ROUTE-COLLISION)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/surface.py" --port go --repo "$PORT_ROOT"
 
+# SIGNATURES-FRESH: the committed port_signatures.json must match a fresh regen.
+# SURFACE-FRESH (inside the SURFACE suite above) guards ONLY port_surface.json —
+# nothing guarded the signatures artifact, and that artifact is DRIFT's INPUT, so a
+# stale one silently makes the whole parity gate compare against a fiction.
+#
+# Standalone sched_gate, deliberately NOT a _surface_commands.py table entry: only 8
+# of the 10 run-ci scripts read that table (rust and python never do), so a table
+# entry would be silently skipped on two ports.
+#
+# res=surface: the checker regenerates to .sw-tmp (never the tree) and TreeGuards
+# port_signatures.json, but it runs the SAME go enumerator SURFACE-FRESH does — so
+# it shares the surface resource rather than racing that regen.
+sched_gate SIGNATURES-FRESH res=surface desc="committed port_signatures.json matches a fresh regen" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/_signatures_fresh.py" \
+        --port go --repo "$PORT_ROOT" --porting-sdk "$PORTING_SDK_DIR"
+
 # TYPE-EROSION: a port may not erase a type the reference DECLARES. compare_param treats
 # `any` on EITHER side as matching anything, so a port emitting `any` silently satisfies
 # every reference declaration — an unlimited opt-out. ConciergeAgent.hours_of_operation is
 # declared optional<dict<string,string>> and go still shipped a bare string, with no gate
 # red. RATCHET, not a hard gate: dynamic languages cannot always express a type, so this
 # banks the current count and fails only on REGRESSION. Drive the number DOWN; never up.
-sched_gate TYPE-EROSION res=surface desc="port did not erase a reference-declared param type (ratchet 16)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port go --repo "$PORT_ROOT" --max 16
+sched_gate TYPE-EROSION res=surface desc="port did not erase a reference-declared param type (ratchet 6)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port go --repo "$PORT_ROOT" --max 6
 
 # GEN (regen-from-specs family): the 5 GEN-FRESH rules.
 sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-RELAY/-SWAIG/-SWML)" \
@@ -201,6 +217,21 @@ sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERRO
 sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS/SECRET-SCRUB-LIVE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port go --repo "$PORT_ROOT" \
         --rules WAIT-LIVENESS,RELAY-LIVENESS,SECRET-SCRUB-LIVE
+
+# TOKEN-INTEROP — property 3 of the SWAIG tool-token contract: a token this port MINTS
+# must validate under the REFERENCE's own decoder. SECURE-DEFAULT proves a token is
+# minted and the fleet keying check proves the HMAC key; NEITHER sees the base64
+# ENVELOPE, so a port can ship correct-key correct-HMAC tokens that no other
+# implementation accepts — in production every secure tool call then fails auth. Six of
+# the ten ports shipped exactly that (an unpadded envelope), invisible to their own tests
+# because each port's DECODER tolerates missing padding while the reference's
+# urlsafe_b64decode RAISES on it — so round-tripping against ourselves could never catch
+# it. One mint + a pure-python validation → cheap, per-PR (a security property must not
+# wait for nightly). Its OWN line rather than a member of the BEHAVIORAL suite line,
+# which is defer=1 (heavy wave).
+sched_gate TOKEN-INTEROP desc="a token this port mints validates under the reference's decoder (padded urlsafe base64, ':'-signed / '.'-enveloped, hex HMAC keyed by the secret_key string)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_token_interop.py" --port go \
+        --mint-cmd "go run ./cmd/token-interop-mint"
 
 # DOC-TRUTH (one markdown walk): DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/
 # COUNT-CLAIM/ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE. res=surface: DOC-AUDIT
@@ -235,8 +266,12 @@ sched_gate COORDINATED-REFS desc="every coordinated-set checkout (porting-sdk + 
 sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override documented + canonical CA env names (SIGNALWIRE_REST_BASE_URL / SIGNALWIRE_REST_CA_FILE / SIGNALWIRE_RELAY_CA_FILE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/env_var_consistency.py" --port go --repo "$PORT_ROOT"
 
+# Routed through scripts/run-actionlint.sh (not the porting-sdk script directly) so
+# the PINNED actionlint is bootstrapped/version-checked first — same contract as
+# run-lint.sh + ensure_golangci. An unpinned actionlint changes this gate's verdict
+# with the calendar rather than with the workflow files.
 sched_gate ACTIONLINT desc="GitHub Actions workflow YAML is valid (incl. no step-level secrets.* in if:)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/actionlint_gate.py" --repo "$PORT_ROOT"
+    -- bash "$PORT_ROOT/scripts/run-actionlint.sh"
 
 sched_gate FMT defer=1 desc="gofmt via scripts/run-format.sh (local: auto-fix; CI: --check)" \
     -- bash "$PORT_ROOT/scripts/run-format.sh" ${CI:+--check}
@@ -310,15 +345,15 @@ sched_gate WIRED-MODES res=dayone desc="load-bearing run-ci modes present (WIRED
 sched_gate PUBLIC-JARGON res=dayone desc="no porting/internal jargon in the public API surface" \
     -- python3 "$PORTING_SDK_DIR/scripts/public_jargon.py" --port go --repo "$PORT_ROOT"
 
-# DOC-SURFACE (plan §6.3): godoc coverage floor on the public surface. The floor
-# is pinned in .doc_surface_floor (92.0% today) and ratchets up via --write-floor;
-# report-only at graduation, so a doc regression is visible without failing the run
-# yet (never-regress is enforced once the floor flips blocking).
-# GUARDED: doc_surface.py ships on the porting-sdk plan branch; until it merges to
-# porting-sdk main (which CI clones), skip-with-pass rather than red on a not-yet-
-# landed sibling script. Remove the guard once it's on porting-sdk main.
-sched_gate DOC-SURFACE res=dayone desc="godoc coverage floor on the public API surface (report-only, ratchets via .doc_surface_floor)" \
-    -- bash -c 'if [ -f "$1/scripts/doc_surface.py" ]; then python3 "$1/scripts/doc_surface.py" --port go --repo "$2" --report-only; else echo "[doc-surface] doc_surface.py not on porting-sdk main yet — skip-pass (plan-branch dep)"; fi' _ "$PORTING_SDK_DIR" "$PORT_ROOT"
+# DOC-SURFACE (plan §6.3): godoc coverage floor on the public API surface.
+# BLOCKING. The port is at 100.0% (1482/1482) as of the 2026-07-29 burn and the floor in
+# .doc_surface_floor is pinned there, so a newly-undocumented public symbol is a real
+# regression with a pinned number to prove it — it must red the run, not print a note.
+# Was report-only at graduation, and previously wrapped in a skip-with-pass guard for
+# when doc_surface.py still lived only on the porting-sdk plan branch. Both are gone: the
+# script is on the pinned PORTING_SDK_REF, and a MISSING gate script must fail, not pass.
+sched_gate DOC-SURFACE res=dayone desc="godoc coverage floor on the public API surface (100% — blocking; ratchets via .doc_surface_floor)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_surface.py" --port go --repo "$PORT_ROOT"
 
 # AI-CHAT (task #22, COORDINATED pass go:ai-chat-client <-> porting-sdk:ai-chat-client):
 # wire-behavioral gate for the AIChatClient. Drives cmd/ai-chat-dump through the shared

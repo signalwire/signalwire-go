@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Create an AI agent, assign a phone number, and place a test call.
 //
@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -39,7 +40,11 @@ func main() {
 		fmt.Printf("  Create agent failed: %v\n", err)
 		return
 	}
-	agentID := agent["id"].(string)
+	agentID, agentIDOK := agent["id"].(string)
+	if !agentIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created agent: %s\n", agentID)
 
 	// 2. List all AI agents
@@ -78,7 +83,8 @@ func main() {
 		URL:  &callURL,
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Call failed (expected in demo): %d\n", restErr.StatusCode)
 		} else {
 			fmt.Printf("  Call failed: %v\n", err)

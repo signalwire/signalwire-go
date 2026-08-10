@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Conference infrastructure, cXML resources, generic routing, and tokens.
 //
@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -36,14 +37,19 @@ func main() {
 		fmt.Printf("  Create conference room failed: %v\n", err)
 		return
 	}
-	roomID := room["id"].(string)
+	roomID, roomIDOK := room["id"].(string)
+	if !roomIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created conference room: %s\n", roomID)
 
 	// 2. List conference room addresses
 	fmt.Println("\nListing conference room addresses...")
 	addrs, err := client.Fabric.ConferenceRooms.ListAddresses(context.Background(), roomID, nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  List addresses failed: %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -62,7 +68,11 @@ func main() {
 		fmt.Printf("  Create cXML script failed: %v\n", err)
 		return
 	}
-	cxmlID := cxml["id"].(string)
+	cxmlID, cxmlIDOK := cxml["id"].(string)
+	if !cxmlIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created cXML script: %s\n", cxmlID)
 
 	// 4. Create a cXML webhook
@@ -75,7 +85,11 @@ func main() {
 		fmt.Printf("  Create cXML webhook failed: %v\n", err)
 		return
 	}
-	cxmlWHID := cxmlWH["id"].(string)
+	cxmlWHID, cxmlWHIDOK := cxmlWH["id"].(string)
+	if !cxmlWHIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created cXML webhook: %s\n", cxmlWHID)
 
 	// 5. Create a relay application
@@ -88,7 +102,11 @@ func main() {
 		fmt.Printf("  Create relay application failed: %v\n", err)
 		return
 	}
-	relayID := relayApp["id"].(string)
+	relayID, relayIDOK := relayApp["id"].(string)
+	if !relayIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created relay application: %s\n", relayID)
 
 	// 6. Generic resources: list all
@@ -131,7 +149,8 @@ func main() {
 		"domain": "app.example.com",
 	}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Domain assignment failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -142,7 +161,8 @@ func main() {
 	fmt.Println("\nGenerating tokens...")
 	guest, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Guest token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -155,11 +175,12 @@ func main() {
 
 	invite, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Invite token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		token := string(invite.Token)
+		token := invite.Token
 		if len(token) > 40 {
 			token = token[:40]
 		}
@@ -168,11 +189,12 @@ func main() {
 
 	embed, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Embed token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
-		token := string(embed.Token)
+		token := embed.Token
 		if len(token) > 40 {
 			token = token[:40]
 		}
@@ -181,12 +203,24 @@ func main() {
 
 	// 10. Clean up
 	fmt.Println("\nCleaning up...")
-	client.Fabric.RelayApplications.Delete(context.Background(), relayID)
-	fmt.Printf("  Deleted relay application %s\n", relayID)
-	client.Fabric.CXMLWebhooks.Delete(context.Background(), cxmlWHID)
-	fmt.Printf("  Deleted cXML webhook %s\n", cxmlWHID)
-	client.Fabric.CXMLScripts.Delete(context.Background(), cxmlID)
-	fmt.Printf("  Deleted cXML script %s\n", cxmlID)
-	client.Fabric.ConferenceRooms.Delete(context.Background(), roomID)
-	fmt.Printf("  Deleted conference room %s\n", roomID)
+	if _, err := client.Fabric.RelayApplications.Delete(context.Background(), relayID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted relay application %s\n", relayID)
+	}
+	if _, err := client.Fabric.CXMLWebhooks.Delete(context.Background(), cxmlWHID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted cXML webhook %s\n", cxmlWHID)
+	}
+	if _, err := client.Fabric.CXMLScripts.Delete(context.Background(), cxmlID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted cXML script %s\n", cxmlID)
+	}
+	if _, err := client.Fabric.ConferenceRooms.Delete(context.Background(), roomID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted conference room %s\n", roomID)
+	}
 }

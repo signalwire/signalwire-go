@@ -5,10 +5,12 @@ All notable changes to the SignalWire AI Agents Go SDK are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/). Versions are
 published as git tags (`v<MAJOR>.<MINOR>.<PATCH>`) resolved by the Go module proxy.
 
-## 3.0.2
+## 3.0.0
 
-Release-floor baseline for the generated-REST surface. `port_signatures.baseline.json`
-captures this public API surface as the SemVer floor enforced by the SEMVER-DIFF gate.
+First release of the generated-REST surface. Unreleased — no `v3.x` tag has been
+pushed; the version below is intent. `port_signatures.baseline.json` carries the
+separate SemVer *floor* (`baseline_version`) that the SEMVER-DIFF gate diffs against;
+that floor is a snapshot identifier and is deliberately not renumbered with this entry.
 
 - REST client with generated, typed namespaced resources across the REST API
   namespaces (calling, chat, datasphere, fabric, fax, logs, message, project,

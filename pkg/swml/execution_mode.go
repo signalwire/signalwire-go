@@ -27,8 +27,8 @@ const (
 )
 
 // GetExecutionMode inspects the process environment and returns the detected
-// runtime mode. The detection order matches the Python and TypeScript SDKs so
-// that the same env vars resolve to the same mode across languages.
+// runtime mode. The detection order below is fixed, so the same set of
+// environment variables always resolves to the same mode.
 //
 // Detection order:
 //  1. CGI         (GATEWAY_INTERFACE)
@@ -58,12 +58,8 @@ func GetExecutionMode() ExecutionMode {
 }
 
 // IsServerlessMode reports whether the process is running in any serverless
-// environment (i.e. NOT in plain long-running server mode).
-//
-// Mirrors Python's is_serverless_mode():
-//
-//	def is_serverless_mode() -> bool:
-//	    return get_execution_mode() != 'server'
+// environment (i.e. NOT in plain long-running server mode): true for every
+// mode GetExecutionMode can return except ModeServer.
 func IsServerlessMode() bool {
 	return GetExecutionMode() != ModeServer
 }

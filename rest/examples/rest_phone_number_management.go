@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Full phone number inventory lifecycle.
 //
@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -52,12 +53,15 @@ func main() {
 	}
 	number, err := client.PhoneNumbers.Create(context.Background(), map[string]any{"number": numberE164})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Purchase failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		numID = number["id"].(string)
+	} else if id, ok := number["id"].(string); ok {
+		numID = id
 		fmt.Printf("  Purchased: %s\n", numID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 3. List and get owned numbers
@@ -98,19 +102,23 @@ func main() {
 	var groupID string
 	group, err := client.NumberGroups.Create(context.Background(), map[string]any{"name": "Sales Pool"})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Group creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		groupID = group["id"].(string)
+	} else if id, ok := group["id"].(string); ok {
+		groupID = id
 		fmt.Printf("  Created group: %s\n", groupID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 6. Lookup carrier info
 	fmt.Println("\nLooking up carrier info...")
 	info, err := client.Lookup.PhoneNumber(context.Background(), "+15125551234", nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Lookup failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else if info.Carrier != nil {
@@ -122,19 +130,23 @@ func main() {
 	var callerID string
 	caller, err := client.VerifiedCallers.Create(context.Background(), map[string]any{"phone_number": "+15125559999"})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Verified caller failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		callerID = caller["id"].(string)
+	} else if id, ok := caller["id"].(string); ok {
+		callerID = id
 		fmt.Printf("  Created verified caller: %s\n", callerID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 8. Get SIP profile
 	fmt.Println("\nGetting SIP profile...")
 	profile, err := client.SIPProfile.Get(context.Background(), nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  SIP profile failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -145,7 +157,8 @@ func main() {
 	fmt.Println("\nListing short codes...")
 	codes, err := client.ShortCodes.List(context.Background(), nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Short codes failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -166,7 +179,8 @@ func main() {
 		"iso_country":   "US",
 	}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Address creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -177,12 +191,16 @@ func main() {
 	// 11. Clean up
 	fmt.Println("\nCleaning up...")
 	if addrID != "" {
-		client.Addresses.Delete(context.Background(), addrID)
-		fmt.Printf("  Deleted address %s\n", addrID)
+		if _, err := client.Addresses.Delete(context.Background(), addrID); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Printf("  Deleted address %s\n", addrID)
+		}
 	}
 	if callerID != "" {
 		if _, err := client.VerifiedCallers.Delete(context.Background(), callerID); err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  Verified caller delete failed: %d\n", restErr.StatusCode)
 			}
 		} else {
@@ -190,12 +208,16 @@ func main() {
 		}
 	}
 	if groupID != "" {
-		client.NumberGroups.Delete(context.Background(), groupID)
-		fmt.Printf("  Deleted number group %s\n", groupID)
+		if _, err := client.NumberGroups.Delete(context.Background(), groupID); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Printf("  Deleted number group %s\n", groupID)
+		}
 	}
 	if numID != "" {
 		if _, err := client.PhoneNumbers.Delete(context.Background(), numID); err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  Release number failed (recently purchased): %d\n", restErr.StatusCode)
 			}
 		} else {

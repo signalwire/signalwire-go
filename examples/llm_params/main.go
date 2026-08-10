@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: llm_params
 //
@@ -43,9 +43,12 @@ func main() {
 		Name:        "get_system_info",
 		Description: "Get technical system information",
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
+			// Fabricated demo telemetry for the tool's response — never used
+			// for a token, key, or any security decision, so math/rand is the
+			// right generator here.
 			return swaig.NewFunctionResult(
 				fmt.Sprintf("System Status: CPU %d%%, Memory %dGB, Uptime %d days",
-					rand.Intn(80)+10, rand.Intn(15)+1, rand.Intn(30)+1),
+					rand.Intn(80)+10, rand.Intn(15)+1, rand.Intn(30)+1), //nolint:gosec // G404: fake demo stats, not security-bearing
 			)
 		},
 	})
@@ -93,8 +96,10 @@ func main() {
 				"A compass that points to what you need most",
 				"A door that leads somewhere different each time",
 			}
+			// Picks one of the canned creative prompts above; not
+			// security-bearing, so math/rand is the right generator here.
 			return swaig.NewFunctionResult(
-				fmt.Sprintf("Story prompt for %s: %s", theme, prompts[rand.Intn(len(prompts))]),
+				fmt.Sprintf("Story prompt for %s: %s", theme, prompts[rand.Intn(len(prompts))]), //nolint:gosec // G404: demo prompt selection, not security-bearing
 			)
 		},
 	})

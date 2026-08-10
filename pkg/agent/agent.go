@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,8 +55,8 @@ type DebugEventHandler func(event map[string]any)
 // non-nil map applies modifications to the rendered SWML; returning nil
 // uses the default rendering unchanged.
 //
-// Matches Python: web_mixin.WebMixin.on_swml_request — Go has no method
-// inheritance, so we expose the override as a settable function field.
+// Go has no method inheritance, so this override is exposed as a settable
+// function field rather than an overridable method.
 type OnSwmlRequestHook func(requestData map[string]any, callbackPath string, r *http.Request) map[string]any
 
 // ---------------------------------------------------------------------------
@@ -64,10 +65,6 @@ type OnSwmlRequestHook func(requestData map[string]any, callbackPath string, r *
 
 // ToolDefinition describes a single SWAIG tool including its JSON Schema
 // parameters and a Go handler function.
-//
-// Python equivalent: signalwire.core.mixins.tool_mixin.ToolMixin.define_tool
-// Added fields to match Python: WebhookURL (webhook_url param), Required
-// (required param for required argument names), IsTypedHandler (is_typed_handler).
 type ToolDefinition struct {
 	Name        string
 	Description string
@@ -108,8 +105,7 @@ func (td *ToolDefinition) IsSecure() bool {
 // It constructs a JSON Schema envelope from Parameters and Required (matching the
 // shape emitted by buildSwaigFunctions) and validates args against that schema using
 // encoding/json round-trip comparison.  When Parameters is nil or empty the function
-// returns (true, nil) immediately, mirroring the Python SDK's behaviour of skipping
-// validation when no schema is declared.
+// returns (true, nil) immediately: no declared schema means no validation.
 //
 // Go's standard library does not include a JSON Schema validator, so this
 // implementation performs a best-effort structural check:
@@ -221,8 +217,6 @@ func WithAIVerbName(name string) AgentOption {
 // WithUsePom controls whether Prompt Object Model (POM) mode is active.
 // When true (default), structured prompt sections are used; when false,
 // raw text from SetPromptText is used.
-//
-// Python equivalent: use_pom parameter in AgentBase.__init__
 func WithUsePom(usePom bool) AgentOption {
 	return func(a *AgentBase) { a.usePom = usePom }
 }
@@ -230,25 +224,18 @@ func WithUsePom(usePom bool) AgentOption {
 // WithDefaultWebhookURL sets the default webhook URL for all SWAIG functions.
 // When set, this URL is used as the fallback for all tools that do not specify
 // their own WebhookURL.
-//
-// Python equivalent: default_webhook_url parameter in AgentBase.__init__
 func WithDefaultWebhookURL(url string) AgentOption {
 	return func(a *AgentBase) { a.defaultWebhookURL = url }
 }
 
 // WithAgentID sets a fixed agent ID. If not provided, a UUID is generated
 // automatically in NewAgentBase.
-//
-// Python equivalent: agent_id parameter in AgentBase.__init__
-// Python behavior: self.agent_id = agent_id or str(uuid.uuid4())
 func WithAgentID(id string) AgentOption {
 	return func(a *AgentBase) { a.AgentID = id }
 }
 
 // WithNativeFunctions sets the initial list of native (built-in) SWAIG
 // function names to include in the SWAIG object on every rendered document.
-//
-// Python equivalent: native_functions parameter in AgentBase.__init__
 func WithNativeFunctions(names []string) AgentOption {
 	return func(a *AgentBase) {
 		if names != nil {
@@ -259,16 +246,12 @@ func WithNativeFunctions(names []string) AgentOption {
 
 // WithSchemaPath sets the path to an optional SWML schema file used for
 // validation. If empty, no schema validation is performed.
-//
-// Python equivalent: schema_path parameter in AgentBase.__init__
 func WithSchemaPath(path string) AgentOption {
 	return func(a *AgentBase) { a.schemaPath = path }
 }
 
 // WithSuppressLogs disables verbose structured logging from the agent.
 // When true, info-level agent lifecycle logs are suppressed.
-//
-// Python equivalent: suppress_logs parameter in AgentBase.__init__
 func WithSuppressLogs(suppress bool) AgentOption {
 	return func(a *AgentBase) { a.suppressLogs = suppress }
 }
@@ -276,16 +259,12 @@ func WithSuppressLogs(suppress bool) AgentOption {
 // WithEnablePostPromptOverride allows subclasses to override the post-prompt
 // URL with a custom handler. When enabled, the agent registers a
 // /post_prompt_override endpoint and routes summary callbacks through it.
-//
-// Python equivalent: enable_post_prompt_override parameter in AgentBase.__init__
 func WithEnablePostPromptOverride(enable bool) AgentOption {
 	return func(a *AgentBase) { a.enablePostPromptOverride = enable }
 }
 
 // WithCheckForInputOverride enables the /check_for_input endpoint, which
 // allows external systems to inject input into an active AI session.
-//
-// Python equivalent: check_for_input_override parameter in AgentBase.__init__
 func WithCheckForInputOverride(enable bool) AgentOption {
 	return func(a *AgentBase) { a.checkForInputOverride = enable }
 }
@@ -293,8 +272,6 @@ func WithCheckForInputOverride(enable bool) AgentOption {
 // WithConfigFile sets the path to an optional YAML/JSON service configuration
 // file. When provided, the file is loaded at startup and its values are merged
 // with (but do not override) explicit constructor parameters.
-//
-// Python equivalent: config_file parameter in AgentBase.__init__
 func WithConfigFile(path string) AgentOption {
 	return func(a *AgentBase) { a.configFile = path }
 }
@@ -303,8 +280,6 @@ func WithConfigFile(path string) AgentOption {
 // validated against the SWML schema before serving. Defaults to true.
 // Can also be disabled via the SWML_SKIP_SCHEMA_VALIDATION=1 environment
 // variable.
-//
-// Python equivalent: schema_validation parameter in AgentBase.__init__
 func WithSchemaValidation(validate bool) AgentOption {
 	return func(a *AgentBase) { a.schemaValidation = validate }
 }
@@ -319,8 +294,6 @@ func WithSchemaValidation(validate bool) AgentOption {
 // SIGNALWIRE_SIGNING_KEY environment variable. When neither is set, the
 // agent accepts unsigned requests and emits a one-time WARN log on
 // startup, per the SignalWire webhooks specification §"AgentBase integration".
-//
-// Python equivalent: AgentBase(signing_key="...") parameter.
 func WithSigningKey(key string) AgentOption {
 	return func(a *AgentBase) { a.signingKey = key }
 }
@@ -331,9 +304,9 @@ func WithSigningKey(key string) AgentOption {
 // without it the validator sees the internal scheme/host and the signature
 // will mismatch.
 //
-// No Python-equivalent flag — Python's web_mixin reads X-Forwarded-* headers
-// unconditionally; in Go we make it explicit because forging these headers
-// is a real attack on naive deployments.
+// Off by default and opt-in, deliberately: X-Forwarded-* headers are
+// caller-controlled, and trusting them unconditionally is a real attack on
+// naive deployments. Enable it only behind a proxy you control.
 func WithSigningKeyTrustProxy(trust bool) AgentOption {
 	return func(a *AgentBase) { a.signingKeyTrustProxy = trust }
 }
@@ -510,7 +483,6 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 	}
 
 	// Auto-generate agent ID if not provided by WithAgentID.
-	// Python equivalent: self.agent_id = agent_id or str(uuid.uuid4())
 	if a.AgentID == "" {
 		a.AgentID = generateUUID()
 	}
@@ -524,6 +496,14 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 	}
 	if a.pendingBasicAuthUser != "" && a.pendingBasicAuthPassword != "" {
 		svcOpts = append(svcOpts, swml.WithBasicAuth(a.pendingBasicAuthUser, a.pendingBasicAuthPassword))
+	}
+	// Hand the config-file path to the Service so its `security` section is
+	// actually resolved (Python: SWMLService.__init__ passes config_file
+	// straight into SecurityConfig). Without this the path was stored on
+	// AgentBase and never read, so an operator supplying ssl_enabled + a
+	// cert/key via WithConfigFile got a plain-HTTP server with no error.
+	if a.configFile != "" {
+		svcOpts = append(svcOpts, swml.WithConfigFile(a.configFile))
 	}
 	a.Service = swml.NewService(svcOpts...)
 	a.Logger = logging.New(a.Name)
@@ -566,14 +546,27 @@ func NewAgentBase(opts ...AgentOption) *AgentBase {
 // is otherwise a straight pass-through.
 type skillAgent struct{ a *AgentBase }
 
+// AddHints appends speech-recognition hints to the agent's hint list. Hints
+// accumulate; they are neither deduplicated nor replaced.
 func (s *skillAgent) AddHints(hints []string) { s.a.AddHints(hints) }
 
+// UpdateGlobalData merges data into the agent's global data — a shallow
+// key-by-key merge, so an existing key is overwritten and keys absent from data
+// survive.
 func (s *skillAgent) UpdateGlobalData(data map[string]any) { s.a.UpdateGlobalData(data) }
 
+// PromptAddSection appends a POM section titled title. An empty body or an
+// empty bullets slice is omitted from the rendered section rather than emitted
+// as an empty value.
 func (s *skillAgent) PromptAddSection(title, body string, bullets []string) {
 	s.a.PromptAddSection(title, body, bullets)
 }
 
+// DefineTool registers reg as a SWAIG tool on the agent, translating the
+// skills.ToolRegistration into an agent.ToolDefinition. Registration is keyed by
+// reg.Name, so re-registering the same name replaces the previous definition
+// while keeping its position in the tool order. Secure is passed through
+// unchanged, preserving the tri-state contract in which nil means SECURE.
 func (s *skillAgent) DefineTool(reg skills.ToolRegistration) {
 	handler := reg.Handler
 	td := ToolDefinition{
@@ -626,12 +619,16 @@ func (a *AgentBase) GetName() string {
 // GetFullURL returns the full URL for this agent's endpoint, optionally
 // embedding basic-auth credentials.
 //
-// Python equivalent: AgentBase.get_full_url(include_auth=False) (agent_base.py:325)
+// Serverless URL construction (CGI / Lambda / Cloud Functions / Azure) lives in
+// pkg/lambda and pkg/serverless; this method handles SERVER mode only, and
+// delegates that URL building to the embedded swml.Service.
 //
-// The Python implementation handles serverless URL construction (CGI / Lambda /
-// Cloud Functions / Azure) inline. In the Go SDK, serverless URL construction
-// lives in pkg/lambda; this method delegates server-mode URL building to the
-// embedded swml.Service and matches Python's server-mode behavior.
+// includeAuth's reference default (`get_full_url(include_auth=False)`) IS Go's
+// bool zero value, so passing nothing and passing false are the same call and
+// the body treats false as the ordinary path — the caller can decline. This
+// method delegates, so no guard in THIS body carries that fact.
+//
+//sw:param includeAuth optional
 func (a *AgentBase) GetFullURL(includeAuth bool) string {
 	return a.Service.GetFullURL(includeAuth)
 }
@@ -667,12 +664,6 @@ func (a *AgentBase) SetPromptPom(pom []map[string]any) *AgentBase {
 }
 
 // PromptAddSection appends a new section to the POM prompt.
-//
-// Python equivalent: prompt_mixin.PromptMixin.prompt_add_section
-// Added params to match Python signature: numbered, numberedBullets, subsections.
-// - numbered: if true the section itself is rendered with a numeric marker
-// - numberedBullets: if true the bullet list is rendered with numbers
-// - subsections: optional list of child section maps (each with "title", "body", "bullets")
 func (a *AgentBase) PromptAddSection(title string, body string, bullets []string, opts ...PromptSectionOption) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -714,31 +705,22 @@ type promptSectionCfg struct {
 type PromptSectionOption func(*promptSectionCfg)
 
 // WithNumbered marks the section as numbered.
-// Python equivalent: numbered=True in prompt_add_section
 func WithNumbered(v bool) PromptSectionOption {
 	return func(c *promptSectionCfg) { c.numbered = v }
 }
 
 // WithNumberedBullets marks the bullets list as numbered.
-// Python equivalent: numbered_bullets=True in prompt_add_section
 func WithNumberedBullets(v bool) PromptSectionOption {
 	return func(c *promptSectionCfg) { c.numberedBullets = v }
 }
 
 // WithSubsections attaches child sections to the parent section.
-// Python equivalent: subsections=[...] in prompt_add_section
 func WithSubsections(subs []map[string]any) PromptSectionOption {
 	return func(c *promptSectionCfg) { c.subsections = subs }
 }
 
 // PromptAddToSection finds an existing POM section by title and appends
 // text and/or bullets. If the section does not exist, it is a no-op.
-//
-// Python equivalent: prompt_mixin.PromptMixin.prompt_add_to_section
-// Added params to match Python signature: bullet (single bullet string) and
-// bullets ([]string list). When body is non-empty it is appended to the
-// section body. When bullet is non-empty it is added to the bullets list.
-// When bullets is non-nil its elements are appended to the bullets list.
 func (a *AgentBase) PromptAddToSection(title string, body string, opts ...PromptAddToSectionOption) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -785,13 +767,11 @@ type promptAddToSectionCfg struct {
 type PromptAddToSectionOption func(*promptAddToSectionCfg)
 
 // WithBullet adds a single bullet point to an existing section.
-// Python equivalent: bullet= param in prompt_add_to_section
 func WithBullet(b string) PromptAddToSectionOption {
 	return func(c *promptAddToSectionCfg) { c.bullet = b }
 }
 
 // WithBullets adds multiple bullet points to an existing section.
-// Python equivalent: bullets= param in prompt_add_to_section
 func WithBullets(bs []string) PromptAddToSectionOption {
 	return func(c *promptAddToSectionCfg) { c.bullets = bs }
 }
@@ -846,13 +826,10 @@ func (a *AgentBase) GetPrompt() any {
 }
 
 // Pom returns a typed PromptObjectModel built from the agent's current
-// POM sections. Returns nil when use_pom is false (Matches Python:
-// “self.pom“ is “None“ when “use_pom=False“). The returned value
+// POM sections. Returns nil when POM mode is off (WithUsePom(false)).
+// The returned value
 // is a deep copy / fresh build — mutations don't affect the agent's
 // internal state.
-//
-// Python equivalent: “agent.pom“ instance attribute (agent_base.py
-// line 209), which is a “PromptObjectModel“ instance.
 func (a *AgentBase) Pom() *pom.PromptObjectModel {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -926,8 +903,6 @@ func agentSectionToPom(m map[string]any) *pom.Section {
 
 // PostPrompt returns the current post-prompt text. Returns an empty string
 // if no post-prompt has been set.
-//
-// Python equivalent: prompt_mixin.PromptMixin.get_post_prompt (prompt_mixin.py line 374)
 func (a *AgentBase) PostPrompt() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -937,8 +912,6 @@ func (a *AgentBase) PostPrompt() string {
 // RawPrompt returns the raw prompt text whatever “SetPromptText“ stored,
 // regardless of POM mode. Returns an empty string when no raw prompt has
 // been set.
-//
-// Python equivalent: prompt_manager.PromptManager.get_raw_prompt
 func (a *AgentBase) RawPrompt() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -946,12 +919,31 @@ func (a *AgentBase) RawPrompt() string {
 }
 
 // GetContexts returns the contexts as a serialised map (the same shape SWML
-// expects), or nil when no contexts have been defined yet. This mirrors
-// Python's “PromptManager.get_contexts“ which returns the contexts dict
-// or “None“.
-//
-// Python equivalent: prompt_manager.PromptManager.get_contexts
+// expects), or nil when no contexts have been defined yet.
 func (a *AgentBase) GetContexts() map[string]any {
+	a.mu.RLock()
+	cb := a.contextBuilder
+	a.mu.RUnlock()
+	if cb == nil {
+		return nil
+	}
+	m, err := cb.ToMap()
+	if err != nil {
+		return nil
+	}
+	return m
+}
+
+// contextsSnapshot serialises the agent's ContextBuilder with a.mu NOT held.
+//
+// It takes the read guard only long enough to copy the builder POINTER out, then
+// releases it before calling ToMap(), because ToMap() -> Validate() reenters the
+// agent through cb.agent.ListToolNames() (contexts.go:1137 -> agent.go:2004).
+// Returns nil when no contexts are defined or serialisation fails, which is the
+// same "omit the key" outcome the inline code produced.
+//
+// Callers must invoke this BEFORE acquiring a.mu.
+func (a *AgentBase) contextsSnapshot() map[string]any {
 	a.mu.RLock()
 	cb := a.contextBuilder
 	a.mu.RUnlock()
@@ -1055,7 +1047,6 @@ func (a *AgentBase) RegisterSwaigFunction(funcDef map[string]any) *AgentBase {
 }
 
 // HasFunction reports whether a SWAIG function with the given name is
-// registered. (Matches Python: “ToolRegistry.has_function“.)
 func (a *AgentBase) HasFunction(name string) bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1064,8 +1055,7 @@ func (a *AgentBase) HasFunction(name string) bool {
 }
 
 // Function returns the registered tool definition for the given
-// name, or nil when no such function is registered. (Matches Python:
-// “ToolRegistry.get_function“.)
+// name, or nil when no such function is registered.
 func (a *AgentBase) Function(name string) *ToolDefinition {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1077,7 +1067,7 @@ func (a *AgentBase) Function(name string) *ToolDefinition {
 
 // AllFunctions returns a snapshot of all registered SWAIG functions
 // keyed by name. The returned map is a copy — subsequent registrations
-// do not mutate it. (Matches Python: “ToolRegistry.get_all_functions“.)
+// do not mutate it.
 func (a *AgentBase) AllFunctions() map[string]*ToolDefinition {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1090,7 +1080,6 @@ func (a *AgentBase) AllFunctions() map[string]*ToolDefinition {
 
 // RemoveFunction removes a registered SWAIG function. Returns true when
 // the function was found and removed; false when it wasn't registered.
-// (Matches Python: “ToolRegistry.remove_function“.)
 func (a *AgentBase) RemoveFunction(name string) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1121,6 +1110,12 @@ func (a *AgentBase) DefineTools() []*ToolDefinition {
 }
 
 // OnFunctionCall dispatches a SWAIG function call to the registered handler.
+//
+// rawData is the unparsed SWAIG POST body, forwarded to the handler untouched;
+// this body never reads it, and a handler that does not need it is called with
+// nil. Matches the reference `on_function_call(name, args, raw_data=None)`.
+//
+//sw:param rawData optional
 func (a *AgentBase) OnFunctionCall(name string, args map[string]any, rawData map[string]any) (any, error) {
 	a.mu.RLock()
 	tool, ok := a.tools[name]
@@ -1164,16 +1159,12 @@ func (a *AgentBase) AddHints(hints []string) *AgentBase {
 // AddPatternHint adds a pattern-based speech-recognition hint with regex
 // replacement semantics.
 //
-// Python equivalent: ai_config_mixin.AIConfigMixin.add_pattern_hint
-// Python signature: add_pattern_hint(hint, pattern, replace, ignore_case=False)
-//
-// The Python implementation appends to self._hints (not a separate list) as a
-// dict with keys "hint", "pattern", "replace", "ignore_case", so the structured
-// hint renders inside the SWML ai.hints array alongside plain-string hints. The
-// Go implementation stores in patternHints and merges into that same rendered
-// "hints" array at render time. Matching Python, a call with any of hint,
-// pattern, or replace empty is a no-op (the hint is only attached when all three
-// are non-empty).
+// A structured hint renders inside the SWML ai.hints array alongside
+// plain-string hints, as an object with keys "hint", "pattern", "replace" and
+// "ignore_case". They are stored separately (patternHints) and merged into that
+// same rendered "hints" array at render time. A call with any of hint, pattern,
+// or replace empty is a no-op — the hint is only attached when all three are
+// non-empty.
 //
 // Parameters:
 //   - hint:       the hint text the model receives
@@ -1206,11 +1197,7 @@ func (a *AgentBase) AddLanguage(config map[string]any) *AgentBase {
 	return a
 }
 
-// AddLanguageTyped adds a language configuration using typed named parameters,
-// matching the Python SDK's add_language method signature exactly.
-//
-// Python equivalent: ai_config_mixin.AIConfigMixin.add_language
-// Python signature: add_language(name, code, voice, speech_fillers=None,
+// AddLanguageTyped adds a language configuration using typed named parameters.
 //
 //	function_fillers=None, engine=None, model=None, params=None)
 //
@@ -1292,14 +1279,17 @@ func (a *AgentBase) AddLanguageTyped(name, code, voice string, speechFillers, fu
 // AddLanguage/AddLanguageTyped first and engine-specific tuning is added
 // later (e.g., from a config loader).
 //
-// Python equivalent: ai_config_mixin.AIConfigMixin.set_language_params
-// Python signature: set_language_params(code, params)
-//
 // Parameters:
 //   - code:   language code as previously passed to AddLanguage (e.g. "en-US")
 //   - params: engine-specific params dict to attach. Empty/nil removes the key.
 //
 // Returns the AgentBase for chaining. No-op if the code isn't found.
+//
+// The `len(params) > 0` branch removes the key rather than defaulting it, so an
+// empty params dict is a MEANINGFUL argument ("clear the params"), not an
+// omitted one. The reference declares `params: dict[str, Any]` with no default.
+//
+//sw:param params required
 func (a *AgentBase) SetLanguageParams(code string, params map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1318,9 +1308,6 @@ func (a *AgentBase) SetLanguageParams(code string, params map[string]any) *Agent
 
 // LanguageParams reads the per-language params dict for a previously-added
 // language.
-//
-// Python equivalent: ai_config_mixin.AIConfigMixin.get_language_params
-// Python signature: get_language_params(code) -> Optional[Dict[str, Any]]
 //
 // Returns the params map if set, or nil otherwise (including when the code is
 // unknown). Callers can distinguish "no params set" from "empty params set" by
@@ -1350,9 +1337,6 @@ func (a *AgentBase) SetLanguages(languages []map[string]any) *AgentBase {
 
 // SetMultilingual configures ASR-driven multilingual mode (Mode B).
 //
-// Python equivalent: ai_config_mixin.AIConfigMixin.set_multilingual
-// Python signature: set_multilingual(config) -> AgentBase
-//
 // Emits a top-level multilingual object on the AI verb. The recognizer runs in
 // code-switching mode and the agent answers in whatever language the caller
 // actually spoke - the model does not pick the language. This is mutually
@@ -1362,6 +1346,15 @@ func (a *AgentBase) SetLanguages(languages []map[string]any) *AgentBase {
 // Parameters:
 //   - config: the multilingual config object (languages, allowed,
 //     start_language, min_switch_words, fillers, etc.).
+//
+// The `len(config) > 0` guard is a defensive no-op, not a default: there is no
+// multilingual configuration to fall back to, so calling this with nothing
+// configures nothing. The reference declares `config: dict[str, Any]` with no
+// default. (Structurally identical to AddAnswerVerb's `config`, which the
+// reference DOES default to None — the discriminator is the contract, not the
+// Go source, which is why it is declared here.)
+//
+//sw:param config required
 func (a *AgentBase) SetMultilingual(config map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1372,9 +1365,6 @@ func (a *AgentBase) SetMultilingual(config map[string]any) *AgentBase {
 }
 
 // AddPronunciation adds a pronunciation override rule.
-//
-// Python equivalent: ai_config_mixin.AIConfigMixin.add_pronunciation
-// Python signature: add_pronunciation(replace, with_text, ignore_case=False)
 //
 // Parameters:
 //   - replace:    the word or expression to match
@@ -1418,9 +1408,9 @@ func (a *AgentBase) SetParams(params map[string]any) *AgentBase {
 	return a
 }
 
-// SetGlobalData merges data into the global data (later keys win, siblings
-// survive) — matching Python's set_global_data, which is a .update() not a
-// replace. Use ClearGlobalData first if a full replace is intended.
+// SetGlobalData MERGES data into the global data (later keys win, siblings
+// survive); it is not a replace. Use ClearGlobalData first if a full replace
+// is intended.
 func (a *AgentBase) SetGlobalData(data map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1619,14 +1609,32 @@ func (a *AgentBase) AddInternalFiller(funcName, langCode string, fillers []strin
 }
 
 // EnableDebugEvents sets the debug events level (0 = off).
-func (a *AgentBase) EnableDebugEvents(level int) *AgentBase {
+//
+// level is variadic because the reference defaults it to 1
+// (`enable_debug_events(level=1)`) while Go's int zero, 0, is a MEANINGFUL
+// value here — it turns debug events OFF. A plain `int` parameter therefore has
+// no spelling for "not supplied" that does not also mean "disable". Call it with
+// no argument for level 1.
+func (a *AgentBase) EnableDebugEvents(level ...int) *AgentBase {
+	lvl := 1 // reference default: enable_debug_events(level=1)
+	if len(level) > 0 {
+		lvl = level[0]
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.debugEventsLevel = level
+	a.debugEventsLevel = lvl
 	return a
 }
 
 // AddFunctionInclude adds a remote SWAIG function include.
+//
+// `functions` names which remote functions to include; an include that names
+// none includes nothing, so the caller must supply it. The `len(functions) > 0`
+// guard omits an empty wire key, which is not the same as accepting an omitted
+// argument. Mirrors the reference `add_function_include(url, functions,
+// meta_data=None)` — only meta_data is defaulted.
+//
+//sw:param functions required
 func (a *AgentBase) AddFunctionInclude(url string, functions []string, metaData map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1742,14 +1750,13 @@ func sortedPreAnswerSafeVerbs() []string {
 
 // AddPreAnswerVerb adds a SWML verb to execute before the answer.
 //
-// Python equivalent: AgentBase.add_pre_answer_verb (agent_base.py:546).
 // Pre-answer verbs run while the call is still ringing, so only certain verbs
-// are safe. A verb that is genuinely unsafe before answer is an INVALID input:
-// Python raises ValueError, and the Go port panics (a chaining builder that
-// returns *AgentBase cannot return an error; panic matches the port's
-// convention for build-time invalid args — see datamap.Expression). Verbs that
+// are safe. A verb that is genuinely unsafe before answer is an INVALID input
+// and panics: a chaining builder that returns *AgentBase cannot return an
+// error, and panic is this SDK's convention for build-time invalid arguments
+// (see datamap.Expression). Verbs that
 // answer the call (play, connect) instead get a warning unless
-// "auto_answer": false is present, mirroring Python's _AUTO_ANSWER_VERBS branch.
+// "auto_answer": false is present.
 func (a *AgentBase) AddPreAnswerVerb(verbName string, config map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1773,6 +1780,15 @@ func (a *AgentBase) AddPreAnswerVerb(verbName string, config map[string]any) *Ag
 }
 
 // AddAnswerVerb configures the answer verb. Merged with defaults at render time.
+//
+// config is optional per the reference `add_answer_verb(config=None)`: calling
+// with nothing enables the answer verb with its render-time defaults, which is
+// the common case. The body's `range config` tolerates nil, but that is an
+// emergent property of a range loop rather than a declared contract — hence the
+// directive. (Contrast SetMultilingual's `config`, spelled identically and
+// declared REQUIRED; the difference lives only in the reference.)
+//
+//sw:param config optional
 func (a *AgentBase) AddAnswerVerb(config map[string]any) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1843,10 +1859,8 @@ func (a *AgentBase) DefineContexts() *contexts.ContextBuilder {
 // DefineContextsFromMap populates the agent's ContextBuilder from a
 // fully-formed contexts map and returns the agent for chaining.
 //
-// Python equivalent: AgentBase.define_contexts({...}) (prompt_mixin.py:131 →
-// prompt manager define_contexts, manager.py:75), which accepts a dict in the
-// canonical SWML contexts shape — the same shape ContextBuilder.to_dict()
-// emits. The accepted shape is:
+// Accepts a map in the canonical SWML contexts shape — the same shape
+// ContextBuilder.ToDict() emits. The accepted shape is:
 //
 //	{
 //	  "<context-name>": {
@@ -2085,11 +2099,9 @@ func (a *AgentBase) ClearSwaigQueryParams() *AgentBase {
 // EnableDebugRoutes enables the agent's debug HTTP routes (/debug and
 // /debug_events).
 //
-// Python equivalent: web_mixin.enable_debug_routes (web_mixin.py:1343), which
-// is a backward-compatibility no-op returning self because the debug routes
-// are registered unconditionally in _register_routes. The Go port mirrors that:
-// AsRouter always registers /debug and /debug_events, so this method exists for
-// API compatibility and chaining and simply returns the agent.
+// A backward-compatibility no-op: AsRouter registers /debug and /debug_events
+// unconditionally, so there is nothing to enable. The method exists for API
+// compatibility and chaining, and simply returns the agent.
 func (a *AgentBase) EnableDebugRoutes() *AgentBase {
 	return a
 }
@@ -2098,11 +2110,16 @@ func (a *AgentBase) EnableDebugRoutes() *AgentBase {
 // override this method to inspect or transform the request data. It delegates
 // to OnSwmlRequest.
 //
-// Python equivalent: web_mixin.WebMixin.on_request (web_mixin.py line 1266)
-// Python signature: on_request(request_data, callback_path) -> Optional[dict]
-//
 // Returns nil to proceed with default rendering, or a non-nil map containing
 // SWML document overrides.
+//
+// Both parameters are optional per the reference
+// `on_request(request_data=None, callback_path=None)`. This is an override hook
+// the framework calls with whatever request context it has; it forwards both
+// through to OnSwmlRequest, which nil-tolerates them.
+//
+//sw:param requestData optional
+//sw:param callbackPath optional
 func (a *AgentBase) OnRequest(requestData map[string]any, callbackPath string) map[string]any {
 	return a.OnSwmlRequest(requestData, callbackPath, nil)
 }
@@ -2112,15 +2129,20 @@ func (a *AgentBase) OnRequest(requestData map[string]any, callbackPath string) m
 // via SetOnSwmlRequestHook the hook is invoked; otherwise this returns nil
 // (no modification).
 //
-// Python equivalent: web_mixin.WebMixin.on_swml_request (web_mixin.py line 1287)
-// Python signature: on_swml_request(request_data, callback_path, request) -> Optional[dict]
-//
-// Go has no method overriding via embedded structs alone — the hook field
-// is the idiomatic Go equivalent of Python's overridable on_swml_request.
+// Go has no method overriding via embedded structs alone, so the override is a
+// settable hook field rather than an overridable method.
 // The third *http.Request argument is preserved on the Go-native signature
 // (the cross-language audit projects only the first two args). Returning a
 // non-nil map applies modifications to the rendered SWML; returning nil
 // uses the default rendering unchanged.
+//
+// requestData and callbackPath are optional per the reference
+// `on_swml_request(request_data=None, callback_path=None, request=None)`: the
+// hook is invoked with whatever request context exists, and the base
+// implementation forwards both to the registered hook without reading them.
+//
+//sw:param requestData optional
+//sw:param callbackPath optional
 func (a *AgentBase) OnSwmlRequest(requestData map[string]any, callbackPath string, r *http.Request) map[string]any {
 	a.mu.RLock()
 	hook := a.onSwmlRequestHook
@@ -2137,9 +2159,6 @@ func (a *AgentBase) OnSwmlRequest(requestData map[string]any, callbackPath strin
 // *http.Request for header / query inspection. Returning a non-nil map
 // applies modifications to the rendered SWML; returning nil falls
 // through to the default rendering.
-//
-// Matches Python: this is the Go-idiomatic way of "overriding"
-// on_swml_request — Go has no method inheritance.
 func (a *AgentBase) SetOnSwmlRequestHook(hook OnSwmlRequestHook) *AgentBase {
 	a.mu.Lock()
 	a.onSwmlRequestHook = hook
@@ -2150,10 +2169,6 @@ func (a *AgentBase) SetOnSwmlRequestHook(hook OnSwmlRequestHook) *AgentBase {
 // SetupGracefulShutdown registers OS signal handlers for SIGTERM and SIGINT
 // that initiate a graceful HTTP server shutdown. This is useful for Kubernetes
 // deployments where the pod receives SIGTERM before termination.
-//
-// Python equivalent: web_mixin.WebMixin.setup_graceful_shutdown (web_mixin.py line 1405)
-// Python behavior: registers signal.SIGTERM and signal.SIGINT handlers that
-// call sys.exit(0) after optional cleanup.
 //
 // The Go implementation uses signal.NotifyContext so that the active HTTP
 // server (if started via Run/Serve) can shut down cleanly. Call this before
@@ -2181,9 +2196,6 @@ func (a *AgentBase) SetupGracefulShutdown() {
 
 // ValidateBasicAuth validates the provided username and password against the
 // agent's configured basic auth credentials using a constant-time comparison.
-//
-// Python equivalent: auth_mixin.AuthMixin.validate_basic_auth (auth_mixin.py line 24)
-// Python behavior: hmac.compare_digest(username, exp_user) and compare_digest(password, exp_pass)
 func (a *AgentBase) ValidateBasicAuth(username, password string) bool {
 	user, pass := a.Service.GetBasicAuthCredentials()
 	userMatch := subtle.ConstantTimeCompare([]byte(username), []byte(user)) == 1
@@ -2193,17 +2205,13 @@ func (a *AgentBase) ValidateBasicAuth(username, password string) bool {
 
 // GetBasicAuthCredentials returns the (username, password) configured for
 // this agent's HTTP basic auth.
-//
-// Python equivalent: auth_mixin.AuthMixin.get_basic_auth_credentials (auth_mixin.py line 42)
-// Python behavior: returns (username, password) tuple from self._basic_auth
 func (a *AgentBase) GetBasicAuthCredentials() (string, string) {
 	return a.Service.GetBasicAuthCredentials()
 }
 
 // GetBasicAuthCredentialsWithSource returns the basic-auth credentials
 // plus a string indicating their SOURCE — one of "provided",
-// "environment", or "generated". Mirrors Python's
-// “auth_mixin.AuthMixin.get_basic_auth_credentials(include_source=True)“
+// "environment", or "generated".
 // (auth_mixin.py line 42-73).
 func (a *AgentBase) GetBasicAuthCredentialsWithSource() (user, pass, source string) {
 	user, pass = a.Service.GetBasicAuthCredentials()
@@ -2225,8 +2233,8 @@ func (a *AgentBase) GetBasicAuthCredentialsWithSource() (user, pass, source stri
 // when the function is not registered, the SessionManager rejects the token,
 // or the validation panics for any reason.
 //
-// Matches Python: state_mixin.StateMixin.validate_tool_token. Python rejects
-// unknown function names up-front and swallows exceptions, returning false.
+// Unknown function names are rejected up front, and any panic in validation is
+// swallowed into a false — the check never propagates an error to the caller.
 func (a *AgentBase) ValidateToolToken(functionName, token, callID string) (ok bool) {
 	if !a.HasFunction(functionName) {
 		return false
@@ -2240,9 +2248,8 @@ func (a *AgentBase) ValidateToolToken(functionName, token, callID string) (ok bo
 }
 
 // CreateToolToken mints a per-call SWAIG-function token via the agent's
-// SessionManager. Returns an empty string when minting fails (Matches Python:
-// state_mixin.StateMixin._create_tool_token, which catches all exceptions and
-// returns "" on error).
+// SessionManager. Any failure is swallowed and returns an empty string — it
+// never propagates an error to the caller.
 func (a *AgentBase) CreateToolToken(toolName, callID string) (token string) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2465,7 +2472,7 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 
 // (RegisterRoutingCallback is defined below at the (callbackFn, path)
 // signature — the duplicate (path, cb) declaration was removed during
-// the merge with main, which already carries the Python-aligned form.)
+// the merge with main, which already carries the canonical form.)
 
 // ---------------------------------------------------------------------------
 // SIP methods
@@ -2473,22 +2480,17 @@ func (a *AgentBase) handleMcp(w http.ResponseWriter, r *http.Request) {
 
 // EnableSIPRouting enables SIP-based routing for this agent.
 //
-// Python equivalent: AgentBase.enable_sip_routing(auto_map=True, path="/sip")
-//
 // This registers a routing callback at the given path that checks incoming
 // SIP usernames against the agent's registered username set. When autoMap is
 // true, AutoMapSIPUsernames is called to derive common usernames from the
 // agent name and route.
 //
-// The Python implementation (agent_base.py line 612) creates a sip_routing_callback
-// that extracts the SIP username from the body, checks it against _sip_usernames,
-// and returns None in both the matched and unmatched case — letting the normal
-// routing continue. It then calls register_routing_callback to register the
-// callback, and optionally calls auto_map_sip_usernames.
+// The registered callback extracts the SIP username from the body, checks it
+// against the registered username set, and returns nil in BOTH the matched and
+// unmatched case — letting the normal routing continue.
 func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
-	// Build SIP routing callback that matches Python behavior: it extracts the
-	// SIP username and returns nil (no redirect) in both the matched and
-	// unmatched case, letting normal processing continue.
+	// The callback extracts the SIP username and returns nil (no redirect) in
+	// BOTH the matched and unmatched case, letting normal processing continue.
 	cb := func(body map[string]any, _ map[string]any) *string {
 		sipUsername := swml.ExtractSIPUsername(body)
 		if sipUsername != "" {
@@ -2505,7 +2507,7 @@ func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
 	if path == "" {
 		path = "/sip"
 	}
-	a.Service.RegisterRoutingCallback(path, cb)
+	a.Service.RegisterRoutingCallback(cb, path)
 
 	a.mu.Lock()
 	a.sipRoutingEnabled = true
@@ -2522,16 +2524,20 @@ func (a *AgentBase) EnableSIPRouting(autoMap bool, path string) *AgentBase {
 // RegisterRoutingCallback registers a callback function that is invoked for
 // incoming POST requests at the given path to determine routing.
 //
-// Python equivalent: web_mixin.WebMixin.register_routing_callback
-// Python signature: register_routing_callback(callback_fn, path="/sip")
-//
 // The callback receives the parsed request body and the request headers —
 // callback_fn(body, headers) — and returns a non-nil route string to redirect
 // the request (the framework issues an HTTP 307 Temporary Redirect preserving
 // method + body) or nil to let normal SWML processing continue. This method
 // delegates to swml.Service.RegisterRoutingCallback.
+// path is OPTIONAL — the empty string substitutes the reference's "/sip"
+// default. The substitution is written here rather than left to
+// normalizeCallbackPath so the declined-argument case is visible at the
+// signature it belongs to.
 func (a *AgentBase) RegisterRoutingCallback(callbackFn swml.RoutingCallback, path string) {
-	a.Service.RegisterRoutingCallback(normalizeCallbackPath(path), callbackFn)
+	if path == "" {
+		path = "/sip"
+	}
+	a.Service.RegisterRoutingCallback(callbackFn, normalizeCallbackPath(path))
 }
 
 // normalizeCallbackPath mirrors Python web_mixin.register_routing_callback's
@@ -2557,9 +2563,6 @@ func normalizeCallbackPath(path string) string {
 // RegisterSIPRoutingCallback registers a callback whose string return value
 // triggers an HTTP 307 Temporary Redirect to that route. An empty return
 // value (or a GET / non-POST request) lets normal SWML processing continue.
-//
-// Python equivalent: web_mixin.WebMixin.register_routing_callback
-// Python signature: register_routing_callback(callback_fn, path="/sip")
 //
 // The Python callback returns Optional[str]; on a non-None return the
 // framework responds with HTTP 307 + Location: route (web_mixin.py:628-635).
@@ -2603,8 +2606,6 @@ func (a *AgentBase) sipRoutingCallbackPaths() []string {
 
 // AutoMapSIPUsernames automatically registers common SIP usernames derived
 // from this agent's name and route.
-//
-// Python equivalent: AgentBase.auto_map_sip_usernames (agent_base.py line 674)
 //
 // Derives usernames by:
 //  1. Stripping non-alphanumeric/underscore chars from the agent name (lowercased)
@@ -2657,8 +2658,7 @@ func (a *AgentBase) RegisterSIPUsername(username string) *AgentBase {
 // skillName is a skills.SkillName (a defined string type). The built-in
 // skills.Skill* constants give autocomplete + call-site typo checking; because
 // Go auto-converts untyped string-constant literals, a bare "datetime" literal
-// or skills.SkillName("custom") for a third-party skill compiles identically —
-// compatibility with the Python reference's str parameter.
+// or skills.SkillName("custom") for a third-party skill compiles identically.
 func (a *AgentBase) AddSkill(skillName skills.SkillName, params map[string]any) *AgentBase {
 	if params == nil {
 		params = map[string]any{}
@@ -2921,8 +2921,9 @@ func appendQueryParam(rawURL, key, value string) string {
 // web_hook_url as a reserved “__token“ query parameter — the WIRE
 // manifestation of “secure“ the platform validates on the callback (Matches
 // Python: agent_base.py:1040 “if func.secure and call_id“ →
-// _build_webhook_url(url_params["__token"])). An INSECURE tool never gets one:
-// it falls back to the shared SWAIG defaults.web_hook_url. With no callID
+// _build_webhook_url(url_params["__token"])). An INSECURE tool never gets one —
+// and, per the reference, never gets a per-tool web_hook_url KEY either: it
+// falls back to the shared SWAIG.defaults.web_hook_url. With no callID
 // (a render outside a call, e.g. a bare document dump) no token can be bound to
 // a session, so none is emitted for either kind.
 func (a *AgentBase) buildSwaigFunctions(webhookURL, callID string) []map[string]any {
@@ -2948,20 +2949,35 @@ func (a *AgentBase) buildSwaigFunctions(webhookURL, callID string) []map[string]
 			token = a.createToolTokenLocked(tool.Name, callID)
 		}
 
-		// Determine the effective webhook URL: per-tool override takes precedence.
-		// A per-tool override is used verbatim (Python: an external webhook_url is
-		// the platform's own endpoint — we never append our token to it).
-		effectiveWebhook := webhookURL
-		if tool.WebhookURL != "" {
-			effectiveWebhook = tool.WebhookURL
-		} else if token != "" {
-			effectiveWebhook = appendQueryParam(effectiveWebhook, "__token", token)
+		fn := map[string]any{
+			"function":    tool.Name,
+			"description": tool.Description,
 		}
 
-		fn := map[string]any{
-			"function":     tool.Name,
-			"description":  tool.Description,
-			"web_hook_url": effectiveWebhook,
+		// Decide whether this tool gets its OWN web_hook_url, mirroring the
+		// reference's three-way branch verbatim (agent_base.py:1089-1099):
+		//
+		//	1. an external per-tool webhook_url  -> use it verbatim (it is the
+		//	   platform's own endpoint; we never append our token to it);
+		//	2. else a token OR swaigQueryParams  -> build the LOCAL swaig URL,
+		//	   carrying "__token" when there is a token;
+		//	3. else                              -> emit NO web_hook_url key at all.
+		//
+		// Case 3 is load-bearing and is why this is a guard rather than an
+		// unconditional assignment: an INSECURE tool (secure=false, hence no
+		// token) must NOT be handed a function-specific callback URL, because
+		// that URL would carry no token and therefore be an unauthenticated,
+		// per-function endpoint on the wire. It falls back to the shared
+		// SWAIG.defaults.web_hook_url instead — that fallback is the point.
+		switch {
+		case tool.WebhookURL != "":
+			fn["web_hook_url"] = tool.WebhookURL
+		case token != "":
+			fn["web_hook_url"] = appendQueryParam(webhookURL, "__token", token)
+		case len(a.swaigQueryParams) > 0:
+			// swaigQueryParams are already baked into webhookURL by
+			// buildWebhookURL, so the local URL is used as-is.
+			fn["web_hook_url"] = webhookURL
 		}
 
 		if tool.Parameters != nil {
@@ -3030,14 +3046,57 @@ func (a *AgentBase) RenderSWML(requestData map[string]any, request *http.Request
 // session without a request body). Matches the reference's
 // “_render_swml(call_id=…)“.
 func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.Request, callID string) map[string]any {
+	// Serialise the contexts BEFORE taking a.mu. ContextBuilder.ToMap() calls
+	// Validate() (pkg/contexts/contexts.go:1227), which calls back into this
+	// agent via cb.agent.ListToolNames() (contexts.go:1137 -> agent.go:2004) —
+	// and ListToolNames takes a.mu.RLock(). sync.RWMutex is writer-preferring,
+	// so that recursive RLock parks as soon as any writer is queued, while the
+	// queued writer waits on the read guard this same goroutine holds: a
+	// three-way deadlock that only appears under concurrent load. Go's deadlock
+	// detector does not fire for it (it needs every goroutine asleep), so in
+	// production the render hangs silently.
+	//
+	// This is the snapshot-then-call shape GetContexts already uses on the
+	// identical call (agent.go:954-966).
+	ctxMap := a.contextsSnapshot()
+
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	doc := swml.NewDocument()
+	// addVerb is the VALIDATING emission path for this render: it runs the
+	// agent's own embedded swml.Service schema validation and only then writes
+	// the verb into this call's document. It mirrors the reference, whose
+	// _render_swml adds every one of its six phases through the validating
+	// SWMLService.add_verb (agent_base.py:1194,1199,1206,1216,1367,1372).
+	//
+	// Every phase below previously called the RAW (*swml.Document).AddVerb, which
+	// checks only that the verb NAME is non-empty. `doc` is not bound to a
+	// Service, so the schema was never consulted for ANY rendered verb —
+	// including the caller-supplied pre-answer / post-answer / post-AI verbs,
+	// whose arbitrary names and configs reached the wire completely unchecked. A
+	// schema-invalid verb is now dropped with a warning instead of being emitted.
+	//
+	// Two deliberate structural choices:
+	//
+	//  1. The document stays LOCAL to this call instead of rendering onto the
+	//     Service's own document the way the reference does. RenderSWMLForCall is
+	//     reached from the concurrent HTTP handler (:3882), so a shared document
+	//     would let two in-flight renders interleave verbs into one section.
+	//  2. Validation therefore goes through a scratch Service rather than
+	//     `a.Service.ExecuteVerb`, which would write into that shared document.
+	//     It is built ONCE per render and reused across all six phases.
+	//
+	// The read lock above is load-bearing and must NOT be upgraded to a write
+	// lock: the ai-verb phase calls ContextBuilder.ToMap -> Validate ->
+	// AgentBase.ListToolNames (:2081), which re-takes a.mu.RLock(). Go's RWMutex
+	// is not reentrant, so a write lock here self-deadlocks.
+	validator := swml.NewService(swml.WithSchemaValidation(true))
+	doc := validator.GetDocument()
+	addVerb := validator.ExecuteVerb
 
 	// 1. Pre-answer verbs
 	for _, v := range a.preAnswerVerbs {
-		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+		if err := addVerb(v.Name, v.Config); err != nil {
 			a.Logger.Warn("failed to add pre-answer verb %q: %s", v.Name, err)
 		}
 	}
@@ -3050,7 +3109,7 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 		for k, v := range a.answerConfig {
 			answerCfg[k] = v
 		}
-		if err := doc.AddVerb("answer", answerCfg); err != nil {
+		if err := addVerb("answer", answerCfg); err != nil {
 			a.Logger.Warn("failed to add answer verb: %s", err)
 		}
 	}
@@ -3061,14 +3120,14 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 			"format": a.recordFormat,
 			"stereo": a.recordStereo,
 		}
-		if err := doc.AddVerb("record_call", recordCfg); err != nil {
+		if err := addVerb("record_call", recordCfg); err != nil {
 			a.Logger.Warn("failed to add record_call verb: %s", err)
 		}
 	}
 
 	// 4. Post-answer verbs
 	for _, v := range a.postAnswerVerbs {
-		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+		if err := addVerb(v.Name, v.Config); err != nil {
 			a.Logger.Warn("failed to add post-answer verb %q: %s", v.Name, err)
 		}
 	}
@@ -3149,6 +3208,13 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 	if len(swaigFunctions) > 0 || len(a.functionIncludes) > 0 {
 		swaigConfig := map[string]any{}
 		if len(swaigFunctions) > 0 {
+			// The shared fallback endpoint every function without its OWN
+			// web_hook_url dispatches to — notably every INSECURE tool, which
+			// deliberately gets no per-function callback of its own (see
+			// buildSwaigFunctions). Mirrors the reference, which adds the
+			// defaults block exactly when there are functions
+			// (agent_base.py:1111-1113).
+			swaigConfig["defaults"] = map[string]any{"web_hook_url": webhookURL}
 			swaigConfig["functions"] = swaigFunctions
 		}
 		if len(a.functionIncludes) > 0 {
@@ -3162,20 +3228,46 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 		aiConfig["global_data"] = a.globalData
 	}
 
-	// Native functions
+	// Native functions live INSIDE the SWAIG object, not at the ai top level.
+	// The reference sets swaig_obj["native_functions"] (agent_base.py:1017-1018)
+	// and schema.json declares native_functions as a property of SWAIG (items:
+	// $defs/SWAIGNativeFunction) with no such key on the ai object at all — the
+	// ai object's closed key set is
+	// [SWAIG global_data hints languages params post_prompt post_prompt_url prompt pronounce].
+	// This used to emit aiConfig["native_functions"], one level too high, where
+	// the engine never reads it: a caller's WithNativeFunctions(...) was silently
+	// discarded on the wire. It shipped because the render path bypassed the
+	// schema entirely (see addVerb above).
 	if len(a.nativeFunctions) > 0 {
-		aiConfig["native_functions"] = a.nativeFunctions
+		swaigConfig, ok := aiConfig["SWAIG"].(map[string]any)
+		if !ok {
+			swaigConfig = map[string]any{}
+			aiConfig["SWAIG"] = swaigConfig
+		}
+		swaigConfig["native_functions"] = a.nativeFunctions
 	}
 
 	// (Pattern hints are merged into the "hints" array above, matching Python;
 	// there is no separate pattern_hints key in the SWML ai block.)
 
-	// Contexts
-	if a.contextBuilder != nil {
-		ctxMap, err := a.contextBuilder.ToMap()
-		if err == nil && len(ctxMap) > 0 {
-			aiConfig["contexts"] = ctxMap
+	// Contexts live INSIDE the prompt object, not at the ai top level. The
+	// reference sets prompt_config["contexts"] (swml_handler.py:190-191) and
+	// validates it as 'prompt.contexts' (swml_handler.py:119-122); the ai
+	// object's closed key set has no `contexts` member. This used to emit
+	// aiConfig["contexts"], one level too high, where the engine never reads it:
+	// an agent's whole contexts/steps workflow was silently dropped on the wire.
+	// It shipped because the render path bypassed the schema entirely (see
+	// addVerb above).
+	//
+	// ctxMap was serialised ABOVE, before a.mu was taken — see the comment at
+	// contextsSnapshot's call site for why ToMap() must not run under the lock.
+	if len(ctxMap) > 0 {
+		promptCfg, ok := aiConfig["prompt"].(map[string]any)
+		if !ok {
+			promptCfg = map[string]any{}
+			aiConfig["prompt"] = promptCfg
 		}
+		promptCfg["contexts"] = ctxMap
 	}
 
 	// Prompt LLM params
@@ -3212,9 +3304,20 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 		params["debug_webhook_level"] = a.debugEventsLevel
 	}
 
-	// MCP servers
+	// MCP servers live INSIDE the SWAIG object, not at the ai top level. The
+	// reference sets swaig_obj["mcp_servers"] (agent_base.py:1152-1153), and the
+	// ai object's closed key set has no `mcp_servers` member. This used to emit
+	// aiConfig["mcp_servers"], one level too high, where the engine never reads
+	// it: every configured MCP server was silently dropped on the wire. It
+	// shipped because the render path bypassed the schema entirely (see addVerb
+	// above).
 	if len(a.mcpServers) > 0 {
-		aiConfig["mcp_servers"] = a.mcpServers
+		swaigConfig, ok := aiConfig["SWAIG"].(map[string]any)
+		if !ok {
+			swaigConfig = map[string]any{}
+			aiConfig["SWAIG"] = swaigConfig
+		}
+		swaigConfig["mcp_servers"] = a.mcpServers
 	}
 
 	// Apply prompt transformer (used by specialised agents like BedrockAgent)
@@ -3229,13 +3332,13 @@ func (a *AgentBase) RenderSWMLForCall(requestData map[string]any, request *http.
 	if verbName == "" {
 		verbName = "ai"
 	}
-	if err := doc.AddVerb(verbName, aiConfig); err != nil {
+	if err := addVerb(verbName, aiConfig); err != nil {
 		a.Logger.Warn("failed to add AI verb %q: %s", verbName, err)
 	}
 
 	// 7. Post-AI verbs
 	for _, v := range a.postAiVerbs {
-		if err := doc.AddVerb(v.Name, v.Config); err != nil {
+		if err := addVerb(v.Name, v.Config); err != nil {
 			a.Logger.Warn("failed to add post-AI verb %q: %s", v.Name, err)
 		}
 	}
@@ -3259,7 +3362,7 @@ var ErrServerlessUnsupported = errors.New("agent: serverless execution mode dete
 
 // Run is the universal entry point for the agent. It auto-detects the runtime
 // execution mode from the process environment and dispatches accordingly,
-// mirroring Python's run() (web_mixin.py:341 + serverless_mixin.py):
+// as follows:
 //
 //   - server                → start the long-running HTTP server (blocking)
 //   - cgi                   → dispatch the single CGI request through the
@@ -3280,14 +3383,13 @@ func (a *AgentBase) Run() error {
 
 // DetectRunMode reports the execution mode Run would dispatch on, derived from
 // the process environment via swml.GetExecutionMode. Exposed so callers can
-// branch (e.g. wire a pkg/lambda adapter) before invoking Run. Mirrors
-// Python's get_execution_mode() as consumed by run().
+// branch (e.g. wire a pkg/lambda adapter) before invoking Run.
 func (a *AgentBase) DetectRunMode() swml.ExecutionMode {
 	return swml.GetExecutionMode()
 }
 
 // RunWithMode is the force-mode form of Run: it dispatches on the supplied mode
-// rather than auto-detecting, mirroring Python run(force_mode=...). Server mode
+// rather than auto-detecting. Server mode
 // serves HTTP (blocking); any serverless mode returns ErrServerlessUnsupported
 // (wrapped with the mode name) because Go handles those via the platform
 // adapter (AsRouter + pkg/lambda), not inline. This is a Go-port addition
@@ -3324,8 +3426,8 @@ func (a *AgentBase) RunWithMode(mode swml.ExecutionMode) error {
 // draining in-flight requests — then returns nil. It composes with
 // SetupGracefulShutdown: whichever of (ctx, SIGTERM/SIGINT) fires first wins.
 //
-// This is a Go-port addition (the Python reference's run()/serve loop has no
-// caller-supplied cancellation token); documented in PORT_ADDITIONS.md.
+// Run and Serve take no cancellation token; RunContext is the context-aware
+// form. Documented in PORT_ADDITIONS.md.
 func (a *AgentBase) RunContext(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -3371,9 +3473,8 @@ func (a *AgentBase) RunContext(ctx context.Context) error {
 	return a.buildAndServe()
 }
 
-// Serve starts the long-running HTTP server for this agent unconditionally,
-// mirroring Python's serve() (web_mixin.py:175) which always serves and does
-// no execution-mode detection — that is Run()'s job. Use Run for the universal
+// Serve starts the long-running HTTP server for this agent unconditionally. It
+// does NO execution-mode detection — that is Run()'s job. Use Run for the universal
 // auto-detecting entry point; use Serve to force HTTP serving regardless of
 // the detected environment. This is a blocking call.
 func (a *AgentBase) Serve() error {
@@ -3389,6 +3490,16 @@ func (a *AgentBase) AsRouter() http.Handler {
 // SetupGracefulShutdown was called before Run, it honours the shutdown channel
 // and performs a graceful server shutdown on signal receipt.
 func (a *AgentBase) buildAndServe() error {
+	// SECURITY: refuse to serve rather than silently downgrade to cleartext.
+	// The agent builds its own http.Server off the Service's RESOLVED ssl
+	// settings, so it does NOT inherit swml.Service.Serve's refusal and must
+	// make the identical one — before any listener is bound, so a misconfigured
+	// agent never accepts a single plaintext byte. See
+	// swml.Service.TLSRequestedWithoutMaterial.
+	if err := a.Service.TLSMisconfigurationError(); err != nil {
+		return err
+	}
+
 	mux := a.buildMux()
 
 	user, pass, source := a.Service.GetBasicAuthCredentialsWithSource()
@@ -3430,6 +3541,19 @@ func (a *AgentBase) buildAndServe() error {
 		ReadHeaderTimeout: 20 * time.Second,
 	}
 
+	// TLS: the agent serves off the Service's RESOLVED ssl settings — which
+	// SecurityConfig produced from defaults -> env -> config file — exactly as
+	// the reference's AgentBase serves through SWMLService.serve()'s
+	// `if self.ssl_enabled and ssl_cert_path and ssl_key_path` branch. Building
+	// the listener here without consulting them is what made an agent come up
+	// plain HTTP even when a cert/key was configured.
+	tlsEnabled := a.Service.TLSEnabled()
+	if tlsEnabled {
+		// Require TLS 1.2+ (mirrors the reference's CERT_REQUIRED
+		// ssl_verify_mode default), matching swml.Service.Serve.
+		server.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
 	// If SetupGracefulShutdown is active, spin a goroutine that waits for
 	// the shutdown channel and then asks the server to shut down cleanly.
 	go func() {
@@ -3440,8 +3564,15 @@ func (a *AgentBase) buildAndServe() error {
 		}
 	}()
 
-	err := server.ListenAndServe()
-	if err == http.ErrServerClosed {
+	var err error
+	if tlsEnabled {
+		cert, key := a.Service.TLSCertPath(), a.Service.TLSKeyPath()
+		a.Logger.Info("TLS enabled: cert=%s key=%s", cert, key)
+		err = server.ListenAndServeTLS(cert, key)
+	} else {
+		err = server.ListenAndServe()
+	}
+	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
 	return err
@@ -3637,9 +3768,9 @@ func headerStringMap(h http.Header) map[string]string {
 // tools, dynamic config, on_swml_request modifications) is produced over plain
 // primitives instead of *http.Request objects.
 //
-// It mirrors the Python signalwire.core.agent_base.AgentBase.handle_request
-// override: proxy detection, basic-auth, routing-callback (307 redirect), then
-// the agent's rendered SWML document with any on_request modifications applied.
+// The pipeline is: proxy detection, basic-auth, routing-callback (307
+// redirect), then the agent's rendered SWML document with any on_request
+// modifications applied.
 //
 // Parameters and return follow swml.Service.HandleRequest:
 // (method, url, headers, body) -> (status, responseHeaders, bodyString).
@@ -4010,6 +4141,75 @@ func extractSwaigArgs(body map[string]any) map[string]any {
 	return map[string]any{}
 }
 
+// swaigTokenRefusalText is the response a refused secure tool reports. The
+// wording mirrors the reference (agent_base.py _swaig_pre_dispatch) and is what
+// the cross-port differ's refusal predicate keys on: it must name the token and
+// say it is invalid or expired.
+const swaigTokenRefusalText = "I'm sorry, the security token for this function is invalid " +
+	"or expired. I cannot execute this action."
+
+// swaigTokenRefusal validates the inbound SWAIG security token for a POST
+// /swaig dispatch. It returns nil when the call is cleared to run, or the
+// FunctionResult body to send instead when a SECURE tool must be refused.
+//
+// Mirrors the reference, signalwire-python core/agent_base.py
+// _swaig_pre_dispatch:
+//
+//   - the token is read from the “__token“ query param, falling back to a plain
+//     “token“ (both spellings reach the validator);
+//   - validity is computed ONCE and is true only when a token is present AND a
+//     call_id is present AND the SessionManager verifies the HMAC. A token can
+//     only be validated against a call_id — without one there is nothing to
+//     check it against, so a missing call_id counts as UNVALIDATED, never as a
+//     bypass;
+//   - an unvalidated call is refused only when the target tool is SECURE. An
+//     insecure tool is not gated, so the check never becomes a blanket gate;
+//   - an ABSENT token is refused exactly like a forged one. Omitting the
+//     credential must never be weaker than presenting a wrong one, or “secure“
+//     would be a flag that permits anonymous calls;
+//   - the refusal is a 200 + FunctionResult BODY, never an HTTP error status:
+//     the engine (mod_openai) has no handling for a SWAIG refusal status code,
+//     so the tool reports that it cannot execute and the model relays it.
+//
+// Before this existed the port MINTED a per-tool “__token“ into every secure
+// tool's web_hook_url but validated nothing coming back in, so a secure tool
+// ran for a forged token and for no token at all.
+func (a *AgentBase) swaigTokenRefusal(r *http.Request, body map[string]any, funcName string) map[string]any {
+	tool := a.Function(funcName)
+	if tool == nil {
+		// Unknown function — dispatch reports it; there is nothing to gate.
+		return nil
+	}
+
+	query := r.URL.Query()
+	token := query.Get("__token")
+	if token == "" {
+		token = query.Get("token")
+	}
+	callID := callIDFromRequestData(body)
+
+	if token != "" {
+		a.Logger.Debug("swaig token_found: function=%s token_length=%d", funcName, len(token))
+	} else {
+		a.Logger.Warn("swaig token_missing: function=%s", funcName)
+	}
+
+	isValid := token != "" && callID != "" && a.ValidateToolToken(funcName, token, callID)
+	if isValid {
+		a.Logger.Debug("swaig token_valid: function=%s", funcName)
+		return nil
+	}
+	if token != "" {
+		a.Logger.Warn("swaig token_invalid: function=%s", funcName)
+	}
+	if !tool.IsSecure() {
+		// An insecure tool is not gated.
+		return nil
+	}
+	a.Logger.Warn("swaig secure_function_refused: function=%s token_present=%t", funcName, token != "")
+	return swaig.NewFunctionResult(swaigTokenRefusalText).ToMap()
+}
+
 func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -4038,6 +4238,17 @@ func (a *AgentBase) handleSwaig(w http.ResponseWriter, r *http.Request) {
 	// args, so on a real platform call the handler received {"parsed":..,"raw":..}
 	// (i.e. NO real args) — SWAIG-HTTP fixture PSDK-7's platform_nested case.
 	args := extractSwaigArgs(body)
+
+	// Inbound security-token validation. This runs BETWEEN argument extraction
+	// and dispatch, exactly where the reference puts it. A nil return means the
+	// call is cleared to dispatch; a non-nil return is the refusal body.
+	if refusal := a.swaigTokenRefusal(r, body, funcName); refusal != nil {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(refusal); err != nil {
+			a.Logger.Warn("failed to write SWAIG token-refusal response: %s", err)
+		}
+		return
+	}
 
 	result, err := a.OnFunctionCall(funcName, args, body)
 	if err != nil {

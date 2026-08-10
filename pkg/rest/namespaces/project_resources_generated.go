@@ -21,10 +21,10 @@ func NewProjectTokens(client HTTPClient) *ProjectTokens {
 
 // ProjectTokensCreateParams holds the named optional parameters for ProjectTokens.Create.
 type ProjectTokensCreateParams struct {
-	Name         string
-	Permissions  []TokenPermission
-	SubprojectID *string
-	Extras       map[string]any
+	Name         string            `sw:"required"`
+	Permissions  []TokenPermission `sw:"required"`
+	SubprojectID *string           `sw:"optional"`
+	Extras       map[string]any    `sw:"optional"`
 }
 
 func (r *ProjectTokens) Create(ctx context.Context, params ProjectTokensCreateParams, opts ...*RequestOptions) (*TokenResponse, error) {
@@ -42,9 +42,9 @@ func (r *ProjectTokens) Create(ctx context.Context, params ProjectTokensCreatePa
 
 // ProjectTokensUpdateParams holds the named optional parameters for ProjectTokens.Update.
 type ProjectTokensUpdateParams struct {
-	Name        *string
-	Permissions []TokenPermission
-	Extras      map[string]any
+	Name        *string           `sw:"optional"`
+	Permissions []TokenPermission `sw:"optional"`
+	Extras      map[string]any    `sw:"optional"`
 }
 
 func (r *ProjectTokens) Update(ctx context.Context, tokenID string, params ProjectTokensUpdateParams, opts ...*RequestOptions) (*TokenResponse, error) {

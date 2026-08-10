@@ -2,7 +2,7 @@ package security
 
 import (
 	"crypto/hmac"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // G505: mirrors the production import — HMAC-SHA1 is mandated by the cross-SDK webhook signature contract (Compat/Twilio compatibility); used inside HMAC, not as a bare digest. The test must compute the same MAC to verify it.
 	"encoding/base64"
 	"errors"
 	"net/url"

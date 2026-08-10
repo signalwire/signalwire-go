@@ -13,10 +13,8 @@ package swaig
 //	fr.Tap("rtp://h:1", "id", "hear", "PCMU", 0, "")                          // bare string still compiles
 //
 // TapDirection is a string subtype, so the value written into the SWML tap
-// params is byte-identical to the bare string the reference uses — compatibility with
-// Python's tap(direction=...) keyword (a plain str). The enumerator emits the
-// direction param as union<TapDirection,string>, so signature drift stays 0
-// against the reference's str (the string member absorbs).
+// params is byte-identical to the bare string it wraps. The enumerator emits the
+// direction param as union<TapDirection,string>, so a bare string is equally accepted.
 //
 // IMPORTANT: this set ({speak, hear, both}) is DISTINCT from RecordDirection
 // ({speak, listen, both}) — tap uses "hear" where record_call uses "listen". The
@@ -28,7 +26,7 @@ type TapDirection string
 
 // Audio directions for Tap. These are exactly the strings the SWML tap verb
 // accepts for direction; the values are emitted verbatim into the tap params
-// (matching the Python reference's valid_directions = ["speak", "hear", "both"]).
+// .
 const (
 	TapDirectionSpeak TapDirection = "speak" // what the party says
 	TapDirectionHear  TapDirection = "hear"  // what the party hears

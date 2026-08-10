@@ -123,7 +123,7 @@ func NewInfoGathererAgent(opts InfoGathererOptions) *InfoGathererAgent {
 // of questions to ask. Calling this method enables dynamic mode: on each
 // SWML request the callback is invoked with the request's query parameters,
 // body parameters, and headers; the returned []Question becomes the session's
-// question list. This mirrors Python's InfoGathererAgent.set_question_callback.
+// question list.
 //
 // If Questions was set to nil in InfoGathererOptions (dynamic mode), a
 // fallback question set is used when no callback is registered.
@@ -145,7 +145,7 @@ func (ig *InfoGathererAgent) SetQuestionCallback(
 
 // OnSwmlRequest is the per-request SWML hook for dynamic question mode. It
 // matches agent.DynamicConfigCallback so it can be registered directly via
-// SetDynamicConfigCallback, and mirrors Python's InfoGathererAgent.on_swml_request:
+// SetDynamicConfigCallback:
 // it invokes the registered question callback (falling back to a safe default
 // set when the callback is absent, returns nothing, or panics) and writes the
 // resulting question list into the request's ephemeral global data.

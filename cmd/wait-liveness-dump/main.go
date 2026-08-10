@@ -444,7 +444,7 @@ func freePort() (int, error) {
 func spawnServer(httpClient *http.Client, wsPort, httpPort int) (*mockServer, error) {
 	httpURL := fmt.Sprintf("http://127.0.0.1:%d", httpPort)
 
-	cmd := exec.Command("python", "-m", "mock_relay",
+	cmd := exec.Command("python", "-m", "mock_relay", //nolint:gosec // G204: fixed program "python -m mock_relay" with locally-derived port numbers.
 		"--host", "127.0.0.1",
 		"--ws-port", strconv.Itoa(wsPort),
 		"--http-port", strconv.Itoa(httpPort),
@@ -532,7 +532,7 @@ func discoverPortingSDKPackage(name string) string {
 // probeHealth returns true when /__mock__/health responds 200 with a payload
 // containing "schemas_loaded".
 func probeHealth(client *http.Client, base string) bool {
-	resp, err := client.Get(base + "/__mock__/health")
+	resp, err := client.Get(base + "/__mock__/health") //nolint:gosec // G704: not SSRF — base is the 127.0.0.1 URL this process just bound its own mock to.
 	if err != nil {
 		return false
 	}

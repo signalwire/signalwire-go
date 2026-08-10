@@ -75,11 +75,12 @@ result.ExecuteSwml(swmlDoc, true)
 ```
 
 #### `Connect(opts ConnectOptions) *FunctionResult`
-Transfer/connect call to another destination using SWML. Leave `From` empty to omit the from-address.
+Transfer/connect call to another destination using SWML. Leave `From` empty to omit the from-address. `Final` is a `*bool`: leave it nil for a permanent transfer (the default).
 
 ```go
-result.Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})                        // Permanent transfer
-result.Connect(swaig.ConnectOptions{Destination: "support@company.com", Final: false, From: "+15559876543"}) // Temporary transfer
+temporary := false
+result.Connect(swaig.ConnectOptions{Destination: "+15551234567"})                                              // Permanent transfer (the default)
+result.Connect(swaig.ConnectOptions{Destination: "support@company.com", Final: &temporary, From: "+15559876543"}) // Temporary transfer
 ```
 
 #### `SendSms(toNumber, fromNumber, body string, media []string, tags []string, region string) *FunctionResult`
@@ -500,10 +501,11 @@ result.Hangup()
 
 ### Call Flow Control
 
-#### `Hold(timeout int) *FunctionResult`
-Put call on hold with timeout (max 900 seconds).
+#### `Hold(timeout ...int) *FunctionResult`
+Put call on hold with timeout (max 900 seconds). Omit `timeout` for the 300-second default.
 
 ```go
+result.Hold()      // 300 seconds (the default)
 result.Hold(60)    // Hold for 1 minute
 result.Hold(600)   // Hold for 10 minutes
 ```
@@ -623,19 +625,19 @@ result.ToggleFunctions([]map[string]any{
 })
 ```
 
-#### `EnableFunctionsOnTimeout(enabled bool) *FunctionResult`
-Control whether functions can be called on speaker timeout.
+#### `EnableFunctionsOnTimeout(enabled ...bool) *FunctionResult`
+Control whether functions can be called on speaker timeout. Omit `enabled` to enable (the default).
 
 ```go
-result.EnableFunctionsOnTimeout(true)
-result.EnableFunctionsOnTimeout(false)
+result.EnableFunctionsOnTimeout()       // enable (the default)
+result.EnableFunctionsOnTimeout(false)  // disable
 ```
 
-#### `EnableExtensiveData(enabled bool) *FunctionResult`
-Send full data to LLM for this turn only, then use smaller replacement.
+#### `EnableExtensiveData(enabled ...bool) *FunctionResult`
+Send full data to LLM for this turn only, then use smaller replacement. Omit `enabled` to enable (the default).
 
 ```go
-result.EnableExtensiveData(true)   // Send extensive data this turn
+result.EnableExtensiveData()       // Send extensive data this turn (the default)
 result.EnableExtensiveData(false)  // Use normal data
 ```
 
@@ -779,7 +781,7 @@ result = swaig.NewFunctionResult("Processing your request").
 result = swaig.NewFunctionResult("Let me transfer you to billing").
 	SetMetadata(map[string]any{"transfer_reason": "billing_inquiry"}).
 	UpdateGlobalData(map[string]any{"last_action": "transfer_to_billing"}).
-	Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})
+	Connect(swaig.ConnectOptions{Destination: "+15551234567"})
 ```
 
 ---

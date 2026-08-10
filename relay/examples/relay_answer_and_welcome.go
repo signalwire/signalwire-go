@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Answer an inbound call and say "Welcome to SignalWire!"
 //
@@ -44,9 +44,13 @@ func main() {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		action.Wait(ctx)
+		if _, err := action.Wait(ctx); err != nil {
+			fmt.Printf("play did not finish: %v\n", err)
+		}
 
-		call.Hangup("")
+		if err := call.Hangup(""); err != nil {
+			fmt.Printf("hangup failed: %v\n", err)
+		}
 		fmt.Printf("Call ended: %s\n", call.CallID())
 	})
 

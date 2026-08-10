@@ -50,6 +50,9 @@ func NewAPINinjasTrivia(params map[string]any) skills.SkillBase {
 	}
 }
 
+// RequiredEnvVars returns API_NINJAS_KEY, the env var SkillManager checks
+// before load. When an "api_key" param is supplied explicitly it returns nil,
+// so the env var is not required for a caller who passed the key inline.
 func (s *APINinjasTriviaSkill) RequiredEnvVars() []string {
 	if s.Params != nil {
 		if _, ok := s.Params["api_key"]; ok {
@@ -59,13 +62,23 @@ func (s *APINinjasTriviaSkill) RequiredEnvVars() []string {
 	return []string{"API_NINJAS_KEY"}
 }
 
+// SupportsMultipleInstances returns true: several trivia instances can coexist
+// on one agent, each distinguished by its own "tool_name".
 func (s *APINinjasTriviaSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "api_ninjas_trivia_<tool_name>", defaulting tool_name
+// to "get_trivia". Two instances configured with different tool names therefore
+// load side by side; two with the same name collide and the second is rejected.
 func (s *APINinjasTriviaSkill) GetInstanceKey() string {
 	name := s.GetParamString("tool_name", "get_trivia")
 	return "api_ninjas_trivia_" + name
 }
 
+// Setup resolves the API key (the "api_key" param, else the API_NINJAS_KEY env
+// var), the tool name, and the enabled category list, which defaults to all 14
+// API Ninjas categories. It returns false — aborting the load — when the key is
+// empty, when "categories" is neither []string nor []any-of-string, when the
+// resulting list is empty, or when any entry is not a known category key.
 func (s *APINinjasTriviaSkill) Setup() bool {
 	s.apiKey = s.GetParamString("api_key", os.Getenv("API_NINJAS_KEY"))
 	if s.apiKey == "" {
@@ -113,6 +126,14 @@ func (s *APINinjasTriviaSkill) Setup() bool {
 	return true
 }
 
+// RegisterTools returns the single trivia tool, whose "category" parameter is
+// enum-constrained to the enabled categories. Execution is primarily
+// server-side via the SwaigFields data_map webhook, which GETs
+// /v1/trivia?category=... with the API key in the X-Api-Key header; the Go
+// Handler is a local fallback for environments where the platform-side DataMap
+// is unavailable. The API host comes from API_NINJAS_BASE_URL when set
+// (the dispatch audit points it at a loopback fixture), else
+// https://api.api-ninjas.com.
 func (s *APINinjasTriviaSkill) RegisterTools() []skills.ToolRegistration {
 	// Build rich description matching Python: "Category for trivia question. Options: key: Name; ..."
 	descriptions := make([]string, 0, len(s.categories))
@@ -225,10 +246,15 @@ func (s *APINinjasTriviaSkill) handleGetTrivia(args map[string]any, _ map[string
 	)
 }
 
+// GetHints returns speech-recognition hints biasing the recognizer toward
+// trivia vocabulary.
 func (s *APINinjasTriviaSkill) GetHints() []string {
 	return []string{"trivia", "quiz", "question", "game"}
 }
 
+// GetPromptSections returns one POM section telling the agent the trivia tool
+// exists and to let the user answer before revealing the answer. The section
+// names the configured tool name, so it stays correct across instances.
 func (s *APINinjasTriviaSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{
@@ -242,6 +268,9 @@ func (s *APINinjasTriviaSkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetParameterSchema extends the common skill parameters with "api_key"
+// (required, hidden, sourced from API_NINJAS_KEY) and "categories" (optional
+// array whose items are enum-constrained to all 14 known category keys).
 func (s *APINinjasTriviaSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["api_key"] = map[string]any{

@@ -21,11 +21,11 @@ func NewChatNamespace(client HTTPClient) *ChatNamespace {
 
 // ChatNamespaceCreateTokenParams holds the named optional parameters for ChatNamespace.CreateToken.
 type ChatNamespaceCreateTokenParams struct {
-	Ttl      int
-	Channels ChatChannel
-	MemberID *string
-	State    *ChatState
-	Extras   map[string]any
+	Ttl      int            `sw:"required"`
+	Channels ChatChannel    `sw:"required"`
+	MemberID *string        `sw:"optional"`
+	State    *ChatState     `sw:"optional"`
+	Extras   map[string]any `sw:"optional"`
 }
 
 func (r *ChatNamespace) CreateToken(ctx context.Context, params ChatNamespaceCreateTokenParams, opts ...*RequestOptions) (*ChatToken, error) {

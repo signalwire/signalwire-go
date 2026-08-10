@@ -329,7 +329,7 @@ func (fb *FAQBotAgent) SearchFaqs(args map[string]any, rawData map[string]any) *
 // agent.SummaryCallback signature and is registered via fb.AgentBase.OnSummary
 // in the constructor. There is currently no FAQ-specific summary logic (the
 // post-prompt already emits a JSON summary), so this is a no-op placeholder
-// that mirrors Python's on_summary surface.
+// that preserves the on_summary surface.
 func (fb *FAQBotAgent) OnSummary(summary map[string]any, rawData map[string]any) {
 	_ = summary
 	_ = rawData

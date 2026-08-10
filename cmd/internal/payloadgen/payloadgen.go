@@ -15,6 +15,8 @@ package payloadgen
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -228,7 +230,206 @@ func fieldName(wireKey string) string {
 	return p
 }
 
-func refName(ref string) string {
+// ---------------------------------------------------------------------------
+// Cross-file $ref resolution
+// ---------------------------------------------------------------------------
+//
+// A ref of the form `<file>.yaml#/components/schemas/<Name>` points at a schema in a
+// SIBLING spec file, whose types this generator emits into a different output FILE.
+// Resolving it means three things, all of which must happen or the emitted file is
+// broken:
+//  1. VERIFY the target spec file exists and actually declares <Name> (else fail).
+//  2. Return the Go type name for <Name>.
+//  3. RECORD what the emitting file needs to reference the name.
+//
+// Before this existed only step 2 happened, via last-path-segment-wins: `refName`
+// took the text after the final "/" and threw the file part away, so
+// `swaig-response.yaml#/components/schemas/SwaigResponse` and a same-file
+// `#/components/schemas/SwaigResponse` were indistinguishable. That emitted a name
+// nothing declared — `undefined: SwaigResponse` at compile time — or, worse, silently
+// bound to an unrelated same-named local schema. There is deliberately NO per-schema
+// special case here: register a file once and every ref into it resolves.
+//
+// Step 3 is a NO-OP for Go specifically, and that is a property of the output layout
+// rather than a shortcut: all three swaig-specs files emit into the SAME Go package
+// (pkg/swaig), so a name declared by a sibling file is already in scope with no import
+// statement. Python needs `if TYPE_CHECKING: from <module> import <Name>` and
+// TypeScript needs an `import type`; Go needs nothing. The resolver still records the
+// (module, name) pair because the canonical AUDIT type must name the module that
+// DECLARES the schema — see crossFileModules and gen.refModule — and because if a
+// future spec file ever emitted into a different Go package this is the hook that
+// would have to grow an import.
+
+// crossFileModules maps a spec FILE NAME to the canonical module that hosts its
+// schemas, mirroring CROSS_FILE_MODULES in porting-sdk's
+// generate_python_rest_types.py. A cross-file ref into a file that is not registered
+// is an ERROR, not a silent widening to map[string]any: adding a new cross-file link
+// is a deliberate act, not something that degrades quietly.
+var crossFileModules = map[string]string{
+	"swaig-request.yaml":  canonModule("swaig_request"),
+	"swaig-response.yaml": canonModule("swaig_actions"),
+}
+
+// crossFileSearchDirs are the porting-sdk-relative dirs searched for a ref target.
+var crossFileSearchDirs = []string{"swaig-specs"}
+
+// crossFileResolver verifies cross-file $refs against the on-disk spec tree.
+//
+// specRoot is the porting-sdk root. It may be EMPTY, which means "no spec tree
+// available": generate-swml-verbs reads schema.json and has no cross-file refs at all,
+// and the *_generated.go-preserving skip path in the generator mains runs without a
+// resolved porting-sdk. With an empty specRoot a cross-file ref is a hard error rather
+// than an unverified pass — an unverifiable ref must not resolve.
+type crossFileResolver struct {
+	specRoot string
+	// declared memoizes file name -> set of schema names it declares, so a spec is
+	// read and parsed once per generator run however many refs point into it.
+	declared map[string]map[string]bool
+	// resolved records file name -> resolved Go type names, for the emitter's benefit
+	// (see step 3 above) and so a caller can assert what a run actually resolved.
+	resolved map[string]map[string]bool
+}
+
+func newCrossFileResolver(specRoot string) *crossFileResolver {
+	return &crossFileResolver{
+		specRoot: specRoot,
+		declared: map[string]map[string]bool{},
+		resolved: map[string]map[string]bool{},
+	}
+}
+
+// moduleOf reports the module a cross-file-resolved type name was declared in, for the
+// canonical audit tag. Only names this run actually resolved through a verified
+// cross-file ref are present — an unresolved name falls back to the emitting module.
+func (r *crossFileResolver) moduleOf(name string) (string, bool) {
+	for mod, names := range r.resolved {
+		if names[name] {
+			return mod, true
+		}
+	}
+	return "", false
+}
+
+// isCrossFileRef is true for `<file>#/<pointer>` — a ref with BOTH a file part and a
+// pointer. A bare `#/components/schemas/X` (same document) and a whole-file
+// `SWMLObject.json` (no pointer) are both NOT cross-file refs.
+func isCrossFileRef(ref string) bool {
+	i := strings.Index(ref, "#")
+	return i > 0 && i < len(ref)-1
+}
+
+// isWholeFileJSONRef is true for a ref naming a whole JSON DOCUMENT with no pointer
+// into it (`SWMLObject.json`) — a nested value this generator emits no type for, so an
+// opaque map is the correct shape. Deliberately false for `x.json#/…`: that HAS a
+// pointer, so it is a schema reference and belongs to the verifying resolver, not to
+// the opaque fallback. (This is the `"#" not in ref` half of the reference generator's
+// same guard, which go's copy had dropped.)
+func isWholeFileJSONRef(ref string) bool {
+	return !strings.HasPrefix(ref, "#/") && strings.HasSuffix(ref, ".json") && !strings.Contains(ref, "#")
+}
+
+// schemasDeclaredIn loads a sibling spec by file name and returns the schema names it
+// declares, or an error naming every path searched.
+func (r *crossFileResolver) schemasDeclaredIn(fileName string) (map[string]bool, error) {
+	if got, ok := r.declared[fileName]; ok {
+		return got, nil
+	}
+	if r.specRoot == "" {
+		return nil, fmt.Errorf("cross-file $ref target %q cannot be verified: no spec root "+
+			"available to this generator run", fileName)
+	}
+	var tried []string
+	for _, d := range crossFileSearchDirs {
+		p := filepath.Join(r.specRoot, d, fileName)
+		tried = append(tried, p)
+		// The file name is not free-form: resolve() rejects anything absent from the
+		// closed crossFileModules registry before calling this, so p is <spec root> +
+		// a fixed search dir + one of a fixed set of names.
+		raw, err := os.ReadFile(p) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
+		if err != nil {
+			continue
+		}
+		schemas, _, err := loadYAMLSchemas(raw)
+		if err != nil {
+			return nil, fmt.Errorf("cross-file $ref target %q: %w", p, err)
+		}
+		names := make(map[string]bool, len(schemas))
+		for n := range schemas {
+			names[n] = true
+		}
+		r.declared[fileName] = names
+		return names, nil
+	}
+	return nil, fmt.Errorf("cross-file $ref target spec file not found: %q (looked in: %s)",
+		fileName, strings.Join(tried, ", "))
+}
+
+// resolve turns `<file>.yaml#/components/schemas/<Name>` into the Go type name for
+// <Name>, having verified that <file> exists and declares it. It fails — naming both
+// the file and the schema — on all three failure modes (unsupported pointer,
+// unregistered file, undeclared schema) rather than falling back to a name nothing
+// defines.
+func (r *crossFileResolver) resolve(ref string) (string, error) {
+	fileName, pointer, _ := strings.Cut(ref, "#")
+	const want = "/components/schemas/"
+	if !strings.HasPrefix(pointer, want) {
+		return "", fmt.Errorf("unsupported cross-file $ref pointer %q in %q; only "+
+			"'#%s<Name>' is resolvable", pointer, ref, want)
+	}
+	schemaName := pointer[len(want):]
+	if schemaName == "" || strings.Contains(schemaName, "/") {
+		return "", fmt.Errorf("unsupported cross-file $ref pointer %q in %q; only "+
+			"'#%s<Name>' is resolvable", pointer, ref, want)
+	}
+	module, ok := crossFileModules[fileName]
+	if !ok {
+		return "", fmt.Errorf("cross-file $ref into unregistered spec file %q (schema %q); "+
+			"add it to crossFileModules with the module that hosts its schemas", fileName, schemaName)
+	}
+	declared, err := r.schemasDeclaredIn(fileName)
+	if err != nil {
+		return "", err
+	}
+	if !declared[schemaName] {
+		names := make([]string, 0, len(declared))
+		for n := range declared {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		joined := strings.Join(names, ", ")
+		if joined == "" {
+			joined = "<none>"
+		}
+		return "", fmt.Errorf("cross-file $ref names schema %q which does not exist in %q "+
+			"(it declares: %s)", schemaName, fileName, joined)
+	}
+	name := typeName(schemaName)
+	if r.resolved[module] == nil {
+		r.resolved[module] = map[string]bool{}
+	}
+	r.resolved[module][name] = true
+	return name, nil
+}
+
+// refName resolves a $ref to the Go type name it names.
+//
+// A SAME-FILE ref (`#/components/schemas/X`) is the local schema X. A CROSS-FILE ref
+// goes through the verifying resolver above. Errors are accumulated on the gen rather
+// than returned, because refName is called from deep inside the type-expression
+// builders (canonicalType / goType) whose signatures are `(*schema) string`; the
+// emitting Emit* entry point checks g.err before returning a source string, so a
+// failure is reported and NOTHING is written — it never degrades to a bad name.
+func (g *gen) refName(ref string) string {
+	if isCrossFileRef(ref) {
+		name, err := g.crossFile.resolve(ref)
+		if err != nil {
+			g.fail(err)
+			// The returned name is never emitted (the Emit* entry point aborts on
+			// g.err); it exists only so the in-flight expression builder can finish.
+			return "InvalidCrossFileRef"
+		}
+		return name
+	}
 	seg := ref
 	if i := strings.LastIndex(ref, "/"); i >= 0 {
 		seg = ref[i+1:]
@@ -248,6 +449,8 @@ func canonModule(kind string) string {
 		return "signalwire.core.post_prompt_generated"
 	case "swaig_request":
 		return "signalwire.core.swaig_request_generated"
+	case "swaig_actions":
+		return "signalwire.core.swaig_actions_generated"
 	default:
 		return "signalwire.core.swaig_request_generated"
 	}
@@ -259,11 +462,46 @@ type gen struct {
 	// overlay is the SDK-surface policy (x-sdk-overlay.yaml). Set on the SWML-verb
 	// path where AIParams surfaces; nil (no-op) for the SWAIG payload paths.
 	overlay *overlay.Overlay
+	// crossFile verifies `<file>.yaml#/components/schemas/<Name>` refs against the
+	// on-disk spec tree. Always non-nil (newGen); a nil specRoot inside it makes any
+	// cross-file ref a hard error rather than an unverified pass.
+	crossFile *crossFileResolver
+	// err is the first cross-file resolution failure seen while building type
+	// expressions. The Emit* entry points return it instead of a source string.
+	err error
 }
 
+// newGen builds a gen with the cross-file resolver wired to specRoot (the porting-sdk
+// root, or "" when this generator has no spec tree — see crossFileResolver).
+func newGen(module, specRoot string, refModule map[string]string, ov *overlay.Overlay) *gen {
+	if refModule == nil {
+		refModule = map[string]string{}
+	}
+	return &gen{module: module, refModule: refModule, overlay: ov, crossFile: newCrossFileResolver(specRoot)}
+}
+
+// fail records the first resolution error; later ones are dropped so the reported
+// error is the root one rather than whichever expression finished last.
+func (g *gen) fail(err error) {
+	if g.err == nil {
+		g.err = err
+	}
+}
+
+// classRef is the canonical AUDIT type for a named schema: `class:<module>.<Name>`.
+//
+// The module is the one that DECLARES the schema, which for a cross-file ref is NOT
+// the emitting module. That mapping comes from the resolver — it recorded (module,
+// name) when it verified the ref — so crossFileModules is the single source for it and
+// no hand-map has to repeat it. refModule remains for the SAME-FILE case where a
+// schema is declared in a sibling output file of the same package (post-prompt.yaml's
+// local SwaigRequest / SwaigArgument refs, emitted into swaig_request_generated.go).
 func (g *gen) classRef(name string) string {
 	mod := g.module
 	if m, ok := g.refModule[name]; ok {
+		mod = m
+	}
+	if m, ok := g.crossFile.moduleOf(name); ok {
 		mod = m
 	}
 	return "class:" + mod + "." + typeName(name)
@@ -289,10 +527,14 @@ func (g *gen) canonicalType(s *schema) string {
 		}
 	}
 	if s.Ref != "" {
-		if !strings.HasPrefix(s.Ref, "#/") && strings.HasSuffix(s.Ref, ".json") {
+		// A WHOLE-FILE JSON ref (`SWMLObject.json`, no `#` pointer) names a document
+		// this generator emits no types for — correctly an opaque nested value. A
+		// ref WITH a pointer is a schema reference and goes to refName, which
+		// verifies the cross-file case instead of guessing at its last segment.
+		if isWholeFileJSONRef(s.Ref) {
 			return "dict<string,any>"
 		}
-		return g.classRef(refName(s.Ref))
+		return g.classRef(g.refName(s.Ref))
 	}
 	if s.Const != nil {
 		return "string"
@@ -443,10 +685,10 @@ func (g *gen) goType(s *schema) string {
 		return "string"
 	}
 	if s.Ref != "" {
-		if !strings.HasPrefix(s.Ref, "#/") && strings.HasSuffix(s.Ref, ".json") {
+		if isWholeFileJSONRef(s.Ref) {
 			return "map[string]any"
 		}
-		return "*" + refName(s.Ref)
+		return "*" + g.refName(s.Ref)
 	}
 	if s.Const != nil || len(s.Enum) > 0 {
 		return "string"
@@ -617,7 +859,7 @@ package %[4]s
 
 // EmitSwaigRequest mirrors generate_swaig_request: SwaigRequest (+ the inline
 // `argument` lifted to SwaigArgument). raw is the swaig-request.yaml bytes.
-func EmitSwaigRequest(raw []byte) (string, error) {
+func EmitSwaigRequest(raw []byte, specRoot string) (string, error) {
 	schemas, _, err := loadYAMLSchemas(raw)
 	if err != nil {
 		return "", err
@@ -626,7 +868,7 @@ func EmitSwaigRequest(raw []byte) (string, error) {
 	if req == nil {
 		return "", fmt.Errorf("swaig-request.yaml: missing SwaigRequest")
 	}
-	g := &gen{module: canonModule("swaig_request"), refModule: map[string]string{}}
+	g := newGen(canonModule("swaig_request"), specRoot, nil, nil)
 
 	var decls []string
 	props := make([]propEntry, 0, len(req.Properties))
@@ -639,6 +881,9 @@ func EmitSwaigRequest(raw []byte) (string, error) {
 		}
 	}
 	decls = append(decls, g.declaration("SwaigRequest", &schema{Type: "object", Properties: props, Description: req.Description}))
+	if g.err != nil {
+		return "", g.err
+	}
 
 	body := strings.Join(decls, "\n")
 	src := fmt.Sprintf(genHeaderTmpl,
@@ -650,24 +895,28 @@ func EmitSwaigRequest(raw []byte) (string, error) {
 }
 
 // EmitPostPrompt mirrors generate_post_prompt: one decl per component schema.
-func EmitPostPrompt(raw []byte) (string, error) {
+func EmitPostPrompt(raw []byte, specRoot string) (string, error) {
 	schemas, order, err := loadYAMLSchemas(raw)
 	if err != nil {
 		return "", err
 	}
-	g := &gen{
-		module: canonModule("post_prompt"),
-		refModule: map[string]string{
-			"SwaigRequest":  canonModule("swaig_request"),
-			"SwaigArgument": canonModule("swaig_request"),
-		},
-	}
+	// SwaigRequest / SwaigArgument are declared in swaig_request_generated.go — the
+	// same Go PACKAGE, a different output FILE — so a bare `#/components/schemas/
+	// SwaigRequest` ref here compiles, but the audit tag must still name the module
+	// that declares it. The cross-file SwaigResponse / SwaigAction entries that used
+	// to sit alongside them are GONE: the verifying resolver records their module from
+	// crossFileModules, so listing them here would duplicate that mapping in a second
+	// place free to drift from it.
+	g := newGen(canonModule("post_prompt"), specRoot, map[string]string{
+		"SwaigRequest":  canonModule("swaig_request"),
+		"SwaigArgument": canonModule("swaig_request"),
+	}, nil)
 	var decls []string
 	for _, name := range order {
-		if name == "SwaigRequest" {
-			continue // declared in swaig_request_generated.go (same package)
-		}
 		decls = append(decls, g.declaration(name, schemas[name]))
+	}
+	if g.err != nil {
+		return "", g.err
 	}
 	body := strings.Join(decls, "\n")
 	src := fmt.Sprintf(genHeaderTmpl,
@@ -680,7 +929,7 @@ func EmitPostPrompt(raw []byte) (string, error) {
 
 // EmitSwaigActions mirrors generate_swaig_actions: one <Verb>Action struct per
 // object-shaped action value.
-func EmitSwaigActions(raw []byte) (string, error) {
+func EmitSwaigActions(raw []byte, specRoot string) (string, error) {
 	schemas, _, err := loadYAMLSchemas(raw)
 	if err != nil {
 		return "", err
@@ -689,7 +938,7 @@ func EmitSwaigActions(raw []byte) (string, error) {
 	if sa == nil || len(sa.Properties) == 0 {
 		return "", fmt.Errorf("swaig-response.yaml: missing SwaigAction.properties")
 	}
-	g := &gen{module: canonModule("swaig_request"), refModule: map[string]string{}}
+	g := newGen(canonModule("swaig_actions"), specRoot, nil, nil)
 	isObj := func(s *schema) bool {
 		if s == nil {
 			return false
@@ -707,6 +956,13 @@ func EmitSwaigActions(raw []byte) (string, error) {
 		verbSchema[p.name] = p.sch
 	}
 	var decls []string
+	// envProps carries one entry per action verb for the SwaigAction ENVELOPE. Every
+	// inline-object branch that lifted to a named <Verb>Action struct is replaced by
+	// a local $ref to it, so the ENVELOPE field's canonical type NAMES the lifted
+	// class — `union<string,class:….ContextSwitchAction>` — exactly as the reference
+	// records it. Leaving the inline object in place would widen the audit type to
+	// `dict<string,any>` and read as a missing field to the DRIFT gate.
+	envProps := make([]propEntry, 0, len(verbs))
 	for _, verb := range verbs {
 		s := verbSchema[verb]
 		var branches []*schema
@@ -716,8 +972,11 @@ func EmitSwaigActions(raw []byte) (string, error) {
 			branches = []*schema{s}
 		}
 		objIdx := 0
+		// envBranches mirrors `branches` with each lifted object swapped for its $ref.
+		envBranches := make([]*schema, 0, len(branches))
 		for _, b := range branches {
 			if !isObj(b) {
+				envBranches = append(envBranches, b)
 				continue
 			}
 			objIdx++
@@ -726,13 +985,52 @@ func EmitSwaigActions(raw []byte) (string, error) {
 				name += fmt.Sprintf("%d", objIdx)
 			}
 			decls = append(decls, g.declaration(name, &schema{Type: "object", Properties: b.Properties}))
+			envBranches = append(envBranches, &schema{Ref: "#/components/schemas/" + name})
 		}
+		switch {
+		case objIdx == 0:
+			// Nothing lifted (scalar / array / open object): the spec schema already
+			// canonicalizes correctly.
+			envProps = append(envProps, propEntry{name: verb, sch: s})
+		case len(s.OneOf) == 0:
+			// A single object-with-properties: one named struct, referenced directly.
+			envProps = append(envProps, propEntry{
+				name: verb,
+				sch:  &schema{Ref: envBranches[0].Ref, Description: s.Description},
+			})
+		default:
+			// A union: keep it a union, with the object branches now naming their
+			// lifted structs. goType still widens the Go field to `any` (Go has no
+			// sum type) while the canonical tag stays precise.
+			envProps = append(envProps, propEntry{
+				name: verb,
+				sch:  &schema{OneOf: envBranches, Description: s.Description},
+			})
+		}
+	}
+	// The response ENVELOPE types. SwaigAction is the action OBJECT (one or more
+	// action keys set at once — the engine dispatches every recognized key), and
+	// SwaigResponse is the {response, action, post_process} body a handler returns.
+	// They live here, alongside the per-action value types, because this is the
+	// module that owns swaig-response.yaml — which is what makes
+	// `swaig-response.yaml#/components/schemas/SwaigResponse` resolvable from
+	// post-prompt.yaml (see EmitPostPrompt's refModule).
+	decls = append(decls, g.declaration("SwaigAction", &schema{
+		Type: "object", Properties: envProps, Description: sa.Description,
+	}))
+	if sr := schemas["SwaigResponse"]; sr != nil {
+		decls = append(decls, g.declaration("SwaigResponse", sr))
+	} else {
+		return "", fmt.Errorf("swaig-response.yaml: missing SwaigResponse")
+	}
+	if g.err != nil {
+		return "", g.err
 	}
 	body := strings.Join(decls, "\n")
 	src := fmt.Sprintf(genHeaderTmpl,
 		"generate-swaig-payloads",
 		"porting-sdk/swaig-specs/swaig-response.yaml",
-		"The typed SWAIG response-action CONFIG types (one <Verb>Action per object-\n// shaped action value). The ergonomic builder methods live on FunctionResult.",
+		"The typed SWAIG response-action CONFIG types (one <Verb>Action per object-\n// shaped action value) plus the SwaigAction/SwaigResponse envelope. The\n// ergonomic builder methods live on FunctionResult.",
 		"swaig") + "\n" + body
 	return src, nil
 }
@@ -747,12 +1045,12 @@ var handWrittenVerbs = map[string]bool{
 // EmitSwmlVerbs mirrors generate_swml_verbs: one decl per schema.json $defs entry
 // (object -> struct; else -> alias) + the flattened <Verb>Config structs from
 // SWMLMethod.anyOf. raw is the schema.json bytes.
-func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay) (string, error) {
+func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay, specRoot string) (string, error) {
 	defs, order, err := loadJSONDefs(raw)
 	if err != nil {
 		return "", err
 	}
-	g := &gen{module: canonModule("swml"), refModule: map[string]string{}, overlay: ov}
+	g := newGen(canonModule("swml"), specRoot, nil, ov)
 	var decls []string
 	declared := map[string]bool{}
 	emit := func(name string, s *schema) {
@@ -796,6 +1094,9 @@ func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay) (string, error) {
 			emit(cfgName, &schema{Type: "object", Properties: props, Description: desc})
 		}
 	}
+	if g.err != nil {
+		return "", g.err
+	}
 	body := strings.Join(decls, "\n")
 	src := fmt.Sprintf(genHeaderTmpl,
 		"generate-swml-verbs",
@@ -805,7 +1106,25 @@ func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay) (string, error) {
 	return src, nil
 }
 
+// refNameRaw is the RAW (un-typeName'd) final segment of a ref, used to index the SWML
+// schema.json `$defs` map by its literal key.
+//
+// SAME-DOCUMENT refs only, and unlike refName it must stay raw because the caller looks
+// the result up in a map keyed by the spec's own spelling. schema.json's one non-local
+// ref is the whole-file `SWMLObject.json` (no pointer), which isWholeFileJSONRef routes
+// to an opaque map before reaching here. A ref with a file part AND a pointer would have
+// its file part discarded, so it is refused rather than mis-indexed.
 func refNameRaw(ref string) string {
+	if isCrossFileRef(ref) {
+		// Callers index `defs` with the result and treat a miss as "nothing to flatten",
+		// so returning a discarded-file-part name here would degrade silently — the
+		// exact failure mode the resolver above exists to remove. The SWML emitter has
+		// no cross-file link to resolve; if one is ever added, this is the hook that
+		// must grow the verifying path.
+		panic(fmt.Sprintf("payloadgen: cross-file $ref %q reached refNameRaw, which "+
+			"resolves same-document $defs keys only. Give the SWML emitter the verifying "+
+			"crossFileResolver path rather than letting the file part be discarded", ref))
+	}
 	if i := strings.LastIndex(ref, "/"); i >= 0 {
 		return ref[i+1:]
 	}

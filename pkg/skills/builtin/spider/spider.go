@@ -63,6 +63,14 @@ type SpiderSkill struct {
 	userAgent          string
 	headers            map[string]string
 
+	// removeXPaths are the XPath expressions for page elements stripped before
+	// text extraction (chrome that is not content: scripts, styling, navigation,
+	// header/footer, sidebars, noscript fallbacks). PREFILLED at construction
+	// with the reference's default set, and readable/mutable by the caller via
+	// RemoveXPaths / SetRemoveXPaths — it is a configuration VALUE, not internal
+	// state. Mirrors the reference's SpiderSkill.remove_xpaths attribute.
+	removeXPaths []string
+
 	// LRU-style bounded cache (map + ordered keys via slice)
 	cacheMu    sync.Mutex
 	cache      map[string][]byte
@@ -70,6 +78,19 @@ type SpiderSkill struct {
 }
 
 const cacheMaxSize = 100
+
+// defaultRemoveXPaths is the prefilled set of XPath expressions for non-content
+// page elements removed before text extraction. Byte-for-byte the reference's
+// default list (signalwire/skills/spider/skill.py) and in the same order.
+var defaultRemoveXPaths = []string{
+	"//script",
+	"//style",
+	"//nav",
+	"//header",
+	"//footer",
+	"//aside",
+	"//noscript",
+}
 
 // NewSpider creates a new SpiderSkill.
 func NewSpider(params map[string]any) skills.SkillBase {
@@ -80,16 +101,46 @@ func NewSpider(params map[string]any) skills.SkillBase {
 			SkillVer:  "1.0.0",
 			Params:    params,
 		},
+		removeXPaths: append([]string(nil), defaultRemoveXPaths...),
 	}
 }
 
+// RemoveXPaths returns the XPath expressions for the page elements stripped
+// before text extraction. Prefilled with the reference default set; the returned
+// slice is a copy, so mutating it does not affect the skill. Mirrors reading the
+// reference's SpiderSkill.remove_xpaths attribute.
+func (s *SpiderSkill) RemoveXPaths() []string {
+	return append([]string(nil), s.removeXPaths...)
+}
+
+// SetRemoveXPaths replaces the XPath expressions stripped before text
+// extraction. Mirrors assigning the reference's remove_xpaths attribute.
+func (s *SpiderSkill) SetRemoveXPaths(xpaths []string) {
+	s.removeXPaths = append([]string(nil), xpaths...)
+}
+
+// SupportsMultipleInstances returns true: several spider configurations can
+// coexist on one agent, each under its own "tool_name".
 func (s *SpiderSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "spider_<tool_name>", defaulting tool_name to
+// "spider". Note the default differs from RegisterTools, which treats an unset
+// tool_name as "no prefix" rather than the literal "spider".
 func (s *SpiderSkill) GetInstanceKey() string {
 	name := s.GetParamString("tool_name", "spider")
 	return "spider_" + name
 }
 
+// Setup reads the crawl configuration and validates the numeric bounds. It
+// returns false — aborting the load — when "delay" is negative,
+// "concurrent_requests" is outside 1..20, "max_pages" is below 1, or
+// "max_depth" is negative. All other params take defaults: max_text_length
+// 3000, timeout 5s, tool_name "" (no tool-name prefix), delay 0.1s,
+// concurrent_requests 5, max_pages 1, max_depth 0, extract_type "fast_text",
+// clean_text true, cache_enabled true, follow_robots_txt FALSE, and user_agent
+// "Spider/1.0 (SignalWire AI Agent)". Non-string values in the "headers" map
+// are dropped rather than rejected. When caching is enabled the in-memory page
+// cache is allocated here; Cleanup releases it.
 func (s *SpiderSkill) Setup() bool {
 	// Core params
 	s.maxTextLength = s.GetParamInt("max_text_length", 3000)
@@ -253,6 +304,18 @@ func (s *SpiderSkill) GetParameterSchema() map[string]map[string]any {
 	return schema
 }
 
+// RegisterTools returns the three scraping tools — scrape_url, crawl_site and
+// extract_structured_data — each prefixed with "<tool_name>_" when a tool_name
+// was configured, so two instances do not collide. All three are handled
+// locally in Go: they GET the target with the configured user agent, headers
+// and timeout, honoring the page cache.
+//
+// scrape_url takes a required "url" and returns extracted text truncated to
+// max_text_length. crawl_site takes a required "start_url" and walks up to
+// max_pages/max_depth. extract_structured_data takes a required "url" and
+// applies the CSS/XPath expressions from the skill's "selectors" CONFIG param —
+// not a call argument — so it replies "No selectors configured" when that param
+// is absent or empty.
 func (s *SpiderSkill) RegisterTools() []skills.ToolRegistration {
 	prefix := ""
 	if s.toolName != "" {
@@ -362,8 +425,11 @@ func (s *SpiderSkill) fetchURL(urlStr string) ([]byte, error) {
 }
 
 // extractText strips HTML and optionally cleans whitespace, then truncates.
+// Non-content elements matching removeXPaths are dropped first, so navigation,
+// header/footer and sidebar chrome never reaches the extracted text (the
+// reference does the same pass in _extract_text before text_content()).
 func (s *SpiderSkill) extractText(body []byte) string {
-	content := stripHTMLTags(string(body))
+	content := stripHTMLTags(applyRemoveXPaths(body, s.removeXPaths))
 	if s.cleanText {
 		content = whitespaceRE.ReplaceAllString(content, " ")
 		content = strings.TrimSpace(content)
@@ -706,6 +772,47 @@ func extractLinks(body, baseURL string) []string {
 	return links
 }
 
+// applyRemoveXPaths parses body as HTML, detaches every node matched by one of
+// the xpaths, and re-renders the remaining tree. This is the Go equivalent of the
+// reference's `for xpath in self.remove_xpaths: for elem in tree.xpath(xpath):
+// elem.drop_tree()` pass, and runs BEFORE tag stripping so a removed element's
+// text is discarded along with its markup.
+//
+// Degrades to the raw body when the document does not parse or no xpath matches —
+// stripHTMLTags still removes script/style, so extraction never regresses below
+// the previous behavior on malformed input.
+func applyRemoveXPaths(body []byte, xpaths []string) string {
+	if len(xpaths) == 0 {
+		return string(body)
+	}
+	root, err := htmlquery.Parse(bytes.NewReader(body))
+	if err != nil || root == nil {
+		return string(body)
+	}
+	removed := false
+	for _, xp := range xpaths {
+		nodes, err := htmlquery.QueryAll(root, xp)
+		if err != nil {
+			continue // an invalid caller-supplied expression skips, never panics
+		}
+		for _, n := range nodes {
+			if n.Parent == nil {
+				continue // already detached (nested match) or the root itself
+			}
+			n.Parent.RemoveChild(n)
+			removed = true
+		}
+	}
+	if !removed {
+		return string(body)
+	}
+	var buf bytes.Buffer
+	if err := html.Render(&buf, root); err != nil {
+		return string(body)
+	}
+	return buf.String()
+}
+
 // stripHTMLTags removes HTML tags from a string (simple regex-based approach).
 func stripHTMLTags(s string) string {
 	// Remove script and style blocks first
@@ -719,6 +826,8 @@ func stripHTMLTags(s string) string {
 	return s
 }
 
+// GetHints returns speech-recognition hints for scraping and crawling
+// vocabulary.
 func (s *SpiderSkill) GetHints() []string {
 	return []string{"scrape", "crawl", "extract", "web page", "website", "get content from", "fetch data from", "spider"}
 }

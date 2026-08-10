@@ -621,6 +621,33 @@ func isNilableGoType(t string) bool {
 		strings.HasPrefix(t, "map[") || t == "any"
 }
 
+// paramsStructFieldDef renders ONE params-struct field definition, carrying the
+// spec's `required` flag in a `sw:"required"` / `sw:"optional"` struct tag.
+//
+// Why the tag exists: for a SCALAR field the Go type alone encodes optionality
+// (required → value type, optional → `*T`), and the emitted body proves it —
+// a pointer field is nil-guarded, a value field assigned unconditionally. But a
+// COMPOSITE field (`[]T` / `map[K]V` / `any`) is spelled IDENTICALLY in both
+// cases — the generator has no `*[]T` form — so it is nil-guarded either way and
+// the guard proves nothing:
+//
+//	Calling.Play    spec-REQUIRED   Play   []map[string]any   // if != nil
+//	Calling.Collect spec-OPTIONAL   Digits map[string]any     // if != nil
+//
+// The required flag is therefore NOT recoverable from Go syntax downstream, and
+// the signature enumerator (which had only pointer-ness to go on) recorded every
+// composite as required — the root cause of go's remaining `required-flip` drift.
+// The generator is the only place that still HAS the spec's flag, so it carries
+// it into the emitted code here. The tag is inert at runtime: params structs are
+// assembled field-by-field into the wire body and never JSON-marshaled.
+func paramsStructFieldDef(name, gotype string, required bool) string {
+	tag := "optional"
+	if required {
+		tag = "required"
+	}
+	return "\t" + name + " " + gotype + " `sw:\"" + tag + "\"`"
+}
+
 // commandFieldTypes returns wire-field → Go type + required set for a command-
 // dispatch command's `params` sub-schema (union-flattened via schemaFieldTypes),
 // mirroring commandFields' field walk. Used to type the command params struct.
