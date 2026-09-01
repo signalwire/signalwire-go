@@ -735,3 +735,136 @@ func executeWithCtx(ctx context.Context, c *relay.Client, method string, params 
 		return nil, ctx.Err()
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Redelivered calling.call.receive (porting-sdk#141)
+//
+// RELAY delivers at least once: the same receive frame can arrive twice for one
+// call. Receive must therefore be idempotent per call_id — see the "Event
+// Redelivery" section of porting-sdk's RELAY_IMPLEMENTATION_GUIDE.md.
+// ---------------------------------------------------------------------------
+
+// TestRelay_RedeliveredReceiveKeepsTheLiveCall — Python:
+// test_redelivered_receive_keeps_the_live_call.
+//
+// Without the idempotency guard the second receive builds a second Call and
+// overwrites calls[callID]. Routing only ever reads that map, so the first Call
+// — the one handed to the application — silently stops receiving events: an
+// awaited Connect/Play/Record on it blocks to its timeout instead of returning
+// at hangup.
+func TestRelay_RedeliveredReceiveKeepsTheLiveCall(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+
+	var mu sync.Mutex
+	var handlerCalls []*relay.Call
+	first := make(chan struct{}, 1)
+
+	client.OnCall(func(call *relay.Call) {
+		mu.Lock()
+		handlerCalls = append(handlerCalls, call)
+		mu.Unlock()
+		select {
+		case first <- struct{}{}:
+		default:
+		}
+	})
+
+	h.InboundCall(t, mocktest.InboundCallOpts{
+		CallID:           "c-redeliver",
+		AutoStates:       []string{"ringing", "answered"},
+		DelayMS:          20,
+		RedeliverReceive: 1,
+	})
+
+	select {
+	case <-first:
+	case <-time.After(5 * time.Second):
+		t.Fatal("on_call handler did not fire within 5s")
+	}
+
+	// Let the redelivery and the trailing state frame drain.
+	time.Sleep(400 * time.Millisecond)
+
+	// 1. One call means one handler invocation.
+	mu.Lock()
+	got := len(handlerCalls)
+	var live *relay.Call
+	if got > 0 {
+		live = handlerCalls[0]
+	}
+	mu.Unlock()
+	if got != 1 {
+		t.Fatalf("on_call handler re-entered for a redelivered receive: %d invocations for one call", got)
+	}
+
+	// 2. The instance the application holds is still the one events route to.
+	//    A replacement in the calls map would leave it frozen at "ringing".
+	if state := live.State(); state != "answered" {
+		t.Errorf("the Call handed to the application stopped receiving events: State() = %q, want %q", state, "answered")
+	}
+
+	// The duplicate really was on the wire — otherwise this test proves nothing.
+	receives := h.JournalSend(t, "calling.call.receive")
+	redelivered := 0
+	for _, e := range receives {
+		params, _ := e.Frame["params"].(map[string]any)
+		if params == nil {
+			continue
+		}
+		inner, _ := params["params"].(map[string]any)
+		if inner != nil && inner["call_id"] == "c-redeliver" {
+			redelivered++
+		}
+	}
+	if redelivered != 2 {
+		t.Fatalf("mock did not redeliver the receive frame (%d sent); the scenario under test never happened", redelivered)
+	}
+}
+
+// TestRelay_DistinctCallIDsStillCreateSeparateCalls — Python:
+// test_distinct_call_ids_still_create_separate_calls.
+//
+// The dedup is per call_id and must not swallow a genuinely new concurrent
+// inbound call.
+func TestRelay_DistinctCallIDsStillCreateSeparateCalls(t *testing.T) {
+	client, h := mocktest.New(t)
+	if client == nil {
+		return
+	}
+
+	var mu sync.Mutex
+	var handlerCalls []*relay.Call
+
+	client.OnCall(func(call *relay.Call) {
+		mu.Lock()
+		handlerCalls = append(handlerCalls, call)
+		mu.Unlock()
+	})
+
+	h.InboundCall(t, mocktest.InboundCallOpts{CallID: "c-first", AutoStates: []string{"ringing"}})
+	h.InboundCall(t, mocktest.InboundCallOpts{CallID: "c-second", AutoStates: []string{"ringing"}})
+
+	if !waitFor(5*time.Second, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return len(handlerCalls) == 2
+	}) {
+		mu.Lock()
+		got := len(handlerCalls)
+		mu.Unlock()
+		t.Fatalf("expected 2 distinct inbound calls, got %d", got)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	seen := map[string]bool{}
+	for _, c := range handlerCalls {
+		seen[c.CallID()] = true
+	}
+	if !seen["c-first"] || !seen["c-second"] {
+		t.Errorf("dedup swallowed a distinct call: saw %v", seen)
+	}
+}

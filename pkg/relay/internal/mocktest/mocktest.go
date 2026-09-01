@@ -323,6 +323,10 @@ type InboundCallOpts struct {
 	AutoStates []string
 	DelayMS    int
 	SessionID  string
+	// RedeliverReceive replays the calling.call.receive frame this many EXTRA
+	// times (byte-identical, before the state frames) to drive RELAY's
+	// at-least-once delivery. See porting-sdk RELAY_IMPLEMENTATION_GUIDE.md.
+	RedeliverReceive int
 }
 
 // InboundCall invokes the mock's /__mock__/inbound_call endpoint, which
@@ -352,6 +356,7 @@ func (h *Harness) InboundCall(t *testing.T, opts InboundCallOpts) {
 	// delivered only to this test's client (an unscoped harness broadcasts, as
 	// before). An explicit opts.SessionID overrides. Mirrors the TS harness's
 	// inboundCall default-to-this-session behavior.
+	body["redeliver_receive"] = opts.RedeliverReceive
 	sid := opts.SessionID
 	if sid == "" {
 		sid = h.SessionID

@@ -1152,6 +1152,23 @@ func (c *Client) handleCallingEvent(eventType string, params map[string]any) {
 
 	// Handle call receive (inbound) events - create new call.
 	if eventType == EventCallingCallReceive {
+		// RELAY delivers at least once, so calling.call.receive can arrive
+		// again for a call already in flight. Receive is idempotent per
+		// call_id: keep the live instance and do NOT re-enter the on_call
+		// handler. Replacing the map entry would orphan the Call the
+		// application is holding — routing only ever reads c.calls by call_id,
+		// so the original would silently stop receiving events and a blocking
+		// Connect/Play/Record on it would wait out its timeout instead of
+		// returning at hangup. The event is ACKed by the read loop before this
+		// runs, so returning early still stops the server's retries.
+		c.mu.RLock()
+		_, inFlight := c.calls[callID]
+		c.mu.RUnlock()
+		if inFlight {
+			c.logger.Printf("relay: ignoring redelivered %s for in-flight call %s", EventCallingCallReceive, callID)
+			return
+		}
+
 		nodeID, _ := params["node_id"].(string)
 		if tag == "" {
 			tag = uuid.New().String()
@@ -1174,6 +1191,7 @@ func (c *Client) handleCallingEvent(eventType string, params map[string]any) {
 		// — do NOT register it and do NOT invoke the on_call handler. The cap is
 		// always positive (DefaultMaxActiveCalls when unset), so this is a real
 		// ceiling, not a no-op knob.
+		// After the dedup above: a redelivery at capacity is not a dropped call.
 		if c.maxActiveCalls > 0 && len(c.calls) >= c.maxActiveCalls {
 			c.mu.Unlock()
 			c.logger.Printf("relay: max active calls (%d) reached, dropping inbound call %s", c.maxActiveCalls, callID)
