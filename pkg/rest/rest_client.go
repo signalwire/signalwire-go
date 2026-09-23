@@ -45,8 +45,7 @@ func (c *RestClient) SetBaseURL(url string) {
 	c.http.SetBaseURL(url)
 }
 
-// HTTPClient exposes the underlying HTTP transport. It is the public form
-// of Python's “signalwire_client._http“ and is the entry point for callers
+// HTTPClient exposes the underlying HTTP transport — the entry point for callers
 // that need raw GET/POST access without going through a namespace resource.
 func (c *RestClient) HTTPClient() *HTTPClient {
 	return c.http
@@ -118,18 +117,38 @@ func firstOpt(opts []*RequestOptions) *RequestOptions {
 	return nil
 }
 
+// Get issues a GET to path with params as the query string, decoding the JSON
+// response body into a map. path is relative to the client's space/API base;
+// opts carries an optional per-request override (see firstOpt). A non-2xx
+// status is returned as an error — the client does not retry.
 func (a *httpAdapter) Get(ctx context.Context, path string, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
 	return a.c.doRequestContextOpts(ctx, "GET", path, nil, params, firstOpt(opts))
 }
+
+// Post issues a POST to path with body JSON-encoded as the request body and
+// params as the query string, decoding the JSON response into a map. A non-2xx
+// status is returned as an error.
 func (a *httpAdapter) Post(ctx context.Context, path string, body map[string]any, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
 	return a.c.doRequestContextOpts(ctx, "POST", path, body, params, firstOpt(opts))
 }
+
+// Put issues a PUT to path with body JSON-encoded as the request body (full
+// replacement), decoding the JSON response into a map. It takes no query
+// params. A non-2xx status is returned as an error.
 func (a *httpAdapter) Put(ctx context.Context, path string, body map[string]any, opts ...*RequestOptions) (map[string]any, error) {
 	return a.c.doRequestContextOpts(ctx, "PUT", path, body, nil, firstOpt(opts))
 }
+
+// Patch issues a PATCH to path with body JSON-encoded as the request body
+// (partial update), decoding the JSON response into a map. It takes no query
+// params. A non-2xx status is returned as an error.
 func (a *httpAdapter) Patch(ctx context.Context, path string, body map[string]any, opts ...*RequestOptions) (map[string]any, error) {
 	return a.c.doRequestContextOpts(ctx, "PATCH", path, body, nil, firstOpt(opts))
 }
+
+// Delete issues a DELETE to path with no request body and no query params,
+// decoding any JSON response into a map (typically empty for a 204). A non-2xx
+// status is returned as an error.
 func (a *httpAdapter) Delete(ctx context.Context, path string, opts ...*RequestOptions) (map[string]any, error) {
 	return a.c.doRequestContextOpts(ctx, "DELETE", path, nil, nil, firstOpt(opts))
 }

@@ -28,8 +28,7 @@ package swaig
 // module-level names via FreeFnTable.
 
 // InferSchema renders a SWAIG tool parameter schema from a typed declaration
-// (the Params builder), returning the same 5-tuple as the Python reference
-// infer_schema:
+// (the Params builder), returning a 5-tuple:
 //
 //   - parameters:  the JSON-Schema properties map (name -> property object);
 //   - required:    the top-level required property names, in first-seen order;

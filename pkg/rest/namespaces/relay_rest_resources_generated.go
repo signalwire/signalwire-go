@@ -25,18 +25,18 @@ func (r *AddressesNamespace) List(ctx context.Context, params map[string]string,
 
 // AddressesNamespaceCreateParams holds the named optional parameters for AddressesNamespace.Create.
 type AddressesNamespaceCreateParams struct {
-	Label         string
-	Country       string
-	FirstName     string
-	LastName      string
-	StreetNumber  string
-	StreetName    string
-	City          string
-	State         string
-	PostalCode    string
-	AddressType   *AddressType
-	AddressNumber *string
-	Extras        map[string]any
+	Label         string         `sw:"required"`
+	Country       string         `sw:"required"`
+	FirstName     string         `sw:"required"`
+	LastName      string         `sw:"required"`
+	StreetNumber  string         `sw:"required"`
+	StreetName    string         `sw:"required"`
+	City          string         `sw:"required"`
+	State         string         `sw:"required"`
+	PostalCode    string         `sw:"required"`
+	AddressType   *AddressType   `sw:"optional"`
+	AddressNumber *string        `sw:"optional"`
+	Extras        map[string]any `sw:"optional"`
 }
 
 func (r *AddressesNamespace) Create(ctx context.Context, params AddressesNamespaceCreateParams, opts ...*RequestOptions) (*AddressResponse, error) {
@@ -80,10 +80,10 @@ func NewImportedNumbersNamespace(client HTTPClient) *ImportedNumbersNamespace {
 
 // ImportedNumbersNamespaceCreateParams holds the named optional parameters for ImportedNumbersNamespace.Create.
 type ImportedNumbersNamespaceCreateParams struct {
-	Number       string
-	NumberType   string
-	Capabilities []string
-	Extras       map[string]any
+	Number       string         `sw:"required"`
+	NumberType   string         `sw:"required"`
+	Capabilities []string       `sw:"optional"`
+	Extras       map[string]any `sw:"optional"`
 }
 
 func (r *ImportedNumbersNamespace) Create(ctx context.Context, params ImportedNumbersNamespaceCreateParams, opts ...*RequestOptions) (*PhoneNumberResponse, error) {
@@ -123,14 +123,14 @@ func NewMFANamespace(client HTTPClient) *MFANamespace {
 
 // MFANamespaceSMSParams holds the named optional parameters for MFANamespace.SMS.
 type MFANamespaceSMSParams struct {
-	To          string
-	From        *string
-	Message     *string
-	TokenLength *int
-	ValidFor    *int
-	MaxAttempts *int
-	AllowAlphas *bool
-	Extras      map[string]any
+	To          string         `sw:"required"`
+	From        *string        `sw:"optional"`
+	Message     *string        `sw:"optional"`
+	TokenLength *int           `sw:"optional"`
+	ValidFor    *int           `sw:"optional"`
+	MaxAttempts *int           `sw:"optional"`
+	AllowAlphas *bool          `sw:"optional"`
+	Extras      map[string]any `sw:"optional"`
 }
 
 func (r *MFANamespace) SMS(ctx context.Context, params MFANamespaceSMSParams, opts ...*RequestOptions) (*MfaResponse, error) {
@@ -160,14 +160,14 @@ func (r *MFANamespace) SMS(ctx context.Context, params MFANamespaceSMSParams, op
 
 // MFANamespaceCallParams holds the named optional parameters for MFANamespace.Call.
 type MFANamespaceCallParams struct {
-	To          string
-	From        *string
-	Message     *string
-	TokenLength *int
-	ValidFor    *int
-	MaxAttempts *int
-	AllowAlphas *bool
-	Extras      map[string]any
+	To          string         `sw:"required"`
+	From        *string        `sw:"optional"`
+	Message     *string        `sw:"optional"`
+	TokenLength *int           `sw:"optional"`
+	ValidFor    *int           `sw:"optional"`
+	MaxAttempts *int           `sw:"optional"`
+	AllowAlphas *bool          `sw:"optional"`
+	Extras      map[string]any `sw:"optional"`
 }
 
 func (r *MFANamespace) Call(ctx context.Context, params MFANamespaceCallParams, opts ...*RequestOptions) (*MfaResponse, error) {
@@ -197,8 +197,8 @@ func (r *MFANamespace) Call(ctx context.Context, params MFANamespaceCallParams, 
 
 // MFANamespaceVerifyParams holds the named optional parameters for MFANamespace.Verify.
 type MFANamespaceVerifyParams struct {
-	Token  string
-	Extras map[string]any
+	Token  string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (r *MFANamespace) Verify(ctx context.Context, requestID string, params MFANamespaceVerifyParams, opts ...*RequestOptions) (*MfaVerifyResponse, error) {
@@ -224,8 +224,8 @@ func (r *NumberGroupsNamespace) ListMemberships(ctx context.Context, groupID str
 
 // NumberGroupsNamespaceAddMembershipParams holds the named optional parameters for NumberGroupsNamespace.AddMembership.
 type NumberGroupsNamespaceAddMembershipParams struct {
-	PhoneNumberID Uuid
-	Extras        map[string]any
+	PhoneNumberID Uuid           `sw:"required"`
+	Extras        map[string]any `sw:"optional"`
 }
 
 func (r *NumberGroupsNamespace) AddMembership(ctx context.Context, groupID string, params NumberGroupsNamespaceAddMembershipParams, opts ...*RequestOptions) (*NumberGroupMembershipResponse, error) {
@@ -422,8 +422,8 @@ func (r *RegistryCampaigns) Get(ctx context.Context, id string, params map[strin
 
 // RegistryCampaignsUpdateParams holds the named optional parameters for RegistryCampaigns.Update.
 type RegistryCampaignsUpdateParams struct {
-	Name   *string
-	Extras map[string]any
+	Name   *string        `sw:"optional"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (r *RegistryCampaigns) Update(ctx context.Context, id string, params RegistryCampaignsUpdateParams, opts ...*RequestOptions) (*CampaignResponse, error) {
@@ -445,9 +445,9 @@ func (r *RegistryCampaigns) ListOrders(ctx context.Context, id string, params ma
 
 // RegistryCampaignsCreateOrderParams holds the named optional parameters for RegistryCampaigns.CreateOrder.
 type RegistryCampaignsCreateOrderParams struct {
-	PhoneNumbers      []string
-	StatusCallbackURL *string
-	Extras            map[string]any
+	PhoneNumbers      []string       `sw:"optional"`
+	StatusCallbackURL *string        `sw:"optional"`
+	Extras            map[string]any `sw:"optional"`
 }
 
 func (r *RegistryCampaigns) CreateOrder(ctx context.Context, id string, params RegistryCampaignsCreateOrderParams, opts ...*RequestOptions) (*OrderResponse, error) {
@@ -510,15 +510,15 @@ func (r *ShortCodesNamespace) Get(ctx context.Context, id string, params map[str
 
 // ShortCodesNamespaceUpdateParams holds the named optional parameters for ShortCodesNamespace.Update.
 type ShortCodesNamespaceUpdateParams struct {
-	Name                     string
-	MessageHandler           ShortCodeMessageHandler
-	MessageRequestURL        *string
-	MessageRequestMethod     *HttpMethod
-	MessageFallbackURL       *string
-	MessageFallbackMethod    *HttpMethod
-	MessageLamlApplicationID *Uuid
-	MessageRelayContext      *string
-	Extras                   map[string]any
+	Name                     string                  `sw:"required"`
+	MessageHandler           ShortCodeMessageHandler `sw:"required"`
+	MessageRequestURL        *string                 `sw:"optional"`
+	MessageRequestMethod     *HttpMethod             `sw:"optional"`
+	MessageFallbackURL       *string                 `sw:"optional"`
+	MessageFallbackMethod    *HttpMethod             `sw:"optional"`
+	MessageLamlApplicationID *Uuid                   `sw:"optional"`
+	MessageRelayContext      *string                 `sw:"optional"`
+	Extras                   map[string]any          `sw:"optional"`
 }
 
 func (r *ShortCodesNamespace) Update(ctx context.Context, id string, params ShortCodesNamespaceUpdateParams, opts ...*RequestOptions) (*ShortCodeResponse, error) {
@@ -563,12 +563,12 @@ func (r *SIPProfileNamespace) Get(ctx context.Context, params map[string]string,
 
 // SIPProfileNamespaceUpdateParams holds the named optional parameters for SIPProfileNamespace.Update.
 type SIPProfileNamespaceUpdateParams struct {
-	DomainIdentifier  *string
-	DefaultCodecs     []string
-	DefaultCiphers    []string
-	DefaultEncryption *string
-	DefaultSendAs     *string
-	Extras            map[string]any
+	DomainIdentifier  *string        `sw:"optional"`
+	DefaultCodecs     []string       `sw:"optional"`
+	DefaultCiphers    []string       `sw:"optional"`
+	DefaultEncryption *string        `sw:"optional"`
+	DefaultSendAs     *string        `sw:"optional"`
+	Extras            map[string]any `sw:"optional"`
 }
 
 func (r *SIPProfileNamespace) Update(ctx context.Context, params SIPProfileNamespaceUpdateParams, opts ...*RequestOptions) (*SipProfileResponse, error) {
@@ -608,8 +608,8 @@ func (r *VerifiedCallersNamespace) RedialVerification(ctx context.Context, id st
 
 // VerifiedCallersNamespaceSubmitVerificationParams holds the named optional parameters for VerifiedCallersNamespace.SubmitVerification.
 type VerifiedCallersNamespaceSubmitVerificationParams struct {
-	VerificationCode string
-	Extras           map[string]any
+	VerificationCode string         `sw:"required"`
+	Extras           map[string]any `sw:"optional"`
 }
 
 func (r *VerifiedCallersNamespace) SubmitVerification(ctx context.Context, id string, params VerifiedCallersNamespaceSubmitVerificationParams, opts ...*RequestOptions) (*VerifiedCallerIDResponse, error) {

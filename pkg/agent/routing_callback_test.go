@@ -101,8 +101,8 @@ func TestRoutingCallbackNilFallsBackToDefault(t *testing.T) {
 // needed by the agent mux to know which HTTP handlers to register.
 func TestRoutingCallbackPathsExposedFromSwmlService(t *testing.T) {
 	svc := swml.NewService(swml.WithName("paths"))
-	svc.RegisterRoutingCallback("/b", func(body map[string]any, headers map[string]any) *string { return nil })
-	svc.RegisterRoutingCallback("/a", func(body map[string]any, headers map[string]any) *string { return nil })
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string { return nil }, "/b")
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string { return nil }, "/a")
 
 	got := svc.RoutingCallbackPaths()
 	if len(got) != 2 {

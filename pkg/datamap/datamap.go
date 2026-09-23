@@ -56,7 +56,6 @@ type DataMap struct {
 	expressions         []expressionDef
 	webhookConfig       *webhookDef
 	webhookExprs        []map[string]any
-	bodyData            map[string]any
 	paramsData          map[string]any
 	foreachConfig       map[string]any
 	outputResult        *swaig.FunctionResult
@@ -65,7 +64,7 @@ type DataMap struct {
 	globalErrorKeysList []string
 
 	// Internal: accumulated webhooks for multi-webhook support.
-	// Each entry is built from webhookConfig + body/params/output/foreach/error_keys
+	// Each entry is built from webhookConfig + params/output/foreach/error_keys
 	// when a new Webhook() call is made.
 	webhooks []map[string]any
 }
@@ -148,11 +147,9 @@ func (dm *DataMap) Parameter(name, paramType, desc string, required bool, enum [
 // testValue is the template string to test (e.g., "${args.command}").
 // pattern is the regex pattern to match against.
 // output is the FunctionResult returned when the pattern matches. It is REQUIRED
-// and must not be nil — a nil output panics here (at the call site), mirroring
-// the Python reference, whose expression() calls output.to_dict() immediately
-// and so raises on a None output at build time. Failing here (rather than later
-// at serialize time, where the value would otherwise be dereferenced) keeps the
-// error at the point of misuse.
+// and must not be nil — a nil output panics here, at the call site. Failing
+// here (rather than later at serialize time, where the value would otherwise be
+// dereferenced) keeps the error at the point of misuse.
 // nomatchOutput is an optional FunctionResult returned when the pattern does not match (can be nil).
 func (dm *DataMap) Expression(testValue, pattern string, output *swaig.FunctionResult, nomatchOutput *swaig.FunctionResult) *DataMap {
 	if output == nil {
@@ -168,9 +165,8 @@ func (dm *DataMap) Expression(testValue, pattern string, output *swaig.FunctionR
 }
 
 // ExpressionRegexp adds a pattern-matching expression using a compiled *regexp.Regexp.
-// This mirrors Python's expression() which accepts either a plain string or a compiled
-// re.Pattern object — when a compiled pattern is passed, Python extracts pattern.pattern
-// (the raw string). Here, pattern.String() serves the same role.
+// The wire form of an expression's pattern is always the raw pattern string, so
+// pattern.String() is what gets emitted.
 //
 // testValue is the template string to test (e.g., "${args.command}").
 // pattern is a compiled regexp whose string representation is used as the match pattern.
@@ -203,9 +199,6 @@ func (dm *DataMap) flushCurrentWebhook() {
 	if len(dm.webhookConfig.requireArgs) > 0 {
 		wh["require_args"] = dm.webhookConfig.requireArgs
 	}
-	if dm.bodyData != nil {
-		wh["body"] = dm.bodyData
-	}
 	if dm.paramsData != nil {
 		wh["params"] = dm.paramsData
 	}
@@ -226,7 +219,6 @@ func (dm *DataMap) flushCurrentWebhook() {
 
 	// Reset per-webhook state
 	dm.webhookConfig = nil
-	dm.bodyData = nil
 	dm.paramsData = nil
 	dm.foreachConfig = nil
 	dm.outputResult = nil
@@ -263,13 +255,17 @@ func (dm *DataMap) WebhookExpressions(expressions []map[string]any) *DataMap {
 	return dm
 }
 
-// Body sets the request body for the current webhook (for POST/PUT requests).
-func (dm *DataMap) Body(data map[string]any) *DataMap {
-	dm.bodyData = data
-	return dm
-}
-
 // Params sets the request params for the current webhook.
+//
+// This is the method for POST/PUT request data. There is deliberately no Body
+// method: a `body` webhook key is not part of the contract — schema.json
+// `$defs/Webhook` lists exactly ten permitted properties (including `params`)
+// under `unevaluatedProperties: {"not": {}}` and forbids everything else, and
+// the engine's webhook readers (mod_openai/actions.c:735-739,
+// mod_openai/bedrock.c:4920-4926) look up `params` and never `body`. DataMap
+// used to expose a `Body` builder that wrote that key; it produced an invalid
+// document while silently discarding the caller's payload, and was removed
+// 2026-07-29.
 func (dm *DataMap) Params(data map[string]any) *DataMap {
 	dm.paramsData = data
 	return dm
@@ -282,12 +278,23 @@ func (dm *DataMap) Foreach(config map[string]any) *DataMap {
 }
 
 // Output sets the output result for the current webhook.
+//
+// `result` is a pointer because that is how Go passes a FunctionResult, not
+// because nil is a supported argument: a webhook with no output is not a usable
+// tool, so the parameter is required and has no default.
+//
+//sw:param result required
 func (dm *DataMap) Output(result *swaig.FunctionResult) *DataMap {
 	dm.outputResult = result
 	return dm
 }
 
 // FallbackOutput sets the fallback output result used when all webhooks fail.
+//
+// As with Output, the pointer is Go's calling convention, not an optionality
+// signal: the parameter is required and has no default.
+//
+//sw:param result required
 func (dm *DataMap) FallbackOutput(result *swaig.FunctionResult) *DataMap {
 	dm.fallbackResult = result
 	return dm
@@ -392,11 +399,34 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 // url is the API endpoint URL.
 // responseTemplate is the template for formatting the response.
 // parameters maps parameter names to their definitions (each with "type", "description", "required" keys).
-// method is the HTTP method (e.g., "GET", "POST").
+// method is the HTTP method; empty selects the "GET" default.
 // headers are optional HTTP headers (can be nil).
-// body is an optional request body for POST/PUT (can be nil).
 // errorKeys are optional error indicator keys (can be nil).
-func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, body map[string]any, errorKeys []string) *DataMap {
+//
+// There is deliberately no body parameter. `body` is not a valid webhook key:
+// schema.json `$defs/Webhook` permits exactly ten properties (error_keys,
+// expressions, foreach, headers, input_args_as_params, method, output, params,
+// require_args, url) under `unevaluatedProperties: {"not": {}}`, and the engine's
+// webhook readers (mod_openai/actions.c, mod_openai/bedrock.c) never look it up.
+// Forwarding a caller-supplied body wrote an unread key onto the wire and
+// silently discarded the payload. Use Params for POST/PUT request data.
+//
+// Mirrors the reference `create_simple_api_tool(name, url, response_template,
+// parameters=None, method="GET", headers=None, error_keys=None)`.
+// parameters and headers carry a directive rather than a guard: both are
+// nil-able composites whose absence this function already tolerates (ranging nil
+// yields no parameters; a nil headers map emits no header keys), and Go has no
+// type-level spelling that distinguishes an optional composite from a required
+// one.
+//
+//sw:param parameters optional
+//sw:param headers optional
+func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, errorKeys []string) *DataMap {
+	// An empty method would otherwise reach the webhook as a blank HTTP verb.
+	if method == "" {
+		method = "GET"
+	}
+
 	dm := New(name)
 
 	// Add parameters
@@ -417,11 +447,6 @@ func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[stri
 	// Add webhook
 	dm.Webhook(method, url, headers, "", false, nil)
 
-	// Add body if provided
-	if body != nil {
-		dm.Body(body)
-	}
-
 	// Add error keys if provided
 	if len(errorKeys) > 0 {
 		dm.ErrorKeys(errorKeys)
@@ -434,8 +459,8 @@ func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[stri
 }
 
 // ExpressionPattern pairs a regex pattern string with a FunctionResult
-// to execute when test_value matches the pattern. Go equivalent of
-// Python's Tuple[str, FunctionResult] entry in create_expression_tool patterns.
+// to execute when test_value matches the pattern. Each entry of the patterns
+// map passed to CreateExpressionTool is one of these.
 type ExpressionPattern struct {
 	Pattern string
 	Result  *swaig.FunctionResult

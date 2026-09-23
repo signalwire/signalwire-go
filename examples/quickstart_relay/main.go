@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: quickstart_relay
 //
@@ -27,18 +27,27 @@ func main() {
 	)
 
 	client.OnCall(func(call *relay.Call) {
-		call.Answer()
+		if err := call.Answer(); err != nil {
+			fmt.Printf("answer failed: %v\n", err)
+			return
+		}
 		action := call.Play([]map[string]any{
 			{"type": "tts", "params": map[string]any{"text": "Welcome to SignalWire!"}},
 		})
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		action.Wait(ctx)
-		call.Hangup("")
+		if _, err := action.Wait(ctx); err != nil {
+			fmt.Printf("play did not finish: %v\n", err)
+		}
+		if err := call.Hangup(""); err != nil {
+			fmt.Printf("hangup failed: %v\n", err)
+		}
 	})
 
 	fmt.Println("Waiting for inbound calls ...")
-	client.Run()
+	if err := client.Run(); err != nil {
+		fmt.Printf("relay client stopped: %v\n", err)
+	}
 }
 
 // endregion: quickstart

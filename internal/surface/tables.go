@@ -154,7 +154,7 @@ var StructTable = map[string][]ClassTarget{
 		},
 		ClassTarget{
 			Module: "signalwire.core.mixins.auth_mixin", Class: "AuthMixin",
-			Methods: map[string]string{
+			Methods: map[string]string{ //nolint:gosec // G101: doc-symbol MAPPING TABLE of method names, not credentials — gosec matches on "token"/"key" appearing in a mapped symbol name.
 				"ValidateBasicAuth":       "validate_basic_auth",
 				"GetBasicAuthCredentials": "get_basic_auth_credentials",
 			},
@@ -321,6 +321,46 @@ var StructTable = map[string][]ClassTarget{
 		},
 	}},
 
+	// --- inbound credential carriers ---------------------------------------
+	// signalwire.core.auth_handler re-exports FastAPI's HTTPBasicCredentials /
+	// HTTPAuthorizationCredentials under the names BasicCredentials /
+	// BearerCredentials. Until porting-sdk dcff742 griffe could not resolve those
+	// FastAPI names into the `signalwire.` tree, so the oracle emitted DANGLING
+	// class refs — names with no definition anywhere — and a port could neither
+	// match nor miss them coherently. dcff742 filled them in as real two-field
+	// classes, which is what they always were on the wire.
+	//
+	// The contract is two strings each (username/password, scheme/credentials);
+	// the pydantic model is Python idiom, not the contract. Go carries them as
+	// plain structs with exported fields (pkg/security/credentials.go). Field
+	// emission is oracle-gated in BOTH enumerators, so `Username`/`Password` and
+	// `Scheme`/`Credentials` fold to the reference member names and emit only
+	// because the reference records them on these same classes.
+	//
+	// `NewX` -> `__init__` is the ordinary Go-factory-as-constructor fold used by
+	// ~20 other classes in this table. The prior turn deliberately withheld it
+	// because the two oracles disagreed — python_signatures.json listed `__init__`
+	// for these classes and python_surface.json did not — so mapping a factory
+	// fixed the construction contract and simultaneously landed as a SURFACE-DIFF
+	// extra. porting-sdk 8828dd2 closed that gap (python_surface.json now records
+	// the synthesized dataclass `__init__` for all 30 affected classes, these two
+	// included), so the trade the prior turn declined no longer exists: the mapping
+	// is now what makes BOTH oracles compare equal. It also carries the reference's
+	// `required` on all four fields, which a composite literal cannot express — see
+	// the block comment in pkg/security/credentials.go.
+	"security.BasicCredentials": {{
+		Module: "signalwire.core.auth_handler", Class: "BasicCredentials",
+		Methods: map[string]string{
+			"NewBasicCredentials": "__init__",
+		},
+	}},
+	"security.BearerCredentials": {{
+		Module: "signalwire.core.auth_handler", Class: "BearerCredentials",
+		Methods: map[string]string{
+			"NewBearerCredentials": "__init__",
+		},
+	}},
+
 	// --- server package ---------------------------------------------------
 	"server.AgentServer": {{
 		Module: "signalwire.agent_server", Class: "AgentServer",
@@ -396,7 +436,7 @@ var StructTable = map[string][]ClassTarget{
 	"swml.Service": {
 		{
 			Module: "signalwire.core.swml_service", Class: "SWMLService",
-			Methods: map[string]string{
+			Methods: map[string]string{ //nolint:gosec // G101: doc-symbol MAPPING TABLE of method names, not credentials — gosec matches on "token"/"key" appearing in a mapped symbol name.
 				"NewService":              "__init__",
 				"GetDocument":             "get_document",
 				"ResetDocument":           "reset_document",
@@ -847,9 +887,10 @@ var StructTable = map[string][]ClassTarget{
 		// public exception constructor). Go builds it via a struct literal /
 		// newTypedError, so enumerate-surface emits the __init__ NAME via this
 		// synthetic; enumerate-signatures synthesizes its full (code, message)
-		// signature from aiChatCtorSigs. (ConversationInfo/ChatResponse/ChatLog carry
-		// __init__ only at the SIGNATURE layer — their surface member set is empty —
-		// so they need no surface synthetic here.)
+		// signature from aiChatCtorSigs. ConversationInfo/ChatResponse/ChatLog now
+		// carry the same synthetic for the same reason — porting-sdk 8828dd2 taught
+		// python_surface.json to record the SYNTHESIZED dataclass __init__ these
+		// three had been missing, so their surface member set is no longer empty.
 		SyntheticMethods: []string{"__init__"},
 	}},
 	"aichat.AuthenticationError": {{
@@ -867,15 +908,23 @@ var StructTable = map[string][]ClassTarget{
 	"aichat.SummaryError": {{
 		Module: "signalwire.ai_chat.client", Class: "SummaryError",
 	}},
-	// The AI-Chat data-transfer structs -> the reference's method-less dataclasses.
+	// The AI-Chat data-transfer structs -> the reference's dataclasses. Their
+	// public FIELDS are emitted oracle-gated by the @dataclass field pass in
+	// enumerate-surface; `__init__` is the generated dataclass constructor, which
+	// porting-sdk 8828dd2 taught python_surface.json to record. Go builds these
+	// with a composite literal, so there is no exported Go member to fold onto it
+	// — same synthetic-constructor case as aichat.AIChatError above.
 	"aichat.ConversationInfo": {{
 		Module: "signalwire.ai_chat.client", Class: "ConversationInfo",
+		SyntheticMethods: []string{"__init__"},
 	}},
 	"aichat.ChatResponse": {{
 		Module: "signalwire.ai_chat.client", Class: "ChatResponse",
+		SyntheticMethods: []string{"__init__"},
 	}},
 	"aichat.ChatLog": {{
 		Module: "signalwire.ai_chat.client", Class: "ChatLog",
+		SyntheticMethods: []string{"__init__"},
 	}},
 
 	// --- rest package -----------------------------------------------------
@@ -889,9 +938,11 @@ var StructTable = map[string][]ClassTarget{
 	// it as a value struct with public fields (Timeout/Retries/RetryOnStatus/
 	// RetryBackoff/AbortSignal) plus a Merge method — the reference
 	// RequestOptions with its merge(). Construction is a Go struct literal (no
-	// NewRequestOptions factory), so __init__ + the abort_signal accessor are
-	// signature-only idiom divergences (PORT_SIGNATURE_OMISSIONS.md); the SURFACE
-	// oracle records only merge(), which this mapping projects.
+	// NewRequestOptions factory), so the abort_signal accessor stays a
+	// signature-only idiom divergence (PORT_SIGNATURE_OMISSIONS.md). `__init__` is
+	// no longer signature-only: porting-sdk 8828dd2 taught python_surface.json to
+	// record the synthesized @dataclass constructor, so the surface oracle now
+	// lists `__init__` alongside merge() and this mapping projects both.
 	//
 	// The struct + its Merge method live in the `namespaces` package (GO-1 /
 	// PY-7): the generated resource verbs name it in their `opts ...*RequestOptions`
@@ -905,6 +956,7 @@ var StructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"Merge": "merge",
 		},
+		SyntheticMethods: []string{"__init__"},
 	}},
 	"rest.HTTPClient": {{
 		Module: "signalwire.rest._base", Class: "HttpClient",
@@ -1224,6 +1276,48 @@ var StructTable = map[string][]ClassTarget{
 		// have no BaseSkill equivalent (impossible-tagged in PORT_OMISSIONS).
 		SyntheticMethods: []string{"__init__", "register_tools", "setup"},
 	}},
+	// The two entries below are NOT the skill projection — that lives in
+	// SkillContractTable and is consumed by BOTH enumerators (see its doc comment).
+	// They exist here only because each carries a member OUTSIDE the SkillBase
+	// contract set that SkillContractTable does not model.
+	//
+	// (Historical note: this used to read "the signature enumerator projects a
+	// concrete builtin skill package ONLY where the reference signature oracle
+	// records members for it." That premise held while the signature oracle
+	// recorded 7 of 18 skill modules and DIED on 2026-07-30 with porting-sdk
+	// 8496c77, which fixed the oracle bug that erased any class whose every method
+	// was a base-identical override. The oracle now records 18 of 18 and the
+	// signature axis reads SkillContractTable like the surface axis does.)
+	//
+	// SpiderSkill is mapped for ONE member: remove_xpaths is a public ATTRIBUTE
+	// both reference oracles record — a caller-observable configuration VALUE,
+	// not a contract method — so it compares on the signature AND the surface
+	// axis, and Go expresses it as the RemoveXPaths accessor over the prefilled
+	// removeXPaths field.
+	"spider.SpiderSkill": {{
+		Module: "signalwire.skills.spider.skill", Class: "SpiderSkill",
+		Methods: map[string]string{
+			"RemoveXPaths": "remove_xpaths",
+		},
+	}},
+	// DELETED: "builtin.MCPGatewaySkill".
+	//
+	// It listed exactly the SIX SkillBase contract methods SkillContractTable
+	// already projects for the same (module, class) — a duplicate hand list, and
+	// the LAST one on either axis that was not gated by a reference oracle. That
+	// made it the only path by which a member the reference stopped exposing could
+	// still be emitted: when SkillBase.get_prompt_sections() became a final
+	// template method delegating to the protected _get_prompt_sections() hook, both
+	// oracles dropped the public member from MCPGatewaySkill, the oracle-gated
+	// SkillContractTable path correctly stopped emitting it, and THIS entry kept
+	// emitting it anyway — one surviving phantom addition after the other ten were
+	// fixed.
+	//
+	// Nothing is lost by the deletion: the member sets were identical, and the
+	// PascalCase↔snake_case reconciliation the entry's rationale was about is
+	// SkillLeafToGoMethod's job, applied by both enumerators on the surviving path.
+	// The unlisted-here entries above (spider.SpiderSkill) stay because each
+	// genuinely carries a member OUTSIDE the SkillBase contract set.
 	"skills.SkillRegistry": {{
 		// Python's `signalwire.skills.registry.SkillRegistry` is an
 		// instance class with `add_skill_directory` + `_external_paths`.
@@ -1461,8 +1555,14 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	//   - reset_logging_configuration() re-derives global config from the env
 	//     ==  logging.ResetLoggingConfiguration() (self-documented as the Go
 	//     equivalent in pkg/logging/logger.go).
+	//   - strip_control_chars(event_dict) scrubs the string values of a log event
+	//     ==  logging.StripControlChars(map[string]any). This was carried as a
+	//     PORT_OMISSIONS entry claiming "Go pkg/logging sanitises inline"; the
+	//     package contained no sanitising code at all and every log line went out
+	//     unscrubbed, so the function was implemented and the false entry removed.
 	"logging.New":                       {Module: "signalwire.core.logging_config", Name: "get_logger"},
 	"logging.ResetLoggingConfiguration": {Module: "signalwire.core.logging_config", Name: "reset_logging_configuration"},
+	"logging.StripControlChars":         {Module: "signalwire.core.logging_config", Name: "strip_control_chars"},
 
 	// Livewire
 	"livewire.FunctionTool": {Module: "signalwire.livewire", Name: "function_tool"},
@@ -1545,15 +1645,30 @@ type SkillContract struct {
 	Synthetic []string
 }
 
-// SkillContractTable is the per-built-in-skill projection consumed by BOTH
-// cmd/enumerate-surface and cmd/enumerate-signatures (kept in lockstep). The
-// method sets are the Python reference's own per-skill surface (each skill
-// records a DIFFERENT subset — see signalwire-python/signalwire/skills/<n>/skill.py).
-// mcp_gateway is now part of the Python reference surface
+// SkillContractTable is the per-built-in-skill projection consumed by
+// cmd/enumerate-surface ONLY — it drives the SURFACE axis (which members exist).
+// The SIGNATURE axis is driven by StructTable above; a skill whose signatures the
+// Python reference records needs an entry in BOTH tables (see
+// `builtin.MCPGatewaySkill` / `spider.SpiderSkill` in StructTable). The method sets
+// are the Python reference's own per-skill surface (each skill records a DIFFERENT
+// subset — see signalwire-python/signalwire/skills/<n>/skill.py).
+//
+// The Methods lists are an UPPER BOUND, not the emitted set. BOTH enumerators
+// intersect them with their OWN reference inventory (surface: python_surface.json;
+// signature: python_signatures.json), so a member the reference stops exposing
+// stops being emitted on the next regen with no hand edit here. That is not a
+// nicety: the reference made SkillBase.get_prompt_sections() a final template
+// method delegating to a PROTECTED _get_prompt_sections() hook, dropping the
+// public member from 11 skills — and this hand list, trusted directly, emitted 11
+// phantom additions on the surface axis. Keep the lists as the "what could Go
+// possibly satisfy" bound and let the reference inventories decide what ships.
+//
+// mcp_gateway is part of the Python reference surface
 // (signalwire.skills.mcp_gateway.skill.MCPGatewaySkill, a cross-port CLIENT skill);
 // Go's *MCPGatewaySkill implements the SAME 6 contract methods (Setup/RegisterTools/
 // GetGlobalData/GetHints/GetPromptSections/GetParameterSchema — the snake↔PascalCase
-// rename is reconciled by skillLeafToGoMethod), so it is projected here in lockstep.
+// rename is reconciled by skillLeafToGoMethod here, and by the StructTable Methods
+// map on the signature side).
 var SkillContractTable = []SkillContract{
 	{GoStruct: "builtin.APINinjasTriviaSkill", Module: "signalwire.skills.api_ninjas_trivia.skill", ClassName: "ApiNinjasTriviaSkill",
 		Methods:   []string{"get_instance_key", "get_parameter_schema", "register_tools", "setup"},
@@ -1581,8 +1696,11 @@ var SkillContractTable = []SkillContract{
 	{GoStruct: "builtin.PlayBackgroundFileSkill", Module: "signalwire.skills.play_background_file.skill", ClassName: "PlayBackgroundFileSkill",
 		Methods:   []string{"get_instance_key", "get_parameter_schema", "register_tools", "setup"},
 		Synthetic: []string{"__init__", "get_tools"}},
+	// remove_xpaths is a public ATTRIBUTE on the reference skill (a prefilled
+	// list of XPath expressions), expressed in Go as the RemoveXPaths accessor
+	// over the unexported field — an accessor folds to the same member name.
 	{GoStruct: "spider.SpiderSkill", Module: "signalwire.skills.spider.skill", ClassName: "SpiderSkill",
-		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "setup"},
+		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "remove_xpaths", "setup"},
 		Synthetic: []string{"__init__"}},
 	{GoStruct: "builtin.SWMLTransferSkill", Module: "signalwire.skills.swml_transfer.skill", ClassName: "SWMLTransferSkill",
 		Methods: []string{"get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
@@ -1599,12 +1717,68 @@ var SkillContractTable = []SkillContract{
 // eventTarget builds the standard relay event class target: the class is
 // present, plus “from_payload“ emitted synthetically when Go's factory
 // “New<Event>“ is present.
+//
+// “__init__“ is synthesised for the same reason the sibling relay ACTION
+// targets synthesise it (see relay.Action / relay.PlayAction above): the Go
+// event structs are built by a composite literal or an unexported factory, so
+// there is no exported Go member whose name folds onto the reference's
+// constructor — but the reference publishes that constructor as part of the
+// event's public surface, so the port must present it too.
 func eventTarget(cls string) ClassTarget {
 	return ClassTarget{
 		Module:           "signalwire.relay.event",
 		Class:            cls,
 		Methods:          map[string]string{},
-		SyntheticMethods: []string{"from_payload"},
+		SyntheticMethods: []string{"from_payload", "__init__"},
 		Alias:            true,
 	}
+}
+
+// BaseSkillProvides is the set of Go methods the embedded `skills.BaseSkill`
+// supplies as defaults (pkg/skills/skill_base.go), promoted onto every concrete
+// built-in skill struct. `skills.BaseSkill` is a QUALIFIED cross-package embed,
+// which a same-package embed walker cannot resolve, so both enumerators use this
+// set to accept a skill-contract method the skill inherits rather than overrides.
+var BaseSkillProvides = map[string]bool{
+	"GetHints":           true,
+	"Cleanup":            true,
+	"GetParameterSchema": true,
+	"GetInstanceKey":     true,
+	"GetGlobalData":      true,
+	"GetPromptSections":  true,
+}
+
+// SkillLeafToGoMethod reverse-maps a Python-canonical skill-contract method leaf
+// to the Go member that satisfies it (declared override or BaseSkill-promoted).
+// These are the fixed SkillBase contract methods; the mapping is the inverse of
+// goNameToSnake for the specific SDK-initialism-free names in play.
+//
+// Shared by BOTH enumerators: cmd/enumerate-surface drives the surface axis and
+// cmd/enumerate-signatures the signature axis off the same SkillContractTable, so
+// the leaf->member mapping must be one definition, not two that can drift.
+func SkillLeafToGoMethod(leaf string) string {
+	switch leaf {
+	case "register_tools":
+		return "RegisterTools"
+	case "get_hints":
+		return "GetHints"
+	case "setup":
+		return "Setup"
+	case "cleanup":
+		return "Cleanup"
+	case "get_parameter_schema":
+		return "GetParameterSchema"
+	case "get_instance_key":
+		return "GetInstanceKey"
+	case "get_global_data":
+		return "GetGlobalData"
+	case "get_prompt_sections":
+		return "GetPromptSections"
+	case "remove_xpaths":
+		// Not a SkillBase contract method: a public ATTRIBUTE on the reference's
+		// SpiderSkill (the prefilled XPath list stripped before text extraction),
+		// expressed in Go as an accessor over the unexported removeXPaths field.
+		return "RemoveXPaths"
+	}
+	panic(fmt.Sprintf("surface: no Go member mapping for skill contract leaf %q", leaf))
 }

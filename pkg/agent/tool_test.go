@@ -329,7 +329,19 @@ func TestToolRendering_WebhookURL(t *testing.T) {
 			if len(functions) == 0 {
 				t.Fatal("expected at least 1 function")
 			}
-			webhookURL, _ := functions[0]["web_hook_url"].(string)
+			// SetWebHookURL configures the SHARED SWAIG endpoint. With no
+			// call_id there is no token, so the tool carries no per-tool
+			// web_hook_url and dispatches to defaults (reference
+			// agent_base.py:1089-1099).
+			if _, present := functions[0]["web_hook_url"]; present {
+				t.Errorf("tokenless tool must not carry its own web_hook_url, got %#v",
+					functions[0]["web_hook_url"])
+			}
+			defaults, _ := swaigCfg["defaults"].(map[string]any)
+			if defaults == nil {
+				t.Fatal("expected SWAIG defaults")
+			}
+			webhookURL, _ := defaults["web_hook_url"].(string)
 			if webhookURL != "https://example.com/swaig" {
 				t.Errorf("webhook URL = %q, want %q", webhookURL, "https://example.com/swaig")
 			}

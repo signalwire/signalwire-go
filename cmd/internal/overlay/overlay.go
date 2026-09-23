@@ -60,7 +60,7 @@ func toRules(entries []entry) []rule {
 // yields an empty (no-op) overlay so generation still works without porting-sdk.
 func Load(psdk string) (*Overlay, error) {
 	path := filepath.Join(psdk, "rest-apis", "x-sdk-overlay.yaml")
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) //nolint:gosec // G304: developer-run codegen reading a spec path derived from the repo root, not untrusted input.
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &Overlay{}, nil

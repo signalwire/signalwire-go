@@ -4,8 +4,7 @@ package relay
 // vocabularies — CallState, DialState, MessageState — ALONGSIDE the existing
 // bare-string consts in constants.go and the bare-string accessors
 // (Call.State, Message.State, DialEvent.DialState). It is purely additive:
-// the string consts and string accessors stay canonical for parity with the
-// Python reference (relay/constants.py uses bare str), and every typed value
+// the bare-string consts and accessors stay canonical, and every typed value
 // is a string subtype whose underlying value is byte-identical to the wire
 // token, so nothing changes on the wire.
 //
@@ -19,12 +18,12 @@ package relay
 // so they can never be conflated (CallState != DialState != MessageState):
 // passing a DialState where a CallState is expected fails to compile.
 //
-// Grounding:
-//   - CallState  — Python relay/constants.py CALL_STATES (created..ended).
-//   - DialState  — Python relay/client.py:950 dial_state docstring
-//     (dialing | answered | failed); :1006 notes "dialing" is progress.
-//   - MessageState — Python relay/constants.py MESSAGE_STATE_* +
-//     MESSAGE_TERMINAL_STATES (delivered, undelivered, failed).
+// Grounding — the wire vocabularies each kind carries:
+//   - CallState  — the call lifecycle states (created..ended).
+//   - DialState  — the "dial_state" field (dialing | answered | failed), where
+//     "dialing" is a progress value, not an outcome.
+//   - MessageState — the "message_state" field, whose terminal outbound values
+//     are delivered, undelivered, failed.
 
 // ---------------------------------------------------------------------------
 // CallState
@@ -32,7 +31,7 @@ package relay
 
 // CallState is the lifecycle state of a Call as a typed defined-string kind.
 // The underlying string is the exact wire token (e.g. "answered"), so a
-// CallState is interchangeable with the bare string the reference uses.
+// CallState is interchangeable with the bare string form.
 //
 // Server-emitted and growable: prefer IsKnown()/IsTerminal() over an
 // exhaustive switch so an unrecognized future state does not break callers.
@@ -64,9 +63,8 @@ func (s CallState) IsKnown() bool {
 }
 
 // IsTerminal reports whether s is a terminal call state (no further
-// transitions expected). For a call the single terminal state is "ended",
-// matching Python's CALL_STATE_ENDED gate in relay/call.py (the _ended future
-// resolves only on "ended").
+// transitions expected). For a call the single terminal state is "ended" —
+// an end-of-call wait settles only on "ended".
 func (s CallState) IsTerminal() bool {
 	return s == CallEnded
 }
@@ -79,7 +77,7 @@ func (s CallState) IsTerminal() bool {
 // defined-string kind, read from the wire "dial_state" field. It is a SEPARATE
 // vocabulary from CallState (and from the connect/bridge states): a dial
 // progresses dialing -> answered (winner found) or dialing -> failed (no device
-// answered). Grounded in Python relay/client.py:950.
+// answered).
 //
 // Distinct Go type from CallState/MessageState so the three can never be mixed.
 type DialState string
@@ -106,10 +104,9 @@ func (s DialState) IsKnown() bool {
 
 // IsTerminal reports whether s is a terminal dial outcome — "answered" (a
 // winning call was found) or "failed" (no device answered). "dialing" is
-// progress and is NOT terminal. Mirrors Python's _handle_dial_event, which
-// resolves the dial future on "answered", rejects it on "failed", and treats
-// "dialing" as a progress event that doesn't settle the future
-// (relay/client.py:976-1006).
+// progress and is NOT terminal. The dial-event handler resolves the dial on
+// "answered", rejects it on "failed", and treats "dialing" as a progress event
+// that does not settle it.
 func (s DialState) IsTerminal() bool {
 	return s == DialAnswered || s == DialFailed
 }
@@ -120,8 +117,7 @@ func (s DialState) IsTerminal() bool {
 
 // MessageState is the delivery lifecycle state of a Message as a typed
 // defined-string kind. The underlying string is the exact wire token (the
-// "message_state" field), so it is interchangeable with the bare string the
-// reference uses.
+// "message_state" field), so it is interchangeable with the bare string form.
 //
 // Server-emitted and growable: prefer IsKnown()/IsTerminal().
 // A SEPARATE vocabulary from CallState/DialState — distinct Go type.
@@ -153,19 +149,19 @@ func (s MessageState) IsKnown() bool {
 }
 
 // IsTerminal reports whether s is a terminal OUTBOUND delivery state — one of
-// delivered, undelivered, failed — matching Python's MESSAGE_TERMINAL_STATES
-// (relay/constants.py). These are the states on which an outbound send settles.
+// delivered, undelivered, failed. These are the states on which an outbound
+// send settles.
 //
 // Note: the inbound terminal state "received" is intentionally NOT counted
-// here, to mirror Python exactly (received is excluded from
-// MESSAGE_TERMINAL_STATES — the inbound flow doesn't await). The internal
+// here — it is excluded from the terminal set because the inbound flow does
+// not await. The internal
 // helper isTerminalMessageState (message.go) additionally treats "received" as
 // terminal so a Wait() on an inbound message returns immediately; that is a
 // separate, behavior-only concern and is deliberately not folded into this
 // grounded predicate.
 func (s MessageState) IsTerminal() bool {
 	//exhaustive:ignore // only the three outbound-terminal states return true by
-	// design (mirrors Python's MESSAGE_TERMINAL_STATES); all other states —
+	// design; all other states —
 	// including any future additions — are correctly non-terminal via the
 	// trailing `return false`.
 	switch s {

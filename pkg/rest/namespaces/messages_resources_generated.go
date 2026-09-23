@@ -21,14 +21,14 @@ func NewMessages(client HTTPClient) *Messages {
 
 // MessagesCreateParams holds the named optional parameters for Messages.Create.
 type MessagesCreateParams struct {
-	To              string
-	From            string
-	Body            *string
-	Media           []string
-	SendAsMms       *bool
-	StatusCallback  *string
-	CustomVariables map[string]any
-	Extras          map[string]any
+	To              string         `sw:"required"`
+	From            string         `sw:"required"`
+	Body            *string        `sw:"optional"`
+	Media           []string       `sw:"optional"`
+	SendAsMms       *bool          `sw:"optional"`
+	StatusCallback  *string        `sw:"optional"`
+	CustomVariables map[string]any `sw:"optional"`
+	Extras          map[string]any `sw:"optional"`
 }
 
 func (r *Messages) Create(ctx context.Context, params MessagesCreateParams, opts ...*RequestOptions) (*Message, error) {
@@ -56,8 +56,8 @@ func (r *Messages) Create(ctx context.Context, params MessagesCreateParams, opts
 
 // MessagesUpdateParams holds the named optional parameters for Messages.Update.
 type MessagesUpdateParams struct {
-	Body   string
-	Extras map[string]any
+	Body   string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
 func (r *Messages) Update(ctx context.Context, id string, params MessagesUpdateParams, opts ...*RequestOptions) (*Message, error) {

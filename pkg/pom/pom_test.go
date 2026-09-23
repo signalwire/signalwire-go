@@ -71,7 +71,7 @@ func TestAddSectionRejectsUntitledAfterFirst(t *testing.T) {
 }
 
 func TestAddSubsectionRequiresTitle(t *testing.T) {
-	s := NewSection("Parent")
+	s := NewSection(WithTitle("Parent"))
 	_, err := s.AddSubsection("")
 	if err == nil {
 		t.Error("expected error when adding subsection with empty title")
@@ -79,7 +79,7 @@ func TestAddSubsectionRequiresTitle(t *testing.T) {
 }
 
 func TestSectionAddBodyReplaces(t *testing.T) {
-	s := NewSection("X")
+	s := NewSection(WithTitle("X"))
 	s.AddBody("first")
 	s.AddBody("second")
 	if s.Body != "second" {
@@ -88,7 +88,7 @@ func TestSectionAddBodyReplaces(t *testing.T) {
 }
 
 func TestSectionAddBulletsAppends(t *testing.T) {
-	s := NewSection("X")
+	s := NewSection(WithTitle("X"))
 	s.AddBullets([]string{"a", "b"})
 	s.AddBullets([]string{"c"})
 	if strings.Join(s.Bullets, ",") != "a,b,c" {
@@ -528,7 +528,7 @@ func TestAddPomAsSubsectionInvalidTargetType(t *testing.T) {
 // =====================================================================
 
 func TestSectionToMapHasCanonicalKeys(t *testing.T) {
-	s := NewSection("X")
+	s := NewSection(WithTitle("X"))
 	s.AddBody("body")
 	s.AddBullets([]string{"a"})
 	m := s.ToMap()
@@ -543,7 +543,7 @@ func TestSectionToMapHasCanonicalKeys(t *testing.T) {
 }
 
 func TestSectionToMapOmitsEmptyFields(t *testing.T) {
-	s := NewSection("Bare")
+	s := NewSection(WithTitle("Bare"))
 	m := s.ToMap()
 	if _, has := m["body"]; has {
 		t.Error("body should be omitted when empty")

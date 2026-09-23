@@ -21,11 +21,11 @@ func NewPubSubNamespace(client HTTPClient) *PubSubNamespace {
 
 // PubSubNamespaceCreateTokenParams holds the named optional parameters for PubSubNamespace.CreateToken.
 type PubSubNamespaceCreateTokenParams struct {
-	Ttl      int
-	Channels PubSubChannels
-	MemberID *string
-	State    *PubSubState
-	Extras   map[string]any
+	Ttl      int            `sw:"required"`
+	Channels PubSubChannels `sw:"required"`
+	MemberID *string        `sw:"optional"`
+	State    *PubSubState   `sw:"optional"`
+	Extras   map[string]any `sw:"optional"`
 }
 
 func (r *PubSubNamespace) CreateToken(ctx context.Context, params PubSubNamespaceCreateTokenParams, opts ...*RequestOptions) (*PubSubToken, error) {

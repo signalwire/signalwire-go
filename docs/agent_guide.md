@@ -593,7 +593,7 @@ In the examples above:
 - `AddAction(name, data)` adds a single action with the given name and data
 - `AddActions(actions)` adds multiple actions at once from a slice of action objects
 
-Many common actions also have dedicated helper methods that read more idiomatically, e.g. `.Say("...")`, `.Hangup()`, `.Hold(60)`, `.Connect(dest, final, from)`, `.UpdateGlobalData(...)`, and `.SetMetadata(...)`. See the `swaig_features` example for the full set.
+Many common actions also have dedicated helper methods that read more idiomatically, e.g. `.Say("...")`, `.Hangup()`, `.Hold(60)`, `.Connect(swaig.ConnectOptions{Destination: dest})`, `.UpdateGlobalData(...)`, and `.SetMetadata(...)`. See the `swaig_features` example for the full set.
 
 ### Native Functions
 

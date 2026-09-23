@@ -17,12 +17,9 @@
 // service streams keepalive whitespace ahead of a slow response body (proxy
 // read-timeout protection), so liveness is byte-driven rather than wall-clock:
 // there is no total-request timeout an idle turn could trip — only a per-read idle
-// timeout, mirroring the Python reference's
-// aiohttp.ClientTimeout(total=None, connect=10, sock_read=60). Leading whitespace
+// timeout (no total, 10s connect, 60s per read). Leading whitespace
 // is valid JSON, so the buffered decode is unaffected. Pass a context.Context to
 // each call for cancellation.
-//
-// Mirrors the Python reference signalwire.ai_chat.AIChatClient.
 //
 // Example:
 //
@@ -435,7 +432,7 @@ func (c *Client) Chat(ctx context.Context, conversationID, message string, opts 
 // Close releases any resources the client owns. The client wraps a stateless,
 // connection-pooled *http.Client (shared, or caller-injected via WithHTTPClient),
 // which has no per-client resource to release, so Close is a no-op that completes
-// the lifecycle contract — the Go analogue of the Python reference's close()
+// the lifecycle contract — the explicit close()
 // (which releases its owned aiohttp ClientSession). It always returns nil and is
 // safe to call more than once.
 func (c *Client) Close() error { return nil }

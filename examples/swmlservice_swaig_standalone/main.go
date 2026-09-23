@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: swmlservice_swaig_standalone
 //
@@ -57,6 +57,11 @@ func main() {
 	// 2. Register a SWAIG function. DefineTool lives on swml.Service, not
 	//    just AgentBase. The handler receives parsed arguments plus the raw
 	//    POST body.
+	//
+	//    Note there is no per-tool `Secure` flag at this level: a bare
+	//    SWMLService has no SessionManager, so it mints and validates no SWAIG
+	//    tokens at all. If you need per-tool token validation, register the tool
+	//    on an agent.AgentBase and set agent.ToolDefinition.Secure.
 	svc.DefineTool(&swml.ToolDefinition{
 		Name: "lookup_competitor",
 		Description: "Look up competitor pricing by company name. Use this when " +
@@ -78,7 +83,6 @@ func main() {
 				),
 			}
 		},
-		Secure: false, // standalone services don't validate session tokens by default
 	})
 
 	pretty, err := svc.RenderPretty()

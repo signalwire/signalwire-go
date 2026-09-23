@@ -33,9 +33,8 @@ type SkillRegistry struct {
 	skills map[string]func(params map[string]any) SkillBase
 }
 
-// NewSkillRegistry constructs a new SkillRegistry. The Python reference
-// uses a singleton-per-module (`skill_registry`); Go callers can either
-// construct their own via NewSkillRegistry() or use the global
+// NewSkillRegistry constructs a new SkillRegistry. Callers can either
+// construct their own via NewSkillRegistry() or use the process-wide
 // `globalRegistry` accessed through the package-level helpers.
 func NewSkillRegistry() *SkillRegistry {
 	return &SkillRegistry{
@@ -44,11 +43,9 @@ func NewSkillRegistry() *SkillRegistry {
 	}
 }
 
-// RegisterSkill registers a skill factory by name into this registry (the
-// instance-level analog of Python's SkillRegistry.register_skill(cls), which
-// stores self._skills[cls.SKILL_NAME] = cls). Registration is idempotent:
-// re-registering an already-present name is a no-op, matching Python (which
-// warns and keeps the first). Returns true if the skill was newly added.
+// RegisterSkill registers a skill factory by name into this registry.
+// Registration is idempotent: re-registering an already-present name warns and
+// keeps the FIRST registration. Returns true if the skill was newly added.
 func (r *SkillRegistry) RegisterSkill(name string, factory func(params map[string]any) SkillBase) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -63,8 +60,7 @@ func (r *SkillRegistry) RegisterSkill(name string, factory func(params map[strin
 }
 
 // RegisteredNames returns the sorted names of skills registered on this
-// instance via RegisterSkill — the compatibility accessor for Python's
-// sorted(SkillRegistry._skills.keys()).
+// instance via RegisterSkill.
 func (r *SkillRegistry) RegisteredNames() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -82,11 +78,10 @@ func (r *SkillRegistry) RegisteredNames() []string {
 // `skill_registry.add_skill_directory` delegation.
 var globalRegistry = NewSkillRegistry()
 
-// AddSkillDirectory adds a directory to search for skills. Mirrors
-// Python's `SkillRegistry.add_skill_directory`: validates that the
-// path exists and is a directory, then appends it (de-duplicated) to
-// the registry's external paths list. Returns an error (the Go analog
-// of Python's `ValueError`) for non-existent paths or non-directories.
+// AddSkillDirectory adds a directory to search for skills: it validates that
+// the path exists and is a directory, then appends it (de-duplicated) to the
+// registry's external paths list. Returns an error for a non-existent path or
+// a non-directory.
 func (r *SkillRegistry) AddSkillDirectory(path string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -116,7 +111,7 @@ func (r *SkillRegistry) AddSkillDirectory(path string) error {
 }
 
 // ExternalPaths returns a copy of the registered external skill
-// directories. Compatibility surface for Python's `_external_paths`.
+// directories.
 func (r *SkillRegistry) ExternalPaths() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -155,23 +150,44 @@ func ListSkills() []string {
 
 // ListSkillsWithParams returns the complete parameter schema for all registered skills.
 // It instantiates each skill with nil params to obtain its GetParameterSchema output.
-// This mirrors Python's skill_registry.get_all_skills_schema().
 // The returned map has skill names as keys and their parameter schemas as values.
+//
+// The registry lock is held only long enough to SNAPSHOT the name -> factory
+// pairs, and is released before any of them is invoked. Both `factory(nil)` and
+// `instance.GetParameterSchema()` are caller-supplied code (SkillBase is a
+// public interface any third party implements), and caller-supplied code must
+// never run under the registry lock:
+//   - a factory or schema method that calls back into the registry —
+//     RegisterSkill, GetSkillFactory, ListSkills — self-deadlocks, because
+//     registryMu is not reentrant and RegisterSkill needs the WRITE lock that
+//     the read lock held here can never be upgraded to; and
+//   - a slow factory would otherwise block every registry reader and writer
+//     process-wide for its whole duration.
 func ListSkillsWithParams() map[string]map[string]map[string]any {
-	registryMu.RLock()
-	defer registryMu.RUnlock()
-	result := make(map[string]map[string]map[string]any, len(registry))
-	for name, factory := range registry {
-		instance := factory(nil)
-		result[name] = instance.GetParameterSchema()
+	type entry struct {
+		name    string
+		factory func(params map[string]any) SkillBase
+	}
+	var snapshot []entry
+	func() {
+		registryMu.RLock()
+		defer registryMu.RUnlock()
+		snapshot = make([]entry, 0, len(registry))
+		for name, factory := range registry {
+			snapshot = append(snapshot, entry{name: name, factory: factory})
+		}
+	}()
+
+	result := make(map[string]map[string]map[string]any, len(snapshot))
+	for _, e := range snapshot {
+		instance := e.factory(nil)
+		result[e.name] = instance.GetParameterSchema()
 	}
 	return result
 }
 
 // AddSkillDirectory is a package-level shim that delegates to the
-// shared `globalRegistry.AddSkillDirectory`. It mirrors Python's
-// `signalwire.add_skill_directory` (which delegates to the module
-// singleton `signalwire.skills.registry.skill_registry`).
+// shared `globalRegistry.AddSkillDirectory`.
 //
 // The path is validated (must exist and be a directory) and added
 // (de-duplicated) to the global registry's external-paths list. Note

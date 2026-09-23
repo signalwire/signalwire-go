@@ -316,7 +316,7 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 			}
 			for _, spec := range d.Specs {
 				ts, ok := spec.(*ast.TypeSpec)
-				if !ok || !ast.IsExported(ts.Name.Name) {
+				if !ok || !(ast.IsExported(ts.Name.Name) || isPromotedFieldCarrier(ts.Name.Name)) {
 					continue
 				}
 				st, isStruct := ts.Type.(*ast.StructType)
@@ -499,6 +499,11 @@ func recvTypeName(expr ast.Expr) string {
 // duplicated (the two copies had already diverged on `FAQs`).
 func goNameToPython(s string) string { return surfacepkg.GoNameToPython(s) }
 
+// isPromotedFieldCarrier delegates to the SHARED table in internal/surface, so
+// the surface and signature enumerators cannot disagree about which unexported
+// carriers must be walked. See surfacepkg.IsPromotedFieldCarrier.
+func isPromotedFieldCarrier(name string) bool { return surfacepkg.IsPromotedFieldCarrier(name) }
+
 // oracleModuleMembers is the parse of python_surface.json restricted to the
 // per-class member sets emitDataclassFields gates on. Shape:
 // module -> class -> set(reference member names).
@@ -555,7 +560,7 @@ func resolvePortingSDK(repoRoot string) (string, error) {
 		filepath.Join(repoRoot, "porting-sdk"),
 	)
 	for _, c := range candidates {
-		if _, err := os.Stat(filepath.Join(c, "python_surface.json")); err == nil {
+		if _, err := os.Stat(filepath.Join(c, "python_surface.json")); err == nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 			return c, nil
 		}
 	}
@@ -573,7 +578,7 @@ func loadOracleMembers(repoRoot string) (oracleModuleMembers, error) {
 		return nil, err
 	}
 	path := filepath.Join(psdk, "python_surface.json")
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, fmt.Errorf("read oracle %s: %w", path, err)
 	}
@@ -614,44 +619,40 @@ type moduleInventory struct {
 	Functions []string            `json:"functions"`
 }
 
-// baseSkillProvides is the set of Go methods the embedded skills.BaseSkill
-// supplies as defaults (pkg/skills/skill_base.go), promoted onto every concrete
-// built-in skill struct. Used to accept a skill-contract method that the skill
-// does not override but inherits (the qualified cross-package embed the walker
-// cannot resolve automatically).
-var baseSkillProvides = map[string]bool{
-	"GetHints":           true,
-	"Cleanup":            true,
-	"GetParameterSchema": true,
-	"GetInstanceKey":     true,
-	"GetGlobalData":      true,
-	"GetPromptSections":  true,
-}
-
-// skillLeafToGoMethod reverse-maps a Python-canonical skill-contract method leaf
-// to the Go member that satisfies it (declared override or BaseSkill-promoted).
-// These are the fixed SkillBase contract methods; the mapping is the inverse of
-// goNameToSnake for the specific SDK-initialism-free names in play.
-func skillLeafToGoMethod(leaf string) string {
-	switch leaf {
-	case "register_tools":
-		return "RegisterTools"
-	case "get_hints":
-		return "GetHints"
-	case "setup":
-		return "Setup"
-	case "cleanup":
-		return "Cleanup"
-	case "get_parameter_schema":
-		return "GetParameterSchema"
-	case "get_instance_key":
-		return "GetInstanceKey"
-	case "get_global_data":
-		return "GetGlobalData"
-	case "get_prompt_sections":
-		return "GetPromptSections"
+// promotedFieldNames returns every exported FIELD name reachable on facts — its
+// own plus the ones Go promotes through the anonymous-embed chain.
+//
+// `rest.RestClient` is why this exists: it declares NO exported fields of its
+// own. All 22 namespace accessors (`Fabric`, `Calling`, `Video`, …) live on the
+// generated `_GeneratedResourceTree` it embeds, and Go promotes them so
+// `client.Fabric` resolves on the client exactly as the reference's
+// `client.fabric` does. A walker that reads only own fields sees none of them
+// and reports all 22 as missing — a blind spot in the walker, not an absent
+// capability (proven live by the mock-backed TestResourceTreeAccessors_* tests).
+//
+// Emission stays ORACLE-GATED at the call site, so widening the input set can
+// only ever surface names the reference already records on this class; it
+// cannot invent surface.
+func promotedFieldNames(structs map[string]*goStructFacts, facts *goStructFacts) map[string]struct{} {
+	out := map[string]struct{}{}
+	seen := map[string]bool{}
+	var walk func(f *goStructFacts, depth int)
+	walk = func(f *goStructFacts, depth int) {
+		if f == nil || depth > 4 || seen[f.pkg+"."+f.name] {
+			return
+		}
+		seen[f.pkg+"."+f.name] = true
+		for name := range f.fields {
+			out[name] = struct{}{}
+		}
+		for _, embed := range f.embeds {
+			if base, ok := structs[f.pkg+"."+embed]; ok {
+				walk(base, depth+1)
+			}
+		}
 	}
-	panic(fmt.Sprintf("enumerate-surface: no Go member mapping for skill contract leaf %q", leaf))
+	walk(facts, 0)
+	return out
 }
 
 // promotedMethodExists reports whether goMethod is declared on one of facts'
@@ -785,7 +786,10 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 			// Gating on the oracle guarantees we emit exactly the reference set
 			// and never a port-internal helper field.
 			if clsMembers, ok := oracle[target.Module][target.Class]; ok {
-				for goField := range facts.fields {
+				// PROMOTED field set (own + embed chain): Go expresses "this
+				// client exposes these namespaces" by embedding the generated
+				// resource tree. See promotedFieldNames.
+				for goField := range promotedFieldNames(structs, facts) {
 					snake := goNameToPython(goField)
 					if clsMembers[snake] {
 						addMethod(target.Module, target.Class, snake)
@@ -857,14 +861,41 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 	// compares EQUAL — not omitted). Verify each mapped method is actually
 	// present on the struct (declared or promoted) so a renamed/removed skill
 	// member fails loud instead of emitting a phantom.
+	//
+	// ORACLE-GATED, not list-gated. `SkillContractTable`'s per-skill `Methods`
+	// lists are HAND-KEPT and therefore go stale the moment the reference moves a
+	// member. They did: the reference made `SkillBase.get_prompt_sections()` a
+	// final template method that applies the `skip_prompt` guard and delegates to
+	// a PROTECTED `_get_prompt_sections()` hook (signalwire-python
+	// core/skill_base.py), so the public member now exists on the BASE ONLY while
+	// every subclass overrides the protected one. The oracle dropped the public
+	// member from 11 skills; the hand list still named it, so the projection kept
+	// emitting public surface the reference does not expose — 11 phantom
+	// missing-reference additions.
+	//
+	// So the hand list is an UPPER BOUND intersected with what the surface oracle
+	// LIVE records for that class. A member the reference stops exposing stops
+	// being projected on the next regen, with no hand edit. This is the same
+	// discipline §2's field/accessor fold uses, for the same reason: emit a member
+	// only when the Go struct genuinely has it AND the reference genuinely records
+	// it. `Synthetic` is exempt — those are members Go expresses via a factory /
+	// tool registration and the reference records under a shape the class member
+	// set does not carry 1:1 (see the SkillContract doc comment).
+	//
+	// Fail-safe: if the oracle has no member set for this (module, class) at all,
+	// fall back to the hand list rather than silently emitting an EMPTY class
+	// surface (which would read as a mass deletion of real port members). The
+	// per-leaf struct-presence panic above is unaffected — a renamed/removed Go
+	// skill member still fails loud even when the reference no longer records it.
 	for _, sc := range surfacepkg.SkillContractTable {
 		facts, ok := structs[sc.GoStruct]
 		if !ok {
 			panic(fmt.Sprintf("enumerate-surface: skill struct %q in SkillContractTable not found in walk", sc.GoStruct))
 		}
 		addClass(sc.Module, sc.ClassName)
+		refMembers := oracle[sc.Module][sc.ClassName]
 		for _, leaf := range sc.Methods {
-			goMethod := skillLeafToGoMethod(leaf)
+			goMethod := surfacepkg.SkillLeafToGoMethod(leaf)
 			// The method is satisfied either by a direct override on the skill
 			// struct or by the embedded skills.BaseSkill default. BaseSkill lives
 			// in a DIFFERENT package (`skills`) via a QUALIFIED embed
@@ -873,8 +904,12 @@ func build(structs map[string]*goStructFacts, funcs map[string]struct{}, oracle 
 			// the known BaseSkill-provided set (verified against
 			// pkg/skills/skill_base.go). A non-BaseSkill leaf that isn't declared
 			// on the struct fails loud.
-			if _, declared := facts.methods[goMethod]; !declared && !baseSkillProvides[goMethod] {
+			if _, declared := facts.methods[goMethod]; !declared && !surfacepkg.BaseSkillProvides[goMethod] {
 				panic(fmt.Sprintf("enumerate-surface: skill %s expects Go method %q (for %q) but it is neither declared nor a BaseSkill default", sc.GoStruct, goMethod, leaf))
+			}
+			// Intersect the hand list with the LIVE oracle (see the block comment).
+			if len(refMembers) > 0 && !refMembers[leaf] {
+				continue
 			}
 			addMethod(sc.Module, sc.ClassName, leaf)
 		}
@@ -983,6 +1018,14 @@ func computePortAdditions(structs map[string]*goStructFacts, funcs map[string]st
 		if _, ok := structTable[key]; ok {
 			continue
 		}
+		// An UNEXPORTED type is not public surface and so can never be a port
+		// ADDITION. The type walk records unexported promoted-field carriers
+		// (``_GeneratedResourceTree``) so the embed chain resolves; the carrier
+		// itself stays off the surface — only the fields it promotes onto the
+		// exported embedder are public, and those are emitted on that embedder.
+		if !ast.IsExported(facts.name) {
+			continue
+		}
 		// §5/§4a: generated-REST params structs are call-shape plumbing, not oracle
 		// surface — never list them as SURFACE-DIFF additions.
 		if facts.paramsPlumbing {
@@ -1073,8 +1116,17 @@ func buildGoSurface(structs map[string]*goStructFacts, funcs map[string]struct{}
 	// a member.  Unexported or port-only symbols are included — ``audit_docs.py``
 	// only cares that *some* reference resolves, not that the inventory
 	// matches a reference layout.
+	//
+	// The export filter is EXPLICIT rather than implied by what ``structs``
+	// happens to hold: the type walk also records unexported promoted-field
+	// carriers (``_GeneratedResourceTree``) so the embed chain resolves, and
+	// those are not identifiers any Go doc or example can name. Without this
+	// they would leak into the doc-resolution inventory as bogus classes.
 	for key, facts := range structs {
 		_ = key
+		if !ast.IsExported(facts.name) {
+			continue
+		}
 		inv := ensure(facts.pkg)
 		methods, present := inv.Classes[facts.name]
 		if !present || methods == nil {
@@ -1186,7 +1238,7 @@ func isCompositionReturn(ret string) bool {
 // other than the receiver) AND returns an SDK class per isCompositionReturn.
 func enrichCompositionAttributes(snapshot *surface, repoRoot string) error {
 	sigPath := filepath.Join(repoRoot, "port_signatures.json")
-	raw, err := os.ReadFile(sigPath)
+	raw, err := os.ReadFile(sigPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -1254,7 +1306,7 @@ func enrichCompositionAttributes(snapshot *surface, repoRoot string) error {
 
 // goSHA returns the signalwire-go repo HEAD SHA (or "N/A").
 func goSHA(repoRoot string) string {
-	cmd := exec.Command("git", "-C", repoRoot, "rev-parse", "HEAD")
+	cmd := exec.Command("git", "-C", repoRoot, "rev-parse", "HEAD") //nolint:gosec // G204: fixed program "git" with a repo path the developer already controls.
 	out, err := cmd.Output()
 	if err != nil {
 		return "N/A"
@@ -1396,13 +1448,13 @@ func run() error {
 		_, err := os.Stdout.Write(rendered)
 		return err
 	}
-	if err := os.WriteFile(*outputPath, rendered, 0o644); err != nil {
+	if err := os.WriteFile(*outputPath, rendered, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 		return err
 	}
-	if err := os.WriteFile(*goOutputPath, goRendered, 0o644); err != nil {
+	if err := os.WriteFile(*goOutputPath, goRendered, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 		return err
 	}
-	return os.WriteFile(*additionsOutput, addRendered, 0o644)
+	return os.WriteFile(*additionsOutput, addRendered, 0o644) //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 }
 
 func stripGen(b []byte) string {

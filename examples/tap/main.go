@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: tap
 //
@@ -81,7 +81,11 @@ func main() {
 }
 
 func printResult(fr *swaig.FunctionResult) {
-	data, _ := json.MarshalIndent(fr.ToMap(), "", "  ")
+	data, err := json.MarshalIndent(fr.ToMap(), "", "  ")
+	if err != nil {
+		fmt.Printf("  render failed: %v\n", err)
+		return
+	}
 	fmt.Println(string(data))
 	fmt.Println()
 }

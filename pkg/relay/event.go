@@ -12,7 +12,7 @@ type RelayEvent struct {
 	EventType string
 	Params    map[string]any
 	// CallID is the call identifier, populated from the "call_id" wire key.
-	// Python base class always carries this field.
+	// Every event carries this field.
 	CallID string
 	// Timestamp is the event timestamp (float for subsecond precision),
 	// populated from the "timestamp" wire key.
@@ -127,7 +127,7 @@ func (e *RelayEvent) GetBool(key string) bool {
 }
 
 // GetBoolPtr returns a *bool for a key in params, or nil if the key is absent.
-// This matches Python's Optional[bool] = None semantics.
+// The pointer preserves the tri-state: true, false, or "not sent".
 func (e *RelayEvent) GetBoolPtr(key string) *bool {
 	if e.Params == nil {
 		return nil
@@ -169,7 +169,7 @@ func (e *RelayEvent) GetMap(key string) map[string]any {
 }
 
 // GetStringSlice returns a []string for a key in params whose wire value is []any.
-// Returns nil if absent or wrong type. Matches Python list[str] field behavior.
+// Returns nil if absent or wrong type.
 func (e *RelayEvent) GetStringSlice(key string) []string {
 	if e.Params == nil {
 		return nil
@@ -245,11 +245,10 @@ func NewCallReceiveEvent(params map[string]any) *CallReceiveEvent {
 	e.Direction = e.GetString("direction")
 	e.Device = e.GetMap("device")
 	// SIP-originated receive events carry routing under "protocol" instead of
-	// "context". Mirrors Python relay/event.py CallReceiveEvent.from_payload:
-	//   context=p.get("context", p.get("protocol", ""))
+	// "context". The resolution is context = params["context"] if the key is
+	// present, else params["protocol"], else "".
 	// Use a key-presence check (not an empty-string check) so an explicitly
-	// empty "context" wins over a present "protocol", matching Python's
-	// dict.get default semantics.
+	// empty "context" wins over a present "protocol".
 	if _, ok := e.Params["context"]; ok {
 		e.Context = e.GetString("context")
 	} else {
@@ -286,16 +285,16 @@ type RecordEvent struct {
 	ControlID string
 	State     string
 	URL       string
-	// Duration is float64 (matching Python's float) to preserve subsecond precision.
+	// Duration is float64 to preserve subsecond precision.
 	Duration float64
 	Size     int
-	// Record is the raw nested record dict from the wire payload, matching Python's record field.
+	// Record is the raw nested record dict from the wire payload.
 	Record map[string]any
 }
 
 // NewRecordEvent constructs a RecordEvent from raw params.
 // URL, Duration, and Size are extracted from the nested "record" dict first,
-// falling back to top-level params — matching Python's from_payload behavior.
+// falling back to top-level params.
 func NewRecordEvent(params map[string]any) *RecordEvent {
 	e := &RecordEvent{
 		RelayEvent: NewRelayEvent(EventCallingCallRecord, params),
@@ -304,7 +303,7 @@ func NewRecordEvent(params map[string]any) *RecordEvent {
 	e.State = e.GetString("state")
 	e.Record = e.GetMap("record")
 
-	// Mirror Python: rec.get("url", p.get("url", "")), etc.
+	// Nested-record value wins, then the top-level params value, then "".
 	if e.Record != nil {
 		if u, ok := e.Record["url"].(string); ok && u != "" {
 			e.URL = u
@@ -335,7 +334,7 @@ type CollectEvent struct {
 	ControlID string
 	State     string
 	Result    map[string]any
-	// Final is a *bool matching Python's Optional[bool] = None semantics.
+	// Final is a *bool so the tri-state true/false/"not sent" is preserved.
 	Final *bool
 }
 
@@ -408,7 +407,7 @@ type TapEvent struct {
 	ControlID string
 	State     string
 	Tap       map[string]any
-	// Device is the tap device dict, matching Python's device field.
+	// Device is the tap device dict.
 	Device map[string]any
 }
 
@@ -429,9 +428,9 @@ type StreamEvent struct {
 	*RelayEvent
 	ControlID string
 	State     string
-	// URL is the stream URL, matching Python's url field.
+	// URL is the stream URL.
 	URL string
-	// Name is the stream name, matching Python's name field.
+	// Name is the stream name.
 	Name string
 }
 
@@ -470,10 +469,10 @@ type DialEvent struct {
 	Tag    string
 	CallID string
 	NodeID string
-	// DialState reads wire key "dial_state" matching Python's dial_state field.
+	// DialState reads wire key "dial_state".
 	// (Replaces the previous State field which incorrectly read "state".)
 	DialState string
-	// Call is the nested call dict, matching Python's call field.
+	// Call is the nested call dict.
 	Call map[string]any
 }
 
@@ -491,7 +490,7 @@ func NewDialEvent(params map[string]any) *DialEvent {
 }
 
 // DialStateTyped returns the dial outcome as a typed DialState ALONGSIDE the
-// bare-string DialState field (kept for compatibility with the Python reference). The
+// bare-string DialState field, which is kept for backward compatibility. The
 // typed kind gives callers IsTerminal()/IsKnown() predicates and compile-time
 // distinctness from CallState/MessageState; its underlying string equals the
 // DialState field exactly. Additive port idiom — see states.go and
@@ -528,7 +527,7 @@ type DenoiseEvent struct {
 	*RelayEvent
 	ControlID string
 	State     string
-	// Denoised matches Python's denoised bool field.
+	// Denoised reads the "denoised" wire key.
 	Denoised bool
 }
 
@@ -566,13 +565,13 @@ func NewPayEvent(params map[string]any) *PayEvent {
 type QueueEvent struct {
 	*RelayEvent
 	ControlID string
-	// Status reads wire key "status" matching Python's status field.
+	// Status reads wire key "status".
 	// (Replaces the previous State field which incorrectly read "state".)
 	Status string
-	// QueueName reads wire key "name" matching Python's queue_name = p.get("name", "").
+	// QueueName reads wire key "name".
 	// (Previously read "queue_name" which was wrong.)
 	QueueName string
-	// QueueID reads wire key "id" matching Python's queue_id = p.get("id", "").
+	// QueueID reads wire key "id".
 	QueueID  string
 	Position int
 	Size     int
@@ -615,13 +614,13 @@ type TranscribeEvent struct {
 	ControlID string
 	State     string
 	Text      string
-	// URL is the transcription recording URL, matching Python's url field.
+	// URL is the transcription recording URL.
 	URL string
-	// RecordingID is the recording identifier, matching Python's recording_id field.
+	// RecordingID is the recording identifier.
 	RecordingID string
-	// Duration is float64 for subsecond precision, matching Python's duration: float field.
+	// Duration is float64 for subsecond precision.
 	Duration float64
-	// Size is the recording size in bytes, matching Python's size field.
+	// Size is the recording size in bytes.
 	Size int
 }
 
@@ -663,7 +662,7 @@ type ConferenceEvent struct {
 	ControlID    string
 	ConferenceID string
 	Name         string
-	// Status reads wire key "status" matching Python's status field.
+	// Status reads wire key "status".
 	// (Replaces the previous State field which incorrectly read "state".)
 	Status string
 }
@@ -711,7 +710,7 @@ type MessageReceiveEvent struct {
 	Media      []string
 	Segments   int
 	Tags       []string
-	// MessageState matches Python's message_state field.
+	// MessageState.
 	MessageState string
 }
 
@@ -756,22 +755,22 @@ func NewMessageReceiveEvent(params map[string]any) *MessageReceiveEvent {
 type MessageStateEvent struct {
 	*RelayEvent
 	MessageID string
-	// MessageState reads wire key "message_state" matching Python's message_state field.
+	// MessageState reads wire key "message_state".
 	// (Replaces the previous State field which incorrectly read "state".)
 	MessageState string
 	Reason       string
 	Direction    string
 	FromNumber   string
 	ToNumber     string
-	// Context matches Python's context field.
+	// Context.
 	Context string
-	// Body matches Python's body field.
+	// Body.
 	Body string
-	// Media matches Python's media: list[str] field.
+	// Media.
 	Media []string
-	// Segments matches Python's segments: int field.
+	// Segments.
 	Segments int
-	// Tags matches Python's tags: list[str] field.
+	// Tags.
 	Tags []string
 }
 
@@ -838,8 +837,6 @@ func NewAIEvent(params map[string]any) *AIEvent {
 // constructor. If the event_type is not recognised, a plain *RelayEvent is
 // returned. Callers can type-assert or type-switch on the result to access
 // the concrete event fields.
-//
-// This mirrors Python's relay.event.parse_event(payload).
 func ParseEvent(payload map[string]any) any {
 	eventType, _ := payload["event_type"].(string)
 	var params map[string]any

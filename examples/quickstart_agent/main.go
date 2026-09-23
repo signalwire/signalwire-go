@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: quickstart_agent
 //
@@ -36,7 +36,9 @@ func main() {
 		},
 	})
 
-	a.Run()
+	if err := a.Run(); err != nil {
+		fmt.Printf("agent stopped: %v\n", err)
+	}
 }
 
 // endregion: quickstart

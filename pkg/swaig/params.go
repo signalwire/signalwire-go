@@ -84,7 +84,7 @@ func (b *Params) Describe(description string) *Params {
 }
 
 // WithRawData marks that the handler this declaration describes also receives
-// the SWAIG raw payload (the analog of Python's `raw_data` handler parameter),
+// the SWAIG raw payload (the `raw_data` handler argument),
 // surfaced by InferSchema's has_raw_data return. Returns the receiver.
 func (b *Params) WithRawData() *Params {
 	b.hasRawData = true

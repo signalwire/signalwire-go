@@ -44,12 +44,18 @@ func NewJoke(params map[string]any) skills.SkillBase {
 	}
 }
 
+// Setup records the optional "api_key" and the tool name (default "get_joke").
+// It always succeeds — jokes come from the in-process builtinJokes list, so no
+// credential is needed and api_key is currently unused by the handler.
 func (s *JokeSkill) Setup() bool {
 	s.apiKey = s.GetParamString("api_key", "")
 	s.toolName = s.GetParamString("tool_name", "get_joke")
 	return true
 }
 
+// RegisterTools returns the single joke tool. Its required "type" argument is
+// enum-constrained to "jokes" or "dadjokes", but the local handler ignores it
+// and picks uniformly at random from the built-in list either way.
 func (s *JokeSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
@@ -78,16 +84,21 @@ func (s *JokeSkill) handleTellJoke(_ map[string]any, _ map[string]any) *swaig.Fu
 	return swaig.NewFunctionResult("Here's a joke: " + joke)
 }
 
+// GetGlobalData publishes joke_skill_enabled into the agent's global data so
+// the prompt can tell the capability is present.
 func (s *JokeSkill) GetGlobalData() map[string]any {
 	return map[string]any{
 		"joke_skill_enabled": true,
 	}
 }
 
+// GetHints returns speech-recognition hints for humor vocabulary.
 func (s *JokeSkill) GetHints() []string {
 	return []string{"joke", "funny", "humor", "laugh"}
 }
 
+// GetPromptSections returns one POM section, naming the configured tool, that
+// tells the agent to use it when a user asks for humor.
 func (s *JokeSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{

@@ -67,7 +67,7 @@ func TestAddPreAnswerVerb_WarnsOnAutoAnswerWithoutFlag(t *testing.T) {
 	out := captureStderr(t, func() {
 		a := NewAgentBase(WithName("t"))
 		// "play" auto-answers unless auto_answer:false is present.
-		a.AddPreAnswerVerb("play", map[string]any{"url": "ring.mp3"})
+		a.AddPreAnswerVerb("play", map[string]any{"url": "https://example.com/ring.mp3"})
 	})
 	if !strings.Contains(out, "pre_answer_verb_will_answer") {
 		t.Errorf("expected auto-answer warning for play, got stderr:\n%s", out)
@@ -77,7 +77,7 @@ func TestAddPreAnswerVerb_WarnsOnAutoAnswerWithoutFlag(t *testing.T) {
 func TestAddPreAnswerVerb_NoWarnForAutoAnswerWithFalseFlag(t *testing.T) {
 	out := captureStderr(t, func() {
 		a := NewAgentBase(WithName("t"))
-		a.AddPreAnswerVerb("play", map[string]any{"url": "ring.mp3", "auto_answer": false})
+		a.AddPreAnswerVerb("play", map[string]any{"url": "https://example.com/ring.mp3", "auto_answer": false})
 	})
 	if strings.Contains(out, "pre_answer_verb_will_answer") {
 		t.Errorf("auto_answer:false should suppress the warning, got stderr:\n%s", out)

@@ -79,8 +79,7 @@ func (r *CrudResource) List(ctx context.Context, params map[string]string, opts 
 // hand-build the path + token loop. List returns a single raw page (the server's
 // first response); Paginate follows the cursor and yields each item.
 //
-// Equivalent to the Python SDK's ReadResource.paginate(**params); data_key is
-// fixed to "data".
+// The response data key is fixed to "data".
 //
 //	it := client.Fabric.Addresses.Paginate(nil)
 //	for {
@@ -121,7 +120,6 @@ func (r *CrudResource) Delete(ctx context.Context, id string, opts ...*RequestOp
 }
 
 // CrudWithAddresses extends CrudResource with the nested addresses endpoint.
-// Matches Python's CrudWithAddresses at _base.py:109-113.
 // Only resources that explicitly support the addresses sub-resource should
 // embed this type; plain CrudResource does not expose ListAddresses.
 type CrudWithAddresses struct {

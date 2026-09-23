@@ -66,10 +66,10 @@ func loadCorpus() ([]corpusEntry, error) {
 	}
 	for _, base := range bases {
 		script := filepath.Join(base, "scripts", "skill_contract_corpus.py")
-		if _, err := os.Stat(script); err != nil {
+		if _, err := os.Stat(script); err != nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 			continue
 		}
-		out, err := exec.Command("python3", script).Output()
+		out, err := exec.Command("python3", script).Output() //nolint:gosec // G204: fixed program "python3"; the script path is composed from the repo root in a developer-run tool.
 		if err != nil {
 			return nil, fmt.Errorf("running %s: %w", script, err)
 		}

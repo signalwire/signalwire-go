@@ -29,7 +29,7 @@ type BedrockOptions struct {
 
 // NewBedrockAgent creates a BedrockAgent. Unset numeric options fall back to the
 // Bedrock defaults (temperature 0.7, top_p 0.9, max_tokens 1024) and voice
-// "matthew", matching the Python reference.
+// "matthew".
 func NewBedrockAgent(opts BedrockOptions) *BedrockAgent {
 	name := opts.Name
 	if name == "" {

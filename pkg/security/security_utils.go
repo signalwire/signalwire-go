@@ -1,14 +1,11 @@
 // Package security — standalone security hygiene utilities.
 //
-// These mirror the TypeScript SDK's SecurityUtils (filterSensitiveHeaders,
-// redactUrl, isValidHostname) and the Python reference's
-// signalwire.core.security.security_utils free functions, so the same
-// protections — keeping credentials out of user callbacks and logs, reusable
-// hostname validation — are available in the Go port.
+// They keep credentials out of user callbacks and logs and provide reusable
+// hostname validation.
 //
-// They are package-level free functions (the idiomatic Go shape for stateless
-// helpers, matching the Python reference's module-level functions) and project
-// onto the Python canonical names via internal/surface/tables.go:
+// They are package-level free functions — the idiomatic Go shape for stateless
+// helpers — and project onto the canonical SDK names via
+// internal/surface/tables.go:
 //
 //	FilterSensitiveHeaders -> filter_sensitive_headers
 //	RedactURL              -> redact_url

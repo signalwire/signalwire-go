@@ -12,9 +12,8 @@ const (
 )
 
 // AgentString is the SDK identifier the connect frame announces to the
-// RELAY server. Mirrors Python's AGENT_STRING at relay/constants.py:5,
-// translated to identify this language's port. Sent as
-// `params.agent` on signalwire.connect.
+// RELAY server, identifying this SDK. Sent as `params.agent` on
+// signalwire.connect.
 const AgentString = "signalwire-agents-go/1.0"
 
 // Call states represent the lifecycle of a call.
@@ -83,9 +82,7 @@ const (
 )
 
 // EventAuthorizationState is the authorization-state event used to refresh
-// reconnect material. Mirrors Python's
-// EVENT_AUTHORIZATION_STATE = "signalwire.authorization.state"
-// (relay/constants.py:16).
+// reconnect material.
 const EventAuthorizationState = "signalwire.authorization.state"
 
 // Blade/SignalWire internal method constants.

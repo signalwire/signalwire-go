@@ -53,8 +53,8 @@ func WithQuestionChoices(choices ...string) SurveyQuestionOption {
 	return func(q *SurveyQuestion) { q.Choices = choices }
 }
 
-// WithOptional marks a question as not required. Matches Python's
-// required=False escape hatch on SurveyAgent questions.
+// WithOptional marks a question as not required — the escape hatch from the
+// default, in which every SurveyAgent question is required.
 func WithOptional() SurveyQuestionOption {
 	return func(q *SurveyQuestion) { q.Required = false }
 }

@@ -34,6 +34,8 @@ func NewGoogleMaps(params map[string]any) skills.SkillBase {
 	}
 }
 
+// RequiredEnvVars returns GOOGLE_MAPS_API_KEY, or nil when an "api_key" param
+// was supplied inline.
 func (s *GoogleMapsSkill) RequiredEnvVars() []string {
 	if s.Params != nil {
 		if _, ok := s.Params["api_key"]; ok {
@@ -43,6 +45,10 @@ func (s *GoogleMapsSkill) RequiredEnvVars() []string {
 	return []string{"GOOGLE_MAPS_API_KEY"}
 }
 
+// Setup resolves the Google Maps API key (the "api_key" param, else
+// GOOGLE_MAPS_API_KEY) and the two configurable tool names, defaulting to
+// "lookup_address" and "compute_route". It returns false — aborting the load —
+// only when the key is empty.
 func (s *GoogleMapsSkill) Setup() bool {
 	s.apiKey = s.GetParamString("api_key", os.Getenv("GOOGLE_MAPS_API_KEY"))
 	s.lookupToolName = s.GetParamString("lookup_tool_name", "lookup_address")
@@ -50,6 +56,18 @@ func (s *GoogleMapsSkill) Setup() bool {
 	return s.apiKey != ""
 }
 
+// RegisterTools returns the two Google Maps tools, both handled locally in Go
+// with the API key sent as a query/header credential:
+//
+//   - the lookup tool (default "lookup_address") geocodes an address or business
+//     name via the Places autocomplete + details endpoints, optionally biased
+//     toward bias_lat/bias_lng to resolve "the nearest X";
+//   - the route tool (default "compute_route") calls the Routes API
+//     computeRoutes for an origin/destination lat-lng pair and reports distance
+//     in miles and duration in minutes.
+//
+// Neither tool marks any parameter required, matching the reference
+// (google_maps/skill.py:433).
 func (s *GoogleMapsSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
@@ -293,10 +311,15 @@ func (s *GoogleMapsSkill) handleComputeRoute(args map[string]any, _ map[string]a
 	))
 }
 
+// GetHints returns speech-recognition hints for address and navigation
+// vocabulary.
 func (s *GoogleMapsSkill) GetHints() []string {
 	return []string{"address", "location", "route", "directions", "miles", "distance"}
 }
 
+// GetPromptSections returns one POM section, naming both configured tools, that
+// covers geocoding, routing, spoken-number normalization in addresses, and
+// location biasing.
 func (s *GoogleMapsSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{
@@ -312,6 +335,9 @@ func (s *GoogleMapsSkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetParameterSchema extends the common skill parameters with "api_key"
+// (required, hidden, sourced from GOOGLE_MAPS_API_KEY) and the optional
+// lookup_tool_name and route_tool_name overrides.
 func (s *GoogleMapsSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["api_key"] = map[string]any{

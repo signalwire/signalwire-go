@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Video rooms for team standup and conference streaming.
 //
@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -43,7 +44,11 @@ func main() {
 		fmt.Printf("  Create room failed: %v\n", err)
 		return
 	}
-	roomID := room["id"].(string)
+	roomID, roomIDOK := room["id"].(string)
+	if !roomIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created room: %s\n", roomID)
 
 	// 2. List video rooms
@@ -71,7 +76,8 @@ func main() {
 		"permissions": []string{"room.self.audio_mute", "room.self.video_mute"},
 	}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Token failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -169,12 +175,15 @@ func main() {
 		"display_name": "All Hands Meeting",
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Conference creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		confID = conf["id"].(string)
+	} else if id, ok := conf["id"].(string); ok {
+		confID = id
 		fmt.Printf("  Created conference: %s\n", confID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 8. List conference tokens
@@ -182,7 +191,8 @@ func main() {
 		fmt.Println("\nListing conference tokens...")
 		tokens, err := client.Video.Conferences.ListConferenceTokens(context.Background(), confID, nil)
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  Conference tokens failed: %d\n", restErr.StatusCode)
 			}
 		} else {
@@ -200,7 +210,8 @@ func main() {
 			"url": "rtmp://live.example.com/stream-key",
 		}})
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  Stream creation failed (expected in demo): %d\n", restErr.StatusCode)
 			}
 		} else {
@@ -222,8 +233,11 @@ func main() {
 		}})
 		if err == nil {
 			fmt.Println("  Stream URL updated")
-		} else if restErr, ok := err.(*rest.SignalWireRestError); ok {
-			fmt.Printf("  Stream ops failed: %d\n", restErr.StatusCode)
+		} else {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
+				fmt.Printf("  Stream ops failed: %d\n", restErr.StatusCode)
+			}
 		}
 	}
 
@@ -232,14 +246,23 @@ func main() {
 	if streamID != "" {
 		if _, err := client.Video.Streams.Delete(context.Background(), streamID); err == nil {
 			fmt.Printf("  Deleted stream %s\n", streamID)
-		} else if restErr, ok := err.(*rest.SignalWireRestError); ok {
-			fmt.Printf("  Stream delete failed: %d\n", restErr.StatusCode)
+		} else {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
+				fmt.Printf("  Stream delete failed: %d\n", restErr.StatusCode)
+			}
 		}
 	}
 	if confID != "" {
-		client.Video.Conferences.Delete(context.Background(), confID)
-		fmt.Printf("  Deleted conference %s\n", confID)
+		if _, err := client.Video.Conferences.Delete(context.Background(), confID); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Printf("  Deleted conference %s\n", confID)
+		}
 	}
-	client.Video.Rooms.Delete(context.Background(), roomID)
-	fmt.Printf("  Deleted room %s\n", roomID)
+	if _, err := client.Video.Rooms.Delete(context.Background(), roomID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted room %s\n", roomID)
+	}
 }

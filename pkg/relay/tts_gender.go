@@ -14,8 +14,7 @@ package relay
 //
 // TTSGender is a string subtype, so the value written into the
 // {"type":"tts","params":{"gender":...}} media entry is byte-identical to the
-// bare string the reference uses — compatibility with Python's play_tts/prompt_tts
-// gender keyword (a plain str).
+// bare string it wraps, so a bare string literal is equally accepted.
 type TTSGender string
 
 // TTS voice genders. These are the canonical gender strings the RELAY wire

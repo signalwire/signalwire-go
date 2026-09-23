@@ -5,8 +5,10 @@ name: Doc & example audit (Layer C)
 # symbol in port_surface_go.json (the Go-native sibling of port_surface.json
 # produced by cmd/enumerate-surface alongside the Python-reference surface).
 #
-# Also compile-checks every example file -- //go:build ignore files included
+# Also compile-checks every example file -- //go:build swexample files included
 # -- via ``go build -o /dev/null <file>`` to catch silent API breakage.
+# (The examples are LINTED separately, at the library's bar, by layer 3 of
+# scripts/run-lint.sh.)
 #
 # This is the third layer of the porting-sdk drift contract:
 #
@@ -105,28 +107,10 @@ jobs:
         run: go run ./cmd/enumerate-surface --check
 
       - name: Compile-check every example
-        # Examples live in ``examples/**``, ``rest/examples`` and
-        # ``relay/examples``.  The latter two co-locate multiple
-        # ``package main`` files in the same directory under
-        # ``//go:build ignore`` — compile each file individually via
-        # ``go build -o /dev/null FILE.go`` so the ignore tag doesn't
-        # collide across the directory.
-        run: |
-          set -euo pipefail
-          total=0
-          failed=0
-          for f in $(find examples relay/examples rest/examples -name "*.go" -print 2>/dev/null); do
-            total=$((total + 1))
-            if ! go build -o /dev/null "$f" 2> /tmp/build_err; then
-              echo "::error file=$f::example failed to compile"
-              sed 's/^/    /' /tmp/build_err
-              failed=$((failed + 1))
-            fi
-          done
-          echo "compiled $((total - failed))/$total examples"
-          if [ "$failed" -gt 0 ]; then
-            exit 1
-          fi
+        # Delegates to the canonical script rather than re-implementing the
+        # loop here — this step used to be an inline copy of it, which is one
+        # more place to drift when the example layout changes.
+        run: bash scripts/compile_examples.sh
 
       - name: Run doc/example audit
         run: |

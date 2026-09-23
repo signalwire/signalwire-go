@@ -57,10 +57,14 @@ func run() error {
 		return nil
 	}
 
+	// emit takes the spec bytes AND the porting-sdk root: post-prompt.yaml carries
+	// cross-file $refs into swaig-response.yaml, and the emitter VERIFIES those against
+	// the on-disk spec tree rather than resolving them by last path segment (which
+	// discards the file part and emits a name nothing declares).
 	type job struct {
 		out  []string // repo-relative output path parts
 		spec []string // porting-sdk-relative spec path parts
-		emit func([]byte) (string, error)
+		emit func(raw []byte, specRoot string) (string, error)
 	}
 	jobs := []job{
 		{out: []string{"pkg", "swaig", "swaig_request_generated.go"}, spec: []string{"swaig-specs", "swaig-request.yaml"}, emit: payloadgen.EmitSwaigRequest},
@@ -74,7 +78,7 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		src, err := j.emit(raw)
+		src, err := j.emit(raw, psdk)
 		if err != nil {
 			return err
 		}

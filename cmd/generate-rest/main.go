@@ -160,7 +160,7 @@ func rootOf(doc *yaml.Node) *yaml.Node {
 // ---------------------------------------------------------------------------
 
 func loadBases(psdk string) (map[string]*baseSpec, error) {
-	raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "x-sdk-bases.yaml"))
+	raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "x-sdk-bases.yaml")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func loadBases(psdk string) (map[string]*baseSpec, error) {
 		out[name] = bs
 	}
 	// FabricResource is defined in the per-namespace fabric bases file; load it too.
-	fabRaw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "fabric", "x-sdk-bases.yaml"))
+	fabRaw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "fabric", "x-sdk-bases.yaml")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err == nil {
 		var fdoc yaml.Node
 		if err := yaml.Unmarshal(fabRaw, &fdoc); err == nil {
@@ -246,7 +246,7 @@ func loadBases(psdk string) (map[string]*baseSpec, error) {
 
 func loadSpec(psdk, ns string) (*specDoc, error) {
 	rawPath := filepath.Join(psdk, "rest-apis", ns, "openapi.yaml")
-	raw, err := os.ReadFile(rawPath)
+	raw, err := os.ReadFile(rawPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, err
 	}
@@ -760,9 +760,9 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 				bodyOrder = append(bodyOrder, f)
 				ftype := paramFieldType(fieldTypes[f], fieldReq[f])
 				bodyFieldPtr[f] = isNilableGoType(ftype)
-				fieldDefs = append(fieldDefs, "\t"+fn+" "+ftype)
+				fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, ftype, fieldReq[f]))
 			}
-			fieldDefs = append(fieldDefs, "\tExtras map[string]any")
+			fieldDefs = append(fieldDefs, paramsStructFieldDef("Extras", "map[string]any", false))
 			structDef = fmt.Sprintf("// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 				structName, recv, goName, structName, strings.Join(fieldDefs, "\n"))
 			params = append(params, "params "+structName)
@@ -1302,9 +1302,9 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 			// type (e.g. swml → *SWMLObject), a union → any, an array → []T.
 			ftype := paramFieldType(cmdFieldTypes[f], cmdFieldReq[f])
 			fieldPtr[f] = isNilableGoType(ftype)
-			fieldDefs = append(fieldDefs, "\t"+fn+" "+ftype)
+			fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, ftype, cmdFieldReq[f]))
 		}
-		fieldDefs = append(fieldDefs, "\tExtras map[string]any")
+		fieldDefs = append(fieldDefs, paramsStructFieldDef("Extras", "map[string]any", false))
 		fmt.Fprintf(b, "// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 			structName, goName, mName, structName, strings.Join(fieldDefs, "\n"))
 		var sigParams []string
@@ -1425,7 +1425,23 @@ func componentsSchemas(sd *specDoc) (*yaml.Node, error) {
 }
 
 // refLeaf returns the final component name of a "#/components/schemas/Foo" ref.
+//
+// SAME-DOCUMENT refs only. Taking the last path segment DISCARDS the file part, so a
+// cross-file `other.yaml#/components/schemas/Foo` would resolve to whatever local
+// schema happens to be named Foo — or, via resolveSchema's mapChild miss, to nil and
+// then silently back to the unresolved ref node. rest-apis carries 3420 refs and ZERO
+// with a file part (measured 2026-08-04), so this generator has no cross-file link to
+// resolve; the panic makes the day one appears a loud failure instead of a wrong type.
+// The verifying resolver to copy if that day comes is crossFileResolver in
+// cmd/internal/payloadgen, which the swaig-specs generator needs because post-prompt
+// .yaml does carry three of them.
 func refLeaf(ref string) string {
+	if i := strings.Index(ref, "#"); i > 0 {
+		panic(fmt.Sprintf("generate-rest: cross-file $ref %q — this generator resolves "+
+			"same-document refs only. Give it a verifying cross-file resolver (see "+
+			"cmd/internal/payloadgen crossFileResolver) rather than letting the file part "+
+			"be discarded", ref))
+	}
 	if i := strings.LastIndex(ref, "/"); i >= 0 {
 		return ref[i+1:]
 	}
@@ -2214,7 +2230,7 @@ func discoverSpecs(psdk string) (resourceSpecs, typesOnlySpecs []string, err err
 		}
 		ns := e.Name()
 		specPath := filepath.Join(restAPIs, ns, "openapi.yaml")
-		raw, rerr := os.ReadFile(specPath)
+		raw, rerr := os.ReadFile(specPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 		if rerr != nil {
 			continue // dir without an openapi.yaml is not a spec
 		}
@@ -2308,7 +2324,7 @@ func findRepoRoot(start string) (string, error) {
 
 func resolvePortingSDK(repoRoot string) (string, error) {
 	if p := os.Getenv("PORTING_SDK"); p != "" {
-		if _, err := os.Stat(filepath.Join(p, "rest-apis")); err == nil {
+		if _, err := os.Stat(filepath.Join(p, "rest-apis")); err == nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 			return p, nil
 		}
 	}
@@ -2484,10 +2500,10 @@ func run() error {
 			}
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(o.path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(o.path), 0o755); err != nil { //nolint:gosec // G301: output dir for generated SOURCE CODE committed to the repo; 0750 would break every consumer.
 			return err
 		}
-		if err := os.WriteFile(o.path, formatted, 0o644); err != nil {
+		if err := os.WriteFile(o.path, formatted, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 			return err
 		}
 		fmt.Printf("generated %s\n", o.path)

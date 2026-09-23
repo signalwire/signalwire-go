@@ -105,7 +105,7 @@ func parent() int {
 	}
 
 	var captured bytes.Buffer
-	cmd := exec.Command(self)
+	cmd := exec.Command(self) //nolint:gosec // G204: re-execs THIS binary (os.Executable) to capture its own scrubbed output; no external input.
 	cmd.Env = append(os.Environ(),
 		childEnv+"=1",
 		// Drive at DEBUG — the level at which a raw-frame log site would fire.

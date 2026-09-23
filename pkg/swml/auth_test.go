@@ -172,6 +172,44 @@ func TestTLSEnabledFalseIfOnlyOnePathSet(t *testing.T) {
 	}
 }
 
+// --- TLSCertPath / TLSKeyPath (reference ssl_cert_path / ssl_key_path) ---
+
+func TestTLSPathsEmptyByDefault(t *testing.T) {
+	svc := NewService(WithName("no-tls"))
+	if got := svc.TLSCertPath(); got != "" {
+		t.Errorf("TLSCertPath() = %q, want empty", got)
+	}
+	if got := svc.TLSKeyPath(); got != "" {
+		t.Errorf("TLSKeyPath() = %q, want empty", got)
+	}
+}
+
+func TestTLSPathsReadBackAfterWithTLS(t *testing.T) {
+	svc := NewService(WithTLS("/etc/cert.pem", "/etc/key.pem"))
+	if got := svc.TLSCertPath(); got != "/etc/cert.pem" {
+		t.Errorf("TLSCertPath() = %q, want /etc/cert.pem", got)
+	}
+	if got := svc.TLSKeyPath(); got != "/etc/key.pem" {
+		t.Errorf("TLSKeyPath() = %q, want /etc/key.pem", got)
+	}
+}
+
+// The paths are readable even when TLS is not fully enabled (only one set) —
+// they report the CONFIGURED value, mirroring the reference's plain attributes
+// rather than the derived ssl_enabled predicate.
+func TestTLSPathsReadableWhenTLSNotEnabled(t *testing.T) {
+	svc := NewService(WithTLS("/etc/cert.pem", ""))
+	if svc.TLSEnabled() {
+		t.Fatalf("precondition: TLS should not be enabled with only a cert")
+	}
+	if got := svc.TLSCertPath(); got != "/etc/cert.pem" {
+		t.Errorf("TLSCertPath() = %q, want /etc/cert.pem", got)
+	}
+	if got := svc.TLSKeyPath(); got != "" {
+		t.Errorf("TLSKeyPath() = %q, want empty", got)
+	}
+}
+
 // --- Middleware end-to-end: withSecurity priority + 401 shape ---
 
 func TestWithSecurityBearerTokenSucceeds(t *testing.T) {

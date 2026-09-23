@@ -8,8 +8,8 @@
 // into the platform's response shape. Because the agent's own AsRouter()
 // already handles auth, SWML rendering at the root path, SWAIG dispatch at
 // /swaig, and routing callbacks (/sip), a thin request adapter is all each
-// platform needs — matching Python's ServerlessMixin, which dispatches CGI /
-// Lambda / Cloud Functions / Azure through the same request-handling core.
+// platform needs: CGI, Lambda, Cloud Functions and Azure all dispatch through
+// the same request-handling core.
 //
 // Platform detection lives in pkg/swml (swml.DetectRunMode); this package is
 // the DISPATCH layer that produces a real response for a detected platform,
@@ -33,9 +33,8 @@ import (
 	"strings"
 )
 
-// MaxCGIBodySize caps the request body read from stdin in CGI mode, matching
-// Python's MAX_CGI_BODY_SIZE guard in serverless_mixin.py against unbounded
-// CONTENT_LENGTH.
+// MaxCGIBodySize caps the request body read from stdin in CGI mode, guarding
+// against an unbounded CONTENT_LENGTH.
 const MaxCGIBodySize = 10 * 1024 * 1024 // 10 MiB
 
 // Handler wraps an http.Handler so it can service non-Lambda serverless
@@ -84,7 +83,7 @@ type CGIResult struct {
 // calls. Returns an error only for an unrecoverable I/O failure; an agent-level
 // error (401, 500, …) is a normal response, not a Go error.
 //
-// Mirrors Python's ServerlessMixin CGI branch: PATH_INFO selects the route
+// PATH_INFO selects the route
 // (empty → SWML at root), REQUEST_METHOD / CONTENT_LENGTH / QUERY_STRING
 // reconstruct the request, and the body is read from stdin up to
 // CONTENT_LENGTH (bounded by MaxCGIBodySize).

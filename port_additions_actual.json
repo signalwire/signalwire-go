@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ ba245e14931421910f54992ee577ee7eed79d672",
+  "generated_from": "signalwire-go @ a0bba17610622aa54e8741c022871f22576f1590",
   "structs": [
     "agent.BedrockOptions",
     "agent.MCPServerConfig",
@@ -49,7 +49,6 @@
     "serverless.CGIResult",
     "serverless.Handler",
     "skills.ToolRegistration",
-    "spider.SpiderSkill",
     "swaig.JoinConferenceOptions",
     "swaig.Params",
     "swaig.PayOptions",

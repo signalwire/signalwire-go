@@ -15,25 +15,31 @@
 // WIRE manifestation of that is the per-tool `__token` query parameter the
 // rendered SWAIG webhook carries when the SWML is rendered with a call_id
 // (reference agent_base.py:1040/1096-1100). A tool defined with an explicit
-// secure=false gets NO `__token` — it falls back to the shared, unauthenticated
-// SWAIG defaults.web_hook_url.
+// secure=false gets NO `__token` and, just as load-bearing, NO per-tool
+// `web_hook_url` KEY AT ALL — it falls back to the shared
+// SWAIG.defaults.web_hook_url. Handing an insecure tool its own URL would put an
+// unauthenticated, function-specific callback on the wire.
 //
 // For each corpus fixture this program defines the tool on a fresh AgentBase,
-// renders the SWML with the FIXED corpus call_id, and reduces to the
-// deterministic pair the differ compares against the python golden:
+// renders the SWML with the FIXED corpus call_id, and emits the RENDERED
+// functions[] entry verbatim — with nondeterministic token VALUES replaced by
+// the corpus placeholder — under:
 //
-//	secure_default_true  — the SDK-recorded secure flag for the tool.
-//	wire_reflects_secure — a `__token` is present on the rendered webhook IFF the
-//	                       tool is secure (secure -> token; insecure -> none).
+//	secure_default_true — the SDK-recorded secure flag for the tool.
+//	rendered            — the functions[] entry, keys preserved exactly.
+//
+// The port does NOT classify. Every verdict (has_own_webhook, token_carrier) is
+// derived by the differ FROM THE KEYS of this payload, so a port cannot report a
+// topology it did not actually emit. That is the 2026-07-27 redesign: the
+// previous “wire_reflects_secure“ boolean was the port's own conclusion about
+// its own render, which made the gate structurally blind to a token in the wrong
+// key and to an insecure tool carrying its own tokenless URL.
 //
 // The token VALUE is an HMAC over (call_id, tool, expiry, nonce) and varies per
-// run, so it is NOT compared — only its PRESENCE folds into the boolean. That
-// keeps the golden deterministic while the behavior producing it stays real and
-// unfakeable: a port cannot report a token for its secure default without
-// actually minting one onto the wire.
+// run, so it is redacted to "<TOKEN>"; every KEY and key path survives intact.
 //
-// Protocol: stdout = ONE JSON object mapping fixture id -> classification. Only
-// stdout carries JSON; all diagnostics go to stderr.
+// Protocol: stdout = ONE JSON object mapping fixture id -> {secure_default_true,
+// rendered}. Only stdout carries JSON; all diagnostics go to stderr.
 //
 // Run from the signalwire-go repo root:
 //
@@ -43,6 +49,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -54,6 +61,9 @@ import (
 // callID mirrors secure_default_corpus.CALL_ID exactly. A FIXED call_id is what
 // makes a secure tool deterministically mint a token.
 const callID = "call-secure-default-fixture"
+
+// tokenPlaceholder mirrors secure_default_corpus.TOKEN_PLACEHOLDER.
+const tokenPlaceholder = "<TOKEN>"
 
 // fixture mirrors one secure_default_corpus.CORPUS entry.
 type fixture struct {
@@ -71,18 +81,19 @@ var corpus = []fixture{
 	// DefineTool defaults insecure (which go did before this gate landed: a plain
 	// `bool` field whose zero value is false).
 	{id: "define_tool_default_is_secure", toolName: "sd_default_secure", expectSecure: true},
-	// A1 (b) — an explicit secure=false must be INSECURE: NO __token. This pins
-	// the other direction, so a port that blindly tokenizes every tool reds here.
+	// A1 (b) — an explicit secure=false must be INSECURE: no __token, and no
+	// per-tool web_hook_url key whatsoever.
 	{
 		id: "define_tool_explicit_insecure", toolName: "sd_explicit_insecure",
 		expectSecure: false, explicitInsecure: true,
 	},
 }
 
-// classification is the per-fixture artifact the differ compares.
-type classification struct {
-	SecureDefaultTrue  bool `json:"secure_default_true"`
-	WireReflectsSecure bool `json:"wire_reflects_secure"`
+// dumpEntry is the per-fixture artifact: the SDK-recorded flag plus the raw
+// rendered payload. No classification — the differ owns that.
+type dumpEntry struct {
+	SecureDefaultTrue bool           `json:"secure_default_true"`
+	Rendered          map[string]any `json:"rendered"`
 }
 
 func main() { os.Exit(run()) }
@@ -91,14 +102,14 @@ func run() int {
 	// Keep stdout PURE JSON — the differ does json.loads(proc.stdout).
 	logging.SetGlobalLevel(logging.LevelOff)
 
-	out := map[string]classification{}
+	out := map[string]dumpEntry{}
 	for _, f := range corpus {
-		c, err := classify(f)
+		e, err := render(f)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "secure-default-dump: fixture %s: %v\n", f.id, err)
 			return 1
 		}
-		out[f.id] = c
+		out[f.id] = e
 	}
 
 	enc := json.NewEncoder(os.Stdout)
@@ -110,9 +121,9 @@ func run() int {
 	return 0
 }
 
-// classify builds a fresh agent, defines the fixture's single tool, renders the
-// SWML with the fixed corpus call_id, and reduces to the fixture artifact.
-func classify(f fixture) (classification, error) {
+// render builds a fresh agent, defines the fixture's single tool, renders the
+// SWML with the fixed corpus call_id, and returns the redacted functions[] entry.
+func render(f fixture) (dumpEntry, error) {
 	a := agent.NewAgentBase(
 		agent.WithName("secure-default-fixture"),
 		agent.WithRoute("/sd"),
@@ -139,7 +150,7 @@ func classify(f fixture) (classification, error) {
 	// Read back the SDK-recorded secure flag for this tool.
 	tools := a.DefineTools()
 	if len(tools) != 1 {
-		return classification{}, fmt.Errorf("expected 1 registered tool, got %d", len(tools))
+		return dumpEntry{}, fmt.Errorf("expected 1 registered tool, got %d", len(tools))
 	}
 	isSecure := tools[0].IsSecure()
 
@@ -147,24 +158,82 @@ func classify(f fixture) (classification, error) {
 	doc := a.RenderSWMLForCall(nil, nil, callID)
 	entry, ok := swaigFunctionByName(doc, f.toolName)
 	if !ok {
-		return classification{}, fmt.Errorf("tool %q absent from the rendered SWAIG functions", f.toolName)
+		return dumpEntry{}, fmt.Errorf("tool %q absent from the rendered SWAIG functions", f.toolName)
 	}
-	tokenPresent := webhookHasToken(entry)
 
-	return classification{
-		SecureDefaultTrue: isSecure,
-		// The wire "reflects" secure when a token is present IFF the tool is
-		// secure: secure -> token present; insecure -> token correctly absent.
-		WireReflectsSecure: tokenPresent == f.expectSecure,
-	}, nil
+	return dumpEntry{SecureDefaultTrue: isSecure, Rendered: redact(entry)}, nil
 }
 
-// webhookHasToken reports whether a rendered SWAIG function entry's webhook
-// carries the reserved `__token` query parameter — the wire reflection of
-// secure. Mirrors the oracle's _webhook_has_token.
-func webhookHasToken(entry map[string]any) bool {
-	url, _ := entry["web_hook_url"].(string)
-	return strings.Contains(url, "__token=")
+// isTokenish reports whether a key names a security token by the differ's rule:
+// a case-insensitive "token" suffix.
+func isTokenish(key string) bool {
+	return strings.HasSuffix(strings.ToLower(key), "token")
+}
+
+// redact replaces every nondeterministic token VALUE (an HMAC) with the corpus
+// placeholder while preserving every KEY and key path exactly — both a
+// token-suffixed field and a token-suffixed query parameter on a URL value.
+// Mirrors diff_port_secure_default.redact_entry so the differ's re-application
+// is a no-op (idempotent).
+func redact(entry map[string]any) map[string]any {
+	out := make(map[string]any, len(entry))
+	for k, v := range entry {
+		s, isStr := v.(string)
+		switch {
+		case isStr && isTokenish(k):
+			out[k] = tokenPlaceholder
+		case isStr && (strings.Contains(s, "://") || strings.HasPrefix(s, "/")):
+			out[k] = redactURLTokens(s)
+		default:
+			out[k] = v
+		}
+	}
+	return out
+}
+
+// redactURLTokens replaces the VALUE of every token-suffixed query parameter in
+// a URL with the placeholder, leaving the URL untouched when it carries none.
+func redactURLTokens(raw string) string {
+	q := strings.Index(raw, "?")
+	if q < 0 {
+		return raw
+	}
+	pairs := strings.Split(raw[q+1:], "&")
+	anyToken := false
+	for _, pair := range pairs {
+		key := pair
+		if eq := strings.Index(pair, "="); eq >= 0 {
+			key = pair[:eq]
+		}
+		if decoded, err := url.QueryUnescape(key); err == nil {
+			key = decoded
+		}
+		if isTokenish(key) {
+			anyToken = true
+			break
+		}
+	}
+	if !anyToken {
+		return raw
+	}
+
+	rebuilt := make([]string, 0, len(pairs))
+	for _, pair := range pairs {
+		key, eq := pair, strings.Index(pair, "=")
+		if eq >= 0 {
+			key = pair[:eq]
+		}
+		decoded := key
+		if d, err := url.QueryUnescape(key); err == nil {
+			decoded = d
+		}
+		if eq >= 0 && isTokenish(decoded) {
+			rebuilt = append(rebuilt, key+"="+tokenPlaceholder)
+			continue
+		}
+		rebuilt = append(rebuilt, pair)
+	}
+	return raw[:q+1] + strings.Join(rebuilt, "&")
 }
 
 // swaigFunctionByName walks sections.main -> the `ai` verb -> SWAIG.functions and

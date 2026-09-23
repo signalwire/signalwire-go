@@ -82,7 +82,6 @@ signalwire.core.auth_handler.AuthHandler.get_fastapi_dependency: impossible: Fas
 signalwire.core.auth_handler.AuthHandler.verify_api_key: impossible: Python auth-helper method; Go verifies API keys inside withAuth middleware, no standalone class
 signalwire.core.auth_handler.AuthHandler.verify_bearer_token: impossible: Python auth-helper method; Go verifies bearer tokens inside withAuth middleware, no standalone class
 signalwire.core.logging_config.configure_logging: impossible: wraps the Python logging library; Go uses pkg/logging (structured) with equivalent behaviour — no logging-lib configuration surface
-signalwire.core.logging_config.strip_control_chars: impossible: Python logging-formatter helper; Go pkg/logging sanitises inline with no exported free function
 
 # --- Bedrock prefab agent ---
 

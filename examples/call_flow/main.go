@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: call_flow
 //
@@ -84,7 +84,11 @@ func main() {
 			result := swaig.NewFunctionResult(
 				fmt.Sprintf("Transferring you to %s now. Please hold.", department),
 			)
-			result.Connect(swaig.ConnectOptions{Destination: number, Final: false, From: "+15559990000"})
+			// Final is explicitly false: a TEMPORARY transfer, so the caller
+			// returns to this agent when the department hangs up. (Omitting
+			// Final would take the reference default of a permanent transfer.)
+			temporary := false
+			result.Connect(swaig.ConnectOptions{Destination: number, Final: &temporary, From: "+15559990000"})
 			return result
 		},
 	})

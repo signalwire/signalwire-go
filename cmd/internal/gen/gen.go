@@ -50,7 +50,7 @@ func FindRepoRoot(start string) (string, error) {
 // (rest-apis / relay-protocol / swaig-specs), else falling back to ../porting-sdk.
 func ResolvePortingSDK(repoRoot, marker string) (string, error) {
 	if p := os.Getenv("PORTING_SDK"); p != "" {
-		if _, err := os.Stat(filepath.Join(p, marker)); err == nil {
+		if _, err := os.Stat(filepath.Join(p, marker)); err == nil { //nolint:gosec // G703: marker path composed from the repo root in a developer-run tool, not untrusted input.
 			return p, nil
 		}
 	}
@@ -79,10 +79,10 @@ func Run(check bool, cmdName, label string, outs []Output) error {
 			}
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(o.Path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(o.Path), 0o755); err != nil { //nolint:gosec // G301: output dir for generated SOURCE CODE committed to the repo; 0750 would break every consumer.
 			return err
 		}
-		if err := os.WriteFile(o.Path, formatted, 0o644); err != nil {
+		if err := os.WriteFile(o.Path, formatted, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed and must stay world-readable; 0600 would break every consumer.
 			return err
 		}
 		fmt.Printf("generated %s\n", o.Path)

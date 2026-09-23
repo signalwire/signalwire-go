@@ -20,19 +20,19 @@ type Action struct {
 	// action. Empty string means "any event for this control_id resolves
 	// it" — the legacy behavior. Specific actions set this so e.g. a
 	// PlayAndCollect action listens on calling.call.collect, not
-	// calling.call.play. Mirrors Python's terminal_event constructor
-	// arg at relay/call.py:Action.__init__.
+	// calling.call.play.
 	terminalEvent string
 	// terminalStates is the optional set of state values that resolve
 	// the action. Empty means "any state on the terminal_event resolves".
-	// PlayAction uses {"finished","error"} per Python — non-finished
+	// PlayAction uses {"finished","error"} — non-finished
 	// states like "playing"/"paused" don't resolve.
 	terminalStates map[string]bool
 	onCompleted    func(*RelayEvent)
 }
 
 // newAction creates a new Action tied to a specific call and control ID.
-// Matches Python's Action(call, control_id, terminal_event="", terminal_states=()).
+// terminalEvent defaults to "" and terminalStates to empty, i.e. any event for
+// the control_id resolves it until a specific action narrows those.
 func newAction(call *Call, controlID string) *Action {
 	return &Action{
 		controlID: controlID,
@@ -42,7 +42,7 @@ func newAction(call *Call, controlID string) *Action {
 }
 
 // matchesTerminal returns true when an event for this action's
-// control_id should resolve it. Mirrors Python Action._matches_terminal:
+// control_id should resolve it:
 // the event_type must equal terminalEvent (when set), and the state
 // must be in terminalStates (when set).
 func (a *Action) matchesTerminal(event *RelayEvent) bool {
@@ -58,7 +58,7 @@ func (a *Action) matchesTerminal(event *RelayEvent) bool {
 	return true
 }
 
-// Call returns the call this action was issued on (Python: Action.call).
+// Call returns the call this action was issued on.
 func (a *Action) Call() *Call { return a.call }
 
 // ControlID returns the control identifier for this action.
@@ -134,9 +134,7 @@ type PlayAction struct {
 }
 
 // newPlayAction creates a new PlayAction. PlayAction listens on
-// calling.call.play and resolves on the {finished,error} terminal
-// states — mirrors Python PlayAction(call, control_id) at
-// relay/call.py:94-96.
+// calling.call.play and resolves on the {finished,error} terminal states.
 func newPlayAction(call *Call, controlID string) *PlayAction {
 	a := newAction(call, controlID)
 	a.terminalEvent = EventCallingCallPlay
@@ -159,7 +157,7 @@ func (pa *PlayAction) Stop() error {
 
 // Pause pauses the currently playing media. An optional behavior string may be
 // provided to control how the gap is handled. Pass no argument — or "" — to omit
-// behavior, matching Python's pause(behavior: Optional[str] = None) signature.
+// the "behavior" wire key entirely.
 func (pa *PlayAction) Pause(behavior ...string) error {
 	if pa.call == nil || pa.call.client == nil {
 		return fmt.Errorf("action not associated with a call or client")
@@ -232,8 +230,7 @@ func (ra *RecordAction) Stop() error {
 
 // Pause pauses the active recording. An optional behavior string may be
 // provided (e.g. "silence" or "skip") to control how the gap is handled.
-// Pass no argument — or "" — to omit behavior, matching Python's
-// pause(behavior: Optional[str] = None) signature.
+// Pass no argument — or "" — to omit the "behavior" wire key entirely.
 func (ra *RecordAction) Pause(behavior ...string) error {
 	if ra.call == nil || ra.call.client == nil {
 		return fmt.Errorf("action not associated with a call or client")
@@ -269,7 +266,7 @@ type DetectAction struct {
 }
 
 // newDetectAction creates a new DetectAction. DetectAction listens on
-// calling.call.detect and — per the Python gotcha at
+// calling.call.detect and — per the gotcha at
 // RELAY_IMPLEMENTATION_GUIDE — resolves on the FIRST event carrying a
 // non-empty `detect` payload, not on a state(finished). The "detect
 // payload present" check happens in resolveAction's matchesTerminal
@@ -300,7 +297,7 @@ type CollectAction struct {
 
 // newCollectAction creates a new CollectAction (used by play_and_collect).
 // CollectAction listens on calling.call.collect — NOT calling.call.play —
-// per RELAY_IMPLEMENTATION_GUIDE.md and Python relay/call.py:154-156:
+// per RELAY_IMPLEMENTATION_GUIDE.md:
 // a play(finished) earlier in the timeline must NOT resolve this action.
 func newCollectAction(call *Call, controlID string) *CollectAction {
 	a := newAction(call, controlID)
@@ -323,9 +320,8 @@ func (ca *CollectAction) Stop() error {
 
 // Pause pauses the play portion of a play-and-collect operation. An optional
 // behavior string may be provided to control how the gap is handled. Pass no
-// argument — or "" — to omit behavior, matching Python's
-// pause(behavior: Optional[str] = None) signature. Uses the play_and_collect
-// prefix (Python CollectAction._command_prefix = "play_and_collect").
+// argument — or "" — to omit the "behavior" wire key entirely. The RPC uses the
+// "play_and_collect" command prefix.
 func (ca *CollectAction) Pause(behavior ...string) error {
 	if ca.call == nil || ca.call.client == nil {
 		return fmt.Errorf("action not associated with a call or client")
@@ -371,8 +367,7 @@ func (ca *CollectAction) Volume(db float64) error {
 	return err
 }
 
-// StartInputTimers starts the initial_timeout timer on an active collect,
-// equivalent to Python's CollectAction.start_input_timers().
+// StartInputTimers starts the initial_timeout timer on an active collect.
 func (ca *CollectAction) StartInputTimers() error {
 	if ca.call == nil || ca.call.client == nil {
 		return fmt.Errorf("action not associated with a call or client")
@@ -392,7 +387,7 @@ type StandaloneCollectAction struct {
 
 // newStandaloneCollectAction creates a new StandaloneCollectAction.
 // Listens on calling.call.collect; resolves on any matching event for
-// this control_id (no state filter — per Python).
+// this control_id (no state filter).
 func newStandaloneCollectAction(call *Call, controlID string) *StandaloneCollectAction {
 	a := newAction(call, controlID)
 	a.terminalEvent = EventCallingCallCollect
@@ -413,7 +408,7 @@ func (sca *StandaloneCollectAction) Stop() error {
 }
 
 // StartInputTimers starts the initial_timeout timer on an active standalone
-// collect, equivalent to Python's StandaloneCollectAction.start_input_timers().
+// collect.
 func (sca *StandaloneCollectAction) StartInputTimers() error {
 	if sca.call == nil || sca.call.client == nil {
 		return fmt.Errorf("action not associated with a call or client")
@@ -435,8 +430,7 @@ type FaxAction struct {
 }
 
 // newFaxAction creates a new FaxAction for the given method prefix
-// ("send_fax" or "receive_fax"), matching Python's FaxAction(call,
-// control_id, method_prefix). FaxAction listens on calling.call.fax.
+// ("send_fax" or "receive_fax"). FaxAction listens on calling.call.fax.
 func newFaxAction(call *Call, controlID string, methodPrefix string) *FaxAction {
 	a := newAction(call, controlID)
 	a.terminalEvent = EventCallingCallFax

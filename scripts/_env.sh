@@ -80,3 +80,51 @@ ensure_golangci() {
     }
     command -v golangci-lint >/dev/null 2>&1
 }
+
+# ---- actionlint self-bootstrap ----------------------------------------------
+# Pinned dev dependency, same contract as golangci-lint above — keep in lockstep
+# with .github/workflows/{test,nightly}.yml's `actionlint/cmd/actionlint@v…`.
+#
+# The workflows previously installed `actionlint@latest`, which is a
+# green-locally/red-in-CI generator: CI resolves the newest release at run time
+# while local dev runs whatever it has, so a new actionlint (they add checks
+# regularly) fails the ACTIONLINT gate on an UNCHANGED workflow file. Pinning both
+# halves means the gate's verdict changes only when this version does.
+ACTIONLINT_VERSION="v1.7.12"
+export ACTIONLINT_VERSION
+
+ensure_actionlint() {
+    local have
+    if command -v actionlint >/dev/null 2>&1; then
+        # `actionlint --version` prints the bare number when installed from a
+        # release archive/brew ("1.7.12") but a v-prefixed tag when built from
+        # source via `go install` ("v1.7.12"). Compare on the extracted x.y.z so
+        # both spellings of the SAME version match — a naive prefix compare made
+        # the go-installed binary look mismatched and reinstalled it every run.
+        have="$(actionlint --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+        if [ "$have" = "${ACTIONLINT_VERSION#v}" ]; then
+            return 0
+        fi
+        if [ "${SW_ALLOW_TOOL_VERSION_DRIFT:-0}" = "1" ]; then
+            echo "    (actionlint is '${have:-unknown}', not the pinned $ACTIONLINT_VERSION — drift allowed)" >&2
+            return 0
+        fi
+        if [ -n "${CI:-}" ]; then
+            echo "actionlint in CI is '${have:-unknown}', not the pinned $ACTIONLINT_VERSION" >&2
+            echo "  the workflow must install the pin; a different version changes the gate verdict" >&2
+            return 1
+        fi
+        echo "    (actionlint is '${have:-unknown}', not the pinned $ACTIONLINT_VERSION — installing the pin...)" >&2
+    elif [ -n "${CI:-}" ]; then
+        echo "actionlint not found in CI — the workflow must install it" >&2
+        return 1
+    else
+        echo "    (actionlint $ACTIONLINT_VERSION missing — installing the pinned dev dependency...)" >&2
+    fi
+    go install "github.com/rhysd/actionlint/cmd/actionlint@$ACTIONLINT_VERSION" || {
+        echo "    actionlint install failed — install it manually:" >&2
+        echo "      go install github.com/rhysd/actionlint/cmd/actionlint@$ACTIONLINT_VERSION" >&2
+        return 1
+    }
+    command -v actionlint >/dev/null 2>&1
+}

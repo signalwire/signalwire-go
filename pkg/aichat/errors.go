@@ -28,9 +28,8 @@ type AIChatError struct {
 	Message string
 }
 
-// Error implements the error interface, mirroring the Python reference's
-// "[code] message" formatting. When HasCode is false the code renders as <nil>,
-// matching the reference's None.
+// Error implements the error interface, rendering as "[code] message".
+// When HasCode is false the code renders as <nil>.
 func (e *AIChatError) Error() string {
 	if e.HasCode {
 		return fmt.Sprintf("[%d] %s", e.Code, e.Message)
@@ -83,8 +82,21 @@ func newTypedError(code int, message string) error {
 // Unwrap on each typed variant returns the embedded *AIChatError, so
 // errors.As(err, &(*AIChatError)) matches ANY variant in the family — the Go
 // equivalent of catching the base class.
-func (e *AuthenticationError) Unwrap() error       { return e.AIChatError }
+func (e *AuthenticationError) Unwrap() error { return e.AIChatError }
+
+// Unwrap returns the embedded *AIChatError so errors.Is/errors.As reach the
+// base failure (code -32001) through this variant.
 func (e *ConversationNotFoundError) Unwrap() error { return e.AIChatError }
-func (e *RateLimitError) Unwrap() error            { return e.AIChatError }
-func (e *ChatInProgressError) Unwrap() error       { return e.AIChatError }
-func (e *SummaryError) Unwrap() error              { return e.AIChatError }
+
+// Unwrap returns the embedded *AIChatError so errors.Is/errors.As reach the
+// base failure (code -32005 or -32006) through this variant.
+func (e *RateLimitError) Unwrap() error { return e.AIChatError }
+
+// Unwrap returns the embedded *AIChatError so errors.Is/errors.As reach the
+// base failure (code -32007) through this variant.
+func (e *ChatInProgressError) Unwrap() error { return e.AIChatError }
+
+// Unwrap returns the embedded *AIChatError so errors.Is/errors.As reach the
+// base failure through this variant. SummaryError rode the JSON-RPC success
+// envelope, so the unwrapped error has HasCode false.
+func (e *SummaryError) Unwrap() error { return e.AIChatError }

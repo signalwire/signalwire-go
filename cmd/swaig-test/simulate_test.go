@@ -66,9 +66,15 @@ func newTestAgent(route, user, pass string) *agent.AgentBase {
 		agent.WithRoute(route),
 		agent.WithBasicAuth(user, pass),
 	)
+	// secure=false: these tests exercise the simulator's TRANSPORT (Lambda
+	// event → router → tool dispatch), not the inbound __token gate.
+	// ToolDefinition.Secure is a tri-state *bool whose nil means SECURE, so a
+	// tool that omits the field is refused when invoked without a token.
+	insecure := false
 	a.DefineTool(agent.ToolDefinition{
 		Name:        "ping",
 		Description: "ping",
+		Secure:      &insecure,
 		Parameters:  map[string]any{"msg": map[string]any{"type": "string"}},
 		Handler: func(args, raw map[string]any) *swaig.FunctionResult {
 			return swaig.NewFunctionResult(fmt.Sprintf("pong: %v", args["msg"]))

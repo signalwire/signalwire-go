@@ -265,8 +265,8 @@ After (Option 3 - Mix config and env vars):
 ### Loading Configuration
 
 ```go
-// Load config from a search-path list (first existing file wins)
-loader := agent.NewConfigLoader([]string{"my_config.json"})
+// Load config from a search path (variadic; first existing file wins)
+loader := agent.NewConfigLoader("my_config.json")
 if loader.HasConfig() {
     config := loader.GetConfig()
     _ = config
