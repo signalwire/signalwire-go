@@ -115,17 +115,18 @@ DataMap tools follow a pipeline execution model on the SignalWire server:
    ```
 
 2. **Processing Pipeline**: Ordered execution with early termination
-   - **Expressions**: Pattern matching against arguments
+   - **Expressions**: Pattern matching on a template, usually an argument
    - **Webhooks**: HTTP API calls with variable substitution
    - **Foreach**: Array iteration for response processing
    - **Output**: Final response generation using SwaigFunctionResult
 
 3. **Variable Expansion**: Dynamic substitution using `${variable}` syntax
    - Function arguments: `${args.parameter_name}`
-   - API responses: `${response.field.nested_field}`
-   - Array elements: `${foreach.item_field}`
+   - API responses, read from the root: `${field.nested_field}`, or `${array[0].field}` for an array response
+   - The current element in a `foreach`: `${this.item_field}`
    - Global data: `${global_data.key}`
-   - Metadata: `${meta_data.call_id}`
+   - Function metadata: `${meta_data.key}`, and call details such as `${call_id}`
+   - Prefix helpers, applied left to right: `${lc:enc:args.city}` lowercases, then URL-encodes
 
 ### Tool Types
 
@@ -134,8 +135,8 @@ The system supports different tool patterns:
 1. **API Integration Tools**: Direct REST API calls
    ```go
    weatherTool := datamap.New("get_weather").
-       Webhook("GET", "https://api.weather.com/v1/current?q=${location}", nil, "", false, nil).
-       Output(swaig.NewFunctionResult("Weather: ${response.current.condition}"))
+       Webhook("GET", "https://api.weather.com/v1/current?q=${enc:args.location}", nil, "", false, nil).
+       Output(swaig.NewFunctionResult("Weather: ${current.condition}"))
    _ = weatherTool
    ```
 
@@ -148,11 +149,18 @@ The system supports different tool patterns:
    ```
 
 3. **Array Processing Tools**: Handle list responses
+
+   `foreach` walks an array in the webhook's response and builds text from each element, and `output` renders once, reading that text:
    ```go
    searchTool := datamap.New("search_docs").
-       Webhook("GET", "https://api.docs.com/search", nil, "", false, nil).
-       Foreach(map[string]any{"input_key": "response.results"}).
-       Output(swaig.NewFunctionResult("Found: ${foreach.title}"))
+       Webhook("GET", "https://api.docs.com/search?q=${enc:args.query}", nil, "", false, nil).
+       Foreach(map[string]any{
+           "input_key":  "results",
+           "output_key": "found",
+           "max":        3,
+           "append":     "${this.title}\n",
+       }).
+       Output(swaig.NewFunctionResult("Found: ${found}"))
    _ = searchTool
    ```
 

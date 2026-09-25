@@ -62,7 +62,7 @@ func main() {
 		Parameter("data", "string", "Data to send", false, nil).
 		Webhook("POST", "https://api.example.com/advanced",
 			map[string]string{
-				"Authorization": "Bearer ${token}",
+				"Authorization": "Bearer YOUR_TOKEN",
 				"User-Agent":    "SignalWire-Agent/1.0",
 			},
 			"payload",          // form_param: sends body as a form parameter
@@ -71,24 +71,24 @@ func main() {
 		).
 		WebhookExpressions([]map[string]any{
 			{
-				"string":  "${response.status}",
+				"string":  "${status}",
 				"pattern": "^success$",
 				"output":  map[string]any{"response": "Operation completed successfully"},
 			},
 			{
-				"string":  "${response.error_code}",
+				"string":  "${error_code}",
 				"pattern": "^(404|500)$",
-				"output":  map[string]any{"response": "API Error: ${response.error_message}"},
+				"output":  map[string]any{"response": "API Error: ${error_message}"},
 			},
 		}).
-		Output(swaig.NewFunctionResult("Result: ${response.data}")).
+		Output(swaig.NewFunctionResult("Result: ${data}")).
 		// Second webhook as fallback
 		Webhook("GET", "https://backup-api.example.com/simple",
 			map[string]string{"Accept": "application/json"},
 			"", false, nil,
 		).
 		Params(map[string]any{"q": "${args.action}"}).
-		Output(swaig.NewFunctionResult("Backup result: ${response.data}")).
+		Output(swaig.NewFunctionResult("Backup result: ${data}")).
 		FallbackOutput(swaig.NewFunctionResult("All APIs are currently unavailable")).
 		GlobalErrorKeys([]string{"error", "fault", "exception"})
 
@@ -103,7 +103,7 @@ func main() {
 		Webhook("POST", "https://forms.example.com/submit",
 			map[string]string{
 				"Content-Type": "application/x-www-form-urlencoded",
-				"X-API-Key":    "${api_key}",
+				"X-API-Key":    "YOUR_API_KEY",
 			},
 			"form_data", false, nil,
 		).
@@ -123,7 +123,7 @@ func main() {
 		Parameter("query", "string", "Search query", true, nil).
 		Parameter("limit", "string", "Maximum results", false, nil).
 		Webhook("GET", "https://search-api.example.com/search",
-			map[string]string{"Authorization": "Bearer ${search_token}"},
+			map[string]string{"Authorization": "Bearer YOUR_SEARCH_TOKEN"},
 			"", false, nil,
 		).
 		Params(map[string]any{

@@ -34,14 +34,14 @@ func main() {
 		Purpose("Get current weather information for a location").
 		Parameter("location", "string", "City name or zip code", true, nil).
 		Webhook("GET",
-			"https://api.weatherapi.com/v1/current.json?key=YOUR_API_KEY&q=${args.location}",
+			"https://api.weatherapi.com/v1/current.json?key=YOUR_API_KEY&q=${enc:args.location}",
 			nil, "", false, nil,
 		).
 		Output(swaig.NewFunctionResult(
-			"Weather in ${args.location}: ${response.current.condition.text}, " +
-				"Temperature: ${response.current.temp_f}°F (${response.current.temp_c}°C), " +
-				"Humidity: ${response.current.humidity}%, " +
-				"Wind: ${response.current.wind_mph} mph",
+			"Weather in ${args.location}: ${current.condition.text}, " +
+				"Temperature: ${current.temp_f}°F (${current.temp_c}°C), " +
+				"Humidity: ${current.humidity}%, " +
+				"Wind: ${current.wind_mph} mph",
 		)).
 		FallbackOutput(swaig.NewFunctionResult(
 			"Sorry, I could not retrieve the weather for that location.",

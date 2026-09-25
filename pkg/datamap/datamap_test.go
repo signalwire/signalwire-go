@@ -27,10 +27,10 @@ func TestFluentBuilderChain(t *testing.T) {
 		Purpose("Get weather information").
 		Parameter("city", "string", "City name", true, nil).
 		Parameter("units", "string", "Temperature units", false, []string{"celsius", "fahrenheit"}).
-		Webhook("GET", "https://api.weather.com/v1?q=${city}&units=${units}", map[string]string{
+		Webhook("GET", "https://api.weather.com/v1?q=${args.city}&units=${args.units}", map[string]string{
 			"Authorization": "Bearer token123",
 		}, "", false, nil).
-		Output(swaig.NewFunctionResult("Weather in ${city}: ${response.temp}"))
+		Output(swaig.NewFunctionResult("Weather in ${args.city}: ${temp}"))
 
 	if dm.functionName != "weather" {
 		t.Errorf("expected functionName %q, got %q", "weather", dm.functionName)
@@ -68,8 +68,8 @@ func TestToSwaigFunctionBasic(t *testing.T) {
 	dm := New("greet").
 		Purpose("Greet user").
 		Parameter("name", "string", "User name", true, nil).
-		Webhook("GET", "https://example.com/greet?name=${name}", nil, "", false, nil).
-		Output(swaig.NewFunctionResult("Hello ${name}!"))
+		Webhook("GET", "https://example.com/greet?name=${args.name}", nil, "", false, nil).
+		Output(swaig.NewFunctionResult("Hello ${args.name}!"))
 
 	result := dm.ToSwaigFunction()
 
@@ -126,7 +126,7 @@ func TestToSwaigFunctionBasic(t *testing.T) {
 	if webhooks[0]["method"] != "GET" {
 		t.Errorf("expected webhook method GET, got %v", webhooks[0]["method"])
 	}
-	if webhooks[0]["url"] != "https://example.com/greet?name=${name}" {
+	if webhooks[0]["url"] != "https://example.com/greet?name=${args.name}" {
 		t.Errorf("unexpected webhook url: %v", webhooks[0]["url"])
 	}
 
@@ -135,8 +135,8 @@ func TestToSwaigFunctionBasic(t *testing.T) {
 	if !ok {
 		t.Fatal("expected webhook output to be map[string]any")
 	}
-	if output["response"] != "Hello ${name}!" {
-		t.Errorf("expected output response %q, got %v", "Hello ${name}!", output["response"])
+	if output["response"] != "Hello ${args.name}!" {
+		t.Errorf("expected output response %q, got %v", "Hello ${args.name}!", output["response"])
 	}
 }
 
@@ -225,7 +225,7 @@ func TestWebhookConfiguration(t *testing.T) {
 			"id":   "${args.id}",
 			"name": "${args.name}",
 		}).
-		Output(swaig.NewFunctionResult("Done: ${response.status}"))
+		Output(swaig.NewFunctionResult("Done: ${status}"))
 
 	result := dm.ToSwaigFunction()
 	dataMap := as[map[string]any](t, result["data_map"])
@@ -271,9 +271,9 @@ func TestOutputAndFallbackOutput(t *testing.T) {
 	dm := New("multi_api").
 		Purpose("Call multiple APIs").
 		Webhook("GET", "https://primary.com/api", nil, "", false, nil).
-		Output(swaig.NewFunctionResult("Primary: ${response.data}")).
+		Output(swaig.NewFunctionResult("Primary: ${data}")).
 		Webhook("GET", "https://fallback.com/api", nil, "", false, nil).
-		Output(swaig.NewFunctionResult("Fallback: ${response.data}")).
+		Output(swaig.NewFunctionResult("Fallback: ${data}")).
 		FallbackOutput(swaig.NewFunctionResult("All APIs failed"))
 
 	result := dm.ToSwaigFunction()
@@ -286,13 +286,13 @@ func TestOutputAndFallbackOutput(t *testing.T) {
 
 	// Check first webhook output
 	output1 := as[map[string]any](t, webhooks[0]["output"])
-	if output1["response"] != "Primary: ${response.data}" {
+	if output1["response"] != "Primary: ${data}" {
 		t.Errorf("unexpected first webhook output: %v", output1["response"])
 	}
 
 	// Check second webhook output
 	output2 := as[map[string]any](t, webhooks[1]["output"])
-	if output2["response"] != "Fallback: ${response.data}" {
+	if output2["response"] != "Fallback: ${data}" {
 		t.Errorf("unexpected second webhook output: %v", output2["response"])
 	}
 
@@ -369,8 +369,8 @@ func TestExpressionNilOutputPanics(t *testing.T) {
 func TestCreateSimpleApiTool(t *testing.T) {
 	dm := CreateSimpleAPITool(
 		"get_stock",
-		"https://api.stocks.com/v1/quote?symbol=${symbol}",
-		"${response.name}: $${response.price}",
+		"https://api.stocks.com/v1/quote?symbol=${args.symbol}",
+		"${name}: $${price}",
 		map[string]map[string]any{
 			"symbol": {
 				"type":        "string",
@@ -414,7 +414,7 @@ func TestCreateSimpleApiTool(t *testing.T) {
 
 	// Check output
 	output := as[map[string]any](t, wh["output"])
-	if output["response"] != "${response.name}: $${response.price}" {
+	if output["response"] != "${name}: $${price}" {
 		t.Errorf("unexpected output response: %v", output["response"])
 	}
 
@@ -429,7 +429,7 @@ func TestCreateSimpleApiToolWithBody(t *testing.T) {
 	dm := CreateSimpleAPITool(
 		"search",
 		"https://api.search.com/query",
-		"Found: ${response.results[0].title}",
+		"Found: ${results[0].title}",
 		map[string]map[string]any{
 			"query": {
 				"type":        "string",
@@ -503,7 +503,7 @@ func TestCreateExpressionTool(t *testing.T) {
 func TestWebhookExpressions(t *testing.T) {
 	exprs := []map[string]any{
 		{
-			"string":  "${response.status}",
+			"string":  "${status}",
 			"pattern": "error",
 			"output": map[string]any{
 				"response": "An error occurred",
@@ -514,7 +514,7 @@ func TestWebhookExpressions(t *testing.T) {
 	dm := New("check_status").
 		Webhook("GET", "https://api.example.com/status", nil, "", false, nil).
 		WebhookExpressions(exprs).
-		Output(swaig.NewFunctionResult("Status: ${response.status}"))
+		Output(swaig.NewFunctionResult("Status: ${status}"))
 
 	result := dm.ToSwaigFunction()
 	dataMap := as[map[string]any](t, result["data_map"])
@@ -533,7 +533,7 @@ func TestWebhookExpressions(t *testing.T) {
 func TestGlobalErrorKeys(t *testing.T) {
 	dm := New("api_call").
 		Webhook("GET", "https://example.com/api", nil, "", false, nil).
-		Output(swaig.NewFunctionResult("Result: ${response.data}")).
+		Output(swaig.NewFunctionResult("Result: ${data}")).
 		GlobalErrorKeys([]string{"error", "err_msg"})
 
 	result := dm.ToSwaigFunction()
@@ -589,7 +589,7 @@ func TestParamsOnWebhook(t *testing.T) {
 	dm := New("lookup").
 		Webhook("GET", "https://example.com/lookup", nil, "", false, nil).
 		Params(map[string]any{"q": "${args.query}"}).
-		Output(swaig.NewFunctionResult("Found: ${response.result}"))
+		Output(swaig.NewFunctionResult("Found: ${result}"))
 
 	result := dm.ToSwaigFunction()
 	dataMap := as[map[string]any](t, result["data_map"])
