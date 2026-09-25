@@ -192,13 +192,13 @@ dm := datamap.New("check_stock").
     Purpose("Check product stock levels").
     Parameter("sku", "string", "Product SKU", true, nil).
     Webhook("GET", "https://api.warehouse.com/stock/${args.sku}", nil, "", false, nil).
-    Output(swaig.NewFunctionResult("Stock for ${args.sku}: ${response.quantity} units")).
+    Output(swaig.NewFunctionResult("Stock for ${args.sku}: ${quantity} units")).
     FallbackOutput(swaig.NewFunctionResult("Could not check stock right now"))
 
 a.RegisterSwaigFunction(dm.ToSwaigFunction())
 ```
 
-DataMap tools execute on SignalWire's servers -- no webhook needed. The SDK generates the `data_map` structure in the SWML with variable expansion (`${args.*}`, `${response.*}`, `${global_data.*}`), foreach iteration, expression matching, and error handling. Your agent never receives the callback; SignalWire handles the entire API call.
+DataMap tools execute on SignalWire's servers -- no webhook needed. The SDK generates the `data_map` structure in the SWML with variable expansion (`${args.*}`, a webhook response's fields from the root such as `${quantity}`, and `${global_data.*}`), foreach iteration, expression matching, and error handling. Your agent never receives the callback; SignalWire handles the entire API call.
 
 ### 3. Skills (Packaged Integrations)
 

@@ -1549,10 +1549,10 @@ dm = datamap.New("search_with_fallback").
 	Parameter("query", "string", "Search query", true, nil).
 	// Primary API
 	Webhook("GET", "https://api.primary.com/search?q=${args.query}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Primary result: ${response.title}")).
+	Output(swaig.NewFunctionResult("Primary result: ${title}")).
 	// Fallback API
 	Webhook("GET", "https://api.fallback.com/search?q=${args.query}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Fallback result: ${response.title}")).
+	Output(swaig.NewFunctionResult("Fallback result: ${title}")).
 	// Final fallback if all APIs fail
 	FallbackOutput(swaig.NewFunctionResult("Sorry, all search services are currently unavailable"))
 ```
@@ -1565,18 +1565,18 @@ dm = datamap.New("search_with_fallback").
 Set the response template for successful API calls.
 
 **Variable Substitution in Outputs:**
-- `${response.field}`: API response fields
-- `${response.nested.field}`: Nested response fields
-- `${response.array[0].field}`: Array element fields
+- `${field}`: fields of the API's JSON response, read from the root with no prefix
+- `${nested.field}`: nested response fields
+- `${array[0].field}`: elements of a response that is a JSON array
 - `${args.parameter}`: Original function arguments
 - `${global_data.key}`: Call-wide data store
 
 ```go
 // Simple response template
-dm.Output(swaig.NewFunctionResult("Weather in ${args.location}: ${response.current.condition.text}, ${response.current.temp_f}°F"))
+dm.Output(swaig.NewFunctionResult("Weather in ${args.location}: ${current.condition.text}, ${current.temp_f}°F"))
 
 // Response with actions
-dm.Output(swaig.NewFunctionResult("Found ${response.total_results} results").
+dm.Output(swaig.NewFunctionResult("Found ${total_results} results").
 	UpdateGlobalData(map[string]any{"last_search": "${args.query}"}).
 	AddAction("play", "search_complete.mp3"))
 ```
@@ -1594,29 +1594,33 @@ dm.FallbackOutput(swaig.NewFunctionResult("Sorry, the service is temporarily una
 ##### `Foreach(config map[string]any) *DataMap`
 Process array responses by iterating over elements.
 
+**Parameters:**
+- `config` (map): Configuration with keys `input_key`, `output_key`, `append`, and optional `max`
+
 ```go
 // Simple array processing
 dm = datamap.New("search_docs").
 	Webhook("GET", "https://api.docs.com/search?q=${args.query}", nil, "", false, nil).
-	Foreach(map[string]any{"array": "${response.results}"}).
-	Output(swaig.NewFunctionResult("Found: ${foreach.title} - ${foreach.summary}"))
+	Foreach(map[string]any{
+		"input_key":  "results",           // Key in the response holding the array
+		"output_key": "formatted_results", // Name of the built string variable
+		"append":     "Found: ${this.title} - ${this.summary}\n",
+	}).
+	Output(swaig.NewFunctionResult("${formatted_results}"))
 
 // Advanced foreach configuration
 dm.Foreach(map[string]any{
-	"array": "${response.items}",
-	"limit": 3, // process only first 3 items
-	"filter": map[string]any{
-		"field": "status",
-		"value": "active",
-	},
+	"input_key":  "items",
+	"output_key": "formatted_items",
+	"max":        3, // process only first 3 items
+	"append":     "Item: ${this.name} (${this.status})\n",
 })
 ```
 
 **Foreach Variable Access:**
-- `${foreach.field}`: Current array element field
-- `${foreach.nested.field}`: Nested fields in current element
-- `${foreach_index}`: Current iteration index (0-based)
-- `${foreach_count}`: Total number of items being processed
+- `${this.field}`: Current array element field
+- `${this.nested.field}`: Nested fields in current element
+- `${output_key}`: The accumulated string built by `append` across all items
 
 ### Pattern-Based Processing
 
@@ -1700,7 +1704,7 @@ weatherTool := datamap.New("get_weather").
 	Parameter("location", "string", "City name or ZIP code", true, nil).
 	Parameter("units", "string", "Temperature units", false, []string{"celsius", "fahrenheit"}).
 	Webhook("GET", "https://api.weather.com/v1/current?key=API_KEY&q=${args.location}&units=${args.units}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Weather in ${args.location}: ${response.current.condition.text}, ${response.current.temp_f}°F")).
+	Output(swaig.NewFunctionResult("Weather in ${args.location}: ${current.condition.text}, ${current.temp_f}°F")).
 	ErrorKeys([]string{"error"})
 
 // Register with agent
@@ -1721,8 +1725,12 @@ searchTool := datamap.New("search_knowledge").
 		"category": "${args.category}",
 		"limit":    5,
 	}).
-	Foreach(map[string]any{"array": "${response.results}"}).
-	Output(swaig.NewFunctionResult("Found: ${foreach.title} - ${foreach.summary}")).
+	Foreach(map[string]any{
+		"input_key":  "results",
+		"output_key": "formatted_results",
+		"append":     "Found: ${this.title} - ${this.summary}\n",
+	}).
+	Output(swaig.NewFunctionResult("${formatted_results}")).
 	FallbackOutput(swaig.NewFunctionResult("Search service is temporarily unavailable"))
 _ = searchTool
 ```
@@ -1777,8 +1785,8 @@ Create a simple API integration tool.
 ```go
 weather := datamap.CreateSimpleAPITool(
 	"get_weather",
-	"https://api.weather.com/v1/current?key=API_KEY&q=${location}",
-	"Weather in ${location}: ${response.current.condition.text}",
+	"https://api.weather.com/v1/current?key=API_KEY&q=${args.location}",
+	"Weather in ${args.location}: ${current.condition.text}",
 	map[string]map[string]any{
 		"location": {"type": "string", "description": "City name", "required": true},
 	},
@@ -1817,9 +1825,9 @@ completeTool := datamap.New("comprehensive_search").
 	Parameter("query", "string", "Search query", true, nil).
 	Parameter("category", "string", "Search category", false, []string{"all", "docs", "faq"}).
 	Webhook("GET", "https://primary-api.com/search?q=${args.query}&cat=${args.category}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Primary: ${response.title}")).
+	Output(swaig.NewFunctionResult("Primary: ${title}")).
 	Webhook("GET", "https://backup-api.com/search?q=${args.query}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Backup: ${response.title}")).
+	Output(swaig.NewFunctionResult("Backup: ${title}")).
 	FallbackOutput(swaig.NewFunctionResult("All search services unavailable")).
 	ErrorKeys([]string{"error", "message"})
 _ = completeTool
@@ -2101,7 +2109,7 @@ tool := datamap.New("custom_function").
 	Description("Custom API integration").
 	Parameter("query", "string", "Search query", true, nil).
 	Webhook("GET", "https://api.example.com/search?key="+apiKey+"&q=${args.query}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Found: ${response.title}"))
+	Output(swaig.NewFunctionResult("Found: ${title}"))
 
 a.RegisterSwaigFunction(tool.ToSwaigFunction())
 ```
@@ -2307,7 +2315,7 @@ func registerCustomTools(a *agent.AgentBase) {
 		Parameter("customer_id", "string", "Customer ID", true, nil).
 		Webhook("GET", "https://api.company.com/customers/${args.customer_id}",
 			map[string]string{"Authorization": "Bearer YOUR_TOKEN"}, "", false, nil).
-		Output(swaig.NewFunctionResult("Customer: ${response.name}, Status: ${response.status}")).
+		Output(swaig.NewFunctionResult("Customer: ${name}, Status: ${status}")).
 		ErrorKeys([]string{"error"})
 	a.RegisterSwaigFunction(lookupTool.ToSwaigFunction())
 
