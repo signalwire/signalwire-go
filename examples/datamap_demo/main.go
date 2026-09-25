@@ -34,7 +34,7 @@ func main() {
 		Purpose("Get current weather information for a location").
 		Parameter("location", "string", "City name or zip code", true, nil).
 		Webhook("GET",
-			"https://api.weatherapi.com/v1/current.json?key=YOUR_API_KEY&q=${args.location}",
+			"https://api.weatherapi.com/v1/current.json?key=YOUR_API_KEY&q=${enc:args.location}",
 			nil, "", false, nil,
 		).
 		Output(swaig.NewFunctionResult(
