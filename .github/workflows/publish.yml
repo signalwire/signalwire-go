@@ -39,7 +39,7 @@ jobs:
         with:
           repository: signalwire/porting-sdk
           # Publish always builds against porting-sdk main — deliberately NOT the
-          # coordinated-pass PORTING_SDK_REF variable, so a release can never ship from
+          # coordinated-pass .porting-sdk-ref pin, so a release can never ship from
           # an unmerged wave branch (see porting-sdk/COORDINATED_PASS.md).
           ref: main
           path: porting-sdk
@@ -55,7 +55,7 @@ jobs:
           # (COORDINATED_PASS.md), so a tagged release can never be gated against an
           # unmerged wave branch's oracle. check_coordinated_refs.py skips publish/
           # release workflows by design and asserts this in its selftest — do NOT
-          # "fix" this to vars.PORTING_SDK_REF. Stated explicitly because the missing
+          # "fix" this to the coord-step output. Stated explicitly because the missing
           # comment here (while porting-sdk's pin had one) got this read as an
           # oversight and filed as a bug.
           ref: main
