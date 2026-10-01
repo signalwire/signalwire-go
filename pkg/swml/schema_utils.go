@@ -14,11 +14,13 @@ package swml
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/dlclark/regexp2"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
@@ -224,6 +226,13 @@ func (s *SchemaUtils) extractVerbs() {
 	}
 }
 
+// compiledValidators caches compiled full validators by the SHA-256 of the
+// schema document they were compiled from.
+var (
+	compiledValidatorsMu sync.Mutex
+	compiledValidators   = map[[32]byte]*jsonschema.Schema{}
+)
+
 // initFullValidator compiles the embedded SWML JSON Schema into a Draft
 // 2020-12 validator (santhosh-tekuri/jsonschema/v6). On any compile failure it
 // leaves the validator nil so the lightweight required-property check remains
@@ -239,6 +248,27 @@ func (s *SchemaUtils) initFullValidator() {
 	if err != nil {
 		return
 	}
+	// Compiling the full schema is expensive (hundreds of milliseconds for the
+	// bundled document) and every Service — including the per-call render path —
+	// constructs a SchemaUtils, so a compiled validator is shared per distinct
+	// schema document. A compiled *jsonschema.Schema is immutable and safe for
+	// concurrent Validate calls.
+	key := sha256.Sum256(raw)
+	compiledValidatorsMu.Lock()
+	cached, ok := compiledValidators[key]
+	compiledValidatorsMu.Unlock()
+	if ok {
+		s.fullValidator = cached
+		s.schemaValidator = cached
+		return
+	}
+	defer func() {
+		if s.fullValidator != nil {
+			compiledValidatorsMu.Lock()
+			compiledValidators[key] = s.fullValidator
+			compiledValidatorsMu.Unlock()
+		}
+	}()
 	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
 	if err != nil {
 		return

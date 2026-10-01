@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ cb493a6257f24289101eaca3bd48eacdfd135d1a",
+  "generated_from": "signalwire-go (go-native) @ c584c113ec4e3135fd80f21dd52230aae6321ec9",
   "modules": {
     "agent": {
       "classes": {
@@ -1796,6 +1796,7 @@
           "AddAction",
           "AddActions",
           "AddDynamicHints",
+          "ChangeVoice",
           "ClearDynamicHints",
           "Connect",
           "EnableExtensiveData",
@@ -1809,6 +1810,7 @@
           "Pay",
           "PlayBackgroundFile",
           "PostProcess",
+          "RPCAiGlobalData",
           "RPCAiMessage",
           "RPCAiUnhold",
           "RPCDial",
@@ -1827,6 +1829,7 @@
           "SetPostProcess",
           "SetResponse",
           "SetSpeechEventTimeout",
+          "SetToolResponse",
           "SimulateUserInput",
           "Stop",
           "StopBackgroundFile",
@@ -1845,6 +1848,7 @@
           "UpdateSettings",
           "WaitForUser"
         ],
+        "HoldOptions": [],
         "JoinConferenceOptions": [],
         "Params": [
           "Array",
@@ -1864,6 +1868,7 @@
         "PayOptions": [],
         "Prop": [],
         "RecordCallOptions": [],
+        "ToolResponseOptions": [],
         "WaitForUserOptions": []
       },
       "functions": [

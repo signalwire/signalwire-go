@@ -141,6 +141,9 @@ var optionalTailVariadicComposite = map[string]string{
 	"signalwire.rest._base.HttpClient.get":               "keyword",
 	"signalwire.rest._base.HttpClient.post":              "keyword",
 	"signalwire.rest._base.HttpClient.get_text":          "keyword",
+	// FunctionResult.rpc_ai_message(call_id, message_text=None, role="system",
+	// global_data=None): Go's RPCAiMessage reads only globalData[0].
+	"signalwire.core.function_result.FunctionResult.rpc_ai_message": "",
 }
 
 // optionalScalarVariadicElemTypes are the element types for which a TRAILING
@@ -208,10 +211,12 @@ var optionalRequestOptionsTailMethods = map[string]bool{
 // flat `extra map[string]any`). Recorded from the swml package like the REST
 // params structs, then unfolded in toCanonicalSignature.
 var optionsStructUnfoldMethods = map[string]string{
-	"signalwire.core.swml_builder.SWMLBuilder.play":                "PlayOptions",
-	"signalwire.core.swml_builder.SWMLBuilder.ai":                  "AIOptions",
-	"signalwire.core.function_result.FunctionResult.connect":       "ConnectOptions",
-	"signalwire.core.function_result.FunctionResult.wait_for_user": "WaitForUserOptions",
+	"signalwire.core.swml_builder.SWMLBuilder.play":                    "PlayOptions",
+	"signalwire.core.swml_builder.SWMLBuilder.ai":                      "AIOptions",
+	"signalwire.core.function_result.FunctionResult.connect":           "ConnectOptions",
+	"signalwire.core.function_result.FunctionResult.wait_for_user":     "WaitForUserOptions",
+	"signalwire.core.function_result.FunctionResult.hold":              "HoldOptions",
+	"signalwire.core.function_result.FunctionResult.set_tool_response": "ToolResponseOptions",
 }
 
 // aiChatMethodSigs SPLICES the canonical signature for the AIChatClient turn
@@ -336,10 +341,12 @@ var aiChatCtorSigs = map[string]canonicalSignature{
 // paramsStructFields so optionsStructUnfoldMethods can unfold them. Keeping it an
 // explicit allowlist avoids capturing every exported struct's fields.
 var handOptionsStructs = map[string]bool{
-	"PlayOptions":        true,
-	"AIOptions":          true,
-	"ConnectOptions":     true,
-	"WaitForUserOptions": true,
+	"PlayOptions":         true,
+	"AIOptions":           true,
+	"ConnectOptions":      true,
+	"WaitForUserOptions":  true,
+	"HoldOptions":         true,
+	"ToolResponseOptions": true,
 }
 
 // paramsStructField is one field of a generated-REST params struct (§5/§4a).

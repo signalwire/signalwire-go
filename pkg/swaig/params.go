@@ -332,9 +332,9 @@ func RecordDirectionValues() []string {
 }
 
 // TapDirectionValues returns the TapDirection closed set as wire strings
-// (speak, hear, both), suitable for Params.Enum / PropEnum / WithEnum.
+// (speak, listen, both), suitable for Params.Enum / PropEnum / WithEnum.
 func TapDirectionValues() []string {
-	return enumStrings(TapDirectionSpeak, TapDirectionHear, TapDirectionBoth)
+	return enumStrings(TapDirectionSpeak, TapDirectionListen, TapDirectionBoth)
 }
 
 // CodecValues returns the Codec closed set as wire strings (PCMU, PCMA),

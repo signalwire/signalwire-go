@@ -33,8 +33,9 @@ func main() {
 
 	// ---- Hold ----
 	fmt.Println("=== Hold ===")
+	holdTimeout := 60
 	holdResult := swaig.NewFunctionResult("Placing you on hold while I check").
-		Hold(60)
+		Hold(swaig.HoldOptions{Timeout: &holdTimeout})
 	printResult(holdResult)
 
 	// ---- Connect (transfer call) ----

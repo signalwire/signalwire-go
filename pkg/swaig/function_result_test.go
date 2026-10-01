@@ -398,7 +398,7 @@ func TestHangup(t *testing.T) {
 }
 
 func TestHold(t *testing.T) {
-	fr := NewFunctionResult("Please hold").Hold(120)
+	fr := NewFunctionResult("Please hold").Hold(HoldOptions{Timeout: intPtr(120)})
 
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	if actions[0]["hold"] != 120 {
@@ -407,7 +407,7 @@ func TestHold(t *testing.T) {
 }
 
 func TestHoldClampMin(t *testing.T) {
-	fr := NewFunctionResult("hold").Hold(-10)
+	fr := NewFunctionResult("hold").Hold(HoldOptions{Timeout: intPtr(-10)})
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	if actions[0]["hold"] != 0 {
 		t.Errorf("hold = %v, want 0 (clamped)", actions[0]["hold"])
@@ -415,7 +415,7 @@ func TestHoldClampMin(t *testing.T) {
 }
 
 func TestHoldClampMax(t *testing.T) {
-	fr := NewFunctionResult("hold").Hold(9999)
+	fr := NewFunctionResult("hold").Hold(HoldOptions{Timeout: intPtr(9999)})
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	if actions[0]["hold"] != 900 {
 		t.Errorf("hold = %v, want 900 (clamped)", actions[0]["hold"])
@@ -846,10 +846,6 @@ func TestRecordCall_DirectionConstantsAreWireStrings(t *testing.T) {
 			t.Errorf("RecordDirection const %q != wire token %q", string(c), want)
 		}
 	}
-	// Guard the 3-vocabulary trap: record_call uses "listen", NOT tap's "hear".
-	if string(RecordDirectionListen) == string(TapDirectionHear) {
-		t.Error("RecordDirection must use 'listen', distinct from TapDirection's 'hear'")
-	}
 }
 
 // TestRecordCall_DirectionEnumOrStringByteIdentical proves (b) the typed
@@ -1047,8 +1043,12 @@ func TestExecuteSwmlMapWithTransfer(t *testing.T) {
 
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	swml := as[map[string]any](t, actions[0]["SWML"])
-	if swml["transfer"] != "true" {
-		t.Errorf("transfer = %v, want %q", swml["transfer"], "true")
+	// transfer rides BESIDE the SWML document, never inside it.
+	if actions[0]["transfer"] != "true" {
+		t.Errorf("transfer = %v, want %q", actions[0]["transfer"], "true")
+	}
+	if _, ok := swml["transfer"]; ok {
+		t.Error("transfer must not be inside the SWML document")
 	}
 }
 
@@ -1072,7 +1072,7 @@ func TestExecuteSwmlStringParsesJSON(t *testing.T) {
 }
 
 func TestExecuteSwmlStringParsedWithTransfer(t *testing.T) {
-	// A parsed JSON-object string still gets the transfer key added on top.
+	// A parsed JSON-object string still gets the transfer key, beside the document.
 	fr := NewFunctionResult("exec").ExecuteSwml(`{"version":"1.0.0"}`, true)
 
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
@@ -1080,8 +1080,8 @@ func TestExecuteSwmlStringParsedWithTransfer(t *testing.T) {
 	if swml["version"] != "1.0.0" {
 		t.Errorf("version = %v, want %q", swml["version"], "1.0.0")
 	}
-	if swml["transfer"] != "true" {
-		t.Errorf("transfer = %v, want %q", swml["transfer"], "true")
+	if actions[0]["transfer"] != "true" {
+		t.Errorf("transfer = %v, want %q", actions[0]["transfer"], "true")
 	}
 	if _, ok := swml["raw_swml"]; ok {
 		t.Error("raw_swml should not be present for a valid JSON-object string")
@@ -1293,8 +1293,8 @@ func TestTapDefaults(t *testing.T) {
 	if _, ok := params["control_id"]; ok {
 		t.Error("control_id should not be present when empty")
 	}
-	if _, ok := params["direction"]; ok {
-		t.Error("direction should not be present when 'both' (default)")
+	if params["direction"] != "both" {
+		t.Errorf("direction = %v, want both (always emitted: the tap verb defaults to speak)", params["direction"])
 	}
 	if _, ok := params["codec"]; ok {
 		t.Error("codec should not be present when 'PCMU' (default)")
@@ -1330,21 +1330,17 @@ func tapParamsOf(t *testing.T, fr *FunctionResult) map[string]any {
 }
 
 // TestTap_DirectionConstantsAreWireStrings proves (a) each TapDirection constant
-// equals its exact wire token (Python's valid_directions = ["speak","hear","both"]).
+// equals its exact wire token (Python's valid_directions = ["speak","listen","both"]).
 func TestTap_DirectionConstantsAreWireStrings(t *testing.T) {
 	cases := map[TapDirection]string{
-		TapDirectionSpeak: "speak",
-		TapDirectionHear:  "hear",
-		TapDirectionBoth:  "both",
+		TapDirectionSpeak:  "speak",
+		TapDirectionListen: "listen",
+		TapDirectionBoth:   "both",
 	}
 	for c, want := range cases {
 		if string(c) != want {
 			t.Errorf("TapDirection const %q != wire token %q", string(c), want)
 		}
-	}
-	// Guard the 3-vocabulary trap: tap uses "hear", NOT record_call's "listen".
-	if string(TapDirectionHear) == string(RecordDirectionListen) {
-		t.Error("TapDirection must use 'hear', distinct from RecordDirection's 'listen'")
 	}
 }
 
@@ -1377,7 +1373,7 @@ func TestTap_DirectionAndCodecEnumOrStringByteIdentical(t *testing.T) {
 	}
 	for _, p := range []pair{
 		{TapDirectionSpeak, "speak", CodecPCMA, "PCMA"},
-		{TapDirectionHear, "hear", CodecPCMA, "PCMA"},
+		{TapDirectionListen, "listen", CodecPCMA, "PCMA"},
 		{TapDirectionBoth, "both", CodecPCMU, "PCMU"},
 	} {
 		typedJSON, err := json.Marshal(NewFunctionResult("tap").
@@ -1398,22 +1394,21 @@ func TestTap_DirectionAndCodecEnumOrStringByteIdentical(t *testing.T) {
 }
 
 // TestTap_DirectionAndCodecAllRoundTrip proves (c) every advertised TapDirection
-// and Codec round-trips onto the wire. The default arms (both/PCMU) are
-// deliberately OMITTED by Tap (compatibility with Python's "differ from defaults"
-// emission), so they are asserted ABSENT; the non-default arms must appear
-// verbatim.
+// and Codec round-trips onto the wire. direction is ALWAYS emitted (the tap
+// verb's own default is "speak", so omitting "both" would tap one side); the
+// default codec (PCMU) is omitted.
 func TestTap_DirectionAndCodecAllRoundTrip(t *testing.T) {
 	// Non-default directions are emitted verbatim.
-	for _, d := range []TapDirection{TapDirectionSpeak, TapDirectionHear} {
+	for _, d := range []TapDirection{TapDirectionSpeak, TapDirectionListen, TapDirectionBoth} {
 		got := tapParamsOf(t, NewFunctionResult("tap").Tap("ws://x", "", d, CodecPCMU, 0, ""))["direction"]
 		if got != string(d) {
 			t.Errorf("TapDirection %q did not round-trip (got %v)", string(d), got)
 		}
 	}
-	// The default direction (both) is suppressed.
-	if _, ok := tapParamsOf(t, NewFunctionResult("tap").
-		Tap("ws://x", "", TapDirectionBoth, CodecPCMU, 0, ""))["direction"]; ok {
-		t.Error("TapDirectionBoth (default) must be omitted from tap params")
+	// An empty direction emits the documented default, both.
+	if got := tapParamsOf(t, NewFunctionResult("tap").
+		Tap("ws://x", "", "", CodecPCMU, 0, ""))["direction"]; got != "both" {
+		t.Errorf("empty direction must emit both, got %v", got)
 	}
 	// The non-default codec is emitted verbatim.
 	if got := tapParamsOf(t, NewFunctionResult("tap").
@@ -1878,7 +1873,7 @@ func TestEmptyActionsSliceNotNil(t *testing.T) {
 func TestMultipleActionsChained(t *testing.T) {
 	fr := NewFunctionResult("complex").
 		Say("Please hold").
-		Hold(60).
+		Hold(HoldOptions{Timeout: intPtr(60)}).
 		UpdateGlobalData(map[string]any{"status": "on_hold"}).
 		SetPostProcess(true)
 
@@ -2056,7 +2051,7 @@ func TestCreatePaymentPrompt_EmptyActions(t *testing.T) {
 
 func TestHold_OmittedDefaults(t *testing.T) {
 	t.Parallel()
-	fr := NewFunctionResult("Please hold").Hold()
+	fr := NewFunctionResult("Please hold").Hold(HoldOptions{})
 	actions := as[[]map[string]any](t, fr.ToMap()["action"])
 	if actions[0]["hold"] != 300 {
 		t.Errorf("omitted timeout: hold = %v, want 300 (reference default hold(timeout=300))",
@@ -2131,4 +2126,80 @@ func containsSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// intPtr returns a pointer to v (HoldOptions.Timeout).
+func intPtr(v int) *int { return &v }
+
+// ---- py3.5 catch-up: structured response, hold routing, change_voice, rpc global_data ----
+
+func strPtr(v string) *string { return &v }
+
+func TestSetToolResponseStructured(t *testing.T) {
+	fr := NewFunctionResult("plain").SetToolResponse(ToolResponseOptions{
+		ToolResult: strPtr("Balance is $12.50."), ToolPrompt: strPtr("Read the balance to the caller."),
+	})
+	got := fr.ToMap()["response"]
+	want := map[string]any{"tool_result": "Balance is $12.50.", "tool_prompt": "Read the balance to the caller."}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("response = %#v, want %#v", got, want)
+	}
+	only := NewFunctionResult().SetToolResponse(ToolResponseOptions{ToolResult: strPtr("Saved.")}).ToMap()["response"]
+	if !reflect.DeepEqual(only, map[string]any{"tool_result": "Saved."}) {
+		t.Fatalf("result-only response = %#v", only)
+	}
+}
+
+func TestHoldPromptSetsToolResponseAndPostProcess(t *testing.T) {
+	m := NewFunctionResult().Hold(HoldOptions{Prompt: "Please hold while I check."}).ToMap()
+	if m["post_process"] != true {
+		t.Errorf("post_process = %v, want true", m["post_process"])
+	}
+	wantResp := map[string]any{"tool_result": "status: on hold", "tool_prompt": "Please hold while I check."}
+	if !reflect.DeepEqual(m["response"], wantResp) {
+		t.Errorf("response = %#v, want %#v", m["response"], wantResp)
+	}
+	actions := as[[]map[string]any](t, m["action"])
+	if actions[0]["hold"] != 300 {
+		t.Errorf("hold = %#v, want bare 300", actions[0]["hold"])
+	}
+}
+
+func TestHoldRoutingEmitsObject(t *testing.T) {
+	m := NewFunctionResult().Hold(HoldOptions{
+		Prompt: "One moment.", Timeout: intPtr(60), Step: strPtr("resume"), TimeoutStep: strPtr("timed_out"),
+	}).ToMap()
+	got := as[[]map[string]any](t, m["action"])[0]["hold"]
+	want := map[string]any{"timeout": 60, "step": "resume", "timeout_step": "timed_out"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("hold = %#v, want %#v", got, want)
+	}
+}
+
+func TestChangeVoice(t *testing.T) {
+	got := NewFunctionResult().ChangeVoice("elevenlabs.rachel").Actions()
+	if !reflect.DeepEqual(got, []map[string]any{{"change_voice": "elevenlabs.rachel"}}) {
+		t.Fatalf("actions = %#v", got)
+	}
+}
+
+func rpcParams(t *testing.T, fr *FunctionResult) map[string]any {
+	t.Helper()
+	swml := as[map[string]any](t, fr.Actions()[0]["SWML"])
+	main := as[[]any](t, as[map[string]any](t, swml["sections"])["main"])
+	rpc := as[map[string]any](t, as[map[string]any](t, main[0])["execute_rpc"])
+	p, _ := rpc["params"].(map[string]any)
+	return p
+}
+
+func TestRPCAiMessageGlobalData(t *testing.T) {
+	both := rpcParams(t, NewFunctionResult().RPCAiMessage("call-abc", "The caller is back.", "", map[string]any{"status": "returned"}))
+	want := map[string]any{"role": "system", "message_text": "The caller is back.", "global_data": map[string]any{"status": "returned"}}
+	if !reflect.DeepEqual(both, want) {
+		t.Errorf("params = %#v, want %#v", both, want)
+	}
+	only := rpcParams(t, NewFunctionResult().RPCAiGlobalData("call-abc", map[string]any{"order_id": "1042"}))
+	if !reflect.DeepEqual(only, map[string]any{"global_data": map[string]any{"order_id": "1042"}}) {
+		t.Errorf("data-only params = %#v", only)
+	}
 }

@@ -1061,12 +1061,15 @@ End the call immediately.
 result = swaig.NewFunctionResult("Thank you for calling. Goodbye!").Hangup()
 ```
 
-##### `Hold(timeout ...int) *FunctionResult`
-Put the call on hold for `timeout` seconds, clamped to [0, 900]. Omit `timeout` for the 300-second default.
+##### `Hold(opts HoldOptions) *FunctionResult`
+Put the call on hold; `Timeout` is clamped to [0, 900] (nil = the 300-second default).
+`Prompt` is an instruction the model delivers before the hold lands; `Step` /
+`TimeoutStep` route the caller when the hold ends / times out.
 
 ```go
-result = swaig.NewFunctionResult("Please hold while I look that up").Hold(60)
-result = swaig.NewFunctionResult("Please hold").Hold() // 300 seconds
+oneMinute := 60
+result = swaig.NewFunctionResult("Please hold while I look that up").Hold(swaig.HoldOptions{Timeout: &oneMinute})
+result = swaig.NewFunctionResult().Hold(swaig.HoldOptions{Prompt: "Tell the caller you are placing them on hold."})
 ```
 
 ##### `Stop() *FunctionResult`
@@ -1329,7 +1332,7 @@ result.Pay("https://payment-processor.com/webhook", &swaig.PayOptions{
 ### Call Monitoring
 
 ##### `Tap(uri, controlID string, direction TapDirection, codec Codec, rtpPtime int, statusURL string) *FunctionResult`
-Start call tapping/monitoring. Directions: `swaig.TapDirectionBoth`, `swaig.TapDirectionSpeak`, `swaig.TapDirectionHear`. Codecs: `swaig.CodecPCMU`, `swaig.CodecPCMA`.
+Start call tapping/monitoring. Directions: `swaig.TapDirectionBoth`, `swaig.TapDirectionSpeak`, `swaig.TapDirectionListen`. Codecs: `swaig.CodecPCMU`, `swaig.CodecPCMA`.
 
 ```go
 // Basic call tapping

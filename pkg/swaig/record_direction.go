@@ -17,11 +17,9 @@ package swaig
 // enumerator emits the direction param as union<RecordDirection,string>, so a bare
 // string is equally accepted.
 //
-// IMPORTANT: this set ({speak, listen, both}) is DISTINCT from TapDirection
-// ({speak, hear, both}) — record_call uses "listen" where tap uses "hear".
-// The two are validated against two different lists on the wire, so they are
-// modelled as two separate types and must never be unified. (And both differ again from the RELAY play/record/
-// tap direction vocabulary — three distinct vocabularies in all.)
+// TapDirection carries the same wire set ({speak, listen, both}) as a separate
+// per-verb type. (Both differ from the RELAY play/record/tap direction
+// vocabulary.)
 type RecordDirection string
 
 // Audio directions for RecordCall. These are exactly the strings the SWML

@@ -100,7 +100,7 @@ func TestNativeVectorSearch_RemoteHTTP(t *testing.T) {
 	}
 
 	// (3) The mock's result must be formatted into the response — not a stub string.
-	resp := res.Response()
+	resp, _ := res.Response().(string)
 	if strings.Contains(resp, "Would query") || strings.Contains(resp, "In production") {
 		t.Fatalf("response is a stub string, not real results: %q", resp)
 	}

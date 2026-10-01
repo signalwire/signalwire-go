@@ -16,7 +16,9 @@ var log = logging.New("swaig")
 // It contains a text response, optional actions, and post-processing control.
 // All mutating methods return *FunctionResult for method chaining.
 type FunctionResult struct {
-	response    string
+	// response is the prompt injected into the model's context: a plain string,
+	// or the structured {tool_result, tool_prompt} object (SetToolResponse).
+	response    any
 	postProcess bool
 	actions     []map[string]any
 }
@@ -47,8 +49,9 @@ func NewFunctionResult(response ...string) *FunctionResult {
 
 // --- Getters ---
 
-// Response returns the natural language response text.
-func (fr *FunctionResult) Response() string {
+// Response returns the response: the plain-string prompt, or the structured
+// map[string]any{"tool_result": …, "tool_prompt": …} set by SetToolResponse.
+func (fr *FunctionResult) Response() any {
 	return fr.response
 }
 
@@ -68,6 +71,52 @@ func (fr *FunctionResult) PostProcess() bool {
 func (fr *FunctionResult) SetResponse(response string) *FunctionResult {
 	fr.response = response
 	return fr
+}
+
+// ToolResponseOptions carries the parameters of [FunctionResult.SetToolResponse].
+// Leave a field nil to omit it.
+type ToolResponseOptions struct {
+	// ToolResult is what the tool DID: a factual status line for the model to
+	// reason from ("hold initiated", "payment declined").
+	ToolResult *string
+	// ToolPrompt is what the model should now SAY: an instruction, exactly like
+	// the string form of the response.
+	ToolPrompt *string
+}
+
+// SetToolResponse sets the structured response form, separating the outcome
+// from the instruction:
+//
+//	{"tool_result": "status: on hold",
+//	 "tool_prompt": "Tell the caller you are placing them on hold."}
+//
+// Splitting them keeps the model from reading a status line aloud, and keeps the
+// spoken instruction from being mistaken for data. It replaces any response set
+// before.
+func (fr *FunctionResult) SetToolResponse(opts ToolResponseOptions) *FunctionResult {
+	payload := map[string]any{}
+	if opts.ToolResult != nil {
+		payload["tool_result"] = *opts.ToolResult
+	}
+	if opts.ToolPrompt != nil {
+		payload["tool_prompt"] = *opts.ToolPrompt
+	}
+	fr.response = payload
+	return fr
+}
+
+// hasResponse reports whether the response is non-empty (a non-empty string or
+// a non-empty structured object), mirroring the reference's truthiness test.
+func (fr *FunctionResult) hasResponse() bool {
+	switch r := fr.response.(type) {
+	case string:
+		return r != ""
+	case map[string]any:
+		return len(r) > 0
+	case nil:
+		return false
+	}
+	return true
 }
 
 // SetPostProcess controls whether the AI takes another turn before executing actions.
@@ -94,7 +143,7 @@ func (fr *FunctionResult) AddActions(actions []map[string]any) *FunctionResult {
 func (fr *FunctionResult) ToMap() map[string]any {
 	result := map[string]any{}
 	// response is omitted when empty (Python parity).
-	if fr.response != "" {
+	if fr.hasResponse() {
 		result["response"] = fr.response
 	}
 	if len(fr.actions) > 0 {
@@ -196,18 +245,51 @@ func (fr *FunctionResult) Hangup() *FunctionResult {
 	return fr.AddAction("hangup", true)
 }
 
-// Hold puts the call on hold with the given timeout in seconds.
-// Timeout is clamped to the range [0, 900].
+// HoldOptions carries the parameters of [FunctionResult.Hold]. Every field is
+// optional; the zero value holds for the 300-second default.
+type HoldOptions struct {
+	// Prompt is an instruction for the model to deliver BEFORE the hold takes
+	// effect (during hold speech detection is paused, so anything the caller must
+	// hear has to be said first). It sets the structured response
+	// {tool_result: "status: on hold", tool_prompt: Prompt} and turns on
+	// post_process so the model speaks before the hold executes.
+	//
+	// A string is the prompt. An int is treated as the timeout (the reference's
+	// back-compat for hold(120)); any other value is ignored.
+	Prompt any `sw:"optional"`
+	// Timeout is the hold timeout in seconds, clamped to [0, 900]. nil = 300.
+	// A pointer because 0 is a meaningful timeout, distinct from "not supplied".
+	Timeout *int
+	// Step is the step to move to when the call is taken off hold.
+	Step *string
+	// TimeoutStep is the step to move to when the hold times out.
+	TimeoutStep *string
+}
+
+// Hold puts the call on hold, optionally announcing it and routing what happens
+// next. Timeout is clamped to [0, 900] (default 300).
 //
-// timeout is variadic because the reference defaults it to 300
-// (`hold(timeout=300)`) and Go's int zero is 0 — which this method CLAMPS to a
-// meaningful "hold for zero seconds" rather than treating as unset, so a plain
-// `int` parameter cannot express "not supplied". Call it with no argument for
-// the 300-second default.
-func (fr *FunctionResult) Hold(timeout ...int) *FunctionResult {
+// Step and TimeoutStep land the caller in a chosen step when the hold ends
+// (deferred: the transition fires when the hold actually ends). Omitting both
+// emits the bare integer form and the caller resumes where they were.
+func (fr *FunctionResult) Hold(opts HoldOptions) *FunctionResult {
 	seconds := 300 // reference default: hold(timeout=300)
-	if len(timeout) > 0 {
-		seconds = timeout[0]
+	if opts.Timeout != nil {
+		seconds = *opts.Timeout
+	}
+	switch p := opts.Prompt.(type) {
+	case string:
+		status := "status: on hold"
+		fr.SetToolResponse(ToolResponseOptions{ToolResult: &status, ToolPrompt: &p})
+		fr.postProcess = true
+	case *string:
+		if p != nil {
+			status := "status: on hold"
+			fr.SetToolResponse(ToolResponseOptions{ToolResult: &status, ToolPrompt: p})
+			fr.postProcess = true
+		}
+	case int:
+		seconds = p
 	}
 	if seconds < 0 {
 		seconds = 0
@@ -215,7 +297,30 @@ func (fr *FunctionResult) Hold(timeout ...int) *FunctionResult {
 	if seconds > 900 {
 		seconds = 900
 	}
-	return fr.AddAction("hold", seconds)
+	// Bare integer unless routing is requested, so existing output is unchanged.
+	if opts.Step == nil && opts.TimeoutStep == nil {
+		return fr.AddAction("hold", seconds)
+	}
+	cfg := map[string]any{"timeout": seconds}
+	if opts.Step != nil {
+		cfg["step"] = *opts.Step
+	}
+	if opts.TimeoutStep != nil {
+		cfg["timeout_step"] = *opts.TimeoutStep
+	}
+	return fr.AddAction("hold", cfg)
+}
+
+// ChangeVoice changes the agent's voice for the rest of the call. voice is an
+// `engine.voice:model` spec (the same form a language's voice takes in the SWML
+// `languages` list, e.g. "elevenlabs.rachel"); the engine prefix and model
+// suffix are optional. It replaces the voice of the language currently in use
+// (switching TTS engine is allowed). The platform applies it at the next speech
+// batch boundary, never mid-utterance, and it persists for that language for the
+// rest of the call; a voice that cannot be opened falls back to the fallback
+// voice. An empty spec is ignored by the platform.
+func (fr *FunctionResult) ChangeVoice(voice string) *FunctionResult {
+	return fr.AddAction("change_voice", voice)
 }
 
 // WaitForUserOptions carries the parameters of [FunctionResult.WaitForUser] as a
@@ -432,8 +537,8 @@ type RecordCallOptions struct {
 // direction is the defined string type RecordDirection ({speak, listen, both} —
 // the RecordDirection* constants); like format it autocompletes + typo-checks at
 // compile time while a bare "both" literal still compiles, and is written to the
-// wire as a plain string. Note this set differs from TapDirection ({speak, hear,
-// both}) — record_call uses "listen", tap uses "hear".
+// wire as a plain string. TapDirection carries the same wire set as a separate
+// per-verb type.
 func (fr *FunctionResult) RecordCall(controlID string, stereo bool, format RecordFormat, direction RecordDirection, opts *RecordCallOptions) *FunctionResult {
 	// Python builds record_params with stereo, format, direction, beep, and
 	// input_sensitivity UNCONDITIONALLY (function_result.py:921-928 — beep:false,
@@ -594,11 +699,13 @@ func (fr *FunctionResult) ExecuteSwml(swmlContent any, transfer bool) *FunctionR
 		action = map[string]any{"raw_swml": fmt.Sprintf("%v", swmlContent)}
 	}
 
+	// transfer rides BESIDE the SWML document, not inside it — the same shape
+	// Connect and SwmlTransfer emit. Inside the document it is not a SWML key.
+	entry := map[string]any{"SWML": action}
 	if transfer {
-		action["transfer"] = "true"
+		entry["transfer"] = "true"
 	}
-
-	return fr.AddAction("SWML", action)
+	return fr.AddActions([]map[string]any{entry})
 }
 
 // JoinConferenceOptions holds optional parameters for JoinConference beyond the required name.
@@ -776,21 +883,24 @@ func (fr *FunctionResult) SIPRefer(toURI string) *FunctionResult {
 // rtpPtime sets the packetization time in milliseconds for RTP streams (0 = use default of 20ms).
 // Pass empty string for statusURL to omit it.
 //
-// direction is the defined string type TapDirection ({speak, hear, both} — the
+// direction is the defined string type TapDirection ({speak, listen, both} — the
 // TapDirection* constants) and codec is the defined string type Codec ({PCMU,
 // PCMA} — the Codec* constants); both autocomplete + typo-check at compile time
 // while bare "both"/"PCMU" literals still compile, and are written to the wire as
-// plain strings. Note TapDirection ({speak, hear, both}) differs from
-// RecordDirection ({speak, listen, both}), and this 2-value tap Codec is distinct
+// plain strings. TapDirection and RecordDirection carry the same wire set but
+// stay separate types (one per verb), and this 2-value tap Codec is distinct
 // from the larger RELAY connect/stream codec superset (left a bare string).
 func (fr *FunctionResult) Tap(uri string, controlID string, direction TapDirection, codec Codec, rtpPtime int, statusURL string) *FunctionResult {
 	tapParams := map[string]any{"uri": uri}
 	if controlID != "" {
 		tapParams["control_id"] = controlID
 	}
-	if direction != "" && direction != "both" {
-		tapParams["direction"] = string(direction)
+	// direction is ALWAYS emitted: the tap verb defaults to "speak", not the
+	// helper's documented "both", so omitting it would silently tap one side.
+	if direction == "" {
+		direction = TapDirectionBoth
 	}
+	tapParams["direction"] = string(direction)
 	if codec != "" && codec != "PCMU" {
 		tapParams["codec"] = string(codec)
 	}
@@ -1086,17 +1196,39 @@ func (fr *FunctionResult) RPCDial(toNumber, fromNumber, destSwml string, deviceT
 	return fr.ExecuteRPC("dial", dialParams, "", "")
 }
 
-// RPCAiMessage injects a message into an AI agent on another call.
-// role defaults to "system" when empty.
-// Emitted as execute_rpc with method="ai_message".
-func (fr *FunctionResult) RPCAiMessage(callID, messageText, role string) *FunctionResult {
+// RPCAiMessage sends a message and/or global_data to an AI agent on another
+// call. Emitted as execute_rpc with method="ai_message".
+//
+// Two payloads, either or both: messageText lands as a turn in the other
+// agent's conversation (role defaults to "system" when empty); globalData (the
+// optional trailing argument) is MERGED into the other call's global_data,
+// where it is silent until a prompt expands it with ${global_data.key} — the
+// better channel for content a later step must speak. An empty messageText is
+// omitted when globalData is given.
+func (fr *FunctionResult) RPCAiMessage(callID, messageText, role string, globalData ...map[string]any) *FunctionResult {
 	if role == "" {
 		role = "system"
 	}
-	return fr.ExecuteRPC("ai_message", map[string]any{
-		"role":         role,
-		"message_text": messageText,
-	}, callID, "")
+	var gd map[string]any
+	if len(globalData) > 0 {
+		gd = globalData[0]
+	}
+	params := map[string]any{}
+	if messageText != "" || gd == nil {
+		params["role"] = role
+		params["message_text"] = messageText
+	}
+	if gd != nil {
+		params["global_data"] = gd
+	}
+	return fr.ExecuteRPC("ai_message", params, callID, "")
+}
+
+// RPCAiGlobalData merges data into another call's global_data, with no
+// conversation turn (RPCAiMessage with only global_data). The destination
+// prompt reads it back with ${global_data.key}.
+func (fr *FunctionResult) RPCAiGlobalData(callID string, data map[string]any) *FunctionResult {
+	return fr.RPCAiMessage(callID, "", "", data)
 }
 
 // RPCAiUnhold unholds another call.
@@ -1147,7 +1279,10 @@ func CreatePaymentParameter(name string, value string) map[string]string {
 
 // String returns a human-readable representation including the response and action count.
 func (fr *FunctionResult) String() string {
-	resp := fr.response
+	resp, ok := fr.response.(string)
+	if !ok && fr.response != nil {
+		resp = fmt.Sprint(fr.response)
+	}
 	if len(resp) > 50 {
 		resp = resp[:50] + "..."
 	}

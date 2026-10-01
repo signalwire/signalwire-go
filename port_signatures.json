@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ cb493a6257f24289101eaca3bd48eacdfd135d1a (go/ast walker)",
+  "generated_from": "signalwire-go @ c584c113ec4e3135fd80f21dd52230aae6321ec9 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2966,6 +2966,20 @@
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
             },
+            "change_voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "voice",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
+            },
             "clear_dynamic_hints": {
               "params": [
                 {
@@ -3091,8 +3105,23 @@
                   "kind": "self"
                 },
                 {
+                  "name": "prompt",
+                  "type": "any",
+                  "required": false
+                },
+                {
                   "name": "timeout",
-                  "type": "int",
+                  "type": "optional\u003cint\u003e",
+                  "required": false
+                },
+                {
+                  "name": "step",
+                  "type": "optional\u003cstring\u003e",
+                  "required": false
+                },
+                {
+                  "name": "timeout_step",
+                  "type": "optional\u003cstring\u003e",
                   "required": false
                 }
               ],
@@ -3261,7 +3290,26 @@
                   "kind": "self"
                 }
               ],
-              "returns": "string"
+              "returns": "any"
+            },
+            "rpc_ai_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "call_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
             },
             "rpc_ai_message": {
               "params": [
@@ -3277,13 +3325,18 @@
                 {
                   "name": "message_text",
                   "type": "string",
-                  "required": true
+                  "required": false
                 },
                 {
                   "name": "role",
                   "type": "string",
                   "required": false,
                   "default": "system"
+                },
+                {
+                  "name": "global_data",
+                  "type": "optional\u003cdict\u003cstring,any\u003e\u003e",
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"
@@ -3451,6 +3504,25 @@
                   "name": "ms",
                   "type": "int",
                   "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
+            },
+            "set_tool_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "tool_result",
+                  "type": "optional\u003cstring\u003e",
+                  "required": false
+                },
+                {
+                  "name": "tool_prompt",
+                  "type": "optional\u003cstring\u003e",
+                  "required": false
                 }
               ],
               "returns": "class:signalwire.core.function_result.FunctionResult"

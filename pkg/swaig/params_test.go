@@ -142,7 +142,7 @@ func TestParamsEnumByteIdenticalAcrossAllTier1Enums(t *testing.T) {
 	}{
 		{"record_format", RecordFormatValues(), []any{"mp3", "wav", "mp4"}},
 		{"record_direction", RecordDirectionValues(), []any{"speak", "listen", "both"}},
-		{"tap_direction", TapDirectionValues(), []any{"speak", "hear", "both"}},
+		{"tap_direction", TapDirectionValues(), []any{"speak", "listen", "both"}},
 		{"codec", CodecValues(), []any{"PCMU", "PCMA"}},
 	}
 	for _, tc := range cases {
@@ -286,7 +286,7 @@ func TestEnumValueHelpersDeriveFromConstants(t *testing.T) {
 	if got, want := RecordDirectionValues(), []string{string(RecordDirectionSpeak), string(RecordDirectionListen), string(RecordDirectionBoth)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("RecordDirectionValues() = %v, want %v", got, want)
 	}
-	if got, want := TapDirectionValues(), []string{string(TapDirectionSpeak), string(TapDirectionHear), string(TapDirectionBoth)}; !reflect.DeepEqual(got, want) {
+	if got, want := TapDirectionValues(), []string{string(TapDirectionSpeak), string(TapDirectionListen), string(TapDirectionBoth)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("TapDirectionValues() = %v, want %v", got, want)
 	}
 	if got, want := CodecValues(), []string{string(CodecPCMU), string(CodecPCMA)}; !reflect.DeepEqual(got, want) {

@@ -106,8 +106,8 @@ func TestInfoGatherer_SubmitAnswerAdvancesState(t *testing.T) {
 	}
 
 	// (c) the result presents the SECOND question.
-	if !strings.Contains(res.Response(), "What is your email?") {
-		t.Errorf("response does not present the 2nd question; got %q", res.Response())
+	if !strings.Contains(respStr(res.Response()), "What is your email?") {
+		t.Errorf("response does not present the 2nd question; got %q", respStr(res.Response()))
 	}
 }
 
@@ -1103,4 +1103,10 @@ func TestBedrockAgent_SetLLMTemperature(t *testing.T) {
 	if prompt["temperature"] != 0.2 {
 		t.Errorf("expected temperature=0.2 after SetLLMTemperature, got %v", prompt["temperature"])
 	}
+}
+
+// respStr reads a FunctionResult response as its plain-string form.
+func respStr(r any) string {
+	s, _ := r.(string)
+	return s
 }

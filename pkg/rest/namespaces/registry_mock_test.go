@@ -119,7 +119,6 @@ func TestRegistryBrands_CreateCampaign_PostsToBrandSubpath(t *testing.T) {
 
 	bodyResp, err := client.Registry.Brands.CreateCampaign(context.Background(), "brand-2", map[string]any{
 		"name":                    "My Campaign",
-		"brand_id":                "3fa85f64-5717-4562-b3fc-2c963f66afa6",
 		"sms_use_case":            "LOW_VOLUME",
 		"description":             "MFA",
 		"sample1":                 "Hi John, your appointment is tomorrow. Reply STOP to unsubscribe.",

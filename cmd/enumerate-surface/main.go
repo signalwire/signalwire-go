@@ -981,10 +981,12 @@ var optionsPlumbingStructs = map[string]bool{
 	"aichat.ChatOptions":      true,
 	"aichat.SummarizeOptions": true,
 	// swml/swaig per-call options (unfolded via optionsStructUnfoldMethods)
-	"swml.PlayOptions":         true,
-	"swml.AIOptions":           true,
-	"swaig.ConnectOptions":     true,
-	"swaig.WaitForUserOptions": true,
+	"swml.PlayOptions":          true,
+	"swml.AIOptions":            true,
+	"swaig.ConnectOptions":      true,
+	"swaig.WaitForUserOptions":  true,
+	"swaig.HoldOptions":         true,
+	"swaig.ToolResponseOptions": true,
 }
 
 // isFunctionalOptionCtor reports whether an exported free function key

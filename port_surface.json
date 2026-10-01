@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ cb493a6257f24289101eaca3bd48eacdfd135d1a",
+  "generated_from": "signalwire-go @ c584c113ec4e3135fd80f21dd52230aae6321ec9",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -313,6 +313,7 @@
           "add_action",
           "add_actions",
           "add_dynamic_hints",
+          "change_voice",
           "clear_dynamic_hints",
           "connect",
           "create_payment_action",
@@ -334,6 +335,7 @@
           "remove_metadata",
           "replace_in_history",
           "response",
+          "rpc_ai_global_data",
           "rpc_ai_message",
           "rpc_ai_unhold",
           "rpc_dial",
@@ -344,6 +346,7 @@
           "set_post_process",
           "set_response",
           "set_speech_event_timeout",
+          "set_tool_response",
           "simulate_user_input",
           "sip_refer",
           "stop",

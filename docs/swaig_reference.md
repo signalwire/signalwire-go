@@ -450,7 +450,7 @@ result.Tap(
 **Audio Configuration:**
 - `direction`: Audio direction to tap (default: "both")
   - `"speak"`: What party says
-  - `"hear"`: What party hears
+  - `"listen"`: What party hears
   - `"both"`: What party hears and says
 - `codec`: Codec for tap stream - "PCMU" or "PCMA" (default: "PCMU")
 - `rtp_ptime`: RTP packetization time in milliseconds (default: 20)
@@ -501,13 +501,23 @@ result.Hangup()
 
 ### Call Flow Control
 
-#### `Hold(timeout ...int) *FunctionResult`
-Put call on hold with timeout (max 900 seconds). Omit `timeout` for the 300-second default.
+#### `Hold(opts HoldOptions) *FunctionResult`
+Put the call on hold (timeout clamped to [0, 900], default 300). During hold speech
+detection is paused, so anything the caller must hear has to be said first: `Prompt`
+sets the structured response `{tool_result: "status: on hold", tool_prompt: Prompt}`
+and turns on post_process so the model speaks before the hold lands. `Step` /
+`TimeoutStep` move the caller to a step when the hold ends / times out.
 
 ```go
-result.Hold()      // 300 seconds (the default)
-result.Hold(60)    // Hold for 1 minute
-result.Hold(600)   // Hold for 10 minutes
+oneMinute, tenMinutes := 60, 600
+result.Hold(swaig.HoldOptions{})                     // 300 seconds (the default)
+result.Hold(swaig.HoldOptions{Timeout: &oneMinute})  // Hold for 1 minute
+result.Hold(swaig.HoldOptions{Timeout: &tenMinutes}) // Hold for 10 minutes
+back, nobody := "back_with_agent", "take_a_message"
+result.Hold(swaig.HoldOptions{
+	Prompt: "Tell the caller you are checking if they are available.",
+	Step:   &back, TimeoutStep: &nobody,
+})
 ```
 
 #### `WaitForUser(opts WaitForUserOptions) *FunctionResult`
