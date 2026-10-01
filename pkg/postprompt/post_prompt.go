@@ -139,7 +139,7 @@ func ParsePostPromptData(data any) map[string]any {
 // DialogueOptions carries the optional parameters of [DialogueTurns].
 type DialogueOptions struct {
 	// Roles are the roles to keep (nil = user and assistant).
-	Roles []string `sw:"optional" kind:"keyword" gen:"tuple<string,any>"`
+	Roles []string `sw:"optional" kind:"keyword"`
 	// DropEcho is exact content to treat as the chat engine's summary echo and
 	// drop: the chat engine appends its own post-prompt output to call_log as a
 	// bare role:assistant turn, identifiable only by being byte-identical to

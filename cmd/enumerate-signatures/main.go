@@ -2652,10 +2652,15 @@ var ctxTypeFolds = map[string]struct{ goType, canon string }{
 	// async context manager over aiohttp's ClientResponse); Go returns the
 	// *http.Response the caller reads and closes.
 	"signalwire.ai_chat.client.AIChatClient.raw_post[->]": {"*http.Response", "class:AsyncIterator"},
-	// The gateway/handoff routers: FastAPI's APIRouter is the framework's
-	// mountable route set; Go's is an http.Handler (mounted with Mount).
-	"signalwire.ai_chat.gateway.ChatGateway.router[->]":   {"http.Handler", "class:APIRouter"},
-	"signalwire.ai_chat.handoff.HandoffRouter.router[->]": {"http.Handler", "class:APIRouter"},
+	// The gateway/handoff routers: the reference returns its host-app router
+	// (signalwire.core.web.HostAppRouter, the mountable route set); Go's is an
+	// http.Handler (mounted with Mount).
+	"signalwire.ai_chat.gateway.ChatGateway.router[->]":   {"http.Handler", "class:signalwire.core.web.HostAppRouter"},
+	"signalwire.ai_chat.handoff.HandoffRouter.router[->]": {"http.Handler", "class:signalwire.core.web.HostAppRouter"},
+	// SWAIGFunction.validate_args returns `tuple[Any, ...]` (the oracle spells a
+	// variadic tuple list<any>); Go's (valid bool, errors []string) multi-return
+	// is a fixed two-value instance of it.
+	"signalwire.core.swaig_function.SWAIGFunction.validate_args[->]": {"tuple(bool,[]string)", "list<any>"},
 }
 
 // goLocalAliases holds Go-specific named-type → canonical-type expansions that

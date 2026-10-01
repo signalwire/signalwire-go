@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 7a102b2d57a6aedfac38d1492c9979a567b6878c (go/ast walker)",
+  "generated_from": "signalwire-go @ 3939539b2c6131b23a1b2ae355dbc67c6f33591c (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -1102,7 +1102,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:APIRouter"
+              "returns": "class:signalwire.core.web.HostAppRouter"
             },
             "visible_messages": {
               "params": [
@@ -1363,7 +1363,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:APIRouter"
+              "returns": "class:signalwire.core.web.HostAppRouter"
             },
             "say": {
               "params": [
@@ -5813,7 +5813,7 @@
             {
               "name": "roles",
               "kind": "keyword",
-              "type": "tuple\u003cstring,any\u003e",
+              "type": "list\u003cstring\u003e",
               "required": false
             },
             {
@@ -8505,7 +8505,7 @@
                   "required": true
                 }
               ],
-              "returns": "tuple\u003cbool,list\u003cstring\u003e\u003e"
+              "returns": "list\u003cany\u003e"
             },
             "wait_file": {
               "params": [
