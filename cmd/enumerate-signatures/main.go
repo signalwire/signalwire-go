@@ -111,6 +111,9 @@ var optionalTailVariadicMethods = map[string]bool{
 	"signalwire.relay.call.RecordAction.pause":                true,
 	"signalwire.relay.call.CollectAction.pause":               true,
 	"signalwire.core.function_result.FunctionResult.__init__": true,
+	// ChatGateway.mint_handle(conversation_id: str | None = None): Go's
+	// MintHandle reads only conversationID[0] ("" or absent = a fresh id).
+	"signalwire.ai_chat.gateway.ChatGateway.mint_handle": true,
 }
 
 // optionalTailVariadicComposite is the COMPOSITE-element analog of the table
@@ -220,6 +223,10 @@ var optionsStructUnfoldMethods = map[string]string{
 	"signalwire.core.function_result.FunctionResult.wait_for_user":     "WaitForUserOptions",
 	"signalwire.core.function_result.FunctionResult.hold":              "HoldOptions",
 	"signalwire.core.function_result.FunctionResult.set_tool_response": "ToolResponseOptions",
+	"signalwire.ai_chat.gateway.ChatGateway.__init__":                  "ChatGatewayOptions",
+	"signalwire.ai_chat.handoff.HandoffRouter.__init__":                "HandoffRouterOptions",
+	"signalwire.ai_chat.gateway.ChatGateway.prepare":                   "PrepareOptions",
+	"signalwire.ai_chat.handoff.HandoffRouter.register":                "RegisterOptions",
 }
 
 // aiChatMethodSigs SPLICES the canonical signature for the AIChatClient turn
@@ -329,6 +336,17 @@ var aiChatCtorSigs = map[string]canonicalSignature{
 		},
 		Returns: "void",
 	},
+	"signalwire.ai_chat.handoff.NonceEntry": {
+		Params: []canonicalParam{
+			{Name: "self", Kind: "self"},
+			{Name: "conversation_id", Type: "string", Required: boolPtr(true)},
+			{Name: "call_id", Type: "optional<string>", Required: boolPtr(false), Default: json.RawMessage("null")},
+			{Name: "issued_at", Type: "float", Required: boolPtr(false)},
+			{Name: "messages", Type: "int", Required: boolPtr(false), Default: json.RawMessage("0")},
+			{Name: "redeemed", Type: "bool", Required: boolPtr(false), Default: json.RawMessage("false")},
+		},
+		Returns: "void",
+	},
 	"signalwire.ai_chat.client.ChatLog": {
 		Params: []canonicalParam{
 			{Name: "self", Kind: "self"},
@@ -344,15 +362,19 @@ var aiChatCtorSigs = map[string]canonicalSignature{
 // paramsStructFields so optionsStructUnfoldMethods can unfold them. Keeping it an
 // explicit allowlist avoids capturing every exported struct's fields.
 var handOptionsStructs = map[string]bool{
-	"PlayOptions":         true,
-	"AIOptions":           true,
-	"AnswerOptions":       true,
-	"DialogueOptions":     true,
-	"MountOptions":        true,
-	"ConnectOptions":      true,
-	"WaitForUserOptions":  true,
-	"HoldOptions":         true,
-	"ToolResponseOptions": true,
+	"PlayOptions":          true,
+	"AIOptions":            true,
+	"AnswerOptions":        true,
+	"DialogueOptions":      true,
+	"MountOptions":         true,
+	"ConnectOptions":       true,
+	"WaitForUserOptions":   true,
+	"HoldOptions":          true,
+	"ToolResponseOptions":  true,
+	"ChatGatewayOptions":   true,
+	"HandoffRouterOptions": true,
+	"PrepareOptions":       true,
+	"RegisterOptions":      true,
 }
 
 // paramsStructField is one field of a generated-REST params struct (§5/§4a).
@@ -2255,10 +2277,17 @@ func buildSignature(pkg string, fd *ast.FuncDecl, guardedFields, nilledArgs map[
 		// tuple<int,dict<string,string>,string>); emit it as a tuple so it
 		// compares EQUAL to the reference's tuple return. Otherwise take the
 		// first result — multi-return Go funcs typically pair a value with an
-		// `error` (mapped to `any`, not part of the Python signature).
-		if len(rets) > 1 && rets[len(rets)-1] != "error" {
+		// `error` (mapped to `any`, not part of the Python signature). Two or more
+		// values BEFORE a trailing error are the same tuple with Go's error return
+		// (the reference raises instead): ChatGateway.Prepare's
+		// (method, params, minted, error) is the reference's
+		// tuple<string,dict<string,any>,optional<string>>.
+		switch {
+		case len(rets) > 1 && rets[len(rets)-1] != "error":
 			sig.returns = "tuple(" + strings.Join(rets, ",") + ")"
-		} else {
+		case len(rets) > 2:
+			sig.returns = "tuple(" + strings.Join(rets[:len(rets)-1], ",") + ")"
+		default:
 			sig.returns = rets[0]
 		}
 	}
@@ -2598,6 +2627,19 @@ func loadAliases(path string) (map[string]string, error) {
 	return doc.Aliases.Go, nil
 }
 
+// nullableRequiredParams are pointer params the reference types `T | None` with
+// NO default: the caller must pass a value, None included. The nil-safe-pointer
+// rule (extractSignature, rule 3) reads a nil-accepting pointer as an omittable
+// `= None` default; for these the reference has no default, and Go — whose
+// positional params can never be omitted — requires the argument too. Keyed
+// `<python qualified method>.<param>`.
+var nullableRequiredParams = map[string]bool{
+	// check_origin(origin: str | None): None means "no Origin header".
+	"signalwire.ai_chat.gateway.ChatGateway.check_origin.origin": true,
+	// check_key(presented: str | None): None means "no key presented".
+	"signalwire.ai_chat.gateway.ChatGateway.check_key.presented": true,
+}
+
 // ctxTypeFolds folds ONE Go type at ONE signature slot (keyed by the enumerator's
 // context string: "<qualified python member>[->]" for a return) to the
 // reference's class, where a global alias would be wrong. SpiderSkill.Session
@@ -2606,6 +2648,14 @@ func loadAliases(path string) (map[string]string, error) {
 // a different reference type, so the fold is scoped to this slot.
 var ctxTypeFolds = map[string]struct{ goType, canon string }{
 	"signalwire.skills.spider.skill.SpiderSkill.session[->]": {"*http.Client", "class:signalwire.utils.url_validator._PublicSession"},
+	// AIChatClient.raw_post yields the live response with its body unread (an
+	// async context manager over aiohttp's ClientResponse); Go returns the
+	// *http.Response the caller reads and closes.
+	"signalwire.ai_chat.client.AIChatClient.raw_post[->]": {"*http.Response", "class:AsyncIterator"},
+	// The gateway/handoff routers: FastAPI's APIRouter is the framework's
+	// mountable route set; Go's is an http.Handler (mounted with Mount).
+	"signalwire.ai_chat.gateway.ChatGateway.router[->]":   {"http.Handler", "class:APIRouter"},
+	"signalwire.ai_chat.handoff.HandoffRouter.router[->]": {"http.Handler", "class:APIRouter"},
 }
 
 // goLocalAliases holds Go-specific named-type → canonical-type expansions that
@@ -3491,6 +3541,9 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 			// absence (pointer / variadic / zero-value guard); see
 			// extractParamOptionality.
 			Required: boolPtr(!p.optional),
+		}
+		if nullableRequiredParams[ctx+"."+cp.Name] {
+			cp.Required = boolPtr(true)
 		}
 		// Where the port DOES give a caller an omittable argument — a sentinel
 		// guard or a zero-length variadic fallback (see extractParamDefaults) —

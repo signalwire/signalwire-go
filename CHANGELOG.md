@@ -20,6 +20,12 @@ that floor is a snapshot identifier and is deliberately not renumbered with this
 - AgentBase, SWML document model/builder, SWAIG function-result action layer,
   DataMap server-side tools, contexts/steps workflows, skills, and prefabs.
 - `swaig-test` CLI for local agent testing.
+- AI Chat: `aichat.ChatGateway` (browser-facing proxy: publishable key, signed
+  conversation handles, origin allowlist, caps, unbuffered streaming),
+  `aichat.HandoffRouter` (voice/text handoff routes) and `Client.RawPost`.
+- `AgentBase.Mount`, `AgentBase.OnCallEnd`, `AgentBase.AddPerCallConfig`;
+  `pkg/capabilities`, `pkg/postprompt`; SHA-256 webhook signature validation; the
+  spider skill fetches through an SSRF-guarded client (`SpiderSkill.Session`).
 - Full cross-port CI gate set wired via `scripts/run-ci.sh`, including the
   Wave-3 release-readiness gates (SEMVER-DIFF, RELEASE-FRESH, META-CONSISTENT,
   strict IGNORE-LEDGER-VERIFY) and a gated publish workflow.

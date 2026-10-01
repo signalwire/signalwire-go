@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ 60e8bc204d610f7d8ddb05523eb38e5e1bb05ee5",
+  "generated_from": "signalwire-go (go-native) @ bd9ca7c234ea7150bd6c58abadce2c968fad7c7c",
   "modules": {
     "agent": {
       "classes": {
@@ -181,6 +181,20 @@
         "AuthenticationError": [
           "Unwrap"
         ],
+        "ChatGateway": [
+          "CheckKey",
+          "CheckOrigin",
+          "Close",
+          "EffectiveTimeout",
+          "LastActivity",
+          "MintHandle",
+          "Prepare",
+          "ReadHandle",
+          "ReadUserMetadata",
+          "Router",
+          "VisibleMessages"
+        ],
+        "ChatGatewayOptions": [],
         "ChatInProgressError": [
           "Unwrap"
         ],
@@ -194,6 +208,7 @@
           "Delete",
           "End",
           "Log",
+          "RawPost",
           "Summarize"
         ],
         "ConversationInfo": [],
@@ -201,16 +216,33 @@
           "Unwrap"
         ],
         "CreateOptions": [],
+        "GatewayRejection": [
+          "Error"
+        ],
+        "HandoffRouter": [
+          "Escalate",
+          "Redeem",
+          "Register",
+          "Router",
+          "Say"
+        ],
+        "HandoffRouterOptions": [],
+        "NonceEntry": [],
+        "PrepareOptions": [],
         "RateLimitError": [
           "Unwrap"
         ],
+        "RegisterOptions": [],
         "SummarizeOptions": [],
         "SummaryError": [
           "Unwrap"
         ]
       },
       "functions": [
+        "NewChatGateway",
         "NewClient",
+        "NewGatewayRejection",
+        "NewHandoffRouter",
         "WithHTTPClient",
         "WithProject",
         "WithReadIdleTimeout",

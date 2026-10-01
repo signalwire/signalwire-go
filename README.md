@@ -324,6 +324,8 @@ Create a SignalWire account first if you don't have one.
 | `SIGNALWIRE_REST_CA_FILE` | REST | Path to a PEM CA bundle to trust for REST HTTPS (private-CA convention) |
 | `SIGNALWIRE_SPACE_NAME` | Skills | Space name for Datasphere serverless skills |
 | `SIGNALWIRE_API_TOKEN` | Skills | API token for Datasphere serverless skills |
+| `SIGNALWIRE_CHAT_GATEWAY_KEY` | AI Chat gateway | Publishable key the browser chat widget presents (default: generated per process) |
+| `SIGNALWIRE_CHAT_GATEWAY_SECRET` | AI Chat gateway | Secret that signs conversation handles; set it when running more than one replica or restarting (default: random per process) |
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
 | `SIGNALWIRE_MCP_ALLOW_INSECURE_TLS` | Skills (mcp_gateway) | Second gate required to disable upstream TLS verification. The `mcp_gateway` skill verifies TLS by default (`verify_ssl=true`); setting `verify_ssl=false` alone is IGNORED (logged) unless this is ALSO set truthy (`true`, `1`, `yes`). Leave unset in production. |

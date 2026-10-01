@@ -22,6 +22,7 @@
   - [State Management](#state-management)
   - [SIP Routing](#sip-routing)
   - [Custom Routing](#custom-routing)
+  - [Extra Routes, Call-End Hooks and the Browser Chat Gateway](#extra-routes-call-end-hooks-and-the-browser-chat-gateway)
 - [Prefab Agents](#prefab-agents)
 - [API Reference](#api-reference)
 - [Examples](#examples)
@@ -2372,6 +2373,63 @@ func handleCustomerRoute(body map[string]any, headers map[string]any) *string {
 
 func handleProductRoute(body map[string]any, headers map[string]any) *string { return nil }
 ```
+
+### Extra Routes, Call-End Hooks and the Browser Chat Gateway
+
+`Mount` serves another `http.Handler` alongside the agent's own routes (the agent's
+SWML, SWAIG and post-prompt endpoints keep precedence). Handlers mounted at the same
+prefix are tried in mount order, a 404 from one falling through to the next.
+`OnCallEnd` registers a handler that runs once per call when it ends, with the
+conversation's transcript and the hook payload.
+
+`aichat.ChatGateway` lets a web page chat with the agent without holding a SignalWire
+token: the page carries a publishable key, and the gateway forwards to the AI Chat
+service with the project credentials, injecting the agent's `config_url` itself.
+Conversation handles are signed, the transcript a browser can read is filtered to the
+user/assistant dialogue, and new conversations and turns are capped. A chat turn is
+streamed through unbuffered. `aichat.HandoffRouter` adds the routes the SignalWire
+chat widget uses to move a conversation between a phone call and text
+(`/handoff`, `/escalate`, `/say`); mount it at the gateway's prefix.
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/signalwire/signalwire-go/v3/pkg/agent"
+	"github.com/signalwire/signalwire-go/v3/pkg/aichat"
+)
+
+func main() {
+	a := agent.NewAgentBase(agent.WithName("shop"), agent.WithRoute("/agent"))
+
+	gw, err := aichat.NewChatGateway(aichat.ChatGatewayOptions{
+		ConfigURL:      "https://shop.example.com/agent",
+		AllowedOrigins: []string{"https://shop.example.com"},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	handoff, err := aichat.NewHandoffRouter(aichat.HandoffRouterOptions{Gateway: gw})
+	if err != nil {
+		log.Fatal(err)
+	}
+	a.Mount(gw.Router(), agent.MountOptions{Prefix: "/chat"})
+	a.Mount(handoff.Router(), agent.MountOptions{Prefix: "/chat"})
+
+	a.OnCallEnd(func(transcript []map[string]any, payload map[string]any) {
+		log.Printf("call ended after %d messages", len(transcript))
+	})
+}
+```
+
+The gateway reads `SIGNALWIRE_CHAT_GATEWAY_KEY` (the publishable key) and
+`SIGNALWIRE_CHAT_GATEWAY_SECRET` (the handle-signing secret) when they are not passed
+in `ChatGatewayOptions`. Without a secret, one is generated per process, so handles
+stop verifying across a restart or a second replica — set it in production. The
+AI Chat client itself is built from `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`
+and `SIGNALWIRE_SPACE` unless `Client` is supplied.
 
 ### Customizing SWML Requests
 

@@ -3882,23 +3882,108 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 	a.mu.RLock()
 	mounts := a.mounts
 	a.mu.RUnlock()
-	rootClaimed := swmlRoute == "/"
+	// Several handlers mounted at one prefix (a chat gateway and its handoff
+	// routes share one URL) are tried in mount order: a 404 from one falls
+	// through to the next.
+	var prefixes []string
+	byPrefix := map[string][]http.Handler{}
 	for _, m := range mounts {
-		if m.prefix == "" {
-			if rootClaimed {
+		if _, seen := byPrefix[m.prefix]; !seen {
+			prefixes = append(prefixes, m.prefix)
+		}
+		byPrefix[m.prefix] = append(byPrefix[m.prefix], m.handler)
+	}
+	for _, prefix := range prefixes {
+		h := chainMounted(byPrefix[prefix])
+		if prefix == "" {
+			if swmlRoute == "/" {
 				a.Logger.Warn("mount at / skipped: the agent's own route is /; mount under a prefix")
 				continue
 			}
-			rootClaimed = true
-			mux.Handle("/", m.handler)
+			mux.Handle("/", h)
 			continue
 		}
-		h := http.StripPrefix(m.prefix, m.handler)
-		mux.Handle(m.prefix+"/", h)
-		mux.Handle(m.prefix, h)
+		h = http.StripPrefix(prefix, h)
+		mux.Handle(prefix+"/", h)
+		mux.Handle(prefix, h)
 	}
 
 	return mux
+}
+
+// chainMounted serves handlers mounted at the same prefix: each is tried in turn
+// and a 404 from one falls through to the next; the last one's answer stands.
+func chainMounted(handlers []http.Handler) http.Handler {
+	if len(handlers) == 1 {
+		return handlers[0]
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, h := range handlers[:len(handlers)-1] {
+			probe := &notFoundProbe{ResponseWriter: w, header: w.Header().Clone()}
+			h.ServeHTTP(probe, r)
+			if !probe.notFound {
+				return
+			}
+		}
+		handlers[len(handlers)-1].ServeHTTP(w, r)
+	})
+}
+
+// notFoundProbe passes a response through unless its status is 404, which it
+// swallows (with its headers and body) so the next mounted handler can answer
+// instead.
+type notFoundProbe struct {
+	http.ResponseWriter
+	header   http.Header
+	wrote    bool
+	notFound bool
+}
+
+// Header is the probe's own header map, copied through only on a non-404.
+func (p *notFoundProbe) Header() http.Header { return p.header }
+
+// WriteHeader swallows a 404 and passes any other status through.
+func (p *notFoundProbe) WriteHeader(code int) {
+	if p.wrote {
+		return
+	}
+	p.wrote = true
+	if code == http.StatusNotFound {
+		p.notFound = true
+		return
+	}
+	dst := p.ResponseWriter.Header()
+	for k := range dst {
+		delete(dst, k)
+	}
+	for k, v := range p.header {
+		dst[k] = v
+	}
+	p.ResponseWriter.WriteHeader(code)
+}
+
+// Write discards the body of a swallowed 404 and passes any other through.
+func (p *notFoundProbe) Write(b []byte) (int, error) {
+	if !p.wrote {
+		p.WriteHeader(http.StatusOK)
+	}
+	if p.notFound {
+		return len(b), nil
+	}
+	return p.ResponseWriter.Write(b)
+}
+
+// Flush lets a streaming mounted handler (the chat gateway) flush through.
+func (p *notFoundProbe) Flush() {
+	if !p.wrote {
+		p.WriteHeader(http.StatusOK)
+	}
+	if p.notFound {
+		return
+	}
+	if f, ok := p.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
 }
 
 // maxAgentRequestBody is the maximum request body size (1MB).

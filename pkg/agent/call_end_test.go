@@ -113,3 +113,41 @@ func TestMountServesExtraHandlerUnderPrefix(t *testing.T) {
 		t.Errorf("agent route status = %d, want 401 (auth-protected agent route)", resp2.StatusCode)
 	}
 }
+
+// TestMountSamePrefixFallsThrough: two handlers mounted at one prefix (a chat
+// gateway and its handoff routes share a URL) are tried in order, a 404 from the
+// first falling through to the second without leaking its headers.
+func TestMountSamePrefixFallsThrough(t *testing.T) {
+	a := NewAgentBase(WithName("m"), WithRoute("/agent"))
+	first := http.NewServeMux()
+	first.HandleFunc("POST /{$}", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("gateway")) })
+	second := http.NewServeMux()
+	second.HandleFunc("POST /say", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("say")) })
+	a.Mount(first, MountOptions{Prefix: "/chat"})
+	a.Mount(second, MountOptions{Prefix: "/chat"})
+	srv := httptest.NewServer(a.AsRouter())
+	defer srv.Close()
+
+	for path, want := range map[string]string{"/chat/": "gateway", "/chat/say": "say"} {
+		resp, err := http.Post(srv.URL+path, "application/json", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || string(body) != want {
+			t.Errorf("POST %s = %d %q, want %q", path, resp.StatusCode, body, want)
+		}
+		if resp.Header.Get("X-Content-Type-Options") != "" {
+			t.Errorf("POST %s leaked the first handler's 404 headers: %v", path, resp.Header)
+		}
+	}
+	resp, err := http.Post(srv.URL+"/chat/nothing", "application/json", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("unmatched path = %d, want 404", resp.StatusCode)
+	}
+}

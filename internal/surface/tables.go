@@ -876,7 +876,52 @@ var StructTable = map[string][]ClassTarget{
 			"Log":                "log",
 			"Summarize":          "summarize",
 			"Close":              "close",
+			"RawPost":            "raw_post",
 		},
+	}},
+	// --- aichat browser gateway + voice/text handoff (signalwire.ai_chat.gateway,
+	// signalwire.ai_chat.handoff). The options-struct factories fold onto the
+	// keyword-only __init__s; Router() (an http.Handler) is the reference's
+	// router() (a FastAPI APIRouter).
+	"aichat.ChatGateway": {{
+		Module: "signalwire.ai_chat.gateway", Class: "ChatGateway",
+		Methods: map[string]string{
+			"NewChatGateway":   "__init__",
+			"LastActivity":     "last_activity",
+			"EffectiveTimeout": "effective_timeout",
+			"Close":            "close",
+			"MintHandle":       "mint_handle",
+			"ReadHandle":       "read_handle",
+			"CheckOrigin":      "check_origin",
+			"CheckKey":         "check_key",
+			"VisibleMessages":  "visible_messages",
+			"ReadUserMetadata": "read_user_metadata",
+			"Prepare":          "prepare",
+			"Router":           "router",
+		},
+	}},
+	"aichat.GatewayRejection": {{
+		Module: "signalwire.ai_chat.gateway", Class: "GatewayRejection",
+		Methods: map[string]string{
+			"NewGatewayRejection": "__init__",
+		},
+	}},
+	"aichat.HandoffRouter": {{
+		Module: "signalwire.ai_chat.handoff", Class: "HandoffRouter",
+		Methods: map[string]string{
+			"NewHandoffRouter": "__init__",
+			"Register":         "register",
+			"Redeem":           "redeem",
+			"Escalate":         "escalate",
+			"Say":              "say",
+			"Router":           "router",
+		},
+	}},
+	// NonceEntry is a dataclass built by composite literal (the same synthetic
+	// constructor case as the AI-Chat DTOs below).
+	"aichat.NonceEntry": {{
+		Module: "signalwire.ai_chat.handoff", Class: "NonceEntry",
+		SyntheticMethods: []string{"__init__"},
 	}},
 	// The AI-Chat typed error family. Go has no exception hierarchy, so each
 	// Python exception class is a Go error struct: the base *AIChatError plus
