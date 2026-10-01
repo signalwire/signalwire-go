@@ -152,9 +152,9 @@ cXML applications support list/get/update/delete but not create:
 ```go
 apps, err := client.Fabric.CXMLApplications.List(context.Background(), nil)
 app, err := client.Fabric.CXMLApplications.Get(context.Background(), "app-uuid", nil)
-voiceUrl := "https://example.com/voice"
+callURL := "https://example.com/voice"
 _, err = client.Fabric.CXMLApplications.Update(context.Background(), "app-uuid", namespaces.CxmlApplicationsResourceUpdateParams{
-	VoiceURL: &voiceUrl,
+	CallRequestURL: &callURL,
 })
 _, err = client.Fabric.CXMLApplications.Delete(context.Background(), "app-uuid")
 
@@ -281,15 +281,10 @@ guestToken, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), n
 	},
 })
 
-// Subscriber invite token
-inviteToken, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{
-	Extras: map[string]any{"address_id": "address-uuid"},
-})
-
 // Click-to-call embed token
 embedToken, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{
 	Token: "embed-source-token",
 })
 
-_, _, _, _, _ = token, refreshed, guestToken, inviteToken, embedToken
+_, _, _, _ = token, refreshed, guestToken, embedToken
 ```

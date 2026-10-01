@@ -41,6 +41,9 @@ func NewDataSphereServerless(params map[string]any) skills.SkillBase {
 	}
 }
 
+// RequiredEnvVars returns SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN and
+// SIGNALWIRE_SPACE_NAME. It returns nil only when the "space_name",
+// "project_id" and "token" params are ALL supplied inline.
 func (s *DataSphereServerlessSkill) RequiredEnvVars() []string {
 	if s.Params != nil {
 		_, hasSpace := s.Params["space_name"]
@@ -53,13 +56,28 @@ func (s *DataSphereServerlessSkill) RequiredEnvVars() []string {
 	return []string{"SIGNALWIRE_PROJECT_ID", "SIGNALWIRE_API_TOKEN", "SIGNALWIRE_SPACE_NAME"}
 }
 
+// SupportsMultipleInstances returns true: several serverless DataSphere
+// instances can coexist on one agent, each under its own "tool_name".
 func (s *DataSphereServerlessSkill) SupportsMultipleInstances() bool { return true }
 
+// GetInstanceKey returns "datasphere_serverless_<tool_name>", defaulting
+// tool_name to "search_knowledge".
 func (s *DataSphereServerlessSkill) GetInstanceKey() string {
 	toolName := s.GetParamString("tool_name", "search_knowledge")
 	return "datasphere_serverless_" + toolName
 }
 
+// Setup resolves credentials from params, falling back to SIGNALWIRE_SPACE_NAME,
+// SIGNALWIRE_PROJECT_ID and SIGNALWIRE_API_TOKEN, and returns false — aborting
+// the load — if the space, project, token, or "document_id" is empty. It derives
+// the search URL from the space name (unlike the non-serverless datasphere
+// skill, this one has no base-URL env override, because the request is made by
+// the SignalWire platform rather than by this process) and pre-encodes
+// "<project_id>:<token>" as the base64 HTTP basic credential baked into the
+// DataMap webhook header. It also reads count (default 1), distance (default
+// 3.0), tool_name, and the optional tags, language, pos_to_expand, max_synonyms
+// (0 meaning unset, so it is omitted) and no_results_message, whose
+// ${args.query} placeholder the platform expands.
 func (s *DataSphereServerlessSkill) Setup() bool {
 	s.spaceName = s.GetParamString("space_name", os.Getenv("SIGNALWIRE_SPACE_NAME"))
 	s.projectID = s.GetParamString("project_id", os.Getenv("SIGNALWIRE_PROJECT_ID"))
@@ -181,6 +199,9 @@ func (s *DataSphereServerlessSkill) GetGlobalData() map[string]any {
 	}
 }
 
+// GetPromptSections returns one POM section, naming the configured tool, that
+// tells the agent when to search, to summarize results, and to suggest
+// rephrasing when nothing is found.
 func (s *DataSphereServerlessSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{
@@ -197,6 +218,11 @@ func (s *DataSphereServerlessSkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetParameterSchema extends the common skill parameters with the DataSphere
+// configuration: the required space_name, project_id, token (hidden) and
+// document_id; and the optional count (1-10), distance (0.0-10.0), tags,
+// language, pos_to_expand (NOUN/VERB/ADJ/ADV), max_synonyms (1-10) and
+// no_results_message.
 func (s *DataSphereServerlessSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["space_name"] = map[string]any{"type": "string", "description": "SignalWire space name", "required": true}

@@ -371,7 +371,7 @@ func TestVideoGen_Conferences_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Conferences.Update(context.Background(), "x-1", map[string]any{"display_name": "x-1"})
+	_, err := client.Video.Conferences.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -392,7 +392,7 @@ func TestVideoGen_Conferences_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.update_video_conference", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Conferences.Update(context.Background(), "x-1", map[string]any{"display_name": "x-1"})
+	_, err := client.Video.Conferences.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -431,6 +431,44 @@ func TestVideoGen_RoomRecordings_Delete_Error(t *testing.T) {
 	mock.Reset(t)
 	mock.PushScenario(t, "video.delete_room_recording", 500, map[string]any{"error": "x"})
 	_, err := client.Video.RoomRecordings.Delete(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestVideoGen_RoomRecordings_Download(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Video.RoomRecordings.Download(context.Background(), "x-1", nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "video.download_room_recording" {
+		t.Errorf("matched_route = %v want video.download_room_recording", j.MatchedRoute)
+	}
+}
+
+func TestVideoGen_RoomRecordings_Download_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "video.download_room_recording", 500, map[string]any{"error": "x"})
+	_, err := client.Video.RoomRecordings.Download(context.Background(), "x-1", nil)
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1131,7 +1169,7 @@ func TestVideoGen_Streams_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Video.Streams.Update(context.Background(), "x-1", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{"url": "x-1"}})
+	_, err := client.Video.Streams.Update(context.Background(), "x-1", namespaces.VideoStreamsUpdateParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1152,7 +1190,7 @@ func TestVideoGen_Streams_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "video.update_stream", 500, map[string]any{"error": "x"})
-	_, err := client.Video.Streams.Update(context.Background(), "x-1", namespaces.VideoStreamsUpdateParams{Extras: map[string]any{"url": "x-1"}})
+	_, err := client.Video.Streams.Update(context.Background(), "x-1", namespaces.VideoStreamsUpdateParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

@@ -1,0 +1,26 @@
+# Presence of this file makes porting-sdk/scripts/diff_port_signatures.py pass
+# --defaults-ceiling for this port (auto-detected beside port_signatures.json,
+# mirroring .drift-numeric-monotype).
+#
+# Go has no default-argument syntax. There is no `func f(x int = 5)`, so for the
+# majority of parameters "what is this parameter's default" has no answer to
+# record — the ABSENCE of a default is the truth, not a gap in the enumerator.
+# Without this declaration those unrecorded defaults read as a 66.4% coverage
+# HOLE (368 member params, 267 construction params) rather than the language
+# ceiling they actually are.
+#
+# What the ceiling does and does not do:
+#   * `default-mismatch` / `default-invented` drift is demoted to EXCUSED —
+#     still counted and printed, never silently dropped, so the ceiling cannot
+#     quietly widen.
+#   * `required-flip` is NOT affected. Every language can express "the caller
+#     must supply this", so a required flip is a real finding whether or not a
+#     default is expressible. (Verified in diff_port_signatures.py: only drift
+#     kinds with the `default-` prefix are demoted.)
+#
+# The enumerator still recovers a default wherever Go genuinely gives a caller
+# an omittable argument — a sentinel guard (`if n <= 0 { n = 900 }`) or a
+# zero-length variadic fallback — so the ceiling covers only what Go cannot
+# express, not what this port has not bothered to enumerate. See the PARAMETER
+# DEFAULT VALUES and PARAMETER OPTIONALITY blocks in
+# cmd/enumerate-signatures/main.go.

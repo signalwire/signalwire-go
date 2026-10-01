@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: gather_per_question_functions_demo
 //

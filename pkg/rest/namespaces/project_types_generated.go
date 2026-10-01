@@ -19,6 +19,7 @@ type CreateTokenRequest struct {
 	Name         string            `json:"name,omitempty"`
 	Permissions  []TokenPermission `json:"permissions,omitempty"`
 	SubprojectID *string           `json:"subproject_id,omitempty"`
+	ProjectID    *string           `json:"project_id,omitempty"`
 }
 
 type TokenPermission string
@@ -44,8 +45,22 @@ type TokenResponse struct {
 	Token       string            `json:"token,omitempty"`
 }
 
+type TokenUpdateResponse struct {
+	ID          string            `json:"id,omitempty"`
+	Name        string            `json:"name,omitempty"`
+	Permissions []TokenPermission `json:"permissions,omitempty"`
+}
+
 type TokenStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []ProjectTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type ProjectTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
 }
 
 type UpdateTokenRequest struct {

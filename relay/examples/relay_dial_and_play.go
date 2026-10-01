@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Dial a number and play "Welcome to SignalWire" using the RELAY client.
 //
@@ -79,17 +79,21 @@ func main() {
 	// Wait for playback to finish
 	playCtx, playCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer playCancel()
-	playAction.Wait(playCtx)
+	if _, err := playAction.Wait(playCtx); err != nil {
+		fmt.Printf("play did not finish: %v\n", err)
+	}
 	fmt.Println("Playback finished — hanging up")
 
-	call.Hangup("")
+	if err := call.Hangup(""); err != nil {
+		fmt.Printf("hangup failed: %v\n", err)
+	}
 
 	// Wait for the call to end
 	endCtx, endCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer endCancel()
-	call.WaitFor(endCtx, "calling.call.state", func(e *relay.RelayEvent) bool {
-		return e.GetString("call_state") == relay.CallStateEnded
-	})
+	if _, err := call.WaitForEnded(endCtx); err != nil {
+		fmt.Printf("did not observe call end: %v\n", err)
+	}
 	fmt.Println("Call ended")
 
 	client.Stop()

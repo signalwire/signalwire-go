@@ -84,7 +84,7 @@ func (b *Params) Describe(description string) *Params {
 }
 
 // WithRawData marks that the handler this declaration describes also receives
-// the SWAIG raw payload (the analog of Python's `raw_data` handler parameter),
+// the SWAIG raw payload (the `raw_data` handler argument),
 // surfaced by InferSchema's has_raw_data return. Returns the receiver.
 func (b *Params) WithRawData() *Params {
 	b.hasRawData = true
@@ -332,9 +332,9 @@ func RecordDirectionValues() []string {
 }
 
 // TapDirectionValues returns the TapDirection closed set as wire strings
-// (speak, hear, both), suitable for Params.Enum / PropEnum / WithEnum.
+// (speak, listen, both), suitable for Params.Enum / PropEnum / WithEnum.
 func TapDirectionValues() []string {
-	return enumStrings(TapDirectionSpeak, TapDirectionHear, TapDirectionBoth)
+	return enumStrings(TapDirectionSpeak, TapDirectionListen, TapDirectionBoth)
 }
 
 // CodecValues returns the Codec closed set as wire strings (PCMU, PCMA),

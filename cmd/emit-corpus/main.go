@@ -69,13 +69,13 @@ var corpus = []entry{
 
 	// ---- connect ------------------------------------------------------------
 	{"connect.final_true", func() *swaig.FunctionResult {
-		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})
+		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: ptrBool(true)})
 	}},
 	{"connect.final_false", func() *swaig.FunctionResult {
-		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: false})
+		return fr("").Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: ptrBool(false)})
 	}},
 	{"connect.from_addr", func() *swaig.FunctionResult {
-		return fr("").Connect(swaig.ConnectOptions{Destination: "support@example.com", Final: false, From: "+15559876543"})
+		return fr("").Connect(swaig.ConnectOptions{Destination: "support@example.com", Final: ptrBool(false), From: "+15559876543"})
 	}},
 
 	// ---- swml_transfer ------------------------------------------------------
@@ -88,10 +88,10 @@ var corpus = []entry{
 
 	// ---- simple call-control actions ---------------------------------------
 	{"hangup", func() *swaig.FunctionResult { return fr("").Hangup() }},
-	{"hold.default", func() *swaig.FunctionResult { return fr("").Hold(300) }},
-	{"hold.value", func() *swaig.FunctionResult { return fr("").Hold(120) }},
-	{"hold.clamp_high", func() *swaig.FunctionResult { return fr("").Hold(5000) }},
-	{"hold.clamp_low", func() *swaig.FunctionResult { return fr("").Hold(-5) }},
+	{"hold.default", func() *swaig.FunctionResult { return fr("").Hold(swaig.HoldOptions{}) }},
+	{"hold.value", func() *swaig.FunctionResult { return fr("").Hold(swaig.HoldOptions{Timeout: ptr(120)}) }},
+	{"hold.clamp_high", func() *swaig.FunctionResult { return fr("").Hold(swaig.HoldOptions{Timeout: ptr(5000)}) }},
+	{"hold.clamp_low", func() *swaig.FunctionResult { return fr("").Hold(swaig.HoldOptions{Timeout: ptr(-5)}) }},
 	{"stop", func() *swaig.FunctionResult { return fr("").Stop() }},
 	{"say", func() *swaig.FunctionResult { return fr("").Say("Please hold while I connect you.") }},
 
@@ -235,8 +235,8 @@ var corpus = []entry{
 	{"tap.speak_pcma", func() *swaig.FunctionResult {
 		return fr("").Tap("ws://ex.com/tap", "", swaig.TapDirectionSpeak, swaig.CodecPCMA, 20, "")
 	}},
-	{"tap.hear_pcmu", func() *swaig.FunctionResult {
-		return fr("").Tap("wss://ex.com/tap", "", swaig.TapDirectionHear, swaig.CodecPCMU, 20, "")
+	{"tap.listen_pcmu", func() *swaig.FunctionResult {
+		return fr("").Tap("wss://ex.com/tap", "", swaig.TapDirectionListen, swaig.CodecPCMU, 20, "")
 	}},
 	{"tap.both_full", func() *swaig.FunctionResult {
 		return fr("").Tap("rtp://10.0.0.1:5004", "tap1", swaig.TapDirectionBoth, swaig.CodecPCMA, 40, "https://ex.com/tapstatus")
@@ -343,7 +343,46 @@ var corpus = []entry{
 	{"execute_swml.json_string", func() *swaig.FunctionResult {
 		return fr("").ExecuteSwml(`{"version": "1.0.0", "sections": {"main": [{"hangup": {}}]}}`, false)
 	}},
+
+	// ---- structured tool response (tool_result / tool_prompt) --------------
+	{"tool_response.ctor", func() *swaig.FunctionResult {
+		return fr("").SetToolResponse(swaig.ToolResponseOptions{
+			ToolResult: ptr("Order 1042 placed."), ToolPrompt: ptr("Tell the caller their order number."),
+		})
+	}},
+	{"tool_response.set", func() *swaig.FunctionResult {
+		return fr("").SetToolResponse(swaig.ToolResponseOptions{
+			ToolResult: ptr("Balance is $12.50."), ToolPrompt: ptr("Read the balance to the caller."),
+		})
+	}},
+	{"tool_response.result_only", func() *swaig.FunctionResult {
+		return fr("").SetToolResponse(swaig.ToolResponseOptions{ToolResult: ptr("Saved.")})
+	}},
+
+	// ---- hold with a prompt and step routing --------------------------------
+	{"hold.prompt", func() *swaig.FunctionResult {
+		return fr("").Hold(swaig.HoldOptions{Prompt: "Please hold while I check."})
+	}},
+	{"hold.routing", func() *swaig.FunctionResult {
+		return fr("").Hold(swaig.HoldOptions{
+			Prompt: "One moment.", Timeout: ptr(60), Step: ptr("resume"), TimeoutStep: ptr("timed_out"),
+		})
+	}},
+
+	// ---- RPC global data ----------------------------------------------------
+	{"rpc_ai_message.global_data", func() *swaig.FunctionResult {
+		return fr("").RPCAiMessage("call-abc", "The caller is back.", "", map[string]any{"status": "returned"})
+	}},
+	{"rpc_ai_message.data_only", func() *swaig.FunctionResult {
+		return fr("").RPCAiMessage("call-abc", "", "", map[string]any{"order_id": "1042"})
+	}},
+	{"rpc_ai_global_data", func() *swaig.FunctionResult {
+		return fr("").RPCAiGlobalData("call-abc", map[string]any{"order_id": "1042", "paid": true})
+	}},
 }
+
+// ptr returns a pointer to v (optional options-struct fields).
+func ptr[T any](v T) *T { return &v }
 
 func main() {
 	out := make(map[string]any, len(corpus))

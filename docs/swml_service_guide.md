@@ -59,7 +59,7 @@ func main() {
 	)
 
 	// Build the SWML document with typed verb methods.
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 
 	greeting := "say:Hello, thank you for calling our service."
 	svc.Play(swml.PlayOptions{URL: &greeting})
@@ -289,7 +289,7 @@ import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 func buildDocument(svc *swml.Service, requestData map[string]any) {
 	// Reset the document to start fresh.
 	svc.ResetDocument()
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 
 	// Add custom verbs based on the request data.
 	if callerType, _ := requestData["caller_type"].(string); callerType == "vip" {
@@ -318,7 +318,7 @@ You can use the `RegisterRoutingCallback` method to register a function that wil
 ```go
 // A RoutingCallback inspects the body and headers and returns a route to
 // redirect to (*string), or nil to process the request normally.
-svc.RegisterRoutingCallback("/customer", func(body map[string]any, headers map[string]any) *string {
+svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 	// Example: route based on a field in the request body.
 	if customerID, ok := body["customer_id"].(string); ok {
 		route := "/customer/" + customerID
@@ -326,7 +326,7 @@ svc.RegisterRoutingCallback("/customer", func(body map[string]any, headers map[s
 	}
 	// Process the request normally.
 	return nil
-})
+}, "/customer")
 ```
 
 ### How Routing Works
@@ -345,7 +345,7 @@ document. Each endpoint can be a separate `swml.Service` mounted on its own rout
 to a distinct URL that serves the appropriate SWML:
 
 ```go
-svc.RegisterRoutingCallback("/dispatch", func(body map[string]any, headers map[string]any) *string {
+svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 	// Redirect to a dedicated endpoint based on the request.
 	if _, ok := body["customer_id"]; ok {
 		route := "/customer"
@@ -357,7 +357,7 @@ svc.RegisterRoutingCallback("/dispatch", func(body map[string]any, headers map[s
 	}
 	// No redirect — serve the default document.
 	return nil
-})
+}, "/dispatch")
 ```
 
 ### Example: Multi-Section Service
@@ -379,13 +379,13 @@ func main() {
 	)
 
 	// Build the main (default) document.
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 	greeting := "say:Hello from the main service!"
 	svc.Play(swml.PlayOptions{URL: &greeting})
 	svc.Hangup(nil)
 
 	// Register a routing callback at /dispatch that redirects based on the body.
-	svc.RegisterRoutingCallback("/dispatch", func(body map[string]any, headers map[string]any) *string {
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 		if customerID, ok := body["customer_id"].(string); ok {
 			// In a real implementation, redirect to a customer-specific endpoint.
 			svc.Logger.Info("routing request for customer ID: %s", customerID)
@@ -399,7 +399,7 @@ func main() {
 		}
 		// No redirect — serve the default document.
 		return nil
-	})
+	}, "/dispatch")
 
 	if err := svc.Serve(); err != nil {
 		panic(err)
@@ -510,7 +510,7 @@ func buildVoicemailDocument(svc *swml.Service) {
 	svc.ResetDocument()
 
 	// Answer the call.
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 
 	// Play the greeting.
 	greeting := "say:Hello, you've reached the voicemail service. Please leave a message after the beep."
@@ -570,7 +570,7 @@ func buildCallRouterDocument(svc *swml.Service, requestData map[string]any) {
 
 	// Create a new document.
 	svc.ResetDocument()
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 
 	// Get routing parameters.
 	department, _ := requestData["department"].(string)

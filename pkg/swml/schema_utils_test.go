@@ -14,7 +14,7 @@ import (
 )
 
 func TestSchemaUtils_DefaultLoad(t *testing.T) {
-	su := NewSchemaUtils("", true)
+	su := NewSchemaUtils()
 	if su == nil {
 		t.Fatal("NewSchemaUtils returned nil")
 	}
@@ -32,7 +32,7 @@ func TestSchemaUtils_DefaultLoad(t *testing.T) {
 }
 
 func TestSchemaUtils_DisabledValidation(t *testing.T) {
-	su := NewSchemaUtils("", false)
+	su := NewSchemaUtils(WithSchemaUtilsValidation(false))
 	if su == nil {
 		t.Fatal("NewSchemaUtils returned nil")
 	}
@@ -48,7 +48,7 @@ func TestSchemaUtils_DisabledValidation(t *testing.T) {
 
 func TestSchemaUtils_EnvSkipDisablesValidation(t *testing.T) {
 	t.Setenv("SWML_SKIP_SCHEMA_VALIDATION", "1")
-	su := NewSchemaUtils("", true)
+	su := NewSchemaUtils()
 	if su.FullValidationAvailable() {
 		t.Error("expected FullValidationAvailable=false when env var set")
 	}
@@ -156,7 +156,7 @@ func TestSchemaUtils_ValidateDocument_ValidatorWired(t *testing.T) {
 	// v6, Draft 2020-12) mirroring Python's jsonschema-rs. A valid document
 	// validates OK; a document with a misshapen verb fails — matching Python's
 	// validate_document contract.
-	su := NewSchemaUtils("", true)
+	su := NewSchemaUtils()
 	if !su.FullValidationAvailable() {
 		t.Fatal("expected the full validator to be wired when schema_validation=true")
 	}
@@ -184,7 +184,7 @@ func TestSchemaUtils_ValidateDocument_NoFullValidator(t *testing.T) {
 	// When schema validation is DISABLED, no full validator is built, so
 	// validate_document returns (false, ["Schema validator not initialized"])
 	// — the same contract as Python when no validator is available.
-	su := NewSchemaUtils("", false)
+	su := NewSchemaUtils(WithSchemaUtilsValidation(false))
 	res := su.ValidateDocument(map[string]any{
 		"version":  "1.0.0",
 		"sections": map[string]any{"main": []any{}},
@@ -242,7 +242,7 @@ func TestSchemaUtils_LoadSchemaFromExplicitPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = tmp.Close()
-	su := NewSchemaUtils(tmp.Name(), true)
+	su := NewSchemaUtils(WithSchemaUtilsPath(tmp.Name()))
 	if len(su.GetAllVerbNames()) == 0 {
 		t.Error("expected verbs from file-loaded schema")
 	}

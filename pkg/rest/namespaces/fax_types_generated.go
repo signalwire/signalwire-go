@@ -35,11 +35,16 @@ type FaxLog struct {
 }
 
 type FaxLogShowStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FaxTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type FaxLogsListStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FaxTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type FaxLogListResponse struct {
+	Links LogPaginationResponse `json:"links,omitempty"`
+	Data  []FaxLog              `json:"data,omitempty"`
 }
 
 type LogResponse struct {
@@ -59,4 +64,12 @@ type LogResponse struct {
 	CreatedAt     string         `json:"created_at,omitempty"`
 	ErrorCode     any            `json:"error_code,omitempty"`
 	ErrorMessage  any            `json:"error_message,omitempty"`
+}
+
+type FaxTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
 }

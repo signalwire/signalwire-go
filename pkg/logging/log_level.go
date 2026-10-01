@@ -16,14 +16,14 @@ package logging
 //	server.WithLogLevel("debug")                 // bare string literal still compiles
 //
 // LogLevel is a string subtype, so its value is byte-identical to the bare
-// string the reference uses — ParseLevel("debug") and ParseLevel(LevelNameDebug)
-// resolve to the same Level, preserving compatibility with the Python reference whose
-// log_level is a plain str (signalwire/core/logging_config.py).
+// string it wraps — ParseLevel("debug") and ParseLevel(LevelNameDebug) resolve
+// to the same Level, and a plain string literal is accepted everywhere a
+// LogLevel is.
 type LogLevel string
 
 // Canonical log-level names. These are exactly the strings ParseLevel maps to a
 // Level; the values must stay in lockstep with the switch in ParseLevel. The
-// set mirrors the Python reference's documented SIGNALWIRE_LOG_LEVEL vocabulary
+// set is the documented SIGNALWIRE_LOG_LEVEL vocabulary
 // (debug, info, warning, error) plus the Go-side aliases ParseLevel also honors
 // (warn, off).
 const (

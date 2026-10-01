@@ -82,7 +82,6 @@ signalwire.core.auth_handler.AuthHandler.get_fastapi_dependency: impossible: Fas
 signalwire.core.auth_handler.AuthHandler.verify_api_key: impossible: Python auth-helper method; Go verifies API keys inside withAuth middleware, no standalone class
 signalwire.core.auth_handler.AuthHandler.verify_bearer_token: impossible: Python auth-helper method; Go verifies bearer tokens inside withAuth middleware, no standalone class
 signalwire.core.logging_config.configure_logging: impossible: wraps the Python logging library; Go uses pkg/logging (structured) with equivalent behaviour — no logging-lib configuration surface
-signalwire.core.logging_config.strip_control_chars: impossible: Python logging-formatter helper; Go pkg/logging sanitises inline with no exported free function
 
 # --- Bedrock prefab agent ---
 
@@ -133,6 +132,11 @@ signalwire.relay.message.Message.__repr__: impossible: Python __repr__ object-pr
 # --- AI-Chat async context-manager protocol (signalwire.ai_chat.client) ---
 signalwire.ai_chat.client.AIChatClient.__aenter__: impossible: Python async context-manager protocol (__aenter__) has no Go equivalent; the Go aichat.Client wraps a stateless, connection-pooled *http.Client (nothing to enter) and the TS OO cousin omits it identically
 signalwire.ai_chat.client.AIChatClient.__aexit__: impossible: Python async context-manager protocol (__aexit__) has no Go equivalent; the Go aichat.Client has no owned session to tear down on exit, mirroring RelayClient.__aexit__
+
+# --- Synchronous-handler offload (signalwire.core._sync_handlers) ---
+signalwire.core._sync_handlers.is_async_callable: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool so they don't block the one shared asyncio event loop, and copies the contextvars they set back to the request; Go's net/http serves every request on its own goroutine (no shared loop to offload from), has no sync/async callable split, and passes context.Context explicitly instead of contextvars, so there is nothing for this helper to do (owner approval 2026-10-01)
+signalwire.core._sync_handlers.run_sync_handler: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool so they don't block the one shared asyncio event loop, and copies the contextvars they set back to the request; Go's net/http serves every request on its own goroutine (no shared loop to offload from), has no sync/async callable split, and passes context.Context explicitly instead of contextvars, so there is nothing for this helper to do (owner approval 2026-10-01)
+signalwire.core._sync_handlers.sync_handlers_inline: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool so they don't block the one shared asyncio event loop, and copies the contextvars they set back to the request; Go's net/http serves every request on its own goroutine (no shared loop to offload from), has no sync/async callable split, and passes context.Context explicitly instead of contextvars, so there is nothing for this helper to do (owner approval 2026-10-01)
 
 # --- REST namespace omissions ---
 

@@ -32,6 +32,10 @@ func NewWikipediaSearch(params map[string]any) skills.SkillBase {
 	}
 }
 
+// Setup reads "num_results", clamping any value below 1 up to 1, and the
+// optional "no_results_message", whose %s is filled with the query. It always
+// succeeds: the skill needs no credential, since the Wikipedia API is
+// unauthenticated.
 func (s *WikipediaSearchSkill) Setup() bool {
 	s.numResults = s.GetParamInt("num_results", 1)
 	if s.numResults < 1 {
@@ -43,6 +47,8 @@ func (s *WikipediaSearchSkill) Setup() bool {
 	return true
 }
 
+// GetParameterSchema extends the common skill parameters with "num_results"
+// (1-5, default 1) and "no_results_message".
 func (s *WikipediaSearchSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["num_results"] = map[string]any{
@@ -62,6 +68,16 @@ func (s *WikipediaSearchSkill) GetParameterSchema() map[string]map[string]any {
 	return schema
 }
 
+// RegisterTools returns the single "search_wiki" tool, taking a "query" string;
+// no parameter is marked required, matching the reference
+// (wikipedia_search/skill.py:87). The tool name is fixed, so this skill cannot
+// be loaded twice on one agent. The handler runs locally in Go and makes two
+// unauthenticated MediaWiki API calls per invocation — a list=search for up to
+// num_results titles, then a prop=extracts intro fetch per title — with a 10s
+// client timeout; a title whose extract fetch fails is skipped rather than
+// failing the call. The API host comes from WIKIPEDIA_BASE_URL when set (the
+// dispatch audit points it at a loopback fixture), else
+// https://en.wikipedia.org.
 func (s *WikipediaSearchSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
@@ -184,6 +200,9 @@ func (s *WikipediaSearchSkill) handleSearch(args map[string]any, _ map[string]an
 	return swaig.NewFunctionResult(strings.Join(articles, "\n\n"+strings.Repeat("=", 50)+"\n\n"))
 }
 
+// GetPromptSections returns one POM section naming search_wiki and the
+// configured result count, steering the agent to use it for factual,
+// encyclopedic questions.
 func (s *WikipediaSearchSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{

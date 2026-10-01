@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Call queues, recording review, and MFA verification.
 //
@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -36,12 +37,15 @@ func main() {
 	var queueID string
 	queue, err := client.Queues.Create(context.Background(), map[string]any{"name": "Support Queue", "max_size": 50})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Queue creation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
-	} else {
-		queueID = queue["id"].(string)
+	} else if id, ok := queue["id"].(string); ok {
+		queueID = id
 		fmt.Printf("  Created queue: %s\n", queueID)
+	} else {
+		fmt.Println("  unexpected response: no string id field")
 	}
 
 	// 2. List queues
@@ -83,7 +87,8 @@ func main() {
 		fmt.Println("\nListing queue members...")
 		members, err := client.Queues.ListMembers(context.Background(), queueID, nil)
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  Member ops failed (expected if queue empty): %d\n", restErr.StatusCode)
 			}
 		} else {
@@ -121,8 +126,10 @@ func main() {
 		if first, ok := recordings.Data[0].(map[string]any); ok {
 			if id, ok := first["id"].(string); ok {
 				recDetail, err := client.Recordings.Get(context.Background(), id, nil)
-				if err == nil {
-					fmt.Printf("  Recording: %vs, %v\n", recDetail["duration"], recDetail["format"])
+				if err == nil && recDetail != nil {
+					if m, ok := (*recDetail).(map[string]any); ok {
+						fmt.Printf("  Recording: %vs, %v\n", m["duration"], m["format"])
+					}
 				}
 			}
 		}
@@ -140,7 +147,8 @@ func main() {
 		"token_length": 6,
 	}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  MFA SMS failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -157,7 +165,8 @@ func main() {
 		"token_length": 6,
 	}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  MFA call failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -169,7 +178,8 @@ func main() {
 		fmt.Println("\nVerifying MFA token...")
 		verify, err := client.MFA.Verify(context.Background(), requestID, namespaces.MFANamespaceVerifyParams{Extras: map[string]any{"token": "123456"}})
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  Verify failed (expected in demo): %d\n", restErr.StatusCode)
 			}
 		} else {
@@ -180,7 +190,10 @@ func main() {
 	// 10. Clean up
 	fmt.Println("\nCleaning up...")
 	if queueID != "" {
-		client.Queues.Delete(context.Background(), queueID)
-		fmt.Printf("  Deleted queue %s\n", queueID)
+		if _, err := client.Queues.Delete(context.Background(), queueID); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Printf("  Deleted queue %s\n", queueID)
+		}
 	}
 }

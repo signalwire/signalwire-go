@@ -76,13 +76,12 @@ type SignalWireRestError struct {
 
 // Unwrap returns the underlying transport error (or nil for an HTTP-status error),
 // so errors.Is / errors.As see through a transport-wrapped *SignalWireRestError to
-// the original cause (e.g. context.Canceled, a *net.OpError). This preserves the
-// error chain the way Python's “raise SignalWireRestTransportError(...) from exc“
-// does, while still presenting the typed REST error family at the top.
+// the original cause (e.g. context.Canceled, a *net.OpError). The error CHAIN is
+// preserved while the typed REST error family still presents at the top.
 func (e *SignalWireRestError) Unwrap() error { return e.cause }
 
 // Error implements the error interface. When a platform RequestID was captured it
-// is appended for observability, matching the Python reference (plan 6.6).
+// is appended for observability (plan 6.6).
 func (e *SignalWireRestError) Error() string {
 	var msg string
 	if e.Transport {
@@ -116,21 +115,28 @@ func extractRequestID(h http.Header) string {
 }
 
 // NewSignalWireRestError constructs a SignalWireRestError for an HTTP-status
-// failure, substituting "GET" as the method when method is empty — matches
-// Python's default. headers is the response header map (may be nil — e.g. a
-// hand-built error); when present the platform request-id is extracted from it
-// (plan 6.6 error-observability, mirroring the reference's optional headers param).
-func NewSignalWireRestError(statusCode int, body, url, method string, headers http.Header) *SignalWireRestError {
+// failure, substituting "GET" as the method when method is empty.
+//
+// headers is OPTIONAL, matching the reference (`headers: dict[str, str] | None =
+// None`): omit it entirely for a hand-built error. When supplied, the platform
+// request-id is extracted from it (plan 6.6 error-observability). Only the first
+// header map is used; passing more than one is a caller error and the extras are
+// ignored.
+func NewSignalWireRestError(statusCode int, body, url, method string, headers ...http.Header) *SignalWireRestError {
 	if method == "" {
 		method = "GET"
+	}
+	var hdr http.Header
+	if len(headers) > 0 {
+		hdr = headers[0]
 	}
 	return &SignalWireRestError{
 		StatusCode: statusCode,
 		Body:       body,
 		URL:        url,
 		Method:     method,
-		Headers:    headers,
-		RequestID:  extractRequestID(headers),
+		Headers:    hdr,
+		RequestID:  extractRequestID(hdr),
 	}
 }
 
@@ -255,57 +261,116 @@ func (c *HTTPClient) SetBaseURL(url string) {
 }
 
 // Get performs an HTTP GET request. params are added as query-string
-// parameters.
-func (c *HTTPClient) Get(path string, params map[string]string, opts *RequestOptions) (map[string]any, error) {
-	return c.doRequestContextOpts(context.Background(), "GET", path, nil, params, opts)
+// parameters. An optional headers map is sent on this request only (over the
+// default headers).
+func (c *HTTPClient) Get(path string, params map[string]string, opts *RequestOptions, headers ...map[string]string) (map[string]any, error) {
+	m, _, err := c.doRequestContextOpts(context.Background(), "GET", path, nil, params, opts, mergeHeaders(headers), responseJSON)
+	return m, err
+}
+
+// GetText performs an HTTP GET whose success body is a non-JSON media type
+// (e.g. text/csv) and returns it as text. Pass the media type's Accept in
+// headers; it replaces the default application/json Accept.
+func (c *HTTPClient) GetText(path string, params map[string]string, opts *RequestOptions, headers ...map[string]string) (string, error) {
+	_, text, err := c.doRequestContextOpts(context.Background(), "GET", path, nil, params, opts, mergeHeaders(headers), responseText)
+	return text, err
+}
+
+// GetRedirectLocation performs an HTTP GET whose success IS a redirect and
+// returns its Location. The redirect is not followed: the endpoint's answer is
+// the URL of the resource (e.g. a signed download URL), which the caller fetches
+// with any HTTP client. An error status, or a success that is not a redirect,
+// is returned as a *SignalWireRestError.
+func (c *HTTPClient) GetRedirectLocation(path string, params map[string]string, opts *RequestOptions) (string, error) {
+	_, loc, err := c.doRequestContextOpts(context.Background(), "GET", path, nil, params, opts, nil, responseRedirect)
+	return loc, err
 }
 
 // Post performs an HTTP POST request with a JSON body. Optional params are
-// appended to the URL as query-string parameters.
-func (c *HTTPClient) Post(path string, body map[string]any, params map[string]string, opts *RequestOptions) (map[string]any, error) {
-	return c.doRequestContextOpts(context.Background(), "POST", path, body, params, opts)
+// appended to the URL as query-string parameters. An optional headers map is
+// sent on this request only (e.g. an Idempotency-Key).
+func (c *HTTPClient) Post(path string, body map[string]any, params map[string]string, opts *RequestOptions, headers ...map[string]string) (map[string]any, error) {
+	m, _, err := c.doRequestContextOpts(context.Background(), "POST", path, body, params, opts, mergeHeaders(headers), responseJSON)
+	return m, err
 }
 
 // Put performs an HTTP PUT request with a JSON body.
 func (c *HTTPClient) Put(path string, body map[string]any, opts *RequestOptions) (map[string]any, error) {
-	return c.doRequestContextOpts(context.Background(), "PUT", path, body, nil, opts)
+	m, _, err := c.doRequestContextOpts(context.Background(), "PUT", path, body, nil, opts, nil, responseJSON)
+	return m, err
 }
 
 // Patch performs an HTTP PATCH request with a JSON body.
 func (c *HTTPClient) Patch(path string, body map[string]any, opts *RequestOptions) (map[string]any, error) {
-	return c.doRequestContextOpts(context.Background(), "PATCH", path, body, nil, opts)
+	m, _, err := c.doRequestContextOpts(context.Background(), "PATCH", path, body, nil, opts, nil, responseJSON)
+	return m, err
 }
 
 // Delete performs an HTTP DELETE request. It returns the parsed response body
 // (or an empty map for 204 No Content) and any error.
 func (c *HTTPClient) Delete(path string, opts *RequestOptions) (map[string]any, error) {
-	return c.doRequestContextOpts(context.Background(), "DELETE", path, nil, nil, opts)
+	m, _, err := c.doRequestContextOpts(context.Background(), "DELETE", path, nil, nil, opts, nil, responseJSON)
+	return m, err
 }
 
 // GetContext is the context-aware variant of Get: the request is cancelled when
 // ctx is cancelled or its deadline passes.
 func (c *HTTPClient) GetContext(ctx context.Context, path string, params map[string]string) (map[string]any, error) {
-	return c.doRequestContextOpts(ctx, "GET", path, nil, params, nil)
+	m, _, err := c.doRequestContextOpts(ctx, "GET", path, nil, params, nil, nil, responseJSON)
+	return m, err
 }
 
 // PostContext is the context-aware variant of Post.
 func (c *HTTPClient) PostContext(ctx context.Context, path string, body map[string]any, params map[string]string) (map[string]any, error) {
-	return c.doRequestContextOpts(ctx, "POST", path, body, params, nil)
+	m, _, err := c.doRequestContextOpts(ctx, "POST", path, body, params, nil, nil, responseJSON)
+	return m, err
 }
 
 // PutContext is the context-aware variant of Put.
 func (c *HTTPClient) PutContext(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
-	return c.doRequestContextOpts(ctx, "PUT", path, body, nil, nil)
+	m, _, err := c.doRequestContextOpts(ctx, "PUT", path, body, nil, nil, nil, responseJSON)
+	return m, err
 }
 
 // PatchContext is the context-aware variant of Patch.
 func (c *HTTPClient) PatchContext(ctx context.Context, path string, body map[string]any) (map[string]any, error) {
-	return c.doRequestContextOpts(ctx, "PATCH", path, body, nil, nil)
+	m, _, err := c.doRequestContextOpts(ctx, "PATCH", path, body, nil, nil, nil, responseJSON)
+	return m, err
 }
 
 // DeleteContext is the context-aware variant of Delete.
 func (c *HTTPClient) DeleteContext(ctx context.Context, path string) (map[string]any, error) {
-	return c.doRequestContextOpts(ctx, "DELETE", path, nil, nil, nil)
+	m, _, err := c.doRequestContextOpts(ctx, "DELETE", path, nil, nil, nil, nil, responseJSON)
+	return m, err
+}
+
+// responseKind selects how a successful response is read.
+type responseKind int
+
+const (
+	// responseJSON decodes the JSON body (the default).
+	responseJSON responseKind = iota
+	// responseText returns the body as text (a non-JSON media type such as
+	// text/csv).
+	responseText
+	// responseRedirect does NOT follow redirects; the 3xx Location is the answer
+	// (an endpoint whose success IS a redirect to a resource's URL).
+	responseRedirect
+)
+
+// mergeHeaders folds the optional variadic headers maps into one (later maps
+// win), or nil when none are given.
+func mergeHeaders(hs []map[string]string) map[string]string {
+	var out map[string]string
+	for _, h := range hs {
+		for k, v := range h {
+			if out == nil {
+				out = map[string]string{}
+			}
+			out[k] = v
+		}
+	}
+	return out
 }
 
 // doRequestContext is the shared request execution method. It threads the
@@ -323,7 +388,11 @@ func (c *HTTPClient) DeleteContext(ctx context.Context, path string) (map[string
 // each attempt (a cancelled ctx raises the typed transport error without a
 // send) and is also threaded onto the request so it cuts an in-flight send.
 // A per-attempt Timeout is applied via context.WithTimeout.
-func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path string, body any, params map[string]string, perRequest *RequestOptions) (map[string]any, error) {
+//
+// headers are sent on this request only (over the defaults); kind selects how a
+// success is read. The decoded JSON map is returned for responseJSON, the text
+// body / redirect Location string for responseText / responseRedirect.
+func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path string, body any, params map[string]string, perRequest *RequestOptions, headers map[string]string, kind responseKind) (map[string]any, string, error) {
 	opts := Resolve(c.requestOptions, perRequest)
 	// AbortSignal (the RequestOptions cancellation primitive) IS a
 	// context.Context. It must COMPOSE with the caller-supplied ctx (the
@@ -339,7 +408,8 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 		parent, cancel = context.WithCancel(ctx)
 		defer cancel()
 		// Cancel the derived context when the abort_signal fires (AfterFunc runs
-		// immediately if it is already cancelled). ctx cancelling still cancels
+		// in its own goroutine, even for an already-cancelled signal — hence the
+		// direct check in the loop below). ctx cancelling still cancels
 		// `parent` directly (it is the parent), so BOTH sources compose.
 		stop := context.AfterFunc(opts.abortSignal, cancel)
 		defer stop()
@@ -351,13 +421,23 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 		// Cooperative cancellation BEFORE the attempt: a cancelled parent (the
 		// AbortSignal or caller ctx) surfaces as the typed transport error with
 		// NO send, mirroring the Python reference's pre-attempt abort check.
+		// The abort_signal is checked DIRECTLY as well as through `parent`:
+		// context.AfterFunc runs its callback in its own goroutine even when the
+		// signal is already cancelled, so for a pre-cancelled signal `parent` may
+		// not be cancelled yet when the first attempt starts — the request would
+		// race out to the server.
+		if opts.abortSignal != nil {
+			if err := opts.abortSignal.Err(); err != nil {
+				return nil, "", NewSignalWireRestTransportError(err, "request cancelled by abort_signal", c.buildURL(path, params), method)
+			}
+		}
 		if err := parent.Err(); err != nil {
-			return nil, NewSignalWireRestTransportError(err, "request cancelled by abort_signal", c.buildURL(path, params), method)
+			return nil, "", NewSignalWireRestTransportError(err, "request cancelled by abort_signal", c.buildURL(path, params), method)
 		}
 
-		result, status, retryAfter, err := c.doAttempt(parent, method, path, body, params, opts.timeout)
+		result, text, status, retryAfter, err := c.doAttempt(parent, method, path, body, params, opts.timeout, headers, kind)
 		if err == nil {
-			return result, nil
+			return result, text, nil
 		}
 
 		var restErr *SignalWireRestError
@@ -379,11 +459,11 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 			}
 			if !c.sleepOrCancel(parent, delay) {
 				// Cancelled during backoff -> typed transport error.
-				return nil, NewSignalWireRestTransportError(parent.Err(), "request cancelled by abort_signal", c.buildURL(path, params), method)
+				return nil, "", NewSignalWireRestTransportError(parent.Err(), "request cancelled by abort_signal", c.buildURL(path, params), method)
 			}
 			continue
 		}
-		return nil, err
+		return nil, "", err
 	}
 }
 
@@ -424,7 +504,12 @@ func (c *HTTPClient) sleepOrCancel(ctx context.Context, delaySeconds float64) bo
 // the HTTP status (0 for a transport failure) and the parsed Retry-After delta
 // in seconds (-1 when absent) so the retry loop can honor it. timeoutSeconds
 // caps this single attempt via context.WithTimeout.
-func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body any, params map[string]string, timeoutSeconds float64) (map[string]any, int, float64, error) {
+//
+// headers override the defaults for this request; kind selects how a success
+// is read (see responseKind) and, for responseRedirect, disables redirect
+// following. The text return carries the body (responseText) or the Location
+// (responseRedirect).
+func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body any, params map[string]string, timeoutSeconds float64, headers map[string]string, kind responseKind) (map[string]any, string, int, float64, error) {
 	reqURL := c.buildURL(path, params)
 
 	// Encode body
@@ -432,7 +517,7 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			return nil, 0, -1, fmt.Errorf("json marshal: %w", err)
+			return nil, "", 0, -1, fmt.Errorf("json marshal: %w", err)
 		}
 		bodyReader = bytes.NewReader(data)
 	}
@@ -451,7 +536,7 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 
 	req, err := http.NewRequestWithContext(attemptCtx, method, reqURL, bodyReader)
 	if err != nil {
-		return nil, 0, -1, fmt.Errorf("new request: %w", err)
+		return nil, "", 0, -1, fmt.Errorf("new request: %w", err)
 	}
 
 	// Headers
@@ -459,8 +544,18 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", userAgent)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
-	resp, err := c.httpClient.Do(req)
+	hc := c.httpClient
+	if kind == responseRedirect {
+		// Do not follow: the redirect itself is the answer.
+		noFollow := *c.httpClient
+		noFollow.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		hc = &noFollow
+	}
+	resp, err := hc.Do(req)
 	if err != nil {
 		// Transport failure (connection refused / DNS / reset / TLS / context
 		// cancellation / per-attempt timeout): the request never produced a
@@ -470,22 +565,22 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 		// (e.g. context.Canceled / context.DeadlineExceeded) still sees through it.
 		// url = the FULL request URL (scheme+host+path+query, plan D1), so a caller
 		// logging error.URL can replay the exact request.
-		return nil, 0, -1, NewSignalWireRestTransportError(err, "", reqURL, method)
+		return nil, "", 0, -1, NewSignalWireRestTransportError(err, "", reqURL, method)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, 0, -1, fmt.Errorf("read body: %w", err)
+		return nil, "", 0, -1, fmt.Errorf("read body: %w", err)
 	}
 
-	// Non-2xx error
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// URL = the FULL request URL (scheme+host+path+query, plan D1), not the
-		// bare path — a caller logging error.URL can replay the exact request.
-		// Headers + RequestID capture the response headers + platform request-id
-		// for client-side observability (plan 6.6; no wire change).
-		return nil, resp.StatusCode, retryAfterSeconds(resp), &SignalWireRestError{
+	if kind == responseRedirect && resp.StatusCode < 400 {
+		// The success IS a redirect: return its Location without following it.
+		// A success that is not the redirect the endpoint answers with is an error.
+		if loc := resp.Header.Get("Location"); resp.StatusCode >= 300 && loc != "" {
+			return nil, loc, resp.StatusCode, -1, nil
+		}
+		return nil, "", resp.StatusCode, -1, &SignalWireRestError{
 			StatusCode: resp.StatusCode,
 			Body:       string(respBody),
 			URL:        reqURL,
@@ -495,9 +590,29 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 		}
 	}
 
+	// Non-2xx error
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// URL = the FULL request URL (scheme+host+path+query, plan D1), not the
+		// bare path — a caller logging error.URL can replay the exact request.
+		// Headers + RequestID capture the response headers + platform request-id
+		// for client-side observability (plan 6.6; no wire change).
+		return nil, "", resp.StatusCode, retryAfterSeconds(resp), &SignalWireRestError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+			URL:        reqURL,
+			Method:     method,
+			Headers:    resp.Header,
+			RequestID:  extractRequestID(resp.Header),
+		}
+	}
+
+	if kind == responseText {
+		return nil, string(respBody), resp.StatusCode, -1, nil
+	}
+
 	// 204 No Content or empty body
 	if resp.StatusCode == 204 || len(respBody) == 0 {
-		return map[string]any{}, resp.StatusCode, -1, nil
+		return map[string]any{}, "", resp.StatusCode, -1, nil
 	}
 
 	var result map[string]any
@@ -508,11 +623,11 @@ func (c *HTTPClient) doAttempt(ctx context.Context, method, path string, body an
 		// map[string]any shape.
 		var arr []any
 		if arrErr := json.Unmarshal(respBody, &arr); arrErr == nil {
-			return map[string]any{"data": arr}, resp.StatusCode, -1, nil
+			return map[string]any{"data": arr}, "", resp.StatusCode, -1, nil
 		}
-		return nil, 0, -1, fmt.Errorf("json unmarshal: %w", err)
+		return nil, "", 0, -1, fmt.Errorf("json unmarshal: %w", err)
 	}
-	return result, resp.StatusCode, -1, nil
+	return result, "", resp.StatusCode, -1, nil
 }
 
 // retryAfterSeconds parses a Retry-After response header in delta-seconds form,

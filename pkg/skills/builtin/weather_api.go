@@ -33,6 +33,8 @@ func NewWeatherAPI(params map[string]any) skills.SkillBase {
 	}
 }
 
+// RequiredEnvVars returns WEATHER_API_KEY, or nil when an "api_key" param was
+// supplied inline.
 func (s *WeatherAPISkill) RequiredEnvVars() []string {
 	// Only require env var if not provided in params
 	if s.Params != nil {
@@ -43,6 +45,12 @@ func (s *WeatherAPISkill) RequiredEnvVars() []string {
 	return []string{"WEATHER_API_KEY"}
 }
 
+// Setup resolves the WeatherAPI.com key (the "api_key" param, else
+// WEATHER_API_KEY), the tool name (default "get_weather") and the temperature
+// unit (default "fahrenheit"). It returns false — aborting the load — when the
+// key is empty or when temperature_unit is anything but "fahrenheit" or
+// "celsius"; an invalid unit is rejected rather than silently reset, matching
+// the reference's ValueError (skill.py:103-104).
 func (s *WeatherAPISkill) Setup() bool {
 	s.apiKey = s.GetParamString("api_key", os.Getenv("WEATHER_API_KEY"))
 	if s.apiKey == "" {
@@ -58,6 +66,17 @@ func (s *WeatherAPISkill) Setup() bool {
 	return true
 }
 
+// RegisterTools returns the single weather tool, taking a required "location"
+// string. Execution is primarily server-side via the SwaigFields data_map
+// webhook, which GETs /v1/current.json with the API key in the query string and
+// the location URL-encoded and lowercased by the platform's ${lc:enc:...}
+// expansion; the Go Handler is a local fallback for environments without the
+// platform-side DataMap. The configured temperature unit selects the temp_f /
+// feelslike_f or temp_c / feelslike_c response fields and the spoken unit name,
+// and the response template instructs the model to speak numbers in words for
+// clean TTS. The API host comes from WEATHER_API_BASE_URL when set (the
+// dispatch audit points it at a loopback fixture), else
+// https://api.weatherapi.com.
 func (s *WeatherAPISkill) RegisterTools() []skills.ToolRegistration {
 	// Determine temperature fields based on unit — mirrors Python get_tools() (skill.py:133-140).
 	tempField := "temp_f"
@@ -217,10 +236,13 @@ func (s *WeatherAPISkill) handleGetWeather(args map[string]any, _ map[string]any
 	return swaig.NewFunctionResult(response)
 }
 
+// GetHints returns speech-recognition hints for weather vocabulary.
 func (s *WeatherAPISkill) GetHints() []string {
 	return []string{"weather", "temperature", "forecast", "wind", "clouds"}
 }
 
+// GetPromptSections returns one POM section, naming the configured tool, that
+// covers the fields it reports: temperature, wind, cloud coverage and feels-like.
 func (s *WeatherAPISkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{
@@ -234,6 +256,9 @@ func (s *WeatherAPISkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetParameterSchema extends the common skill parameters with "api_key"
+// (required, hidden, sourced from WEATHER_API_KEY), the optional "tool_name",
+// and "temperature_unit" constrained to fahrenheit or celsius.
 func (s *WeatherAPISkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["api_key"] = map[string]any{

@@ -210,9 +210,9 @@ swaig.Codec: Go-only defined-string type (closed set of SWAIG-tap audio codecs: 
 swaig.JoinConferenceOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 swaig.PayOptions: Go-only options struct; encodes Python kwargs for the matching constructor
 swaig.RecordCallOptions: Go-only options struct; encodes Python kwargs for the matching constructor
-swaig.RecordDirection: Go-only defined-string type (closed set of record_call audio directions: speak/listen/both) + RecordDirection* typed constants; FunctionResult.RecordCall takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "both" string compiling — parity with the reference's str direction (validated valid_directions=["speak","listen","both"] at function_result.py:917). Wire-identical to string, so signature drift stays 0 (the union<class:swaig.RecordDirection,string> the enumerator emits for record_call's direction param absorbs against the reference's str). DISTINCT from swaig.TapDirection (tap uses "hear" where record_call uses "listen") — never unify the two.
+swaig.RecordDirection: Go-only defined-string type (closed set of record_call audio directions: speak/listen/both) + RecordDirection* typed constants; FunctionResult.RecordCall takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "both" string compiling — parity with the reference's str direction (validated valid_directions=["speak","listen","both"] at function_result.py:917). Wire-identical to string, so signature drift stays 0 (the union<class:swaig.RecordDirection,string> the enumerator emits for record_call's direction param absorbs against the reference's str). A separate type from swaig.TapDirection (one per verb; the two carry the same speak/listen/both wire set).
 swaig.RecordFormat: Go-only defined-string type (closed set of recording formats: mp3/wav/mp4) + Format* typed constants; FunctionResult.RecordCall (and the relay/agent WithRecordFormat options) take it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "wav" string compiling — parity with the reference's str format. Wire-identical to string, so signature drift stays 0 (the union<class:swaig.RecordFormat,string> the enumerator emits for record_call's format param absorbs against the reference's str).
-swaig.TapDirection: Go-only defined-string type (closed set of tap audio directions: speak/hear/both) + TapDirection* typed constants; FunctionResult.Tap takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "both" string compiling — parity with the reference's str direction (validated valid_directions=["speak","hear","both"] at function_result.py:1212). Wire-identical to string, so signature drift stays 0 (the union<class:swaig.TapDirection,string> the enumerator emits for tap's direction param absorbs against the reference's str). DISTINCT from swaig.RecordDirection (record_call uses "listen" where tap uses "hear") — never unify the two.
+swaig.TapDirection: Go-only defined-string type (closed set of tap audio directions: speak/listen/both) + TapDirection* typed constants; FunctionResult.Tap takes it for autocomplete + call-site typo checking, while Go's untyped-constant auto-conversion keeps a bare "both" string compiling — parity with the reference's str direction (validated valid_directions=["speak","listen","both"] at function_result.py tap()). Wire-identical to string, so signature drift stays 0 (the union<class:swaig.TapDirection,string> the enumerator emits for tap's direction param absorbs against the reference's str). A separate type from swaig.RecordDirection (one per verb; same wire set — "hear" is not a tap direction, the verb rejects it).
 
 # --- Tier-2 flagship: typed SWAIG tool-parameter builder (IDIOM_PASS_JOURNAL §4) ---
 # A fluent, type-safe builder over the SAME wire shape ToolDefinition.Parameters
@@ -303,12 +303,6 @@ swml.LoadSchemaFromFile: Go-only public function; no direct Python counterpart
 swml.NewAIVerbHandler: Go factory constructor for a port-only struct; Python equivalent does not exist
 swml.NewDocument: Go factory constructor for a port-only struct; Python equivalent does not exist
 swml.ValidateURL: Go-only public function; no direct Python counterpart
-
-# --- Go-only public Logger field auto-projected onto each struct that embeds it ---
-
-
-# --- Go-only fields on REST base resources (Python uses dynamic attribute lookup) ---
-signalwire.rest._base.BaseResource.http: Go's namespaces.Resource exposes a public ``http`` HTTPClient field; Python uses dynamic attribute lookup via __init__
 
 # --- Go projections of Python attributes the Python adapter drops from surface but keeps in signatures ---
 # Python's enumerate-surface omits these as instance properties; signatures keeps them.

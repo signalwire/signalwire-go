@@ -41,6 +41,7 @@ import (
 	"go/format"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -66,7 +67,11 @@ type specDoc struct {
 	rawPath       string // absolute path to the openapi.yaml (for schema re-reads)
 	serverPath    string // path portion of servers[0].url (e.g. "/api/relay/rest")
 	namespaceAttr string // whole-spec x-sdk-namespace.attr, "" if none
-	paths         []pathItem
+	// patOnly is true when the spec's root `security` accepts ONLY the Personal
+	// Access Token scheme (rest-apis/space): its resources are wired to the PAT
+	// HTTP client instead of the project-token one.
+	patOnly bool
+	paths   []pathItem
 	// opIndex maps operationId -> (verb, path) for path composition.
 	opIndex map[string]opInfo
 }
@@ -160,7 +165,7 @@ func rootOf(doc *yaml.Node) *yaml.Node {
 // ---------------------------------------------------------------------------
 
 func loadBases(psdk string) (map[string]*baseSpec, error) {
-	raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "x-sdk-bases.yaml"))
+	raw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "x-sdk-bases.yaml")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +190,7 @@ func loadBases(psdk string) (map[string]*baseSpec, error) {
 		out[name] = bs
 	}
 	// FabricResource is defined in the per-namespace fabric bases file; load it too.
-	fabRaw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "fabric", "x-sdk-bases.yaml"))
+	fabRaw, err := os.ReadFile(filepath.Join(psdk, "rest-apis", "fabric", "x-sdk-bases.yaml")) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err == nil {
 		var fdoc yaml.Node
 		if err := yaml.Unmarshal(fabRaw, &fdoc); err == nil {
@@ -246,7 +251,7 @@ func loadBases(psdk string) (map[string]*baseSpec, error) {
 
 func loadSpec(psdk, ns string) (*specDoc, error) {
 	rawPath := filepath.Join(psdk, "rest-apis", ns, "openapi.yaml")
-	raw, err := os.ReadFile(rawPath)
+	raw, err := os.ReadFile(rawPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 	if err != nil {
 		return nil, err
 	}
@@ -271,6 +276,23 @@ func loadSpec(psdk, ns string) (*specDoc, error) {
 	// whole-spec x-sdk-namespace.attr.
 	if nsNode := mapChild(root, "x-sdk-namespace"); nsNode != nil {
 		sd.namespaceAttr = scalarChild(nsNode, "attr")
+	}
+
+	// root security -> PAT-only spec (every requirement names only the PAT scheme).
+	if sec := mapChild(root, "security"); sec != nil && sec.Kind == yaml.SequenceNode && len(sec.Content) > 0 {
+		patOnly := true
+		for _, req := range sec.Content {
+			if req.Kind != yaml.MappingNode || len(req.Content) == 0 {
+				patOnly = false
+				break
+			}
+			for i := 0; i+1 < len(req.Content); i += 2 {
+				if req.Content[i].Value != patSecurityScheme {
+					patOnly = false
+				}
+			}
+		}
+		sd.patOnly = patOnly
 	}
 
 	// paths + operation index.
@@ -441,6 +463,24 @@ var goStructName = map[string]string{
 	"SipGateways":          "SIPGateways",
 	"SwmlScripts":          "SWMLScripts",
 	"SwmlWebhooks":         "SWMLWebhooks",
+	"AliasAddresses":       "AliasAddresses",
+	"SipAddresses":         "SIPAddresses",
+	"PhoneNumberAddresses": "PhoneNumberAddresses",
+	// message (whatsapp sub-namespace)
+	"WhatsappNumbers":    "WhatsappNumbers",
+	"WhatsappBusinesses": "WhatsappBusinesses",
+	"WhatsappTemplates":  "WhatsappTemplates",
+	// space (/api/space, Personal Access Token auth)
+	"SpaceSettings":              "SpaceSettings",
+	"SpaceGeographicPermissions": "SpaceGeographicPermissions",
+	"SpaceBillingProfile":        "SpaceBillingProfile",
+	"SpaceBillingStatements":     "SpaceBillingStatements",
+	"SpaceUsage":                 "SpaceUsage",
+	"SpacePaymentHistory":        "SpacePaymentHistory",
+	"SpaceMembers":               "SpaceMembers",
+	"SpaceBalance":               "SpaceBalance",
+	"SpaceLowBalanceSetting":     "SpaceLowBalanceSetting",
+	"SpacePaymentMethods":        "SpacePaymentMethods",
 }
 
 // goMethodName maps a declared markup method name (snake_case) to the hand Go
@@ -517,9 +557,25 @@ var goMethodName = map[string]string{
 	"Subscribers.delete_sip_endpoint":            "DeleteSIPEndpoint",
 	"FabricTokens.create_subscriber_token":       "CreateSubscriberToken",
 	"FabricTokens.refresh_subscriber_token":      "RefreshSubscriberToken",
-	"FabricTokens.create_invite_token":           "CreateInviteToken",
 	"FabricTokens.create_guest_token":            "CreateGuestToken",
 	"FabricTokens.create_embed_token":            "CreateEmbedToken",
+	"GenericResources.assign_sip_endpoint":       "AssignSIPEndpoint",
+	"GenericResources.assign_whatsapp_number":    "AssignWhatsappNumber",
+	"AiAgents.list_voices":                       "ListVoices",
+	"AiAgents.list_conversation_logs":            "ListConversationLogs",
+	"PhoneNumbers.assign_e911_address":           "AssignE911Address",
+	"PhoneNumbers.remove_e911_address":           "RemoveE911Address",
+	"PhoneNumbers.get_cnam":                      "GetCNAM",
+	"PhoneNumbers.request_cnam":                  "RequestCNAM",
+	"PhoneNumbers.clear_cnam":                    "ClearCNAM",
+	"Recordings.download":                        "Download",
+	"VideoRoomRecordings.download":               "Download",
+	"SpaceBillingStatements.get_csv":             "GetCSV",
+	"SpaceBillingStatements.get_pdf":             "GetPDF",
+	"SpaceMembers.list_projects":                 "ListProjects",
+	"SpaceMembers.enable_project":                "EnableProject",
+	"SpaceMembers.disable_project":               "DisableProject",
+	"SpaceBalance.create_top_up":                 "CreateTopUp",
 }
 
 // resolveMethodName returns the hand Go method identifier for a markup method
@@ -659,6 +715,10 @@ func escapeIdent(s string) string {
 // r.Path(...) helper (under-collection) or an absolute server-rooted path (sibling).
 // ---------------------------------------------------------------------------
 
+// segParamRe matches a path segment carrying ONE {param}, optionally beside a
+// literal prefix/suffix in the same segment ({id}, {id}.mp3).
+var segParamRe = regexp.MustCompile(`^([^{}]*)\{([^}]+)\}([^{}]*)$`)
+
 func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, serverPath string, mm methodMarkup, sd *specDoc) error {
 	op, ok := sd.opIndex[mm.op]
 	if !ok {
@@ -670,14 +730,23 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	var idArgs []string
 	var pathExpr []string // r.Path(...) arg exprs, or absolute build
 	for _, s := range segs {
-		if strings.HasPrefix(s, "{") && strings.HasSuffix(s, "}") {
-			arg := argFor(s[1 : len(s)-1])
+		// A path param fills a whole segment ({id}) or sits beside a literal in one
+		// ({id}.mp3 — a Rails format suffix); the literal stays in the same segment.
+		if m := segParamRe.FindStringSubmatch(s); m != nil {
+			arg := argFor(m[2])
 			// de-dup arg names within one signature (rare)
 			for containsStr(idArgs, arg) {
 				arg += "2"
 			}
 			idArgs = append(idArgs, arg)
-			pathExpr = append(pathExpr, arg)
+			expr := arg
+			if m[1] != "" {
+				expr = fmt.Sprintf("%q + ", m[1]) + expr
+			}
+			if m[3] != "" {
+				expr += fmt.Sprintf(" + %q", m[3])
+			}
+			pathExpr = append(pathExpr, expr)
 		} else {
 			pathExpr = append(pathExpr, fmt.Sprintf("%q", s))
 		}
@@ -713,6 +782,20 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	// the parameter variable's type; every optional call-site field lives on it.
 	var structDef string
 	var tail string
+	// Header parameters (in: header) ride on the params struct ahead of the body
+	// fields (the reference takes each as a keyword arg before the body keywords)
+	// and are sent as request headers, never in the body.
+	headers := operationHeaderParams(sd, op)
+	if len(headers) > 0 && verb != "get" && verb != "post" {
+		return fmt.Errorf("%s.%s: header parameter on %s; only GET/POST carry headers", rm.name, mm.name, strings.ToUpper(verb))
+	}
+	if len(headers) > 0 && verb == "get" {
+		return fmt.Errorf("%s.%s: header parameter on a GET is not supported by the Go emitter", rm.name, mm.name)
+	}
+	kind, media := operationResponseKind(sd, op)
+	if kind != respJSON && verb != "get" {
+		return fmt.Errorf("%s.%s: %s success on %s; only GET is supported", rm.name, mm.name, kind, strings.ToUpper(verb))
+	}
 	switch {
 	case writeVerb:
 		if op.hasBody {
@@ -750,6 +833,15 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 			structName := recv + goName + "Params"
 			used := map[string]bool{"Extras": true}
 			var fieldDefs []string
+			for i := range headers {
+				fn := headers[i].field
+				for used[fn] {
+					fn += "_"
+				}
+				used[fn] = true
+				headers[i].field = fn
+				fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, headers[i].goType, headers[i].required))
+			}
 			for _, f := range fields {
 				fn := structFieldName(f)
 				for used[fn] {
@@ -760,9 +852,9 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 				bodyOrder = append(bodyOrder, f)
 				ftype := paramFieldType(fieldTypes[f], fieldReq[f])
 				bodyFieldPtr[f] = isNilableGoType(ftype)
-				fieldDefs = append(fieldDefs, "\t"+fn+" "+ftype)
+				fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, ftype, fieldReq[f]))
 			}
-			fieldDefs = append(fieldDefs, "\tExtras map[string]any")
+			fieldDefs = append(fieldDefs, paramsStructFieldDef("Extras", "map[string]any", false))
 			structDef = fmt.Sprintf("// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 				structName, recv, goName, structName, strings.Join(fieldDefs, "\n"))
 			params = append(params, "params "+structName)
@@ -800,13 +892,24 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	// Return type (§4 typed output): the op's 200/201 $ref response type, else the
 	// open map when the spec has no typed response (inline/array/absent). A typed
 	// response wraps the base map result in decodeResult[Resp].
-	respType, rtErr := operationResponseType(sd, op)
+	respType, respList, rtErr := operationResponseType(sd, op)
 	if rtErr != nil {
 		return rtErr
 	}
 	retSig := "(map[string]any, error)"
-	if respType != "" {
+	switch {
+	case kind != respJSON:
+		// text / redirect: the method's answer is a string (the body text, or the
+		// redirect's Location URL).
+		respType, respList = "", false
+		retSig = "(string, error)"
+	case respType != "" && respList:
+		retSig = "([]" + respType + ", error)"
+	case respType != "":
 		retSig = "(*" + respType + ", error)"
+	}
+	if len(headers) > 0 && tail != "body" {
+		return fmt.Errorf("%s.%s: header parameters need a request body params struct", rm.name, mm.name)
 	}
 
 	// Every generated operation verb takes a TRAILING optional
@@ -847,11 +950,45 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	}
 	// wrap emits the HTTP call, wrapping it in decodeResult[Resp] for a typed return.
 	wrap := func(call string) string {
+		if respType != "" && respList {
+			return "decodeListResult[" + respType + "](" + call + ")"
+		}
 		if respType != "" {
 			return "decodeResult[" + respType + "](" + call + ")"
 		}
 		return call
 	}
+	hdrExpr := ""
+	if len(headers) > 0 {
+		b.WriteString("\theaders := map[string]string{}\n")
+		for _, h := range headers {
+			if strings.TrimPrefix(h.goType, "*") != "string" {
+				return fmt.Errorf("%s.%s: header %q is %s; only string headers are supported", rm.name, mm.name, h.wire, h.goType)
+			}
+			if h.required {
+				fmt.Fprintf(b, "\theaders[%q] = params.%s\n", h.wire, h.field)
+			} else {
+				fmt.Fprintf(b, "\tif params.%s != nil {\n\t\theaders[%q] = *params.%s\n\t}\n", h.field, h.wire, h.field)
+			}
+		}
+		hdrExpr = "headers"
+	}
+	switch {
+	case kind == respRedirect:
+		fmt.Fprintf(b, "\treturn getRedirectLocation(ctx, r.HTTP, %s, params, opts...)\n", pathCode)
+	case kind == respText:
+		fmt.Fprintf(b, "\treturn getText(ctx, r.HTTP, %s, params, map[string]string{\"Accept\": %q}, opts...)\n", pathCode, media)
+	case verb == "post" && hdrExpr != "":
+		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("postWithHeaders(ctx, r.HTTP, %s, %s, nil, %s, opts...)", pathCode, dataExpr, hdrExpr)))
+	default:
+		emitVerbCall(b, verb, tail, pathCode, dataExpr, wrap)
+	}
+	b.WriteString("}\n\n")
+	return nil
+}
+
+// emitVerbCall writes the plain JSON HTTP-verb call for a generated method.
+func emitVerbCall(b *strings.Builder, verb, tail, pathCode, dataExpr string, wrap func(string) string) {
 	switch verb {
 	case "get":
 		if tail == "params" {
@@ -868,8 +1005,6 @@ func emitMethod(b *strings.Builder, recv, goName string, rm *resourceMarkup, ser
 	case "delete":
 		fmt.Fprintf(b, "\treturn %s\n", wrap(fmt.Sprintf("r.HTTP.Delete(ctx, %s, opts...)", pathCode)))
 	}
-	b.WriteString("}\n\n")
-	return nil
 }
 
 func containsStr(xs []string, s string) bool {
@@ -1009,14 +1144,15 @@ func extraMethods(rm *resourceMarkup, emb embedInfo, sd *specDoc) []methodMarkup
 	var out []methodMarkup
 	for _, mm := range rm.methods {
 		if provided[mm.name] {
-			// Inherited — unless it is an explicit sibling-path override
-			// (list_addresses on a singular sub-path).
+			// Inherited — unless it is an explicit list_addresses declaration: the
+			// markup declaring it overrides the base method (the reference emits
+			// the declared op as a typed override). On the collection path the
+			// outer method shadows the embedded CrudWithAddresses.ListAddresses
+			// (same route, typed return); on a singular sibling path the embed is
+			// the plain *CrudResource (embedFor), so it is the only route either way.
 			if mm.name == "list_addresses" {
-				if op, ok := sd.opIndex[mm.op]; ok {
-					if _, sibling := rm.relativeTail(sd.serverPath, op.path); sibling {
-						out = append(out, mm)
-						continue
-					}
+				if _, ok := sd.opIndex[mm.op]; ok {
+					out = append(out, mm)
 				}
 			}
 			continue
@@ -1231,6 +1367,11 @@ var callingMethodName = map[string]string{
 	"calling.receive_fax.stop":           "ReceiveFaxStop",
 	"calling.refer":                      "Refer",
 	"calling.user_event":                 "UserEvent",
+	"calling.ai_sidecar":                 "AISidecar",
+	"calling.ai_sidecar.ask":             "AISidecarAsk",
+	"calling.ai_sidecar.poke":            "AISidecarPoke",
+	"calling.ai_sidecar.stop":            "AISidecarStop",
+	"calling.ai_sidecar.status":          "AISidecarStatus",
 }
 
 // commandsWithoutID are the commands whose schema has no id property (dial/update).
@@ -1278,6 +1419,47 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		if ctErr != nil {
 			return ctErr
 		}
+		mk, mkErr := commandParamMarkup(sd, schemaByCmd[cmd])
+		if mkErr != nil {
+			return fmt.Errorf("command %q: %w", cmd, mkErr)
+		}
+		if len(mk.positional) > 0 {
+			return fmt.Errorf("command %q: x-sdk-positional is not supported by the Go emitter", cmd)
+		}
+		// x-sdk-autofill: uuid4 — a server-required id the SDK generates when the
+		// caller omits it (the RELAY control_id idiom), so the param is optional;
+		// a compat kwarg's nested root is optional too (the kwarg can fill it).
+		for f := range mk.autofill {
+			cmdFieldReq[f] = false
+		}
+		for _, ck := range mk.compat {
+			cmdFieldReq[ck.root] = false
+		}
+		// required-first (property order), then the rest — the reference order.
+		{
+			inFields := map[string]bool{}
+			for _, f := range fields {
+				inFields[f] = true
+			}
+			var reqd, rest []string
+			for _, f := range mk.order {
+				if !inFields[f] {
+					continue
+				}
+				if cmdFieldReq[f] {
+					reqd = append(reqd, f)
+				} else {
+					rest = append(rest, f)
+				}
+			}
+			reqd = append(reqd, rest...)
+			fields = reqd
+			for f := range inFields {
+				if !containsStr(fields, f) {
+					return fmt.Errorf("command %q: param %q missing from the property order", cmd, f)
+				}
+			}
+		}
 		withID := !commandsWithoutID[cmd]
 		// §5/§6/§4a: the command's typed params collapse into a named params STRUCT
 		// (idiomatic Go options struct, not flat positionals); a leading callID stays
@@ -1302,9 +1484,19 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 			// type (e.g. swml → *SWMLObject), a union → any, an array → []T.
 			ftype := paramFieldType(cmdFieldTypes[f], cmdFieldReq[f])
 			fieldPtr[f] = isNilableGoType(ftype)
-			fieldDefs = append(fieldDefs, "\t"+fn+" "+ftype)
+			fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, ftype, cmdFieldReq[f]))
 		}
-		fieldDefs = append(fieldDefs, "\tExtras map[string]any")
+		compatField := map[string]string{}
+		for _, ck := range mk.compat {
+			fn := structFieldName(ck.arg)
+			for used[fn] {
+				fn += "_"
+			}
+			used[fn] = true
+			compatField[ck.arg] = fn
+			fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, optionalGoType(ck.goType), false))
+		}
+		fieldDefs = append(fieldDefs, paramsStructFieldDef("Extras", "map[string]any", false))
 		fmt.Fprintf(b, "// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 			structName, goName, mName, structName, strings.Join(fieldDefs, "\n"))
 		var sigParams []string
@@ -1329,7 +1521,16 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 				fmt.Fprintf(b, "\tbody[%q] = params.%s\n", f, fieldParam[f])
 			}
 		}
+		for _, ck := range mk.compat {
+			fn := compatField[ck.arg]
+			fmt.Fprintf(b, "\tif params.%s != nil {\n\t\tbody[%q] = mergeCompatKwarg(body[%q], %q, params.%s)\n\t}\n", fn, ck.root, ck.root, ck.leaf, fn)
+		}
 		b.WriteString("\tmergeExtra(body, []map[string]any{params.Extras})\n")
+		for _, f := range fields {
+			if mk.autofill[f] {
+				fmt.Fprintf(b, "\tautofillUUID(body, %q)\n", f)
+			}
+		}
 		callID := `""`
 		if withID {
 			callID = "callID"
@@ -1425,7 +1626,23 @@ func componentsSchemas(sd *specDoc) (*yaml.Node, error) {
 }
 
 // refLeaf returns the final component name of a "#/components/schemas/Foo" ref.
+//
+// SAME-DOCUMENT refs only. Taking the last path segment DISCARDS the file part, so a
+// cross-file `other.yaml#/components/schemas/Foo` would resolve to whatever local
+// schema happens to be named Foo — or, via resolveSchema's mapChild miss, to nil and
+// then silently back to the unresolved ref node. rest-apis carries 3420 refs and ZERO
+// with a file part (measured 2026-08-04), so this generator has no cross-file link to
+// resolve; the panic makes the day one appears a loud failure instead of a wrong type.
+// The verifying resolver to copy if that day comes is crossFileResolver in
+// cmd/internal/payloadgen, which the swaig-specs generator needs because post-prompt
+// .yaml does carry three of them.
 func refLeaf(ref string) string {
+	if i := strings.Index(ref, "#"); i > 0 {
+		panic(fmt.Sprintf("generate-rest: cross-file $ref %q — this generator resolves "+
+			"same-document refs only. Give it a verifying cross-file resolver (see "+
+			"cmd/internal/payloadgen crossFileResolver) rather than letting the file part "+
+			"be discarded", ref))
+	}
 	if i := strings.LastIndex(ref, "/"); i >= 0 {
 		return ref[i+1:]
 	}
@@ -1561,6 +1778,19 @@ func isUnionBody(node *yaml.Node) bool {
 
 // rawOp returns the raw operation node (verb map) for an opInfo, re-reading the
 // spec doc's paths. Used to reach requestBody schema refs.
+// rawRoot returns the spec document's root mapping node (re-read from disk).
+func (sd *specDoc) rawRoot() *yaml.Node {
+	raw, err := os.ReadFile(sd.rawPath)
+	if err != nil {
+		return nil
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(raw, &doc); err != nil {
+		return nil
+	}
+	return rootOf(&doc)
+}
+
 func (sd *specDoc) rawOp(op opInfo) *yaml.Node {
 	raw, err := os.ReadFile(sd.rawPath)
 	if err != nil {
@@ -1644,7 +1874,9 @@ func segCase(seg string) string {
 // so the wire body is unchanged. The exported (title-cased) result is never a Go
 // keyword, so escapeIdent is a defensive no-op here.
 func structFieldName(field string) string {
-	parts := strings.Split(field, "_")
+	// A hyphen is a word separator too (fabric's switch `nomatch-output` wire key):
+	// it is not a legal Go identifier character.
+	parts := strings.FieldsFunc(field, func(r rune) bool { return r == '_' || r == '-' })
 	var b strings.Builder
 	for _, p := range parts {
 		if p == "" {
@@ -1716,6 +1948,11 @@ type containerInfo struct {
 	clientAttr string // RestClient field, e.g. "Fabric"
 }
 
+// patSecurityScheme is the security scheme a Personal-Access-Token spec declares
+// (rest-apis/space). A spec whose root security names only this scheme is served
+// by prime-rails exclusively to a PAT, so its container is wired to the PAT client.
+const patSecurityScheme = "SignalWirePersonalAccessToken"
+
 // containers maps a placement container attr -> its Go container type + the
 // RestClient field name. Order of client fields follows containerOrder below.
 var containers = map[string]containerInfo{
@@ -1725,6 +1962,8 @@ var containers = map[string]containerInfo{
 	"registry":   {structName: "RegistryNamespace", clientAttr: "Registry"},
 	"project":    {structName: "ProjectNamespace", clientAttr: "Project"},
 	"datasphere": {structName: "DatasphereNamespace", clientAttr: "Datasphere"},
+	"space":      {structName: "SpaceNamespace", clientAttr: "Space"},
+	"whatsapp":   {structName: "WhatsappNamespace", clientAttr: "Whatsapp"},
 }
 
 // containerFieldName maps a contained resource's Go struct name to the field
@@ -1763,6 +2002,21 @@ var containerFieldName = map[string]string{
 	"ProjectTokens": "Tokens",
 	// datasphere
 	"DatasphereDocuments": "Documents",
+	// space
+	"SpaceSettings":              "Settings",
+	"SpaceGeographicPermissions": "GeographicPermissions",
+	"SpaceBillingProfile":        "BillingProfile",
+	"SpaceBillingStatements":     "BillingStatements",
+	"SpaceUsage":                 "Usage",
+	"SpacePaymentHistory":        "PaymentHistory",
+	"SpaceMembers":               "Members",
+	"SpaceBalance":               "Balance",
+	"SpaceLowBalanceSetting":     "LowBalanceSetting",
+	"SpacePaymentMethods":        "PaymentMethods",
+	// whatsapp
+	"WhatsappNumbers":    "Numbers",
+	"WhatsappBusinesses": "Businesses",
+	"WhatsappTemplates":  "Templates",
 }
 
 func fieldNameFor(goStruct string) string {
@@ -1801,6 +2055,7 @@ var clientFieldOrder = []string{
 	"PhoneNumbers", "Addresses", "Queues", "Recordings", "NumberGroups",
 	"VerifiedCallers", "SIPProfile", "Lookup", "Messages", "ShortCodes", "ImportedNumbers", "MFA",
 	"Registry", "Datasphere", "Video", "Logs", "Project", "Projects", "PubSub", "Chat",
+	"Space", "Whatsapp",
 }
 
 // emitClientTree emits the generated REST client tree (§8) as TWO source files.
@@ -1840,6 +2095,22 @@ func emitClientTree(placed []placedResource) (namespacesFile, restFile string) {
 	}
 	var flats []flat
 	seenFlat := map[string]bool{}
+	// patCred marks the client fields (flat or container) whose spec is served only
+	// to a Personal Access Token: they are wired to patClient, not client.
+	patCred := map[string]bool{}
+	for _, p := range placed {
+		if p.sd != nil && p.sd.patOnly {
+			if p.container != "" {
+				if ci, ok := containers[p.container]; ok {
+					patCred[ci.clientAttr] = true
+				}
+			} else if f := flatClientField[p.goStruct]; f != "" {
+				patCred[f] = true
+			} else {
+				patCred[p.goStruct] = true
+			}
+		}
+	}
 	for _, p := range placed {
 		if p.container == "" {
 			f := flatClientField[p.goStruct]
@@ -1937,17 +2208,25 @@ func emitClientTree(placed []placedResource) (namespacesFile, restFile string) {
 	r.WriteString("}\n\n")
 
 	// Emit the wire method (constructors are in package namespaces, so qualified).
-	r.WriteString("// wireGeneratedTree constructs every flat resource + container from the given\n")
-	r.WriteString("// HTTPClient. The hand RestClient calls this after building its HTTP layer.\n")
-	r.WriteString("func (t *_GeneratedResourceTree) wireGeneratedTree(client namespaces.HTTPClient) {\n")
+	r.WriteString("// wireGeneratedTree constructs every flat resource + container. client carries\n")
+	r.WriteString("// the project token; patClient the Personal Access Token (the namespaces whose\n")
+	r.WriteString("// spec security requires it). The hand RestClient calls this after building\n")
+	r.WriteString("// its HTTP layer.\n")
+	r.WriteString("func (t *_GeneratedResourceTree) wireGeneratedTree(client, patClient namespaces.HTTPClient) {\n")
+	credFor := func(field string) string {
+		if patCred[field] {
+			return "patClient"
+		}
+		return "client"
+	}
 	flatCtor := map[string]string{} // field -> constructor call
 	for _, f := range flats {
-		flatCtor[f.field] = "namespaces.New" + f.goStruct + "(client)"
+		flatCtor[f.field] = "namespaces.New" + f.goStruct + "(" + credFor(f.field) + ")"
 	}
 	containerCtor := map[string]string{}
 	for _, attr := range containerAttrs {
 		ci := containers[attr]
-		containerCtor[ci.clientAttr] = "namespaces.New" + ci.structName + "(client)"
+		containerCtor[ci.clientAttr] = "namespaces.New" + ci.structName + "(" + credFor(ci.clientAttr) + ")"
 	}
 	for _, f := range clientFieldOrder {
 		if c, ok := flatCtor[f]; ok {
@@ -2214,7 +2493,7 @@ func discoverSpecs(psdk string) (resourceSpecs, typesOnlySpecs []string, err err
 		}
 		ns := e.Name()
 		specPath := filepath.Join(restAPIs, ns, "openapi.yaml")
-		raw, rerr := os.ReadFile(specPath)
+		raw, rerr := os.ReadFile(specPath) //nolint:gosec // G304: developer-run codegen reading a spec/source path derived from the repo root or $PORTING_SDK, not from untrusted input.
 		if rerr != nil {
 			continue // dir without an openapi.yaml is not a spec
 		}
@@ -2308,7 +2587,7 @@ func findRepoRoot(start string) (string, error) {
 
 func resolvePortingSDK(repoRoot string) (string, error) {
 	if p := os.Getenv("PORTING_SDK"); p != "" {
-		if _, err := os.Stat(filepath.Join(p, "rest-apis")); err == nil {
+		if _, err := os.Stat(filepath.Join(p, "rest-apis")); err == nil { //nolint:gosec // G703: path is composed from the repo root / $PORTING_SDK in a developer-run tool, not from untrusted input.
 			return p, nil
 		}
 	}
@@ -2415,7 +2694,29 @@ func run() error {
 		return realDir
 	}
 	var outs []outFile
+	// Cross-spec type-name collisions with DIFFERENT schemas: the later spec's type
+	// gets a spec-qualified Go name (collide.go).
+	order := make([]string, 0, len(specs)+len(typesOnlySpecs))
+	rawPaths := map[string]string{}
 	for _, sd := range specs {
+		order = append(order, sd.name)
+		rawPaths[sd.name] = sd.rawPath
+	}
+	for _, ns := range typesOnlySpecs {
+		order = append(order, ns)
+		rawPaths[ns] = filepath.Join(psdk, "rest-apis", ns, "openapi.yaml")
+	}
+	typeRenames, err := computeTypeRenames(order, rawPaths)
+	if err != nil {
+		return err
+	}
+	for _, ns := range order {
+		for bare, qualified := range typeRenames[ns] {
+			generatedTypeRenames[qualified] = bare
+		}
+	}
+	for _, sd := range specs {
+		curRenames = typeRenames[sd.name]
 		src, err := emitSpecFile(sd, bases)
 		if err != nil {
 			return err
@@ -2442,6 +2743,7 @@ func run() error {
 	// via a minimal types-only spec doc (emitTypesFile only needs name + rawPath).
 	// Matches the reference (python swml_webhooks_types_generated.py, TS PlatformContracts).
 	for _, ns := range typesOnlySpecs {
+		curRenames = typeRenames[ns]
 		tspec := &specDoc{
 			name:    ns,
 			rawPath: filepath.Join(psdk, "rest-apis", ns, "openapi.yaml"),
@@ -2460,6 +2762,9 @@ func run() error {
 	// no longer emitted here — they moved to the standalone cmd/generate-relay-protocol
 	// command (one of the fixed 5 cross-port generators). This generator emits only
 	// the REST resource/types/client-tree/struct-table surface.
+
+	curRenames = nil
+	outs = append(outs, outFile{path: filepath.Join(dir(surfaceDir), "gen_type_renames_generated.go"), src: emitTypeRenamesTable()})
 
 	placed := resolvePlacement(specs)
 	nsTree, restTree := emitClientTree(placed)
@@ -2484,10 +2789,10 @@ func run() error {
 			}
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(o.path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(o.path), 0o755); err != nil { //nolint:gosec // G301: output dir for generated SOURCE CODE committed to the repo; 0750 would break every consumer.
 			return err
 		}
-		if err := os.WriteFile(o.path, formatted, 0o644); err != nil {
+		if err := os.WriteFile(o.path, formatted, 0o644); err != nil { //nolint:gosec // G306: generated SOURCE CODE is committed to the repo and must be world-readable; 0600 would break every consumer.
 			return err
 		}
 		fmt.Printf("generated %s\n", o.path)
@@ -2510,4 +2815,114 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// commandMarkup is the x-sdk-* command-param markup of one command's params schema.
+type commandMarkup struct {
+	autofill   map[string]bool // x-sdk-autofill: uuid4
+	positional map[string]bool // x-sdk-positional
+	compat     []compatKwarg   // x-sdk-compat-kwargs
+	order      []string        // params property order (first-seen, combinators first)
+}
+
+// compatKwarg is an SDK kwarg kept for compatibility that is sent INTO a nested
+// wire key (calling.record `audio` -> params.record.audio).
+type compatKwarg struct {
+	arg, root, leaf string
+	goType          string
+}
+
+// commandParamMarkup reads the command params schema's per-field x-sdk-autofill /
+// x-sdk-positional markup and its x-sdk-compat-kwargs (mirrors the reference
+// command emitter). Unknown autofill generators and malformed compat entries fail
+// loud.
+func commandParamMarkup(sd *specDoc, requestSchema string) (commandMarkup, error) {
+	mk := commandMarkup{autofill: map[string]bool{}, positional: map[string]bool{}}
+	schemas, err := componentsSchemas(sd)
+	if err != nil {
+		return mk, err
+	}
+	sch := resolveSchema(schemas, mapChild(schemas, requestSchema))
+	params := resolveSchema(schemas, mapChild(mapChild(sch, "properties"), "params"))
+	if params == nil {
+		return mk, nil
+	}
+	fieldNode := map[string]*yaml.Node{}
+	var walk func(n *yaml.Node)
+	// Reference order (_flatten_union): allOf parts, then own properties, then the
+	// anyOf/oneOf variants.
+	walk = func(n *yaml.Node) {
+		n = resolveSchema(schemas, n)
+		if n == nil {
+			return
+		}
+		if lst := mapChild(n, "allOf"); lst != nil && lst.Kind == yaml.SequenceNode {
+			for _, br := range lst.Content {
+				walk(br)
+			}
+		}
+		if props := mapChild(n, "properties"); props != nil && props.Kind == yaml.MappingNode {
+			for i := 0; i+1 < len(props.Content); i += 2 {
+				if _, seen := fieldNode[props.Content[i].Value]; !seen {
+					fieldNode[props.Content[i].Value] = props.Content[i+1]
+					mk.order = append(mk.order, props.Content[i].Value)
+				}
+			}
+		}
+		for _, comb := range []string{"anyOf", "oneOf"} {
+			if lst := mapChild(n, comb); lst != nil && lst.Kind == yaml.SequenceNode {
+				for _, br := range lst.Content {
+					walk(br)
+				}
+			}
+		}
+	}
+	walk(params)
+	for f, n := range fieldNode {
+		switch v := scalarChild(n, "x-sdk-autofill"); v {
+		case "":
+		case "uuid4":
+			mk.autofill[f] = true
+		default:
+			return mk, fmt.Errorf("%s: x-sdk-autofill %q is not a known generator (uuid4)", f, v)
+		}
+		if scalarChild(n, "x-sdk-positional") == "true" {
+			mk.positional[f] = true
+		}
+	}
+	if ck := mapChild(params, "x-sdk-compat-kwargs"); ck != nil && ck.Kind == yaml.MappingNode {
+		for i := 0; i+1 < len(ck.Content); i += 2 {
+			arg := ck.Content[i].Value
+			into := strings.Split(scalarChild(ck.Content[i+1], "into"), ".")
+			if len(into) != 2 || fieldNode[arg] != nil || fieldNode[into[0]] == nil {
+				return mk, fmt.Errorf("x-sdk-compat-kwargs.%s into %q must name <existing param>.<key> and must not shadow a param", arg, strings.Join(into, "."))
+			}
+			root := resolveSchema(schemas, fieldNode[into[0]])
+			var leafNode *yaml.Node
+			var findLeaf func(n *yaml.Node)
+			findLeaf = func(n *yaml.Node) {
+				n = resolveSchema(schemas, n)
+				if n == nil || leafNode != nil {
+					return
+				}
+				if p := mapChild(mapChild(n, "properties"), into[1]); p != nil {
+					leafNode = p
+					return
+				}
+				for _, comb := range []string{"allOf", "anyOf", "oneOf"} {
+					if lst := mapChild(n, comb); lst != nil && lst.Kind == yaml.SequenceNode {
+						for _, br := range lst.Content {
+							findLeaf(br)
+						}
+					}
+				}
+			}
+			findLeaf(root)
+			if leafNode == nil {
+				return mk, fmt.Errorf("x-sdk-compat-kwargs.%s: %q not found", arg, strings.Join(into, "."))
+			}
+			mk.compat = append(mk.compat, compatKwarg{arg: arg, root: into[0], leaf: into[1], goType: paramGoType(schemas, leafNode)})
+		}
+	}
+	return mk, nil
 }

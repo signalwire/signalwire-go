@@ -12,7 +12,10 @@ package namespaces
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // HTTPClient is the interface that namespace implementations use to make HTTP
@@ -79,8 +82,7 @@ func (r *CrudResource) List(ctx context.Context, params map[string]string, opts 
 // hand-build the path + token loop. List returns a single raw page (the server's
 // first response); Paginate follows the cursor and yields each item.
 //
-// Equivalent to the Python SDK's ReadResource.paginate(**params); data_key is
-// fixed to "data".
+// The response data key is fixed to "data".
 //
 //	it := client.Fabric.Addresses.Paginate(nil)
 //	for {
@@ -121,7 +123,6 @@ func (r *CrudResource) Delete(ctx context.Context, id string, opts ...*RequestOp
 }
 
 // CrudWithAddresses extends CrudResource with the nested addresses endpoint.
-// Matches Python's CrudWithAddresses at _base.py:109-113.
 // Only resources that explicitly support the addresses sub-resource should
 // embed this type; plain CrudResource does not expose ListAddresses.
 type CrudWithAddresses struct {
@@ -197,4 +198,110 @@ func mergeExtra(body map[string]any, extra []map[string]any) {
 			body[k] = v // last-writer-wins; Extras is applied after the typed params
 		}
 	}
+}
+
+// decodeListResult decodes a top-level JSON ARRAY response into a typed slice.
+// The HTTP layer wraps a top-level array under the canonical "data" key (so every
+// verb keeps its map[string]any shape); this unwraps it into []T for the generated
+// methods whose spec success is `type: array, items: $ref` (the reference returns
+// list[Item]: GET /resources/ai_agents/voices, GET /space/payment_methods).
+func decodeListResult[T any](m map[string]any, err error) ([]T, error) {
+	if err != nil {
+		return nil, err
+	}
+	raw, mErr := json.Marshal(m["data"])
+	if mErr != nil {
+		return nil, mErr
+	}
+	var out []T
+	if uErr := json.Unmarshal(raw, &out); uErr != nil {
+		return nil, uErr
+	}
+	return out, nil
+}
+
+// The optional transport capabilities a generated method needs beyond the five
+// JSON verbs of HTTPClient. They are separate (unexported) interfaces so that
+// adding them does not widen HTTPClient — an HTTPClient implemented outside this
+// SDK keeps compiling, and only the methods that need a capability ask for it.
+// The SDK's own transport (the rest package's adapter) implements all three.
+
+// redirectGetter issues a GET whose success IS a redirect and returns its
+// Location without following it.
+type redirectGetter interface {
+	GetRedirectLocation(ctx context.Context, path string, params map[string]string, opts ...*RequestOptions) (string, error)
+}
+
+// textGetter issues a GET whose success body is a non-JSON media type and
+// returns it as text, sending the given headers (the media type's Accept).
+type textGetter interface {
+	GetText(ctx context.Context, path string, params map[string]string, headers map[string]string, opts ...*RequestOptions) (string, error)
+}
+
+// headerPoster issues a POST carrying extra request headers (an operation's
+// declared header parameters, e.g. Idempotency-Key).
+type headerPoster interface {
+	PostWithHeaders(ctx context.Context, path string, body map[string]any, params map[string]string, headers map[string]string, opts ...*RequestOptions) (map[string]any, error)
+}
+
+// errTransportCapability is returned when an HTTPClient lacks a capability a
+// generated method needs (only possible with a caller-supplied HTTPClient).
+var errTransportCapability = errors.New("signalwire rest: the HTTPClient does not support this request kind")
+
+// getRedirectLocation returns the URL path redirects to (the Location of its
+// 3xx), without following it or downloading anything; fetch it with any HTTP
+// client. An error status is returned as the transport's error.
+func getRedirectLocation(ctx context.Context, h HTTPClient, path string, params map[string]string, opts ...*RequestOptions) (string, error) {
+	g, ok := h.(redirectGetter)
+	if !ok {
+		return "", errTransportCapability
+	}
+	return g.GetRedirectLocation(ctx, path, params, opts...)
+}
+
+// getText returns the success body of a non-JSON GET as text.
+func getText(ctx context.Context, h HTTPClient, path string, params map[string]string, headers map[string]string, opts ...*RequestOptions) (string, error) {
+	g, ok := h.(textGetter)
+	if !ok {
+		return "", errTransportCapability
+	}
+	return g.GetText(ctx, path, params, headers, opts...)
+}
+
+// postWithHeaders POSTs body with the given extra request headers.
+func postWithHeaders(ctx context.Context, h HTTPClient, path string, body map[string]any, params map[string]string, headers map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	p, ok := h.(headerPoster)
+	if !ok {
+		return nil, errTransportCapability
+	}
+	return p.PostWithHeaders(ctx, path, body, params, headers, opts...)
+}
+
+// autofillUUID sets body[key] to a fresh UUIDv4 when the caller left it unset (a
+// server-required id the SDK generates — the RELAY control_id idiom).
+func autofillUUID(body map[string]any, key string) {
+	if _, ok := body[key]; !ok {
+		body[key] = uuid.NewString()
+	}
+}
+
+// mergeCompatKwarg returns the nested object root with leaf set to value: a
+// compatibility kwarg sent INTO a nested wire key (calling.record `audio` ->
+// params.record.audio). An existing root (a map or a typed struct) keeps its
+// other keys.
+func mergeCompatKwarg(root any, leaf string, value any) map[string]any {
+	out := map[string]any{}
+	switch r := root.(type) {
+	case nil:
+	case map[string]any:
+		for k, v := range r {
+			out[k] = v
+		}
+	default:
+		if raw, err := json.Marshal(r); err == nil {
+			_ = json.Unmarshal(raw, &out)
+		}
+	}
+	out[leaf] = value
+	return out
 }

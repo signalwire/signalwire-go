@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: swaig_features
 //
@@ -33,14 +33,16 @@ func main() {
 
 	// ---- Hold ----
 	fmt.Println("=== Hold ===")
+	holdTimeout := 60
 	holdResult := swaig.NewFunctionResult("Placing you on hold while I check").
-		Hold(60)
+		Hold(swaig.HoldOptions{Timeout: &holdTimeout})
 	printResult(holdResult)
 
 	// ---- Connect (transfer call) ----
 	fmt.Println("=== Connect ===")
 	connectResult := swaig.NewFunctionResult("Transferring you to sales").
-		Connect(swaig.ConnectOptions{Destination: "+15551001001", Final: true, From: "+15559990000"})
+		// Final omitted — a permanent transfer, the reference default.
+		Connect(swaig.ConnectOptions{Destination: "+15551001001", From: "+15559990000"})
 	printResult(connectResult)
 
 	// ---- SendSms ----
@@ -119,7 +121,11 @@ func main() {
 }
 
 func printResult(fr *swaig.FunctionResult) {
-	data, _ := json.MarshalIndent(fr.ToMap(), "", "  ")
+	data, err := json.MarshalIndent(fr.ToMap(), "", "  ")
+	if err != nil {
+		fmt.Printf("  render failed: %v\n", err)
+		return
+	}
 	fmt.Println(string(data))
 	fmt.Println()
 }

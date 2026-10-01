@@ -47,15 +47,15 @@ func (r *VideoConferences) ListStreams(ctx context.Context, id string, params ma
 
 // VideoConferencesCreateStreamParams holds the named optional parameters for VideoConferences.CreateStream.
 type VideoConferencesCreateStreamParams struct {
-	URL    string
-	Extras map[string]any
+	URL    string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
-func (r *VideoConferences) CreateStream(ctx context.Context, id string, params VideoConferencesCreateStreamParams, opts ...*RequestOptions) (*Stream, error) {
+func (r *VideoConferences) CreateStream(ctx context.Context, id string, params VideoConferencesCreateStreamParams, opts ...*RequestOptions) (*VideoStream, error) {
 	body := map[string]any{}
 	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil, opts...))
+	return decodeResult[VideoStream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil, opts...))
 }
 
 // VideoRoomRecordings is a client for the "VideoRoomRecordings" resource of the SignalWire video API.
@@ -82,6 +82,10 @@ func (r *VideoRoomRecordings) Delete(ctx context.Context, id string, opts ...*Re
 
 func (r *VideoRoomRecordings) ListEvents(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*ListRoomRecordingEventsResponse, error) {
 	return decodeResult[ListRoomRecordingEventsResponse](r.HTTP.Get(ctx, r.Path(id, "events"), params, opts...))
+}
+
+func (r *VideoRoomRecordings) Download(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (string, error) {
+	return getRedirectLocation(ctx, r.HTTP, r.Path(id+".mp4"), params, opts...)
 }
 
 // VideoRoomSessions is a client for the "VideoRoomSessions" resource of the SignalWire video API.
@@ -130,25 +134,25 @@ func NewVideoRoomTokens(client HTTPClient) *VideoRoomTokens {
 
 // VideoRoomTokensCreateParams holds the named optional parameters for VideoRoomTokens.Create.
 type VideoRoomTokensCreateParams struct {
-	RoomName                  string
-	UserName                  *string
-	Permissions               []RoomTokenPermission
-	JoinFrom                  *string
-	JoinUntil                 *string
-	RemoveAt                  *string
-	RemoveAfterSecondsElapsed *int
-	JoinAudioMuted            *bool
-	JoinVideoMuted            *bool
-	AutoCreateRoom            *bool
-	EnableRoomPreviews        *bool
-	RoomDisplayName           *string
-	EndRoomSessionOnLeave     *bool
-	JoinAs                    *JoinAsType
-	MediaAllowed              *MediaAllowedType
-	RoomMeta                  map[string]any
-	Meta                      map[string]any
-	SyncAudioVideo            *bool
-	Extras                    map[string]any
+	RoomName                  string                `sw:"required"`
+	UserName                  *string               `sw:"optional"`
+	Permissions               []RoomTokenPermission `sw:"optional"`
+	JoinFrom                  *string               `sw:"optional"`
+	JoinUntil                 *string               `sw:"optional"`
+	RemoveAt                  *string               `sw:"optional"`
+	RemoveAfterSecondsElapsed *int                  `sw:"optional"`
+	JoinAudioMuted            *bool                 `sw:"optional"`
+	JoinVideoMuted            *bool                 `sw:"optional"`
+	AutoCreateRoom            *bool                 `sw:"optional"`
+	EnableRoomPreviews        *bool                 `sw:"optional"`
+	RoomDisplayName           *string               `sw:"optional"`
+	EndRoomSessionOnLeave     *bool                 `sw:"optional"`
+	JoinAs                    *JoinAsType           `sw:"optional"`
+	MediaAllowed              *MediaAllowedType     `sw:"optional"`
+	RoomMeta                  map[string]any        `sw:"optional"`
+	Meta                      map[string]any        `sw:"optional"`
+	SyncAudioVideo            *bool                 `sw:"optional"`
+	Extras                    map[string]any        `sw:"optional"`
 }
 
 func (r *VideoRoomTokens) Create(ctx context.Context, params VideoRoomTokensCreateParams, opts ...*RequestOptions) (*RoomTokenResponse, error) {
@@ -225,15 +229,15 @@ func (r *VideoRooms) ListStreams(ctx context.Context, id string, params map[stri
 
 // VideoRoomsCreateStreamParams holds the named optional parameters for VideoRooms.CreateStream.
 type VideoRoomsCreateStreamParams struct {
-	URL    string
-	Extras map[string]any
+	URL    string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
 }
 
-func (r *VideoRooms) CreateStream(ctx context.Context, id string, params VideoRoomsCreateStreamParams, opts ...*RequestOptions) (*Stream, error) {
+func (r *VideoRooms) CreateStream(ctx context.Context, id string, params VideoRoomsCreateStreamParams, opts ...*RequestOptions) (*VideoStream, error) {
 	body := map[string]any{}
 	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil, opts...))
+	return decodeResult[VideoStream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil, opts...))
 }
 
 // VideoStreams is a client for the "VideoStreams" resource of the SignalWire video API.
@@ -246,21 +250,23 @@ func NewVideoStreams(client HTTPClient) *VideoStreams {
 	return &VideoStreams{Resource{HTTP: client, Base: "/api/video/streams"}}
 }
 
-func (r *VideoStreams) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*Stream, error) {
-	return decodeResult[Stream](r.HTTP.Get(ctx, r.Path(id), params, opts...))
+func (r *VideoStreams) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*VideoStream, error) {
+	return decodeResult[VideoStream](r.HTTP.Get(ctx, r.Path(id), params, opts...))
 }
 
 // VideoStreamsUpdateParams holds the named optional parameters for VideoStreams.Update.
 type VideoStreamsUpdateParams struct {
-	URL    string
-	Extras map[string]any
+	URL    *string        `sw:"optional"`
+	Extras map[string]any `sw:"optional"`
 }
 
-func (r *VideoStreams) Update(ctx context.Context, id string, params VideoStreamsUpdateParams, opts ...*RequestOptions) (*Stream, error) {
+func (r *VideoStreams) Update(ctx context.Context, id string, params VideoStreamsUpdateParams, opts ...*RequestOptions) (*VideoStream, error) {
 	body := map[string]any{}
-	body["url"] = params.URL
+	if params.URL != nil {
+		body["url"] = params.URL
+	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Put(ctx, r.Path(id), body, opts...))
+	return decodeResult[VideoStream](r.HTTP.Put(ctx, r.Path(id), body, opts...))
 }
 
 func (r *VideoStreams) Delete(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {

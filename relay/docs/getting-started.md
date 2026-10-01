@@ -115,8 +115,8 @@ client = relay.NewRelayClient(
 )
 
 // Or change the subscription set dynamically after connecting
-client.Receive("billing")
-client.Unreceive("sales")
+client.Receive([]string{"billing"})
+client.Unreceive([]string{"sales"})
 ```
 
 Pass the initial set at construction with `WithContexts(...)`, and adjust it on

@@ -15,6 +15,11 @@
 
 package namespaces
 
+type LogsChargeDetails struct {
+	Description string  `json:"description,omitempty"`
+	Charge      float64 `json:"charge,omitempty"`
+}
+
 type ConferenceLogPaginationLinks struct {
 	Self  string  `json:"self,omitempty"`
 	First string  `json:"first,omitempty"`
@@ -23,7 +28,7 @@ type ConferenceLogPaginationLinks struct {
 }
 
 type ConferenceLogsStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []LogsTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type ConferencesResponse struct {
@@ -60,17 +65,25 @@ type RelayConference struct {
 	RecordingFileSize   any    `json:"recording_file_size,omitempty"`
 }
 
+type LogsTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
+}
+
 type VideoRoomSessionConference struct {
-	ID            string          `json:"id,omitempty"`
-	CreatedAt     string          `json:"created_at,omitempty"`
-	Source        string          `json:"source,omitempty"`
-	Type          string          `json:"type,omitempty"`
-	URL           string          `json:"url,omitempty"`
-	RoomName      any             `json:"room_name,omitempty"`
-	Status        any             `json:"status,omitempty"`
-	Locked        bool            `json:"locked,omitempty"`
-	StartedAt     any             `json:"started_at,omitempty"`
-	EndedAt       any             `json:"ended_at,omitempty"`
-	Charge        string          `json:"charge,omitempty"`
-	ChargeDetails []ChargeDetails `json:"charge_details,omitempty"`
+	ID            string              `json:"id,omitempty"`
+	CreatedAt     string              `json:"created_at,omitempty"`
+	Source        string              `json:"source,omitempty"`
+	Type          string              `json:"type,omitempty"`
+	URL           string              `json:"url,omitempty"`
+	RoomName      any                 `json:"room_name,omitempty"`
+	Status        any                 `json:"status,omitempty"`
+	Locked        any                 `json:"locked,omitempty"`
+	StartedAt     any                 `json:"started_at,omitempty"`
+	EndedAt       any                 `json:"ended_at,omitempty"`
+	Charge        float64             `json:"charge,omitempty"`
+	ChargeDetails []LogsChargeDetails `json:"charge_details,omitempty"`
 }

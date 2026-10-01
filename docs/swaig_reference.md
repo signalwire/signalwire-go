@@ -75,11 +75,12 @@ result.ExecuteSwml(swmlDoc, true)
 ```
 
 #### `Connect(opts ConnectOptions) *FunctionResult`
-Transfer/connect call to another destination using SWML. Leave `From` empty to omit the from-address.
+Transfer/connect call to another destination using SWML. Leave `From` empty to omit the from-address. `Final` is a `*bool`: leave it nil for a permanent transfer (the default).
 
 ```go
-result.Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})                        // Permanent transfer
-result.Connect(swaig.ConnectOptions{Destination: "support@company.com", Final: false, From: "+15559876543"}) // Temporary transfer
+temporary := false
+result.Connect(swaig.ConnectOptions{Destination: "+15551234567"})                                              // Permanent transfer (the default)
+result.Connect(swaig.ConnectOptions{Destination: "support@company.com", Final: &temporary, From: "+15559876543"}) // Temporary transfer
 ```
 
 #### `SendSms(toNumber, fromNumber, body string, media []string, tags []string, region string) *FunctionResult`
@@ -449,7 +450,7 @@ result.Tap(
 **Audio Configuration:**
 - `direction`: Audio direction to tap (default: "both")
   - `"speak"`: What party says
-  - `"hear"`: What party hears
+  - `"listen"`: What party hears
   - `"both"`: What party hears and says
 - `codec`: Codec for tap stream - "PCMU" or "PCMA" (default: "PCMU")
 - `rtp_ptime`: RTP packetization time in milliseconds (default: 20)
@@ -500,12 +501,23 @@ result.Hangup()
 
 ### Call Flow Control
 
-#### `Hold(timeout int) *FunctionResult`
-Put call on hold with timeout (max 900 seconds).
+#### `Hold(opts HoldOptions) *FunctionResult`
+Put the call on hold (timeout clamped to [0, 900], default 300). During hold speech
+detection is paused, so anything the caller must hear has to be said first: `Prompt`
+sets the structured response `{tool_result: "status: on hold", tool_prompt: Prompt}`
+and turns on post_process so the model speaks before the hold lands. `Step` /
+`TimeoutStep` move the caller to a step when the hold ends / times out.
 
 ```go
-result.Hold(60)    // Hold for 1 minute
-result.Hold(600)   // Hold for 10 minutes
+oneMinute, tenMinutes := 60, 600
+result.Hold(swaig.HoldOptions{})                     // 300 seconds (the default)
+result.Hold(swaig.HoldOptions{Timeout: &oneMinute})  // Hold for 1 minute
+result.Hold(swaig.HoldOptions{Timeout: &tenMinutes}) // Hold for 10 minutes
+back, nobody := "back_with_agent", "take_a_message"
+result.Hold(swaig.HoldOptions{
+	Prompt: "Tell the caller you are checking if they are available.",
+	Step:   &back, TimeoutStep: &nobody,
+})
 ```
 
 #### `WaitForUser(opts WaitForUserOptions) *FunctionResult`
@@ -623,19 +635,19 @@ result.ToggleFunctions([]map[string]any{
 })
 ```
 
-#### `EnableFunctionsOnTimeout(enabled bool) *FunctionResult`
-Control whether functions can be called on speaker timeout.
+#### `EnableFunctionsOnTimeout(enabled ...bool) *FunctionResult`
+Control whether functions can be called on speaker timeout. Omit `enabled` to enable (the default).
 
 ```go
-result.EnableFunctionsOnTimeout(true)
-result.EnableFunctionsOnTimeout(false)
+result.EnableFunctionsOnTimeout()       // enable (the default)
+result.EnableFunctionsOnTimeout(false)  // disable
 ```
 
-#### `EnableExtensiveData(enabled bool) *FunctionResult`
-Send full data to LLM for this turn only, then use smaller replacement.
+#### `EnableExtensiveData(enabled ...bool) *FunctionResult`
+Send full data to LLM for this turn only, then use smaller replacement. Omit `enabled` to enable (the default).
 
 ```go
-result.EnableExtensiveData(true)   // Send extensive data this turn
+result.EnableExtensiveData()       // Send extensive data this turn (the default)
 result.EnableExtensiveData(false)  // Use normal data
 ```
 
@@ -779,7 +791,7 @@ result = swaig.NewFunctionResult("Processing your request").
 result = swaig.NewFunctionResult("Let me transfer you to billing").
 	SetMetadata(map[string]any{"transfer_reason": "billing_inquiry"}).
 	UpdateGlobalData(map[string]any{"last_action": "transfer_to_billing"}).
-	Connect(swaig.ConnectOptions{Destination: "+15551234567", Final: true})
+	Connect(swaig.ConnectOptions{Destination: "+15551234567"})
 ```
 
 ---

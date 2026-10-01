@@ -27,11 +27,17 @@ func NewDateTime(params map[string]any) skills.SkillBase {
 	return s
 }
 
+// Setup records the default timezone from the "timezone" param, falling back to
+// "UTC". It always succeeds: an invalid name is not rejected here, it surfaces
+// per call as an "unknown time zone" response.
 func (s *DateTimeSkill) Setup() bool {
 	s.timezone = s.GetParamString("timezone", "UTC")
 	return true
 }
 
+// RegisterTools returns the get_current_time and get_current_date tools. Both
+// take an optional IANA "timezone" argument that overrides the skill default
+// for that call; both are handled locally in Go with no webhook.
 func (s *DateTimeSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
@@ -97,10 +103,13 @@ func (s *DateTimeSkill) handleGetCurrentDate(args map[string]any, _ map[string]a
 	return swaig.NewFunctionResult(fmt.Sprintf("Today's date is %s", dateStr))
 }
 
+// GetHints returns speech-recognition hints for date and time vocabulary.
 func (s *DateTimeSkill) GetHints() []string {
 	return []string{"time", "date", "today", "now", "current", "timezone"}
 }
 
+// GetPromptSections returns one POM section describing both tools and noting
+// that each accepts an IANA timezone identifier.
 func (s *DateTimeSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{

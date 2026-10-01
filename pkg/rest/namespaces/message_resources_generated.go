@@ -30,3 +30,49 @@ func (r *MessageLogs) Get(ctx context.Context, id string, opts ...*RequestOption
 func (r *MessageLogs) Paginate(ctx context.Context, params map[string]string, opts ...*RequestOptions) *Paginator {
 	return NewPaginator(ctx, r.HTTP, r.Base, params, "data", opts...)
 }
+
+// WhatsappNumbers is a client for the "WhatsappNumbers" resource of the SignalWire message API.
+type WhatsappNumbers struct {
+	Resource
+}
+
+// NewWhatsappNumbers constructs a WhatsappNumbers bound to base path "/api/messaging/whatsapp/numbers".
+func NewWhatsappNumbers(client HTTPClient) *WhatsappNumbers {
+	return &WhatsappNumbers{Resource{HTTP: client, Base: "/api/messaging/whatsapp/numbers"}}
+}
+
+func (r *WhatsappNumbers) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Base, params, opts...)
+}
+
+func (r *WhatsappNumbers) Get(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Get(ctx, r.Path(id), nil, opts...)
+}
+
+func (r *WhatsappNumbers) Paginate(ctx context.Context, params map[string]string, opts ...*RequestOptions) *Paginator {
+	return NewPaginator(ctx, r.HTTP, r.Base, params, "data", opts...)
+}
+
+// WhatsappBusinesses is a client for the "WhatsappBusinesses" resource of the SignalWire message API.
+type WhatsappBusinesses struct {
+	Resource
+}
+
+// NewWhatsappBusinesses constructs a WhatsappBusinesses bound to base path "/api/messaging/whatsapp/businesses".
+func NewWhatsappBusinesses(client HTTPClient) *WhatsappBusinesses {
+	return &WhatsappBusinesses{Resource{HTTP: client, Base: "/api/messaging/whatsapp/businesses"}}
+}
+
+func (r *WhatsappBusinesses) List(ctx context.Context, params map[string]string, opts ...*RequestOptions) (*WhatsappBusinessListResponse, error) {
+	return decodeResult[WhatsappBusinessListResponse](r.HTTP.Get(ctx, r.Base, params, opts...))
+}
+
+// WhatsappTemplates is a client for the "WhatsappTemplates" resource of the SignalWire message API.
+type WhatsappTemplates struct {
+	*CrudResource
+}
+
+// NewWhatsappTemplates constructs a WhatsappTemplates bound to base path "/api/messaging/whatsapp/templates".
+func NewWhatsappTemplates(client HTTPClient) *WhatsappTemplates {
+	return &WhatsappTemplates{NewCrudResource(client, "/api/messaging/whatsapp/templates")}
+}

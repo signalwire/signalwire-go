@@ -1,8 +1,8 @@
 package skills
 
 // SkillName is the closed set of built-in skill names as a defined string
-// type with typed constants. It mirrors the PHP `SkillName` backed enum and
-// gives Go callers editor autocompletion plus call-site typo checking: a bare
+// type with typed constants. It gives callers editor autocompletion plus
+// call-site typo checking: a bare
 // string like "datetiem" only fails at runtime (on the server), whereas a
 // mistyped constant fails to compile.
 //
@@ -15,9 +15,8 @@ package skills
 //	agent.AddSkill(skills.SkillName("custom"),  // open set: custom / 3rd-party skills
 //	    map[string]any{...})
 //
-// SkillName is a string subtype, so its wire/JSON value is identical to the
-// reference's bare `str` parameter — compatibility with the Python reference (which
-// uses `str`) and with custom skills that aren't built in.
+// SkillName is a string subtype, so its wire/JSON value is identical to the bare
+// string it wraps — which is what keeps custom, non-built-in skills working.
 type SkillName string
 
 // Built-in skill names. These are the canonical keys the builtin packages

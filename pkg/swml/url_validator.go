@@ -58,7 +58,7 @@ func init() {
 // a private or internal resource). It returns an error describing why the URL
 // was rejected, or nil if the URL is acceptable.
 //
-// Behavior mirrors Python's validate_url(url, allow_private=False):
+// allowPrivate defaults to false. The rules are:
 //   - Only http and https schemes are accepted.
 //   - A non-empty hostname is required.
 //   - When allowPrivate is false AND the SWML_ALLOW_PRIVATE_URLS env var is

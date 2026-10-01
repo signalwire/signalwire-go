@@ -334,9 +334,20 @@ func TestMcpServersInSwml(t *testing.T) {
 		t.Fatal("expected ai verb in SWML")
 	}
 
-	servers, ok := aiConfig["mcp_servers"]
+	// mcp_servers belongs under SWAIG, not at the ai top level: the reference
+	// sets swaig_obj["mcp_servers"] (agent_base.py:1152-1153) and $defs/AIObject
+	// is closed over nine keys that do not include it. This assertion previously
+	// read aiConfig["mcp_servers"], pinning the wrong level as correct.
+	if _, wrongLevel := aiConfig["mcp_servers"]; wrongLevel {
+		t.Error("mcp_servers must not be emitted at the ai top level")
+	}
+	swaigCfg, ok := aiConfig["SWAIG"].(map[string]any)
 	if !ok {
-		t.Fatal("expected mcp_servers in AI config")
+		t.Fatal("expected a SWAIG object to host mcp_servers")
+	}
+	servers, ok := swaigCfg["mcp_servers"]
+	if !ok {
+		t.Fatal("expected SWAIG.mcp_servers in AI config")
 	}
 	serverList, _ := servers.([]map[string]any)
 	if len(serverList) != 1 {

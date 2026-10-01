@@ -14,9 +14,11 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 	"namespaces.AIAgents": {{
 		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "AiAgents",
 		Methods: map[string]string{
-			"Create":      "create",
-			"NewAIAgents": "__init__",
-			"Update":      "update",
+			"Create":               "create",
+			"ListConversationLogs": "list_conversation_logs",
+			"ListVoices":           "list_voices",
+			"NewAIAgents":          "__init__",
+			"Update":               "update",
 		},
 	}},
 	"namespaces.AddressesNamespace": {{
@@ -27,6 +29,15 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"Get":                   "get",
 			"List":                  "list",
 			"NewAddressesNamespace": "__init__",
+			"Update":                "update",
+		},
+	}},
+	"namespaces.AliasAddresses": {{
+		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "AliasAddresses",
+		Methods: map[string]string{
+			"Create":            "create",
+			"NewAliasAddresses": "__init__",
+			"Update":            "update",
 		},
 	}},
 	"namespaces.CXMLScripts": {{
@@ -61,6 +72,11 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"AIHold":                  "ai_hold",
 			"AIMessage":               "ai_message",
+			"AISidecar":               "ai_sidecar",
+			"AISidecarAsk":            "ai_sidecar_ask",
+			"AISidecarPoke":           "ai_sidecar_poke",
+			"AISidecarStatus":         "ai_sidecar_status",
+			"AISidecarStop":           "ai_sidecar_stop",
 			"AIStop":                  "ai_stop",
 			"AIUnhold":                "ai_unhold",
 			"Collect":                 "collect",
@@ -148,6 +164,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 	"namespaces.FabricAddresses": {{
 		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "FabricAddresses",
 		Methods: map[string]string{
+			"Delete":             "delete",
 			"NewFabricAddresses": "__init__",
 			"Paginate":           "paginate",
 		},
@@ -157,7 +174,6 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"CreateEmbedToken":       "create_embed_token",
 			"CreateGuestToken":       "create_guest_token",
-			"CreateInviteToken":      "create_invite_token",
 			"CreateSubscriberToken":  "create_subscriber_token",
 			"NewFabricTokens":        "__init__",
 			"RefreshSubscriberToken": "refresh_subscriber_token",
@@ -183,6 +199,8 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Methods: map[string]string{
 			"AssignDomainApplication": "assign_domain_application",
 			"AssignPhoneRoute":        "assign_phone_route",
+			"AssignSIPEndpoint":       "assign_sip_endpoint",
+			"AssignWhatsappNumber":    "assign_whatsapp_number",
 			"Delete":                  "delete",
 			"Get":                     "get",
 			"List":                    "list",
@@ -240,11 +258,24 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"Update":                   "update",
 		},
 	}},
+	"namespaces.PhoneNumberAddresses": {{
+		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "PhoneNumberAddresses",
+		Methods: map[string]string{
+			"Create":                  "create",
+			"NewPhoneNumberAddresses": "__init__",
+			"Update":                  "update",
+		},
+	}},
 	"namespaces.PhoneNumbersNamespace": {{
 		Module: "signalwire.rest.namespaces.relay_rest_resources_generated", Class: "PhoneNumbers",
 		Methods: map[string]string{
+			"AssignE911Address":        "assign_e911_address",
+			"ClearCNAM":                "clear_cnam",
 			"Create":                   "create",
+			"GetCNAM":                  "get_cnam",
 			"NewPhoneNumbersNamespace": "__init__",
+			"RemoveE911Address":        "remove_e911_address",
+			"RequestCNAM":              "request_cnam",
 			"Search":                   "search",
 			"SetAiAgent":               "set_ai_agent",
 			"SetCallFlow":              "set_call_flow",
@@ -296,6 +327,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.relay_rest_resources_generated", Class: "Recordings",
 		Methods: map[string]string{
 			"Delete":                 "delete",
+			"Download":               "download",
 			"Get":                    "get",
 			"List":                   "list",
 			"NewRecordingsNamespace": "__init__",
@@ -310,6 +342,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"List":              "list",
 			"ListCampaigns":     "list_campaigns",
 			"NewRegistryBrands": "__init__",
+			"Update":            "update",
 		},
 	}},
 	"namespaces.RegistryCampaigns": {{
@@ -343,6 +376,14 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"Create":               "create",
 			"NewRelayApplications": "__init__",
 			"Update":               "update",
+		},
+	}},
+	"namespaces.SIPAddresses": {{
+		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "SipAddresses",
+		Methods: map[string]string{
+			"Create":          "create",
+			"NewSIPAddresses": "__init__",
+			"Update":          "update",
 		},
 	}},
 	"namespaces.SIPEndpoints": {{
@@ -394,6 +435,89 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"Update":                 "update",
 		},
 	}},
+	"namespaces.SpaceBalance": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpaceBalance",
+		Methods: map[string]string{
+			"CreateTopUp":     "create_top_up",
+			"Get":             "get",
+			"NewSpaceBalance": "__init__",
+		},
+	}},
+	"namespaces.SpaceBillingProfile": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpaceBillingProfile",
+		Methods: map[string]string{
+			"Get":                    "get",
+			"NewSpaceBillingProfile": "__init__",
+			"Update":                 "update",
+		},
+	}},
+	"namespaces.SpaceBillingStatements": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpaceBillingStatements",
+		Methods: map[string]string{
+			"Get":                       "get",
+			"GetCSV":                    "get_csv",
+			"GetPDF":                    "get_pdf",
+			"List":                      "list",
+			"NewSpaceBillingStatements": "__init__",
+		},
+	}},
+	"namespaces.SpaceGeographicPermissions": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpaceGeographicPermissions",
+		Methods: map[string]string{
+			"Get":                           "get",
+			"NewSpaceGeographicPermissions": "__init__",
+			"Update":                        "update",
+		},
+	}},
+	"namespaces.SpaceLowBalanceSetting": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpaceLowBalanceSetting",
+		Methods: map[string]string{
+			"Get":                       "get",
+			"NewSpaceLowBalanceSetting": "__init__",
+			"Update":                    "update",
+		},
+	}},
+	"namespaces.SpaceMembers": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpaceMembers",
+		Methods: map[string]string{
+			"Create":          "create",
+			"DisableProject":  "disable_project",
+			"EnableProject":   "enable_project",
+			"ListProjects":    "list_projects",
+			"NewSpaceMembers": "__init__",
+			"Update":          "update",
+		},
+	}},
+	"namespaces.SpacePaymentHistory": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpacePaymentHistory",
+		Methods: map[string]string{
+			"List":                   "list",
+			"NewSpacePaymentHistory": "__init__",
+		},
+	}},
+	"namespaces.SpacePaymentMethods": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpacePaymentMethods",
+		Methods: map[string]string{
+			"Delete":                 "delete",
+			"List":                   "list",
+			"NewSpacePaymentMethods": "__init__",
+		},
+	}},
+	"namespaces.SpaceSettings": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpaceSettings",
+		Methods: map[string]string{
+			"Get":              "get",
+			"NewSpaceSettings": "__init__",
+			"Update":           "update",
+		},
+	}},
+	"namespaces.SpaceUsage": {{
+		Module: "signalwire.rest.namespaces.space_resources_generated", Class: "SpaceUsage",
+		Methods: map[string]string{
+			"Get":           "get",
+			"NewSpaceUsage": "__init__",
+		},
+	}},
 	"namespaces.SubscribersResource": {{
 		Module: "signalwire.rest.namespaces.fabric_resources_generated", Class: "Subscribers",
 		Methods: map[string]string{
@@ -440,6 +564,7 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 		Module: "signalwire.rest.namespaces.video_resources_generated", Class: "VideoRoomRecordings",
 		Methods: map[string]string{
 			"Delete":                 "delete",
+			"Download":               "download",
 			"Get":                    "get",
 			"List":                   "list",
 			"ListEvents":             "list_events",
@@ -488,6 +613,28 @@ var GeneratedRESTStructTable = map[string][]ClassTarget{
 			"ListEvents":   "list_events",
 			"NewVoiceLogs": "__init__",
 			"Paginate":     "paginate",
+		},
+	}},
+	"namespaces.WhatsappBusinesses": {{
+		Module: "signalwire.rest.namespaces.message_resources_generated", Class: "WhatsappBusinesses",
+		Methods: map[string]string{
+			"List":                  "list",
+			"NewWhatsappBusinesses": "__init__",
+		},
+	}},
+	"namespaces.WhatsappNumbers": {{
+		Module: "signalwire.rest.namespaces.message_resources_generated", Class: "WhatsappNumbers",
+		Methods: map[string]string{
+			"NewWhatsappNumbers": "__init__",
+			"Paginate":           "paginate",
+		},
+	}},
+	"namespaces.WhatsappTemplates": {{
+		Module: "signalwire.rest.namespaces.message_resources_generated", Class: "WhatsappTemplates",
+		Methods: map[string]string{
+			"Create":               "create",
+			"NewWhatsappTemplates": "__init__",
+			"Update":               "update",
 		},
 	}},
 }

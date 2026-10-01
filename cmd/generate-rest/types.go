@@ -26,6 +26,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -75,7 +76,7 @@ func typeGoName(raw string) string {
 
 // refLeafGoName resolves a $ref to the sanitised Go type name of its leaf.
 func refLeafGoName(ref string) string {
-	return typeGoName(refLeaf(ref))
+	return localTypeName(refLeaf(ref))
 }
 
 // ---------------------------------------------------------------------------
@@ -154,9 +155,27 @@ func goFieldType(schemas, node *yaml.Node) string {
 		return "map[string]any"
 	}
 
-	// oneOf / anyOf → `any` (Go has no union type).
-	if seqChild(node, "oneOf") != nil || seqChild(node, "anyOf") != nil {
-		return "any"
+	// oneOf / anyOf → `any` (Go has no union type) — unless every arm resolves to
+	// the SAME Go type, in which case the union IS that type (the reference dedupes
+	// union members the same way: a union of inline-object arms, or of presence-only
+	// `required` arms, is one dict[str, Any] — RelayCallPlayInner, ConnectDevice*).
+	for _, comb := range []string{"oneOf", "anyOf"} {
+		if arms := seqChild(node, comb); arms != nil {
+			common := ""
+			for i, arm := range arms.Content {
+				t := goFieldType(schemas, arm)
+				if i == 0 {
+					common = t
+				} else if t != common {
+					common = ""
+					break
+				}
+			}
+			if common != "" && common != "any" {
+				return common
+			}
+			return "any"
+		}
 	}
 
 	t, _ := schemaType(node)
@@ -225,7 +244,7 @@ func isObjectSchema(node *yaml.Node) bool {
 // defined-string type + a typed const block; scalar/array/union schemas become
 // alias types.
 func emitTypeDecl(b *strings.Builder, schemas *yaml.Node, rawName string, node *yaml.Node) {
-	goName := typeGoName(rawName)
+	goName := localTypeName(rawName)
 
 	// Object → struct. rawName (the components/schemas key) is the SPEC schema
 	// name the overlay scope matches against — NOT goName (the emitted Go type).
@@ -425,7 +444,7 @@ func emitTypesFile(sd *specDoc) (string, error) {
 	for i := 0; i+1 < len(schemas.Content); i += 2 {
 		rawName := schemas.Content[i].Value
 		node := schemas.Content[i+1]
-		goName := typeGoName(rawName)
+		goName := localTypeName(rawName)
 		// x-sdk-enum markup: emit an ADDITIONAL named public enum type (the reference
 		// exports it as public API, e.g. PhoneCallHandler, so callers can write
 		// PhoneCallHandler.AiAgent instead of the bare string). Emitted BEFORE the
@@ -464,40 +483,162 @@ func emitTypesFile(sd *specDoc) (string, error) {
 // schema in these specs); arrayItem is reported for completeness.
 // ---------------------------------------------------------------------------
 
-func operationResponseType(sd *specDoc, op opInfo) (goType string, err error) {
-	opNode := sd.rawOp(op)
-	if opNode == nil {
-		return "", nil
-	}
-	responses := mapChild(opNode, "responses")
-	if responses == nil {
-		return "", nil
-	}
-	var ok *yaml.Node
-	for _, code := range []string{"200", "201", "2XX"} {
-		if n := mapChild(responses, code); n != nil {
-			ok = n
-			break
-		}
-	}
+func operationResponseType(sd *specDoc, op opInfo) (goType string, isList bool, err error) {
+	ok := operationSuccess(sd, op)
 	if ok == nil {
-		return "", nil
+		return "", false, nil
 	}
 	content := mapChild(ok, "content")
 	if content == nil || content.Kind != yaml.MappingNode || len(content.Content) < 2 {
-		return "", nil
+		return "", false, nil
 	}
-	sch := mapChild(content.Content[1], "schema")
+	// The JSON success schema, when the op declares one; otherwise the first media
+	// type (a non-JSON success is read as text and never reaches here typed).
+	media := mapChild(content, "application/json")
+	if media == nil {
+		media = content.Content[1]
+	}
+	sch := mapChild(media, "schema")
 	if sch == nil {
-		return "", nil
+		return "", false, nil
 	}
 	if ref := scalarChild(sch, "$ref"); ref != "" {
-		return refLeafGoName(ref), nil
+		return refLeafGoName(ref), false, nil
 	}
-	// array whose items are a $ref → the item type is not the whole response; the
-	// spec models list responses as their own wrapper schema, so an inline array
-	// response has no named type — fall back to the open map.
-	return "", nil
+	// A top-level ARRAY response whose items are a $ref is a list of the item type
+	// (the server sends `[...]`: GET /resources/ai_agents/voices, GET
+	// /space/payment_methods) — the reference returns list[Item].
+	if scalarChild(sch, "type") == "array" {
+		if items := mapChild(sch, "items"); items != nil {
+			if ref := scalarChild(items, "$ref"); ref != "" {
+				return refLeafGoName(ref), true, nil
+			}
+		}
+	}
+	return "", false, nil
+}
+
+// operationSuccess returns the op's 200/201/2XX response node, or nil.
+func operationSuccess(sd *specDoc, op opInfo) *yaml.Node {
+	opNode := sd.rawOp(op)
+	if opNode == nil {
+		return nil
+	}
+	responses := mapChild(opNode, "responses")
+	if responses == nil {
+		return nil
+	}
+	for _, code := range []string{"200", "201", "2XX"} {
+		if n := mapChild(responses, code); n != nil {
+			return n
+		}
+	}
+	return nil
+}
+
+// Response kinds — how an operation's success is read (the reference generator's
+// response_kind, generate_python_rest_types.py).
+const (
+	// respJSON: the decoded JSON body (the default).
+	respJSON = "json"
+	// respText: the success body is another media type (rest-apis/space
+	// GET /space/billing_statement.csv -> text/csv), read as a string and requested
+	// with that Accept.
+	respText = "text"
+	// respRedirect: the only success IS a 3xx carrying Location (a recording's .mp3,
+	// a billing statement's .pdf); the method returns that URL and never follows it.
+	respRedirect = "redirect"
+)
+
+// operationResponseKind classifies an op's success (respJSON/respText/respRedirect)
+// and, for respText, returns the media type to send as Accept.
+func operationResponseKind(sd *specDoc, op opInfo) (kind, media string) {
+	if ok := operationSuccess(sd, op); ok != nil {
+		content := mapChild(ok, "content")
+		if content == nil || content.Kind != yaml.MappingNode {
+			return respJSON, ""
+		}
+		hasJSON, other := false, ""
+		for i := 0; i+1 < len(content.Content); i += 2 {
+			m := content.Content[i].Value
+			if m == "application/json" {
+				hasJSON = true
+			} else if other == "" {
+				other = m
+			}
+		}
+		if !hasJSON && other != "" {
+			return respText, other
+		}
+		return respJSON, ""
+	}
+	responses := mapChild(sd.rawOp(op), "responses")
+	if responses == nil || responses.Kind != yaml.MappingNode {
+		return respJSON, ""
+	}
+	var codes []string
+	byCode := map[string]*yaml.Node{}
+	for i := 0; i+1 < len(responses.Content); i += 2 {
+		codes = append(codes, responses.Content[i].Value)
+		byCode[responses.Content[i].Value] = responses.Content[i+1]
+	}
+	sort.Strings(codes)
+	for _, c := range codes {
+		if strings.HasPrefix(c, "3") && mapChild(mapChild(byCode[c], "headers"), "Location") != nil {
+			return respRedirect, ""
+		}
+	}
+	return respJSON, ""
+}
+
+// headerParam is one `in: header` operation parameter (e.g. the top-up
+// Idempotency-Key the server answers 400 without).
+type headerParam struct {
+	wire     string // the header name on the wire
+	field    string // the Go params-struct field
+	goType   string // the Go field type (value when required, else pointer)
+	required bool
+}
+
+// operationHeaderParams returns the op's header parameters (path-level then
+// op-level, $refs resolved against components/parameters), in spec order.
+func operationHeaderParams(sd *specDoc, op opInfo) []headerParam {
+	root := sd.rawRoot()
+	if root == nil {
+		return nil
+	}
+	pathNode := mapChild(mapChild(root, "paths"), op.path)
+	if pathNode == nil {
+		return nil
+	}
+	compParams := mapChild(mapChild(root, "components"), "parameters")
+	var out []headerParam
+	for _, list := range []*yaml.Node{mapChild(pathNode, "parameters"), mapChild(mapChild(pathNode, op.verb), "parameters")} {
+		if list == nil || list.Kind != yaml.SequenceNode {
+			continue
+		}
+		for _, prm := range list.Content {
+			if ref := scalarChild(prm, "$ref"); ref != "" {
+				prm = mapChild(compParams, refLeaf(ref))
+			}
+			if prm == nil || scalarChild(prm, "in") != "header" {
+				continue
+			}
+			wire := scalarChild(prm, "name")
+			req := scalarChild(prm, "required") == "true"
+			typ := "string"
+			if sch := mapChild(prm, "schema"); sch != nil {
+				if t := goScalar(scalarChild(sch, "type")); t != "" {
+					typ = t
+				}
+			}
+			if !req {
+				typ = "*" + typ
+			}
+			out = append(out, headerParam{wire: wire, field: structFieldName(wire), goType: typ, required: req})
+		}
+	}
+	return out
 }
 
 // operationBodyFieldTypes returns, for an operation whose body is exploded into
@@ -589,7 +730,7 @@ func schemaFieldTypes(schemas, node *yaml.Node) (map[string]string, map[string]b
 				name := props.Content[i].Value
 				if !seen[name] {
 					seen[name] = true
-					types[name] = goFieldType(schemas, props.Content[i+1])
+					types[name] = paramGoType(schemas, props.Content[i+1])
 				}
 			}
 		}
@@ -597,6 +738,53 @@ func schemaFieldTypes(schemas, node *yaml.Node) (map[string]string, map[string]b
 	}
 	required := walk(node)
 	return types, required, nil
+}
+
+// paramGoType is goFieldType for a call-site PARAMETER (a params-struct field). It
+// differs in one place: a $ref to a union whose arms are all objects (e.g.
+// calling's RelayCallPlayInner: audio / tts / silence / ringtone play entries) is
+// an open map, not the union's `any` alias — the reference takes such a param as
+// dict[str, Any] (Calling.play's `play: list[dict[str, Any]]`), and a caller's
+// []map[string]any literal must keep compiling.
+func paramGoType(schemas, node *yaml.Node) string {
+	if node == nil {
+		return "any"
+	}
+	if scalarChild(node, "type") == "array" {
+		if items := mapChild(node, "items"); items != nil {
+			return "[]" + paramGoType(schemas, items)
+		}
+	}
+	if ref := scalarChild(node, "$ref"); ref != "" && strings.HasPrefix(ref, "#/") {
+		if target := mapChild(schemas, refLeaf(ref)); target != nil && isObjectUnion(schemas, target) {
+			return "map[string]any"
+		}
+	}
+	return goFieldType(schemas, node)
+}
+
+// isObjectUnion reports whether a schema is a oneOf/anyOf whose every arm is an
+// object schema (inline or by $ref).
+func isObjectUnion(schemas, node *yaml.Node) bool {
+	arms := seqChild(node, "oneOf")
+	if arms == nil {
+		arms = seqChild(node, "anyOf")
+	}
+	if arms == nil || len(arms.Content) == 0 {
+		return false
+	}
+	for _, arm := range arms.Content {
+		if ref := scalarChild(arm, "$ref"); ref != "" {
+			arm = mapChild(schemas, refLeaf(ref))
+		}
+		if arm == nil {
+			return false
+		}
+		if t := scalarChild(arm, "type"); t != "object" && !(t == "" && mapChild(arm, "properties") != nil) {
+			return false
+		}
+	}
+	return true
 }
 
 // paramFieldType returns the Go type for a params-struct field given its schema
@@ -619,6 +807,33 @@ func paramFieldType(goType string, required bool) string {
 func isNilableGoType(t string) bool {
 	return strings.HasPrefix(t, "*") || strings.HasPrefix(t, "[]") ||
 		strings.HasPrefix(t, "map[") || t == "any"
+}
+
+// paramsStructFieldDef renders ONE params-struct field definition, carrying the
+// spec's `required` flag in a `sw:"required"` / `sw:"optional"` struct tag.
+//
+// Why the tag exists: for a SCALAR field the Go type alone encodes optionality
+// (required → value type, optional → `*T`), and the emitted body proves it —
+// a pointer field is nil-guarded, a value field assigned unconditionally. But a
+// COMPOSITE field (`[]T` / `map[K]V` / `any`) is spelled IDENTICALLY in both
+// cases — the generator has no `*[]T` form — so it is nil-guarded either way and
+// the guard proves nothing:
+//
+//	Calling.Play    spec-REQUIRED   Play   []map[string]any   // if != nil
+//	Calling.Collect spec-OPTIONAL   Digits map[string]any     // if != nil
+//
+// The required flag is therefore NOT recoverable from Go syntax downstream, and
+// the signature enumerator (which had only pointer-ness to go on) recorded every
+// composite as required — the root cause of go's remaining `required-flip` drift.
+// The generator is the only place that still HAS the spec's flag, so it carries
+// it into the emitted code here. The tag is inert at runtime: params structs are
+// assembled field-by-field into the wire body and never JSON-marshaled.
+func paramsStructFieldDef(name, gotype string, required bool) string {
+	tag := "optional"
+	if required {
+		tag = "required"
+	}
+	return "\t" + name + " " + gotype + " `sw:\"" + tag + "\"`"
 }
 
 // commandFieldTypes returns wire-field → Go type + required set for a command-

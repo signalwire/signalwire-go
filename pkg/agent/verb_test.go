@@ -21,7 +21,7 @@ func TestPreAnswerVerbs_Add(t *testing.T) {
 
 func TestPreAnswerVerbs_Multiple(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPreAnswerVerb("play", map[string]any{"url": "a.mp3"})
+	a.AddPreAnswerVerb("play", map[string]any{"url": "https://example.com/a.mp3"})
 	a.AddPreAnswerVerb("sleep", map[string]any{"duration": 1000})
 	if len(a.preAnswerVerbs) != 2 {
 		t.Errorf("expected 2 pre-answer verbs, got %d", len(a.preAnswerVerbs))
@@ -39,7 +39,7 @@ func TestPreAnswerVerbs_Clear(t *testing.T) {
 
 func TestPreAnswerVerbs_RenderBeforeAnswer(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPreAnswerVerb("play", map[string]any{"url": "ring.mp3"})
+	a.AddPreAnswerVerb("play", map[string]any{"url": "https://example.com/ring.mp3"})
 	doc := a.RenderSWML(nil, nil)
 
 	sections, _ := doc["sections"].(map[string]any)
@@ -82,7 +82,7 @@ func TestPostAnswerVerbs_Clear(t *testing.T) {
 
 func TestPostAnswerVerbs_RenderAfterAnswer(t *testing.T) {
 	a := NewAgentBase()
-	a.AddPostAnswerVerb("play", map[string]any{"url": "welcome.mp3"})
+	a.AddPostAnswerVerb("play", map[string]any{"url": "https://example.com/welcome.mp3"})
 	doc := a.RenderSWML(nil, nil)
 
 	sections, _ := doc["sections"].(map[string]any)
@@ -148,18 +148,18 @@ func TestPostAiVerbs_RenderAfterAi(t *testing.T) {
 
 func TestAddAnswerVerb_MergesConfig(t *testing.T) {
 	a := NewAgentBase()
-	a.AddAnswerVerb(map[string]any{"ring_tone": true})
-	if a.answerConfig["ring_tone"] != true {
-		t.Error("expected ring_tone=true in answerConfig")
+	a.AddAnswerVerb(map[string]any{"codecs": "PCMU,OPUS"})
+	if a.answerConfig["codecs"] != "PCMU,OPUS" {
+		t.Error("expected codecs in answerConfig")
 	}
 }
 
 func TestAddAnswerVerb_MultipleMerges(t *testing.T) {
 	a := NewAgentBase()
-	a.AddAnswerVerb(map[string]any{"ring_tone": true})
+	a.AddAnswerVerb(map[string]any{"codecs": "PCMU,OPUS"})
 	a.AddAnswerVerb(map[string]any{"max_duration": 7200})
-	if a.answerConfig["ring_tone"] != true {
-		t.Error("ring_tone should persist")
+	if a.answerConfig["codecs"] != "PCMU,OPUS" {
+		t.Error("codecs should persist")
 	}
 	if a.answerConfig["max_duration"] != 7200 {
 		t.Errorf("max_duration = %v, want 7200", a.answerConfig["max_duration"])
@@ -168,7 +168,7 @@ func TestAddAnswerVerb_MultipleMerges(t *testing.T) {
 
 func TestAnswerConfig_RendersInSWML(t *testing.T) {
 	a := NewAgentBase()
-	a.AddAnswerVerb(map[string]any{"ring_tone": true})
+	a.AddAnswerVerb(map[string]any{"codecs": "PCMU,OPUS"})
 	doc := a.RenderSWML(nil, nil)
 
 	sections, _ := doc["sections"].(map[string]any)
@@ -177,8 +177,8 @@ func TestAnswerConfig_RendersInSWML(t *testing.T) {
 	for _, v := range main {
 		vm, _ := v.(map[string]any)
 		if answerCfg, ok := vm["answer"].(map[string]any); ok {
-			if answerCfg["ring_tone"] != true {
-				t.Errorf("expected ring_tone=true in answer, got %v", answerCfg)
+			if answerCfg["codecs"] != "PCMU,OPUS" {
+				t.Errorf("expected codecs in answer, got %v", answerCfg)
 			}
 			// Default max_duration should also be present
 			if answerCfg["max_duration"] == nil {

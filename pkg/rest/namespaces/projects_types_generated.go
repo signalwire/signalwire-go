@@ -20,7 +20,6 @@ type Project struct {
 	Name                string `json:"name,omitempty"`
 	ParentProjectID     any    `json:"parent_project_id,omitempty"`
 	Subproject          bool   `json:"subproject,omitempty"`
-	RegionPreference    string `json:"region_preference,omitempty"`
 	ProtectRecordings   bool   `json:"protect_recordings,omitempty"`
 	ProtectMessageMedia bool   `json:"protect_message_media,omitempty"`
 	ProtectFaxMedia     bool   `json:"protect_fax_media,omitempty"`
@@ -32,14 +31,21 @@ type Project struct {
 type ProjectWithSigningKey map[string]any
 
 type ProjectCreate struct {
-	Name                string `json:"name,omitempty"`
-	ProtectRecordings   *bool  `json:"protect_recordings,omitempty"`
-	ProtectMessageMedia *bool  `json:"protect_message_media,omitempty"`
-	ProtectFaxMedia     *bool  `json:"protect_fax_media,omitempty"`
-	ForceHTTPSRequests  *bool  `json:"force_https_requests,omitempty"`
+	Name                string  `json:"name,omitempty"`
+	ProtectRecordings   *bool   `json:"protect_recordings,omitempty"`
+	ProtectMessageMedia *bool   `json:"protect_message_media,omitempty"`
+	ProtectFaxMedia     *bool   `json:"protect_fax_media,omitempty"`
+	ForceHTTPSRequests  *bool   `json:"force_https_requests,omitempty"`
+	ParentProjectID     *string `json:"parent_project_id,omitempty"`
 }
 
-type ProjectUpdate ProjectCreate
+type ProjectUpdate struct {
+	Name                *string `json:"name,omitempty"`
+	ProtectRecordings   *bool   `json:"protect_recordings,omitempty"`
+	ProtectMessageMedia *bool   `json:"protect_message_media,omitempty"`
+	ProtectFaxMedia     *bool   `json:"protect_fax_media,omitempty"`
+	ForceHTTPSRequests  *bool   `json:"force_https_requests,omitempty"`
+}
 
 type ProjectList struct {
 	Links map[string]any `json:"links,omitempty"`
@@ -47,5 +53,13 @@ type ProjectList struct {
 }
 
 type ProjectStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []ProjectsTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type ProjectsTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
 }

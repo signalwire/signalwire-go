@@ -7,9 +7,9 @@ import (
 
 // Package-level sentinel errors for the conditions the relay client returns.
 //
-// These are Go-idiomatic, errors.Is-able markers (a Go-port addition — the
-// Python reference uses RelayError + bare exceptions and has no equivalent
-// sentinel set). Every code path that produces one of these conditions wraps
+// These are Go-idiomatic, errors.Is-able markers (a Go addition — the wire
+// contract carries only RelayError, with no equivalent sentinel set). Every
+// code path that produces one of these conditions wraps
 // the sentinel with %w, so callers can branch with errors.Is rather than
 // scraping error strings:
 //
@@ -41,8 +41,7 @@ var (
 // It carries the numeric code and message from the server so callers can
 // programmatically inspect failures via errors.As.
 //
-// The error format matches Python's RelayError.__str__:
-// "RELAY error {code}: {message}".
+// The error format is "RELAY error {code}: {message}".
 //
 // A RelayError may also carry a wrapped sentinel (one of the Err* values
 // above) so the same value satisfies BOTH errors.As(&RelayError) and
@@ -55,7 +54,7 @@ type RelayError struct {
 }
 
 // Error implements the built-in error interface.
-// Format matches Python's RelayError.__str__: "RELAY error {code}: {message}".
+// Format is "RELAY error {code}: {message}".
 func (e *RelayError) Error() string {
 	return fmt.Sprintf("RELAY error %d: %s", e.Code, e.Message)
 }

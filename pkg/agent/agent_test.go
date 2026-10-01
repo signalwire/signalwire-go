@@ -515,6 +515,20 @@ func TestEnableDebugEvents(t *testing.T) {
 	}
 }
 
+// TestEnableDebugEvents_OmittedDefaults covers the path an omitting caller
+// takes. Level 0 is a meaningful value here (debug events OFF), so a plain `int`
+// parameter would have made an omitted level DISABLE debug events — the opposite
+// of the reference's `enable_debug_events(level=1)`.
+func TestEnableDebugEvents_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	a := NewAgentBase()
+	a.EnableDebugEvents()
+	if a.debugEventsLevel != 1 {
+		t.Errorf("omitted level: debugEventsLevel = %d, want 1 (reference default level=1)",
+			a.debugEventsLevel)
+	}
+}
+
 func TestFunctionIncludes(t *testing.T) {
 	a := NewAgentBase()
 	a.AddFunctionInclude("https://remote.com/swaig", []string{"tool1"}, map[string]any{"key": "val"})
@@ -788,7 +802,18 @@ func TestRenderSWML_WithTools(t *testing.T) {
 			if fn["description"] != "Get weather" {
 				t.Errorf("unexpected description: %v", fn["description"])
 			}
-			webhookURL, _ := fn["web_hook_url"].(string)
+			// The SWAIG endpoint for a tool with no external URL and no minted
+			// token is the shared SWAIG.defaults.web_hook_url — this render has
+			// no call_id, so no token exists and the tool correctly carries no
+			// per-tool key (reference agent_base.py:1089-1099).
+			if _, present := fn["web_hook_url"]; present {
+				t.Errorf("tokenless tool must not carry its own web_hook_url, got %#v", fn["web_hook_url"])
+			}
+			defaults, ok := swaigCfg["defaults"].(map[string]any)
+			if !ok {
+				t.Fatal("expected SWAIG defaults")
+			}
+			webhookURL, _ := defaults["web_hook_url"].(string)
 			if !strings.Contains(webhookURL, "/swaig") {
 				t.Errorf("expected webhook URL to contain /swaig, got %q", webhookURL)
 			}
@@ -924,10 +949,18 @@ func TestRenderSWML_WithPostPrompt(t *testing.T) {
 	t.Error("AI verb not found")
 }
 
+// native_functions is a property of the SWAIG object, NOT of the ai object.
+// The reference emits swaig_obj["native_functions"] (agent_base.py:1017-1018)
+// and schema.json declares it under SWAIG with a CLOSED value enum
+// ($defs/SWAIGNativeFunction: check_time, wait_seconds, wait_for_user,
+// adjust_response_latency). This test previously asserted the key at
+// ai.native_functions with the values ["transfer","hangup"] — wrong level AND
+// wrong values, both of which the engine discards. It asserted the defect, so it
+// is replaced rather than adjusted.
 func TestRenderSWML_WithNativeFunctions(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("u", "p"))
 	a.SetPromptText("Bot").
-		SetNativeFunctions([]string{"transfer", "hangup"})
+		SetNativeFunctions([]string{"check_time", "wait_seconds"})
 
 	doc := a.RenderSWML(nil, nil)
 	sections := as[map[string]any](t, doc["sections"])
@@ -936,9 +969,17 @@ func TestRenderSWML_WithNativeFunctions(t *testing.T) {
 	for _, v := range main {
 		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			nf, ok := aiCfg["native_functions"].([]string)
+			if _, wrongLevel := aiCfg["native_functions"]; wrongLevel {
+				t.Error("native_functions must not be emitted at the ai top level; " +
+					"it belongs under ai.SWAIG")
+			}
+			swaigCfg, ok := aiCfg["SWAIG"].(map[string]any)
 			if !ok {
-				t.Fatal("expected native_functions")
+				t.Fatal("expected a SWAIG object to host native_functions")
+			}
+			nf, ok := swaigCfg["native_functions"].([]string)
+			if !ok {
+				t.Fatal("expected SWAIG.native_functions")
 			}
 			if len(nf) != 2 {
 				t.Errorf("expected 2 native functions, got %d", len(nf))
@@ -949,6 +990,12 @@ func TestRenderSWML_WithNativeFunctions(t *testing.T) {
 	t.Error("AI verb not found")
 }
 
+// contexts is a property of the PROMPT object, NOT of the ai object. The
+// reference sets prompt_config["contexts"] (swml_handler.py:190-191) and
+// validates it as 'prompt.contexts' (swml_handler.py:119-122); the ai object's
+// closed key set has no `contexts` member. This test previously asserted the key
+// at ai.contexts, where the engine never reads it — it asserted the defect, so it
+// is replaced rather than adjusted.
 func TestRenderSWML_WithContexts(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("u", "p"))
 	a.SetPromptText("Bot")
@@ -962,9 +1009,17 @@ func TestRenderSWML_WithContexts(t *testing.T) {
 	for _, v := range main {
 		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			ctxs, ok := aiCfg["contexts"].(map[string]any)
+			if _, wrongLevel := aiCfg["contexts"]; wrongLevel {
+				t.Error("contexts must not be emitted at the ai top level; " +
+					"it belongs under ai.prompt")
+			}
+			promptCfg, ok := aiCfg["prompt"].(map[string]any)
 			if !ok {
-				t.Fatal("expected contexts in AI config")
+				t.Fatal("expected a prompt object to host contexts")
+			}
+			ctxs, ok := promptCfg["contexts"].(map[string]any)
+			if !ok {
+				t.Fatal("expected prompt.contexts in AI config")
 			}
 			if _, ok := ctxs["default"]; !ok {
 				t.Error("expected 'default' context")
@@ -1267,8 +1322,14 @@ func TestHTTP_SWMLEndpoint_ReturnsSWML(t *testing.T) {
 
 func TestHTTP_SwaigEndpoint(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("u", "p"))
+	// secure=false: this test pins ARGUMENT EXTRACTION, not the inbound
+	// __token gate. ToolDefinition.Secure is a tri-state *bool whose nil means
+	// SECURE, so a tool that omits the field is refused when called without a
+	// token (see swaig_token_validation_test.go, which owns that contract).
+	insecure := false
 	a.DefineTool(ToolDefinition{
-		Name: "greet",
+		Name:   "greet",
+		Secure: &insecure,
 		Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
 			name, _ := args["name"].(string)
 			return swaig.NewFunctionResult("Hi, " + name)
@@ -1330,8 +1391,12 @@ func TestHTTP_SwaigEndpoint_ArgUnwrap(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := NewAgentBase(WithBasicAuth("u", "p"))
+			// secure=false — this case pins argument extraction, not the
+			// inbound __token gate (owned by swaig_token_validation_test.go).
+			insecure := false
 			a.DefineTool(ToolDefinition{
-				Name: "greet",
+				Name:   "greet",
+				Secure: &insecure,
 				Handler: func(args map[string]any, rawData map[string]any) *swaig.FunctionResult {
 					name, _ := args["name"].(string)
 					return swaig.NewFunctionResult("Hi, " + name)
@@ -1552,8 +1617,11 @@ func TestRenderSWML_WithRoute(t *testing.T) {
 		vm := as[map[string]any](t, v)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
 			swaigCfg := as[map[string]any](t, aiCfg["SWAIG"])
-			functions := as[[]map[string]any](t, swaigCfg["functions"])
-			webhookURL := as[string](t, functions[0]["web_hook_url"])
+			// Route composition is asserted on the shared SWAIG endpoint: this
+			// render has no call_id, so the tokenless tool has no per-tool
+			// web_hook_url of its own (reference agent_base.py:1089-1099).
+			defaults := as[map[string]any](t, swaigCfg["defaults"])
+			webhookURL := as[string](t, defaults["web_hook_url"])
 			if !strings.Contains(webhookURL, "/myagent/swaig") {
 				t.Errorf("expected webhook URL to contain route /myagent/swaig, got %q", webhookURL)
 			}

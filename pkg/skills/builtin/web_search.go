@@ -68,6 +68,9 @@ func NewWebSearch(params map[string]any) skills.SkillBase {
 	}
 }
 
+// RequiredEnvVars returns GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID. It
+// returns nil only when BOTH the "api_key" and "search_engine_id" params are
+// supplied inline — supplying just one still requires the env vars.
 func (s *WebSearchSkill) RequiredEnvVars() []string {
 	if s.Params != nil {
 		_, hasKey := s.Params["api_key"]
@@ -79,14 +82,36 @@ func (s *WebSearchSkill) RequiredEnvVars() []string {
 	return []string{"GOOGLE_SEARCH_API_KEY", "GOOGLE_SEARCH_ENGINE_ID"}
 }
 
+// SupportsMultipleInstances returns true: one agent can search several custom
+// search engines, each instance under its own engine ID and tool name.
 func (s *WebSearchSkill) SupportsMultipleInstances() bool { return true }
 
 // GetInstanceKey returns a unique key incorporating both searchEngineID and toolName,
-// matching Python's f"{SKILL_NAME}_{search_engine_id}_{tool_name}" pattern.
+// following the "{skill_name}_{search_engine_id}_{tool_name}" pattern.
+// Both fields are populated by Setup, and SkillManager.LoadSkill computes the
+// instance key BEFORE calling Setup, so at dedup time this reports
+// "web_search__".
 func (s *WebSearchSkill) GetInstanceKey() string {
 	return "web_search_" + s.searchEngineID + "_" + s.toolName
 }
 
+// Setup resolves the Google Custom Search credentials (the "api_key" and
+// "search_engine_id" params, else GOOGLE_SEARCH_API_KEY and
+// GOOGLE_SEARCH_ENGINE_ID) and returns false — aborting the load — when either
+// is empty. It then reads the search and quality-filter tuning: num_results
+// (3), tool_name ("web_search"), delay between page scrapes (0.5s),
+// max_content_length (32768), oversample_factor (2.5, how many extra candidates
+// to fetch so low-quality pages can be discarded), min_quality_score (0.3, the
+// cutoff below which a scraped page is dropped), no_results_message (whose
+// {query} placeholder is filled at call time), and response_prefix/postfix
+// wrapped around a non-empty result.
+//
+// It also reads the latency controls that keep the handler inside the
+// platform's roughly 55-second webhook timeout: per_page_timeout (2.0s per
+// scrape), overall_deadline (10.0s for the whole call, after which in-flight
+// scrapes are abandoned and whatever is already collected is formatted),
+// parallel_scrape (true) and snippets_only (false, which when enabled skips
+// scraping and returns the CSE snippets alone).
 func (s *WebSearchSkill) Setup() bool {
 	s.apiKey = s.GetParamString("api_key", os.Getenv("GOOGLE_SEARCH_API_KEY"))
 	s.searchEngineID = s.GetParamString("search_engine_id", os.Getenv("GOOGLE_SEARCH_ENGINE_ID"))
@@ -115,6 +140,14 @@ func (s *WebSearchSkill) Setup() bool {
 	return true
 }
 
+// RegisterTools returns the single web-search tool, taking a "query" string; no
+// parameter is marked required, matching the reference (web_search/skill.py:707).
+// The handler runs locally in Go: it queries the Google Custom Search API,
+// oversamples the result list, scrapes the candidate pages (in parallel and
+// under the per-page and overall deadlines unless snippets_only is set), scores
+// each page and drops anything below min_quality_score, then formats the
+// surviving results within max_content_length, falling back to
+// no_results_message when nothing clears the bar.
 func (s *WebSearchSkill) RegisterTools() []skills.ToolRegistration {
 	return []skills.ToolRegistration{
 		{
@@ -899,7 +932,7 @@ func (s *WebSearchSkill) wrapResponse(response string) string {
 }
 
 // GetGlobalData returns global context data signalling that quality-filtered web
-// search is available. Mirrors Python's get_global_data return value.
+// search is available.
 func (s *WebSearchSkill) GetGlobalData() map[string]any {
 	return map[string]any{
 		"web_search_enabled": true,
@@ -908,6 +941,9 @@ func (s *WebSearchSkill) GetGlobalData() map[string]any {
 	}
 }
 
+// GetPromptSections returns one POM section, naming the configured tool, that
+// tells the agent when to search and that results are already quality-filtered
+// and ranked, so it should summarize rather than re-vet them.
 func (s *WebSearchSkill) GetPromptSections() []map[string]any {
 	return []map[string]any{
 		{
@@ -923,6 +959,11 @@ func (s *WebSearchSkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetParameterSchema extends the common skill parameters with the search
+// configuration: the required, hidden api_key and search_engine_id (sourced
+// from GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID), plus num_results
+// (1-10), delay, max_content_length, the quality knobs, no_results_message,
+// response_prefix/postfix and the latency controls.
 func (s *WebSearchSkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["api_key"] = map[string]any{

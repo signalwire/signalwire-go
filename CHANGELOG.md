@@ -7,8 +7,10 @@ published as git tags (`v<MAJOR>.<MINOR>.<PATCH>`) resolved by the Go module pro
 
 ## 3.0.2
 
-Release-floor baseline for the generated-REST surface. `port_signatures.baseline.json`
-captures this public API surface as the SemVer floor enforced by the SEMVER-DIFF gate.
+First release of the generated-REST surface. Unreleased — no `v3.x` tag has been
+pushed (the last published tag is v1.1.0); this is the version `main` declares. `port_signatures.baseline.json` carries the
+separate SemVer *floor* (`baseline_version`) that the SEMVER-DIFF gate diffs against;
+that floor is a snapshot identifier and is deliberately not renumbered with this entry.
 
 - REST client with generated, typed namespaced resources across the REST API
   namespaces (calling, chat, datasphere, fabric, fax, logs, message, project,
@@ -18,6 +20,12 @@ captures this public API surface as the SemVer floor enforced by the SEMVER-DIFF
 - AgentBase, SWML document model/builder, SWAIG function-result action layer,
   DataMap server-side tools, contexts/steps workflows, skills, and prefabs.
 - `swaig-test` CLI for local agent testing.
+- AI Chat: `aichat.ChatGateway` (browser-facing proxy: publishable key, signed
+  conversation handles, origin allowlist, caps, unbuffered streaming),
+  `aichat.HandoffRouter` (voice/text handoff routes) and `Client.RawPost`.
+- `AgentBase.Mount`, `AgentBase.OnCallEnd`, `AgentBase.AddPerCallConfig`;
+  `pkg/capabilities`, `pkg/postprompt`; SHA-256 webhook signature validation; the
+  spider skill fetches through an SSRF-guarded client (`SpiderSkill.Session`).
 - Full cross-port CI gate set wired via `scripts/run-ci.sh`, including the
   Wave-3 release-readiness gates (SEMVER-DIFF, RELEASE-FRESH, META-CONSISTENT,
   strict IGNORE-LEDGER-VERIFY) and a gated publish workflow.

@@ -83,17 +83,23 @@ This directory contains runnable examples demonstrating the SignalWire AI Agents
 
 ## Running Examples
 
-Most examples can be run directly:
+Every example is a standalone `package main` program carrying a
+`//go:build swexample` tag, which keeps the demos out of `go build ./...`.
+Run one by specifying the file:
+
+```bash
+go run ./examples/concierge/main.go
+```
+
+`examples/` puts one program per directory, so the directory form works there
+too:
 
 ```bash
 go run ./examples/simple_agent/
 ```
 
-Examples with `//go:build ignore` tags (most new examples) should be run by specifying the file:
-
-```bash
-go run ./examples/concierge/main.go
-```
+`rest/examples/` and `relay/examples/` co-locate several programs in one
+directory, so those must always be run by file.
 
 Examples that require environment variables:
 

@@ -1,6 +1,7 @@
 package datamap
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/v3/pkg/swaig"
@@ -221,7 +222,7 @@ func TestWebhookConfiguration(t *testing.T) {
 			true,
 			[]string{"id", "name"},
 		).
-		Body(map[string]any{
+		Params(map[string]any{
 			"id":   "${args.id}",
 			"name": "${args.name}",
 		}).
@@ -261,9 +262,14 @@ func TestWebhookConfiguration(t *testing.T) {
 		t.Errorf("expected 2 require_args, got %d", len(requireArgs))
 	}
 
-	body := as[map[string]any](t, wh["body"])
-	if body["id"] != "${args.id}" {
-		t.Errorf("unexpected body id: %v", body["id"])
+	// Was `wh["body"]`, which pinned a schema-forbidden key as correct. `params`
+	// is the contract key the engine actually reads.
+	params := as[map[string]any](t, wh["params"])
+	if params["id"] != "${args.id}" {
+		t.Errorf("unexpected params id: %v", params["id"])
+	}
+	if _, present := wh["body"]; present {
+		t.Errorf("webhook carries a body key: %v", wh)
 	}
 }
 
@@ -366,6 +372,42 @@ func TestExpressionNilOutputPanics(t *testing.T) {
 	New("h").Expression("${args.x}", "^foo$", nil, nil)
 }
 
+// TestCreateSimpleApiTool_OmittedDefaults covers the path a caller takes when it
+// declines method, parameters and headers. The reference defaults method to
+// "GET" (`create_simple_api_tool(..., method="GET", ...)`); before the guard an
+// empty method reached the webhook as a BLANK HTTP verb.
+func TestCreateSimpleApiTool_OmittedDefaults(t *testing.T) {
+	t.Parallel()
+	dm := CreateSimpleAPITool(
+		"ping",
+		"https://api.example.com/ping",
+		"${response.status}",
+		nil, // parameters omitted
+		"",  // method omitted
+		nil, // headers omitted
+		nil, // body omitted
+		nil, // errorKeys omitted
+	)
+
+	result := dm.ToSwaigFunction()
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
+	if len(webhooks) != 1 {
+		t.Fatalf("expected 1 webhook, got %d", len(webhooks))
+	}
+	if webhooks[0]["method"] != "GET" {
+		t.Errorf("omitted method: method = %v, want %q (reference default method=\"GET\")",
+			webhooks[0]["method"], "GET")
+	}
+
+	// Omitted parameters must produce an empty property set, not a crash.
+	params := as[map[string]any](t, result["parameters"])
+	props, ok := params["properties"].(map[string]any)
+	if ok && len(props) != 0 {
+		t.Errorf("omitted parameters: properties = %v, want empty", props)
+	}
+}
+
 func TestCreateSimpleApiTool(t *testing.T) {
 	dm := CreateSimpleAPITool(
 		"get_stock",
@@ -425,7 +467,20 @@ func TestCreateSimpleApiTool(t *testing.T) {
 	}
 }
 
-func TestCreateSimpleApiToolWithBody(t *testing.T) {
+// TestCreateSimpleApiTool_EmitsNoBodyKey pins that the POST path emits NO `body`
+// key on the webhook.
+//
+// `body` is not a valid webhook key. porting-sdk/schema.json `$defs/Webhook`
+// declares exactly ten properties — error_keys, expressions, foreach, headers,
+// input_args_as_params, method, output, params, require_args, url — under
+// `unevaluatedProperties: {"not": {}}`, so anything else is a schema violation.
+// Neither engine reader looks `body` up: mod_openai/actions.c:735-739 and
+// mod_openai/bedrock.c:4920-4926 read url, method, form_param, params and
+// headers, and `grep -n '"body"'` across both files returns zero matches.
+// CreateSimpleAPITool's `body` argument and DataMap.Body() therefore write the
+// payload as the webhook's `params`, never a `body` key. Mirrors the reference's
+// test_create_simple_api_tool_emits_no_body_key.
+func TestCreateSimpleApiTool_EmitsNoBodyKey(t *testing.T) {
 	dm := CreateSimpleAPITool(
 		"search",
 		"https://api.search.com/query",
@@ -438,26 +493,44 @@ func TestCreateSimpleApiToolWithBody(t *testing.T) {
 			},
 		},
 		"POST",
+		map[string]string{"Authorization": "Bearer TOKEN"},
 		nil,
-		map[string]any{"q": "${args.query}", "limit": 5},
-		nil,
+		[]string{"error"},
 	)
 
 	result := dm.ToSwaigFunction()
 	dataMap := as[map[string]any](t, result["data_map"])
 	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
+	if len(webhooks) != 1 {
+		t.Fatalf("expected 1 webhook, got %d", len(webhooks))
+	}
 	wh := webhooks[0]
 
 	if wh["method"] != "POST" {
 		t.Errorf("expected POST, got %v", wh["method"])
 	}
 
-	body := as[map[string]any](t, wh["body"])
-	if body["q"] != "${args.query}" {
-		t.Errorf("unexpected body q: %v", body["q"])
+	if _, present := wh["body"]; present {
+		t.Errorf("webhook carries a body key: %v", wh)
 	}
-	if body["limit"] != 5 {
-		t.Errorf("unexpected body limit: %v", body["limit"])
+
+	// The emitted key set must stay inside schema.json $defs/Webhook.
+	allowed := map[string]bool{
+		"error_keys":           true,
+		"expressions":          true,
+		"foreach":              true,
+		"headers":              true,
+		"input_args_as_params": true,
+		"method":               true,
+		"output":               true,
+		"params":               true,
+		"require_args":         true,
+		"url":                  true,
+	}
+	for k := range wh {
+		if !allowed[k] {
+			t.Errorf("webhook has key %q outside schema.json $defs/Webhook", k)
+		}
 	}
 }
 
@@ -556,7 +629,7 @@ func TestForeachConfig(t *testing.T) {
 		Purpose("Search documentation").
 		Parameter("query", "string", "Search query", true, nil).
 		Webhook("POST", "https://api.docs.com/search", nil, "", false, nil).
-		Body(map[string]any{"query": "${args.query}", "limit": 3}).
+		Params(map[string]any{"query": "${args.query}", "limit": 3}).
 		Foreach(map[string]any{
 			"input_key":  "results",
 			"output_key": "formatted",
@@ -642,11 +715,11 @@ func TestMethodUppercased(t *testing.T) {
 func TestMultipleWebhooksPreserveSeparateConfig(t *testing.T) {
 	dm := New("multi").
 		Webhook("GET", "https://primary.com", nil, "", false, nil).
-		Body(map[string]any{"source": "primary"}).
+		Params(map[string]any{"source": "primary"}).
 		ErrorKeys([]string{"err"}).
 		Output(swaig.NewFunctionResult("Primary result")).
 		Webhook("GET", "https://secondary.com", nil, "", false, nil).
-		Body(map[string]any{"source": "secondary"}).
+		Params(map[string]any{"source": "secondary"}).
 		Output(swaig.NewFunctionResult("Secondary result"))
 
 	result := dm.ToSwaigFunction()
@@ -657,22 +730,91 @@ func TestMultipleWebhooksPreserveSeparateConfig(t *testing.T) {
 		t.Fatalf("expected 2 webhooks, got %d", len(webhooks))
 	}
 
-	// First webhook should have its own body and error keys
-	body1 := as[map[string]any](t, webhooks[0]["body"])
-	if body1["source"] != "primary" {
-		t.Errorf("expected first webhook body source %q, got %v", "primary", body1["source"])
+	// First webhook should have its own params and error keys
+	params1 := as[map[string]any](t, webhooks[0]["params"])
+	if params1["source"] != "primary" {
+		t.Errorf("expected first webhook params source %q, got %v", "primary", params1["source"])
 	}
 	ek1 := as[[]string](t, webhooks[0]["error_keys"])
 	if len(ek1) != 1 || ek1[0] != "err" {
 		t.Errorf("expected first webhook error_keys [err], got %v", ek1)
 	}
 
-	// Second webhook should have its own body, no error keys
-	body2 := as[map[string]any](t, webhooks[1]["body"])
-	if body2["source"] != "secondary" {
-		t.Errorf("expected second webhook body source %q, got %v", "secondary", body2["source"])
+	// Second webhook should have its own params, no error keys
+	params2 := as[map[string]any](t, webhooks[1]["params"])
+	if params2["source"] != "secondary" {
+		t.Errorf("expected second webhook params source %q, got %v", "secondary", params2["source"])
 	}
 	if _, exists := webhooks[1]["error_keys"]; exists {
 		t.Error("expected second webhook to have no error_keys")
+	}
+}
+
+// TestBodyBuilderWritesParams: DataMap.Body() (restored by the reference) is the
+// same as Params() — the platform reads a webhook's body from `params`, and a
+// `body` key is not in schema.json $defs/Webhook, so Body never emits one.
+func TestBodyBuilderWritesParams(t *testing.T) {
+	dm := New("t").
+		Webhook("POST", "https://x.test", nil, "", false, nil).
+		Body(map[string]any{"q": "${args.query}"}).
+		Output(swaig.NewFunctionResult("ok"))
+	dataMap := as[map[string]any](t, dm.ToSwaigFunction()["data_map"])
+	wh := as[[]map[string]any](t, dataMap["webhooks"])[0]
+	if _, present := wh["body"]; present {
+		t.Errorf("Body() emitted a schema-forbidden body key: %v", wh)
+	}
+	if !reflect.DeepEqual(wh["params"], map[string]any{"q": "${args.query}"}) {
+		t.Errorf("params = %#v, want the Body() payload", wh["params"])
+	}
+}
+
+// TestParamsStillWritesTheContractKey is the companion of
+// TestBodyBuilderWritesParams: the replacement must keep working, and no `body` key
+// may reach the wire.
+func TestParamsStillWritesTheContractKey(t *testing.T) {
+	dm := New("t").
+		Webhook("POST", "https://x.test", nil, "", false, nil).
+		Params(map[string]any{"q": "${args.query}"}).
+		Output(swaig.NewFunctionResult("ok"))
+
+	result := dm.ToSwaigFunction()
+	dataMap := as[map[string]any](t, result["data_map"])
+	webhooks := as[[]map[string]any](t, dataMap["webhooks"])
+	wh := webhooks[0]
+
+	params := as[map[string]any](t, wh["params"])
+	if params["q"] != "${args.query}" {
+		t.Errorf("params q = %v, want ${args.query}", params["q"])
+	}
+	if _, present := wh["body"]; present {
+		t.Errorf("webhook carries a body key: %v", wh)
+	}
+}
+
+// TestCreateSimpleApiTool_BodyBecomesParams mirrors the reference's
+// test_create_simple_api_tool_body_becomes_params: the body is sent as the
+// webhook's params (the field the platform reads the request body from).
+func TestCreateSimpleApiTool_BodyBecomesParams(t *testing.T) {
+	dm := CreateSimpleAPITool("search", "https://api.example.com/search",
+		"Found ${total} for ${input.args.query}", nil, "POST", nil,
+		map[string]any{"q": "${args.query}"}, nil)
+	dataMap := as[map[string]any](t, dm.ToSwaigFunction()["data_map"])
+	wh := as[[]map[string]any](t, dataMap["webhooks"])[0]
+	if !reflect.DeepEqual(wh["params"], map[string]any{"q": "${args.query}"}) {
+		t.Errorf("params = %#v, want the body", wh["params"])
+	}
+	if _, present := wh["body"]; present {
+		t.Errorf("webhook carries a body key: %v", wh)
+	}
+}
+
+// TestDataMapBodySetsParams: Body() is the same as Params().
+func TestDataMapBodySetsParams(t *testing.T) {
+	dm := New("f").Webhook("POST", "https://x.example", nil, "", false, nil).
+		Body(map[string]any{"a": 1})
+	dataMap := as[map[string]any](t, dm.ToSwaigFunction()["data_map"])
+	wh := as[[]map[string]any](t, dataMap["webhooks"])[0]
+	if !reflect.DeepEqual(wh["params"], map[string]any{"a": 1}) {
+		t.Errorf("params = %#v", wh["params"])
 	}
 }

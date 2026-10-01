@@ -43,7 +43,7 @@ func TestServiceVerbMethods(t *testing.T) {
 
 	// Test Answer verb with typed params
 	maxDur := 300
-	err := svc.Answer(&maxDur, nil)
+	err := svc.Answer(AnswerOptions{MaxDuration: &maxDur})
 	if err != nil {
 		t.Fatalf("Answer failed: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestServiceAllVerbMethods(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Answer", func() error { return svc.Answer(nil, nil) }},
+		{"Answer", func() error { return svc.Answer(AnswerOptions{}) }},
 		{"Hangup", func() error { return svc.Hangup(nil) }},
 		{"Play", func() error { u := "say:hello"; return svc.Play(PlayOptions{URL: &u}) }},
 		{"Record", func() error { return svc.Record(map[string]any{}) }},
@@ -127,12 +127,12 @@ func TestServiceAllVerbMethods(t *testing.T) {
 		{"JoinConference", func() error { return svc.JoinConference(map[string]any{"name": "conf1"}) }},
 		{"Prompt", func() error { return svc.Prompt(map[string]any{"play": "say:hi"}) }},
 		{"EnterQueue", func() error {
-			return svc.EnterQueue(map[string]any{"queue_name": "q", "transfer_after_bridge": "main"})
+			return svc.EnterQueue(map[string]any{"queue_name": "q", "execute_after_queue": "main"})
 		}},
 		{"Request", func() error {
 			return svc.Request(map[string]any{"url": "http://x", "method": "GET"})
 		}},
-		{"Pay", func() error { return svc.Pay(map[string]any{"payment_connector_url": "http://x"}) }},
+		{"Pay", func() error { return svc.Pay(map[string]any{"payment_connector_url": "https://x.example"}) }},
 		{"DetectMachine", func() error { return svc.DetectMachine(map[string]any{}) }},
 		// live_transcribe / live_translate take a typed action; "stop" (a string
 		// const) is the minimal valid action per the schema. The wrappers accept
@@ -166,7 +166,7 @@ func TestServiceExecuteVerbInvalid(t *testing.T) {
 func TestServiceRender(t *testing.T) {
 	svc := NewService(WithName("test"))
 	maxDur2 := 300
-	if err := svc.Answer(&maxDur2, nil); err != nil {
+	if err := svc.Answer(AnswerOptions{MaxDuration: &maxDur2}); err != nil {
 		t.Fatalf("Answer: %v", err)
 	}
 	playURL2 := "https://example.com/audio.mp3"
@@ -215,7 +215,7 @@ func TestServiceGetFullURL(t *testing.T) {
 
 func TestServiceOnRequest(t *testing.T) {
 	svc := NewService(WithName("test"))
-	if err := svc.Answer(nil, nil); err != nil {
+	if err := svc.Answer(AnswerOptions{}); err != nil {
 		t.Fatalf("Answer: %v", err)
 	}
 
@@ -227,19 +227,19 @@ func TestServiceOnRequest(t *testing.T) {
 
 func TestServiceRoutingCallback(t *testing.T) {
 	svc := NewService(WithName("test"), WithBasicAuth("u", "p"))
-	if err := svc.Answer(nil, nil); err != nil {
+	if err := svc.Answer(AnswerOptions{}); err != nil {
 		t.Fatalf("Answer: %v", err)
 	}
 
 	// A routing callback returns a route string to redirect (307), or nil to
 	// continue to the default document, per (body, headers) -> *string.
-	svc.RegisterRoutingCallback("/custom", func(body map[string]any, headers map[string]any) *string {
+	svc.RegisterRoutingCallback(func(body map[string]any, headers map[string]any) *string {
 		if dept, _ := body["department"].(string); dept == "sales" {
 			route := "/sales"
 			return &route
 		}
 		return nil
-	})
+	}, "/custom")
 
 	authHdr := map[string]string{"Authorization": "Basic dTpw"} // base64("u:p")
 
@@ -344,5 +344,154 @@ func TestFilterNilValuesNilInput(t *testing.T) {
 	}
 	if len(result) != 0 {
 		t.Error("should return empty map")
+	}
+}
+
+// TestServiceAIWireShape renders a real document through Service.AI and PARSES
+// the emitted JSON, asserting the actual keys and value KINDS of the ai verb —
+// not a substring match on the blob, which passes for any shape.
+//
+// The SWML `ai` verb requires BOTH `prompt` and `post_prompt` to be JSON
+// OBJECTS — {"text": ...} or {"pom": [...]}. A bare string is FATAL on the
+// wire, not merely non-canonical: the AI engine (mod_openai app_config.c)
+// checks `!cJSON_IsObject(assistant_prompt)` and `!cJSON_IsObject(post_prompt)`
+// and, on either, fires a `calling.error` with fatal:true and ABORTS THE CALL.
+// Service.AI previously emitted post_prompt as a bare string while the
+// neighbouring AIVerbHandler.BuildConfig — which owns the same rule — wrapped
+// it correctly; this test is what keeps the two paths from diverging again.
+func TestServiceAIWireShape(t *testing.T) {
+	svc := NewService(WithName("test"))
+	promptText := "You are a helpful assistant."
+	postPrompt := "Summarize the conversation."
+	postPromptURL := "https://example.com/post_prompt"
+	if err := svc.AI(AIOptions{
+		PromptText:    &promptText,
+		PostPrompt:    &postPrompt,
+		PostPromptURL: &postPromptURL,
+	}); err != nil {
+		t.Fatalf("AI: %v", err)
+	}
+
+	rendered, err := svc.GetDocument().Render()
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(rendered), &doc); err != nil {
+		t.Fatalf("emitted document is not valid JSON: %v\n%s", err, rendered)
+	}
+
+	sections, ok := doc["sections"].(map[string]any)
+	if !ok {
+		t.Fatalf("sections is %T, want object; doc=%s", doc["sections"], rendered)
+	}
+	main, ok := sections["main"].([]any)
+	if !ok || len(main) == 0 {
+		t.Fatalf("sections.main is %T (len check failed), want non-empty array; doc=%s", sections["main"], rendered)
+	}
+	verb, ok := main[0].(map[string]any)
+	if !ok {
+		t.Fatalf("sections.main[0] is %T, want object; doc=%s", main[0], rendered)
+	}
+	aiCfg, ok := verb["ai"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai verb config is %T, want object; doc=%s", verb["ai"], rendered)
+	}
+
+	// prompt MUST be an object carrying "text".
+	prompt, ok := aiCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai.prompt is %T (%v), want object {\"text\": ...} — a bare value is FATAL on the wire; doc=%s",
+			aiCfg["prompt"], aiCfg["prompt"], rendered)
+	}
+	if prompt["text"] != promptText {
+		t.Errorf("ai.prompt.text = %v, want %q", prompt["text"], promptText)
+	}
+
+	// post_prompt MUST be an object carrying "text" — same contract as prompt.
+	pp, ok := aiCfg["post_prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai.post_prompt is %T (%v), want object {\"text\": ...} — a bare string aborts the call (app_config.c !cJSON_IsObject(post_prompt)); doc=%s",
+			aiCfg["post_prompt"], aiCfg["post_prompt"], rendered)
+	}
+	if pp["text"] != postPrompt {
+		t.Errorf("ai.post_prompt.text = %v, want %q", pp["text"], postPrompt)
+	}
+
+	// post_prompt_url stays a bare string (it is a URL, not a prompt object).
+	if got, ok := aiCfg["post_prompt_url"].(string); !ok || got != postPromptURL {
+		t.Errorf("ai.post_prompt_url = %v (%T), want string %q", aiCfg["post_prompt_url"], aiCfg["post_prompt_url"], postPromptURL)
+	}
+}
+
+// TestServiceAIWireShapePOM is the POM half: prompt must be {"pom": [...]},
+// an object whose "pom" value is an ARRAY.
+func TestServiceAIWireShapePOM(t *testing.T) {
+	svc := NewService(WithName("test"))
+	pom := []map[string]any{{"title": "Role", "body": "You are a helpful assistant."}}
+	if err := svc.AI(AIOptions{PromptPOM: pom}); err != nil {
+		t.Fatalf("AI: %v", err)
+	}
+	rendered, err := svc.GetDocument().Render()
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(rendered), &doc); err != nil {
+		t.Fatalf("emitted document is not valid JSON: %v\n%s", err, rendered)
+	}
+	sections, ok := doc["sections"].(map[string]any)
+	if !ok {
+		t.Fatalf("sections is %T, want object; doc=%s", doc["sections"], rendered)
+	}
+	main, ok := sections["main"].([]any)
+	if !ok || len(main) == 0 {
+		t.Fatalf("sections.main is %T (len check failed), want non-empty array; doc=%s", sections["main"], rendered)
+	}
+	verb, ok := main[0].(map[string]any)
+	if !ok {
+		t.Fatalf("sections.main[0] is %T, want object; doc=%s", main[0], rendered)
+	}
+	aiCfg, ok := verb["ai"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai verb config is %T, want object; doc=%s", verb["ai"], rendered)
+	}
+	prompt, ok := aiCfg["prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("ai.prompt is %T, want object {\"pom\": [...]}; doc=%s", aiCfg["prompt"], rendered)
+	}
+	entries, ok := prompt["pom"].([]any)
+	if !ok || len(entries) != 1 {
+		t.Fatalf("ai.prompt.pom is %T (want array of 1); doc=%s", prompt["pom"], rendered)
+	}
+}
+
+// TestAnswerSIPAuthAndPlayLoopStatus: answer carries username/password and play
+// carries loop/status_url (python SWMLBuilder.answer / play).
+func TestAnswerSIPAuthAndPlayLoopStatus(t *testing.T) {
+	svc := NewService(WithName("t"), WithBasicAuth("u", "p"))
+	user, pass := "alice", "s3cret"
+	if err := svc.Answer(AnswerOptions{Username: &user, Password: &pass}); err != nil {
+		t.Fatalf("Answer: %v", err)
+	}
+	u, loop, status := "https://example.com/a.mp3", 3, "https://example.com/status"
+	if err := svc.Play(PlayOptions{URL: &u, Loop: &loop, StatusURL: &status}); err != nil {
+		t.Fatalf("Play: %v", err)
+	}
+	doc := svc.GetDocument().ToMap()
+	sections, _ := doc["sections"].(map[string]any)
+	main, _ := sections["main"].([]any)
+	if len(main) != 2 {
+		t.Fatalf("main = %#v", main)
+	}
+	v0, _ := main[0].(map[string]any)
+	ans, _ := v0["answer"].(map[string]any)
+	if ans["username"] != "alice" || ans["password"] != "s3cret" {
+		t.Errorf("answer = %#v", ans)
+	}
+	v1, _ := main[1].(map[string]any)
+	play, _ := v1["play"].(map[string]any)
+	if play["loop"] != 3 || play["status_url"] != status {
+		t.Errorf("play = %#v", play)
 	}
 }

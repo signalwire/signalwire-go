@@ -87,9 +87,12 @@ func TestFabricAddresses_Get(t *testing.T) {
 	}
 }
 
-// ---------------- CallFlows.ListAddresses uses singular path ----------------
+// ---------------- CallFlows.ListAddresses uses the collection path ----------------
+//
+// The spec routes list_addresses through the plural collection
+// (/resources/call_flows/{id}/addresses), like every other fabric resource.
 
-func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
+func TestFabricCallFlows_ListAddressesUsesCollectionPath(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
@@ -108,15 +111,15 @@ func TestFabricCallFlows_ListAddressesUsesSingularPath(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q", j.Method)
 	}
-	const wantPath = "/api/fabric/resources/call_flow/cf-1/addresses"
+	const wantPath = "/api/fabric/resources/call_flows/cf-1/addresses"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
 }
 
-// ---------------- ConferenceRooms.ListAddresses uses singular path ----------------
+// ---------------- ConferenceRooms.ListAddresses uses the collection path ----------------
 
-func TestFabricConferenceRooms_ListAddressesUsesSingularPath(t *testing.T) {
+func TestFabricConferenceRooms_ListAddressesUsesCollectionPath(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
 	if client == nil {
@@ -135,7 +138,7 @@ func TestFabricConferenceRooms_ListAddressesUsesSingularPath(t *testing.T) {
 	if j.Method != "GET" {
 		t.Errorf("method = %q", j.Method)
 	}
-	const wantPath = "/api/fabric/resources/conference_room/cr-1/addresses"
+	const wantPath = "/api/fabric/resources/conference_rooms/cr-1/addresses"
 	if j.Path != wantPath {
 		t.Errorf("path = %q, want %q", j.Path, wantPath)
 	}
@@ -224,35 +227,6 @@ func TestFabricSubscribers_DeleteSIPEndpoint(t *testing.T) {
 }
 
 // ---------------- FabricTokens ----------------
-
-func TestFabricTokens_CreateInviteToken(t *testing.T) {
-	t.Parallel()
-	client, mock := mocktest.New(t)
-	if client == nil {
-		return
-	}
-	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{
-		AddressID: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-	})
-	if err != nil {
-		t.Fatalf("CreateInviteToken: %v", err)
-	}
-	j := mock.Last(t)
-	if j.Method != "POST" {
-		t.Errorf("method = %q", j.Method)
-	}
-	if j.Path != "/api/fabric/subscriber/invites" {
-		t.Errorf("path = %q", j.Path)
-	}
-	body, ok := j.BodyMap()
-	if !ok {
-		t.Fatalf("body type = %T", j.Body)
-	}
-	if body["address_id"] != "3fa85f64-5717-4562-b3fc-2c963f66afa6" {
-		t.Errorf("address_id = %v", body["address_id"])
-	}
-}
 
 func TestFabricTokens_CreateEmbedToken(t *testing.T) {
 	t.Parallel()

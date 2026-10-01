@@ -67,7 +67,7 @@ func TestMessagesGen_Messages_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Messages.Update(context.Background(), "x-1", namespaces.MessagesUpdateParams{Extras: map[string]any{"body": "x-1"}})
+	_, err := client.Messages.Update(context.Background(), "x-1", namespaces.MessagesUpdateParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestMessagesGen_Messages_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "messages.update_message", 500, map[string]any{"error": "x"})
-	_, err := client.Messages.Update(context.Background(), "x-1", namespaces.MessagesUpdateParams{Extras: map[string]any{"body": "x-1"}})
+	_, err := client.Messages.Update(context.Background(), "x-1", namespaces.MessagesUpdateParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

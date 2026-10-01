@@ -51,7 +51,7 @@ type BedrockOptions struct {
 // "amazon_bedrock" SWML verb instead of the standard "ai" verb.
 //
 // The voice_id, temperature, and top_p values are injected into the
-// rendered prompt config (matching Python's _add_voice_to_prompt).
+// rendered prompt config.
 // Keys that are text-model-specific (barge_confidence, presence_penalty,
 // frequency_penalty) are removed from the prompt config because they do
 // not apply to Bedrock's voice-to-voice model.

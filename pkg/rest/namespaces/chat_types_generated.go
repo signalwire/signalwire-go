@@ -34,7 +34,7 @@ type ChatToken struct {
 }
 
 type ChatToken422Error struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []ChatTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type NewChatToken struct {
@@ -42,4 +42,12 @@ type NewChatToken struct {
 	Channels ChatChannel `json:"channels,omitempty"`
 	MemberID *string     `json:"member_id,omitempty"`
 	State    *ChatState  `json:"state,omitempty"`
+}
+
+type ChatTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
 }

@@ -145,7 +145,7 @@ func NewReceptionistAgent(opts ReceptionistOptions) *ReceptionistAgent {
 // agent.SummaryCallback signature and is registered via ra.AgentBase.OnSummary
 // in the constructor. There is currently no receptionist-specific summary logic
 // (the post-prompt already emits a JSON summary), so this is a no-op placeholder
-// that mirrors Python's on_summary surface.
+// that preserves the on_summary surface.
 func (ra *ReceptionistAgent) OnSummary(summary map[string]any, rawData map[string]any) {
 	_ = summary
 	_ = rawData
@@ -237,7 +237,9 @@ func (ra *ReceptionistAgent) registerTools() {
 			if dept.TransferSWML {
 				result.SwmlTransfer(dept.Number, "Transferring you now.", true)
 			} else {
-				result.Connect(swaig.ConnectOptions{Destination: dept.Number, Final: true})
+				// Final omitted: a department transfer is permanent, which is
+				// the reference default (`connect(final=True)`).
+				result.Connect(swaig.ConnectOptions{Destination: dept.Number})
 			}
 
 			return result

@@ -610,3 +610,42 @@ func TestNewHTTPClient_CAFile_KeepsProxy(t *testing.T) {
 		t.Errorf("Transport.Proxy is not http.ProxyFromEnvironment (a CA file must not swap in a different / nil proxy func)")
 	}
 }
+
+// TestSignalWireRestError_BareAssertionMissesWrapped pins the reason every
+// rest/examples/*.go recovers this error with errors.As and never with a bare
+// type assertion.
+//
+// A transport-mode *SignalWireRestError carries an Unwrap, and callers routinely
+// annotate errors on the way up. The moment such an error is wrapped even once,
+// `err.(*SignalWireRestError)` stops matching and the caller silently falls into
+// its else-branch — losing StatusCode and reporting a generic failure. errors.As
+// walks the chain and still finds it.
+//
+// This is the documented contract on the type ("a caller catching
+// *SignalWireRestError via errors.As handles HTTP and transport failures with one
+// branch") and the reason the package keeps the local errorsAs helper.
+func TestSignalWireRestError_BareAssertionMissesWrapped(t *testing.T) {
+	base := &SignalWireRestError{
+		StatusCode: 422,
+		Body:       "unprocessable",
+		URL:        "/api/relay/rest/rooms",
+		Method:     "POST",
+	}
+	wrapped := fmt.Errorf("creating room: %w", error(base))
+
+	// The idiom the examples used to ship: fails on a wrapped error.
+	if _, ok := wrapped.(*SignalWireRestError); ok { //nolint:errorlint // deliberately demonstrating the broken idiom this test pins
+		t.Fatal("bare type assertion unexpectedly matched a wrapped error; " +
+			"if this now passes, the wrapping contract changed and the " +
+			"examples' errors.As guidance should be revisited")
+	}
+
+	// The idiom the examples ship now: recovers it through the wrap.
+	var got *SignalWireRestError
+	if !errors.As(wrapped, &got) {
+		t.Fatal("errors.As failed to recover *SignalWireRestError from a wrapped error")
+	}
+	if got.StatusCode != 422 {
+		t.Errorf("recovered StatusCode = %d, want 422", got.StatusCode)
+	}
+}

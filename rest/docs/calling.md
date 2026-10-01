@@ -57,9 +57,10 @@ var (
 Initiate an outbound call.
 
 ```go
+to := "+15551234567"
 result, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 	From:   "+15559876543",
-	To:     "+15551234567",
+	To:     &to,
 	Extras: map[string]any{"url": "https://example.com/call-handler"},
 })
 // CallResponse is decoded JSON; assert to a map to read fields.
@@ -154,10 +155,10 @@ _, err = client.Calling.PlayVolume(context.Background(), callID, namespaces.Call
 ### `Record(callID, params)` / `RecordPause` / `RecordResume` / `RecordStop`
 
 ```go
-recID := "rec-1"
+recID, beep, format, stereo := "rec-1", true, "wav", true
 _, err = client.Calling.Record(context.Background(), callID, namespaces.CallingNamespaceRecordParams{
 	ControlID: &recID,
-	Audio:     map[string]any{"beep": true, "format": "wav", "stereo": true},
+	Audio:     &namespaces.RelayCallRecordAudio{Beep: &beep, Format: &format, Stereo: &stereo},
 })
 _, err = client.Calling.RecordPause(context.Background(), callID, namespaces.CallingNamespaceRecordPauseParams{ControlID: "rec-1"})
 _, err = client.Calling.RecordResume(context.Background(), callID, namespaces.CallingNamespaceRecordResumeParams{ControlID: "rec-1"})
@@ -169,11 +170,11 @@ _, err = client.Calling.RecordStop(context.Background(), callID, namespaces.Call
 ### `Collect(callID, params)` / `CollectStop` / `CollectStartInputTimers`
 
 ```go
-collID := "coll-1"
+collID, terminators, endSilence := "coll-1", "#", 2.0
 _, err = client.Calling.Collect(context.Background(), callID, namespaces.CallingNamespaceCollectParams{
 	ControlID: &collID,
-	Digits:    map[string]any{"max": 4, "terminators": "#"},
-	Speech:    map[string]any{"end_silence_timeout": 2.0},
+	Digits:    &namespaces.RelayCallCollectDigitsInner{Max: 4, Terminators: &terminators},
+	Speech:    &namespaces.RelayCallCollectSpeechInner{EndSilenceTimeout: &endSilence},
 })
 _, err = client.Calling.CollectStop(context.Background(), callID, namespaces.CallingNamespaceCollectStopParams{ControlID: "coll-1"})
 _, err = client.Calling.CollectStartInputTimers(context.Background(), callID, namespaces.CallingNamespaceCollectStartInputTimersParams{ControlID: "coll-1"})
@@ -200,7 +201,7 @@ _, err = client.Calling.DetectStop(context.Background(), callID, namespaces.Call
 tapID := "tap-1"
 _, err = client.Calling.Tap(context.Background(), callID, namespaces.CallingNamespaceTapParams{
 	ControlID: &tapID,
-	Tap:       map[string]any{"type": "audio", "params": map[string]any{"direction": "both"}},
+	Tap:       namespaces.RelayTap{Type: "audio", Params: namespaces.RelayAudioTapParams{Direction: "both"}},
 	Device:    map[string]any{"type": "rtp", "params": map[string]any{"addr": "192.168.1.1", "port": 1234}},
 })
 _, err = client.Calling.TapStop(context.Background(), callID, namespaces.CallingNamespaceTapStopParams{ControlID: "tap-1"})
@@ -272,7 +273,8 @@ _, err = client.Calling.AIUnhold(context.Background(), callID, namespaces.Callin
 ### `AIStop(callID, params)`
 
 ```go
-_, err = client.Calling.AIStop(context.Background(), callID, namespaces.CallingNamespaceAIStopParams{ControlID: "ai-1"})
+aiID := "ai-1"
+_, err = client.Calling.AIStop(context.Background(), callID, namespaces.CallingNamespaceAIStopParams{ControlID: &aiID})
 ```
 
 ## Live Transcribe & Translate
@@ -300,7 +302,7 @@ _, err = client.Calling.ReceiveFaxStop(context.Background(), callID, namespaces.
 ```go
 // SIP REFER transfer
 _, err = client.Calling.Refer(context.Background(), callID, namespaces.CallingNamespaceReferParams{
-	Device: map[string]any{"to": "sip:agent@example.com"},
+	Device: namespaces.RelayCallReferDevice{Type: "sip", Params: &namespaces.RelayCallReferDeviceSip{To: "sip:agent@example.com"}},
 })
 
 // Custom event

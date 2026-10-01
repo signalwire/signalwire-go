@@ -128,7 +128,21 @@ func typeGoName(raw string) string {
 	return s
 }
 
+// refLeaf returns the final path segment of a same-document ref.
+//
+// Taking the last segment DISCARDS any file part, so a cross-file
+// `other.yaml#/components/schemas/Foo` would resolve to whatever local schema is named
+// Foo. relay-specs is a SINGLE file (relay.yaml) whose refs are bare `schema_ref:`
+// names, so this generator has no cross-file link to resolve (measured 2026-08-04); the
+// panic makes the day one appears a loud failure instead of a wrong type. The verifying
+// resolver to copy is crossFileResolver in cmd/internal/payloadgen.
 func refLeaf(ref string) string {
+	if i := strings.Index(ref, "#"); i > 0 {
+		panic(fmt.Sprintf("generate-relay-protocol: cross-file $ref %q — this generator "+
+			"resolves same-document refs only. Give it a verifying cross-file resolver "+
+			"(see cmd/internal/payloadgen crossFileResolver) rather than letting the file "+
+			"part be discarded", ref))
+	}
 	if i := strings.LastIndex(ref, "/"); i >= 0 {
 		return ref[i+1:]
 	}

@@ -339,7 +339,7 @@ func (ca *ConciergeAgent) GetDirections(args map[string]any, rawData map[string]
 // agent.SummaryCallback signature and is registered via
 // ca.AgentBase.OnSummary in the constructor. There is currently no
 // concierge-specific summary logic (the post-prompt already emits a JSON
-// summary), so this is a no-op placeholder that mirrors Python's on_summary
+// summary), so this is a no-op placeholder that preserves the on_summary
 // surface.
 func (ca *ConciergeAgent) OnSummary(summary map[string]any, rawData map[string]any) {
 	_ = summary

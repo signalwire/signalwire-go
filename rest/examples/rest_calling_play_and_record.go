@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Control an active call with media operations (play, record, transcribe, denoise).
 //
@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -37,13 +38,15 @@ func main() {
 	fmt.Println("Dialing outbound call...")
 	callID := "demo-call-id"
 	callURL := "https://example.com/call-handler"
+	callTo := "+15551234567"
 	call, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
-		To:   "+15551234567",
+		To:   &callTo,
 		URL:  &callURL,
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Dial failed (expected in demo): %d\n", restErr.StatusCode)
 		} else {
 			fmt.Printf("  Dial failed: %v\n", err)
@@ -63,7 +66,8 @@ func main() {
 		Play: []map[string]any{{"type": "tts", "params": map[string]any{"text": "Welcome to SignalWire."}}},
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Play failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -91,7 +95,8 @@ func main() {
 	} {
 		_, err := op.fn()
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  %s: failed (%d)\n", op.label, restErr.StatusCode)
 			}
 		} else {
@@ -103,7 +108,8 @@ func main() {
 	fmt.Println("\nRecording call...")
 	_, err = client.Calling.Record(context.Background(), callID, namespaces.CallingNamespaceRecordParams{Extras: map[string]any{"beep": true, "format": "mp3"}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Record failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -128,7 +134,8 @@ func main() {
 	} {
 		_, err := op.fn()
 		if err != nil {
-			if restErr, ok := err.(*rest.SignalWireRestError); ok {
+			var restErr *rest.SignalWireRestError
+			if errors.As(err, &restErr) {
 				fmt.Printf("  %s: failed (%d)\n", op.label, restErr.StatusCode)
 			}
 		} else {
@@ -140,34 +147,43 @@ func main() {
 	fmt.Println("\nTranscribing call...")
 	_, err = client.Calling.Transcribe(context.Background(), callID, namespaces.CallingNamespaceTranscribeParams{Extras: map[string]any{"language": "en-US"}})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Transcribe failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
 		fmt.Println("  Transcription started")
-		client.Calling.TranscribeStop(context.Background(), callID, namespaces.CallingNamespaceTranscribeStopParams{})
-		fmt.Println("  Transcription stopped")
+		if _, err := client.Calling.TranscribeStop(context.Background(), callID, namespaces.CallingNamespaceTranscribeStopParams{}); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Println("  Transcription stopped")
+		}
 	}
 
 	// 7. Denoise the call
 	fmt.Println("\nEnabling denoise...")
 	_, err = client.Calling.Denoise(context.Background(), callID, namespaces.CallingNamespaceDenoiseParams{})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Denoise failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
 		fmt.Println("  Denoise started")
-		client.Calling.DenoiseStop(context.Background(), callID, namespaces.CallingNamespaceDenoiseStopParams{})
-		fmt.Println("  Denoise stopped")
+		if _, err := client.Calling.DenoiseStop(context.Background(), callID, namespaces.CallingNamespaceDenoiseStopParams{}); err != nil {
+			fmt.Printf("  cleanup failed: %v\n", err)
+		} else {
+			fmt.Println("  Denoise stopped")
+		}
 	}
 
 	// 8. End the call
 	fmt.Println("\nEnding call...")
-	hangupReason := namespaces.HangupReasonHangup
+	hangupReason := string(namespaces.HangupReasonHangup)
 	_, err = client.Calling.End(context.Background(), callID, namespaces.CallingNamespaceEndParams{Reason: &hangupReason})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  End call failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {

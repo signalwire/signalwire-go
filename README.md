@@ -72,7 +72,9 @@ func main() {
 		},
 	})
 
-	a.Run()
+	if err := a.Run(); err != nil {
+		fmt.Printf("agent stopped: %v\n", err)
+	}
 }
 ```
 
@@ -158,18 +160,27 @@ func main() {
 	)
 
 	client.OnCall(func(call *relay.Call) {
-		call.Answer()
+		if err := call.Answer(); err != nil {
+			fmt.Printf("answer failed: %v\n", err)
+			return
+		}
 		action := call.Play([]map[string]any{
 			{"type": "tts", "params": map[string]any{"text": "Welcome to SignalWire!"}},
 		})
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		action.Wait(ctx)
-		call.Hangup("")
+		if _, err := action.Wait(ctx); err != nil {
+			fmt.Printf("play did not finish: %v\n", err)
+		}
+		if err := call.Hangup(""); err != nil {
+			fmt.Printf("hangup failed: %v\n", err)
+		}
 	})
 
 	fmt.Println("Waiting for inbound calls ...")
-	client.Run()
+	if err := client.Run(); err != nil {
+		fmt.Printf("relay client stopped: %v\n", err)
+	}
 }
 ```
 
@@ -207,16 +218,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	client.Fabric.AIAgents.Create(context.Background(), map[string]any{
+	if _, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{
 		"name":   "Support Bot",
 		"prompt": map[string]any{"text": "You are helpful."},
-	})
+	}); err != nil {
+		fmt.Printf("Create AI agent failed: %v\n", err)
+	}
 
-	client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
+	if _, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
-		To:   "+15551234567",
+		To:   ptr("+15551234567"),
 		URL:  ptr("https://example.com/call-handler"),
-	})
+	}); err != nil {
+		fmt.Printf("Dial failed: %v\n", err)
+	}
 
 	results, _ := client.PhoneNumbers.Search(context.Background(), map[string]string{"areacode": "512"})
 	fmt.Println(results)
@@ -226,7 +241,7 @@ func main() {
 func ptr[T any](v T) *T { return &v }
 ```
 
-- 22 namespaced API surfaces: Fabric (16 sub-resources), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, Messages, Projects, and more
+- 24 namespaced API surfaces: Fabric (16 sub-resources), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, Messages, Projects, and more
 - Shared `http.Client` for connection pooling
 - Typed params and responses -- generated `*Params` structs and `*Response` wrapper types per operation (from the spec-driven REST generator)
 
@@ -309,6 +324,8 @@ Create a SignalWire account first if you don't have one.
 | `SIGNALWIRE_REST_CA_FILE` | REST | Path to a PEM CA bundle to trust for REST HTTPS (private-CA convention) |
 | `SIGNALWIRE_SPACE_NAME` | Skills | Space name for Datasphere serverless skills |
 | `SIGNALWIRE_API_TOKEN` | Skills | API token for Datasphere serverless skills |
+| `SIGNALWIRE_CHAT_GATEWAY_KEY` | AI Chat gateway | Publishable key the browser chat widget presents (default: generated per process) |
+| `SIGNALWIRE_CHAT_GATEWAY_SECRET` | AI Chat gateway | Secret that signs conversation handles; set it when running more than one replica or restarting (default: random per process) |
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
 | `SIGNALWIRE_MCP_ALLOW_INSECURE_TLS` | Skills (mcp_gateway) | Second gate required to disable upstream TLS verification. The `mcp_gateway` skill verifies TLS by default (`verify_ssl=true`); setting `verify_ssl=false` alone is IGNORED (logged) unless this is ALSO set truthy (`true`, `1`, `yes`). Leave unset in production. |

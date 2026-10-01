@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: rest_audit_harness
 //

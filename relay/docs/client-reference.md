@@ -176,13 +176,13 @@ The client subscribes to the RELAY contexts (topics) passed at construction
 time via `WithContexts(...)`. You can also change the subscription set
 dynamically after connecting:
 
-### `Receive(contexts ...string) error` / `Unreceive(contexts ...string) error`
+### `Receive(contexts []string) error` / `Unreceive(contexts []string) error`
 
 Dynamically subscribe to or unsubscribe from contexts on a live client.
 
 ```go
-client.Receive("new-context")
-client.Unreceive("old-context")
+client.Receive([]string{"new-context"})
+client.Unreceive([]string{"old-context"})
 ```
 
 ## Accessors

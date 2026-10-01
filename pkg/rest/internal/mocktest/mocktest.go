@@ -6,8 +6,7 @@
 // See LICENSE file in the project root for full license information.
 
 // Package mocktest is the Go test helper for the shared mock_signalwire server
-// HTTP server. It mirrors the Python conftest fixtures (signalwire_client +
-// mock) so unit tests can exercise the real SDK code path against a real
+// HTTP server, so unit tests can exercise the real SDK code path against a real
 // HTTP server backed by SignalWire's 13 OpenAPI specs.
 //
 // The mock server's lifetime is per-process: the first New call probes
@@ -15,7 +14,7 @@
 // server or starts one as a subprocess. Each test gets a freshly reset
 // journal/scenario state via t.Cleanup. Tests do not share journal entries.
 //
-// The default port is 8765 (matching the Python harness default). Override
+// The default port is 8765 — the shared harness default. Override
 // with MOCK_SIGNALWIRE_PORT in the test environment if a different mock
 // instance is already running.
 package mocktest
@@ -98,6 +97,13 @@ type Harness struct {
 	// serial execution). Mirrors the TS MockHarness.authHeader.
 	authHeader string
 
+	// patAuthHeader is the Authorization header of the same client's Personal
+	// Access Token transport (client.Space: Basic base64(":"+pat), with a
+	// per-test pat derived from the random project). Journal reads and scenario
+	// arming accept it alongside authHeader, so the space resources are scoped
+	// to this test exactly like the project-token ones.
+	patAuthHeader string
+
 	httpClient *http.Client
 }
 
@@ -138,7 +144,7 @@ func (h *Harness) Journal(t *testing.T) []JournalEntry {
 	}
 	filtered := entries[:0:0]
 	for _, e := range entries {
-		if e.Headers["authorization"] == h.authHeader {
+		if a := e.Headers["authorization"]; a == h.authHeader || (h.patAuthHeader != "" && a == h.patAuthHeader) {
 			filtered = append(filtered, e)
 		}
 	}
@@ -190,15 +196,30 @@ func (h *Harness) PushScenario(t *testing.T, endpointID string, status int, body
 	// scenario using the request's own Authorization header (see
 	// mock_signalwire server `scenarios.pop(..., session_id=auth_header)`), so
 	// we arm it under the same key. Unscoped harness => shared bucket.
-	urlStr := h.URL + "/__mock__/scenarios/" + endpointID
-	if h.authHeader != "" {
-		urlStr += "?session_id=" + url.QueryEscape(h.authHeader)
+	for _, urlStr := range h.scenarioURLs(endpointID) {
+		resp, err := h.httpClient.Post(urlStr, "application/json", bytes.NewReader(payload))
+		if err != nil {
+			t.Fatalf("mocktest: push scenario: %v", err)
+		}
+		_ = resp.Body.Close()
 	}
-	resp, err := h.httpClient.Post(urlStr, "application/json", bytes.NewReader(payload))
-	if err != nil {
-		t.Fatalf("mocktest: push scenario: %v", err)
+}
+
+// scenarioURLs returns the scenario-arming URL(s) for endpointID: one per auth
+// header this harness is scoped to (the project token and, when set, the
+// personal access token), or the shared bucket for an unscoped harness. A
+// scenario armed under the credential the route does not use is never popped
+// and stays scoped to this test's random headers.
+func (h *Harness) scenarioURLs(endpointID string) []string {
+	base := h.URL + "/__mock__/scenarios/" + endpointID
+	if h.authHeader == "" {
+		return []string{base}
 	}
-	_ = resp.Body.Close()
+	urls := []string{base + "?session_id=" + url.QueryEscape(h.authHeader)}
+	if h.patAuthHeader != "" {
+		urls = append(urls, base+"?session_id="+url.QueryEscape(h.patAuthHeader))
+	}
+	return urls
 }
 
 // PushScenarioFull is PushScenario with optional response headers and a
@@ -219,15 +240,13 @@ func (h *Harness) PushScenarioFull(t *testing.T, endpointID string, status int, 
 	if err != nil {
 		t.Fatalf("mocktest: marshal scenario: %v", err)
 	}
-	urlStr := h.URL + "/__mock__/scenarios/" + endpointID
-	if h.authHeader != "" {
-		urlStr += "?session_id=" + url.QueryEscape(h.authHeader)
+	for _, urlStr := range h.scenarioURLs(endpointID) {
+		resp, err := h.httpClient.Post(urlStr, "application/json", bytes.NewReader(enc))
+		if err != nil {
+			t.Fatalf("mocktest: push scenario (full): %v", err)
+		}
+		_ = resp.Body.Close()
 	}
-	resp, err := h.httpClient.Post(urlStr, "application/json", bytes.NewReader(enc))
-	if err != nil {
-		t.Fatalf("mocktest: push scenario (full): %v", err)
-	}
-	_ = resp.Body.Close()
 }
 
 // ---------------------------------------------------------------------------
@@ -322,7 +341,7 @@ func ensureServer(t *testing.T) *Harness {
 		// child's pipes before exiting, which would hang the test process
 		// for the full WaitDelay (60s by default) when the subprocess
 		// stays alive across the test binary lifetime.
-		cmd := exec.Command("python", "-m", "mock_signalwire",
+		cmd := exec.Command("python", "-m", "mock_signalwire", //nolint:gosec // G204: fixed program "python -m mock_signalwire" with locally-derived ports; test harness only.
 			"--host", "127.0.0.1",
 			"--port", strconv.Itoa(port),
 			"--log-level", "error",
@@ -467,7 +486,8 @@ func New(t *testing.T) (*rest.RestClient, *Harness) {
 
 	// Build a real client with the per-test random project. The mock accepts
 	// any non-empty Basic Auth header.
-	client, err := rest.NewRestClient(project, restToken, fmt.Sprintf("127.0.0.1:%d", shared.Port))
+	client, err := rest.NewRestClient(project, restToken, fmt.Sprintf("127.0.0.1:%d", shared.Port),
+		rest.WithPersonalAccessToken(patFor(project)))
 	if err != nil {
 		t.Fatalf("mocktest: NewRestClient: %v", err)
 	}
@@ -477,11 +497,12 @@ func New(t *testing.T) (*rest.RestClient, *Harness) {
 
 	// Per-test harness view scoped to this client's auth header + project.
 	h := &Harness{
-		URL:        shared.URL,
-		Port:       shared.Port,
-		Project:    project,
-		authHeader: authHeader,
-		httpClient: shared.httpClient,
+		URL:           shared.URL,
+		Port:          shared.Port,
+		Project:       project,
+		authHeader:    authHeader,
+		patAuthHeader: "Basic " + base64.StdEncoding.EncodeToString([]byte(":"+patFor(project))),
+		httpClient:    shared.httpClient,
 	}
 	t.Cleanup(func() { h.Reset(t) })
 	return client, h
@@ -500,18 +521,26 @@ func NewWithOptions(t *testing.T, opts *rest.RequestOptions) (*rest.RestClient, 
 	}
 	project := randomProject(t)
 	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(project+":"+restToken))
-	client, err := rest.NewRestClient(project, restToken, fmt.Sprintf("127.0.0.1:%d", shared.Port), opts)
+	client, err := rest.NewRestClient(project, restToken, fmt.Sprintf("127.0.0.1:%d", shared.Port), rest.WithRequestOptions(opts), rest.WithPersonalAccessToken(patFor(project)))
 	if err != nil {
 		t.Fatalf("mocktest: NewRestClient: %v", err)
 	}
 	client.SetBaseURL(shared.URL)
 	h := &Harness{
-		URL:        shared.URL,
-		Port:       shared.Port,
-		Project:    project,
-		authHeader: authHeader,
-		httpClient: shared.httpClient,
+		URL:           shared.URL,
+		Port:          shared.Port,
+		Project:       project,
+		authHeader:    authHeader,
+		patAuthHeader: "Basic " + base64.StdEncoding.EncodeToString([]byte(":"+patFor(project))),
+		httpClient:    shared.httpClient,
 	}
 	t.Cleanup(func() { h.Reset(t) })
 	return client, h
+}
+
+// patFor derives a per-test Personal Access Token from the random project, so
+// the client's client.Space requests carry an Authorization header unique to
+// this test (see Harness.patAuthHeader).
+func patFor(project string) string {
+	return "pat_" + project
 }

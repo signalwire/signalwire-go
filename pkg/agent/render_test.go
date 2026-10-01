@@ -15,8 +15,8 @@ import (
 
 func TestRenderSWML_AllPhases(t *testing.T) {
 	a := NewAgentBase(WithBasicAuth("u", "p"), WithRecordCall(true))
-	a.AddPreAnswerVerb("play", map[string]any{"url": "ring.mp3"})
-	a.AddPostAnswerVerb("play", map[string]any{"url": "welcome.mp3"})
+	a.AddPreAnswerVerb("play", map[string]any{"url": "https://example.com/ring.mp3"})
+	a.AddPostAnswerVerb("play", map[string]any{"url": "https://example.com/welcome.mp3"})
 	a.AddPostAiVerb("hangup", map[string]any{})
 	a.PromptAddSection("Role", "test", nil)
 
@@ -114,7 +114,7 @@ func TestRenderSWML_AllAIConfigOptions(t *testing.T) {
 	a.SetLanguages([]map[string]any{{"code": "en-US"}})
 	a.AddPronunciation("API", "A P I")
 	a.SetGlobalData(map[string]any{"company": "SignalWire"})
-	a.SetNativeFunctions([]string{"stop"})
+	a.SetNativeFunctions([]string{"check_time"})
 	a.AddPatternHint("numbers", "\\d+", "NUM")
 	a.EnableDebugEvents(1)
 	a.SetPromptLlmParams(map[string]any{"top_p": 0.9})
@@ -182,10 +182,17 @@ func TestRenderSWML_AllAIConfigOptions(t *testing.T) {
 			if aiCfg["global_data"] == nil {
 				t.Error("expected global_data")
 			}
-			// Check native_functions
-			nf, _ := aiCfg["native_functions"].([]string)
-			if len(nf) != 1 || nf[0] != "stop" {
-				t.Errorf("native_functions = %v", nf)
+			// native_functions belongs under SWAIG, not at the ai top level
+			// (reference agent_base.py:1017-1018; schema.json declares it on
+			// SWAIG). Asserting it at aiCfg["native_functions"] pinned the wrong
+			// level as correct.
+			if _, wrongLevel := aiCfg["native_functions"]; wrongLevel {
+				t.Error("native_functions must not be emitted at the ai top level")
+			}
+			swaigCfg, _ := aiCfg["SWAIG"].(map[string]any)
+			nf, _ := swaigCfg["native_functions"].([]string)
+			if len(nf) != 1 || nf[0] != "check_time" {
+				t.Errorf("SWAIG.native_functions = %v", nf)
 			}
 			// Pattern hints render inside the hints array (checked above), not
 			// under a separate pattern_hints key (Python parity).
@@ -231,8 +238,14 @@ func TestRenderSWML_WithContexts_Render(t *testing.T) {
 	for _, v := range main {
 		vm, _ := v.(map[string]any)
 		if aiCfg, ok := vm["ai"].(map[string]any); ok {
-			if aiCfg["contexts"] == nil {
-				t.Error("expected contexts in AI config")
+			// contexts belongs under prompt, not at the ai top level
+			// (reference swml_handler.py:190-191).
+			if _, wrongLevel := aiCfg["contexts"]; wrongLevel {
+				t.Error("contexts must not be emitted at the ai top level")
+			}
+			promptCfg, _ := aiCfg["prompt"].(map[string]any)
+			if promptCfg["contexts"] == nil {
+				t.Error("expected prompt.contexts in AI config")
 			}
 			return
 		}

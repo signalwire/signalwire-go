@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ ba245e14931421910f54992ee577ee7eed79d672",
+  "generated_from": "signalwire-go (go-native) @ 3939539b2c6131b23a1b2ae355dbc67c6f33591c",
   "modules": {
     "agent": {
       "classes": {
@@ -14,6 +14,7 @@
           "AddLanguageTyped",
           "AddMcpServer",
           "AddPatternHint",
+          "AddPerCallConfig",
           "AddPostAiVerb",
           "AddPostAnswerVerb",
           "AddPreAnswerVerb",
@@ -56,7 +57,9 @@
           "ListSkills",
           "ListToolNames",
           "ManualSetProxyURL",
+          "Mount",
           "NativeFunctions",
+          "OnCallEnd",
           "OnDebugEvent",
           "OnFunctionCall",
           "OnRequest",
@@ -129,6 +132,7 @@
           "SubstituteVars"
         ],
         "MCPServerConfig": [],
+        "MountOptions": [],
         "ToolDefinition": [
           "IsSecure",
           "ValidateArgs"
@@ -177,6 +181,20 @@
         "AuthenticationError": [
           "Unwrap"
         ],
+        "ChatGateway": [
+          "CheckKey",
+          "CheckOrigin",
+          "Close",
+          "EffectiveTimeout",
+          "LastActivity",
+          "MintHandle",
+          "Prepare",
+          "ReadHandle",
+          "ReadUserMetadata",
+          "Router",
+          "VisibleMessages"
+        ],
+        "ChatGatewayOptions": [],
         "ChatInProgressError": [
           "Unwrap"
         ],
@@ -190,6 +208,7 @@
           "Delete",
           "End",
           "Log",
+          "RawPost",
           "Summarize"
         ],
         "ConversationInfo": [],
@@ -197,16 +216,33 @@
           "Unwrap"
         ],
         "CreateOptions": [],
+        "GatewayRejection": [
+          "Error"
+        ],
+        "HandoffRouter": [
+          "Escalate",
+          "Redeem",
+          "Register",
+          "Router",
+          "Say"
+        ],
+        "HandoffRouterOptions": [],
+        "NonceEntry": [],
+        "PrepareOptions": [],
         "RateLimitError": [
           "Unwrap"
         ],
+        "RegisterOptions": [],
         "SummarizeOptions": [],
         "SummaryError": [
           "Unwrap"
         ]
       },
       "functions": [
+        "NewChatGateway",
         "NewClient",
+        "NewGatewayRejection",
+        "NewHandoffRouter",
         "WithHTTPClient",
         "WithProject",
         "WithReadIdleTimeout",
@@ -379,6 +415,14 @@
         "NewWikipediaSearch"
       ]
     },
+    "capabilities": {
+      "classes": {},
+      "functions": [
+        "DeclaredCapabilities",
+        "HasCapability",
+        "UserVariables"
+      ]
+    },
     "contexts": {
       "classes": {
         "Context": [
@@ -512,6 +556,7 @@
         "ParseLevel",
         "ResetLoggingConfiguration",
         "SetGlobalLevel",
+        "StripControlChars",
         "Suppress",
         "Unsuppress"
       ]
@@ -556,14 +601,20 @@
     },
     "namespaces": {
       "classes": {
-        "AIAgents": [],
+        "AIAgents": [
+          "ListConversationLogs",
+          "ListVoices"
+        ],
         "AddressesNamespace": [
           "Create",
           "Delete",
           "Get",
-          "List"
+          "List",
+          "Update"
         ],
         "AddressesNamespaceCreateParams": [],
+        "AddressesNamespaceUpdateParams": [],
+        "AliasAddresses": [],
         "CXMLScripts": [],
         "CXMLWebhooks": [],
         "CallFlowsResource": [
@@ -574,6 +625,11 @@
         "CallingNamespace": [
           "AIHold",
           "AIMessage",
+          "AISidecar",
+          "AISidecarAsk",
+          "AISidecarPoke",
+          "AISidecarStatus",
+          "AISidecarStop",
           "AIStop",
           "AIUnhold",
           "Collect",
@@ -612,6 +668,11 @@
         ],
         "CallingNamespaceAIHoldParams": [],
         "CallingNamespaceAIMessageParams": [],
+        "CallingNamespaceAISidecarAskParams": [],
+        "CallingNamespaceAISidecarParams": [],
+        "CallingNamespaceAISidecarPokeParams": [],
+        "CallingNamespaceAISidecarStatusParams": [],
+        "CallingNamespaceAISidecarStopParams": [],
         "CallingNamespaceAIStopParams": [],
         "CallingNamespaceAIUnholdParams": [],
         "CallingNamespaceCollectParams": [],
@@ -685,6 +746,7 @@
         "DatasphereDocumentsSearchParams": [],
         "DatasphereNamespace": [],
         "FabricAddresses": [
+          "Delete",
           "Get",
           "List",
           "Paginate"
@@ -693,13 +755,11 @@
         "FabricTokens": [
           "CreateEmbedToken",
           "CreateGuestToken",
-          "CreateInviteToken",
           "CreateSubscriberToken",
           "RefreshSubscriberToken"
         ],
         "FabricTokensCreateEmbedTokenParams": [],
         "FabricTokensCreateGuestTokenParams": [],
-        "FabricTokensCreateInviteTokenParams": [],
         "FabricTokensCreateSubscriberTokenParams": [],
         "FabricTokensRefreshSubscriberTokenParams": [],
         "FaxLogs": [
@@ -711,6 +771,8 @@
         "GenericResources": [
           "AssignDomainApplication",
           "AssignPhoneRoute",
+          "AssignSIPEndpoint",
+          "AssignWhatsappNumber",
           "Delete",
           "Get",
           "List",
@@ -718,6 +780,8 @@
         ],
         "GenericResourcesAssignDomainApplicationParams": [],
         "GenericResourcesAssignPhoneRouteParams": [],
+        "GenericResourcesAssignSIPEndpointParams": [],
+        "GenericResourcesAssignWhatsappNumberParams": [],
         "ImportedNumbersNamespace": [
           "Create"
         ],
@@ -756,7 +820,13 @@
           "ForEach",
           "Next"
         ],
+        "PhoneNumberAddresses": [],
         "PhoneNumbersNamespace": [
+          "AssignE911Address",
+          "ClearCNAM",
+          "GetCNAM",
+          "RemoveE911Address",
+          "RequestCNAM",
           "Search",
           "SetAiAgent",
           "SetCallFlow",
@@ -766,6 +836,8 @@
           "SetRelayTopic",
           "SetSwmlWebhook"
         ],
+        "PhoneNumbersNamespaceAssignE911AddressParams": [],
+        "PhoneNumbersNamespaceRequestCNAMParams": [],
         "ProjectNamespace": [],
         "ProjectTokens": [
           "Create",
@@ -788,6 +860,7 @@
         ],
         "RecordingsNamespace": [
           "Delete",
+          "Download",
           "Get",
           "List"
         ],
@@ -796,8 +869,10 @@
           "CreateCampaign",
           "Get",
           "List",
-          "ListCampaigns"
+          "ListCampaigns",
+          "Update"
         ],
+        "RegistryBrandsUpdateParams": [],
         "RegistryCampaigns": [
           "CreateOrder",
           "Get",
@@ -821,6 +896,7 @@
         "Resource": [
           "Path"
         ],
+        "SIPAddresses": [],
         "SIPEndpoints": [],
         "SIPGateways": [],
         "SIPProfileNamespace": [
@@ -836,6 +912,53 @@
           "Update"
         ],
         "ShortCodesNamespaceUpdateParams": [],
+        "SpaceBalance": [
+          "CreateTopUp",
+          "Get"
+        ],
+        "SpaceBalanceCreateTopUpParams": [],
+        "SpaceBillingProfile": [
+          "Get",
+          "Update"
+        ],
+        "SpaceBillingProfileUpdateParams": [],
+        "SpaceBillingStatements": [
+          "Get",
+          "GetCSV",
+          "GetPDF",
+          "List"
+        ],
+        "SpaceGeographicPermissions": [
+          "Get",
+          "Update"
+        ],
+        "SpaceGeographicPermissionsUpdateParams": [],
+        "SpaceLowBalanceSetting": [
+          "Get",
+          "Update"
+        ],
+        "SpaceLowBalanceSettingUpdateParams": [],
+        "SpaceMembers": [
+          "DisableProject",
+          "EnableProject",
+          "ListProjects"
+        ],
+        "SpaceNamespace": [],
+        "SpacePaymentHistory": [
+          "List"
+        ],
+        "SpacePaymentMethods": [
+          "Delete",
+          "List"
+        ],
+        "SpaceSettings": [
+          "Get",
+          "Update"
+        ],
+        "SpaceSettingsUpdateParams": [],
+        "SpaceUsage": [
+          "Get"
+        ],
         "SubscribersResource": [
           "CreateSIPEndpoint",
           "DeleteSIPEndpoint",
@@ -863,6 +986,7 @@
         "VideoNamespace": [],
         "VideoRoomRecordings": [
           "Delete",
+          "Download",
           "Get",
           "List",
           "ListEvents"
@@ -895,12 +1019,23 @@
           "List",
           "ListEvents",
           "Paginate"
-        ]
+        ],
+        "WhatsappBusinesses": [
+          "List"
+        ],
+        "WhatsappNamespace": [],
+        "WhatsappNumbers": [
+          "Get",
+          "List",
+          "Paginate"
+        ],
+        "WhatsappTemplates": []
       },
       "functions": [
         "AllPhoneCallHandlers",
         "NewAIAgents",
         "NewAddressesNamespace",
+        "NewAliasAddresses",
         "NewCXMLScripts",
         "NewCXMLWebhooks",
         "NewCallFlowsResource",
@@ -929,6 +1064,7 @@
         "NewMessages",
         "NewNumberGroupsNamespace",
         "NewPaginator",
+        "NewPhoneNumberAddresses",
         "NewPhoneNumbersNamespace",
         "NewProjectNamespace",
         "NewProjectTokens",
@@ -942,12 +1078,24 @@
         "NewRegistryNumbers",
         "NewRegistryOrders",
         "NewRelayApplications",
+        "NewSIPAddresses",
         "NewSIPEndpoints",
         "NewSIPGateways",
         "NewSIPProfileNamespace",
         "NewSWMLScripts",
         "NewSWMLWebhooks",
         "NewShortCodesNamespace",
+        "NewSpaceBalance",
+        "NewSpaceBillingProfile",
+        "NewSpaceBillingStatements",
+        "NewSpaceGeographicPermissions",
+        "NewSpaceLowBalanceSetting",
+        "NewSpaceMembers",
+        "NewSpaceNamespace",
+        "NewSpacePaymentHistory",
+        "NewSpacePaymentMethods",
+        "NewSpaceSettings",
+        "NewSpaceUsage",
         "NewSubscribersResource",
         "NewVerifiedCallersNamespace",
         "NewVideoConferenceTokens",
@@ -958,7 +1106,11 @@
         "NewVideoRoomTokens",
         "NewVideoRooms",
         "NewVideoStreams",
-        "NewVoiceLogs"
+        "NewVoiceLogs",
+        "NewWhatsappBusinesses",
+        "NewWhatsappNamespace",
+        "NewWhatsappNumbers",
+        "NewWhatsappTemplates"
       ]
     },
     "pom": {
@@ -1005,7 +1157,20 @@
         "WithBody",
         "WithBullets",
         "WithNumbered",
-        "WithNumberedBullets"
+        "WithNumberedBullets",
+        "WithTitle"
+      ]
+    },
+    "postprompt": {
+      "classes": {
+        "DialogueOptions": [],
+        "NormalizedPostPrompt": []
+      },
+      "functions": [
+        "DialogueTurns",
+        "NormalizePostPrompt",
+        "ParsePostPromptData",
+        "StripJSONFence"
       ]
     },
     "prefabs": {
@@ -1471,6 +1636,8 @@
           "DeleteContext",
           "Get",
           "GetContext",
+          "GetRedirectLocation",
+          "GetText",
           "Patch",
           "PatchContext",
           "Post",
@@ -1494,7 +1661,9 @@
         "NewSignalWireRestError",
         "NewSignalWireRestTransportError",
         "Resolve",
-        "StatusIsRetryable"
+        "StatusIsRetryable",
+        "WithPersonalAccessToken",
+        "WithRequestOptions"
       ]
     },
     "security": {
@@ -1504,6 +1673,8 @@
           "VerifyBasicAuth",
           "VerifyBasicAuthPair"
         ],
+        "BasicCredentials": [],
+        "BearerCredentials": [],
         "SecurityConfig": [
           "GetBasicAuth",
           "GetCORSConfig",
@@ -1536,6 +1707,8 @@
         "FilterSensitiveHeaders",
         "IsValidHostname",
         "NewAuthHandler",
+        "NewBasicCredentials",
+        "NewBearerCredentials",
         "NewSecurityConfig",
         "NewSessionManager",
         "RawBodyFromContext",
@@ -1545,10 +1718,13 @@
         "ValidateRequestE",
         "ValidateWebhookSignature",
         "ValidateWebhookSignatureE",
+        "ValidateWebhookSignatureSHA256",
         "WebhookMiddleware",
+        "WithConfigFile",
         "WithDebugMode",
         "WithSecret",
-        "WithSecretKey"
+        "WithSecretKey",
+        "WithServiceName"
       ]
     },
     "server": {
@@ -1660,6 +1836,9 @@
           "GetInstanceKey",
           "GetParameterSchema",
           "RegisterTools",
+          "RemoveXPaths",
+          "Session",
+          "SetRemoveXPaths",
           "Setup",
           "SupportsMultipleInstances"
         ]
@@ -1676,6 +1855,7 @@
           "AddAction",
           "AddActions",
           "AddDynamicHints",
+          "ChangeVoice",
           "ClearDynamicHints",
           "Connect",
           "EnableExtensiveData",
@@ -1689,6 +1869,7 @@
           "Pay",
           "PlayBackgroundFile",
           "PostProcess",
+          "RPCAiGlobalData",
           "RPCAiMessage",
           "RPCAiUnhold",
           "RPCDial",
@@ -1707,6 +1888,7 @@
           "SetPostProcess",
           "SetResponse",
           "SetSpeechEventTimeout",
+          "SetToolResponse",
           "SimulateUserInput",
           "Stop",
           "StopBackgroundFile",
@@ -1725,6 +1907,7 @@
           "UpdateSettings",
           "WaitForUser"
         ],
+        "HoldOptions": [],
         "JoinConferenceOptions": [],
         "Params": [
           "Array",
@@ -1744,6 +1927,7 @@
         "PayOptions": [],
         "Prop": [],
         "RecordCallOptions": [],
+        "ToolResponseOptions": [],
         "WaitForUserOptions": []
       },
       "functions": [
@@ -1779,6 +1963,7 @@
           "GetVerbName",
           "ValidateConfig"
         ],
+        "AnswerOptions": [],
         "Document": [
           "AddSection",
           "AddVerb",
@@ -1890,7 +2075,11 @@
           "StopTap",
           "SwaigPreDispatch",
           "Switch",
+          "TLSCertPath",
           "TLSEnabled",
+          "TLSKeyPath",
+          "TLSMisconfigurationError",
+          "TLSRequestedWithoutMaterial",
           "Tap",
           "Transfer",
           "Unset",
@@ -1926,6 +2115,8 @@
         "WithPort",
         "WithRoute",
         "WithSchemaPath",
+        "WithSchemaUtilsPath",
+        "WithSchemaUtilsValidation",
         "WithSchemaValidation",
         "WithSecurityConfig",
         "WithTLS"

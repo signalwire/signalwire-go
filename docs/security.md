@@ -114,6 +114,16 @@ a.AddSkill("native_vector_search", map[string]any{
 })
 ```
 
+The `spider` skill fetches user-supplied URLs through a guarded HTTP client
+(`SpiderSkill.Session()`): every request it sends — the first one and every
+redirect — is checked against private, loopback and link-local addresses, and the
+address it actually connects to is checked again (so a DNS answer that changes
+between the check and the connection cannot reach an internal host). It ignores
+`HTTP_PROXY` / `HTTPS_PROXY`, because through a proxy the connection check cannot
+apply; set `SWML_URL_FETCH_USE_PROXY` to a truthy value to use them, with a proxy
+that restricts destinations itself. `SWML_ALLOW_PRIVATE_URLS` turns the address
+checks off.
+
 ## Security Headers
 
 When HTTPS is enabled, the following security headers are automatically added to responses:

@@ -15,57 +15,6 @@
 
 package namespaces
 
-type SwaigRequestData struct {
-	CallID         string         `json:"call_id,omitempty"`
-	AiSessionID    string         `json:"ai_session_id,omitempty"`
-	AppName        *string        `json:"app_name,omitempty"`
-	ProjectID      string         `json:"project_id,omitempty"`
-	SpaceID        string         `json:"space_id,omitempty"`
-	Action         string         `json:"action,omitempty"`
-	Function       string         `json:"function,omitempty"`
-	Argument       SwaigArgument  `json:"argument,omitempty"`
-	MetaData       map[string]any `json:"meta_data,omitempty"`
-	ConversationID *string        `json:"conversation_id,omitempty"`
-	ContentType    *string        `json:"content_type,omitempty"`
-	Version        *string        `json:"version,omitempty"`
-}
-
-type SwaigArgument struct {
-	Parsed      []map[string]any `json:"parsed,omitempty"`
-	Raw         string           `json:"raw,omitempty"`
-	Substituted string           `json:"substituted,omitempty"`
-}
-
-type PostPromptData struct {
-	EventType    *string          `json:"event_type,omitempty"`
-	EventChannel *string          `json:"event_channel,omitempty"`
-	Timestamp    *float64         `json:"timestamp,omitempty"`
-	ProjectID    *string          `json:"project_id,omitempty"`
-	SpaceID      *string          `json:"space_id,omitempty"`
-	Params       PostPromptParams `json:"params,omitempty"`
-}
-
-type PostPromptParams struct {
-	CallID           string                       `json:"call_id,omitempty"`
-	AiSessionID      string                       `json:"ai_session_id,omitempty"`
-	Summary          *string                      `json:"summary,omitempty"`
-	PostPromptResult any                          `json:"post_prompt_result,omitempty"`
-	EndReason        *string                      `json:"end_reason,omitempty"`
-	Conversation     []PostPromptConversationTurn `json:"conversation,omitempty"`
-	FunctionCalls    []PostPromptFunctionCall     `json:"function_calls,omitempty"`
-}
-
-type PostPromptConversationTurn struct {
-	Role    string `json:"role,omitempty"`
-	Content string `json:"content,omitempty"`
-}
-
-type PostPromptFunctionCall struct {
-	Function string         `json:"function,omitempty"`
-	Params   map[string]any `json:"params,omitempty"`
-	Result   map[string]any `json:"result,omitempty"`
-}
-
 type SwmlRequestData struct {
 	Call   *SwmlRequestCall `json:"call,omitempty"`
 	Vars   map[string]any   `json:"vars,omitempty"`
@@ -73,25 +22,136 @@ type SwmlRequestData struct {
 	Params map[string]any   `json:"params,omitempty"`
 }
 
-type SwmlRequestCall struct {
-	CallID     string           `json:"call_id,omitempty"`
-	NodeID     *string          `json:"node_id,omitempty"`
-	SegmentID  *string          `json:"segment_id,omitempty"`
-	ProjectID  string           `json:"project_id,omitempty"`
-	SpaceID    string           `json:"space_id,omitempty"`
-	CallState  *string          `json:"call_state,omitempty"`
-	Direction  *string          `json:"direction,omitempty"`
-	Type       *string          `json:"type,omitempty"`
-	From       *string          `json:"from,omitempty"`
-	To         *string          `json:"to,omitempty"`
-	FromNumber *string          `json:"from_number,omitempty"`
-	ToNumber   *string          `json:"to_number,omitempty"`
-	Headers    []map[string]any `json:"headers,omitempty"`
+type SwmlRequestCall any
+
+type SwmlRequestCallParent struct {
+	DeviceType *string `json:"device_type,omitempty"`
+	CallID     string  `json:"call_id,omitempty"`
+	NodeID     string  `json:"node_id,omitempty"`
 }
 
-type SignalWireErrorBody struct {
-	Code     int     `json:"code,omitempty"`
-	Message  string  `json:"message,omitempty"`
-	MoreInfo *string `json:"more_info,omitempty"`
-	Status   *int    `json:"status,omitempty"`
+type SwmlRequestCallPeer struct {
+	CallID string `json:"call_id,omitempty"`
+	NodeID string `json:"node_id,omitempty"`
+}
+
+type SwmlRequestCallPhone struct {
+	ProjectID      *string                           `json:"project_id,omitempty"`
+	SpaceID        *string                           `json:"space_id,omitempty"`
+	CallID         string                            `json:"call_id,omitempty"`
+	NodeID         string                            `json:"node_id,omitempty"`
+	SegmentID      *string                           `json:"segment_id,omitempty"`
+	Tag            *string                           `json:"tag,omitempty"`
+	CallState      string                            `json:"call_state,omitempty"`
+	Parent         *SwmlRequestCallParent            `json:"parent,omitempty"`
+	Peer           *SwmlRequestCallPeer              `json:"peer,omitempty"`
+	Direction      string                            `json:"direction,omitempty"`
+	EndReason      *string                           `json:"end_reason,omitempty"`
+	EndSource      *string                           `json:"end_source,omitempty"`
+	DialWinner     *string                           `json:"dial_winner,omitempty"`
+	AddressID      *string                           `json:"address_id,omitempty"`
+	SubscriberID   *string                           `json:"subscriber_id,omitempty"`
+	SubscriberName *string                           `json:"subscriber_name,omitempty"`
+	Type           string                            `json:"type,omitempty"`
+	From           string                            `json:"from,omitempty"`
+	To             string                            `json:"to,omitempty"`
+	FromNumber     string                            `json:"from_number,omitempty"`
+	ToNumber       string                            `json:"to_number,omitempty"`
+	Headers        []SwmlRequestCallPhoneHeadersItem `json:"headers,omitempty"`
+}
+
+type SwmlRequestCallPhoneHeadersItem struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+type SwmlRequestCallSip struct {
+	ProjectID      *string                         `json:"project_id,omitempty"`
+	SpaceID        *string                         `json:"space_id,omitempty"`
+	CallID         string                          `json:"call_id,omitempty"`
+	NodeID         string                          `json:"node_id,omitempty"`
+	SegmentID      *string                         `json:"segment_id,omitempty"`
+	Tag            *string                         `json:"tag,omitempty"`
+	CallState      string                          `json:"call_state,omitempty"`
+	Parent         *SwmlRequestCallParent          `json:"parent,omitempty"`
+	Peer           *SwmlRequestCallPeer            `json:"peer,omitempty"`
+	Direction      string                          `json:"direction,omitempty"`
+	EndReason      *string                         `json:"end_reason,omitempty"`
+	EndSource      *string                         `json:"end_source,omitempty"`
+	DialWinner     *string                         `json:"dial_winner,omitempty"`
+	AddressID      *string                         `json:"address_id,omitempty"`
+	SubscriberID   *string                         `json:"subscriber_id,omitempty"`
+	SubscriberName *string                         `json:"subscriber_name,omitempty"`
+	Type           string                          `json:"type,omitempty"`
+	From           string                          `json:"from,omitempty"`
+	To             string                          `json:"to,omitempty"`
+	Headers        []SwmlRequestCallSipHeadersItem `json:"headers,omitempty"`
+	SIPData        *SwmlRequestCallSipSipData      `json:"sip_data,omitempty"`
+}
+
+type SwmlRequestCallSipHeadersItem struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+type SwmlRequestCallSipSipData struct {
+	SIPReqUser           *string        `json:"sip_req_user,omitempty"`
+	SIPReqURI            *string        `json:"sip_req_uri,omitempty"`
+	SIPReqHost           *string        `json:"sip_req_host,omitempty"`
+	SIPFromUser          *string        `json:"sip_from_user,omitempty"`
+	SIPFromURI           *string        `json:"sip_from_uri,omitempty"`
+	SIPFromHost          *string        `json:"sip_from_host,omitempty"`
+	SIPToUser            *string        `json:"sip_to_user,omitempty"`
+	SIPToURI             *string        `json:"sip_to_uri,omitempty"`
+	SIPToHost            *string        `json:"sip_to_host,omitempty"`
+	SIPContactUser       *string        `json:"sip_contact_user,omitempty"`
+	SIPContactPort       *string        `json:"sip_contact_port,omitempty"`
+	SIPContactURI        *string        `json:"sip_contact_uri,omitempty"`
+	SIPContactHost       *string        `json:"sip_contact_host,omitempty"`
+	SIPFromParams        map[string]any `json:"sip_from_params,omitempty"`
+	SIPToParams          map[string]any `json:"sip_to_params,omitempty"`
+	SIPContactParams     map[string]any `json:"sip_contact_params,omitempty"`
+	SIPReqParams         map[string]any `json:"sip_req_params,omitempty"`
+	SIPPAssertedIdentity *string        `json:"sip_p_asserted_identity,omitempty"`
+}
+
+type SwmlRequestCallWebrtc struct {
+	ProjectID      *string                `json:"project_id,omitempty"`
+	SpaceID        *string                `json:"space_id,omitempty"`
+	CallID         string                 `json:"call_id,omitempty"`
+	NodeID         string                 `json:"node_id,omitempty"`
+	SegmentID      *string                `json:"segment_id,omitempty"`
+	Tag            *string                `json:"tag,omitempty"`
+	CallState      string                 `json:"call_state,omitempty"`
+	Parent         *SwmlRequestCallParent `json:"parent,omitempty"`
+	Peer           *SwmlRequestCallPeer   `json:"peer,omitempty"`
+	Direction      string                 `json:"direction,omitempty"`
+	EndReason      *string                `json:"end_reason,omitempty"`
+	EndSource      *string                `json:"end_source,omitempty"`
+	DialWinner     *string                `json:"dial_winner,omitempty"`
+	AddressID      *string                `json:"address_id,omitempty"`
+	SubscriberID   *string                `json:"subscriber_id,omitempty"`
+	SubscriberName *string                `json:"subscriber_name,omitempty"`
+	Type           string                 `json:"type,omitempty"`
+	From           string                 `json:"from,omitempty"`
+	To             string                 `json:"to,omitempty"`
+}
+
+type SwmlRequestCallOther struct {
+	ProjectID      *string                `json:"project_id,omitempty"`
+	SpaceID        *string                `json:"space_id,omitempty"`
+	CallID         string                 `json:"call_id,omitempty"`
+	NodeID         string                 `json:"node_id,omitempty"`
+	SegmentID      *string                `json:"segment_id,omitempty"`
+	Tag            *string                `json:"tag,omitempty"`
+	CallState      string                 `json:"call_state,omitempty"`
+	Parent         *SwmlRequestCallParent `json:"parent,omitempty"`
+	Peer           *SwmlRequestCallPeer   `json:"peer,omitempty"`
+	Direction      string                 `json:"direction,omitempty"`
+	EndReason      *string                `json:"end_reason,omitempty"`
+	EndSource      *string                `json:"end_source,omitempty"`
+	DialWinner     *string                `json:"dial_winner,omitempty"`
+	AddressID      *string                `json:"address_id,omitempty"`
+	SubscriberID   *string                `json:"subscriber_id,omitempty"`
+	SubscriberName *string                `json:"subscriber_name,omitempty"`
 }

@@ -70,7 +70,7 @@ func (c *Call) State() string {
 }
 
 // CallState returns the current call state as a typed CallState ALONGSIDE the
-// bare-string State() accessor (kept for compatibility with the Python reference).
+// bare-string State() accessor, which is kept for backward compatibility.
 // The typed kind gives callers IsTerminal()/IsKnown() predicates and
 // compile-time distinctness from DialState/MessageState; its underlying string
 // equals State() exactly. Additive port idiom — see states.go and
@@ -129,7 +129,15 @@ func (c *Call) On(eventType string, handler func(*RelayEvent)) {
 
 // WaitFor blocks until an event matching the given type and predicate is
 // received, or the context expires.
+//
+// predicate is OPTIONAL — pass nil to accept the first event of eventType.
+// The nil case is
+// normalised to a match-all here rather than being handled at dispatch, so the
+// substituted default is visible at the point the caller declines the argument.
 func (c *Call) WaitFor(ctx context.Context, eventType string, predicate func(*RelayEvent) bool) (*RelayEvent, error) {
+	if predicate == nil {
+		predicate = func(*RelayEvent) bool { return true }
+	}
 	ch := make(chan *RelayEvent, 1)
 	c.mu.Lock()
 	c.waiters = append(c.waiters, waiter{
@@ -148,8 +156,7 @@ func (c *Call) WaitFor(ctx context.Context, eventType string, predicate func(*Re
 }
 
 // WaitForEnded blocks until the call reaches the "ended" state, or the
-// context expires. This mirrors Python's wait_for_ended() which awaits
-// the _ended asyncio.Future.
+// context expires.
 func (c *Call) WaitForEnded(ctx context.Context) (*RelayEvent, error) {
 	return c.WaitFor(ctx, EventCallingCallState, func(e *RelayEvent) bool {
 		return e.GetString("call_state") == CallStateEnded
@@ -157,9 +164,8 @@ func (c *Call) WaitForEnded(ctx context.Context) (*RelayEvent, error) {
 }
 
 // callStateOrder ranks the call lifecycle states so a state-wait can
-// short-circuit when the call is already at or past the target. Mirrors
-// Python's _wait_for_state ordering at relay/call.py:
-// created < ringing < answered < ending < ended.
+// short-circuit when the call is already at or past the target. The lifecycle
+// ordering is: created < ringing < answered < ending < ended.
 var callStateOrder = []string{
 	CallStateCreated,
 	CallStateRinging,
@@ -179,9 +185,8 @@ func callStateRank(s string) int {
 
 // waitForState blocks until the call reaches target, or the context
 // expires. If the call is ALREADY at or past target it returns immediately
-// with a synthesized state event (matching the legacy SDK / Python's
-// _wait_for_state, which returns right away when rank(self.state) >=
-// rank(target)).
+// with a synthesized state event: the wait returns right away whenever
+// rank(current state) >= rank(target).
 func (c *Call) waitForState(ctx context.Context, target string) (*RelayEvent, error) {
 	if callStateRank(c.State()) >= callStateRank(target) {
 		return NewRelayEvent(EventCallingCallState, map[string]any{
@@ -194,22 +199,19 @@ func (c *Call) waitForState(ctx context.Context, target string) (*RelayEvent, er
 }
 
 // WaitForAnswered blocks until the call is answered (returns immediately if
-// already answered or past it). Typed wait over WaitFor, mirroring Python's
-// call.wait_for_answered(timeout).
+// already answered or past it). Typed wait over WaitFor.
 func (c *Call) WaitForAnswered(ctx context.Context) (*RelayEvent, error) {
 	return c.waitForState(ctx, CallStateAnswered)
 }
 
 // WaitForRinging blocks until the call is ringing (returns immediately if
-// already ringing or past it). Typed wait over WaitFor, mirroring Python's
-// call.wait_for_ringing(timeout).
+// already ringing or past it). Typed wait over WaitFor.
 func (c *Call) WaitForRinging(ctx context.Context) (*RelayEvent, error) {
 	return c.waitForState(ctx, CallStateRinging)
 }
 
 // WaitForEnding blocks until the call is ending (returns immediately if
-// already ending or past it). Typed wait over WaitFor, mirroring Python's
-// call.wait_for_ending(timeout).
+// already ending or past it). Typed wait over WaitFor.
 func (c *Call) WaitForEnding(ctx context.Context) (*RelayEvent, error) {
 	return c.waitForState(ctx, CallStateEnding)
 }
@@ -308,8 +310,7 @@ func (c *Call) dispatchEvent(event *RelayEvent) {
 // resolveAction routes an event to an action registered under
 // controlID. The action self-checks via matchesTerminal: only events
 // matching its terminalEvent / terminalStates resolve it. Mismatched
-// events (e.g. a play(finished) for a CollectAction) are dropped here,
-// mirroring Python's per-action terminal_event filtering.
+// events (e.g. a play(finished) for a CollectAction) are dropped here.
 func (c *Call) resolveAction(controlID string, event *RelayEvent) {
 	c.mu.Lock()
 	a, ok := c.actions[controlID]
@@ -339,7 +340,7 @@ func (c *Call) registerAction(a *Action) {
 }
 
 // execVerb runs a calling.* RPC for this call and applies the documented
-// call-gone contract, mirroring python Call._execute (relay/call.py:395-413):
+// call-gone contract:
 // a RelayError carrying code 404/410 means the call is already gone, so the verb
 // is a swallowed no-op (returns nil); any OTHER server error (500-class, bad
 // params, ...) propagates. Combined with client.execute's A2 result-code raise
@@ -401,7 +402,7 @@ func (c *Call) Pass() error {
 
 // Transfer transfers call control to another RELAY app or SWML script.
 // The dest parameter is the destination context/URL string, sent as the
-// "dest" key to the server (matches Python's transfer(dest: str) behavior).
+// "dest" key to the server.
 func (c *Call) Transfer(dest string) error {
 	_, err := c.execVerb("calling.transfer", map[string]any{
 		"node_id": c.nodeID,
@@ -416,8 +417,8 @@ func (c *Call) Transfer(dest string) error {
 // ---------------------------------------------------------------------------
 
 // Refer transfers a SIP call to an external SIP endpoint via a REFER request.
-// statusURL is optional (empty string omits it), matching Python's
-// refer(device, *, status_url).
+// statusURL is optional (empty string omits it) and rides as the status_url
+// parameter of refer.
 func (c *Call) Refer(device map[string]any, statusURL string) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -436,8 +437,8 @@ func (c *Call) Refer(device map[string]any, statusURL string) error {
 // ---------------------------------------------------------------------------
 
 // LiveTranscribe starts or stops live transcription on the call. The action
-// map describes the transcription operation (e.g. {"type": "start"}).
-// Matches Python's live_transcribe(action, **kwargs).
+// map describes the transcription operation (e.g. {"type": "start"}) and
+// rides as the action parameter of live_transcribe.
 func (c *Call) LiveTranscribe(action map[string]any) error {
 	_, err := c.execVerb("calling.live_transcribe", map[string]any{
 		"node_id": c.nodeID,
@@ -449,7 +450,7 @@ func (c *Call) LiveTranscribe(action map[string]any) error {
 
 // LiveTranslate starts or stops live translation on the call. The action map
 // describes the translation operation. statusURL is optional (empty string
-// omits it), matching Python's live_translate(action, *, status_url).
+// omits it) and rides as the status_url parameter of live_translate.
 func (c *Call) LiveTranslate(action map[string]any, statusURL string) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -469,10 +470,8 @@ func (c *Call) LiveTranslate(action map[string]any, statusURL string) error {
 
 // Play starts playing media on the call and returns a PlayAction.
 //
-// Use WithPlayControlID to supply an explicit control_id (mirrors
-// Python's play(control_id=...)). When omitted the SDK auto-generates
-// a UUID — same as Python's `cid = control_id or str(uuid.uuid4())`
-// at relay/call.py:506.
+// Use WithPlayControlID to supply an explicit control_id. When omitted the
+// SDK auto-generates a UUID.
 func (c *Call) Play(media []map[string]any, opts ...PlayOption) *PlayAction {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -523,8 +522,7 @@ func (c *Call) Play(media []map[string]any, opts ...PlayOption) *PlayAction {
 
 // PlayAndCollect plays media while collecting input (DTMF or speech).
 //
-// Honors WithPlayControlID for an explicit control_id (mirrors Python's
-// play_and_collect(control_id=...)). Note the gotcha at
+// Honors WithPlayControlID for an explicit control_id. Note the gotcha at
 // RELAY_IMPLEMENTATION_GUIDE.md: this action listens on the
 // calling.call.collect terminal event, NOT calling.call.play(finished).
 func (c *Call) PlayAndCollect(media []map[string]any, collect map[string]any, opts ...PlayOption) *CollectAction {
@@ -573,11 +571,9 @@ func (c *Call) PlayAndCollect(media []map[string]any, collect map[string]any, op
 	return action
 }
 
-// CollectParams holds named parameters for the Collect method, matching
-// Python's collect() named arguments. The fields are placed at the top
-// level of the on-wire calling.collect frame (NOT nested under a
-// "collect" object) — mirroring Python's params["digits"] = digits at
-// relay/call.py:583.
+// CollectParams holds the named parameters for the Collect method. The fields
+// are placed at the top level of the on-wire calling.collect frame (NOT nested
+// under a "collect" object) — e.g. Digits is sent as params["digits"].
 type CollectParams struct {
 	// Digits configures DTMF digit collection.
 	Digits map[string]any
@@ -599,12 +595,11 @@ type CollectParams struct {
 	OnCompleted func(*RelayEvent)
 }
 
-// Collect starts collecting user input without playing media. The
-// params argument exposes named fields that mirror Python's collect()
-// parameters at relay/call.py:565. Pass a nil CollectParams to send an
-// empty collect body.
+// Collect starts collecting user input without playing media. The params
+// argument exposes the named collect parameters. Pass a nil CollectParams to
+// send an empty collect body.
 //
-// Wire shape (matches Python):
+// Wire shape:
 //
 //	{"node_id":..., "call_id":..., "control_id":..., "digits":..., "speech":..., ...}
 func (c *Call) Collect(params *CollectParams) *StandaloneCollectAction {
@@ -667,14 +662,13 @@ func (c *Call) Collect(params *CollectParams) *StandaloneCollectAction {
 // ---------------------------------------------------------------------------
 // Typed audio/detect/prompt convenience (thin wrappers over the generics)
 //
-// Each mirrors a Python call.<name> convenience method, building the exact
-// RELAY media/params shape and delegating to the matching generic (Play /
-// PlayAndCollect / Detect) so the wire frame is identical to hand-building
-// the media dict.
+// Each builds the exact RELAY media/params shape and delegates to the matching
+// generic (Play / PlayAndCollect / Detect), so the wire frame is identical to
+// hand-building the media dict.
 // ---------------------------------------------------------------------------
 
-// PlayTTS plays text-to-speech. Typed convenience over Play, mirroring
-// Python's call.play_tts(text, *, language, gender, voice, volume).
+// PlayTTS plays text-to-speech. Typed convenience over Play; the underlying
+// operation is play_tts(text, *, language, gender, voice, volume).
 //
 // Wire shape: play [{"type":"tts","params":{"text":..., language?, gender?,
 // voice?}}] with an optional top-level volume.
@@ -701,8 +695,8 @@ func (c *Call) PlayTTS(text string, opts ...TTSOption) *PlayAction {
 	return c.Play(media, playOpts...)
 }
 
-// PlayAudio plays an audio file from a URL. Typed convenience over Play,
-// mirroring Python's call.play_audio(url, *, volume).
+// PlayAudio plays an audio file from a URL. Typed convenience over Play; the
+// underlying operation is play_audio(url, *, volume).
 //
 // Wire shape: play [{"type":"audio","params":{"url":...}}] with an optional
 // top-level volume.
@@ -720,7 +714,7 @@ func (c *Call) PlayAudio(url string, opts ...AudioOption) *PlayAction {
 }
 
 // PlaySilence plays silence for duration seconds. Typed convenience over
-// Play, mirroring Python's call.play_silence(duration).
+// Play; the underlying operation is play_silence(duration).
 //
 // Wire shape: play [{"type":"silence","params":{"duration":...}}].
 func (c *Call) PlaySilence(duration float64) *PlayAction {
@@ -728,8 +722,8 @@ func (c *Call) PlaySilence(duration float64) *PlayAction {
 	return c.Play(media)
 }
 
-// PlayRingtone plays a named ringtone by country code. Typed convenience
-// over Play, mirroring Python's call.play_ringtone(name, *, duration, volume).
+// PlayRingtone plays a named ringtone by country code. Typed convenience over
+// Play; the underlying operation is play_ringtone(name, *, duration, volume).
 //
 // Wire shape: play [{"type":"ringtone","params":{"name":..., duration?}}]
 // with an optional top-level volume.
@@ -750,8 +744,8 @@ func (c *Call) PlayRingtone(name string, opts ...RingtoneOption) *PlayAction {
 	return c.Play(media, playOpts...)
 }
 
-// DetectDigit detects DTMF digits. Typed convenience over Detect, mirroring
-// Python's call.detect_digit(*, digits, timeout).
+// DetectDigit detects DTMF digits. Typed convenience over Detect; the
+// underlying operation is detect_digit(*, digits, timeout).
 //
 // Wire shape: detect {"type":"digit","params":{digits?}} with an optional
 // top-level timeout.
@@ -773,11 +767,11 @@ func (c *Call) DetectDigit(opts ...DetectDigitOption) *DetectAction {
 }
 
 // DetectAnsweringMachine detects human vs answering machine (AMD). Typed
-// convenience over Detect, mirroring Python's
-// call.detect_answering_machine(*, initial_timeout, end_silence_timeout,
+// convenience over Detect; the underlying operation is
+// detect_answering_machine(*, initial_timeout, end_silence_timeout,
 // machine_voice_threshold, machine_words_threshold, detect_interruptions,
-// detect_message_end, timeout). Only the options the caller supplies are
-// emitted under params, matching Python's only-provided-keys behavior.
+// detect_message_end, timeout). Only keys the caller actually provided are
+// emitted under params.
 //
 // Wire shape: detect {"type":"machine","params":{...only-provided...}} with
 // an optional top-level timeout.
@@ -803,8 +797,8 @@ func (c *Call) DetectAnsweringMachine(opts ...AMDOption) *DetectAction {
 	return c.Detect(detect, timeout)
 }
 
-// DetectFax detects a fax tone (CED/CNG). Typed convenience over Detect,
-// mirroring Python's call.detect_fax(*, tone, timeout).
+// DetectFax detects a fax tone (CED/CNG). Typed convenience over Detect; the
+// underlying operation is detect_fax(*, tone, timeout).
 //
 // Wire shape: detect {"type":"fax","params":{tone?}} with an optional
 // top-level timeout.
@@ -825,8 +819,8 @@ func (c *Call) DetectFax(opts ...DetectFaxOption) *DetectAction {
 	return c.Detect(detect, timeout)
 }
 
-// PromptTTS plays TTS then collects input. Typed media over PlayAndCollect,
-// mirroring Python's call.prompt_tts(text, collect, *, language, gender,
+// PromptTTS plays TTS then collects input. Typed media over PlayAndCollect;
+// the underlying operation is prompt_tts(text, collect, *, language, gender,
 // voice, volume).
 //
 // Wire shape: play_and_collect [{"type":"tts","params":{"text":...,
@@ -856,7 +850,7 @@ func (c *Call) PromptTTS(text string, collect map[string]any, opts ...TTSOption)
 }
 
 // PromptAudio plays an audio file then collects input. Typed media over
-// PlayAndCollect, mirroring Python's call.prompt_audio(url, collect, *,
+// PlayAndCollect; the underlying operation is prompt_audio(url, collect, *,
 // volume).
 //
 // Wire shape: play_and_collect [{"type":"audio","params":{"url":...}}] with
@@ -880,12 +874,12 @@ func (c *Call) PromptAudio(url string, collect map[string]any, opts ...AudioOpti
 
 // Record starts recording the call and returns a RecordAction.
 //
-// Use WithRecordAudio to supply the audio config map (Python's
-// record(audio=...)) and WithRecordControlID to fix the control_id.
+// Use WithRecordAudio to supply the audio config map (the record verb's
+// "audio" parameter) and WithRecordControlID to fix the control_id.
 // Other RecordOption helpers set top-level fields directly (e.g.
 // WithRecordBeep, WithRecordFormat); these are folded into the
-// "record": {"audio": {...}} object on transmit so the wire shape
-// matches Python: {"record": {"audio": {...}}}.
+// "record": {"audio": {...}} object on transmit, so the wire shape is
+// {"record": {"audio": {...}}}.
 func (c *Call) Record(opts ...RecordOption) *RecordAction {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -998,11 +992,9 @@ func (c *Call) SendDigits(digits string) error {
 // ---------------------------------------------------------------------------
 
 // Detect starts a detection operation (e.g., answering machine detection).
-// timeout is optional; pass nil to omit it from the request (matches
-// Python's optional float timeout parameter).
+// timeout is optional; pass nil to omit it from the request.
 //
-// controlID is optional — pass "" to auto-generate. Matches Python's
-// detect(*, control_id=None) at relay/call.py:654.
+// controlID is optional — pass "" and a UUID is generated.
 func (c *Call) Detect(detect map[string]any, timeout *float64, controlID ...string) *DetectAction {
 	var cid string
 	if len(controlID) > 0 && controlID[0] != "" {
@@ -1118,8 +1110,8 @@ func (c *Call) ReceiveFax(opts ...FaxOption) *FaxAction {
 // ---------------------------------------------------------------------------
 
 // Tap starts tapping the call audio to an external destination. The
-// optional controlID argument supplies an explicit control_id (matches
-// Python's tap(control_id=...)). Pass "" or omit to auto-generate.
+// optional controlID argument supplies an explicit control_id. Pass "" or
+// omit it and a UUID is generated.
 func (c *Call) Tap(tap, device map[string]any, controlID ...string) *TapAction {
 	cid := ""
 	if len(controlID) > 0 {
@@ -1158,8 +1150,7 @@ func (c *Call) Tap(tap, device map[string]any, controlID ...string) *TapAction {
 // ---------------------------------------------------------------------------
 
 // Stream starts streaming call audio to a WebSocket URL. Use
-// WithStreamControlID for an explicit control_id (matches Python's
-// stream(control_id=...)).
+// WithStreamControlID for an explicit control_id.
 func (c *Call) Stream(url string, opts ...StreamOption) *StreamAction {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1226,15 +1217,14 @@ func (c *Call) LeaveConference(confID string) error {
 // ---------------------------------------------------------------------------
 
 // AI starts an AI session on the call. Use WithAIControlID for an
-// explicit control_id (matches Python's ai(control_id=...)).
+// explicit control_id.
 func (c *Call) AI(opts ...AIOption) *AIAction {
 	return c.aiDispatch("calling.ai", opts...)
 }
 
 // aiDispatch builds the AI param frame from the supplied options and executes
 // the given RELAY method. AI() uses "calling.ai"; AmazonBedrock() uses
-// "calling.amazon_bedrock" — each is a distinct server RPC (matching Python's
-// call.ai → _execute("ai") and call.amazon_bedrock → _execute("amazon_bedrock")).
+// "calling.amazon_bedrock" — each is a distinct server RPC.
 func (c *Call) aiDispatch(method string, opts ...AIOption) *AIAction {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1269,17 +1259,16 @@ func (c *Call) aiDispatch(method string, opts ...AIOption) *AIAction {
 
 // AmazonBedrock starts an AI session using Amazon Bedrock. It dispatches the
 // dedicated "calling.amazon_bedrock" RELAY method (NOT calling.ai with an
-// engine key — that was a wire-fidelity bug; Python's amazon_bedrock() calls
-// _execute("amazon_bedrock", params) with no engine field, call.py).
+// engine key — that was a wire-fidelity bug; the RPC carries no engine field).
 func (c *Call) AmazonBedrock(opts ...AIOption) *AIAction {
 	return c.aiDispatch("calling.amazon_bedrock", opts...)
 }
 
 // AIMessage sends a text message within an active AI session. All parameters
-// are optional, matching Python's ai_message(*, message_text=None, role=None,
-// reset=None, global_data=None). Pass "" for controlID/text/role and nil for
-// reset/globalData to omit them from the wire payload (Python omits the key
-// entirely when the argument is None).
+// are optional; the wire-level operation is ai_message(*, message_text, role,
+// reset, global_data). Pass "" for controlID/text/role and nil for
+// reset/globalData to omit them from the wire payload — an omitted argument
+// drops the key entirely.
 func (c *Call) AIMessage(controlID, text, role string, reset map[string]any, globalData map[string]any) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1305,9 +1294,9 @@ func (c *Call) AIMessage(controlID, text, role string, reset map[string]any, glo
 }
 
 // AIHold places the AI-controlled call on hold. controlID, timeout and prompt
-// are all optional — pass "" to omit any of them, matching Python's
-// ai_hold(*, timeout: Optional[str] = None, prompt: Optional[str] = None)
-// which has no control_id parameter and only writes keys conditionally.
+// are all optional — pass "" to omit any of them. The wire-level operation is
+// ai_hold(*, timeout, prompt): it has no control_id parameter of its own and
+// only writes keys conditionally.
 func (c *Call) AIHold(controlID string, timeout string, prompt string) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1327,9 +1316,9 @@ func (c *Call) AIHold(controlID string, timeout string, prompt string) error {
 }
 
 // AIUnhold removes the call from AI hold. controlID and prompt are both
-// optional — pass "" to omit either, matching Python's
-// ai_unhold(*, prompt: Optional[str] = None) which has no control_id
-// parameter and only writes keys conditionally.
+// optional — pass "" to omit either. The wire-level operation is
+// ai_unhold(*, prompt): it has no control_id parameter of its own and only
+// writes keys conditionally.
 func (c *Call) AIUnhold(controlID string, prompt string) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1390,7 +1379,7 @@ func (c *Call) DenoiseStop() error {
 // ---------------------------------------------------------------------------
 
 // JoinRoom joins the call to a named room. statusURL is optional (empty
-// string omits it), matching Python's join_room(name, *, status_url).
+// string omits it) and rides as the status_url parameter of join_room.
 func (c *Call) JoinRoom(name string, statusURL string) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1414,9 +1403,9 @@ func (c *Call) LeaveRoom() error {
 }
 
 // QueueEnter places the call in a named queue. statusURL is optional (empty
-// string omits it), matching Python's queue_enter(queue_name, *, control_id,
-// status_url) at signalwire/relay/call.py:1268. A per-request control_id is
-// generated so the server can correlate this action with subsequent events.
+// string omits it); the wire-level operation is queue_enter(queue_name, *,
+// control_id, status_url). A per-request control_id is generated so the server
+// can correlate this action with subsequent events.
 func (c *Call) QueueEnter(name string, statusURL string) error {
 	params := map[string]any{
 		"node_id":    c.nodeID,
@@ -1432,9 +1421,9 @@ func (c *Call) QueueEnter(name string, statusURL string) error {
 }
 
 // QueueLeave removes the call from the named queue. queueID and statusURL are
-// optional (empty string omits each), matching Python's
-// queue_leave(queue_name, *, control_id, queue_id, status_url) at
-// signalwire/relay/call.py:1287. A per-request control_id is generated.
+// optional (empty string omits each); the wire-level operation is
+// queue_leave(queue_name, *, control_id, queue_id, status_url). A per-request
+// control_id is generated.
 func (c *Call) QueueLeave(name string, queueID string, statusURL string) error {
 	params := map[string]any{
 		"node_id":    c.nodeID,
@@ -1457,8 +1446,10 @@ func (c *Call) QueueLeave(name string, queueID string, statusURL string) error {
 // ---------------------------------------------------------------------------
 
 // BindDigit binds a DTMF digit sequence to trigger a RELAY method.
-// bindParams, realm, and maxTriggers are optional (nil/zero-value omits them),
-// matching Python's bind_digit(digits, bind_method, *, bind_params, realm, max_triggers).
+// bindParams, realm, and maxTriggers are optional (nil/zero-value omits them).
+// The wire-level operation is
+// bind_digit(digits, bind_method, *, params, realm, max_triggers) — note that
+// bindParams rides under the wire key "params", NOT "bind_params".
 func (c *Call) BindDigit(digits, method string, bindParams map[string]any, realm string, maxTriggers int) error {
 	p := map[string]any{
 		"node_id":     c.nodeID,
@@ -1480,8 +1471,8 @@ func (c *Call) BindDigit(digits, method string, bindParams map[string]any, realm
 }
 
 // ClearDigitBindings clears all DTMF digit bindings, optionally filtered
-// by realm. Pass an empty string to clear all realms (matches Python's
-// clear_digit_bindings(*, realm)).
+// by realm. Pass an empty string to clear all realms; the wire-level operation
+// is clear_digit_bindings(*, realm).
 func (c *Call) ClearDigitBindings(realm string) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1496,10 +1487,10 @@ func (c *Call) ClearDigitBindings(realm string) error {
 
 // UserEvent sends a user-defined event on the call. eventName is the
 // custom event identifier; pass "" to omit it. Optional `extra` maps are
-// merged into the top-level wire params (mirroring Python's **kwargs in
-// user_event(*, event: Optional[str] = None, **kwargs)).
+// merged into the top-level wire params — the wire-level operation is
+// user_event(*, event, **extra).
 //
-// Wire shape (matches Python): {"event": <eventName>, ...extra}.
+// Wire shape: {"event": <eventName>, ...extra}.
 func (c *Call) UserEvent(eventName string, extra ...map[string]any) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1518,8 +1509,8 @@ func (c *Call) UserEvent(eventName string, extra ...map[string]any) error {
 }
 
 // Echo starts echo mode on the call (echo audio back to the caller).
-// Both timeout and statusURL are optional (nil omits them), matching
-// Python's echo(*, timeout: float|None, status_url).
+// Both timeout and statusURL are optional (nil/"" omits them); the wire-level
+// operation is echo(*, timeout, status_url).
 func (c *Call) Echo(timeout *float64, statusURL string) error {
 	params := map[string]any{
 		"node_id": c.nodeID,
@@ -1540,14 +1531,13 @@ func (c *Call) Echo(timeout *float64, statusURL string) error {
 // ---------------------------------------------------------------------------
 
 // Pay starts a payment collection session on the call. Use PayOption
-// functional options to supply any of the 20+ optional parameters that
-// Python's pay() exposes (input_method, status_url, payment_method,
+// functional options to supply any of the 20+ optional parameters the pay
+// operation exposes (input_method, status_url, payment_method,
 // timeout, max_attempts, security_code, postal_code,
 // min_postal_code_length, token_type, charge_amount, currency, language,
 // voice, description, valid_card_types, parameters, prompts).
 //
-// Use WithPayControlID for an explicit control_id (matches Python's
-// pay(control_id=...)).
+// Use WithPayControlID for an explicit control_id.
 func (c *Call) Pay(connectorURL string, opts ...PayOption) *PayAction {
 	params := map[string]any{
 		"node_id":               c.nodeID,
@@ -1586,8 +1576,7 @@ func (c *Call) Pay(connectorURL string, opts ...PayOption) *PayAction {
 // ---------------------------------------------------------------------------
 
 // Transcribe starts real-time transcription on the call. The optional
-// controlID argument supplies an explicit control_id (matches Python's
-// transcribe(control_id=...)).
+// controlID argument supplies an explicit control_id.
 func (c *Call) Transcribe(statusURL string, controlID ...string) *TranscribeAction {
 	cid := ""
 	if len(controlID) > 0 {

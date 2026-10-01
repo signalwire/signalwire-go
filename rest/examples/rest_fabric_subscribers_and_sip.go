@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build swexample
 
 // Example: Provision a SIP-enabled user on Fabric.
 //
@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -39,7 +40,11 @@ func main() {
 		fmt.Printf("  Create subscriber failed: %v\n", err)
 		return
 	}
-	subID := subscriber["id"].(string)
+	subID, subIDOK := subscriber["id"].(string)
+	if !subIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	innerSubID := subID
 	if sub, ok := subscriber["subscriber"].(map[string]any); ok {
 		if id, ok := sub["id"].(string); ok {
@@ -90,14 +95,19 @@ func main() {
 		fmt.Printf("  Create SIP gateway failed: %v\n", err)
 		return
 	}
-	gwID := gateway["id"].(string)
+	gwID, gwIDOK := gateway["id"].(string)
+	if !gwIDOK {
+		fmt.Println("  unexpected response: no string id field")
+		return
+	}
 	fmt.Printf("  Created SIP gateway: %s\n", gwID)
 
 	// 6. List fabric addresses
 	fmt.Println("\nListing fabric addresses...")
 	addresses, err := client.Fabric.Addresses.List(context.Background(), nil)
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Fabric addresses failed: %d\n", restErr.StatusCode)
 		}
 	} else if data, ok := addresses["data"].([]any); ok {
@@ -131,7 +141,8 @@ func main() {
 		Extras:    map[string]any{"subscriber_id": innerSubID},
 	})
 	if err != nil {
-		if restErr, ok := err.(*rest.SignalWireRestError); ok {
+		var restErr *rest.SignalWireRestError
+		if errors.As(err, &restErr) {
 			fmt.Printf("  Token generation failed (expected in demo): %d\n", restErr.StatusCode)
 		}
 	} else {
@@ -144,10 +155,19 @@ func main() {
 
 	// 9. Clean up
 	fmt.Println("\nCleaning up...")
-	client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), subID, epID)
-	fmt.Printf("  Deleted SIP endpoint %s\n", epID)
-	client.Fabric.Subscribers.Delete(context.Background(), subID)
-	fmt.Printf("  Deleted subscriber %s\n", subID)
-	client.Fabric.SIPGateways.Delete(context.Background(), gwID)
-	fmt.Printf("  Deleted SIP gateway %s\n", gwID)
+	if _, err := client.Fabric.Subscribers.DeleteSIPEndpoint(context.Background(), subID, epID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted SIP endpoint %s\n", epID)
+	}
+	if _, err := client.Fabric.Subscribers.Delete(context.Background(), subID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted subscriber %s\n", subID)
+	}
+	if _, err := client.Fabric.SIPGateways.Delete(context.Background(), gwID); err != nil {
+		fmt.Printf("  cleanup failed: %v\n", err)
+	} else {
+		fmt.Printf("  Deleted SIP gateway %s\n", gwID)
+	}
 }

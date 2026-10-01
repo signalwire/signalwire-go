@@ -170,8 +170,7 @@ func (g *GatherInfo) AddQuestion(key, question string, opts ...GatherQuestionOpt
 
 // Validate returns an error if the GatherInfo is not ready for serialisation.
 // Specifically, it rejects a GatherInfo with no questions, which would produce
-// invalid SWML. This matches the Python SDK's ValueError raised by to_dict()
-// when _questions is empty.
+// invalid SWML: a gather_info block with an empty questions list is rejected.
 func (g *GatherInfo) Validate() error {
 	if len(g.Questions) == 0 {
 		return errors.New("gather_info must have at least one question")
@@ -332,9 +331,8 @@ func (s *Step) SetSkipToNextStep(skip bool) *Step {
 }
 
 // SetGatherInfo enables info gathering for this step and returns the Step
-// for fluent chaining. This matches the Python SDK's set_gather_info, which
-// returns self so that step-level setters (SetFunctions, SetValidSteps, etc.)
-// can be chained after configuring gather info.
+// for fluent chaining, so that step-level setters (SetFunctions, SetValidSteps,
+// etc.) can be chained after configuring gather info.
 //
 // To add questions to the gather info, use AddGatherQuestion on the same
 // *Step receiver.

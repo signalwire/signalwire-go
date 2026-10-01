@@ -27,14 +27,21 @@ jobs:
         with:
           path: signalwire-go
 
+      - name: Resolve coordinated refs (branch-local .github/porting-sdk-ref pin; no pin = main)
+        # See porting-sdk/COORDINATED_PASS.md. Every foreign coordinated-set
+        # checkout below takes its ref from this step's outputs.
+        id: coord
+        shell: bash
+        run: bash signalwire-go/.github/coordinated-ref.sh signalwire-go
+
       - name: Checkout porting-sdk (mock servers + audit scripts + EMISSION corpus)
         uses: actions/checkout@v7
         with:
           repository: signalwire/porting-sdk
-          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
-          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
-          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
-          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
+          # Coordinated-pass pin: resolved by the `coord` step from the branch-local
+          # .github/porting-sdk-ref pin file; main when the file is absent, so only a branch
+          # that commits the pin is affected (see porting-sdk/COORDINATED_PASS.md).
+          ref: ${{ steps.coord.outputs.ref }}
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
@@ -47,7 +54,7 @@ jobs:
         with:
           repository: signalwire/signalwire-python
           path: signalwire-python
-          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
+          ref: ${{ steps.coord.outputs.ref_python }}
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -71,8 +78,26 @@ jobs:
       # Install actionlint (native binary) so run-ci.sh's ACTIONLINT gate
       # (porting-sdk/scripts/actionlint_gate.py) finds it on PATH. The gate
       # fails LOUD if the binary is absent, so it MUST be declared here.
+      #
+      # VERSION PINNED, in lockstep with ACTIONLINT_VERSION in scripts/_env.sh —
+      # exactly how golangci-lint is pinned above. `@latest` resolved the newest
+      # release at CI time while local dev ran whatever it had, so a new actionlint
+      # (they add checks regularly) failed this gate on an UNCHANGED workflow file.
+      #
+      # The read-back NORMALIZES before comparing, exactly as ensure_actionlint()
+      # in scripts/_env.sh does. `actionlint --version` prints a v-prefixed
+      # "v1.7.12" when built from source by `go install` but a bare "1.7.12" from a
+      # release archive/brew, and it prints two more lines after it (one naming the
+      # Go toolchain, e.g. "built with go1.25.0 compiler"). A `grep -qw '1\.7\.12'`
+      # over that output REJECTS the correctly-pinned binary: -w demands a
+      # non-word character before the match and the preceding char is the `v`.
+      # That is what reddened this job on d40bd40 with the RIGHT version installed.
       - name: Install actionlint
-        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          actionlint --version
+          have=$(actionlint --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          [ "$have" = "1.7.12" ] || { echo "FATAL: actionlint is '${have:-unknown}', not the pinned v1.7.12" >&2; exit 1; }
 
       - name: Set up Python (porting-sdk audit scripts + mock servers)
         uses: actions/setup-python@v6

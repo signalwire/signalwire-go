@@ -21,10 +21,11 @@ func NewProjectTokens(client HTTPClient) *ProjectTokens {
 
 // ProjectTokensCreateParams holds the named optional parameters for ProjectTokens.Create.
 type ProjectTokensCreateParams struct {
-	Name         string
-	Permissions  []TokenPermission
-	SubprojectID *string
-	Extras       map[string]any
+	Name         string            `sw:"required"`
+	Permissions  []TokenPermission `sw:"required"`
+	SubprojectID *string           `sw:"optional"`
+	ProjectID    *string           `sw:"optional"`
+	Extras       map[string]any    `sw:"optional"`
 }
 
 func (r *ProjectTokens) Create(ctx context.Context, params ProjectTokensCreateParams, opts ...*RequestOptions) (*TokenResponse, error) {
@@ -36,18 +37,21 @@ func (r *ProjectTokens) Create(ctx context.Context, params ProjectTokensCreatePa
 	if params.SubprojectID != nil {
 		body["subproject_id"] = params.SubprojectID
 	}
+	if params.ProjectID != nil {
+		body["project_id"] = params.ProjectID
+	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[TokenResponse](r.HTTP.Post(ctx, r.Base, body, nil, opts...))
 }
 
 // ProjectTokensUpdateParams holds the named optional parameters for ProjectTokens.Update.
 type ProjectTokensUpdateParams struct {
-	Name        *string
-	Permissions []TokenPermission
-	Extras      map[string]any
+	Name        *string           `sw:"optional"`
+	Permissions []TokenPermission `sw:"optional"`
+	Extras      map[string]any    `sw:"optional"`
 }
 
-func (r *ProjectTokens) Update(ctx context.Context, tokenID string, params ProjectTokensUpdateParams, opts ...*RequestOptions) (*TokenResponse, error) {
+func (r *ProjectTokens) Update(ctx context.Context, tokenID string, params ProjectTokensUpdateParams, opts ...*RequestOptions) (*TokenUpdateResponse, error) {
 	body := map[string]any{}
 	if params.Name != nil {
 		body["name"] = params.Name
@@ -56,7 +60,7 @@ func (r *ProjectTokens) Update(ctx context.Context, tokenID string, params Proje
 		body["permissions"] = params.Permissions
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[TokenResponse](r.HTTP.Patch(ctx, r.Path(tokenID), body, opts...))
+	return decodeResult[TokenUpdateResponse](r.HTTP.Patch(ctx, r.Path(tokenID), body, opts...))
 }
 
 func (r *ProjectTokens) Delete(ctx context.Context, tokenID string, opts ...*RequestOptions) (map[string]any, error) {

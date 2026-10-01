@@ -17,12 +17,9 @@
 // service streams keepalive whitespace ahead of a slow response body (proxy
 // read-timeout protection), so liveness is byte-driven rather than wall-clock:
 // there is no total-request timeout an idle turn could trip — only a per-read idle
-// timeout, mirroring the Python reference's
-// aiohttp.ClientTimeout(total=None, connect=10, sock_read=60). Leading whitespace
+// timeout (no total, 10s connect, 60s per read). Leading whitespace
 // is valid JSON, so the buffered decode is unaffected. Pass a context.Context to
 // each call for cancellation.
-//
-// Mirrors the Python reference signalwire.ai_chat.AIChatClient.
 //
 // Example:
 //
@@ -50,6 +47,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -109,6 +107,7 @@ type Client struct {
 	authHeader      string
 	httpClient      *http.Client
 	readIdleTimeout time.Duration
+	mu              sync.Mutex
 	requestCounter  int
 }
 
@@ -254,12 +253,15 @@ type jsonRPCResponse struct {
 // a slow error can arrive as 200 + {"error": …}. The status is never gated on here
 // (mirrors the Python reference).
 func (c *Client) request(ctx context.Context, method string, params map[string]any) (map[string]any, error) {
+	c.mu.Lock()
 	c.requestCounter++
+	id := "req-" + strconv.Itoa(c.requestCounter)
+	c.mu.Unlock()
 	payload := jsonRPCRequest{
 		JSONRPC: "2.0",
 		Method:  method,
 		Params:  params,
-		ID:      "req-" + strconv.Itoa(c.requestCounter),
+		ID:      id,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -317,6 +319,40 @@ func (c *Client) request(ctx context.Context, method string, params map[string]a
 		return map[string]any{}, nil
 	}
 	return result, nil
+}
+
+// RawPost sends one JSON-RPC call and returns the response with its body unread,
+// for proxies that must stream the body through rather than buffer it. The service
+// pads a slow response with keepalive whitespace so intermediaries do not sever
+// the connection mid-turn; a proxy that awaits the whole body absorbs that padding
+// and reintroduces the very timeout it exists to prevent. Read resp.Body and
+// forward the chunks as they arrive, then close it.
+//
+// The caller owns interpreting the result — including that a JSON-RPC error
+// arrives under HTTP 200. Prefer the typed methods unless you are relaying bytes.
+// No read-idle deadline is applied; bound the call with ctx.
+func (c *Client) RawPost(ctx context.Context, method string, params map[string]any) (*http.Response, error) {
+	c.mu.Lock()
+	c.requestCounter++
+	id := "req-" + strconv.Itoa(c.requestCounter)
+	c.mu.Unlock()
+	body, err := json.Marshal(jsonRPCRequest{JSONRPC: "2.0", Method: method, Params: params, ID: id})
+	if err != nil {
+		return nil, fmt.Errorf("aichat: encode request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.URL, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("aichat: build request: %w", err)
+	}
+	req.Header.Set("Authorization", c.authHeader)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("aichat: %s request failed: %w", method, err)
+	}
+	return resp, nil
 }
 
 // ── Per-call option types ──────────────────────────────────────────────
@@ -435,7 +471,7 @@ func (c *Client) Chat(ctx context.Context, conversationID, message string, opts 
 // Close releases any resources the client owns. The client wraps a stateless,
 // connection-pooled *http.Client (shared, or caller-injected via WithHTTPClient),
 // which has no per-client resource to release, so Close is a no-op that completes
-// the lifecycle contract — the Go analogue of the Python reference's close()
+// the lifecycle contract — the explicit close()
 // (which releases its owned aiohttp ClientSession). It always returns nil and is
 // safe to call more than once.
 func (c *Client) Close() error { return nil }

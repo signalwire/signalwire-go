@@ -50,6 +50,14 @@ func hexHMACSHA1(key, message string) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
+// hexHMACSHA256 returns the lowercase hex digest of HMAC-SHA256(key, message),
+// the X-SignalWire-Sha256-Signature wire form.
+func hexHMACSHA256(key, message string) string {
+	mac := hmac.New(sha256.New, []byte(key))
+	mac.Write([]byte(message))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
 // b64HMACSHA1 returns the standard base64 digest of HMAC-SHA1(key, message),
 // the Scheme-B wire form.
 func b64HMACSHA1(key, message string) string {
@@ -229,6 +237,28 @@ func ValidateWebhookSignature(signingKey, signature, url, rawBody string) bool {
 		panic(err)
 	}
 	return ok
+}
+
+// ValidateWebhookSignatureSHA256 validates the SHA-256 webhook signature: the
+// same Scheme A message as ValidateWebhookSignature with a stronger hash,
+//
+//	hex(HMAC-SHA256(signingKey, url + rawBody))
+//
+// which SignalWire sends as X-SignalWire-Sha256-Signature alongside the SHA-1
+// X-SignalWire-Signature. Only Scheme A (RELAY/SWML/JSON) is defined for this
+// header; the legacy cXML/form Scheme B stays on SHA-1.
+//
+// signingKey is required: an empty key is a programmer error and panics with
+// ErrMissingSigningKey (matching ValidateWebhookSignature). An empty signature
+// returns false. rawBody is the raw request body, BEFORE any parsing.
+func ValidateWebhookSignatureSHA256(signingKey, signature, url, rawBody string) bool {
+	if signingKey == "" {
+		panic(ErrMissingSigningKey)
+	}
+	if signature == "" {
+		return false
+	}
+	return safeStringEq(hexHMACSHA256(signingKey, url+rawBody), signature)
 }
 
 // ValidateRequest is the legacy @signalwire/compatibility-api drop-in entry

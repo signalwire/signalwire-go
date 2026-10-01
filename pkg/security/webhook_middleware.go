@@ -28,9 +28,8 @@ import (
 
 // WebhookRejection is the framework-free rejection triple the decomposed
 // Validate core returns when an inbound signed request fails validation.
-// It mirrors the cross-port decomposed contract
-// signalwire.core.security.webhook_middleware.validate, whose return is
-// optional<tuple<int,dict<string,string>,string>> — a nil *WebhookRejection
+// The contract returns optional<tuple<int,dict<string,string>,string>>: a nil
+// *WebhookRejection
 // means "pass" (the request is authentic), a non-nil value carries the
 // (status, headers, body) an HTTP layer should send back to reject.
 //
@@ -48,15 +47,15 @@ type WebhookRejection struct {
 	Body string
 }
 
-// Validate is the framework-free decomposed webhook-validation core
-// (cross-port contract signalwire.core.security.webhook_middleware.validate):
+// Validate is the framework-free decomposed webhook-validation core:
 // given the primitives of an inbound HTTP request — method, the full public
 // url, the request headers, and the raw body — it returns nil when the
 // request carries a valid SignalWire signature ("pass"), or a
 // *WebhookRejection carrying the (status, headers, body) an HTTP layer should
 // send to reject the request.
 //
-// It pulls X-SignalWire-Signature (falling back to the legacy
+// It checks X-SignalWire-Sha256-Signature first when present, then pulls
+// X-SignalWire-Signature (falling back to the legacy
 // X-Twilio-Signature alias for cXML compatibility, per webhooks.md §"The
 // Header"), then delegates the actual HMAC check to ValidateWebhookSignatureE.
 // A missing header or a bad signature both reject with 403 and no detail; a
@@ -69,6 +68,16 @@ type WebhookRejection struct {
 func Validate(method, url string, headers map[string]string, body string, signingKey string) *WebhookRejection {
 	if signingKey == "" {
 		panic(ErrMissingSigningKey)
+	}
+
+	// Prefer the stronger SHA-256 signature when the platform sends it
+	// (X-SignalWire-Sha256-Signature): same Scheme A message, SHA-256 hash. Fall
+	// back to the SHA-1 header so deployments on older platform builds — and the
+	// cXML/form Scheme B path — keep validating.
+	if sig256 := headerLookup(headers, "X-SignalWire-Sha256-Signature"); sig256 != "" {
+		if ValidateWebhookSignatureSHA256(signingKey, sig256, url, body) {
+			return nil
+		}
 	}
 
 	sig := headerLookup(headers, "X-SignalWire-Signature")

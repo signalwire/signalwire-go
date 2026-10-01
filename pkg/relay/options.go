@@ -22,7 +22,7 @@ func WithPlayVolume(db float64) PlayOption {
 }
 
 // WithPlayControlID sets an explicit control_id for the play action.
-// Mirrors Python's play(control_id=...). When omitted the SDK
+// This is the play operation's control_id parameter. When omitted the SDK
 // auto-generates a UUID. The same key is honored by play_and_collect.
 func WithPlayControlID(id string) PlayOption {
 	return func(m map[string]any) {
@@ -45,7 +45,7 @@ func WithPlayLoop(n int) PlayOption {
 }
 
 // WithPlayOnCompleted registers a callback fired when the play action
-// reaches a terminal state. Mirrors Python's play(on_completed=...).
+// reaches a terminal state. This is the play operation's on_completed parameter.
 func WithPlayOnCompleted(cb func(*RelayEvent)) PlayOption {
 	return func(m map[string]any) {
 		m["_on_completed"] = cb
@@ -56,10 +56,9 @@ func WithPlayOnCompleted(cb func(*RelayEvent)) PlayOption {
 // Functional options for the typed play/detect/prompt convenience methods
 // ---------------------------------------------------------------------------
 //
-// These mirror Python's keyword-only arguments on call.play_tts /
-// call.play_audio / call.play_ringtone / call.detect_digit /
-// call.detect_answering_machine / call.detect_fax / call.prompt_tts /
-// call.prompt_audio. Each builds the exact RELAY media/params shape the
+// These express the named parameters of play_tts / play_audio /
+// play_ringtone / detect_digit / detect_answering_machine / detect_fax /
+// prompt_tts / prompt_audio. Each builds the exact RELAY media/params shape the
 // underlying generic (Play / PlayAndCollect / Detect) emits on the wire.
 //
 // The options write into a per-call scratch map keyed with underscore-
@@ -72,27 +71,27 @@ func WithPlayOnCompleted(cb func(*RelayEvent)) PlayOption {
 // media entry and the top-level volume on the play frame.
 type TTSOption func(m map[string]any)
 
-// WithTTSLanguage sets the TTS language (Python play_tts/prompt_tts language).
+// WithTTSLanguage sets the TTS language (the play_tts/prompt_tts operation's language parameter).
 func WithTTSLanguage(language string) TTSOption {
 	return func(m map[string]any) { m["_tts_language"] = language }
 }
 
-// WithTTSGender sets the TTS voice gender (Python play_tts/prompt_tts gender).
+// WithTTSGender sets the TTS voice gender (the play_tts/prompt_tts operation's gender parameter).
 // The parameter is the defined string type TTSGender: the GenderMale /
 // GenderFemale constants give autocomplete + a compile-time typo check, while
 // Go's untyped-constant auto-conversion keeps a bare "female" literal
-// compiling. The value is stored as a plain string so the wire shape is
-// identical to the reference's str gender.
+// compiling. The value is stored as a plain string so the wire shape is a
+// plain string gender.
 func WithTTSGender(gender TTSGender) TTSOption {
 	return func(m map[string]any) { m["_tts_gender"] = string(gender) }
 }
 
-// WithTTSVoice sets the TTS voice (Python play_tts/prompt_tts voice).
+// WithTTSVoice sets the TTS voice (the play_tts/prompt_tts operation's voice parameter).
 func WithTTSVoice(voice string) TTSOption {
 	return func(m map[string]any) { m["_tts_voice"] = voice }
 }
 
-// WithTTSVolume sets the playback volume in dB (Python play_tts/prompt_tts volume).
+// WithTTSVolume sets the playback volume in dB (the play_tts/prompt_tts operation's volume parameter).
 func WithTTSVolume(db float64) TTSOption {
 	return func(m map[string]any) { m["volume"] = db }
 }
@@ -100,7 +99,7 @@ func WithTTSVolume(db float64) TTSOption {
 // AudioOption configures a PlayAudio or PromptAudio call.
 type AudioOption func(m map[string]any)
 
-// WithAudioVolume sets the playback volume in dB (Python play_audio/prompt_audio volume).
+// WithAudioVolume sets the playback volume in dB (the play_audio/prompt_audio operation's volume parameter).
 func WithAudioVolume(db float64) AudioOption {
 	return func(m map[string]any) { m["volume"] = db }
 }
@@ -109,13 +108,13 @@ func WithAudioVolume(db float64) AudioOption {
 type RingtoneOption func(m map[string]any)
 
 // WithRingtoneDuration sets how long the ringtone plays, in seconds
-// (Python play_ringtone duration). It is nested inside the ringtone media
-// params, matching Python's “{"type":"ringtone","params":{"duration":...}}“.
+// (the play_ringtone operation's duration parameter). It is nested inside the ringtone media
+// params, giving “{"type":"ringtone","params":{"duration":...}}“ on the wire.
 func WithRingtoneDuration(seconds float64) RingtoneOption {
 	return func(m map[string]any) { m["_ringtone_duration"] = seconds }
 }
 
-// WithRingtoneVolume sets the playback volume in dB (Python play_ringtone volume).
+// WithRingtoneVolume sets the playback volume in dB (the play_ringtone operation's volume parameter).
 func WithRingtoneVolume(db float64) RingtoneOption {
 	return func(m map[string]any) { m["volume"] = db }
 }
@@ -124,54 +123,53 @@ func WithRingtoneVolume(db float64) RingtoneOption {
 type DetectDigitOption func(m map[string]any)
 
 // WithDigitDigits restricts detection to the given DTMF digit set, nested
-// inside the detect params (Python detect_digit digits).
+// inside the detect params (the detect_digit operation's digits parameter).
 func WithDigitDigits(digits string) DetectDigitOption {
 	return func(m map[string]any) { m["_digits"] = digits }
 }
 
-// WithDigitTimeout sets the detect timeout in seconds (Python detect_digit timeout).
+// WithDigitTimeout sets the detect timeout in seconds (the detect_digit operation's timeout parameter).
 func WithDigitTimeout(seconds float64) DetectDigitOption {
 	return func(m map[string]any) { m["_timeout"] = seconds }
 }
 
 // AMDOption configures a DetectAnsweringMachine call. Each option maps to
-// one Python detect_answering_machine keyword argument and is nested inside
-// the “{"type":"machine","params":{...}}“ detect media entry — only the
-// options the caller supplies are emitted (matching Python's
-// only-provided-keys behavior).
+// one detect_answering_machine named parameter and is nested inside
+// the “{"type":"machine","params":{...}}“ detect media entry — only keys the
+// caller actually provided are emitted.
 type AMDOption func(m map[string]any)
 
-// WithAMDInitialTimeout sets initial_timeout (Python detect_answering_machine).
+// WithAMDInitialTimeout sets initial_timeout (the detect_answering_machine operation).
 func WithAMDInitialTimeout(seconds float64) AMDOption {
 	return func(m map[string]any) { m["initial_timeout"] = seconds }
 }
 
-// WithAMDEndSilenceTimeout sets end_silence_timeout (Python detect_answering_machine).
+// WithAMDEndSilenceTimeout sets end_silence_timeout (the detect_answering_machine operation).
 func WithAMDEndSilenceTimeout(seconds float64) AMDOption {
 	return func(m map[string]any) { m["end_silence_timeout"] = seconds }
 }
 
-// WithAMDMachineVoiceThreshold sets machine_voice_threshold (Python detect_answering_machine).
+// WithAMDMachineVoiceThreshold sets machine_voice_threshold (the detect_answering_machine operation).
 func WithAMDMachineVoiceThreshold(threshold float64) AMDOption {
 	return func(m map[string]any) { m["machine_voice_threshold"] = threshold }
 }
 
-// WithAMDMachineWordsThreshold sets machine_words_threshold (Python detect_answering_machine).
+// WithAMDMachineWordsThreshold sets machine_words_threshold (the detect_answering_machine operation).
 func WithAMDMachineWordsThreshold(threshold int) AMDOption {
 	return func(m map[string]any) { m["machine_words_threshold"] = threshold }
 }
 
-// WithAMDDetectInterruptions sets detect_interruptions (Python detect_answering_machine).
+// WithAMDDetectInterruptions sets detect_interruptions (the detect_answering_machine operation).
 func WithAMDDetectInterruptions(enabled bool) AMDOption {
 	return func(m map[string]any) { m["detect_interruptions"] = enabled }
 }
 
-// WithAMDDetectMessageEnd sets detect_message_end (Python detect_answering_machine).
+// WithAMDDetectMessageEnd sets detect_message_end (the detect_answering_machine operation).
 func WithAMDDetectMessageEnd(enabled bool) AMDOption {
 	return func(m map[string]any) { m["detect_message_end"] = enabled }
 }
 
-// WithAMDTimeout sets the overall detect timeout in seconds (Python detect_answering_machine timeout).
+// WithAMDTimeout sets the overall detect timeout in seconds (the detect_answering_machine operation's timeout parameter).
 func WithAMDTimeout(seconds float64) AMDOption {
 	return func(m map[string]any) { m["_timeout"] = seconds }
 }
@@ -180,12 +178,12 @@ func WithAMDTimeout(seconds float64) AMDOption {
 type DetectFaxOption func(m map[string]any)
 
 // WithFaxTone restricts fax detection to a specific tone (CED/CNG), nested
-// inside the detect params (Python detect_fax tone).
+// inside the detect params (the detect_fax operation's tone parameter).
 func WithFaxTone(tone string) DetectFaxOption {
 	return func(m map[string]any) { m["_tone"] = tone }
 }
 
-// WithFaxDetectTimeout sets the detect timeout in seconds (Python detect_fax timeout).
+// WithFaxDetectTimeout sets the detect timeout in seconds (the detect_fax operation's timeout parameter).
 func WithFaxDetectTimeout(seconds float64) DetectFaxOption {
 	return func(m map[string]any) { m["_timeout"] = seconds }
 }
@@ -247,7 +245,7 @@ func WithRecordEndSilenceTimeout(t float64) RecordOption {
 }
 
 // WithRecordControlID sets an explicit control_id for the record action.
-// Mirrors Python's record(control_id=...).
+// This is the record operation's control_id parameter.
 func WithRecordControlID(id string) RecordOption {
 	return func(m map[string]any) {
 		m["_control_id"] = id
@@ -255,7 +253,7 @@ func WithRecordControlID(id string) RecordOption {
 }
 
 // WithRecordAudio sets the audio config map for the record action's
-// "record": {"audio": ...} payload. Mirrors Python's record(audio=...).
+// "record": {"audio": ...} payload. This is the record operation's audio parameter.
 func WithRecordAudio(audio map[string]any) RecordOption {
 	return func(m map[string]any) {
 		m["_audio"] = audio
@@ -263,8 +261,8 @@ func WithRecordAudio(audio map[string]any) RecordOption {
 }
 
 // WithRecordOnCompleted registers a callback fired when the record
-// action reaches a terminal state. Mirrors Python's
-// record(on_completed=...).
+// action reaches a terminal state. This is the record operation's
+// on_completed parameter.
 func WithRecordOnCompleted(cb func(*RelayEvent)) RecordOption {
 	return func(m map[string]any) {
 		m["_on_completed"] = cb
@@ -282,7 +280,7 @@ func WithConnectRingback(media []map[string]any) ConnectOption {
 }
 
 // WithConnectTag sets an explicit tag for the connect operation
-// (Python connect(tag=...)).
+// (the connect operation's tag parameter).
 func WithConnectTag(tag string) ConnectOption {
 	return func(m map[string]any) {
 		m["tag"] = tag
@@ -290,7 +288,7 @@ func WithConnectTag(tag string) ConnectOption {
 }
 
 // WithConnectMaxDuration sets the maximum connect duration in seconds
-// (Python connect(max_duration=...)).
+// (the connect operation's max_duration parameter).
 func WithConnectMaxDuration(seconds int) ConnectOption {
 	return func(m map[string]any) {
 		m["max_duration"] = seconds
@@ -298,7 +296,7 @@ func WithConnectMaxDuration(seconds int) ConnectOption {
 }
 
 // WithConnectMaxPricePerMinute sets the max price per minute
-// (Python connect(max_price_per_minute=...)).
+// (the connect operation's max_price_per_minute parameter).
 func WithConnectMaxPricePerMinute(price float64) ConnectOption {
 	return func(m map[string]any) {
 		m["max_price_per_minute"] = price
@@ -306,7 +304,7 @@ func WithConnectMaxPricePerMinute(price float64) ConnectOption {
 }
 
 // WithConnectStatusURL sets the status callback URL for the connect operation
-// (Python connect(status_url=...)).
+// (the connect operation's status_url parameter).
 func WithConnectStatusURL(url string) ConnectOption {
 	return func(m map[string]any) {
 		m["status_url"] = url
@@ -317,12 +315,12 @@ func WithConnectStatusURL(url string) ConnectOption {
 type StreamOption func(m map[string]any)
 
 // WithStreamControlID supplies an explicit control_id for the stream
-// action, matching Python's stream(control_id=...).
+// action, which rides as the stream operation's control_id parameter.
 func WithStreamControlID(id string) StreamOption {
 	return func(m map[string]any) { m["_control_id"] = id }
 }
 
-// WithStreamName sets the stream name (Python stream(name=...)).
+// WithStreamName sets the stream name (the stream operation's name parameter).
 func WithStreamName(name string) StreamOption {
 	return func(m map[string]any) { m["name"] = name }
 }
@@ -334,31 +332,31 @@ func WithStreamCodec(codec string) StreamOption {
 	}
 }
 
-// WithStreamTrack sets the stream track (Python stream(track=...)).
+// WithStreamTrack sets the stream track (the stream operation's track parameter).
 func WithStreamTrack(track string) StreamOption {
 	return func(m map[string]any) { m["track"] = track }
 }
 
 // WithStreamStatusURL sets the stream status callback URL
-// (Python stream(status_url=...)).
+// (the stream operation's status_url parameter).
 func WithStreamStatusURL(url string) StreamOption {
 	return func(m map[string]any) { m["status_url"] = url }
 }
 
 // WithStreamStatusURLMethod sets the HTTP method for the status callback
-// (Python stream(status_url_method=...)).
+// (the stream operation's status_url_method parameter).
 func WithStreamStatusURLMethod(method string) StreamOption {
 	return func(m map[string]any) { m["status_url_method"] = method }
 }
 
 // WithStreamAuthorizationBearerToken sets the bearer token sent with the
-// stream (Python stream(authorization_bearer_token=...)).
+// stream (the stream operation's authorization_bearer_token parameter).
 func WithStreamAuthorizationBearerToken(token string) StreamOption {
 	return func(m map[string]any) { m["authorization_bearer_token"] = token }
 }
 
 // WithStreamCustomParameters sets custom parameters forwarded with the stream
-// (Python stream(custom_parameters=...)).
+// (the stream operation's custom_parameters parameter).
 func WithStreamCustomParameters(params map[string]any) StreamOption {
 	return func(m map[string]any) { m["custom_parameters"] = params }
 }
@@ -380,88 +378,88 @@ func WithConferenceMuted(muted bool) ConferenceOption {
 	}
 }
 
-// WithConferenceStartOnEnter sets start_on_enter (Python join_conference).
+// WithConferenceStartOnEnter sets start_on_enter (the join_conference operation).
 func WithConferenceStartOnEnter(v bool) ConferenceOption {
 	return func(m map[string]any) { m["start_on_enter"] = v }
 }
 
-// WithConferenceEndOnExit sets end_on_exit (Python join_conference).
+// WithConferenceEndOnExit sets end_on_exit (the join_conference operation).
 func WithConferenceEndOnExit(v bool) ConferenceOption {
 	return func(m map[string]any) { m["end_on_exit"] = v }
 }
 
-// WithConferenceWaitURL sets wait_url (Python join_conference).
+// WithConferenceWaitURL sets wait_url (the join_conference operation).
 func WithConferenceWaitURL(url string) ConferenceOption {
 	return func(m map[string]any) { m["wait_url"] = url }
 }
 
-// WithConferenceMaxParticipants sets max_participants (Python join_conference).
+// WithConferenceMaxParticipants sets max_participants (the join_conference operation).
 func WithConferenceMaxParticipants(n int) ConferenceOption {
 	return func(m map[string]any) { m["max_participants"] = n }
 }
 
-// WithConferenceRecord sets record (Python join_conference).
+// WithConferenceRecord sets record (the join_conference operation).
 func WithConferenceRecord(v string) ConferenceOption {
 	return func(m map[string]any) { m["record"] = v }
 }
 
-// WithConferenceRegion sets region (Python join_conference).
+// WithConferenceRegion sets region (the join_conference operation).
 func WithConferenceRegion(v string) ConferenceOption {
 	return func(m map[string]any) { m["region"] = v }
 }
 
-// WithConferenceTrim sets trim (Python join_conference).
+// WithConferenceTrim sets trim (the join_conference operation).
 func WithConferenceTrim(v string) ConferenceOption {
 	return func(m map[string]any) { m["trim"] = v }
 }
 
-// WithConferenceCoach sets coach (Python join_conference).
+// WithConferenceCoach sets coach (the join_conference operation).
 func WithConferenceCoach(v string) ConferenceOption {
 	return func(m map[string]any) { m["coach"] = v }
 }
 
-// WithConferenceStatusCallback sets status_callback (Python join_conference).
+// WithConferenceStatusCallback sets status_callback (the join_conference operation).
 func WithConferenceStatusCallback(v string) ConferenceOption {
 	return func(m map[string]any) { m["status_callback"] = v }
 }
 
-// WithConferenceStatusCallbackEvent sets status_callback_event (Python join_conference).
+// WithConferenceStatusCallbackEvent sets status_callback_event (the join_conference operation).
 func WithConferenceStatusCallbackEvent(v string) ConferenceOption {
 	return func(m map[string]any) { m["status_callback_event"] = v }
 }
 
-// WithConferenceStatusCallbackEventType sets status_callback_event_type (Python join_conference).
+// WithConferenceStatusCallbackEventType sets status_callback_event_type (the join_conference operation).
 func WithConferenceStatusCallbackEventType(v string) ConferenceOption {
 	return func(m map[string]any) { m["status_callback_event_type"] = v }
 }
 
-// WithConferenceStatusCallbackMethod sets status_callback_method (Python join_conference).
+// WithConferenceStatusCallbackMethod sets status_callback_method (the join_conference operation).
 func WithConferenceStatusCallbackMethod(v string) ConferenceOption {
 	return func(m map[string]any) { m["status_callback_method"] = v }
 }
 
-// WithConferenceRecordingStatusCallback sets recording_status_callback (Python join_conference).
+// WithConferenceRecordingStatusCallback sets recording_status_callback (the join_conference operation).
 func WithConferenceRecordingStatusCallback(v string) ConferenceOption {
 	return func(m map[string]any) { m["recording_status_callback"] = v }
 }
 
-// WithConferenceRecordingStatusCallbackEvent sets recording_status_callback_event (Python join_conference).
+// WithConferenceRecordingStatusCallbackEvent sets recording_status_callback_event (the join_conference operation).
 func WithConferenceRecordingStatusCallbackEvent(v string) ConferenceOption {
 	return func(m map[string]any) { m["recording_status_callback_event"] = v }
 }
 
-// WithConferenceRecordingStatusCallbackEventType sets recording_status_callback_event_type (Python join_conference).
+// WithConferenceRecordingStatusCallbackEventType sets recording_status_callback_event_type (the join_conference operation).
 func WithConferenceRecordingStatusCallbackEventType(v string) ConferenceOption {
 	return func(m map[string]any) { m["recording_status_callback_event_type"] = v }
 }
 
-// WithConferenceRecordingStatusCallbackMethod sets recording_status_callback_method (Python join_conference).
+// WithConferenceRecordingStatusCallbackMethod sets recording_status_callback_method (the join_conference operation).
 func WithConferenceRecordingStatusCallbackMethod(v string) ConferenceOption {
 	return func(m map[string]any) { m["recording_status_callback_method"] = v }
 }
 
-// WithConferenceStream sets the stream object (Python join_conference stream_obj,
-// emitted under the "stream" wire key).
+// WithConferenceStream sets the stream object (the join_conference operation's
+// stream_obj parameter, emitted under the "stream" wire key).
 func WithConferenceStream(streamObj map[string]any) ConferenceOption {
 	return func(m map[string]any) { m["stream"] = streamObj }
 }
@@ -469,7 +467,7 @@ func WithConferenceStream(streamObj map[string]any) ConferenceOption {
 // FaxOption configures a SendFax call.
 type FaxOption func(m map[string]any)
 
-// WithFaxHeaderInfo sets the fax header info string (matches Python's header_info param).
+// WithFaxHeaderInfo sets the fax header info string (the header_info parameter).
 func WithFaxHeaderInfo(headerInfo string) FaxOption {
 	return func(m map[string]any) {
 		if headerInfo != "" {
@@ -479,7 +477,7 @@ func WithFaxHeaderInfo(headerInfo string) FaxOption {
 }
 
 // WithFaxControlID supplies an explicit control_id for the fax action,
-// matching Python's send_fax(control_id=...) / receive_fax(control_id=...).
+// which rides as the send_fax / receive_fax control_id parameter.
 func WithFaxControlID(id string) FaxOption {
 	return func(m map[string]any) { m["_control_id"] = id }
 }
@@ -488,7 +486,7 @@ func WithFaxControlID(id string) FaxOption {
 type PayOption func(m map[string]any)
 
 // WithPayControlID supplies an explicit control_id for the pay action,
-// matching Python's pay(control_id=...).
+// which rides as the pay operation's control_id parameter.
 func WithPayControlID(id string) PayOption {
 	return func(m map[string]any) { m["_control_id"] = id }
 }
@@ -582,7 +580,7 @@ func WithPayPrompts(prompts []map[string]any) PayOption {
 type AIOption func(m map[string]any)
 
 // WithAIControlID supplies an explicit control_id for the AI action,
-// matching Python's ai(control_id=...).
+// which rides as the ai operation's control_id parameter.
 func WithAIControlID(id string) AIOption {
 	return func(m map[string]any) { m["_control_id"] = id }
 }
@@ -601,57 +599,56 @@ func WithAIPostPrompt(pp map[string]any) AIOption {
 	}
 }
 
-// WithAIAgent sets the AI agent config (Python ai(agent=...)).
+// WithAIAgent sets the AI agent config (the ai operation's agent parameter).
 func WithAIAgent(agent map[string]any) AIOption {
 	return func(m map[string]any) { m["agent"] = agent }
 }
 
-// WithAIPostPromptURL sets the post-prompt URL (Python ai(post_prompt_url=...)).
+// WithAIPostPromptURL sets the post-prompt URL (the ai operation's post_prompt_url parameter).
 func WithAIPostPromptURL(url string) AIOption {
 	return func(m map[string]any) { m["post_prompt_url"] = url }
 }
 
 // WithAIPostPromptAuthUser sets the post-prompt basic-auth user
-// (Python ai(post_prompt_auth_user=...)).
+// (the ai operation's post_prompt_auth_user parameter).
 func WithAIPostPromptAuthUser(user string) AIOption {
 	return func(m map[string]any) { m["post_prompt_auth_user"] = user }
 }
 
 // WithAIPostPromptAuthPassword sets the post-prompt basic-auth password
-// (Python ai(post_prompt_auth_password=...)).
+// (the ai operation's post_prompt_auth_password parameter).
 func WithAIPostPromptAuthPassword(password string) AIOption {
 	return func(m map[string]any) { m["post_prompt_auth_password"] = password }
 }
 
-// WithAIGlobalData sets the AI global data (Python ai(global_data=...)).
+// WithAIGlobalData sets the AI global data (the ai operation's global_data parameter).
 func WithAIGlobalData(data map[string]any) AIOption {
 	return func(m map[string]any) { m["global_data"] = data }
 }
 
-// WithAIPronounce sets the AI pronounce rules (Python ai(pronounce=...)).
+// WithAIPronounce sets the AI pronounce rules (the ai operation's pronounce parameter).
 func WithAIPronounce(pronounce []map[string]any) AIOption {
 	return func(m map[string]any) { m["pronounce"] = pronounce }
 }
 
-// WithAIHints sets the AI hints (Python ai(hints=...)).
+// WithAIHints sets the AI hints (the ai operation's hints parameter).
 func WithAIHints(hints []string) AIOption {
 	return func(m map[string]any) { m["hints"] = hints }
 }
 
-// WithAILanguages sets the AI languages (Python ai(languages=...)).
+// WithAILanguages sets the AI languages (the ai operation's languages parameter).
 func WithAILanguages(languages []map[string]any) AIOption {
 	return func(m map[string]any) { m["languages"] = languages }
 }
 
-// WithAISWAIG sets the AI SWAIG config (Python ai(SWAIG=...)).
+// WithAISWAIG sets the AI SWAIG config (the ai operation's SWAIG parameter).
 func WithAISWAIG(swaig map[string]any) AIOption {
 	return func(m map[string]any) { m["SWAIG"] = swaig }
 }
 
-// WithAIParams sets the AI parameters. Mirrors Python's ai(ai_params=...) /
-// amazon_bedrock(ai_params=...), which emit the map nested under the "params"
-// wire key (call.py: params["params"] = ai_params) — NOT spread onto the top
-// level of the frame.
+// WithAIParams sets the AI parameters. This is the ai / amazon_bedrock
+// operation's ai_params parameter: the map is emitted nested under the
+// "params" wire key — NOT spread onto the top level of the frame.
 func WithAIParams(params map[string]any) AIOption {
 	return func(m map[string]any) {
 		m["params"] = params
@@ -736,14 +733,12 @@ func WithReconnectBackoff(d time.Duration) ClientOption {
 }
 
 // DefaultMaxActiveCalls is the inbound-call ceiling applied when neither
-// WithMaxActiveCalls nor RELAY_MAX_ACTIVE_CALLS sets one. Mirrors python's
-// _DEFAULT_MAX_ACTIVE_CALLS (relay/client.py:92): overload protection is always
-// in effect, never "unlimited".
+// WithMaxActiveCalls nor RELAY_MAX_ACTIVE_CALLS sets one: overload protection
+// is always in effect, never "unlimited".
 const DefaultMaxActiveCalls = 1000
 
 // WithMaxActiveCalls limits the number of concurrent active calls. A value <= 0
-// is clamped to 1 (matching python's max(1, max_active_calls) at
-// relay/client.py:208) so the cap is always a positive ceiling.
+// is clamped to 1 — max(1, n) — so the cap is always a positive ceiling.
 func WithMaxActiveCalls(n int) ClientOption {
 	return func(c *Client) {
 		if n < 1 {
@@ -773,8 +768,7 @@ func WithDialTimeout(t int) DialOption {
 }
 
 // WithDialTag sets an explicit caller-supplied dial tag. When omitted
-// the SDK generates a UUID, mirroring Python's
-// `tag = tag or str(uuid.uuid4())` at relay/client.py:368.
+// the SDK generates a UUID.
 func WithDialTag(tag string) DialOption {
 	return func(m map[string]any) {
 		m["tag"] = tag
@@ -782,8 +776,8 @@ func WithDialTag(tag string) DialOption {
 }
 
 // WithDialClientTimeout bounds how long Dial() will wait for the
-// calling.call.dial event before raising a timeout error. Mirrors
-// Python's dial(dial_timeout=<seconds>). Default is 120s when omitted.
+// calling.call.dial event before raising a timeout error. This is the dial
+// operation's dial_timeout parameter, in seconds. Default is 120s when omitted.
 //
 // The duration is consumed by the Go Dial() loop; it never goes on the
 // wire — that's why it's stored under an underscore-prefixed key
@@ -794,8 +788,8 @@ func WithDialClientTimeout(d time.Duration) DialOption {
 	}
 }
 
-// WithDialMaxDuration sets the maximum call duration in minutes. Mirrors
-// Python's dial(max_duration=...) parameter.
+// WithDialMaxDuration sets the maximum call duration in minutes. This is the
+// dial operation's max_duration parameter.
 func WithDialMaxDuration(minutes int) DialOption {
 	return func(m map[string]any) {
 		m["max_duration"] = minutes
@@ -826,9 +820,9 @@ func WithMessageTags(tags []string) MessageOption {
 	}
 }
 
-// WithMessageContext sets the routing context for the message. Mirrors Python's
-// send_message(context=...) parameter — defaults to the relay protocol when
-// omitted.
+// WithMessageContext sets the routing context for the message. This is the
+// send_message operation's context parameter — it defaults to the relay
+// protocol when omitted.
 func WithMessageContext(ctx string) MessageOption {
 	return func(m map[string]any) {
 		m["context"] = ctx
@@ -837,9 +831,8 @@ func WithMessageContext(ctx string) MessageOption {
 
 // WithMessageOnCompleted registers a callback invoked when the message reaches
 // a terminal state (delivered, undelivered, or failed). The callback receives
-// both the message and the terminal RelayEvent, mirroring Python's
-// _on_completed callback contract (relay/message.py:115-117) which receives
-// the event directly. Mirrors Python's send_message(on_completed=...) parameter.
+// both the message and the terminal RelayEvent. This is the send_message
+// operation's on_completed parameter.
 func WithMessageOnCompleted(cb func(*Message, *RelayEvent)) MessageOption {
 	return func(m map[string]any) {
 		m["_on_completed"] = cb
@@ -848,9 +841,8 @@ func WithMessageOnCompleted(cb func(*Message, *RelayEvent)) MessageOption {
 
 // applyEnvDefaults fills any unset auth/space fields from SIGNALWIRE_*
 // environment variables. Called automatically at the end of
-// NewRelayClient (mirroring Python RelayClient.__init__'s env-var
-// fallback at relay/client.py:115-119). Idempotent — calling again
-// after fields are populated is a no-op.
+// NewRelayClient. Idempotent — calling again after fields are populated is a
+// no-op.
 func (c *Client) applyEnvDefaults() {
 	if c.projectID == "" {
 		c.projectID = os.Getenv("SIGNALWIRE_PROJECT_ID")
@@ -879,8 +871,7 @@ func (c *Client) applyEnvDefaults() {
 			}
 		}
 	}
-	// Still unset -> the fleet default ceiling (mirrors python
-	// _DEFAULT_MAX_ACTIVE_CALLS = 1000 at relay/client.py:92/216). An unset knob
+	// Still unset -> the default ceiling of 1000. An unset knob
 	// still enforces a cap; it is never "unlimited".
 	if c.maxActiveCalls == 0 {
 		c.maxActiveCalls = DefaultMaxActiveCalls
@@ -889,8 +880,8 @@ func (c *Client) applyEnvDefaults() {
 
 // WithEnvDefaults is now a no-op pass-through retained for backwards
 // compatibility — env defaults are loaded automatically at the end of
-// NewRelayClient (mirroring Python RelayClient.__init__). New code can
-// rely on the auto-load behavior and omit this option entirely.
+// NewRelayClient. New code can rely on the auto-load behavior and omit this
+// option entirely.
 func WithEnvDefaults() ClientOption {
 	return func(c *Client) {
 		c.applyEnvDefaults()

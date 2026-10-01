@@ -44,6 +44,20 @@ func NewMCPGateway(params map[string]any) skills.SkillBase {
 	}
 }
 
+// Setup reads the gateway configuration and PROBES the gateway before accepting
+// the load. It returns false — aborting the load — when "gateway_url" is empty,
+// when the probe request cannot be built or sent, or when GET <gateway_url>/health
+// answers with anything but 200.
+//
+// Other params: auth_token (bearer) or auth_user/auth_password (basic);
+// tool_prefix (default "mcp_"); request_timeout 30s; session_timeout 300s;
+// retry_attempts 3; verify_ssl true; and "services", a []any of service maps
+// which, when left empty, means "discover every service the gateway offers" at
+// RegisterTools time.
+//
+// Security: verify_ssl=false alone does NOT disable TLS peer verification — the
+// deployment must ALSO set SIGNALWIRE_MCP_ALLOW_INSECURE_TLS, so a config
+// toggle cannot silently weaken TLS on a connection that carries API keys.
 func (s *MCPGatewaySkill) Setup() bool {
 	s.gatewayURL = s.GetParamString("gateway_url", "")
 	if s.gatewayURL == "" {
@@ -143,6 +157,18 @@ func (s *MCPGatewaySkill) applyAuth(req *http.Request) {
 	}
 }
 
+// RegisterTools queries the gateway and returns one SWAIG tool per MCP tool
+// exposed by each configured service. When no services were configured it first
+// discovers every service the gateway advertises. Tool names carry the
+// configured prefix (default "mcp_") plus the service name, so tools from
+// different services cannot collide.
+//
+// A final internal "_mcp_gateway_hangup" tool is always appended: the agent
+// calls it at end of call so the gateway session for each service is torn down
+// rather than left to expire on session_timeout.
+//
+// Because it performs network calls, this returns an empty list (plus the
+// hangup hook) if the gateway is unreachable at registration time.
 func (s *MCPGatewaySkill) RegisterTools() []skills.ToolRegistration {
 	// If no services specified, discover all
 	if len(s.services) == 0 {
@@ -389,7 +415,7 @@ func (s *MCPGatewaySkill) callMCPTool(serviceName, toolName string, args map[str
 }
 
 // GetGlobalData returns MCP gateway state for DataMap variable expansion.
-// Mirrors Python get_global_data: mcp_gateway_url, mcp_session_id, mcp_services.
+// The keys are mcp_gateway_url, mcp_session_id and mcp_services.
 func (s *MCPGatewaySkill) GetGlobalData() map[string]any {
 	serviceNames := make([]string, 0, len(s.services))
 	for _, svc := range s.services {
@@ -404,6 +430,9 @@ func (s *MCPGatewaySkill) GetGlobalData() map[string]any {
 	}
 }
 
+// GetHints returns "MCP" and "gateway" plus the name of each configured
+// service, biasing speech recognition toward the service names a caller may
+// speak.
 func (s *MCPGatewaySkill) GetHints() []string {
 	hints := []string{"MCP", "gateway"}
 	for _, svc := range s.services {
@@ -414,6 +443,9 @@ func (s *MCPGatewaySkill) GetHints() []string {
 	return hints
 }
 
+// GetPromptSections returns one POM section naming the gateway URL, the
+// available services, the tool-name prefix, and the fact that each service keeps
+// its own session state for the duration of the call.
 func (s *MCPGatewaySkill) GetPromptSections() []map[string]any {
 	var serviceNames []string
 	for _, svc := range s.services {
@@ -435,6 +467,13 @@ func (s *MCPGatewaySkill) GetPromptSections() []map[string]any {
 	}
 }
 
+// GetParameterSchema extends the common skill parameters with the gateway
+// configuration: the required gateway_url; the credentials auth_token and
+// auth_password (both hidden) and auth_user; the optional services list; and
+// session_timeout (300), tool_prefix ("mcp_"), retry_attempts (3),
+// request_timeout (30) and verify_ssl (true). The verify_ssl description states
+// the SIGNALWIRE_MCP_ALLOW_INSECURE_TLS second opt-in, so a caller reading the
+// schema cannot mistake the toggle for sufficient.
 func (s *MCPGatewaySkill) GetParameterSchema() map[string]map[string]any {
 	schema := s.BaseSkill.GetParameterSchema()
 	schema["gateway_url"] = map[string]any{

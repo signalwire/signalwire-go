@@ -148,9 +148,15 @@ func TestLambdaHandler_DispatchesSwaigFunctionCall(t *testing.T) {
 		agent.WithRoute("/bot"),
 		agent.WithBasicAuth(user, pass),
 	)
+	// secure=false: this test pins the LAMBDA TRANSPORT reaching /swaig, not
+	// the inbound __token gate. ToolDefinition.Secure is a tri-state *bool
+	// whose nil means SECURE, so a tool omitting the field is refused when
+	// invoked without a token.
+	insecure := false
 	a.DefineTool(agent.ToolDefinition{
 		Name:        "greet",
 		Description: "Greet",
+		Secure:      &insecure,
 		Parameters:  map[string]any{"name": map[string]any{"type": "string"}},
 		Handler: func(args map[string]any, raw map[string]any) *swaig.FunctionResult {
 			return swaig.NewFunctionResult(fmt.Sprintf("hello %v", args["name"]))
@@ -364,8 +370,17 @@ func extractFirstSwaigWebhook(t *testing.T, body string) string {
 		if len(fns) == 0 {
 			t.Fatalf("SWAIG functions array is empty; document=%v", doc)
 		}
-		first, _ := fns[0].(map[string]any)
-		url, _ := first["web_hook_url"].(string)
+		// These tests assert URL COMPOSITION (route preservation, proxy base,
+		// Lambda host). The composed SWAIG endpoint is SWAIG.defaults.web_hook_url:
+		// a per-tool web_hook_url is emitted only for a tool that has an external
+		// URL or a minted __token (reference agent_base.py:1089-1099), and these
+		// renders carry no call_id, so no token exists and the tools correctly
+		// have no per-tool key. defaults is the URL every such tool dispatches to.
+		defaults, ok := swaigCfg["defaults"].(map[string]any)
+		if !ok {
+			t.Fatalf("SWAIG.defaults missing; document=%v", doc)
+		}
+		url, _ := defaults["web_hook_url"].(string)
 		return url
 	}
 	t.Fatalf("could not find ai verb with SWAIG functions in document; body=%s", body)

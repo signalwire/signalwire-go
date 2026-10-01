@@ -96,3 +96,307 @@ func TestMessageGen_Messages_List_Error(t *testing.T) {
 		t.Errorf("status = %d want 500", restErr.StatusCode)
 	}
 }
+
+func TestMessageGen_Businesses_List(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Whatsapp.Businesses.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "message.list_whatsapp_businesses" {
+		t.Errorf("matched_route = %v want message.list_whatsapp_businesses", j.MatchedRoute)
+	}
+}
+
+func TestMessageGen_Businesses_List_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "message.list_whatsapp_businesses", 500, map[string]any{"error": "x"})
+	_, err := client.Whatsapp.Businesses.List(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestMessageGen_Numbers_Get(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Whatsapp.Numbers.Get(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "message.retrieve_whatsapp_number" {
+		t.Errorf("matched_route = %v want message.retrieve_whatsapp_number", j.MatchedRoute)
+	}
+}
+
+func TestMessageGen_Numbers_Get_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "message.retrieve_whatsapp_number", 500, map[string]any{"error": "x"})
+	_, err := client.Whatsapp.Numbers.Get(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestMessageGen_Numbers_List(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Whatsapp.Numbers.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "message.list_whatsapp_numbers" {
+		t.Errorf("matched_route = %v want message.list_whatsapp_numbers", j.MatchedRoute)
+	}
+}
+
+func TestMessageGen_Numbers_List_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "message.list_whatsapp_numbers", 500, map[string]any{"error": "x"})
+	_, err := client.Whatsapp.Numbers.List(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestMessageGen_Templates_Create(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Whatsapp.Templates.Create(context.Background(), map[string]any{"whatsapp_business_id": "x-1", "name": "x-1", "language": "x-1", "category": "x-1", "parameter_format": "x-1", "components": "x-1"})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "POST" {
+		t.Errorf("method = %q want POST", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "message.create_whatsapp_template" {
+		t.Errorf("matched_route = %v want message.create_whatsapp_template", j.MatchedRoute)
+	}
+}
+
+func TestMessageGen_Templates_Create_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "message.create_whatsapp_template", 500, map[string]any{"error": "x"})
+	_, err := client.Whatsapp.Templates.Create(context.Background(), map[string]any{"whatsapp_business_id": "x-1", "name": "x-1", "language": "x-1", "category": "x-1", "parameter_format": "x-1", "components": "x-1"})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestMessageGen_Templates_Delete(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Whatsapp.Templates.Delete(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "DELETE" {
+		t.Errorf("method = %q want DELETE", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "message.delete_whatsapp_template" {
+		t.Errorf("matched_route = %v want message.delete_whatsapp_template", j.MatchedRoute)
+	}
+}
+
+func TestMessageGen_Templates_Delete_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "message.delete_whatsapp_template", 500, map[string]any{"error": "x"})
+	_, err := client.Whatsapp.Templates.Delete(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestMessageGen_Templates_Get(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Whatsapp.Templates.Get(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "message.retrieve_whatsapp_template" {
+		t.Errorf("matched_route = %v want message.retrieve_whatsapp_template", j.MatchedRoute)
+	}
+}
+
+func TestMessageGen_Templates_Get_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "message.retrieve_whatsapp_template", 500, map[string]any{"error": "x"})
+	_, err := client.Whatsapp.Templates.Get(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestMessageGen_Templates_List(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Whatsapp.Templates.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "message.list_whatsapp_templates" {
+		t.Errorf("matched_route = %v want message.list_whatsapp_templates", j.MatchedRoute)
+	}
+}
+
+func TestMessageGen_Templates_List_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "message.list_whatsapp_templates", 500, map[string]any{"error": "x"})
+	_, err := client.Whatsapp.Templates.List(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestMessageGen_Templates_Update(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Whatsapp.Templates.Update(context.Background(), "x-1", map[string]any{})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "PATCH" {
+		t.Errorf("method = %q want PATCH", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "message.update_whatsapp_template" {
+		t.Errorf("matched_route = %v want message.update_whatsapp_template", j.MatchedRoute)
+	}
+}
+
+func TestMessageGen_Templates_Update_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "message.update_whatsapp_template", 500, map[string]any{"error": "x"})
+	_, err := client.Whatsapp.Templates.Update(context.Background(), "x-1", map[string]any{})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}

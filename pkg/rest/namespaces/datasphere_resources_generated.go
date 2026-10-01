@@ -21,15 +21,15 @@ func NewDatasphereDocuments(client HTTPClient) *DatasphereDocuments {
 
 // DatasphereDocumentsSearchParams holds the named optional parameters for DatasphereDocuments.Search.
 type DatasphereDocumentsSearchParams struct {
-	QueryString string
-	Tags        []string
-	DocumentID  *Docid
-	Distance    *float64
-	Count       *int
-	Language    *string
-	PosToExpand []string
-	MaxSynonyms *int
-	Extras      map[string]any
+	QueryString string         `sw:"required"`
+	Tags        []string       `sw:"optional"`
+	DocumentID  *Docid         `sw:"optional"`
+	Distance    *float64       `sw:"optional"`
+	Count       *int           `sw:"optional"`
+	Language    *string        `sw:"optional"`
+	PosToExpand []string       `sw:"optional"`
+	MaxSynonyms *int           `sw:"optional"`
+	Extras      map[string]any `sw:"optional"`
 }
 
 func (r *DatasphereDocuments) Search(ctx context.Context, params DatasphereDocumentsSearchParams, opts ...*RequestOptions) (*SearchResponse, error) {
