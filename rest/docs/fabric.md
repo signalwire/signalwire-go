@@ -281,15 +281,10 @@ guestToken, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), n
 	},
 })
 
-// Subscriber invite token
-inviteToken, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{
-	Extras: map[string]any{"address_id": "address-uuid"},
-})
-
 // Click-to-call embed token
 embedToken, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{
 	Token: "embed-source-token",
 })
 
-_, _, _, _, _ = token, refreshed, guestToken, inviteToken, embedToken
+_, _, _, _ = token, refreshed, guestToken, embedToken
 ```

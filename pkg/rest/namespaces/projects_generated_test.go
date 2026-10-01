@@ -218,7 +218,7 @@ func TestProjectsGen_Projects_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Projects.Update(context.Background(), "x-1", map[string]any{"name": "x-1"})
+	_, err := client.Projects.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestProjectsGen_Projects_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "projects.update_project", 500, map[string]any{"error": "x"})
-	_, err := client.Projects.Update(context.Background(), "x-1", map[string]any{"name": "x-1"})
+	_, err := client.Projects.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

@@ -17,28 +17,28 @@ type SwaigArgument struct {
 	Substituted string `json:"substituted,omitempty" gen:"string"`
 }
 
-// SwaigRequest Built in execute_user_function (actions.c:2012-2140). Open shape: conditional fields appear only when their precondition holds.
+// SwaigRequest Built in run_user_function (actions.c:2451-2667). Open shape: conditional fields appear only when their precondition holds.
 type SwaigRequest struct {
-	// SWMLCall only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`).
+	// SWMLCall only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2104-2107`). `true` = all SWML vars (`actions.c:2114`/`2108`); an array = only the listed var names (`actions.c:2132`/`2126`).
 	SWMLCall map[string]any `json:"SWMLCall,omitempty" gen:"dict<string,any>"`
-	// SWMLVars only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`).
+	// SWMLVars only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2104-2107`). `true` = all SWML vars (`actions.c:2114`/`2108`); an array = only the listed var names (`actions.c:2132`/`2126`).
 	SWMLVars map[string]any `json:"SWMLVars,omitempty" gen:"dict<string,any>"`
 	// AiSessionId Always present.
 	AiSessionId string `json:"ai_session_id,omitempty" gen:"string"`
 	// AppName Always present.
 	AppName string `json:"app_name,omitempty" gen:"string"`
-	// Args added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2198`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2206`); `input` is a shallow self-duplicate of the post_data (`actions.c:2211`). The webhook-URL path does not add these.
+	// Args added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2205`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2213`); `input` is a shallow self-duplicate of the post_data (`actions.c:2218`). The webhook-URL path does not add these.
 	Args     string         `json:"args,omitempty" gen:"string"`
 	Argument *SwaigArgument `json:"argument,omitempty" gen:"class:signalwire.core.swaig_request_generated.SwaigArgument"`
 	// ArgumentDesc Always present.
 	ArgumentDesc map[string]any `json:"argument_desc,omitempty" gen:"dict<string,any>"`
 	// CallId Always present.
 	CallId string `json:"call_id,omitempty" gen:"string"`
-	// CallLog only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`).
+	// CallLog only if `swaig_post_conversation` is set (`actions.c:2141`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2144`); `raw_call_log` is the full transcript (`actions.c:2146`).
 	CallLog []map[string]any `json:"call_log,omitempty" gen:"list<dict<string,any>>"`
-	// CallerIdName only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`.
+	// CallerIdName only if the caller-ID channel vars are set (`actions.c:2338`/`2335`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. Any `{` or `}` in either is removed (see Global Data, "Caller ID is data").
 	CallerIdName string `json:"caller_id_name,omitempty" gen:"string"`
-	// CallerIdNum only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`.
+	// CallerIdNum only if the caller-ID channel vars are set (`actions.c:2338`/`2335`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. Any `{` or `}` in either is removed (see Global Data, "Caller ID is data").
 	CallerIdNum string `json:"caller_id_num,omitempty" gen:"string"`
 	// ChannelActive Always present.
 	ChannelActive bool `json:"channel_active,omitempty" gen:"bool"`
@@ -50,29 +50,29 @@ type SwaigRequest struct {
 	ContentDisposition string `json:"content_disposition,omitempty" gen:"string"`
 	// ContentType Always present.
 	ContentType string `json:"content_type,omitempty" gen:"string"`
-	// ConversationId only if configured (`actions.c:2077`).
+	// ConversationId only if configured (`actions.c:2084`).
 	ConversationId string `json:"conversation_id,omitempty" gen:"string"`
 	// Description Always present.
 	Description string `json:"description,omitempty" gen:"string"`
-	// ErrorReason only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2063-2065`). See CLAUDE.md "Fatal Error Recovery Flow".
+	// ErrorReason only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2070-2072`). See CLAUDE.md "Fatal Error Recovery Flow".
 	ErrorReason string `json:"error_reason,omitempty" gen:"string"`
-	// FatalError only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2063-2065`). See CLAUDE.md "Fatal Error Recovery Flow".
+	// FatalError only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2070-2072`). See CLAUDE.md "Fatal Error Recovery Flow".
 	FatalError bool `json:"fatal_error,omitempty" gen:"bool"`
 	// Function Always present.
 	Function string `json:"function,omitempty" gen:"string"`
-	// GlobalData only if global data exists (`actions.c:2016`).
+	// GlobalData only if global data exists (`actions.c:2023`).
 	GlobalData map[string]any `json:"global_data,omitempty" gen:"dict<string,any>"`
-	// Input added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2198`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2206`); `input` is a shallow self-duplicate of the post_data (`actions.c:2211`). The webhook-URL path does not add these.
+	// Input added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2205`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2213`); `input` is a shallow self-duplicate of the post_data (`actions.c:2218`). The webhook-URL path does not add these.
 	Input string `json:"input,omitempty" gen:"string"`
-	// MetaData only if the function has a `meta_data_token` (`actions.c:2085-2093`). `meta_data` is that token's metadata store (empty object if none).
+	// MetaData only if the function has a `meta_data_token` (`actions.c:2092-2100`). `meta_data` is that token's metadata store (empty object if none).
 	MetaData map[string]any `json:"meta_data,omitempty" gen:"dict<string,any>"`
-	// MetaDataToken only if the function has a `meta_data_token` (`actions.c:2085-2093`). `meta_data` is that token's metadata store (empty object if none).
+	// MetaDataToken only if the function has a `meta_data_token` (`actions.c:2092-2100`). `meta_data` is that token's metadata store (empty object if none).
 	MetaDataToken string `json:"meta_data_token,omitempty" gen:"string"`
-	// ProjectId only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`).
+	// ProjectId only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2047`/`2044`).
 	ProjectId string `json:"project_id,omitempty" gen:"string"`
-	// RawCallLog only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`).
+	// RawCallLog only if `swaig_post_conversation` is set (`actions.c:2141`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2144`); `raw_call_log` is the full transcript (`actions.c:2146`).
 	RawCallLog []map[string]any `json:"raw_call_log,omitempty" gen:"list<dict<string,any>>"`
-	// SpaceId only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`).
+	// SpaceId only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2047`/`2044`).
 	SpaceId string `json:"space_id,omitempty" gen:"string"`
 	// Version Always present.
 	Version string `json:"version,omitempty" gen:"string"`

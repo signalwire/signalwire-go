@@ -19,12 +19,12 @@ type ActiveSession struct {
 	ID                        *string            `json:"id,omitempty"`
 	RoomID                    *string            `json:"room_id,omitempty"`
 	Name                      *string            `json:"name,omitempty"`
-	DisplayName               *string            `json:"display_name,omitempty"`
-	JoinFrom                  *string            `json:"join_from,omitempty"`
-	JoinUntil                 *string            `json:"join_until,omitempty"`
-	RemoveAt                  *string            `json:"remove_at,omitempty"`
-	RemoveAfterSecondsElapsed *int               `json:"remove_after_seconds_elapsed,omitempty"`
-	Layout                    *string            `json:"layout,omitempty"`
+	DisplayName               any                `json:"display_name,omitempty"`
+	JoinFrom                  any                `json:"join_from,omitempty"`
+	JoinUntil                 any                `json:"join_until,omitempty"`
+	RemoveAt                  any                `json:"remove_at,omitempty"`
+	RemoveAfterSecondsElapsed any                `json:"remove_after_seconds_elapsed,omitempty"`
+	Layout                    any                `json:"layout,omitempty"`
 	MaxMembers                *int               `json:"max_members,omitempty"`
 	Fps                       *VideoFps          `json:"fps,omitempty"`
 	Quality                   *VideoQuality      `json:"quality,omitempty"`
@@ -34,8 +34,17 @@ type ActiveSession struct {
 	Status                    *RoomSessionStatus `json:"status,omitempty"`
 	RecordOnStart             *bool              `json:"record_on_start,omitempty"`
 	EnableRoomPreviews        *bool              `json:"enable_room_previews,omitempty"`
-	PreviewURL                *string            `json:"preview_url,omitempty"`
-	AudioVideoSync            *bool              `json:"audio_video_sync,omitempty"`
+	PreviewURL                any                `json:"preview_url,omitempty"`
+	SyncAudioVideo            *bool              `json:"sync_audio_video,omitempty"`
+	ToneOnEntryAndExit        *bool              `json:"tone_on_entry_and_exit,omitempty"`
+	RoomJoinVideoOff          *bool              `json:"room_join_video_off,omitempty"`
+	UserJoinVideoOff          *bool              `json:"user_join_video_off,omitempty"`
+	Locked                    *bool              `json:"locked,omitempty"`
+	CostInDollars             *float64           `json:"cost_in_dollars,omitempty"`
+	CreatedAt                 *string            `json:"created_at,omitempty"`
+	UpdatedAt                 *string            `json:"updated_at,omitempty"`
+	LockedCover               *string            `json:"locked_cover,omitempty"`
+	PrioritizeHandraise       any                `json:"prioritize_handraise,omitempty"`
 }
 
 type ChargeDetail struct {
@@ -44,35 +53,66 @@ type ChargeDetail struct {
 }
 
 type Conference struct {
-	ID                 string         `json:"id,omitempty"`
-	Name               string         `json:"name,omitempty"`
-	DisplayName        any            `json:"display_name,omitempty"`
-	Description        any            `json:"description,omitempty"`
-	JoinFrom           any            `json:"join_from,omitempty"`
-	JoinUntil          any            `json:"join_until,omitempty"`
-	Quality            VideoQuality   `json:"quality,omitempty"`
-	Layout             VideoLayout    `json:"layout,omitempty"`
-	Size               any            `json:"size,omitempty"`
-	RecordOnStart      bool           `json:"record_on_start,omitempty"`
-	ToneOnEntryAndExit bool           `json:"tone_on_entry_and_exit,omitempty"`
-	UserJoinVideoOff   bool           `json:"user_join_video_off,omitempty"`
-	RoomJoinVideoOff   bool           `json:"room_join_video_off,omitempty"`
-	EnableChat         bool           `json:"enable_chat,omitempty"`
-	EnableRoomPreviews any            `json:"enable_room_previews,omitempty"`
-	DarkPrimary        any            `json:"dark_primary,omitempty"`
-	DarkBackground     any            `json:"dark_background,omitempty"`
-	DarkForeground     any            `json:"dark_foreground,omitempty"`
-	DarkSuccess        any            `json:"dark_success,omitempty"`
-	DarkNegative       any            `json:"dark_negative,omitempty"`
-	LightPrimary       any            `json:"light_primary,omitempty"`
-	LightBackground    any            `json:"light_background,omitempty"`
-	LightForeground    any            `json:"light_foreground,omitempty"`
-	LightSuccess       any            `json:"light_success,omitempty"`
-	LightNegative      any            `json:"light_negative,omitempty"`
-	Meta               any            `json:"meta,omitempty"`
-	CreatedAt          string         `json:"created_at,omitempty"`
-	UpdatedAt          string         `json:"updated_at,omitempty"`
-	ActiveSession      *ActiveSession `json:"active_session,omitempty"`
+	ID                 string       `json:"id,omitempty"`
+	Name               string       `json:"name,omitempty"`
+	DisplayName        any          `json:"display_name,omitempty"`
+	Description        any          `json:"description,omitempty"`
+	JoinFrom           any          `json:"join_from,omitempty"`
+	JoinUntil          any          `json:"join_until,omitempty"`
+	Quality            VideoQuality `json:"quality,omitempty"`
+	Layout             VideoLayout  `json:"layout,omitempty"`
+	Size               any          `json:"size,omitempty"`
+	RecordOnStart      bool         `json:"record_on_start,omitempty"`
+	ToneOnEntryAndExit bool         `json:"tone_on_entry_and_exit,omitempty"`
+	UserJoinVideoOff   bool         `json:"user_join_video_off,omitempty"`
+	RoomJoinVideoOff   bool         `json:"room_join_video_off,omitempty"`
+	EnableChat         bool         `json:"enable_chat,omitempty"`
+	EnableRoomPreviews any          `json:"enable_room_previews,omitempty"`
+	DarkPrimary        any          `json:"dark_primary,omitempty"`
+	DarkBackground     any          `json:"dark_background,omitempty"`
+	DarkForeground     any          `json:"dark_foreground,omitempty"`
+	DarkSuccess        any          `json:"dark_success,omitempty"`
+	DarkNegative       any          `json:"dark_negative,omitempty"`
+	LightPrimary       any          `json:"light_primary,omitempty"`
+	LightBackground    any          `json:"light_background,omitempty"`
+	LightForeground    any          `json:"light_foreground,omitempty"`
+	LightSuccess       any          `json:"light_success,omitempty"`
+	LightNegative      any          `json:"light_negative,omitempty"`
+	Meta               any          `json:"meta,omitempty"`
+	CreatedAt          string       `json:"created_at,omitempty"`
+	UpdatedAt          string       `json:"updated_at,omitempty"`
+	ActiveSession      any          `json:"active_session,omitempty"`
+}
+
+type ConferenceMutationResponse struct {
+	ID                 string       `json:"id,omitempty"`
+	Name               string       `json:"name,omitempty"`
+	DisplayName        any          `json:"display_name,omitempty"`
+	Description        any          `json:"description,omitempty"`
+	JoinFrom           any          `json:"join_from,omitempty"`
+	JoinUntil          any          `json:"join_until,omitempty"`
+	Quality            VideoQuality `json:"quality,omitempty"`
+	Layout             VideoLayout  `json:"layout,omitempty"`
+	Size               any          `json:"size,omitempty"`
+	RecordOnStart      bool         `json:"record_on_start,omitempty"`
+	ToneOnEntryAndExit bool         `json:"tone_on_entry_and_exit,omitempty"`
+	UserJoinVideoOff   bool         `json:"user_join_video_off,omitempty"`
+	RoomJoinVideoOff   bool         `json:"room_join_video_off,omitempty"`
+	EnableChat         bool         `json:"enable_chat,omitempty"`
+	EnableRoomPreviews any          `json:"enable_room_previews,omitempty"`
+	DarkPrimary        any          `json:"dark_primary,omitempty"`
+	DarkBackground     any          `json:"dark_background,omitempty"`
+	DarkForeground     any          `json:"dark_foreground,omitempty"`
+	DarkSuccess        any          `json:"dark_success,omitempty"`
+	DarkNegative       any          `json:"dark_negative,omitempty"`
+	LightPrimary       any          `json:"light_primary,omitempty"`
+	LightBackground    any          `json:"light_background,omitempty"`
+	LightForeground    any          `json:"light_foreground,omitempty"`
+	LightSuccess       any          `json:"light_success,omitempty"`
+	LightNegative      any          `json:"light_negative,omitempty"`
+	Meta               any          `json:"meta,omitempty"`
+	CreatedAt          string       `json:"created_at,omitempty"`
+	UpdatedAt          string       `json:"updated_at,omitempty"`
 }
 
 type ConferenceSize string
@@ -310,29 +350,54 @@ const (
 )
 
 type RoomResponse struct {
-	ID                        string         `json:"id,omitempty"`
-	Name                      string         `json:"name,omitempty"`
-	DisplayName               any            `json:"display_name,omitempty"`
-	Description               any            `json:"description,omitempty"`
-	MaxMembers                int            `json:"max_members,omitempty"`
-	Quality                   VideoQuality   `json:"quality,omitempty"`
-	Fps                       int            `json:"fps,omitempty"`
-	JoinFrom                  any            `json:"join_from,omitempty"`
-	JoinUntil                 any            `json:"join_until,omitempty"`
-	RemoveAt                  any            `json:"remove_at,omitempty"`
-	RemoveAfterSecondsElapsed any            `json:"remove_after_seconds_elapsed,omitempty"`
-	Layout                    RoomLayout     `json:"layout,omitempty"`
-	RecordOnStart             bool           `json:"record_on_start,omitempty"`
-	ToneOnEntryAndExit        bool           `json:"tone_on_entry_and_exit,omitempty"`
-	RoomJoinVideoOff          bool           `json:"room_join_video_off,omitempty"`
-	UserJoinVideoOff          bool           `json:"user_join_video_off,omitempty"`
-	EnableRoomPreviews        any            `json:"enable_room_previews,omitempty"`
-	SyncAudioVideo            any            `json:"sync_audio_video,omitempty"`
-	Meta                      any            `json:"meta,omitempty"`
-	PrioritizeHandraise       bool           `json:"prioritize_handraise,omitempty"`
-	ActiveSession             *ActiveSession `json:"active_session,omitempty"`
-	CreatedAt                 string         `json:"created_at,omitempty"`
-	UpdatedAt                 string         `json:"updated_at,omitempty"`
+	ID                        string       `json:"id,omitempty"`
+	Name                      string       `json:"name,omitempty"`
+	DisplayName               any          `json:"display_name,omitempty"`
+	Description               any          `json:"description,omitempty"`
+	MaxMembers                int          `json:"max_members,omitempty"`
+	Quality                   VideoQuality `json:"quality,omitempty"`
+	Fps                       int          `json:"fps,omitempty"`
+	JoinFrom                  any          `json:"join_from,omitempty"`
+	JoinUntil                 any          `json:"join_until,omitempty"`
+	RemoveAt                  any          `json:"remove_at,omitempty"`
+	RemoveAfterSecondsElapsed any          `json:"remove_after_seconds_elapsed,omitempty"`
+	Layout                    RoomLayout   `json:"layout,omitempty"`
+	RecordOnStart             bool         `json:"record_on_start,omitempty"`
+	ToneOnEntryAndExit        bool         `json:"tone_on_entry_and_exit,omitempty"`
+	RoomJoinVideoOff          bool         `json:"room_join_video_off,omitempty"`
+	UserJoinVideoOff          bool         `json:"user_join_video_off,omitempty"`
+	EnableRoomPreviews        any          `json:"enable_room_previews,omitempty"`
+	SyncAudioVideo            any          `json:"sync_audio_video,omitempty"`
+	Meta                      any          `json:"meta,omitempty"`
+	PrioritizeHandraise       bool         `json:"prioritize_handraise,omitempty"`
+	ActiveSession             any          `json:"active_session,omitempty"`
+	CreatedAt                 string       `json:"created_at,omitempty"`
+	UpdatedAt                 string       `json:"updated_at,omitempty"`
+}
+
+type RoomMutationResponse struct {
+	ID                        string       `json:"id,omitempty"`
+	Name                      string       `json:"name,omitempty"`
+	DisplayName               any          `json:"display_name,omitempty"`
+	Description               any          `json:"description,omitempty"`
+	MaxMembers                int          `json:"max_members,omitempty"`
+	Quality                   VideoQuality `json:"quality,omitempty"`
+	Fps                       int          `json:"fps,omitempty"`
+	JoinFrom                  any          `json:"join_from,omitempty"`
+	JoinUntil                 any          `json:"join_until,omitempty"`
+	RemoveAt                  any          `json:"remove_at,omitempty"`
+	RemoveAfterSecondsElapsed any          `json:"remove_after_seconds_elapsed,omitempty"`
+	Layout                    RoomLayout   `json:"layout,omitempty"`
+	RecordOnStart             bool         `json:"record_on_start,omitempty"`
+	ToneOnEntryAndExit        bool         `json:"tone_on_entry_and_exit,omitempty"`
+	RoomJoinVideoOff          bool         `json:"room_join_video_off,omitempty"`
+	UserJoinVideoOff          bool         `json:"user_join_video_off,omitempty"`
+	EnableRoomPreviews        any          `json:"enable_room_previews,omitempty"`
+	SyncAudioVideo            any          `json:"sync_audio_video,omitempty"`
+	Meta                      any          `json:"meta,omitempty"`
+	PrioritizeHandraise       bool         `json:"prioritize_handraise,omitempty"`
+	CreatedAt                 string       `json:"created_at,omitempty"`
+	UpdatedAt                 string       `json:"updated_at,omitempty"`
 }
 
 type RoomSession struct {
@@ -422,7 +487,7 @@ type RoomSessionSummary struct {
 	CreatedAt                 string `json:"created_at,omitempty"`
 	UpdatedAt                 string `json:"updated_at,omitempty"`
 	PreviewURL                any    `json:"preview_url,omitempty"`
-	PrioritizeHandraise       any    `json:"prioritize_handraise,omitempty"`
+	PrioritizeHandraise       bool   `json:"prioritize_handraise,omitempty"`
 	SyncAudioVideo            any    `json:"sync_audio_video,omitempty"`
 }
 
@@ -479,19 +544,8 @@ type RoomTokenResponse struct {
 	Token string `json:"token,omitempty"`
 }
 
-type Stream struct {
-	ID         string `json:"id,omitempty"`
-	URL        any    `json:"url,omitempty"`
-	StreamType any    `json:"stream_type,omitempty"`
-	Width      any    `json:"width,omitempty"`
-	Height     any    `json:"height,omitempty"`
-	Fps        any    `json:"fps,omitempty"`
-	CreatedAt  string `json:"created_at,omitempty"`
-	UpdatedAt  string `json:"updated_at,omitempty"`
-}
-
 type UpdateConferenceRequest struct {
-	DisplayName        string          `json:"display_name,omitempty"`
+	DisplayName        *string         `json:"display_name,omitempty"`
 	Description        *string         `json:"description,omitempty"`
 	JoinFrom           *string         `json:"join_from,omitempty"`
 	JoinUntil          *string         `json:"join_until,omitempty"`
@@ -533,7 +587,7 @@ type UpdateRoomRequest struct {
 }
 
 type UpdateStreamRequest struct {
-	URL string `json:"url,omitempty"`
+	URL *string `json:"url,omitempty"`
 }
 
 type VideoFps float64

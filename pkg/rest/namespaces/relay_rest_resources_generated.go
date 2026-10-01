@@ -25,18 +25,20 @@ func (r *AddressesNamespace) List(ctx context.Context, params map[string]string,
 
 // AddressesNamespaceCreateParams holds the named optional parameters for AddressesNamespace.Create.
 type AddressesNamespaceCreateParams struct {
-	Label         string         `sw:"required"`
-	Country       string         `sw:"required"`
-	FirstName     string         `sw:"required"`
-	LastName      string         `sw:"required"`
-	StreetNumber  string         `sw:"required"`
-	StreetName    string         `sw:"required"`
-	City          string         `sw:"required"`
-	State         string         `sw:"required"`
-	PostalCode    string         `sw:"required"`
-	AddressType   *AddressType   `sw:"optional"`
-	AddressNumber *string        `sw:"optional"`
-	Extras        map[string]any `sw:"optional"`
+	Label              string             `sw:"required"`
+	Country            AddressCountryCode `sw:"required"`
+	FirstName          string             `sw:"required"`
+	LastName           string             `sw:"required"`
+	StreetNumber       string             `sw:"required"`
+	StreetName         string             `sw:"required"`
+	City               string             `sw:"required"`
+	State              string             `sw:"required"`
+	PostalCode         string             `sw:"required"`
+	AddressType        *AddressType       `sw:"optional"`
+	AddressNumber      *string            `sw:"optional"`
+	EmergencyEnabled   *bool              `sw:"optional"`
+	AutoCorrectAddress *bool              `sw:"optional"`
+	Extras             map[string]any     `sw:"optional"`
 }
 
 func (r *AddressesNamespace) Create(ctx context.Context, params AddressesNamespaceCreateParams, opts ...*RequestOptions) (*AddressResponse, error) {
@@ -56,12 +58,81 @@ func (r *AddressesNamespace) Create(ctx context.Context, params AddressesNamespa
 	if params.AddressNumber != nil {
 		body["address_number"] = params.AddressNumber
 	}
+	if params.EmergencyEnabled != nil {
+		body["emergency_enabled"] = params.EmergencyEnabled
+	}
+	if params.AutoCorrectAddress != nil {
+		body["auto_correct_address"] = params.AutoCorrectAddress
+	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[AddressResponse](r.HTTP.Post(ctx, r.Base, body, nil, opts...))
 }
 
 func (r *AddressesNamespace) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*AddressResponse, error) {
 	return decodeResult[AddressResponse](r.HTTP.Get(ctx, r.Path(id), params, opts...))
+}
+
+// AddressesNamespaceUpdateParams holds the named optional parameters for AddressesNamespace.Update.
+type AddressesNamespaceUpdateParams struct {
+	Label              *string             `sw:"optional"`
+	Country            *AddressCountryCode `sw:"optional"`
+	FirstName          *string             `sw:"optional"`
+	LastName           *string             `sw:"optional"`
+	StreetNumber       *string             `sw:"optional"`
+	StreetName         *string             `sw:"optional"`
+	AddressType        *AddressType        `sw:"optional"`
+	AddressNumber      *string             `sw:"optional"`
+	City               *string             `sw:"optional"`
+	State              *string             `sw:"optional"`
+	PostalCode         *string             `sw:"optional"`
+	EmergencyEnabled   *bool               `sw:"optional"`
+	AutoCorrectAddress *bool               `sw:"optional"`
+	Extras             map[string]any      `sw:"optional"`
+}
+
+func (r *AddressesNamespace) Update(ctx context.Context, id string, params AddressesNamespaceUpdateParams, opts ...*RequestOptions) (*AddressResponse, error) {
+	body := map[string]any{}
+	if params.Label != nil {
+		body["label"] = params.Label
+	}
+	if params.Country != nil {
+		body["country"] = params.Country
+	}
+	if params.FirstName != nil {
+		body["first_name"] = params.FirstName
+	}
+	if params.LastName != nil {
+		body["last_name"] = params.LastName
+	}
+	if params.StreetNumber != nil {
+		body["street_number"] = params.StreetNumber
+	}
+	if params.StreetName != nil {
+		body["street_name"] = params.StreetName
+	}
+	if params.AddressType != nil {
+		body["address_type"] = params.AddressType
+	}
+	if params.AddressNumber != nil {
+		body["address_number"] = params.AddressNumber
+	}
+	if params.City != nil {
+		body["city"] = params.City
+	}
+	if params.State != nil {
+		body["state"] = params.State
+	}
+	if params.PostalCode != nil {
+		body["postal_code"] = params.PostalCode
+	}
+	if params.EmergencyEnabled != nil {
+		body["emergency_enabled"] = params.EmergencyEnabled
+	}
+	if params.AutoCorrectAddress != nil {
+		body["auto_correct_address"] = params.AutoCorrectAddress
+	}
+	mergeExtra(body, []map[string]any{params.Extras})
+	return decodeResult[AddressResponse](r.HTTP.Put(ctx, r.Path(id), body, opts...))
 }
 
 func (r *AddressesNamespace) Delete(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
@@ -257,6 +328,44 @@ func (r *PhoneNumbersNamespace) Search(ctx context.Context, params map[string]st
 	return decodeResult[AvailablePhoneNumbersResponse](r.HTTP.Get(ctx, r.Path("search"), params, opts...))
 }
 
+// PhoneNumbersNamespaceAssignE911AddressParams holds the named optional parameters for PhoneNumbersNamespace.AssignE911Address.
+type PhoneNumbersNamespaceAssignE911AddressParams struct {
+	E911AddressID Uuid           `sw:"required"`
+	Extras        map[string]any `sw:"optional"`
+}
+
+func (r *PhoneNumbersNamespace) AssignE911Address(ctx context.Context, id string, params PhoneNumbersNamespaceAssignE911AddressParams, opts ...*RequestOptions) (*PhoneNumberResponse, error) {
+	body := map[string]any{}
+	body["e911_address_id"] = params.E911AddressID
+	mergeExtra(body, []map[string]any{params.Extras})
+	return decodeResult[PhoneNumberResponse](r.HTTP.Post(ctx, r.Path(id, "e911_address"), body, nil, opts...))
+}
+
+func (r *PhoneNumbersNamespace) RemoveE911Address(ctx context.Context, id string, opts ...*RequestOptions) (*PhoneNumberResponse, error) {
+	return decodeResult[PhoneNumberResponse](r.HTTP.Delete(ctx, r.Path(id, "e911_address"), opts...))
+}
+
+func (r *PhoneNumbersNamespace) GetCNAM(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*PhoneNumberCnamResponse, error) {
+	return decodeResult[PhoneNumberCnamResponse](r.HTTP.Get(ctx, r.Path(id, "cnam"), params, opts...))
+}
+
+// PhoneNumbersNamespaceRequestCNAMParams holds the named optional parameters for PhoneNumbersNamespace.RequestCNAM.
+type PhoneNumbersNamespaceRequestCNAMParams struct {
+	Name   string         `sw:"required"`
+	Extras map[string]any `sw:"optional"`
+}
+
+func (r *PhoneNumbersNamespace) RequestCNAM(ctx context.Context, id string, params PhoneNumbersNamespaceRequestCNAMParams, opts ...*RequestOptions) (*PhoneNumberCnamResponse, error) {
+	body := map[string]any{}
+	body["name"] = params.Name
+	mergeExtra(body, []map[string]any{params.Extras})
+	return decodeResult[PhoneNumberCnamResponse](r.HTTP.Post(ctx, r.Path(id, "cnam"), body, nil, opts...))
+}
+
+func (r *PhoneNumbersNamespace) ClearCNAM(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
+	return r.HTTP.Delete(ctx, r.Path(id, "cnam"), opts...)
+}
+
 func (r *PhoneNumbersNamespace) SetSwmlWebhook(ctx context.Context, sid string, url string, requestOptions *RequestOptions, extra ...map[string]any) (map[string]any, error) {
 	body := map[string]any{
 		"call_handler":          "relay_script",
@@ -368,12 +477,16 @@ func (r *RecordingsNamespace) List(ctx context.Context, params map[string]string
 	return decodeResult[RecordingListResponse](r.HTTP.Get(ctx, r.Base, params, opts...))
 }
 
-func (r *RecordingsNamespace) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (map[string]any, error) {
-	return r.HTTP.Get(ctx, r.Path(id), params, opts...)
+func (r *RecordingsNamespace) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*Recording, error) {
+	return decodeResult[Recording](r.HTTP.Get(ctx, r.Path(id), params, opts...))
 }
 
 func (r *RecordingsNamespace) Delete(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {
 	return r.HTTP.Delete(ctx, r.Path(id), opts...)
+}
+
+func (r *RecordingsNamespace) Download(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (string, error) {
+	return getRedirectLocation(ctx, r.HTTP, r.Path(id+".mp3"), params, opts...)
 }
 
 // RegistryBrands is a client for the "RegistryBrands" resource of the SignalWire relay-rest API.
@@ -396,6 +509,69 @@ func (r *RegistryBrands) Create(ctx context.Context, data map[string]any, opts .
 
 func (r *RegistryBrands) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*BrandResponse, error) {
 	return decodeResult[BrandResponse](r.HTTP.Get(ctx, r.Path(id), params, opts...))
+}
+
+// RegistryBrandsUpdateParams holds the named optional parameters for RegistryBrands.Update.
+type RegistryBrandsUpdateParams struct {
+	Name                    *string          `sw:"optional"`
+	CompanyName             *string          `sw:"optional"`
+	ContactEmail            *string          `sw:"optional"`
+	ContactPhone            *string          `sw:"optional"`
+	EinIssuingCountry       *string          `sw:"optional"`
+	LegalEntityType         *LegalEntityType `sw:"optional"`
+	Ein                     *string          `sw:"optional"`
+	CompanyVertical         *CompanyVertical `sw:"optional"`
+	CompanyWebsite          *string          `sw:"optional"`
+	CompanyAddress          *string          `sw:"optional"`
+	CspBrandReference       *string          `sw:"optional"`
+	StatusCallbackURL       *string          `sw:"optional"`
+	SignalwireContactEmails any              `sw:"optional"`
+	Extras                  map[string]any   `sw:"optional"`
+}
+
+func (r *RegistryBrands) Update(ctx context.Context, id string, params RegistryBrandsUpdateParams, opts ...*RequestOptions) (*BrandResponse, error) {
+	body := map[string]any{}
+	if params.Name != nil {
+		body["name"] = params.Name
+	}
+	if params.CompanyName != nil {
+		body["company_name"] = params.CompanyName
+	}
+	if params.ContactEmail != nil {
+		body["contact_email"] = params.ContactEmail
+	}
+	if params.ContactPhone != nil {
+		body["contact_phone"] = params.ContactPhone
+	}
+	if params.EinIssuingCountry != nil {
+		body["ein_issuing_country"] = params.EinIssuingCountry
+	}
+	if params.LegalEntityType != nil {
+		body["legal_entity_type"] = params.LegalEntityType
+	}
+	if params.Ein != nil {
+		body["ein"] = params.Ein
+	}
+	if params.CompanyVertical != nil {
+		body["company_vertical"] = params.CompanyVertical
+	}
+	if params.CompanyWebsite != nil {
+		body["company_website"] = params.CompanyWebsite
+	}
+	if params.CompanyAddress != nil {
+		body["company_address"] = params.CompanyAddress
+	}
+	if params.CspBrandReference != nil {
+		body["csp_brand_reference"] = params.CspBrandReference
+	}
+	if params.StatusCallbackURL != nil {
+		body["status_callback_url"] = params.StatusCallbackURL
+	}
+	if params.SignalwireContactEmails != nil {
+		body["signalwire_contact_emails"] = params.SignalwireContactEmails
+	}
+	mergeExtra(body, []map[string]any{params.Extras})
+	return decodeResult[BrandResponse](r.HTTP.Put(ctx, r.Path(id), body, opts...))
 }
 
 func (r *RegistryBrands) ListCampaigns(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*CampaignListResponse, error) {
@@ -422,14 +598,22 @@ func (r *RegistryCampaigns) Get(ctx context.Context, id string, params map[strin
 
 // RegistryCampaignsUpdateParams holds the named optional parameters for RegistryCampaigns.Update.
 type RegistryCampaignsUpdateParams struct {
-	Name   *string        `sw:"optional"`
-	Extras map[string]any `sw:"optional"`
+	Name                    *string        `sw:"optional"`
+	StatusCallbackURL       *string        `sw:"optional"`
+	SignalwireContactEmails any            `sw:"optional"`
+	Extras                  map[string]any `sw:"optional"`
 }
 
 func (r *RegistryCampaigns) Update(ctx context.Context, id string, params RegistryCampaignsUpdateParams, opts ...*RequestOptions) (*CampaignResponse, error) {
 	body := map[string]any{}
 	if params.Name != nil {
 		body["name"] = params.Name
+	}
+	if params.StatusCallbackURL != nil {
+		body["status_callback_url"] = params.StatusCallbackURL
+	}
+	if params.SignalwireContactEmails != nil {
+		body["signalwire_contact_emails"] = params.SignalwireContactEmails
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[CampaignResponse](r.HTTP.Put(ctx, r.Path(id), body, opts...))
@@ -445,7 +629,7 @@ func (r *RegistryCampaigns) ListOrders(ctx context.Context, id string, params ma
 
 // RegistryCampaignsCreateOrderParams holds the named optional parameters for RegistryCampaigns.CreateOrder.
 type RegistryCampaignsCreateOrderParams struct {
-	PhoneNumbers      []string       `sw:"optional"`
+	PhoneNumbers      []string       `sw:"required"`
 	StatusCallbackURL *string        `sw:"optional"`
 	Extras            map[string]any `sw:"optional"`
 }
@@ -510,21 +694,25 @@ func (r *ShortCodesNamespace) Get(ctx context.Context, id string, params map[str
 
 // ShortCodesNamespaceUpdateParams holds the named optional parameters for ShortCodesNamespace.Update.
 type ShortCodesNamespaceUpdateParams struct {
-	Name                     string                  `sw:"required"`
-	MessageHandler           ShortCodeMessageHandler `sw:"required"`
-	MessageRequestURL        *string                 `sw:"optional"`
-	MessageRequestMethod     *HttpMethod             `sw:"optional"`
-	MessageFallbackURL       *string                 `sw:"optional"`
-	MessageFallbackMethod    *HttpMethod             `sw:"optional"`
-	MessageLamlApplicationID *Uuid                   `sw:"optional"`
-	MessageRelayContext      *string                 `sw:"optional"`
-	Extras                   map[string]any          `sw:"optional"`
+	Name                     *string                  `sw:"optional"`
+	MessageHandler           *ShortCodeMessageHandler `sw:"optional"`
+	MessageRequestURL        *string                  `sw:"optional"`
+	MessageRequestMethod     *HttpMethod              `sw:"optional"`
+	MessageFallbackURL       *string                  `sw:"optional"`
+	MessageFallbackMethod    *HttpMethod              `sw:"optional"`
+	MessageLamlApplicationID *Uuid                    `sw:"optional"`
+	MessageRelayContext      *string                  `sw:"optional"`
+	Extras                   map[string]any           `sw:"optional"`
 }
 
 func (r *ShortCodesNamespace) Update(ctx context.Context, id string, params ShortCodesNamespaceUpdateParams, opts ...*RequestOptions) (*ShortCodeResponse, error) {
 	body := map[string]any{}
-	body["name"] = params.Name
-	body["message_handler"] = params.MessageHandler
+	if params.Name != nil {
+		body["name"] = params.Name
+	}
+	if params.MessageHandler != nil {
+		body["message_handler"] = params.MessageHandler
+	}
 	if params.MessageRequestURL != nil {
 		body["message_request_url"] = params.MessageRequestURL
 	}
@@ -563,12 +751,13 @@ func (r *SIPProfileNamespace) Get(ctx context.Context, params map[string]string,
 
 // SIPProfileNamespaceUpdateParams holds the named optional parameters for SIPProfileNamespace.Update.
 type SIPProfileNamespaceUpdateParams struct {
-	DomainIdentifier  *string        `sw:"optional"`
-	DefaultCodecs     []string       `sw:"optional"`
-	DefaultCiphers    []string       `sw:"optional"`
-	DefaultEncryption *string        `sw:"optional"`
-	DefaultSendAs     *string        `sw:"optional"`
-	Extras            map[string]any `sw:"optional"`
+	DomainIdentifier      *string        `sw:"optional"`
+	DefaultCodecs         []string       `sw:"optional"`
+	DefaultCiphers        []string       `sw:"optional"`
+	DefaultEncryption     *string        `sw:"optional"`
+	DefaultSendAs         *string        `sw:"optional"`
+	DefaultOutboundPolicy *string        `sw:"optional"`
+	Extras                map[string]any `sw:"optional"`
 }
 
 func (r *SIPProfileNamespace) Update(ctx context.Context, params SIPProfileNamespaceUpdateParams, opts ...*RequestOptions) (*SipProfileResponse, error) {
@@ -587,6 +776,9 @@ func (r *SIPProfileNamespace) Update(ctx context.Context, params SIPProfileNames
 	}
 	if params.DefaultSendAs != nil {
 		body["default_send_as"] = params.DefaultSendAs
+	}
+	if params.DefaultOutboundPolicy != nil {
+		body["default_outbound_policy"] = params.DefaultOutboundPolicy
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[SipProfileResponse](r.HTTP.Put(ctx, r.Base, body, opts...))

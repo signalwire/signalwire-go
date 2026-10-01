@@ -84,6 +84,10 @@ func (r *VideoRoomRecordings) ListEvents(ctx context.Context, id string, params 
 	return decodeResult[ListRoomRecordingEventsResponse](r.HTTP.Get(ctx, r.Path(id, "events"), params, opts...))
 }
 
+func (r *VideoRoomRecordings) Download(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (string, error) {
+	return getRedirectLocation(ctx, r.HTTP, r.Path(id+".mp4"), params, opts...)
+}
+
 // VideoRoomSessions is a client for the "VideoRoomSessions" resource of the SignalWire video API.
 type VideoRoomSessions struct {
 	Resource
@@ -252,13 +256,15 @@ func (r *VideoStreams) Get(ctx context.Context, id string, params map[string]str
 
 // VideoStreamsUpdateParams holds the named optional parameters for VideoStreams.Update.
 type VideoStreamsUpdateParams struct {
-	URL    string         `sw:"required"`
+	URL    *string        `sw:"optional"`
 	Extras map[string]any `sw:"optional"`
 }
 
 func (r *VideoStreams) Update(ctx context.Context, id string, params VideoStreamsUpdateParams, opts ...*RequestOptions) (*Stream, error) {
 	body := map[string]any{}
-	body["url"] = params.URL
+	if params.URL != nil {
+		body["url"] = params.URL
+	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[Stream](r.HTTP.Put(ctx, r.Path(id), body, opts...))
 }

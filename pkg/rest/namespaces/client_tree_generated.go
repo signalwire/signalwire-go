@@ -28,6 +28,9 @@ func NewDatasphereNamespace(client HTTPClient) *DatasphereNamespace {
 
 // FabricNamespace groups the fabric namespace resources (§8 container).
 type FabricNamespace struct {
+	AliasAddresses       *AliasAddresses
+	SIPAddresses         *SIPAddresses
+	PhoneNumberAddresses *PhoneNumberAddresses
 	Addresses            *FabricAddresses
 	Resources            *GenericResources
 	AIAgents             *AIAgents
@@ -50,6 +53,9 @@ type FabricNamespace struct {
 // calling its per-resource constructor (base paths baked in per §4).
 func NewFabricNamespace(client HTTPClient) *FabricNamespace {
 	return &FabricNamespace{
+		AliasAddresses:       NewAliasAddresses(client),
+		SIPAddresses:         NewSIPAddresses(client),
+		PhoneNumberAddresses: NewPhoneNumberAddresses(client),
 		Addresses:            NewFabricAddresses(client),
 		Resources:            NewGenericResources(client),
 		AIAgents:             NewAIAgents(client),
@@ -120,6 +126,37 @@ func NewRegistryNamespace(client HTTPClient) *RegistryNamespace {
 	}
 }
 
+// SpaceNamespace groups the space namespace resources (§8 container).
+type SpaceNamespace struct {
+	Settings              *SpaceSettings
+	GeographicPermissions *SpaceGeographicPermissions
+	BillingProfile        *SpaceBillingProfile
+	BillingStatements     *SpaceBillingStatements
+	Usage                 *SpaceUsage
+	PaymentHistory        *SpacePaymentHistory
+	Members               *SpaceMembers
+	Balance               *SpaceBalance
+	LowBalanceSetting     *SpaceLowBalanceSetting
+	PaymentMethods        *SpacePaymentMethods
+}
+
+// NewSpaceNamespace constructs the SpaceNamespace container, wiring each resource by
+// calling its per-resource constructor (base paths baked in per §4).
+func NewSpaceNamespace(client HTTPClient) *SpaceNamespace {
+	return &SpaceNamespace{
+		Settings:              NewSpaceSettings(client),
+		GeographicPermissions: NewSpaceGeographicPermissions(client),
+		BillingProfile:        NewSpaceBillingProfile(client),
+		BillingStatements:     NewSpaceBillingStatements(client),
+		Usage:                 NewSpaceUsage(client),
+		PaymentHistory:        NewSpacePaymentHistory(client),
+		Members:               NewSpaceMembers(client),
+		Balance:               NewSpaceBalance(client),
+		LowBalanceSetting:     NewSpaceLowBalanceSetting(client),
+		PaymentMethods:        NewSpacePaymentMethods(client),
+	}
+}
+
 // VideoNamespace groups the video namespace resources (§8 container).
 type VideoNamespace struct {
 	ConferenceTokens *VideoConferenceTokens
@@ -142,5 +179,22 @@ func NewVideoNamespace(client HTTPClient) *VideoNamespace {
 		RoomTokens:       NewVideoRoomTokens(client),
 		Rooms:            NewVideoRooms(client),
 		Streams:          NewVideoStreams(client),
+	}
+}
+
+// WhatsappNamespace groups the whatsapp namespace resources (§8 container).
+type WhatsappNamespace struct {
+	Numbers    *WhatsappNumbers
+	Businesses *WhatsappBusinesses
+	Templates  *WhatsappTemplates
+}
+
+// NewWhatsappNamespace constructs the WhatsappNamespace container, wiring each resource by
+// calling its per-resource constructor (base paths baked in per §4).
+func NewWhatsappNamespace(client HTTPClient) *WhatsappNamespace {
+	return &WhatsappNamespace{
+		Numbers:    NewWhatsappNumbers(client),
+		Businesses: NewWhatsappBusinesses(client),
+		Templates:  NewWhatsappTemplates(client),
 	}
 }

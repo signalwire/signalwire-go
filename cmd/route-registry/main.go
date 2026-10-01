@@ -160,7 +160,10 @@ func run() int {
 
 	// Build the real client with throwaway creds; the project id ("__ID__")
 	// becomes the compat {AccountSid} path segment and normalises to {id}.
-	client, err := rest.NewRestClient(sentinel, "t", "example.signalwire.com")
+	// client.Space is served only to a Personal Access Token: configure one so the
+	// space resources are wired to a real transport (without it they fail before
+	// issuing a request).
+	client, err := rest.NewRestClient(sentinel, "t", "example.signalwire.com", rest.WithPersonalAccessToken("pat"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "route-registry: NewRestClient failed: %v\n", err)
 		return 2

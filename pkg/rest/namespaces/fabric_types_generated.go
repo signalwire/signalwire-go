@@ -15,10 +15,6 @@
 
 package namespaces
 
-type AI struct {
-	Ai AIObject `json:"ai,omitempty"`
-}
-
 type AIAddressPaginationResponse struct {
 	Self  string  `json:"self,omitempty"`
 	First string  `json:"first,omitempty"`
@@ -27,17 +23,54 @@ type AIAddressPaginationResponse struct {
 }
 
 type AIAgent struct {
-	GlobalData    map[string]any `json:"global_data,omitempty"`
-	Hints         []any          `json:"hints,omitempty"`
-	Languages     []Languages    `json:"languages,omitempty"`
-	Params        *AIParams      `json:"params,omitempty"`
-	PostPrompt    *AIPostPrompt  `json:"post_prompt,omitempty"`
-	PostPromptURL *string        `json:"post_prompt_url,omitempty"`
-	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
-	Prompt        AIPrompt       `json:"prompt,omitempty"`
-	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
-	AgentID       Uuid           `json:"agent_id,omitempty"`
-	Name          string         `json:"name,omitempty"`
+	GlobalData    map[string]any     `json:"global_data,omitempty"`
+	Hints         []string           `json:"hints,omitempty"`
+	Languages     []AIAgentLanguage  `json:"languages,omitempty"`
+	Params        *AIParams          `json:"params,omitempty"`
+	PostPrompt    *AIAgentPostPrompt `json:"post_prompt,omitempty"`
+	PostPromptURL *string            `json:"post_prompt_url,omitempty"`
+	Pronounce     []AIAgentPronounce `json:"pronounce,omitempty"`
+	Prompt        AIAgentPrompt      `json:"prompt,omitempty"`
+	SWAIG         *AIAgentSWAIG      `json:"SWAIG,omitempty"`
+	AgentID       Uuid               `json:"agent_id,omitempty"`
+	Name          string             `json:"name,omitempty"`
+	Multilingual  map[string]any     `json:"multilingual,omitempty"`
+}
+
+type AIAgentLanguage struct {
+	AutoEmotion       any             `json:"auto_emotion,omitempty"`
+	AutoSpeed         any             `json:"auto_speed,omitempty"`
+	Code              any             `json:"code,omitempty"`
+	DoubleTurnFillers []any           `json:"double_turn_fillers,omitempty"`
+	Engine            *string         `json:"engine,omitempty"`
+	Fillers           any             `json:"fillers,omitempty"`
+	FunctionFillers   []any           `json:"function_fillers,omitempty"`
+	ListenLanguage    any             `json:"listen_language,omitempty"`
+	Model             *string         `json:"model,omitempty"`
+	Name              *string         `json:"name,omitempty"`
+	Params            *LanguageParams `json:"params,omitempty"`
+	Pronounce         []any           `json:"pronounce,omitempty"`
+	SpeechFillers     []any           `json:"speech_fillers,omitempty"`
+	TurnFillers       []any           `json:"turn_fillers,omitempty"`
+	Voice             *string         `json:"voice,omitempty"`
+	ID                *string         `json:"id,omitempty"`
+	Provider          *string         `json:"provider,omitempty"`
+}
+
+type AIAgentSWAIG struct {
+	Defaults        *SWAIGDefaults         `json:"defaults,omitempty"`
+	Functions       []AIAgentSWAIGFunction `json:"functions,omitempty"`
+	Hooks           []map[string]any       `json:"hooks,omitempty"`
+	Includes        []AIAgentSWAIGInclude  `json:"includes,omitempty"`
+	InternalFillers *SWAIGInternalFiller   `json:"internal_fillers,omitempty"`
+	McpServers      []map[string]any       `json:"mcp_servers,omitempty"`
+	NativeFunctions []SWAIGNativeFunction  `json:"native_functions,omitempty"`
+}
+
+type AIAgentSWAIGInclude struct {
+	ID        *string  `json:"id,omitempty"`
+	Functions []string `json:"functions,omitempty"`
+	URL       *string  `json:"url,omitempty"`
 }
 
 type AIAgentAddressListResponse struct {
@@ -45,18 +78,42 @@ type AIAgentAddressListResponse struct {
 	Links AIAddressPaginationResponse `json:"links,omitempty"`
 }
 
+type AIAgentVoice struct {
+	ID           string `json:"id,omitempty"`
+	Provider     string `json:"provider,omitempty"`
+	Language     string `json:"language,omitempty"`
+	LanguageCode string `json:"language_code,omitempty"`
+	Voice        string `json:"voice,omitempty"`
+	Premium      int    `json:"premium,omitempty"`
+}
+
+type AIAgentConversationLogListResponse struct {
+	Links AIAddressPaginationResponse `json:"links,omitempty"`
+	Data  []AIAgentConversationLog    `json:"data,omitempty"`
+}
+
+type AIAgentConversationLog struct {
+	ID                string           `json:"id,omitempty"`
+	CallerIDNumber    string           `json:"caller_id_number,omitempty"`
+	DurationInSeconds int              `json:"duration_in_seconds,omitempty"`
+	Messages          []map[string]any `json:"messages,omitempty"`
+	RedactedAt        string           `json:"redacted_at,omitempty"`
+}
+
 type AIAgentCreateRequest struct {
-	GlobalData    map[string]any `json:"global_data,omitempty"`
-	Hints         []any          `json:"hints,omitempty"`
-	Languages     []Languages    `json:"languages,omitempty"`
-	Params        *AIParams      `json:"params,omitempty"`
-	PostPrompt    *AIPostPrompt  `json:"post_prompt,omitempty"`
-	PostPromptURL *string        `json:"post_prompt_url,omitempty"`
-	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
-	Prompt        AIPrompt       `json:"prompt,omitempty"`
-	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
-	AgentID       *Uuid          `json:"agent_id,omitempty"`
-	Name          string         `json:"name,omitempty"`
+	GlobalData             map[string]any     `json:"global_data,omitempty"`
+	Hints                  []string           `json:"hints,omitempty"`
+	Languages              []AIAgentLanguage  `json:"languages,omitempty"`
+	Params                 *AIParams          `json:"params,omitempty"`
+	PostPrompt             *AIAgentPostPrompt `json:"post_prompt,omitempty"`
+	PostPromptURL          *string            `json:"post_prompt_url,omitempty"`
+	Pronounce              []AIAgentPronounce `json:"pronounce,omitempty"`
+	Prompt                 *AIAgentPrompt     `json:"prompt,omitempty"`
+	SWAIG                  *AIAgentSWAIG      `json:"SWAIG,omitempty"`
+	Name                   string             `json:"name,omitempty"`
+	PostPromptAuthUser     *string            `json:"post_prompt_auth_user,omitempty"`
+	PostPromptAuthPassword *string            `json:"post_prompt_auth_password,omitempty"`
+	Multilingual           map[string]any     `json:"multilingual,omitempty"`
 }
 
 type AIAgentCreateStatusCode422 struct {
@@ -86,289 +143,250 @@ type AIAgentResponse struct {
 }
 
 type AIAgentUpdateRequest struct {
-	GlobalData    map[string]any      `json:"global_data,omitempty"`
-	Hints         []any               `json:"hints,omitempty"`
-	Languages     []Languages         `json:"languages,omitempty"`
-	Params        *AIParams           `json:"params,omitempty"`
-	PostPrompt    *AIPostPromptUpdate `json:"post_prompt,omitempty"`
-	PostPromptURL *string             `json:"post_prompt_url,omitempty"`
-	Pronounce     []Pronounce         `json:"pronounce,omitempty"`
-	Prompt        *AIPromptUpdate     `json:"prompt,omitempty"`
-	SWAIG         *SWAIGUpdate        `json:"SWAIG,omitempty"`
-	AgentID       *Uuid               `json:"agent_id,omitempty"`
-	Name          *string             `json:"name,omitempty"`
+	GlobalData             map[string]any     `json:"global_data,omitempty"`
+	Hints                  []string           `json:"hints,omitempty"`
+	Languages              []AIAgentLanguage  `json:"languages,omitempty"`
+	Params                 *AIParams          `json:"params,omitempty"`
+	PostPrompt             *AIAgentPostPrompt `json:"post_prompt,omitempty"`
+	PostPromptURL          *string            `json:"post_prompt_url,omitempty"`
+	Pronounce              []AIAgentPronounce `json:"pronounce,omitempty"`
+	Prompt                 *AIAgentPrompt     `json:"prompt,omitempty"`
+	SWAIG                  *AIAgentSWAIG      `json:"SWAIG,omitempty"`
+	Name                   *string            `json:"name,omitempty"`
+	PostPromptAuthUser     *string            `json:"post_prompt_auth_user,omitempty"`
+	PostPromptAuthPassword *string            `json:"post_prompt_auth_password,omitempty"`
+	Multilingual           map[string]any     `json:"multilingual,omitempty"`
 }
 
 type AIAgentUpdateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type AIObject struct {
-	GlobalData    map[string]any `json:"global_data,omitempty"`
-	Hints         []any          `json:"hints,omitempty"`
-	Languages     []Languages    `json:"languages,omitempty"`
-	Params        *AIParams      `json:"params,omitempty"`
-	PostPrompt    *AIPostPrompt  `json:"post_prompt,omitempty"`
-	PostPromptURL *string        `json:"post_prompt_url,omitempty"`
-	Pronounce     []Pronounce    `json:"pronounce,omitempty"`
-	Prompt        AIPrompt       `json:"prompt,omitempty"`
-	SWAIG         *SWAIG         `json:"SWAIG,omitempty"`
-}
-
 type AIParams struct {
-	AcknowledgeInterruptions  any                   `json:"acknowledge_interruptions,omitempty"`
-	AiModel                   any                   `json:"ai_model,omitempty"`
-	AiName                    *string               `json:"ai_name,omitempty"`
-	AiVolume                  any                   `json:"ai_volume,omitempty"`
-	AppName                   *string               `json:"app_name,omitempty"`
-	AsrSmartFormat            any                   `json:"asr_smart_format,omitempty"`
-	AttentionTimeout          any                   `json:"attention_timeout,omitempty"`
-	AttentionTimeoutPrompt    *string               `json:"attention_timeout_prompt,omitempty"`
-	AsrDiarize                any                   `json:"asr_diarize,omitempty"`
-	AsrSpeakerAffinity        any                   `json:"asr_speaker_affinity,omitempty"`
-	BackgroundFile            *string               `json:"background_file,omitempty"`
-	BackgroundFileLoops       any                   `json:"background_file_loops,omitempty"`
-	BackgroundFileVolume      any                   `json:"background_file_volume,omitempty"`
-	EnableBarge               any                   `json:"enable_barge,omitempty"`
-	EnableInnerDialog         any                   `json:"enable_inner_dialog,omitempty"`
-	EnablePause               any                   `json:"enable_pause,omitempty"`
-	EnableTurnDetection       any                   `json:"enable_turn_detection,omitempty"`
-	BargeMatchString          *string               `json:"barge_match_string,omitempty"`
-	BargeMinWords             any                   `json:"barge_min_words,omitempty"`
-	BargeFunctions            any                   `json:"barge_functions,omitempty"`
-	Conscience                *string               `json:"conscience,omitempty"`
-	Convo                     []ConversationMessage `json:"convo,omitempty"`
-	ConversationID            *string               `json:"conversation_id,omitempty"`
-	ConversationSlidingWindow any                   `json:"conversation_sliding_window,omitempty"`
-	DebugWebhookLevel         any                   `json:"debug_webhook_level,omitempty"`
-	DebugWebhookURL           *string               `json:"debug_webhook_url,omitempty"`
-	Debug                     any                   `json:"debug,omitempty"`
-	Direction                 any                   `json:"direction,omitempty"`
-	DigitTerminators          *string               `json:"digit_terminators,omitempty"`
-	DigitTimeout              any                   `json:"digit_timeout,omitempty"`
-	EndOfSpeechTimeout        any                   `json:"end_of_speech_timeout,omitempty"`
-	EnableThinking            any                   `json:"enable_thinking,omitempty"`
-	EnableVision              any                   `json:"enable_vision,omitempty"`
-	EnergyLevel               any                   `json:"energy_level,omitempty"`
-	FirstWordTimeout          any                   `json:"first_word_timeout,omitempty"`
-	FunctionWaitForTalking    any                   `json:"function_wait_for_talking,omitempty"`
-	FunctionsOnNoResponse     any                   `json:"functions_on_no_response,omitempty"`
-	HardStopPrompt            *string               `json:"hard_stop_prompt,omitempty"`
-	HardStopTime              any                   `json:"hard_stop_time,omitempty"`
-	HoldMusic                 *string               `json:"hold_music,omitempty"`
-	HoldOnProcess             any                   `json:"hold_on_process,omitempty"`
-	InactivityTimeout         any                   `json:"inactivity_timeout,omitempty"`
-	InnerDialogModel          any                   `json:"inner_dialog_model,omitempty"`
-	InnerDialogPrompt         *string               `json:"inner_dialog_prompt,omitempty"`
-	InnerDialogSynced         any                   `json:"inner_dialog_synced,omitempty"`
-	InitialSleepMs            any                   `json:"initial_sleep_ms,omitempty"`
-	InputPollFreq             any                   `json:"input_poll_freq,omitempty"`
-	InterruptOnNoise          any                   `json:"interrupt_on_noise,omitempty"`
-	InterruptPrompt           *string               `json:"interrupt_prompt,omitempty"`
+	AcknowledgeInterruptions    any                   `json:"acknowledge_interruptions,omitempty"`
+	AcousticEotGateProb         any                   `json:"acoustic_eot_gate_prob,omitempty"`
+	AcousticEotTrustProb        any                   `json:"acoustic_eot_trust_prob,omitempty"`
+	AiModel                     *string               `json:"ai_model,omitempty"`
+	AiName                      *string               `json:"ai_name,omitempty"`
+	AiVolume                    any                   `json:"ai_volume,omitempty"`
+	AppName                     *string               `json:"app_name,omitempty"`
+	AsrDiarize                  any                   `json:"asr_diarize,omitempty"`
+	AsrParams                   map[string]any        `json:"asr_params,omitempty"`
+	AsrSmartFormat              any                   `json:"asr_smart_format,omitempty"`
+	AsrSpeakerAffinity          any                   `json:"asr_speaker_affinity,omitempty"`
+	AttentionEscalatePrompt     *string               `json:"attention_escalate_prompt,omitempty"`
+	AttentionTimeout            any                   `json:"attention_timeout,omitempty"`
+	AttentionTimeoutPrompt      *string               `json:"attention_timeout_prompt,omitempty"`
+	AuthToken                   *string               `json:"auth_token,omitempty"`
+	AutoCorrect                 any                   `json:"auto_correct,omitempty"`
+	AzureStreamFirst            any                   `json:"azure_stream_first,omitempty"`
+	AzureTtsKey                 *string               `json:"azure_tts_key,omitempty"`
+	BackgroundFile              *string               `json:"background_file,omitempty"`
+	BackgroundFileLoops         any                   `json:"background_file_loops,omitempty"`
+	BackgroundFileVolume        any                   `json:"background_file_volume,omitempty"`
+	BargeFunctions              any                   `json:"barge_functions,omitempty"`
+	BargeMatchString            *string               `json:"barge_match_string,omitempty"`
+	BargeMinWords               any                   `json:"barge_min_words,omitempty"`
+	BillAllTts                  any                   `json:"bill_all_tts,omitempty"`
+	Cache                       any                   `json:"cache,omitempty"`
+	CallUUID                    *string               `json:"call_uuid,omitempty"`
+	CartesiaKey                 *string               `json:"cartesia_key,omitempty"`
+	CartesiaModel               *string               `json:"cartesia_model,omitempty"`
+	CartesiaStreamFirst         any                   `json:"cartesia_stream_first,omitempty"`
+	Confidence                  any                   `json:"confidence,omitempty"`
+	Conscience                  *string               `json:"conscience,omitempty"`
+	ConversationID              *string               `json:"conversation_id,omitempty"`
+	ConversationSlidingWindow   any                   `json:"conversation_sliding_window,omitempty"`
+	Convo                       []ConversationMessage `json:"convo,omitempty"`
+	DebugWebhookLevel           any                   `json:"debug_webhook_level,omitempty"`
+	DebugWebhookURL             *string               `json:"debug_webhook_url,omitempty"`
+	DeepgramKeyOverride         *string               `json:"deepgram_key_override,omitempty"`
+	DeepgramStreamFirst         any                   `json:"deepgram_stream_first,omitempty"`
+	DeepgramTtsKey              *string               `json:"deepgram_tts_key,omitempty"`
+	DeepgramURLOverride         *string               `json:"deepgram_url_override,omitempty"`
+	DeveloperPrompt             *string               `json:"developer_prompt,omitempty"`
+	DigitTerminators            *string               `json:"digit_terminators,omitempty"`
+	DigitTimeout                any                   `json:"digit_timeout,omitempty"`
+	Direction                   *Direction            `json:"direction,omitempty"`
+	DoubleTurnFillerEveryN      any                   `json:"double_turn_filler_every_n,omitempty"`
+	DoubleTurnFillerMinMs       any                   `json:"double_turn_filler_min_ms,omitempty"`
+	DoubleTurnModel             *string               `json:"double_turn_model,omitempty"`
+	DoubleTurnPrompt            *string               `json:"double_turn_prompt,omitempty"`
+	DoubleTurnWaitMs            any                   `json:"double_turn_wait_ms,omitempty"`
+	DoubleTurns                 any                   `json:"double_turns,omitempty"`
+	ElevenLabsKey               *string               `json:"eleven_labs_key,omitempty"`
+	ElevenLabsModel             *string               `json:"eleven_labs_model,omitempty"`
+	ElevenLabsSimilarity        any                   `json:"eleven_labs_similarity,omitempty"`
+	ElevenLabsStability         any                   `json:"eleven_labs_stability,omitempty"`
+	ElevenLabsStreamFirst       any                   `json:"eleven_labs_stream_first,omitempty"`
+	EnableBarge                 any                   `json:"enable_barge,omitempty"`
+	EnableInnerDialog           any                   `json:"enable_inner_dialog,omitempty"`
+	EnablePause                 any                   `json:"enable_pause,omitempty"`
+	EnableTextNormalization     *string               `json:"enable_text_normalization,omitempty"`
+	EnableThinking              any                   `json:"enable_thinking,omitempty"`
+	EnableTurnDetection         any                   `json:"enable_turn_detection,omitempty"`
+	EnableVision                any                   `json:"enable_vision,omitempty"`
+	EndOfSpeechTimeout          any                   `json:"end_of_speech_timeout,omitempty"`
+	EnergyLevel                 any                   `json:"energy_level,omitempty"`
+	EscalateAfterMs             any                   `json:"escalate_after_ms,omitempty"`
+	EscalateAfterTurns          any                   `json:"escalate_after_turns,omitempty"`
+	EventWebhookURL             *string               `json:"event_webhook_url,omitempty"`
+	Ext                         *string               `json:"ext,omitempty"`
+	FirstWordTimeout            any                   `json:"first_word_timeout,omitempty"`
+	FishKey                     *string               `json:"fish_key,omitempty"`
+	FishModel                   *string               `json:"fish_model,omitempty"`
+	FunctionFillerSequenceGapMs any                   `json:"function_filler_sequence_gap_ms,omitempty"`
+	FunctionWaitForTalking      any                   `json:"function_wait_for_talking,omitempty"`
+	FunctionsOnNoResponse       any                   `json:"functions_on_no_response,omitempty"`
+	GrokKey                     *string               `json:"grok_key,omitempty"`
+	GroqTtsKey                  *string               `json:"groq_tts_key,omitempty"`
+	HardStopPrompt              *string               `json:"hard_stop_prompt,omitempty"`
+	HardStopTime                *string               `json:"hard_stop_time,omitempty"`
+	HoldMusic                   *string               `json:"hold_music,omitempty"`
+	HoldOnProcess               any                   `json:"hold_on_process,omitempty"`
+	InactivityTimeout           any                   `json:"inactivity_timeout,omitempty"`
+	InitialSleepMs              any                   `json:"initial_sleep_ms,omitempty"`
+	InnerDialog                 map[string]any        `json:"inner_dialog,omitempty"`
+	InnerDialogModel            *string               `json:"inner_dialog_model,omitempty"`
+	InnerDialogPrompt           *string               `json:"inner_dialog_prompt,omitempty"`
+	InnerDialogScorecard        any                   `json:"inner_dialog_scorecard,omitempty"`
+	InputPollFreq               any                   `json:"input_poll_freq,omitempty"`
+	InterruptOnNoise            any                   `json:"interrupt_on_noise,omitempty"`
+	InterruptPrompt             *string               `json:"interrupt_prompt,omitempty"`
+	InworldApikey               *string               `json:"inworld_apikey,omitempty"`
+	InworldKey                  *string               `json:"inworld_key,omitempty"`
+	InworldModel                *string               `json:"inworld_model,omitempty"`
+	Language                    *string               `json:"language,omitempty"`
 	// Deprecated: languages_enabled
-	LanguagesEnabled         any     `json:"languages_enabled,omitempty"`
-	LocalTz                  *string `json:"local_tz,omitempty"`
-	LlmDiarizeAware          any     `json:"llm_diarize_aware,omitempty"`
-	MaxEmotion               any     `json:"max_emotion,omitempty"`
-	MaxResponseTokens        any     `json:"max_response_tokens,omitempty"`
-	OpenaiAsrEngine          *string `json:"openai_asr_engine,omitempty"`
-	OutboundAttentionTimeout any     `json:"outbound_attention_timeout,omitempty"`
-	PersistGlobalData        any     `json:"persist_global_data,omitempty"`
-	PomFormat                *string `json:"pom_format,omitempty"`
-	SaveConversation         any     `json:"save_conversation,omitempty"`
-	SpeechEventTimeout       any     `json:"speech_event_timeout,omitempty"`
-	SpeechGenQuickStops      any     `json:"speech_gen_quick_stops,omitempty"`
-	SpeechTimeout            any     `json:"speech_timeout,omitempty"`
-	SpeakWhenSpokenTo        any     `json:"speak_when_spoken_to,omitempty"`
-	StartPaused              any     `json:"start_paused,omitempty"`
-	StaticGreeting           *string `json:"static_greeting,omitempty"`
-	StaticGreetingNoBarge    any     `json:"static_greeting_no_barge,omitempty"`
-	SummaryMode              any     `json:"summary_mode,omitempty"`
-	SwaigAllowSettings       any     `json:"swaig_allow_settings,omitempty"`
-	SwaigAllowSwml           any     `json:"swaig_allow_swml,omitempty"`
-	SwaigPostConversation    any     `json:"swaig_post_conversation,omitempty"`
-	SwaigSetGlobalData       any     `json:"swaig_set_global_data,omitempty"`
-	SwaigPostSwmlVars        any     `json:"swaig_post_swml_vars,omitempty"`
-	ThinkingModel            any     `json:"thinking_model,omitempty"`
-	TransparentBarge         any     `json:"transparent_barge,omitempty"`
-	TransparentBargeMaxTime  any     `json:"transparent_barge_max_time,omitempty"`
-	TransferSummary          any     `json:"transfer_summary,omitempty"`
-	TurnDetectionTimeout     any     `json:"turn_detection_timeout,omitempty"`
-	TtsNumberFormat          *string `json:"tts_number_format,omitempty"`
-	VideoListeningFile       *string `json:"video_listening_file,omitempty"`
-	VideoIdleFile            *string `json:"video_idle_file,omitempty"`
-	VideoTalkingFile         *string `json:"video_talking_file,omitempty"`
-	VisionModel              any     `json:"vision_model,omitempty"`
-	VadConfig                *string `json:"vad_config,omitempty"`
-	WaitForUser              any     `json:"wait_for_user,omitempty"`
-	WakePrefix               *string `json:"wake_prefix,omitempty"`
-	ElevenLabsStability      any     `json:"eleven_labs_stability,omitempty"`
-	ElevenLabsSimilarity     any     `json:"eleven_labs_similarity,omitempty"`
+	LanguagesEnabled               any            `json:"languages_enabled,omitempty"`
+	LipsyncDebug                   any            `json:"lipsync_debug,omitempty"`
+	LlmDiarizeAware                any            `json:"llm_diarize_aware,omitempty"`
+	LocalTz                        *string        `json:"local_tz,omitempty"`
+	MaxEmotion                     any            `json:"max_emotion,omitempty"`
+	MaxResponseTokens              any            `json:"max_response_tokens,omitempty"`
+	MinUtteranceMs                 any            `json:"min_utterance_ms,omitempty"`
+	MinimaxKey                     *string        `json:"minimax_key,omitempty"`
+	MinimaxModel                   *string        `json:"minimax_model,omitempty"`
+	MistralKey                     *string        `json:"mistral_key,omitempty"`
+	MistralModel                   *string        `json:"mistral_model,omitempty"`
+	Model                          *string        `json:"model,omitempty"`
+	OpenaiAsrEngine                *string        `json:"openai_asr_engine,omitempty"`
+	OpenaiAzure                    any            `json:"openai_azure,omitempty"`
+	OpenaiGcloudVersion            *string        `json:"openai_gcloud_version,omitempty"`
+	OpenaiStreamFirst              any            `json:"openai_stream_first,omitempty"`
+	OpenaiTtsKey                   *string        `json:"openai_tts_key,omitempty"`
+	OpenaiTtsURL                   *string        `json:"openai_tts_url,omitempty"`
+	OutboundAttentionTimeout       any            `json:"outbound_attention_timeout,omitempty"`
+	PcmChannels                    any            `json:"pcm_channels,omitempty"`
+	PcmRate                        any            `json:"pcm_rate,omitempty"`
+	PersistGlobalData              any            `json:"persist_global_data,omitempty"`
+	PomFormat                      *string        `json:"pom_format,omitempty"`
+	Provider                       *string        `json:"provider,omitempty"`
+	PvtParams                      *string        `json:"pvt_params,omitempty"`
+	Realtime                       map[string]any `json:"realtime,omitempty"`
+	RedactPrompt                   *string        `json:"redact_prompt,omitempty"`
+	RimeApikey                     *string        `json:"rime_apikey,omitempty"`
+	RimeKey                        *string        `json:"rime_key,omitempty"`
+	RimeModel                      *string        `json:"rime_model,omitempty"`
+	RimeStreamFirst                any            `json:"rime_stream_first,omitempty"`
+	SampleRate                     any            `json:"sample_rate,omitempty"`
+	SaveConversation               any            `json:"save_conversation,omitempty"`
+	SendSingleLlmResponse          any            `json:"send_single_llm_response,omitempty"`
+	Similarity                     any            `json:"similarity,omitempty"`
+	SmallestKey                    *string        `json:"smallest_key,omitempty"`
+	SmallestModel                  *string        `json:"smallest_model,omitempty"`
+	SpeakWhenSpokenTo              any            `json:"speak_when_spoken_to,omitempty"`
+	Speaker                        *string        `json:"speaker,omitempty"`
+	SpeechEventTimeout             any            `json:"speech_event_timeout,omitempty"`
+	SpeechGenQuickStops            any            `json:"speech_gen_quick_stops,omitempty"`
+	SpeechTimeout                  any            `json:"speech_timeout,omitempty"`
+	SpeechifyKey                   *string        `json:"speechify_key,omitempty"`
+	SpeechifyLoudnessNormalization any            `json:"speechify_loudness_normalization,omitempty"`
+	SpeechifyModel                 *string        `json:"speechify_model,omitempty"`
+	SpeechifyOutputFormat          *string        `json:"speechify_output_format,omitempty"`
+	SpeechifyStreamFirst           any            `json:"speechify_stream_first,omitempty"`
+	SpeechifyTextNormalization     any            `json:"speechify_text_normalization,omitempty"`
+	Speed                          any            `json:"speed,omitempty"`
+	Stability                      any            `json:"stability,omitempty"`
+	StartPaused                    any            `json:"start_paused,omitempty"`
+	StaticGreeting                 *string        `json:"static_greeting,omitempty"`
+	StaticGreetingNoBarge          any            `json:"static_greeting_no_barge,omitempty"`
+	StreamFirst                    any            `json:"stream_first,omitempty"`
+	Streaming                      any            `json:"streaming,omitempty"`
+	StrictMode                     *string        `json:"strict_mode,omitempty"`
+	SummaryMode                    *string        `json:"summary_mode,omitempty"`
+	SwaigAllowSettings             any            `json:"swaig_allow_settings,omitempty"`
+	SwaigAllowSwml                 any            `json:"swaig_allow_swml,omitempty"`
+	SwaigPostConversation          any            `json:"swaig_post_conversation,omitempty"`
+	SwaigPostSwmlVars              any            `json:"swaig_post_swml_vars,omitempty"`
+	SwaigSetGlobalData             any            `json:"swaig_set_global_data,omitempty"`
+	TargetFirstSegmentMs           any            `json:"target_first_segment_ms,omitempty"`
+	TextNormalizationFarDir        *string        `json:"text_normalization_far_dir,omitempty"`
+	ThinkingModel                  *string        `json:"thinking_model,omitempty"`
+	ToolResultDistill              any            `json:"tool_result_distill,omitempty"`
+	TransferSummary                any            `json:"transfer_summary,omitempty"`
+	TransparentBarge               any            `json:"transparent_barge,omitempty"`
+	TransparentBargeMaxTime        any            `json:"transparent_barge_max_time,omitempty"`
+	TtsNumberFormat                *string        `json:"tts_number_format,omitempty"`
+	TurnDetection                  any            `json:"turn_detection,omitempty"`
+	TurnDetectionMinLength         any            `json:"turn_detection_min_length,omitempty"`
+	TurnDetectionTimeout           any            `json:"turn_detection_timeout,omitempty"`
+	TurnFillerEveryN               any            `json:"turn_filler_every_n,omitempty"`
+	TurnFillerMinMs                any            `json:"turn_filler_min_ms,omitempty"`
+	TurnFillerSources              *string        `json:"turn_filler_sources,omitempty"`
+	URL                            *string        `json:"url,omitempty"`
+	UtilityModel                   *string        `json:"utility_model,omitempty"`
+	VadConfig                      *string        `json:"vad_config,omitempty"`
+	VideoFps                       any            `json:"video_fps,omitempty"`
+	VideoIdleFile                  *string        `json:"video_idle_file,omitempty"`
+	VideoListeningFile             *string        `json:"video_listening_file,omitempty"`
+	VideoScale                     *string        `json:"video_scale,omitempty"`
+	VideoTalkingFile               *string        `json:"video_talking_file,omitempty"`
+	VisionModel                    *string        `json:"vision_model,omitempty"`
+	VoiceName                      *string        `json:"voice_name,omitempty"`
+	Vol                            any            `json:"vol,omitempty"`
+	WaitForUser                    any            `json:"wait_for_user,omitempty"`
+	WakePrefix                     *string        `json:"wake_prefix,omitempty"`
 }
 
-type AIPostPrompt any
-
-type AIPostPromptPom struct {
-	MaxTokens        *int  `json:"max_tokens,omitempty"`
-	Temperature      any   `json:"temperature,omitempty"`
-	TopP             any   `json:"top_p,omitempty"`
-	Confidence       any   `json:"confidence,omitempty"`
-	PresencePenalty  any   `json:"presence_penalty,omitempty"`
-	FrequencyPenalty any   `json:"frequency_penalty,omitempty"`
-	Pom              []POM `json:"pom,omitempty"`
+type Action struct {
+	SWML                      any              `json:"SWML,omitempty"`
+	AddDynamicHints           []any            `json:"add_dynamic_hints,omitempty"`
+	BackToBackFunctions       any              `json:"back_to_back_functions,omitempty"`
+	ChangeContext             *string          `json:"change_context,omitempty"`
+	ChangeStep                *string          `json:"change_step,omitempty"`
+	ChangeVoice               any              `json:"change_voice,omitempty"`
+	ClearDynamicHints         *bool            `json:"clear_dynamic_hints,omitempty"`
+	ContextSwitch             any              `json:"context_switch,omitempty"`
+	EndOfSpeechTimeout        *int             `json:"end_of_speech_timeout,omitempty"`
+	ExtensiveData             *bool            `json:"extensive_data,omitempty"`
+	FunctionsOnSpeakerTimeout *bool            `json:"functions_on_speaker_timeout,omitempty"`
+	Hangup                    *bool            `json:"hangup,omitempty"`
+	Hold                      any              `json:"hold,omitempty"`
+	PlaybackBg                any              `json:"playback_bg,omitempty"`
+	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	Say                       *string          `json:"say,omitempty"`
+	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
+	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
+	Settings                  map[string]any   `json:"settings,omitempty"`
+	SpeechEventTimeout        *int             `json:"speech_event_timeout,omitempty"`
+	Stop                      *bool            `json:"stop,omitempty"`
+	StopPlaybackBg            *bool            `json:"stop_playback_bg,omitempty"`
+	ToggleFunctions           []map[string]any `json:"toggle_functions,omitempty"`
+	Transfer                  any              `json:"transfer,omitempty"`
+	UnsetGlobalData           any              `json:"unset_global_data,omitempty"`
+	UnsetMetaData             any              `json:"unset_meta_data,omitempty"`
+	UserEvent                 map[string]any   `json:"user_event,omitempty"`
+	UserInput                 *string          `json:"user_input,omitempty"`
+	WaitForUser               any              `json:"wait_for_user,omitempty"`
 }
-
-type AIPostPromptPomUpdate struct {
-	MaxTokens        *int  `json:"max_tokens,omitempty"`
-	Temperature      any   `json:"temperature,omitempty"`
-	TopP             any   `json:"top_p,omitempty"`
-	Confidence       any   `json:"confidence,omitempty"`
-	PresencePenalty  any   `json:"presence_penalty,omitempty"`
-	FrequencyPenalty any   `json:"frequency_penalty,omitempty"`
-	Pom              []POM `json:"pom,omitempty"`
-}
-
-type AIPostPromptText struct {
-	MaxTokens        *int   `json:"max_tokens,omitempty"`
-	Temperature      any    `json:"temperature,omitempty"`
-	TopP             any    `json:"top_p,omitempty"`
-	Confidence       any    `json:"confidence,omitempty"`
-	PresencePenalty  any    `json:"presence_penalty,omitempty"`
-	FrequencyPenalty any    `json:"frequency_penalty,omitempty"`
-	Text             string `json:"text,omitempty"`
-}
-
-type AIPostPromptTextUpdate struct {
-	MaxTokens        *int    `json:"max_tokens,omitempty"`
-	Temperature      any     `json:"temperature,omitempty"`
-	TopP             any     `json:"top_p,omitempty"`
-	Confidence       any     `json:"confidence,omitempty"`
-	PresencePenalty  any     `json:"presence_penalty,omitempty"`
-	FrequencyPenalty any     `json:"frequency_penalty,omitempty"`
-	Text             *string `json:"text,omitempty"`
-}
-
-type AIPostPromptUpdate any
-
-type AIPrompt any
-
-type AIPromptPom struct {
-	MaxTokens        *int      `json:"max_tokens,omitempty"`
-	Temperature      any       `json:"temperature,omitempty"`
-	TopP             any       `json:"top_p,omitempty"`
-	Confidence       any       `json:"confidence,omitempty"`
-	PresencePenalty  any       `json:"presence_penalty,omitempty"`
-	FrequencyPenalty any       `json:"frequency_penalty,omitempty"`
-	Pom              []POM     `json:"pom,omitempty"`
-	Contexts         *Contexts `json:"contexts,omitempty"`
-}
-
-type AIPromptPomUpdate struct {
-	MaxTokens        *int            `json:"max_tokens,omitempty"`
-	Temperature      any             `json:"temperature,omitempty"`
-	TopP             any             `json:"top_p,omitempty"`
-	Confidence       any             `json:"confidence,omitempty"`
-	PresencePenalty  any             `json:"presence_penalty,omitempty"`
-	FrequencyPenalty any             `json:"frequency_penalty,omitempty"`
-	Pom              []POM           `json:"pom,omitempty"`
-	Contexts         *ContextsUpdate `json:"contexts,omitempty"`
-}
-
-type AIPromptText struct {
-	MaxTokens        *int      `json:"max_tokens,omitempty"`
-	Temperature      any       `json:"temperature,omitempty"`
-	TopP             any       `json:"top_p,omitempty"`
-	Confidence       any       `json:"confidence,omitempty"`
-	PresencePenalty  any       `json:"presence_penalty,omitempty"`
-	FrequencyPenalty any       `json:"frequency_penalty,omitempty"`
-	Text             string    `json:"text,omitempty"`
-	Contexts         *Contexts `json:"contexts,omitempty"`
-}
-
-type AIPromptTextUpdate struct {
-	MaxTokens        *int            `json:"max_tokens,omitempty"`
-	Temperature      any             `json:"temperature,omitempty"`
-	TopP             any             `json:"top_p,omitempty"`
-	Confidence       any             `json:"confidence,omitempty"`
-	PresencePenalty  any             `json:"presence_penalty,omitempty"`
-	FrequencyPenalty any             `json:"frequency_penalty,omitempty"`
-	Text             *string         `json:"text,omitempty"`
-	Contexts         *ContextsUpdate `json:"contexts,omitempty"`
-}
-
-type AIPromptUpdate any
-
-type Action any
 
 type AddressChannel any
-
-type AllOfProperty struct {
-	AllOf []SchemaType `json:"allOf,omitempty"`
-}
-
-type AmazonBedrock struct {
-	AmazonBedrock AmazonBedrockObject `json:"amazon_bedrock,omitempty"`
-}
-
-type AmazonBedrockObject struct {
-	GlobalData    map[string]any     `json:"global_data,omitempty"`
-	Params        *BedrockParams     `json:"params,omitempty"`
-	PostPrompt    *BedrockPostPrompt `json:"post_prompt,omitempty"`
-	PostPromptURL *string            `json:"post_prompt_url,omitempty"`
-	Prompt        BedrockPrompt      `json:"prompt,omitempty"`
-	SWAIG         *BedrockSWAIG      `json:"SWAIG,omitempty"`
-}
-
-type Answer struct {
-	Answer map[string]any `json:"answer,omitempty"`
-}
-
-type AnyOfProperty struct {
-	AnyOf []SchemaType `json:"anyOf,omitempty"`
-}
-
-type ArrayProperty struct {
-	Description *string          `json:"description,omitempty"`
-	Nullable    any              `json:"nullable,omitempty"`
-	Type        string           `json:"type,omitempty"`
-	Default     []map[string]any `json:"default,omitempty"`
-	Items       SchemaType       `json:"items,omitempty"`
-}
 
 type AttentionTimeout int
 
 type AudioChannel struct {
 	Audio string `json:"audio,omitempty"`
-}
-
-type BedrockParams struct {
-	AttentionTimeout   any     `json:"attention_timeout,omitempty"`
-	HardStopTime       any     `json:"hard_stop_time,omitempty"`
-	InactivityTimeout  any     `json:"inactivity_timeout,omitempty"`
-	VideoListeningFile *string `json:"video_listening_file,omitempty"`
-	VideoIdleFile      *string `json:"video_idle_file,omitempty"`
-	VideoTalkingFile   *string `json:"video_talking_file,omitempty"`
-	HardStopPrompt     *string `json:"hard_stop_prompt,omitempty"`
-}
-
-type BedrockPostPrompt any
-
-type BedrockPrompt any
-
-type BedrockSWAIG struct {
-	Functions       []BedrockSWAIGFunction `json:"functions,omitempty"`
-	Defaults        *SWAIGDefaults         `json:"defaults,omitempty"`
-	NativeFunctions []SWAIGNativeFunction  `json:"native_functions,omitempty"`
-	Includes        []SWAIGIncludes        `json:"includes,omitempty"`
-}
-
-type BedrockSWAIGFunction any
-
-type BooleanProperty struct {
-	Description *string `json:"description,omitempty"`
-	Nullable    any     `json:"nullable,omitempty"`
-	Type        string  `json:"type,omitempty"`
-	Default     any     `json:"default,omitempty"`
 }
 
 type CXMLScript struct {
@@ -378,7 +396,7 @@ type CXMLScript struct {
 	LastAccessedAt       any    `json:"last_accessed_at,omitempty"`
 	RequestURL           string `json:"request_url,omitempty"`
 	ScriptType           string `json:"script_type,omitempty"`
-	DisplayName          string `json:"display_name,omitempty"`
+	Name                 string `json:"name,omitempty"`
 	StatusCallbackURL    any    `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod any    `json:"status_callback_method,omitempty"`
 }
@@ -396,10 +414,11 @@ type CXMLScriptAddressPaginationResponse struct {
 }
 
 type CXMLScriptCreateRequest struct {
-	DisplayName          string  `json:"display_name,omitempty"`
 	Contents             string  `json:"contents,omitempty"`
 	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod any     `json:"status_callback_method,omitempty"`
+	Name                 string  `json:"name,omitempty"`
+	ScriptType           *string `json:"script_type,omitempty"`
 }
 
 type CXMLScriptCreateStatusCode422 struct {
@@ -412,20 +431,21 @@ type CXMLScriptListResponse struct {
 }
 
 type CXMLScriptResponse struct {
-	ID         Uuid       `json:"id,omitempty"`
-	ProjectID  Uuid       `json:"project_id,omitempty"`
-	Name       string     `json:"name,omitempty"`
-	Type       string     `json:"type,omitempty"`
-	CreatedAt  string     `json:"created_at,omitempty"`
-	UpdatedAt  string     `json:"updated_at,omitempty"`
-	CxmlScript CXMLScript `json:"cxml_script,omitempty"`
+	ID          Uuid       `json:"id,omitempty"`
+	ProjectID   Uuid       `json:"project_id,omitempty"`
+	DisplayName string     `json:"display_name,omitempty"`
+	Type        string     `json:"type,omitempty"`
+	CreatedAt   string     `json:"created_at,omitempty"`
+	UpdatedAt   string     `json:"updated_at,omitempty"`
+	CxmlScript  CXMLScript `json:"cxml_script,omitempty"`
 }
 
 type CXMLScriptUpdateRequest struct {
-	DisplayName          *string `json:"display_name,omitempty"`
 	Contents             *string `json:"contents,omitempty"`
 	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
 	StatusCallbackMethod any     `json:"status_callback_method,omitempty"`
+	Name                 *string `json:"name,omitempty"`
+	ScriptType           *string `json:"script_type,omitempty"`
 }
 
 type CXMLScriptUpdateStatusCode422 struct {
@@ -433,15 +453,15 @@ type CXMLScriptUpdateStatusCode422 struct {
 }
 
 type CXMLWebhook struct {
-	ID                    Uuid        `json:"id,omitempty"`
-	Name                  string      `json:"name,omitempty"`
-	UsedFor               UsedForType `json:"used_for,omitempty"`
-	PrimaryRequestURL     string      `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any         `json:"primary_request_method,omitempty"`
-	FallbackRequestURL    any         `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any         `json:"fallback_request_method,omitempty"`
-	StatusCallbackURL     any         `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any         `json:"status_callback_method,omitempty"`
+	ID                    Uuid                   `json:"id,omitempty"`
+	Name                  string                 `json:"name,omitempty"`
+	UsedFor               CxmlWebhookUsedForType `json:"used_for,omitempty"`
+	PrimaryRequestURL     string                 `json:"primary_request_url,omitempty"`
+	PrimaryRequestMethod  any                    `json:"primary_request_method,omitempty"`
+	FallbackRequestURL    any                    `json:"fallback_request_url,omitempty"`
+	FallbackRequestMethod any                    `json:"fallback_request_method,omitempty"`
+	StatusCallbackURL     any                    `json:"status_callback_url,omitempty"`
+	StatusCallbackMethod  any                    `json:"status_callback_method,omitempty"`
 }
 
 type CXMLWebhookAddressListResponse struct {
@@ -457,14 +477,14 @@ type CXMLWebhookAddressPaginationResponse struct {
 }
 
 type CXMLWebhookCreateRequest struct {
-	Name                  *string      `json:"name,omitempty"`
-	UsedFor               *UsedForType `json:"used_for,omitempty"`
-	PrimaryRequestURL     string       `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any          `json:"primary_request_method,omitempty"`
-	FallbackRequestURL    *string      `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any          `json:"fallback_request_method,omitempty"`
-	StatusCallbackURL     *string      `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any          `json:"status_callback_method,omitempty"`
+	Name                  *string                 `json:"name,omitempty"`
+	UsedFor               *CxmlWebhookUsedForType `json:"used_for,omitempty"`
+	PrimaryRequestURL     string                  `json:"primary_request_url,omitempty"`
+	PrimaryRequestMethod  any                     `json:"primary_request_method,omitempty"`
+	FallbackRequestURL    *string                 `json:"fallback_request_url,omitempty"`
+	FallbackRequestMethod any                     `json:"fallback_request_method,omitempty"`
+	StatusCallbackURL     *string                 `json:"status_callback_url,omitempty"`
+	StatusCallbackMethod  any                     `json:"status_callback_method,omitempty"`
 }
 
 type CXMLWebhookCreateStatusCode422 struct {
@@ -494,14 +514,14 @@ type CXMLWebhookResponse struct {
 }
 
 type CXMLWebhookUpdateRequest struct {
-	Name                  *string      `json:"name,omitempty"`
-	UsedFor               *UsedForType `json:"used_for,omitempty"`
-	PrimaryRequestURL     *string      `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any          `json:"primary_request_method,omitempty"`
-	FallbackRequestURL    *string      `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any          `json:"fallback_request_method,omitempty"`
-	StatusCallbackURL     *string      `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any          `json:"status_callback_method,omitempty"`
+	Name                  *string                 `json:"name,omitempty"`
+	UsedFor               *CxmlWebhookUsedForType `json:"used_for,omitempty"`
+	PrimaryRequestURL     *string                 `json:"primary_request_url,omitempty"`
+	PrimaryRequestMethod  any                     `json:"primary_request_method,omitempty"`
+	FallbackRequestURL    *string                 `json:"fallback_request_url,omitempty"`
+	FallbackRequestMethod any                     `json:"fallback_request_method,omitempty"`
+	StatusCallbackURL     *string                 `json:"status_callback_url,omitempty"`
+	StatusCallbackMethod  any                     `json:"status_callback_method,omitempty"`
 }
 
 type CXMLWebhookUpdateStatusCode422 struct {
@@ -509,11 +529,11 @@ type CXMLWebhookUpdateStatusCode422 struct {
 }
 
 type CallFlow struct {
-	ID              Uuid    `json:"id,omitempty"`
-	Title           string  `json:"title,omitempty"`
-	FlowData        *string `json:"flow_data,omitempty"`
-	Relayml         *string `json:"relayml,omitempty"`
-	DocumentVersion *int    `json:"document_version,omitempty"`
+	ID              Uuid           `json:"id,omitempty"`
+	Title           string         `json:"title,omitempty"`
+	FlowData        map[string]any `json:"flow_data,omitempty"`
+	Relayml         map[string]any `json:"relayml,omitempty"`
+	DocumentVersion *int           `json:"document_version,omitempty"`
 }
 
 type CallFlowAddressListResponse struct {
@@ -529,7 +549,9 @@ type CallFlowAddressPaginationResponse struct {
 }
 
 type CallFlowCreateRequest struct {
-	Title string `json:"title,omitempty"`
+	Title    string         `json:"title,omitempty"`
+	FlowData map[string]any `json:"flow_data,omitempty"`
+	Relayml  map[string]any `json:"relayml,omitempty"`
 }
 
 type CallFlowCreateStatusCode422 struct {
@@ -552,8 +574,10 @@ type CallFlowResponse struct {
 }
 
 type CallFlowUpdateRequest struct {
-	Title           *string `json:"title,omitempty"`
-	DocumentVersion *int    `json:"document_version,omitempty"`
+	Title           *string        `json:"title,omitempty"`
+	DocumentVersion int            `json:"document_version,omitempty"`
+	FlowData        map[string]any `json:"flow_data,omitempty"`
+	Relayml         map[string]any `json:"relayml,omitempty"`
 }
 
 type CallFlowUpdateStatusCode422 struct {
@@ -561,12 +585,12 @@ type CallFlowUpdateStatusCode422 struct {
 }
 
 type CallFlowVersion struct {
-	ID        Uuid    `json:"id,omitempty"`
-	Version   string  `json:"version,omitempty"`
-	CreatedAt string  `json:"created_at,omitempty"`
-	UpdatedAt string  `json:"updated_at,omitempty"`
-	FlowData  *string `json:"flow_data,omitempty"`
-	Relayml   *string `json:"relayml,omitempty"`
+	ID              Uuid           `json:"id,omitempty"`
+	DocumentVersion int            `json:"document_version,omitempty"`
+	CreatedAt       string         `json:"created_at,omitempty"`
+	UpdatedAt       string         `json:"updated_at,omitempty"`
+	FlowData        map[string]any `json:"flow_data,omitempty"`
+	Relayml         map[string]any `json:"relayml,omitempty"`
 }
 
 type CallFlowVersionDeployByDocumentVersion struct {
@@ -580,12 +604,12 @@ type CallFlowVersionDeployByVersionId struct {
 type CallFlowVersionDeployRequest any
 
 type CallFlowVersionDeployResponse struct {
-	ID              Uuid    `json:"id,omitempty"`
-	CreatedAt       string  `json:"created_at,omitempty"`
-	UpdatedAt       string  `json:"updated_at,omitempty"`
-	DocumentVersion int     `json:"document_version,omitempty"`
-	FlowData        *string `json:"flow_data,omitempty"`
-	Relayml         *string `json:"relayml,omitempty"`
+	ID              Uuid           `json:"id,omitempty"`
+	CreatedAt       string         `json:"created_at,omitempty"`
+	UpdatedAt       string         `json:"updated_at,omitempty"`
+	DocumentVersion int            `json:"document_version,omitempty"`
+	FlowData        map[string]any `json:"flow_data,omitempty"`
+	Relayml         map[string]any `json:"relayml,omitempty"`
 }
 
 type CallFlowVersionListResponse struct {
@@ -609,23 +633,6 @@ const (
 	CallHandlerTypeResource    CallHandlerType = "resource"
 )
 
-type CallStatus string
-
-const (
-	CallStatusCreated  CallStatus = "created"
-	CallStatusRinging  CallStatus = "ringing"
-	CallStatusAnswered CallStatus = "answered"
-	CallStatusEnded    CallStatus = "ended"
-)
-
-type ChangeContextAction struct {
-	ChangeContext string `json:"change_context,omitempty"`
-}
-
-type ChangeStepAction struct {
-	ChangeStep string `json:"change_step,omitempty"`
-}
-
 type Ciphers string
 
 const (
@@ -648,22 +655,6 @@ const (
 	CodecsH264 Codecs = "H264"
 )
 
-type Cond struct {
-	Cond []CondParams `json:"cond,omitempty"`
-}
-
-type CondElse struct {
-	Else []SWMLMethod `json:"else,omitempty"`
-}
-
-type CondParams any
-
-type CondReg struct {
-	When string       `json:"when,omitempty"`
-	Then []SWMLMethod `json:"then,omitempty"`
-	Else []SWMLMethod `json:"else,omitempty"`
-}
-
 type ConferenceRoom struct {
 	ID                        Uuid           `json:"id,omitempty"`
 	Name                      string         `json:"name,omitempty"`
@@ -671,7 +662,7 @@ type ConferenceRoom struct {
 	DisplayName               string         `json:"display_name,omitempty"`
 	MaxMembers                int            `json:"max_members,omitempty"`
 	Quality                   string         `json:"quality,omitempty"`
-	Fps                       float64        `json:"fps,omitempty"`
+	Fps                       int            `json:"fps,omitempty"`
 	JoinFrom                  any            `json:"join_from,omitempty"`
 	JoinUntil                 any            `json:"join_until,omitempty"`
 	RemoveAt                  any            `json:"remove_at,omitempty"`
@@ -711,7 +702,7 @@ type ConferenceRoomCreateRequest struct {
 	RemoveAfterSecondsElapsed *int           `json:"remove_after_seconds_elapsed,omitempty"`
 	Layout                    *Layout        `json:"layout,omitempty"`
 	RecordOnStart             *bool          `json:"record_on_start,omitempty"`
-	EnableRoomPreviews        bool           `json:"enable_room_previews,omitempty"`
+	EnableRoomPreviews        *bool          `json:"enable_room_previews,omitempty"`
 	Meta                      map[string]any `json:"meta,omitempty"`
 	SyncAudioVideo            *bool          `json:"sync_audio_video,omitempty"`
 	ToneOnEntryAndExit        *bool          `json:"tone_on_entry_and_exit,omitempty"`
@@ -739,9 +730,7 @@ type ConferenceRoomResponse struct {
 }
 
 type ConferenceRoomUpdateRequest struct {
-	Name                      *string        `json:"name,omitempty"`
 	DisplayName               *string        `json:"display_name,omitempty"`
-	Description               *string        `json:"description,omitempty"`
 	JoinFrom                  *string        `json:"join_from,omitempty"`
 	JoinUntil                 *string        `json:"join_until,omitempty"`
 	MaxMembers                *int           `json:"max_members,omitempty"`
@@ -750,239 +739,46 @@ type ConferenceRoomUpdateRequest struct {
 	RemoveAfterSecondsElapsed *int           `json:"remove_after_seconds_elapsed,omitempty"`
 	Layout                    *Layout        `json:"layout,omitempty"`
 	RecordOnStart             *bool          `json:"record_on_start,omitempty"`
-	EnableRoomPreviews        bool           `json:"enable_room_previews,omitempty"`
+	EnableRoomPreviews        *bool          `json:"enable_room_previews,omitempty"`
 	Meta                      map[string]any `json:"meta,omitempty"`
-	SyncAudioVideo            bool           `json:"sync_audio_video,omitempty"`
-	ToneOnEntryAndExit        *bool          `json:"tone_on_entry_and_exit,omitempty"`
-	RoomJoinVideoOff          *bool          `json:"room_join_video_off,omitempty"`
-	UserJoinVideoOff          *bool          `json:"user_join_video_off,omitempty"`
+	SyncAudioVideo            *bool          `json:"sync_audio_video,omitempty"`
 }
 
 type ConferenceRoomUpdateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type Connect struct {
-	Connect any `json:"connect,omitempty"`
-}
-
-type ConnectDeviceParallel struct {
-	From                *string               `json:"from,omitempty"`
-	Headers             []ConnectHeaders      `json:"headers,omitempty"`
-	Codecs              *string               `json:"codecs,omitempty"`
-	WebrtcMedia         any                   `json:"webrtc_media,omitempty"`
-	SessionTimeout      any                   `json:"session_timeout,omitempty"`
-	Ringback            []string              `json:"ringback,omitempty"`
-	Result              any                   `json:"result,omitempty"`
-	Timeout             any                   `json:"timeout,omitempty"`
-	MaxDuration         any                   `json:"max_duration,omitempty"`
-	AnswerOnBridge      any                   `json:"answer_on_bridge,omitempty"`
-	Confirm             any                   `json:"confirm,omitempty"`
-	ConfirmTimeout      any                   `json:"confirm_timeout,omitempty"`
-	Username            *string               `json:"username,omitempty"`
-	Password            *string               `json:"password,omitempty"`
-	Encryption          *string               `json:"encryption,omitempty"`
-	CallStateURL        *string               `json:"call_state_url,omitempty"`
-	TransferAfterBridge any                   `json:"transfer_after_bridge,omitempty"`
-	CallStateEvents     []CallStatus          `json:"call_state_events,omitempty"`
-	StatusURL           *string               `json:"status_url,omitempty"`
-	Parallel            []ConnectDeviceSingle `json:"parallel,omitempty"`
-}
-
-type ConnectDeviceSerial struct {
-	From                *string               `json:"from,omitempty"`
-	Headers             []ConnectHeaders      `json:"headers,omitempty"`
-	Codecs              *string               `json:"codecs,omitempty"`
-	WebrtcMedia         any                   `json:"webrtc_media,omitempty"`
-	SessionTimeout      any                   `json:"session_timeout,omitempty"`
-	Ringback            []string              `json:"ringback,omitempty"`
-	Result              any                   `json:"result,omitempty"`
-	Timeout             any                   `json:"timeout,omitempty"`
-	MaxDuration         any                   `json:"max_duration,omitempty"`
-	AnswerOnBridge      any                   `json:"answer_on_bridge,omitempty"`
-	Confirm             any                   `json:"confirm,omitempty"`
-	ConfirmTimeout      any                   `json:"confirm_timeout,omitempty"`
-	Username            *string               `json:"username,omitempty"`
-	Password            *string               `json:"password,omitempty"`
-	Encryption          *string               `json:"encryption,omitempty"`
-	CallStateURL        *string               `json:"call_state_url,omitempty"`
-	TransferAfterBridge any                   `json:"transfer_after_bridge,omitempty"`
-	CallStateEvents     []CallStatus          `json:"call_state_events,omitempty"`
-	StatusURL           *string               `json:"status_url,omitempty"`
-	Serial              []ConnectDeviceSingle `json:"serial,omitempty"`
-}
-
-type ConnectDeviceSerialParallel struct {
-	From                *string                 `json:"from,omitempty"`
-	Headers             []ConnectHeaders        `json:"headers,omitempty"`
-	Codecs              *string                 `json:"codecs,omitempty"`
-	WebrtcMedia         any                     `json:"webrtc_media,omitempty"`
-	SessionTimeout      any                     `json:"session_timeout,omitempty"`
-	Ringback            []string                `json:"ringback,omitempty"`
-	Result              any                     `json:"result,omitempty"`
-	Timeout             any                     `json:"timeout,omitempty"`
-	MaxDuration         any                     `json:"max_duration,omitempty"`
-	AnswerOnBridge      any                     `json:"answer_on_bridge,omitempty"`
-	Confirm             any                     `json:"confirm,omitempty"`
-	ConfirmTimeout      any                     `json:"confirm_timeout,omitempty"`
-	Username            *string                 `json:"username,omitempty"`
-	Password            *string                 `json:"password,omitempty"`
-	Encryption          *string                 `json:"encryption,omitempty"`
-	CallStateURL        *string                 `json:"call_state_url,omitempty"`
-	TransferAfterBridge any                     `json:"transfer_after_bridge,omitempty"`
-	CallStateEvents     []CallStatus            `json:"call_state_events,omitempty"`
-	StatusURL           *string                 `json:"status_url,omitempty"`
-	SerialParallel      [][]ConnectDeviceSingle `json:"serial_parallel,omitempty"`
-}
-
-type ConnectDeviceSingle struct {
-	From                     *string          `json:"from,omitempty"`
-	Headers                  []ConnectHeaders `json:"headers,omitempty"`
-	Codecs                   *string          `json:"codecs,omitempty"`
-	WebrtcMedia              any              `json:"webrtc_media,omitempty"`
-	SessionTimeout           any              `json:"session_timeout,omitempty"`
-	Ringback                 []string         `json:"ringback,omitempty"`
-	Result                   any              `json:"result,omitempty"`
-	Timeout                  any              `json:"timeout,omitempty"`
-	MaxDuration              any              `json:"max_duration,omitempty"`
-	AnswerOnBridge           any              `json:"answer_on_bridge,omitempty"`
-	Confirm                  any              `json:"confirm,omitempty"`
-	ConfirmTimeout           any              `json:"confirm_timeout,omitempty"`
-	Username                 *string          `json:"username,omitempty"`
-	Password                 *string          `json:"password,omitempty"`
-	Encryption               *string          `json:"encryption,omitempty"`
-	CallStateURL             *string          `json:"call_state_url,omitempty"`
-	TransferAfterBridge      any              `json:"transfer_after_bridge,omitempty"`
-	CallStateEvents          []CallStatus     `json:"call_state_events,omitempty"`
-	StatusURL                *string          `json:"status_url,omitempty"`
-	To                       string           `json:"to,omitempty"`
-	Name                     *string          `json:"name,omitempty"`
-	Codec                    *string          `json:"codec,omitempty"`
-	Realtime                 any              `json:"realtime,omitempty"`
-	StatusURLMethod          *string          `json:"status_url_method,omitempty"`
-	AuthorizationBearerToken *string          `json:"authorization_bearer_token,omitempty"`
-	CustomParameters         map[string]any   `json:"custom_parameters,omitempty"`
-}
-
-type ConnectHeaders struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
-}
-
-type ConnectSwitch struct {
-	Variable *string        `json:"variable,omitempty"`
-	Case     map[string]any `json:"case,omitempty"`
-	Default  []SWMLMethod   `json:"default,omitempty"`
-}
-
-type ConstProperty struct {
-	Const map[string]any `json:"const,omitempty"`
-}
-
-type ContextPOMSteps struct {
-	Name          string   `json:"name,omitempty"`
-	StepCriteria  *string  `json:"step_criteria,omitempty"`
-	Functions     []string `json:"functions,omitempty"`
-	ValidContexts []string `json:"valid_contexts,omitempty"`
-	SkipUserTurn  any      `json:"skip_user_turn,omitempty"`
-	End           *bool    `json:"end,omitempty"`
-	ValidSteps    []string `json:"valid_steps,omitempty"`
-	Pom           []POM    `json:"pom,omitempty"`
-}
-
-type ContextSteps any
-
-type ContextSwitchAction struct {
-	ContextSwitch map[string]any `json:"context_switch,omitempty"`
-}
-
-type ContextTextSteps struct {
-	Name          string   `json:"name,omitempty"`
-	StepCriteria  *string  `json:"step_criteria,omitempty"`
-	Functions     []string `json:"functions,omitempty"`
-	ValidContexts []string `json:"valid_contexts,omitempty"`
-	SkipUserTurn  any      `json:"skip_user_turn,omitempty"`
-	End           *bool    `json:"end,omitempty"`
-	ValidSteps    []string `json:"valid_steps,omitempty"`
-	Text          string   `json:"text,omitempty"`
-}
-
-type Contexts struct {
-	Default ContextsObject `json:"default,omitempty"`
-}
-
-type ContextsObject any
-
-type ContextsObjectUpdate any
-
-type ContextsPOMObject struct {
-	Steps        []ContextSteps    `json:"steps,omitempty"`
-	Isolated     *bool             `json:"isolated,omitempty"`
-	EnterFillers []FunctionFillers `json:"enter_fillers,omitempty"`
-	ExitFillers  []FunctionFillers `json:"exit_fillers,omitempty"`
-	Pom          []POM             `json:"pom,omitempty"`
-}
-
-type ContextsPOMObjectUpdate struct {
-	Steps        []ContextSteps    `json:"steps,omitempty"`
-	Isolated     *bool             `json:"isolated,omitempty"`
-	EnterFillers []FunctionFillers `json:"enter_fillers,omitempty"`
-	ExitFillers  []FunctionFillers `json:"exit_fillers,omitempty"`
-	Pom          []POM             `json:"pom,omitempty"`
-}
-
-type ContextsTextObject struct {
-	Steps        []ContextSteps    `json:"steps,omitempty"`
-	Isolated     *bool             `json:"isolated,omitempty"`
-	EnterFillers []FunctionFillers `json:"enter_fillers,omitempty"`
-	ExitFillers  []FunctionFillers `json:"exit_fillers,omitempty"`
-	Text         *string           `json:"text,omitempty"`
-}
-
-type ContextsTextObjectUpdate struct {
-	Steps        []ContextSteps    `json:"steps,omitempty"`
-	Isolated     *bool             `json:"isolated,omitempty"`
-	EnterFillers []FunctionFillers `json:"enter_fillers,omitempty"`
-	ExitFillers  []FunctionFillers `json:"exit_fillers,omitempty"`
-	Text         *string           `json:"text,omitempty"`
-}
-
-type ContextsUpdate struct {
-	Default *ContextsObjectUpdate `json:"default,omitempty"`
-}
+type Contexts map[string]any
 
 type ConversationMessage struct {
-	Role    ConversationRole `json:"role,omitempty"`
-	Content string           `json:"content,omitempty"`
-	Lang    *string          `json:"lang,omitempty"`
+	Content    *string           `json:"content,omitempty"`
+	Lang       *string           `json:"lang,omitempty"`
+	Role       *ConversationRole `json:"role,omitempty"`
+	ToolCallID *string           `json:"tool_call_id,omitempty"`
+	ToolCalls  []any             `json:"tool_calls,omitempty"`
 }
 
 type ConversationRole string
 
-const (
-	ConversationRoleUser      ConversationRole = "user"
-	ConversationRoleAssistant ConversationRole = "assistant"
-	ConversationRoleSystem    ConversationRole = "system"
-)
-
-type CustomTranslationFilter string
-
 type CxmlApplication struct {
-	ID                      Uuid   `json:"id,omitempty"`
-	ProjectID               Uuid   `json:"project_id,omitempty"`
-	FriendlyName            string `json:"friendly_name,omitempty"`
-	VoiceURL                any    `json:"voice_url,omitempty"`
-	VoiceMethod             any    `json:"voice_method,omitempty"`
-	VoiceFallbackURL        any    `json:"voice_fallback_url,omitempty"`
-	VoiceFallbackMethod     any    `json:"voice_fallback_method,omitempty"`
-	StatusCallback          any    `json:"status_callback,omitempty"`
-	StatusCallbackMethod    any    `json:"status_callback_method,omitempty"`
-	SmsURL                  any    `json:"sms_url,omitempty"`
-	SmsMethod               any    `json:"sms_method,omitempty"`
-	SmsFallbackURL          any    `json:"sms_fallback_url,omitempty"`
-	SmsFallbackMethod       any    `json:"sms_fallback_method,omitempty"`
-	SmsStatusCallback       any    `json:"sms_status_callback,omitempty"`
-	SmsStatusCallbackMethod any    `json:"sms_status_callback_method,omitempty"`
+	ID                      Uuid    `json:"id,omitempty"`
+	ProjectID               Uuid    `json:"project_id,omitempty"`
+	FriendlyName            string  `json:"friendly_name,omitempty"`
+	VoiceURL                any     `json:"voice_url,omitempty"`
+	VoiceMethod             any     `json:"voice_method,omitempty"`
+	VoiceFallbackURL        any     `json:"voice_fallback_url,omitempty"`
+	VoiceFallbackMethod     any     `json:"voice_fallback_method,omitempty"`
+	StatusCallback          any     `json:"status_callback,omitempty"`
+	StatusCallbackMethod    any     `json:"status_callback_method,omitempty"`
+	SmsURL                  any     `json:"sms_url,omitempty"`
+	SmsMethod               any     `json:"sms_method,omitempty"`
+	SmsFallbackURL          any     `json:"sms_fallback_url,omitempty"`
+	SmsFallbackMethod       any     `json:"sms_fallback_method,omitempty"`
+	SmsStatusCallback       any     `json:"sms_status_callback,omitempty"`
+	SmsStatusCallbackMethod any     `json:"sms_status_callback_method,omitempty"`
+	MessageStatusCallback   *string `json:"message_status_callback,omitempty"`
+	APIVersion              *string `json:"api_version,omitempty"`
+	URI                     *string `json:"uri,omitempty"`
 }
 
 type CxmlApplicationAddressListResponse struct {
@@ -1020,20 +816,19 @@ type CxmlApplicationResponse struct {
 }
 
 type CxmlApplicationUpdateRequest struct {
-	DisplayName             *string `json:"display_name,omitempty"`
-	AccountSid              *Uuid   `json:"account_sid,omitempty"`
-	VoiceURL                *string `json:"voice_url,omitempty"`
-	VoiceMethod             any     `json:"voice_method,omitempty"`
-	VoiceFallbackURL        *string `json:"voice_fallback_url,omitempty"`
-	VoiceFallbackMethod     any     `json:"voice_fallback_method,omitempty"`
-	StatusCallback          *string `json:"status_callback,omitempty"`
-	StatusCallbackMethod    any     `json:"status_callback_method,omitempty"`
-	SmsURL                  *string `json:"sms_url,omitempty"`
-	SmsMethod               any     `json:"sms_method,omitempty"`
-	SmsFallbackURL          *string `json:"sms_fallback_url,omitempty"`
-	SmsFallbackMethod       any     `json:"sms_fallback_method,omitempty"`
-	SmsStatusCallback       *string `json:"sms_status_callback,omitempty"`
-	SmsStatusCallbackMethod any     `json:"sms_status_callback_method,omitempty"`
+	Name                  *string `json:"name,omitempty"`
+	CallRequestURL        *string `json:"call_request_url,omitempty"`
+	CallRequestMethod     *string `json:"call_request_method,omitempty"`
+	CallFallbackURL       *string `json:"call_fallback_url,omitempty"`
+	CallFallbackMethod    *string `json:"call_fallback_method,omitempty"`
+	CallStatusURL         *string `json:"call_status_url,omitempty"`
+	CallStatusMethod      *string `json:"call_status_method,omitempty"`
+	MessageRequestURL     *string `json:"message_request_url,omitempty"`
+	MessageRequestMethod  *string `json:"message_request_method,omitempty"`
+	MessageFallbackURL    *string `json:"message_fallback_url,omitempty"`
+	MessageFallbackMethod *string `json:"message_fallback_method,omitempty"`
+	MessageStatusURL      *string `json:"message_status_url,omitempty"`
+	MessageStatusMethod   *string `json:"message_status_method,omitempty"`
 }
 
 type CxmlApplicationUpdateStatusCode422 struct {
@@ -1041,17 +836,10 @@ type CxmlApplicationUpdateStatusCode422 struct {
 }
 
 type DataMap struct {
-	Output      *Output      `json:"output,omitempty"`
-	Expressions []Expression `json:"expressions,omitempty"`
-	Webhooks    []Webhook    `json:"webhooks,omitempty"`
-}
-
-type Denoise struct {
-	Denoise map[string]any `json:"denoise,omitempty"`
-}
-
-type DetectMachine struct {
-	DetectMachine map[string]any `json:"detect_machine,omitempty"`
+	Contexts    any     `json:"contexts,omitempty"`
+	Expressions any     `json:"expressions,omitempty"`
+	Output      *Output `json:"output,omitempty"`
+	Webhooks    any     `json:"webhooks,omitempty"`
 }
 
 type DialogFlowPaginationResponse struct {
@@ -1111,11 +899,6 @@ type DialogflowAgentUpdateStatusCode422 struct {
 
 type Direction string
 
-const (
-	DirectionInbound  Direction = "inbound"
-	DirectionOutbound Direction = "outbound"
-)
-
 type DisplayTypes string
 
 const (
@@ -1153,32 +936,20 @@ const (
 	EncryptionDefault  Encryption = "default"
 )
 
-type EnterQueue struct {
-	EnterQueue EnterQueueObject `json:"enter_queue,omitempty"`
-}
+type SipGatewayEncryption string
 
-type EnterQueueObject struct {
-	QueueName           string  `json:"queue_name,omitempty"`
-	TransferAfterBridge any     `json:"transfer_after_bridge,omitempty"`
-	StatusURL           *string `json:"status_url,omitempty"`
-	WaitURL             any     `json:"wait_url,omitempty"`
-	WaitTime            any     `json:"wait_time,omitempty"`
-}
-
-type Execute struct {
-	Execute map[string]any `json:"execute,omitempty"`
-}
-
-type ExecuteSwitch struct {
-	Variable *string        `json:"variable,omitempty"`
-	Case     map[string]any `json:"case,omitempty"`
-	Default  []SWMLMethod   `json:"default,omitempty"`
-}
+const (
+	SipGatewayEncryptionRequired  SipGatewayEncryption = "required"
+	SipGatewayEncryptionOptional  SipGatewayEncryption = "optional"
+	SipGatewayEncryptionForbidden SipGatewayEncryption = "forbidden"
+)
 
 type Expression struct {
-	String  string `json:"string,omitempty"`
-	Pattern string `json:"pattern,omitempty"`
-	Output  Output `json:"output,omitempty"`
+	Pattern       *string `json:"pattern,omitempty"`
+	Expr          *string `json:"expr,omitempty"`
+	NomatchOutput *Output `json:"nomatch-output,omitempty"`
+	Output        *Output `json:"output,omitempty"`
+	String        *string `json:"string,omitempty"`
 }
 
 type FabricAddress struct {
@@ -1189,8 +960,8 @@ type FabricAddress struct {
 	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
-	CreatedAt   string         `json:"created_at,omitempty"`
 	Type        DisplayTypes   `json:"type,omitempty"`
+	ResourceID  string         `json:"resource_id,omitempty"`
 }
 
 type FabricAddressApp struct {
@@ -1201,8 +972,8 @@ type FabricAddressApp struct {
 	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
-	CreatedAt   string         `json:"created_at,omitempty"`
-	Type        string         `json:"type,omitempty"`
+	Type        DisplayTypes   `json:"type,omitempty"`
+	ResourceID  string         `json:"resource_id,omitempty"`
 }
 
 type FabricAddressCall struct {
@@ -1213,8 +984,8 @@ type FabricAddressCall struct {
 	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
-	CreatedAt   string         `json:"created_at,omitempty"`
-	Type        string         `json:"type,omitempty"`
+	Type        DisplayTypes   `json:"type,omitempty"`
+	ResourceID  string         `json:"resource_id,omitempty"`
 }
 
 type FabricAddressPaginationResponse struct {
@@ -1232,8 +1003,8 @@ type FabricAddressRoom struct {
 	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
-	CreatedAt   string         `json:"created_at,omitempty"`
-	Type        string         `json:"type,omitempty"`
+	Type        DisplayTypes   `json:"type,omitempty"`
+	ResourceID  string         `json:"resource_id,omitempty"`
 }
 
 type FabricAddressSubscriber struct {
@@ -1244,13 +1015,16 @@ type FabricAddressSubscriber struct {
 	PreviewURL  string         `json:"preview_url,omitempty"`
 	Locked      bool           `json:"locked,omitempty"`
 	Channels    AddressChannel `json:"channels,omitempty"`
-	CreatedAt   string         `json:"created_at,omitempty"`
-	Type        string         `json:"type,omitempty"`
+	Type        DisplayTypes   `json:"type,omitempty"`
+	ResourceID  string         `json:"resource_id,omitempty"`
 }
 
-type FabricAddressesResponse struct {
-	Data  []FabricAddress                 `json:"data,omitempty"`
-	Links FabricAddressPaginationResponse `json:"links,omitempty"`
+type FabricAddressItem any
+
+type FabricAddressListResponse struct {
+	Data       []FabricAddressItem             `json:"data,omitempty"`
+	Links      FabricAddressPaginationResponse `json:"links,omitempty"`
+	ItemsCount int                             `json:"items_count,omitempty"`
 }
 
 type FreeswitchConectorPaginationResponse struct {
@@ -1313,140 +1087,76 @@ type FreeswitchConnectorUpdateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type FunctionFillers any
-
-type FunctionFillersUpdate any
-
-type FunctionParameters struct {
-	Type       string         `json:"type,omitempty"`
-	Properties map[string]any `json:"properties,omitempty"`
-	Required   []string       `json:"required,omitempty"`
+type FunctionFillers struct {
+	Default map[string]any `json:"default,omitempty"`
+	Auto    map[string]any `json:"auto,omitempty"`
 }
 
-type Goto struct {
-	Goto map[string]any `json:"goto,omitempty"`
+type FunctionParameters struct {
+	Title                 *string        `json:"title,omitempty"`
+	Description           *string        `json:"description,omitempty"`
+	Type                  any            `json:"type,omitempty"`
+	Const                 map[string]any `json:"const,omitempty"`
+	Enum                  []any          `json:"enum,omitempty"`
+	Format                *string        `json:"format,omitempty"`
+	Pattern               *string        `json:"pattern,omitempty"`
+	Minimum               *float64       `json:"minimum,omitempty"`
+	Maximum               *float64       `json:"maximum,omitempty"`
+	ExclusiveMinimum      *float64       `json:"exclusiveMinimum,omitempty"`
+	ExclusiveMaximum      *float64       `json:"exclusiveMaximum,omitempty"`
+	MinLength             *int           `json:"minLength,omitempty"`
+	MaxLength             *int           `json:"maxLength,omitempty"`
+	MinItems              *int           `json:"minItems,omitempty"`
+	MaxItems              *int           `json:"maxItems,omitempty"`
+	MinProperties         *int           `json:"minProperties,omitempty"`
+	MaxProperties         *int           `json:"maxProperties,omitempty"`
+	Default               map[string]any `json:"default,omitempty"`
+	Examples              []any          `json:"examples,omitempty"`
+	Deprecated            *bool          `json:"deprecated,omitempty"`
+	Nullable              *bool          `json:"nullable,omitempty"`
+	Properties            map[string]any `json:"properties,omitempty"`
+	Required              []string       `json:"required,omitempty"`
+	PrefixItems           []any          `json:"prefixItems,omitempty"`
+	Items                 any            `json:"items,omitempty"`
+	PropertyNames         any            `json:"propertyNames,omitempty"`
+	AdditionalProperties  any            `json:"additionalProperties,omitempty"`
+	UnevaluatedProperties any            `json:"unevaluatedProperties,omitempty"`
+	OneOf                 []any          `json:"oneOf,omitempty"`
+	AnyOf                 []any          `json:"anyOf,omitempty"`
+	AllOf                 []any          `json:"allOf,omitempty"`
+	Not                   any            `json:"not,omitempty"`
+	Contains              any            `json:"contains,omitempty"`
+	DependentRequired     map[string]any `json:"dependentRequired,omitempty"`
+	DependentSchemas      map[string]any `json:"dependentSchemas,omitempty"`
+	Else                  any            `json:"else,omitempty"`
+	Example               map[string]any `json:"example,omitempty"`
+	If                    any            `json:"if,omitempty"`
+	MaxContains           *int           `json:"maxContains,omitempty"`
+	MinContains           *int           `json:"minContains,omitempty"`
+	MultipleOf            *float64       `json:"multipleOf,omitempty"`
+	PatternProperties     map[string]any `json:"patternProperties,omitempty"`
+	PropertyOrdering      []string       `json:"propertyOrdering,omitempty"`
+	ReadOnly              *bool          `json:"readOnly,omitempty"`
+	Then                  any            `json:"then,omitempty"`
+	UnevaluatedItems      any            `json:"unevaluatedItems,omitempty"`
+	UniqueItems           *bool          `json:"uniqueItems,omitempty"`
+	WriteOnly             *bool          `json:"writeOnly,omitempty"`
 }
 
 type GuestTokenCreateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type HangUpHookSWAIGFunction struct {
-	Description    string              `json:"description,omitempty"`
-	Purpose        *string             `json:"purpose,omitempty"`
-	Parameters     *FunctionParameters `json:"parameters,omitempty"`
-	Fillers        *FunctionFillers    `json:"fillers,omitempty"`
-	Argument       *FunctionParameters `json:"argument,omitempty"`
-	Active         any                 `json:"active,omitempty"`
-	MetaData       map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken  *string             `json:"meta_data_token,omitempty"`
-	DataMap        *DataMap            `json:"data_map,omitempty"`
-	SkipFillers    any                 `json:"skip_fillers,omitempty"`
-	WebHookURL     *string             `json:"web_hook_url,omitempty"`
-	WaitFile       *string             `json:"wait_file,omitempty"`
-	WaitFileLoops  any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers any                 `json:"wait_for_fillers,omitempty"`
-	Function       string              `json:"function,omitempty"`
-}
-
-type Hangup struct {
-	Hangup map[string]any `json:"hangup,omitempty"`
-}
-
-type HangupAction struct {
-	Hangup any `json:"hangup,omitempty"`
-}
-
-type Hint struct {
-	Hint       string `json:"hint,omitempty"`
-	Pattern    string `json:"pattern,omitempty"`
-	Replace    string `json:"replace,omitempty"`
-	IgnoreCase any    `json:"ignore_case,omitempty"`
-}
-
-type HoldAction struct {
-	Hold any `json:"hold,omitempty"`
-}
-
-type InjectAction struct {
-	Inject map[string]any `json:"inject,omitempty"`
-}
-
-type IntegerProperty struct {
-	Description *string `json:"description,omitempty"`
-	Nullable    any     `json:"nullable,omitempty"`
-	Type        string  `json:"type,omitempty"`
-	Enum        []int   `json:"enum,omitempty"`
-	Default     any     `json:"default,omitempty"`
-}
-
-type InviteTokenCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
-}
-
-type JoinConference struct {
-	JoinConference JoinConferenceObject `json:"join_conference,omitempty"`
-}
-
-type JoinConferenceObject struct {
-	Name                          string  `json:"name,omitempty"`
-	Muted                         any     `json:"muted,omitempty"`
-	Beep                          *string `json:"beep,omitempty"`
-	StartOnEnter                  any     `json:"start_on_enter,omitempty"`
-	EndOnExit                     any     `json:"end_on_exit,omitempty"`
-	WaitURL                       any     `json:"wait_url,omitempty"`
-	MaxParticipants               any     `json:"max_participants,omitempty"`
-	Record                        *string `json:"record,omitempty"`
-	Region                        *string `json:"region,omitempty"`
-	Trim                          *string `json:"trim,omitempty"`
-	Coach                         *string `json:"coach,omitempty"`
-	StatusCallbackEvent           *string `json:"status_callback_event,omitempty"`
-	StatusCallback                *string `json:"status_callback,omitempty"`
-	StatusCallbackMethod          *string `json:"status_callback_method,omitempty"`
-	RecordingStatusCallback       *string `json:"recording_status_callback,omitempty"`
-	RecordingStatusCallbackMethod *string `json:"recording_status_callback_method,omitempty"`
-	RecordingStatusCallbackEvent  *string `json:"recording_status_callback_event,omitempty"`
-	Result                        any     `json:"result,omitempty"`
-}
-
-type JoinRoom struct {
-	JoinRoom map[string]any `json:"join_room,omitempty"`
-}
-
-type Label struct {
-	Label string `json:"label,omitempty"`
-}
-
 type LanguageParams struct {
-	Stability  any `json:"stability,omitempty"`
-	Similarity any `json:"similarity,omitempty"`
-}
-
-type Languages any
-
-type LanguagesWithFillers struct {
-	Name            string          `json:"name,omitempty"`
-	Code            string          `json:"code,omitempty"`
-	Voice           string          `json:"voice,omitempty"`
-	Model           *string         `json:"model,omitempty"`
-	Emotion         *string         `json:"emotion,omitempty"`
-	Speed           *string         `json:"speed,omitempty"`
-	Engine          *string         `json:"engine,omitempty"`
-	Params          *LanguageParams `json:"params,omitempty"`
-	FunctionFillers []string        `json:"function_fillers,omitempty"`
-	SpeechFillers   []string        `json:"speech_fillers,omitempty"`
-}
-
-type LanguagesWithSoloFillers struct {
-	Name    string          `json:"name,omitempty"`
-	Code    string          `json:"code,omitempty"`
-	Voice   string          `json:"voice,omitempty"`
-	Model   *string         `json:"model,omitempty"`
-	Emotion *string         `json:"emotion,omitempty"`
-	Speed   *string         `json:"speed,omitempty"`
-	Engine  *string         `json:"engine,omitempty"`
-	Params  *LanguageParams `json:"params,omitempty"`
-	Fillers []string        `json:"fillers,omitempty"`
+	Emotion      *string `json:"emotion,omitempty"`
+	Pitch        any     `json:"pitch,omitempty"`
+	Similarity   any     `json:"similarity,omitempty"`
+	SpeakingRate any     `json:"speakingRate,omitempty"`
+	Speed        any     `json:"speed,omitempty"`
+	Stability    any     `json:"stability,omitempty"`
+	Streaming    any     `json:"streaming,omitempty"`
+	Temperature  any     `json:"temperature,omitempty"`
+	Vol          any     `json:"vol,omitempty"`
 }
 
 type Layout string
@@ -1467,78 +1177,23 @@ const (
 	LayoutV10x10               Layout = "10x10"
 )
 
-type LiveTranscribe struct {
-	LiveTranscribe map[string]any `json:"live_transcribe,omitempty"`
-}
-
-type LiveTranslate struct {
-	LiveTranslate map[string]any `json:"live_translate,omitempty"`
-}
-
 type MessagingChannel struct {
 	Messaging string `json:"messaging,omitempty"`
 }
 
-type NullProperty struct {
-	Type        string `json:"type,omitempty"`
-	Description string `json:"description,omitempty"`
-}
-
-type NumberProperty struct {
-	Description *string `json:"description,omitempty"`
-	Nullable    any     `json:"nullable,omitempty"`
-	Type        string  `json:"type,omitempty"`
-	Enum        any     `json:"enum,omitempty"`
-	Default     any     `json:"default,omitempty"`
-}
-
-type ObjectProperty struct {
-	Description *string        `json:"description,omitempty"`
-	Nullable    any            `json:"nullable,omitempty"`
-	Type        string         `json:"type,omitempty"`
-	Default     map[string]any `json:"default,omitempty"`
-	Properties  map[string]any `json:"properties,omitempty"`
-	Required    []string       `json:"required,omitempty"`
-}
-
-type OneOfProperty struct {
-	OneOf []SchemaType `json:"oneOf,omitempty"`
-}
-
 type Output struct {
-	Response string   `json:"response,omitempty"`
-	Action   []Action `json:"action,omitempty"`
+	Action      any   `json:"action,omitempty"`
+	PostProcess *bool `json:"post_process,omitempty"`
+	Response    any   `json:"response,omitempty"`
 }
 
-type POM any
-
-type Pay struct {
-	Pay map[string]any `json:"pay,omitempty"`
-}
-
-type PayParameters struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
-}
-
-type PayPromptAction any
-
-type PayPromptPlayAction struct {
-	Type   string `json:"type,omitempty"`
-	Phrase string `json:"phrase,omitempty"`
-}
-
-type PayPromptSayAction struct {
-	Type   string `json:"type,omitempty"`
-	Phrase string `json:"phrase,omitempty"`
-}
-
-type PayPrompts struct {
-	Actions   []PayPromptAction `json:"actions,omitempty"`
-	For       string            `json:"for,omitempty"`
-	Attempts  *string           `json:"attempts,omitempty"`
-	CardType  *string           `json:"card_type,omitempty"`
-	ErrorType *string           `json:"error_type,omitempty"`
+type POM struct {
+	Title           *string `json:"title,omitempty"`
+	Body            *string `json:"body,omitempty"`
+	Bullets         []any   `json:"bullets,omitempty"`
+	Numbered        *bool   `json:"numbered,omitempty"`
+	NumberedBullets *bool   `json:"numberedBullets,omitempty"`
+	Subsections     []any   `json:"subsections,omitempty"`
 }
 
 type PhoneRouteAssignRequest struct {
@@ -1551,83 +1206,15 @@ type PhoneRouteCreateStatusCode422 struct {
 }
 
 type PhoneRouteResponse struct {
-	ID          Uuid           `json:"id,omitempty"`
-	Name        string         `json:"name,omitempty"`
-	DisplayName string         `json:"display_name,omitempty"`
-	CoverURL    string         `json:"cover_url,omitempty"`
-	PreviewURL  string         `json:"preview_url,omitempty"`
-	Locked      bool           `json:"locked,omitempty"`
-	Channels    AddressChannel `json:"channels,omitempty"`
-	CreatedAt   string         `json:"created_at,omitempty"`
-	Type        string         `json:"type,omitempty"`
-}
-
-type Play struct {
-	Play any `json:"play,omitempty"`
-}
-
-type PlayWithURL struct {
-	AutoAnswer  any     `json:"auto_answer,omitempty"`
-	Volume      any     `json:"volume,omitempty"`
-	SayVoice    *string `json:"say_voice,omitempty"`
-	SayLanguage *string `json:"say_language,omitempty"`
-	SayGender   *string `json:"say_gender,omitempty"`
-	StatusURL   *string `json:"status_url,omitempty"`
-	URL         any     `json:"url,omitempty"`
-}
-
-type PlayWithURLS struct {
-	AutoAnswer  any     `json:"auto_answer,omitempty"`
-	Volume      any     `json:"volume,omitempty"`
-	SayVoice    *string `json:"say_voice,omitempty"`
-	SayLanguage *string `json:"say_language,omitempty"`
-	SayGender   *string `json:"say_gender,omitempty"`
-	StatusURL   *string `json:"status_url,omitempty"`
-	Urls        any     `json:"urls,omitempty"`
-}
-
-type PlaybackBGAction struct {
-	PlaybackBg map[string]any `json:"playback_bg,omitempty"`
-}
-
-type PomSectionBodyContent struct {
-	Title           *string  `json:"title,omitempty"`
-	Subsections     []POM    `json:"subsections,omitempty"`
-	Numbered        any      `json:"numbered,omitempty"`
-	NumberedBullets any      `json:"numberedBullets,omitempty"`
-	Body            string   `json:"body,omitempty"`
-	Bullets         []string `json:"bullets,omitempty"`
-}
-
-type PomSectionBulletsContent struct {
-	Title           *string  `json:"title,omitempty"`
-	Subsections     []POM    `json:"subsections,omitempty"`
-	Numbered        any      `json:"numbered,omitempty"`
-	NumberedBullets any      `json:"numberedBullets,omitempty"`
-	Body            *string  `json:"body,omitempty"`
-	Bullets         []string `json:"bullets,omitempty"`
-}
-
-type Prompt struct {
-	Prompt map[string]any `json:"prompt,omitempty"`
-}
-
-type Pronounce struct {
-	Replace    string `json:"replace,omitempty"`
-	With       string `json:"with,omitempty"`
-	IgnoreCase any    `json:"ignore_case,omitempty"`
-}
-
-type ReceiveFax struct {
-	ReceiveFax map[string]any `json:"receive_fax,omitempty"`
-}
-
-type Record struct {
-	Record map[string]any `json:"record,omitempty"`
-}
-
-type RecordCall struct {
-	RecordCall map[string]any `json:"record_call,omitempty"`
+	ID          Uuid    `json:"id,omitempty"`
+	Name        string  `json:"name,omitempty"`
+	DisplayName string  `json:"display_name,omitempty"`
+	CoverURL    string  `json:"cover_url,omitempty"`
+	PreviewURL  string  `json:"preview_url,omitempty"`
+	Locked      bool    `json:"locked,omitempty"`
+	Channels    any     `json:"channels,omitempty"`
+	Type        string  `json:"type,omitempty"`
+	ResourceID  *string `json:"resource_id,omitempty"`
 }
 
 type RefreshTokenStatusCode422 struct {
@@ -1686,10 +1273,6 @@ type RelayApplicationUpdateRequest struct {
 
 type RelayApplicationUpdateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
-}
-
-type Request struct {
-	Request map[string]any `json:"request,omitempty"`
 }
 
 type ResourceAddressListResponse struct {
@@ -1866,15 +1449,6 @@ type ResourceSipEndpointCreateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type ResourceSipEndpointResponse struct {
-	ID         Uuid           `json:"id,omitempty"`
-	Name       string         `json:"name,omitempty"`
-	Type       string         `json:"type,omitempty"`
-	CoverURL   any            `json:"cover_url,omitempty"`
-	PreviewURL any            `json:"preview_url,omitempty"`
-	Channels   AddressChannel `json:"channels,omitempty"`
-}
-
 type ResourceSipEndpointUpdateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
@@ -1883,102 +1457,28 @@ type ResourceSubSipEndpointCreateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type Return struct {
-	Return map[string]any `json:"return,omitempty"`
-}
-
-type SIPRefer struct {
-	SIPRefer map[string]any `json:"sip_refer,omitempty"`
-}
-
-type SMSWithBody struct {
-	ToNumber   string   `json:"to_number,omitempty"`
-	FromNumber string   `json:"from_number,omitempty"`
-	Region     *string  `json:"region,omitempty"`
-	Tags       []string `json:"tags,omitempty"`
-	Body       string   `json:"body,omitempty"`
-}
-
-type SMSWithMedia struct {
-	ToNumber   string   `json:"to_number,omitempty"`
-	FromNumber string   `json:"from_number,omitempty"`
-	Region     *string  `json:"region,omitempty"`
-	Tags       []string `json:"tags,omitempty"`
-	Media      []string `json:"media,omitempty"`
-	Body       *string  `json:"body,omitempty"`
-}
-
-type SWAIG struct {
-	Defaults        *SWAIGDefaults        `json:"defaults,omitempty"`
-	NativeFunctions []SWAIGNativeFunction `json:"native_functions,omitempty"`
-	Includes        []SWAIGIncludes       `json:"includes,omitempty"`
-	Functions       []SWAIGFunction       `json:"functions,omitempty"`
-	InternalFillers *SWAIGInternalFiller  `json:"internal_fillers,omitempty"`
-}
-
 type SWAIGDefaults struct {
-	WebHookURL *string `json:"web_hook_url,omitempty"`
-}
-
-type SWAIGFunction any
-
-type SWAIGIncludes struct {
-	Functions []string       `json:"functions,omitempty"`
-	URL       string         `json:"url,omitempty"`
-	MetaData  map[string]any `json:"meta_data,omitempty"`
+	MetaData            map[string]any `json:"meta_data,omitempty"`
+	MetaDataToken       *string        `json:"meta_data_token,omitempty"`
+	WebHookAuthPass     *string        `json:"web_hook_auth_pass,omitempty"`
+	WebHookAuthPassword *string        `json:"web_hook_auth_password,omitempty"`
+	WebHookAuthUser     *string        `json:"web_hook_auth_user,omitempty"`
+	WebHookURL          *string        `json:"web_hook_url,omitempty"`
 }
 
 type SWAIGInternalFiller struct {
-	Hangup                *FunctionFillers `json:"hangup,omitempty"`
-	CheckTime             *FunctionFillers `json:"check_time,omitempty"`
-	WaitForUser           *FunctionFillers `json:"wait_for_user,omitempty"`
-	WaitSeconds           *FunctionFillers `json:"wait_seconds,omitempty"`
-	AdjustResponseLatency *FunctionFillers `json:"adjust_response_latency,omitempty"`
-	NextStep              *FunctionFillers `json:"next_step,omitempty"`
-	ChangeContext         *FunctionFillers `json:"change_context,omitempty"`
-	GetVisualInput        *FunctionFillers `json:"get_visual_input,omitempty"`
-	GetIdealStrategy      *FunctionFillers `json:"get_ideal_strategy,omitempty"`
-}
-
-type SWAIGInternalFillerUpdate struct {
-	Hangup                *FunctionFillersUpdate `json:"hangup,omitempty"`
-	CheckTime             *FunctionFillersUpdate `json:"check_time,omitempty"`
-	WaitForUser           *FunctionFillersUpdate `json:"wait_for_user,omitempty"`
-	WaitSeconds           *FunctionFillersUpdate `json:"wait_seconds,omitempty"`
-	AdjustResponseLatency *FunctionFillersUpdate `json:"adjust_response_latency,omitempty"`
-	NextStep              *FunctionFillersUpdate `json:"next_step,omitempty"`
-	ChangeContext         *FunctionFillersUpdate `json:"change_context,omitempty"`
-	GetVisualInput        *FunctionFillersUpdate `json:"get_visual_input,omitempty"`
-	GetIdealStrategy      *FunctionFillersUpdate `json:"get_ideal_strategy,omitempty"`
+	AdjustResponseLatency map[string]any `json:"adjust_response_latency,omitempty"`
+	ChangeContext         map[string]any `json:"change_context,omitempty"`
+	CheckTime             map[string]any `json:"check_time,omitempty"`
+	GetIdealStrategy      map[string]any `json:"get_ideal_strategy,omitempty"`
+	GetVisualInput        map[string]any `json:"get_visual_input,omitempty"`
+	NextStep              map[string]any `json:"next_step,omitempty"`
+	PauseConversation     map[string]any `json:"pause_conversation,omitempty"`
+	WaitForUser           map[string]any `json:"wait_for_user,omitempty"`
+	WaitSeconds           map[string]any `json:"wait_seconds,omitempty"`
 }
 
 type SWAIGNativeFunction string
-
-const (
-	SWAIGNativeFunctionCheckTime             SWAIGNativeFunction = "check_time"
-	SWAIGNativeFunctionWaitSeconds           SWAIGNativeFunction = "wait_seconds"
-	SWAIGNativeFunctionWaitForUser           SWAIGNativeFunction = "wait_for_user"
-	SWAIGNativeFunctionAdjustResponseLatency SWAIGNativeFunction = "adjust_response_latency"
-)
-
-type SWAIGUpdate struct {
-	Defaults        *SWAIGDefaults             `json:"defaults,omitempty"`
-	NativeFunctions []SWAIGNativeFunction      `json:"native_functions,omitempty"`
-	Includes        []SWAIGIncludes            `json:"includes,omitempty"`
-	Functions       []SWAIGFunction            `json:"functions,omitempty"`
-	InternalFillers *SWAIGInternalFillerUpdate `json:"internal_fillers,omitempty"`
-}
-
-type SWMLAction struct {
-	SWML SWMLObject `json:"SWML,omitempty"`
-}
-
-type SWMLMethod any
-
-type SWMLObject struct {
-	Version  *string `json:"version,omitempty"`
-	Sections Section `json:"sections,omitempty"`
-}
 
 type SWMLScriptAddressListResponse struct {
 	Data  []FabricAddressApp                  `json:"data,omitempty"`
@@ -1991,8 +1491,6 @@ type SWMLScriptAddressPaginationResponse struct {
 	Next  *string `json:"next,omitempty"`
 	Prev  *string `json:"prev,omitempty"`
 }
-
-type SWMLVar string
 
 type SWMLWebhook struct {
 	ID                    Uuid   `json:"id,omitempty"`
@@ -2062,40 +1560,6 @@ type SWMLWebhookUpdateRequest struct {
 	StatusCallbackMethod  any     `json:"status_callback_method,omitempty"`
 }
 
-type SayAction struct {
-	Say string `json:"say,omitempty"`
-}
-
-type SchemaType any
-
-type Section struct {
-	Main []SWMLMethod `json:"main,omitempty"`
-}
-
-type SendDigits struct {
-	SendDigits map[string]any `json:"send_digits,omitempty"`
-}
-
-type SendFax struct {
-	SendFax map[string]any `json:"send_fax,omitempty"`
-}
-
-type SendSMS struct {
-	SendSms any `json:"send_sms,omitempty"`
-}
-
-type Set struct {
-	Set map[string]any `json:"set,omitempty"`
-}
-
-type SetGlobalDataAction struct {
-	SetGlobalData map[string]any `json:"set_global_data,omitempty"`
-}
-
-type SetMetaDataAction struct {
-	SetMetaData map[string]any `json:"set_meta_data,omitempty"`
-}
-
 type SipEndpointAddressListResponse struct {
 	Data  []FabricAddressCall                  `json:"data,omitempty"`
 	Links SipEndpointAddressPaginationResponse `json:"links,omitempty"`
@@ -2109,15 +1573,15 @@ type SipEndpointAddressPaginationResponse struct {
 }
 
 type SipEndpointCreateRequest struct {
-	ID                       *Uuid           `json:"id,omitempty"`
-	Username                 string          `json:"username,omitempty"`
-	CallerID                 string          `json:"caller_id,omitempty"`
-	SendAs                   string          `json:"send_as,omitempty"`
-	Ciphers                  []Ciphers       `json:"ciphers,omitempty"`
-	Codecs                   []Codecs        `json:"codecs,omitempty"`
-	Encryption               Encryption      `json:"encryption,omitempty"`
-	CallHandler              CallHandlerType `json:"call_handler,omitempty"`
-	CallingHandlerResourceID any             `json:"calling_handler_resource_id,omitempty"`
+	Username                 string           `json:"username,omitempty"`
+	CallerID                 *string          `json:"caller_id,omitempty"`
+	SendAs                   *string          `json:"send_as,omitempty"`
+	Ciphers                  []Ciphers        `json:"ciphers,omitempty"`
+	Codecs                   []Codecs         `json:"codecs,omitempty"`
+	Encryption               *Encryption      `json:"encryption,omitempty"`
+	CallHandler              *CallHandlerType `json:"call_handler,omitempty"`
+	CallingHandlerResourceID any              `json:"calling_handler_resource_id,omitempty"`
+	Password                 string           `json:"password,omitempty"`
 }
 
 type SipEndpointCreateStatusCode422 struct {
@@ -2140,6 +1604,7 @@ type SipEndpointUpdateRequest struct {
 	Encryption               *Encryption      `json:"encryption,omitempty"`
 	CallHandler              *CallHandlerType `json:"call_handler,omitempty"`
 	CallingHandlerResourceID any              `json:"calling_handler_resource_id,omitempty"`
+	Password                 *string          `json:"password,omitempty"`
 }
 
 type SipEndpointUpdateStatusCode422 struct {
@@ -2147,12 +1612,12 @@ type SipEndpointUpdateStatusCode422 struct {
 }
 
 type SipGateway struct {
-	ID         string     `json:"id,omitempty"`
-	URI        string     `json:"uri,omitempty"`
-	Name       string     `json:"name,omitempty"`
-	Ciphers    []Ciphers  `json:"ciphers,omitempty"`
-	Codecs     []Codecs   `json:"codecs,omitempty"`
-	Encryption Encryption `json:"encryption,omitempty"`
+	ID         string               `json:"id,omitempty"`
+	URI        string               `json:"uri,omitempty"`
+	Name       string               `json:"name,omitempty"`
+	Ciphers    []Ciphers            `json:"ciphers,omitempty"`
+	Codecs     []Codecs             `json:"codecs,omitempty"`
+	Encryption SipGatewayEncryption `json:"encryption,omitempty"`
 }
 
 type SipGatewayAddressListResponse struct {
@@ -2184,19 +1649,19 @@ type SipGatewayPaginationResponse struct {
 }
 
 type SipGatewayRequest struct {
-	Name       string     `json:"name,omitempty"`
-	URI        string     `json:"uri,omitempty"`
-	Encryption Encryption `json:"encryption,omitempty"`
-	Ciphers    []Ciphers  `json:"ciphers,omitempty"`
-	Codecs     []Codecs   `json:"codecs,omitempty"`
+	Name       string               `json:"name,omitempty"`
+	URI        string               `json:"uri,omitempty"`
+	Encryption SipGatewayEncryption `json:"encryption,omitempty"`
+	Ciphers    []Ciphers            `json:"ciphers,omitempty"`
+	Codecs     []Codecs             `json:"codecs,omitempty"`
 }
 
 type SipGatewayRequestUpdate struct {
-	Name       *string     `json:"name,omitempty"`
-	URI        *string     `json:"uri,omitempty"`
-	Encryption *Encryption `json:"encryption,omitempty"`
-	Ciphers    []Ciphers   `json:"ciphers,omitempty"`
-	Codecs     []Codecs    `json:"codecs,omitempty"`
+	Name       string               `json:"name,omitempty"`
+	URI        string               `json:"uri,omitempty"`
+	Encryption SipGatewayEncryption `json:"encryption,omitempty"`
+	Ciphers    []Ciphers            `json:"ciphers,omitempty"`
+	Codecs     []Codecs             `json:"codecs,omitempty"`
 }
 
 type SipGatewayResponse struct {
@@ -2209,95 +1674,16 @@ type SipGatewayResponse struct {
 	SIPGateway  SipGateway `json:"sip_gateway,omitempty"`
 }
 
-type Sleep struct {
-	Sleep any `json:"sleep,omitempty"`
-}
-
-type SpeechEngine string
-
-const (
-	SpeechEngineDeepgram SpeechEngine = "deepgram"
-	SpeechEngineGoogle   SpeechEngine = "google"
-)
-
-type StartAction struct {
-	Start map[string]any `json:"start,omitempty"`
-}
-
-type StartUpHookSWAIGFunction struct {
-	Description    string              `json:"description,omitempty"`
-	Purpose        *string             `json:"purpose,omitempty"`
-	Parameters     *FunctionParameters `json:"parameters,omitempty"`
-	Fillers        *FunctionFillers    `json:"fillers,omitempty"`
-	Argument       *FunctionParameters `json:"argument,omitempty"`
-	Active         any                 `json:"active,omitempty"`
-	MetaData       map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken  *string             `json:"meta_data_token,omitempty"`
-	DataMap        *DataMap            `json:"data_map,omitempty"`
-	SkipFillers    any                 `json:"skip_fillers,omitempty"`
-	WebHookURL     *string             `json:"web_hook_url,omitempty"`
-	WaitFile       *string             `json:"wait_file,omitempty"`
-	WaitFileLoops  any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers any                 `json:"wait_for_fillers,omitempty"`
-	Function       string              `json:"function,omitempty"`
-}
-
-type StopAction struct {
-	Stop any `json:"stop,omitempty"`
-}
-
-type StopDenoise struct {
-	StopDenoise map[string]any `json:"stop_denoise,omitempty"`
-}
-
-type StopPlaybackBGAction struct {
-	StopPlaybackBg any `json:"stop_playback_bg,omitempty"`
-}
-
-type StopRecordCall struct {
-	StopRecordCall map[string]any `json:"stop_record_call,omitempty"`
-}
-
-type StopTap struct {
-	StopTap map[string]any `json:"stop_tap,omitempty"`
-}
-
-type StringFormat string
-
-const (
-	StringFormatDateTime StringFormat = "date_time"
-	StringFormatTime     StringFormat = "time"
-	StringFormatDate     StringFormat = "date"
-	StringFormatDuration StringFormat = "duration"
-	StringFormatEmail    StringFormat = "email"
-	StringFormatHostname StringFormat = "hostname"
-	StringFormatIpv4     StringFormat = "ipv4"
-	StringFormatIpv6     StringFormat = "ipv6"
-	StringFormatUri      StringFormat = "uri"
-	StringFormatUuid     StringFormat = "uuid"
-)
-
-type StringProperty struct {
-	Description *string       `json:"description,omitempty"`
-	Nullable    any           `json:"nullable,omitempty"`
-	Type        string        `json:"type,omitempty"`
-	Enum        []string      `json:"enum,omitempty"`
-	Default     *string       `json:"default,omitempty"`
-	Pattern     *string       `json:"pattern,omitempty"`
-	Format      *StringFormat `json:"format,omitempty"`
-}
-
 type Subscriber struct {
-	ID          Uuid   `json:"id,omitempty"`
-	Email       string `json:"email,omitempty"`
-	FirstName   string `json:"first_name,omitempty"`
-	LastName    string `json:"last_name,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	JobTitle    string `json:"job_title,omitempty"`
-	Timezone    string `json:"timezone,omitempty"`
-	Country     string `json:"country,omitempty"`
-	Region      string `json:"region,omitempty"`
-	CompanyName string `json:"company_name,omitempty"`
+	ID          Uuid    `json:"id,omitempty"`
+	Email       string  `json:"email,omitempty"`
+	FirstName   string  `json:"first_name,omitempty"`
+	LastName    string  `json:"last_name,omitempty"`
+	DisplayName string  `json:"display_name,omitempty"`
+	JobTitle    string  `json:"job_title,omitempty"`
+	Country     string  `json:"country,omitempty"`
+	CompanyName string  `json:"company_name,omitempty"`
+	TimeZone    *string `json:"time_zone,omitempty"`
 }
 
 type SubscriberAddressPaginationResponse struct {
@@ -2317,22 +1703,27 @@ type SubscriberCreateStatusCode422 struct {
 }
 
 type SubscriberGuestTokenCreateRequest struct {
-	AllowedAddresses []Uuid `json:"allowed_addresses,omitempty"`
-	ExpireAt         *int   `json:"expire_at,omitempty"`
+	AllowedAddresses []Uuid  `json:"allowed_addresses,omitempty"`
+	ExpireAt         *int    `json:"expire_at,omitempty"`
+	Ch               *string `json:"ch,omitempty"`
+	Region           *string `json:"region,omitempty"`
+	Email            *string `json:"email,omitempty"`
+	FirstName        *string `json:"first_name,omitempty"`
+	LastName         *string `json:"last_name,omitempty"`
+	DisplayName      *string `json:"display_name,omitempty"`
+	JobTitle         *string `json:"job_title,omitempty"`
+	TimeZone         *string `json:"time_zone,omitempty"`
+	Country          *string `json:"country,omitempty"`
+	CompanyName      *string `json:"company_name,omitempty"`
 }
 
 type SubscriberGuestTokenCreateResponse struct {
-	Token        Jwt `json:"token,omitempty"`
-	RefreshToken Jwt `json:"refresh_token,omitempty"`
-}
-
-type SubscriberInviteTokenCreateRequest struct {
-	AddressID Uuid `json:"address_id,omitempty"`
-	ExpiresAt *int `json:"expires_at,omitempty"`
-}
-
-type SubscriberInviteTokenCreateResponse struct {
-	Token Jwt `json:"token,omitempty"`
+	Token        Jwt    `json:"token,omitempty"`
+	RefreshToken Jwt    `json:"refresh_token,omitempty"`
+	AddressURI   string `json:"address_uri,omitempty"`
+	ExpiresAt    string `json:"expires_at,omitempty"`
+	ExpiresIn    int    `json:"expires_in,omitempty"`
+	IssuedAt     string `json:"issued_at,omitempty"`
 }
 
 type SubscriberListResponse struct {
@@ -2363,10 +1754,21 @@ type SubscriberRequest struct {
 	LastName    *string `json:"last_name,omitempty"`
 	DisplayName *string `json:"display_name,omitempty"`
 	JobTitle    *string `json:"job_title,omitempty"`
-	Timezone    *string `json:"timezone,omitempty"`
 	Country     *string `json:"country,omitempty"`
-	Region      *string `json:"region,omitempty"`
 	CompanyName *string `json:"company_name,omitempty"`
+	TimeZone    *string `json:"time_zone,omitempty"`
+}
+
+type SubscriberUpdateRequest struct {
+	Password    *string `json:"password,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	FirstName   *string `json:"first_name,omitempty"`
+	LastName    *string `json:"last_name,omitempty"`
+	DisplayName *string `json:"display_name,omitempty"`
+	JobTitle    *string `json:"job_title,omitempty"`
+	Country     *string `json:"country,omitempty"`
+	CompanyName *string `json:"company_name,omitempty"`
+	TimeZone    *string `json:"time_zone,omitempty"`
 }
 
 type SubscriberResponse struct {
@@ -2380,13 +1782,13 @@ type SubscriberResponse struct {
 }
 
 type SubscriberSIPEndpoint struct {
-	ID         Uuid       `json:"id,omitempty"`
-	Username   string     `json:"username,omitempty"`
-	CallerID   string     `json:"caller_id,omitempty"`
-	SendAs     string     `json:"send_as,omitempty"`
-	Ciphers    []Ciphers  `json:"ciphers,omitempty"`
-	Codecs     []Codecs   `json:"codecs,omitempty"`
-	Encryption Encryption `json:"encryption,omitempty"`
+	ID         Uuid      `json:"id,omitempty"`
+	Username   string    `json:"username,omitempty"`
+	CallerID   string    `json:"caller_id,omitempty"`
+	SendAs     string    `json:"send_as,omitempty"`
+	Ciphers    []Ciphers `json:"ciphers,omitempty"`
+	Codecs     []Codecs  `json:"codecs,omitempty"`
+	Encryption string    `json:"encryption,omitempty"`
 }
 
 type SubscriberSipEndpointListResponse struct {
@@ -2422,6 +1824,7 @@ type SubscriberSipEndpointRequestUpdate struct {
 }
 
 type SubscriberTokenRequest struct {
+	Ch            *string `json:"ch,omitempty"`
 	Reference     string  `json:"reference,omitempty"`
 	ExpireAt      *int    `json:"expire_at,omitempty"`
 	ApplicationID *Uuid   `json:"application_id,omitempty"`
@@ -2434,6 +1837,8 @@ type SubscriberTokenRequest struct {
 	Country       *string `json:"country,omitempty"`
 	Region        *string `json:"region,omitempty"`
 	CompanyName   *string `json:"company_name,omitempty"`
+	Scope         *string `json:"scope,omitempty"`
+	Fingerprint   *string `json:"fingerprint,omitempty"`
 }
 
 type SubscriberTokenResponse struct {
@@ -2450,47 +1855,21 @@ type SubscriberUpdateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type SummarizeAction struct {
-	Summarize map[string]any `json:"summarize,omitempty"`
-}
-
-type SummarizeActionUnion any
-
-type SummarizeConversationSWAIGFunction struct {
-	Description    string              `json:"description,omitempty"`
-	Purpose        *string             `json:"purpose,omitempty"`
-	Parameters     *FunctionParameters `json:"parameters,omitempty"`
-	Fillers        *FunctionFillers    `json:"fillers,omitempty"`
-	Argument       *FunctionParameters `json:"argument,omitempty"`
-	Active         any                 `json:"active,omitempty"`
-	MetaData       map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken  *string             `json:"meta_data_token,omitempty"`
-	DataMap        *DataMap            `json:"data_map,omitempty"`
-	SkipFillers    any                 `json:"skip_fillers,omitempty"`
-	WebHookURL     *string             `json:"web_hook_url,omitempty"`
-	WaitFile       *string             `json:"wait_file,omitempty"`
-	WaitFileLoops  any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers any                 `json:"wait_for_fillers,omitempty"`
-	Function       string              `json:"function,omitempty"`
-}
-
-type Switch struct {
-	Switch map[string]any `json:"switch,omitempty"`
-}
-
 type SwmlScript struct {
-	ID                   Uuid    `json:"id,omitempty"`
-	Contents             string  `json:"contents,omitempty"`
-	RequestURL           string  `json:"request_url,omitempty"`
-	DisplayName          string  `json:"display_name,omitempty"`
-	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod *string `json:"status_callback_method,omitempty"`
+	ID                   Uuid           `json:"id,omitempty"`
+	Contents             map[string]any `json:"contents,omitempty"`
+	RequestURL           string         `json:"request_url,omitempty"`
+	DisplayName          string         `json:"display_name,omitempty"`
+	StatusCallbackURL    *string        `json:"status_callback_url,omitempty"`
+	StatusCallbackMethod *string        `json:"status_callback_method,omitempty"`
+	ScriptType           *string        `json:"script_type,omitempty"`
 }
 
 type SwmlScriptCreateRequest struct {
 	Name              string  `json:"name,omitempty"`
 	Contents          string  `json:"contents,omitempty"`
 	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
+	ScriptType        *string `json:"script_type,omitempty"`
 }
 
 type SwmlScriptCreateStatusCode422 struct {
@@ -2520,9 +1899,10 @@ type SwmlScriptResponse struct {
 }
 
 type SwmlScriptUpdateRequest struct {
-	DisplayName       *string `json:"display_name,omitempty"`
 	Contents          *string `json:"contents,omitempty"`
 	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
+	Name              *string `json:"name,omitempty"`
+	ScriptType        *string `json:"script_type,omitempty"`
 }
 
 type SwmlScriptUpdateStatusCode422 struct {
@@ -2537,64 +1917,6 @@ type SwmlWebhookUpdateStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type Tap struct {
-	Tap map[string]any `json:"tap,omitempty"`
-}
-
-type ToggleFunctionsAction struct {
-	ToggleFunctions []map[string]any `json:"toggle_functions,omitempty"`
-}
-
-type TranscribeAction any
-
-type TranscribeDirection string
-
-const (
-	TranscribeDirectionRemoteCaller TranscribeDirection = "remote-caller"
-	TranscribeDirectionLocalCaller  TranscribeDirection = "local-caller"
-)
-
-type TranscribeStartAction struct {
-	Start map[string]any `json:"start,omitempty"`
-}
-
-type TranscribeSummarizeAction struct {
-	Summarize map[string]any `json:"summarize,omitempty"`
-}
-
-type TranscribeSummarizeActionUnion any
-
-type Transfer struct {
-	Transfer map[string]any `json:"transfer,omitempty"`
-}
-
-type TranslateAction any
-
-type TranslateDirection string
-
-const (
-	TranslateDirectionRemoteCaller TranslateDirection = "remote-caller"
-	TranslateDirectionLocalCaller  TranslateDirection = "local-caller"
-)
-
-type TranslationFilterPreset string
-
-const (
-	TranslationFilterPresetPolite       TranslationFilterPreset = "polite"
-	TranslationFilterPresetRude         TranslationFilterPreset = "rude"
-	TranslationFilterPresetProfessional TranslationFilterPreset = "professional"
-	TranslationFilterPresetShakespeare  TranslationFilterPreset = "shakespeare"
-	TranslationFilterPresetGenZ         TranslationFilterPreset = "gen-z"
-)
-
-type Types_StatusCodes_RestApiErrorItem struct {
-	Type      string `json:"type,omitempty"`
-	Code      string `json:"code,omitempty"`
-	Message   string `json:"message,omitempty"`
-	Attribute any    `json:"attribute,omitempty"`
-	URL       string `json:"url,omitempty"`
-}
-
 type Types_StatusCodes_StatusCode403 struct {
 	Error string `json:"error,omitempty"`
 }
@@ -2603,17 +1925,13 @@ type Types_StatusCodes_StatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
-type Unset struct {
-	Unset any `json:"unset,omitempty"`
-}
+type CxmlWebhookUsedForType string
 
-type UnsetGlobalDataAction struct {
-	UnsetGlobalData any `json:"unset_global_data,omitempty"`
-}
-
-type UnsetMetaDataAction struct {
-	UnsetMetaData any `json:"unset_meta_data,omitempty"`
-}
+const (
+	CxmlWebhookUsedForTypeCalling   CxmlWebhookUsedForType = "calling"
+	CxmlWebhookUsedForTypeMessaging CxmlWebhookUsedForType = "messaging"
+	CxmlWebhookUsedForTypeFaxing    CxmlWebhookUsedForType = "faxing"
+)
 
 type UsedForType string
 
@@ -2622,51 +1940,269 @@ const (
 	UsedForTypeMessaging UsedForType = "messaging"
 )
 
-type UserEvent struct {
-	UserEvent map[string]any `json:"user_event,omitempty"`
-}
-
-type UserInputAction struct {
-	UserInput string `json:"user_input,omitempty"`
-}
-
-type UserSWAIGFunction struct {
-	Description    string              `json:"description,omitempty"`
-	Purpose        *string             `json:"purpose,omitempty"`
-	Parameters     *FunctionParameters `json:"parameters,omitempty"`
-	Fillers        *FunctionFillers    `json:"fillers,omitempty"`
-	Argument       *FunctionParameters `json:"argument,omitempty"`
-	Active         any                 `json:"active,omitempty"`
-	MetaData       map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken  *string             `json:"meta_data_token,omitempty"`
-	DataMap        *DataMap            `json:"data_map,omitempty"`
-	SkipFillers    any                 `json:"skip_fillers,omitempty"`
-	WebHookURL     *string             `json:"web_hook_url,omitempty"`
-	WaitFile       *string             `json:"wait_file,omitempty"`
-	WaitFileLoops  any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers any                 `json:"wait_for_fillers,omitempty"`
-	Function       string              `json:"function,omitempty"`
-}
-
-type ValidConfirmMethods any
-
 type VideoChannel struct {
 	Video string `json:"video,omitempty"`
 }
 
 type Webhook struct {
-	Expressions       []Expression   `json:"expressions,omitempty"`
 	ErrorKeys         any            `json:"error_keys,omitempty"`
-	URL               string         `json:"url,omitempty"`
-	Foreach           map[string]any `json:"foreach,omitempty"`
+	Expressions       any            `json:"expressions,omitempty"`
+	Foreach           *Foreach       `json:"foreach,omitempty"`
+	FormParam         *string        `json:"form_param,omitempty"`
 	Headers           map[string]any `json:"headers,omitempty"`
+	InputArgsAsParams *bool          `json:"input_args_as_params,omitempty"`
 	Method            *string        `json:"method,omitempty"`
-	InputArgsAsParams any            `json:"input_args_as_params,omitempty"`
-	Params            map[string]any `json:"params,omitempty"`
-	RequireArgs       any            `json:"require_args,omitempty"`
 	Output            *Output        `json:"output,omitempty"`
+	Params            any            `json:"params,omitempty"`
+	RequireArgs       any            `json:"require_args,omitempty"`
+	URL               *string        `json:"url,omitempty"`
 }
 
 type Jwt string
 
-type Play_url string
+type AliasAddress struct {
+	ID          Uuid     `json:"id,omitempty"`
+	Type        string   `json:"type,omitempty"`
+	ResourceID  any      `json:"resource_id,omitempty"`
+	Name        string   `json:"name,omitempty"`
+	DisplayName string   `json:"display_name,omitempty"`
+	DisplayType string   `json:"display_type,omitempty"`
+	Channels    []string `json:"channels,omitempty"`
+	Codecs      []string `json:"codecs,omitempty"`
+	Context     string   `json:"context,omitempty"`
+	URI         string   `json:"uri,omitempty"`
+	CreatedAt   string   `json:"created_at,omitempty"`
+	UpdatedAt   string   `json:"updated_at,omitempty"`
+}
+
+type AliasAddressCreateRequest struct {
+	Name        string   `json:"name,omitempty"`
+	DisplayName *string  `json:"display_name,omitempty"`
+	ResourceID  Uuid     `json:"resource_id,omitempty"`
+	Channels    []string `json:"channels,omitempty"`
+	Codecs      []string `json:"codecs,omitempty"`
+	Context     *string  `json:"context,omitempty"`
+}
+
+type AliasAddressUpdateRequest struct {
+	Name        *string  `json:"name,omitempty"`
+	DisplayName *string  `json:"display_name,omitempty"`
+	Channels    []string `json:"channels,omitempty"`
+	Codecs      []string `json:"codecs,omitempty"`
+	Context     *string  `json:"context,omitempty"`
+}
+
+type SipAddress struct {
+	ID                       Uuid     `json:"id,omitempty"`
+	Type                     string   `json:"type,omitempty"`
+	ResourceID               any      `json:"resource_id,omitempty"`
+	Name                     string   `json:"name,omitempty"`
+	DisplayName              string   `json:"display_name,omitempty"`
+	Context                  string   `json:"context,omitempty"`
+	URI                      string   `json:"uri,omitempty"`
+	User                     string   `json:"user,omitempty"`
+	Encryption               string   `json:"encryption,omitempty"`
+	Codecs                   []string `json:"codecs,omitempty"`
+	Ciphers                  []string `json:"ciphers,omitempty"`
+	IPAuthEnabled            bool     `json:"ip_auth_enabled,omitempty"`
+	IPAuth                   []string `json:"ip_auth,omitempty"`
+	CallingHandlerResourceID any      `json:"calling_handler_resource_id,omitempty"`
+	CreatedAt                string   `json:"created_at,omitempty"`
+	UpdatedAt                string   `json:"updated_at,omitempty"`
+}
+
+type SipAddressCreateRequest struct {
+	Name                     string   `json:"name,omitempty"`
+	User                     *string  `json:"user,omitempty"`
+	ContextID                *Uuid    `json:"context_id,omitempty"`
+	CallingHandlerResourceID Uuid     `json:"calling_handler_resource_id,omitempty"`
+	IPAuthEnabled            *bool    `json:"ip_auth_enabled,omitempty"`
+	IPAuth                   []string `json:"ip_auth,omitempty"`
+	Codecs                   []string `json:"codecs,omitempty"`
+	Ciphers                  []string `json:"ciphers,omitempty"`
+	Encryption               *string  `json:"encryption,omitempty"`
+	Password                 *string  `json:"password,omitempty"`
+}
+
+type SipAddressUpdateRequest struct {
+	Name          *string  `json:"name,omitempty"`
+	User          *string  `json:"user,omitempty"`
+	ContextID     *Uuid    `json:"context_id,omitempty"`
+	IPAuthEnabled *bool    `json:"ip_auth_enabled,omitempty"`
+	IPAuth        []string `json:"ip_auth,omitempty"`
+	Codecs        []string `json:"codecs,omitempty"`
+	Ciphers       []string `json:"ciphers,omitempty"`
+	Encryption    *string  `json:"encryption,omitempty"`
+	Password      *string  `json:"password,omitempty"`
+}
+
+type PhoneNumberAddress struct {
+	ID            Uuid   `json:"id,omitempty"`
+	Type          string `json:"type,omitempty"`
+	HandlerType   string `json:"handler_type,omitempty"`
+	ResourceID    any    `json:"resource_id,omitempty"`
+	Name          string `json:"name,omitempty"`
+	PhoneNumber   string `json:"phone_number,omitempty"`
+	PhoneNumberID Uuid   `json:"phone_number_id,omitempty"`
+	CreatedAt     string `json:"created_at,omitempty"`
+	UpdatedAt     string `json:"updated_at,omitempty"`
+}
+
+type PhoneNumberAddressCreateRequest struct {
+	PhoneNumberID *Uuid   `json:"phone_number_id,omitempty"`
+	Number        *string `json:"number,omitempty"`
+	ResourceID    Uuid    `json:"resource_id,omitempty"`
+	HandlerType   string  `json:"handler_type,omitempty"`
+}
+
+type PhoneNumberAddressUpdateRequest struct {
+	Name       *string `json:"name,omitempty"`
+	ResourceID *Uuid   `json:"resource_id,omitempty"`
+}
+
+type AliasAddressListResponse struct {
+	Links      FabricAddressPaginationResponse `json:"links,omitempty"`
+	ItemsCount int                             `json:"items_count,omitempty"`
+	Data       []AliasAddress                  `json:"data,omitempty"`
+}
+
+type SipAddressListResponse struct {
+	Links      FabricAddressPaginationResponse `json:"links,omitempty"`
+	ItemsCount int                             `json:"items_count,omitempty"`
+	Data       []SipAddress                    `json:"data,omitempty"`
+}
+
+type PhoneNumberAddressListResponse struct {
+	Links      FabricAddressPaginationResponse `json:"links,omitempty"`
+	ItemsCount int                             `json:"items_count,omitempty"`
+	Data       []PhoneNumberAddress            `json:"data,omitempty"`
+}
+
+type WhatsappNumberAssignRequest struct {
+	WhatsappNumberID Uuid        `json:"whatsapp_number_id,omitempty"`
+	Handler          UsedForType `json:"handler,omitempty"`
+}
+
+type WhatsappNumberAddressResponse struct {
+	ID          Uuid   `json:"id,omitempty"`
+	ResourceID  any    `json:"resource_id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	Type        string `json:"type,omitempty"`
+	CoverURL    string `json:"cover_url,omitempty"`
+	PreviewURL  string `json:"preview_url,omitempty"`
+	Locked      bool   `json:"locked,omitempty"`
+	Channels    any    `json:"channels,omitempty"`
+}
+
+type Step struct {
+	End            any                `json:"end,omitempty"`
+	Functions      []any              `json:"functions,omitempty"`
+	GatherInfo     map[string]any     `json:"gather_info,omitempty"`
+	History        *string            `json:"history,omitempty"`
+	Name           *string            `json:"name,omitempty"`
+	Pom            []PromptPomSection `json:"pom,omitempty"`
+	Reset          map[string]any     `json:"reset,omitempty"`
+	SkipToNextStep any                `json:"skip_to_next_step,omitempty"`
+	SkipUserTurn   any                `json:"skip_user_turn,omitempty"`
+	StepCriteria   *string            `json:"step_criteria,omitempty"`
+	Text           *string            `json:"text,omitempty"`
+	ValidContexts  []string           `json:"valid_contexts,omitempty"`
+	ValidSteps     []string           `json:"valid_steps,omitempty"`
+}
+
+type PromptPomSection struct {
+	Title           *string            `json:"title,omitempty"`
+	Body            *string            `json:"body,omitempty"`
+	Bullets         []string           `json:"bullets,omitempty"`
+	Numbered        *bool              `json:"numbered,omitempty"`
+	NumberedBullets *bool              `json:"numberedBullets,omitempty"`
+	Subsections     []PromptPomSection `json:"subsections,omitempty"`
+}
+
+type Foreach struct {
+	Append    *string `json:"append,omitempty"`
+	InputKey  *string `json:"input_key,omitempty"`
+	Max       any     `json:"max,omitempty"`
+	OutputKey *string `json:"output_key,omitempty"`
+}
+
+type Context struct {
+	Consolidate   any                `json:"consolidate,omitempty"`
+	EnterFillers  map[string]any     `json:"enter_fillers,omitempty"`
+	ExitFillers   map[string]any     `json:"exit_fillers,omitempty"`
+	FullReset     any                `json:"full_reset,omitempty"`
+	History       *string            `json:"history,omitempty"`
+	InitialStep   *string            `json:"initial_step,omitempty"`
+	Isolated      any                `json:"isolated,omitempty"`
+	Pom           []PromptPomSection `json:"pom,omitempty"`
+	PostPrompt    map[string]any     `json:"post_prompt,omitempty"`
+	Prompt        *string            `json:"prompt,omitempty"`
+	Reset         any                `json:"reset,omitempty"`
+	Steps         []Step             `json:"steps,omitempty"`
+	SystemPrompt  *string            `json:"system_prompt,omitempty"`
+	UserPrompt    *string            `json:"user_prompt,omitempty"`
+	ValidContexts []any              `json:"valid_contexts,omitempty"`
+	ValidSteps    []any              `json:"valid_steps,omitempty"`
+}
+
+type AIAgentPrompt struct {
+	Contexts            *Contexts        `json:"contexts,omitempty"`
+	FrequencyPenalty    any              `json:"frequency_penalty,omitempty"`
+	MaxCompletionTokens *float64         `json:"max_completion_tokens,omitempty"`
+	MaxTokens           *float64         `json:"max_tokens,omitempty"`
+	Model               *string          `json:"model,omitempty"`
+	Pom                 []map[string]any `json:"pom,omitempty"`
+	PresencePenalty     any              `json:"presence_penalty,omitempty"`
+	ReasoningEffort     *string          `json:"reasoning_effort,omitempty"`
+	Steps               []Step           `json:"steps,omitempty"`
+	Temperature         any              `json:"temperature,omitempty"`
+	Text                *string          `json:"text,omitempty"`
+	TopP                any              `json:"top_p,omitempty"`
+	Verbosity           *string          `json:"verbosity,omitempty"`
+}
+
+type AIAgentPostPrompt struct {
+	FrequencyPenalty    any      `json:"frequency_penalty,omitempty"`
+	MaxCompletionTokens *float64 `json:"max_completion_tokens,omitempty"`
+	MaxTokens           *float64 `json:"max_tokens,omitempty"`
+	Model               *string  `json:"model,omitempty"`
+	Pom                 []POM    `json:"pom,omitempty"`
+	PresencePenalty     any      `json:"presence_penalty,omitempty"`
+	ReasoningEffort     *string  `json:"reasoning_effort,omitempty"`
+	Temperature         any      `json:"temperature,omitempty"`
+	Text                *string  `json:"text,omitempty"`
+	TopP                any      `json:"top_p,omitempty"`
+	Verbosity           *string  `json:"verbosity,omitempty"`
+}
+
+type AIAgentSWAIGFunction struct {
+	Description         *string             `json:"description,omitempty"`
+	Active              any                 `json:"active,omitempty"`
+	Argument            map[string]any      `json:"argument,omitempty"`
+	DataMap             *DataMap            `json:"data_map,omitempty"`
+	Fillers             *FunctionFillers    `json:"fillers,omitempty"`
+	Function            *string             `json:"function,omitempty"`
+	MetaData            map[string]any      `json:"meta_data,omitempty"`
+	MetaDataToken       *string             `json:"meta_data_token,omitempty"`
+	Parameters          *FunctionParameters `json:"parameters,omitempty"`
+	Purpose             *string             `json:"purpose,omitempty"`
+	SkipFillers         any                 `json:"skip_fillers,omitempty"`
+	WaitFile            *string             `json:"wait_file,omitempty"`
+	WaitFileLoops       any                 `json:"wait_file_loops,omitempty"`
+	WaitForFillers      any                 `json:"wait_for_fillers,omitempty"`
+	WebHookAuthPass     *string             `json:"web_hook_auth_pass,omitempty"`
+	WebHookAuthPassword *string             `json:"web_hook_auth_password,omitempty"`
+	WebHookAuthUser     *string             `json:"web_hook_auth_user,omitempty"`
+	WebHookURL          *string             `json:"web_hook_url,omitempty"`
+	ID                  *string             `json:"id,omitempty"`
+	Arguments           []map[string]any    `json:"arguments,omitempty"`
+}
+
+type AIAgentPronounce struct {
+	ID          *string `json:"id,omitempty"`
+	Replace     *string `json:"replace,omitempty"`
+	With        *string `json:"with,omitempty"`
+	ReplaceWith *string `json:"replace_with,omitempty"`
+	IgnoreCase  any     `json:"ignore_case,omitempty"`
+}

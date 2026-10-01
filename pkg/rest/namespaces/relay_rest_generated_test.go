@@ -174,6 +174,44 @@ func TestRelayRestGen_Addresses_List_Error(t *testing.T) {
 	}
 }
 
+func TestRelayRestGen_Addresses_Update(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Addresses.Update(context.Background(), "x-1", namespaces.AddressesNamespaceUpdateParams{})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "PUT" {
+		t.Errorf("method = %q want PUT", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "relay-rest.update_address" {
+		t.Errorf("matched_route = %v want relay-rest.update_address", j.MatchedRoute)
+	}
+}
+
+func TestRelayRestGen_Addresses_Update_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "relay-rest.update_address", 500, map[string]any{"error": "x"})
+	_, err := client.Addresses.Update(context.Background(), "x-1", namespaces.AddressesNamespaceUpdateParams{})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
 func TestRelayRestGen_ImportedNumbers_Create(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
@@ -675,7 +713,7 @@ func TestRelayRestGen_NumberGroups_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.NumberGroups.Update(context.Background(), "x-1", map[string]any{"name": "x-1"})
+	_, err := client.NumberGroups.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -696,7 +734,83 @@ func TestRelayRestGen_NumberGroups_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.update_number_group", 500, map[string]any{"error": "x"})
-	_, err := client.NumberGroups.Update(context.Background(), "x-1", map[string]any{"name": "x-1"})
+	_, err := client.NumberGroups.Update(context.Background(), "x-1", map[string]any{})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_AssignE911Address(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.PhoneNumbers.AssignE911Address(context.Background(), "x-1", namespaces.PhoneNumbersNamespaceAssignE911AddressParams{Extras: map[string]any{"e911_address_id": "x-1"}})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "POST" {
+		t.Errorf("method = %q want POST", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "relay-rest.assign_e911_address" {
+		t.Errorf("matched_route = %v want relay-rest.assign_e911_address", j.MatchedRoute)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_AssignE911Address_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "relay-rest.assign_e911_address", 500, map[string]any{"error": "x"})
+	_, err := client.PhoneNumbers.AssignE911Address(context.Background(), "x-1", namespaces.PhoneNumbersNamespaceAssignE911AddressParams{Extras: map[string]any{"e911_address_id": "x-1"}})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_ClearCNAM(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.PhoneNumbers.ClearCNAM(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "DELETE" {
+		t.Errorf("method = %q want DELETE", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "relay-rest.clear_caller_id_name" {
+		t.Errorf("matched_route = %v want relay-rest.clear_caller_id_name", j.MatchedRoute)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_ClearCNAM_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "relay-rest.clear_caller_id_name", 500, map[string]any{"error": "x"})
+	_, err := client.PhoneNumbers.ClearCNAM(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -782,6 +896,44 @@ func TestRelayRestGen_PhoneNumbers_Delete_Error(t *testing.T) {
 	}
 }
 
+func TestRelayRestGen_PhoneNumbers_GetCNAM(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.PhoneNumbers.GetCNAM(context.Background(), "x-1", nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "relay-rest.retrieve_caller_id_name" {
+		t.Errorf("matched_route = %v want relay-rest.retrieve_caller_id_name", j.MatchedRoute)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_GetCNAM_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "relay-rest.retrieve_caller_id_name", 500, map[string]any{"error": "x"})
+	_, err := client.PhoneNumbers.GetCNAM(context.Background(), "x-1", nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
 func TestRelayRestGen_PhoneNumbers_Get(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
@@ -849,6 +1001,82 @@ func TestRelayRestGen_PhoneNumbers_List_Error(t *testing.T) {
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.list_phone_numbers", 500, map[string]any{"error": "x"})
 	_, err := client.PhoneNumbers.List(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_RemoveE911Address(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.PhoneNumbers.RemoveE911Address(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "DELETE" {
+		t.Errorf("method = %q want DELETE", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "relay-rest.remove_e911_address" {
+		t.Errorf("matched_route = %v want relay-rest.remove_e911_address", j.MatchedRoute)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_RemoveE911Address_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "relay-rest.remove_e911_address", 500, map[string]any{"error": "x"})
+	_, err := client.PhoneNumbers.RemoveE911Address(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_RequestCNAM(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.PhoneNumbers.RequestCNAM(context.Background(), "x-1", namespaces.PhoneNumbersNamespaceRequestCNAMParams{Extras: map[string]any{"name": "x-1"}})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "POST" {
+		t.Errorf("method = %q want POST", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "relay-rest.request_caller_id_name" {
+		t.Errorf("matched_route = %v want relay-rest.request_caller_id_name", j.MatchedRoute)
+	}
+}
+
+func TestRelayRestGen_PhoneNumbers_RequestCNAM_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "relay-rest.request_caller_id_name", 500, map[string]any{"error": "x"})
+	_, err := client.PhoneNumbers.RequestCNAM(context.Background(), "x-1", namespaces.PhoneNumbersNamespaceRequestCNAMParams{Extras: map[string]any{"name": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -941,7 +1169,7 @@ func TestRelayRestGen_Queues_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Queues.Create(context.Background(), map[string]any{})
+	_, err := client.Queues.Create(context.Background(), map[string]any{"name": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -962,7 +1190,7 @@ func TestRelayRestGen_Queues_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.create_queue", 500, map[string]any{"error": "x"})
-	_, err := client.Queues.Create(context.Background(), map[string]any{})
+	_, err := client.Queues.Create(context.Background(), map[string]any{"name": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1276,6 +1504,44 @@ func TestRelayRestGen_Recordings_Delete_Error(t *testing.T) {
 	}
 }
 
+func TestRelayRestGen_Recordings_Download(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Recordings.Download(context.Background(), "x-1", nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "relay-rest.download_recording" {
+		t.Errorf("matched_route = %v want relay-rest.download_recording", j.MatchedRoute)
+	}
+}
+
+func TestRelayRestGen_Recordings_Download_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "relay-rest.download_recording", 500, map[string]any{"error": "x"})
+	_, err := client.Recordings.Download(context.Background(), "x-1", nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
 func TestRelayRestGen_Recordings_Get(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
@@ -1542,6 +1808,44 @@ func TestRelayRestGen_Brands_List_Error(t *testing.T) {
 	}
 }
 
+func TestRelayRestGen_Brands_Update(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Registry.Brands.Update(context.Background(), "x-1", namespaces.RegistryBrandsUpdateParams{})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "PUT" {
+		t.Errorf("method = %q want PUT", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "relay-rest.update_brand" {
+		t.Errorf("matched_route = %v want relay-rest.update_brand", j.MatchedRoute)
+	}
+}
+
+func TestRelayRestGen_Brands_Update_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "relay-rest.update_brand", 500, map[string]any{"error": "x"})
+	_, err := client.Registry.Brands.Update(context.Background(), "x-1", namespaces.RegistryBrandsUpdateParams{})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
 func TestRelayRestGen_Campaigns_CreateOrder(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
@@ -1549,7 +1853,7 @@ func TestRelayRestGen_Campaigns_CreateOrder(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Registry.Campaigns.CreateOrder(context.Background(), "x-1", namespaces.RegistryCampaignsCreateOrderParams{})
+	_, err := client.Registry.Campaigns.CreateOrder(context.Background(), "x-1", namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{"phone_numbers": "x-1"}})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1570,7 +1874,7 @@ func TestRelayRestGen_Campaigns_CreateOrder_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.create_order", 500, map[string]any{"error": "x"})
-	_, err := client.Registry.Campaigns.CreateOrder(context.Background(), "x-1", namespaces.RegistryCampaignsCreateOrderParams{})
+	_, err := client.Registry.Campaigns.CreateOrder(context.Background(), "x-1", namespaces.RegistryCampaignsCreateOrderParams{Extras: map[string]any{"phone_numbers": "x-1"}})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1967,7 +2271,7 @@ func TestRelayRestGen_ShortCodes_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.ShortCodes.Update(context.Background(), "x-1", namespaces.ShortCodesNamespaceUpdateParams{Extras: map[string]any{"name": "x-1", "message_handler": "x-1"}})
+	_, err := client.ShortCodes.Update(context.Background(), "x-1", namespaces.ShortCodesNamespaceUpdateParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1988,7 +2292,7 @@ func TestRelayRestGen_ShortCodes_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.update_short_code", 500, map[string]any{"error": "x"})
-	_, err := client.ShortCodes.Update(context.Background(), "x-1", namespaces.ShortCodesNamespaceUpdateParams{Extras: map[string]any{"name": "x-1", "message_handler": "x-1"}})
+	_, err := client.ShortCodes.Update(context.Background(), "x-1", namespaces.ShortCodesNamespaceUpdateParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2233,7 +2537,7 @@ func TestRelayRestGen_VerifiedCallers_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.VerifiedCallers.Update(context.Background(), "x-1", map[string]any{"name": "x-1"})
+	_, err := client.VerifiedCallers.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2254,7 +2558,7 @@ func TestRelayRestGen_VerifiedCallers_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "relay-rest.update_verified_caller_id", 500, map[string]any{"error": "x"})
-	_, err := client.VerifiedCallers.Update(context.Background(), "x-1", map[string]any{"name": "x-1"})
+	_, err := client.VerifiedCallers.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

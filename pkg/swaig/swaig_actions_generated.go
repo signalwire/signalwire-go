@@ -9,9 +9,13 @@
 
 package swaig
 
+type ChangeVoiceAction struct {
+	Voice map[string]any `json:"voice,omitempty" gen:"dict<string,any>"`
+}
+
 type ContextSwitchAction struct {
-	Consolidate  bool           `json:"consolidate,omitempty" gen:"bool"`
-	FullReset    bool           `json:"full_reset,omitempty" gen:"bool"`
+	Consolidate  any            `json:"consolidate,omitempty" gen:"union<bool,string>"`
+	FullReset    any            `json:"full_reset,omitempty" gen:"union<bool,string>"`
 	SystemPom    map[string]any `json:"system_pom,omitempty" gen:"dict<string,any>"`
 	SystemPrompt string         `json:"system_prompt,omitempty" gen:"string"`
 	UserPom      map[string]any `json:"user_pom,omitempty" gen:"dict<string,any>"`
@@ -19,17 +23,19 @@ type ContextSwitchAction struct {
 }
 
 type HoldAction struct {
-	Timeout any `json:"timeout,omitempty" gen:"union<float,string>"`
+	Step        string `json:"step,omitempty" gen:"string"`
+	Timeout     any    `json:"timeout,omitempty" gen:"union<float,string>"`
+	TimeoutStep string `json:"timeout_step,omitempty" gen:"string"`
 }
 
 type PlaybackBgAction struct {
 	File string `json:"file,omitempty" gen:"string"`
-	Wait bool   `json:"wait,omitempty" gen:"bool"`
+	Wait any    `json:"wait,omitempty" gen:"union<bool,string>"`
 }
 
 type TransferAction struct {
 	Dest      string `json:"dest,omitempty" gen:"string"`
-	Summarize bool   `json:"summarize,omitempty" gen:"bool"`
+	Summarize any    `json:"summarize,omitempty" gen:"union<bool,string>"`
 }
 
 // SwaigAction A response-action object. The keys below are the full vocabulary dispatched by actions.c::process_action; an action object sets one or more of them. Each key's source line is the engine dispatch site.
@@ -44,9 +50,11 @@ type SwaigAction struct {
 	ChangeContext string `json:"change_context,omitempty" gen:"string"`
 	// ChangeStep Switch to a named **step** (or `"next"`)
 	ChangeStep string `json:"change_step,omitempty" gen:"string"`
+	// ChangeVoice Staged at `actions.c:490`, applied by `ai_threads.c` `apply_pending_voice_change`. The string (or the object's `voice`) is an `engine.voice:model` spec. Change the agent's voice mid-call by rebinding the **current language's** voice node (`cur_aish`) to an arbitrary `engine.voice:model` — works in both `~LN` (Mode A) and ASR-driven (Mode B) multilingual modes, since `cur_aish` is the current language's node in both. Cross-engine is intended (e.g. switch to a fish/groq voice for its sound/delivery tags). Staged on the session thread; the output thread closes+reopens the handle at the next batch boundary (never mid-utterance). Writes the node's **configured** identity, so the new voice **persists across later language re-selects of that node for the rest of the call**; a voice that will not open falls back to the fallback voice. Not persisted across calls (the voice list is rebuilt from SWML each session)
+	ChangeVoice any `json:"change_voice,omitempty" gen:"union<string,class:signalwire.core.swaig_actions_generated.ChangeVoiceAction>"`
 	// ClearDynamicHints Clear both dynamic hint lists and restart speech detection
 	ClearDynamicHints any `json:"clear_dynamic_hints,omitempty" gen:"union<bool,string>"`
-	// ContextSwitch Replace the system prompt / start a new conversation context. Object form: `{system_prompt, user_prompt, system_pom, user_pom, consolidate, full_reset}`. `system_pom`/`user_pom` render to prompt text; prompts are expanded against prompt vars + post_data; `consolidate:true` summarizes first
+	// ContextSwitch Replace the system prompt / start a new conversation context. Object form: `{system_prompt, user_prompt, system_pom, user_pom, consolidate, full_reset}`. `system_pom`/`user_pom` render to prompt text; prompts are expanded against prompt vars + post_data, except when the action comes from a data_map function, whose output is already expanded; `consolidate:true` summarizes first
 	ContextSwitch any `json:"context_switch,omitempty" gen:"union<string,class:signalwire.core.swaig_actions_generated.ContextSwitchAction>"`
 	// EndOfSpeechTimeout Set end-of-speech detection timeout (must be >0)
 	EndOfSpeechTimeout int `json:"end_of_speech_timeout,omitempty" gen:"int"`
@@ -56,7 +64,7 @@ type SwaigAction struct {
 	FunctionsOnSpeakerTimeout any `json:"functions_on_speaker_timeout,omitempty" gen:"union<bool,string>"`
 	// Hangup Set `offhook = 0` (hang up). Note: a graceful "say goodbye" hangup is the **built-in `hangup` function**, not this action
 	Hangup any `json:"hangup,omitempty" gen:"union<bool,string>"`
-	// Hold Put the call on hold for N seconds. Accepts a number, a time string (`"5m"`, `"1:30"` via `parse_time`), or `{timeout}`. Default 300s; values <0 or >900 clamp to 300
+	// Hold Put the call on hold for N seconds. Accepts a number, a time string (`"5m"`, `"1:30"` via `parse_time`), or an object `{timeout, step, timeout_step}`. Default 300s; values <0 or >900 clamp to 300. `step` / `timeout_step` are optional destinations applied **when the hold ends** — see below
 	Hold any `json:"hold,omitempty" gen:"union<int,string,class:signalwire.core.swaig_actions_generated.HoldAction>"`
 	// PlaybackBg Play an audio file in the background. `{wait:true}` makes the agent wait for it. Replaces any currently-open background file
 	PlaybackBg any `json:"playback_bg,omitempty" gen:"union<string,class:signalwire.core.swaig_actions_generated.PlaybackBgAction>"`
@@ -76,7 +84,7 @@ type SwaigAction struct {
 	Stop any `json:"stop,omitempty" gen:"union<bool,string>"`
 	// StopPlaybackBg Stop/close the background audio file
 	StopPlaybackBg any `json:"stop_playback_bg,omitempty" gen:"optional<union<bool,string,int,dict<string,any>,list<any>>>"`
-	// ToggleFunctions Enable/disable functions. `active` via `check_active`: `-1` default/toggle, `0` off, `1+` use-count. **Only affects functions sharing the calling function's `meta_data_token`** (`actions.c:419-420`)
+	// ToggleFunctions Enable/disable functions. `active` via `check_active`: `-1` default/toggle, `0` off, `1+` use-count. **Only affects functions sharing the calling function's `meta_data_token`** (`actions.c:426-427`)
 	ToggleFunctions []map[string]any `json:"toggle_functions,omitempty" gen:"list<dict<string,any>>"`
 	// Transfer Transfer the call to `dest`. `summarize:true` sets `transfer_summary`. Sets `openai_transfer_check` var, interrupts, stops the loop. Ignored if already interrupted
 	Transfer any `json:"transfer,omitempty" gen:"union<string,class:signalwire.core.swaig_actions_generated.TransferAction>"`
@@ -92,10 +100,10 @@ type SwaigAction struct {
 	WaitForUser any `json:"wait_for_user,omitempty" gen:"union<bool,int,string>"`
 }
 
-// SwaigResponse Parsed at actions.c:2228-2276.
+// SwaigResponse Parsed at actions.c:2685-2727.
 type SwaigResponse struct {
-	// Response Result text fed back to the AI for its reply.
-	Response string `json:"response,omitempty" gen:"string"`
+	// Response Result fed back to the AI for its reply: a string, or an object splitting it into named parts. Which arm applies is decided by the value's JSON type.
+	Response any `json:"response,omitempty" gen:"union<string,dict<string,any>>"`
 	// Action One action object, or an array of them. Each object may carry several action keys; every recognized key is dispatched. See SwaigAction.
 	Action any `json:"action,omitempty" gen:"union<class:signalwire.core.swaig_actions_generated.SwaigAction,list<class:signalwire.core.swaig_actions_generated.SwaigAction>>"`
 	// PostProcess If true, defer response+actions until after the AI's next turn (delayed_response).

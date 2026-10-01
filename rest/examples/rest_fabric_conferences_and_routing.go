@@ -173,20 +173,6 @@ func main() {
 		fmt.Printf("  Guest token: %s...\n", token)
 	}
 
-	invite, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"resource_id": relayID}})
-	if err != nil {
-		var restErr *rest.SignalWireRestError
-		if errors.As(err, &restErr) {
-			fmt.Printf("  Invite token failed (expected in demo): %d\n", restErr.StatusCode)
-		}
-	} else {
-		token := invite.Token
-		if len(token) > 40 {
-			token = token[:40]
-		}
-		fmt.Printf("  Invite token: %s...\n", token)
-	}
-
 	embed, err := client.Fabric.Tokens.CreateEmbedToken(context.Background(), namespaces.FabricTokensCreateEmbedTokenParams{Extras: map[string]any{"resource_id": relayID}})
 	if err != nil {
 		var restErr *rest.SignalWireRestError

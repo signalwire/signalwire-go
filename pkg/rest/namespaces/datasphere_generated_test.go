@@ -333,7 +333,7 @@ func TestDatasphereGen_Documents_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Datasphere.Documents.Update(context.Background(), "x-1", map[string]any{"tags": "x-1"})
+	_, err := client.Datasphere.Documents.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -354,7 +354,7 @@ func TestDatasphereGen_Documents_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "datasphere.update_document", 500, map[string]any{"error": "x"})
-	_, err := client.Datasphere.Documents.Update(context.Background(), "x-1", map[string]any{"tags": "x-1"})
+	_, err := client.Datasphere.Documents.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

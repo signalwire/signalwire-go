@@ -16,17 +16,22 @@
 package namespaces
 
 type CreateMessageRequest struct {
-	To              string         `json:"to,omitempty"`
-	From            string         `json:"from,omitempty"`
-	Body            *string        `json:"body,omitempty"`
-	Media           []string       `json:"media,omitempty"`
-	SendAsMms       *bool          `json:"send_as_mms,omitempty"`
-	StatusCallback  *string        `json:"status_callback,omitempty"`
-	CustomVariables map[string]any `json:"custom_variables,omitempty"`
+	To                       string         `json:"to,omitempty"`
+	From                     string         `json:"from,omitempty"`
+	Body                     *string        `json:"body,omitempty"`
+	Media                    []string       `json:"media,omitempty"`
+	SendAsMms                *bool          `json:"send_as_mms,omitempty"`
+	StatusCallback           *string        `json:"status_callback,omitempty"`
+	CustomVariables          map[string]any `json:"custom_variables,omitempty"`
+	MessageType              *string        `json:"message_type,omitempty"`
+	TemplateID               *string        `json:"template_id,omitempty"`
+	HeaderTemplateParameters map[string]any `json:"header_template_parameters,omitempty"`
+	BodyTemplateParameters   map[string]any `json:"body_template_parameters,omitempty"`
+	ButtonTemplateParameters []string       `json:"button_template_parameters,omitempty"`
 }
 
 type UpdateMessageRequest struct {
-	Body string `json:"body,omitempty"`
+	Body *string `json:"body,omitempty"`
 }
 
 type Message struct {
@@ -57,6 +62,7 @@ const (
 	MessageStatusUndelivered MessageStatus = "undelivered"
 	MessageStatusFailed      MessageStatus = "failed"
 	MessageStatusRead        MessageStatus = "read"
+	MessageStatusReceived    MessageStatus = "received"
 )
 
 type MessageDirection string
@@ -69,8 +75,9 @@ const (
 type MessageKind string
 
 const (
-	MessageKindSms MessageKind = "sms"
-	MessageKindMms MessageKind = "mms"
+	MessageKindSms      MessageKind = "sms"
+	MessageKindMms      MessageKind = "mms"
+	MessageKindWhatsapp MessageKind = "whatsapp"
 )
 
 type MessagesCreateStatusCode422 struct {

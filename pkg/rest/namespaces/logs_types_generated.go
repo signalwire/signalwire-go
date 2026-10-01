@@ -68,9 +68,9 @@ type VideoRoomSessionConference struct {
 	URL           string          `json:"url,omitempty"`
 	RoomName      any             `json:"room_name,omitempty"`
 	Status        any             `json:"status,omitempty"`
-	Locked        bool            `json:"locked,omitempty"`
+	Locked        any             `json:"locked,omitempty"`
 	StartedAt     any             `json:"started_at,omitempty"`
 	EndedAt       any             `json:"ended_at,omitempty"`
-	Charge        string          `json:"charge,omitempty"`
+	Charge        float64         `json:"charge,omitempty"`
 	ChargeDetails []ChargeDetails `json:"charge_details,omitempty"`
 }

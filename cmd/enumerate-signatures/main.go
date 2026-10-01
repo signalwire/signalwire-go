@@ -4030,6 +4030,7 @@ var optionConstructs = map[string]string{
 	"agent.AgentOption":             "signalwire.core.agent_base.AgentBase",
 	"swml.ServiceOption":            "signalwire.core.swml_service.SWMLService",
 	"relay.ClientOption":            "signalwire.relay.client.RelayClient",
+	"rest.RestClientOption":         "signalwire.rest.client.RestClient",
 	"server.ServerOption":           "signalwire.agent_server.AgentServer",
 	"aichat.Option":                 "signalwire.ai_chat.client.AIChatClient",
 	"security.Option":               "signalwire.core.security.session_manager.SessionManager",

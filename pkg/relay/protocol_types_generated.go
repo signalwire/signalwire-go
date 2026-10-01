@@ -121,6 +121,7 @@ type CallingConnectParams struct {
 	MaxPricePerMinute *float64           `json:"max_price_per_minute,omitempty"`
 	NodeId            string             `json:"node_id,omitempty"`
 	Ringback          []map[string]any   `json:"ringback,omitempty"`
+	SendDigits        *string            `json:"send_digits,omitempty"`
 	Tag               *string            `json:"tag,omitempty"`
 }
 
@@ -153,6 +154,7 @@ type CallingDialParams struct {
 	MaxPricePerMinute *float64           `json:"max_price_per_minute,omitempty"`
 	NodeId            *string            `json:"node_id,omitempty"`
 	Region            *string            `json:"region,omitempty"`
+	SendDigits        *string            `json:"send_digits,omitempty"`
 	Tag               *string            `json:"tag,omitempty"`
 }
 
@@ -986,4 +988,49 @@ type SignalwireReauthenticateResult struct {
 	Authorization  map[string]any   `json:"authorization,omitempty"`
 	IceServers     []map[string]any `json:"ice_servers,omitempty"`
 	Result         map[string]any   `json:"result,omitempty"`
+}
+
+type VertoAnswerResult struct {
+	Message *string `json:"message,omitempty"`
+}
+
+type VertoAttachResult map[string]any
+
+type VertoBroadcastResult struct {
+	Code    *string `json:"code,omitempty"`
+	Message *string `json:"message,omitempty"`
+	Sessid  *string `json:"sessid,omitempty"`
+}
+
+type VertoByeResult struct {
+	CallID    *string  `json:"callID,omitempty"`
+	Cause     *string  `json:"cause,omitempty"`
+	CauseCode *float64 `json:"causeCode,omitempty"`
+	Message   *string  `json:"message,omitempty"`
+}
+
+type VertoInfoResult struct {
+	Message *string `json:"message,omitempty"`
+}
+
+type VertoInviteResult struct {
+	CallID   *string `json:"callID,omitempty"`
+	MemberID *string `json:"memberID,omitempty"`
+	Message  *string `json:"message,omitempty"`
+}
+
+type VertoModifyResult struct {
+	Action    *string `json:"action,omitempty"`
+	CallID    *string `json:"callID,omitempty"`
+	HoldState *string `json:"holdState,omitempty"`
+	Message   *string `json:"message,omitempty"`
+	Sdp       *string `json:"sdp,omitempty"`
+}
+
+type VertoPongResult map[string]any
+
+type VertoSubscribeResult struct {
+	AlreadySubscribedChannels []string `json:"alreadySubscribedChannels,omitempty"`
+	SubscribedChannels        []string `json:"subscribedChannels,omitempty"`
+	UnauthorizedChannels      []string `json:"unauthorizedChannels,omitempty"`
 }

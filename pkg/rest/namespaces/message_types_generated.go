@@ -41,6 +41,8 @@ type LogRetrieveResponse struct {
 	Charge           float64        `json:"charge,omitempty"`
 	ChargeDetails    []ChargeDetail `json:"charge_details,omitempty"`
 	CreatedAt        string         `json:"created_at,omitempty"`
+	ErrorCode        any            `json:"error_code,omitempty"`
+	ErrorMessage     any            `json:"error_message,omitempty"`
 }
 
 type MessageLog struct {
@@ -57,6 +59,8 @@ type MessageLog struct {
 	Charge           float64        `json:"charge,omitempty"`
 	ChargeDetails    []ChargeDetail `json:"charge_details,omitempty"`
 	CreatedAt        string         `json:"created_at,omitempty"`
+	ErrorCode        any            `json:"error_code,omitempty"`
+	ErrorMessage     any            `json:"error_message,omitempty"`
 }
 
 type MessageLogShowStatusCode422 struct {
@@ -65,4 +69,125 @@ type MessageLogShowStatusCode422 struct {
 
 type MessageLogsListStatusCode422 struct {
 	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type WhatsappBusiness struct {
+	WhatsappBusinessID  Uuid   `json:"whatsapp_business_id,omitempty"`
+	BusinessName        string `json:"business_name,omitempty"`
+	BusinessPortfolioID string `json:"business_portfolio_id,omitempty"`
+	WabaID              string `json:"waba_id,omitempty"`
+	CreatedAt           string `json:"created_at,omitempty"`
+	UpdatedAt           string `json:"updated_at,omitempty"`
+}
+
+type WhatsappBusinessListResponse struct {
+	Data []WhatsappBusiness `json:"data,omitempty"`
+}
+
+type WhatsappNumber struct {
+	ID                         Uuid   `json:"id,omitempty"`
+	BusinessPhoneNumberID      string `json:"business_phone_number_id,omitempty"`
+	PhoneNumber                string `json:"phone_number,omitempty"`
+	CallingHandlerResourceID   any    `json:"calling_handler_resource_id,omitempty"`
+	MessagingHandlerResourceID any    `json:"messaging_handler_resource_id,omitempty"`
+	BusinessName               string `json:"business_name,omitempty"`
+	WabaID                     string `json:"waba_id,omitempty"`
+	WhatsappBusinessID         Uuid   `json:"whatsapp_business_id,omitempty"`
+	VoiceEnabled               bool   `json:"voice_enabled,omitempty"`
+	VoiceCapable               bool   `json:"voice_capable,omitempty"`
+	CreatedAt                  string `json:"created_at,omitempty"`
+	UpdatedAt                  string `json:"updated_at,omitempty"`
+}
+
+type WhatsappNumberListResponse struct {
+	Data []WhatsappNumber `json:"data,omitempty"`
+}
+
+type WhatsappTemplateCategory string
+
+const (
+	WhatsappTemplateCategoryUtility        WhatsappTemplateCategory = "utility"
+	WhatsappTemplateCategoryMarketing      WhatsappTemplateCategory = "marketing"
+	WhatsappTemplateCategoryAuthentication WhatsappTemplateCategory = "authentication"
+)
+
+type WhatsappTemplateParameterFormat string
+
+const (
+	WhatsappTemplateParameterFormatNamed      WhatsappTemplateParameterFormat = "named"
+	WhatsappTemplateParameterFormatPositional WhatsappTemplateParameterFormat = "positional"
+)
+
+type WhatsappTemplateStatus string
+
+const (
+	WhatsappTemplateStatusApproved        WhatsappTemplateStatus = "approved"
+	WhatsappTemplateStatusArchived        WhatsappTemplateStatus = "archived"
+	WhatsappTemplateStatusDeleted         WhatsappTemplateStatus = "deleted"
+	WhatsappTemplateStatusDisabled        WhatsappTemplateStatus = "disabled"
+	WhatsappTemplateStatusFlagged         WhatsappTemplateStatus = "flagged"
+	WhatsappTemplateStatusInAppeal        WhatsappTemplateStatus = "in_appeal"
+	WhatsappTemplateStatusLimitExceeded   WhatsappTemplateStatus = "limit_exceeded"
+	WhatsappTemplateStatusLocked          WhatsappTemplateStatus = "locked"
+	WhatsappTemplateStatusPaused          WhatsappTemplateStatus = "paused"
+	WhatsappTemplateStatusPending         WhatsappTemplateStatus = "pending"
+	WhatsappTemplateStatusReinstated      WhatsappTemplateStatus = "reinstated"
+	WhatsappTemplateStatusPendingDeletion WhatsappTemplateStatus = "pending_deletion"
+	WhatsappTemplateStatusRejected        WhatsappTemplateStatus = "rejected"
+)
+
+type WhatsappTemplateComponent map[string]any
+
+type WhatsappTemplate struct {
+	ID                 Uuid                            `json:"id,omitempty"`
+	Name               string                          `json:"name,omitempty"`
+	Category           WhatsappTemplateCategory        `json:"category,omitempty"`
+	Components         []WhatsappTemplateComponent     `json:"components,omitempty"`
+	Language           string                          `json:"language,omitempty"`
+	ParameterFormat    WhatsappTemplateParameterFormat `json:"parameter_format,omitempty"`
+	TemplateID         string                          `json:"template_id,omitempty"`
+	TemplateStatus     any                             `json:"template_status,omitempty"`
+	WhatsappBusinessID Uuid                            `json:"whatsapp_business_id,omitempty"`
+	CreatedAt          string                          `json:"created_at,omitempty"`
+	UpdatedAt          string                          `json:"updated_at,omitempty"`
+	DiscardedAt        *string                         `json:"discarded_at,omitempty"`
+}
+
+type WhatsappTemplateListResponse struct {
+	Data []WhatsappTemplate `json:"data,omitempty"`
+}
+
+type CreateWhatsappTemplateRequest struct {
+	WhatsappBusinessID Uuid                            `json:"whatsapp_business_id,omitempty"`
+	Name               string                          `json:"name,omitempty"`
+	Language           string                          `json:"language,omitempty"`
+	Category           WhatsappTemplateCategory        `json:"category,omitempty"`
+	ParameterFormat    WhatsappTemplateParameterFormat `json:"parameter_format,omitempty"`
+	Components         []WhatsappTemplateComponent     `json:"components,omitempty"`
+}
+
+type UpdateWhatsappTemplateRequest struct {
+	Category   *WhatsappTemplateCategory   `json:"category,omitempty"`
+	Components []WhatsappTemplateComponent `json:"components,omitempty"`
+}
+
+type WhatsappTemplateDeleteResponse struct {
+	Success bool           `json:"success,omitempty"`
+	Errors  map[string]any `json:"errors,omitempty"`
+}
+
+type WhatsappStatusCode422 struct {
+	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type WhatsappTemplateErrorItem struct {
+	Detail  string  `json:"detail,omitempty"`
+	Status  string  `json:"status,omitempty"`
+	Title   string  `json:"title,omitempty"`
+	Code    string  `json:"code,omitempty"`
+	Subcode *string `json:"subcode,omitempty"`
+}
+
+type WhatsappTemplateStatusCode422 struct {
+	Errors []WhatsappTemplateErrorItem `json:"errors,omitempty"`
 }

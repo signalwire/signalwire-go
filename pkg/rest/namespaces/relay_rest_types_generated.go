@@ -20,20 +20,277 @@ type AddNumberGroupMembershipRequest struct {
 }
 
 type Address struct {
-	ID            Uuid   `json:"id,omitempty"`
-	Label         string `json:"label,omitempty"`
-	Country       string `json:"country,omitempty"`
-	FirstName     string `json:"first_name,omitempty"`
-	LastName      string `json:"last_name,omitempty"`
-	StreetNumber  string `json:"street_number,omitempty"`
-	StreetName    string `json:"street_name,omitempty"`
-	AddressType   any    `json:"address_type,omitempty"`
-	AddressNumber any    `json:"address_number,omitempty"`
-	City          string `json:"city,omitempty"`
-	State         string `json:"state,omitempty"`
-	PostalCode    string `json:"postal_code,omitempty"`
-	ZipCode       string `json:"zip_code,omitempty"`
+	ID               Uuid    `json:"id,omitempty"`
+	Label            string  `json:"label,omitempty"`
+	Country          string  `json:"country,omitempty"`
+	FirstName        string  `json:"first_name,omitempty"`
+	LastName         string  `json:"last_name,omitempty"`
+	StreetNumber     string  `json:"street_number,omitempty"`
+	StreetName       string  `json:"street_name,omitempty"`
+	AddressType      any     `json:"address_type,omitempty"`
+	AddressNumber    any     `json:"address_number,omitempty"`
+	City             string  `json:"city,omitempty"`
+	State            string  `json:"state,omitempty"`
+	PostalCode       string  `json:"postal_code,omitempty"`
+	ZipCode          string  `json:"zip_code,omitempty"`
+	EmergencyEnabled *bool   `json:"emergency_enabled,omitempty"`
+	Validated        *bool   `json:"validated,omitempty"`
+	ValidatedAt      *string `json:"validated_at,omitempty"`
 }
+
+type AddressCountryCode string
+
+const (
+	AddressCountryCodeAD AddressCountryCode = "AD"
+	AddressCountryCodeAE AddressCountryCode = "AE"
+	AddressCountryCodeAF AddressCountryCode = "AF"
+	AddressCountryCodeAG AddressCountryCode = "AG"
+	AddressCountryCodeAI AddressCountryCode = "AI"
+	AddressCountryCodeAL AddressCountryCode = "AL"
+	AddressCountryCodeAM AddressCountryCode = "AM"
+	AddressCountryCodeAO AddressCountryCode = "AO"
+	AddressCountryCodeAQ AddressCountryCode = "AQ"
+	AddressCountryCodeAR AddressCountryCode = "AR"
+	AddressCountryCodeAS AddressCountryCode = "AS"
+	AddressCountryCodeAT AddressCountryCode = "AT"
+	AddressCountryCodeAU AddressCountryCode = "AU"
+	AddressCountryCodeAW AddressCountryCode = "AW"
+	AddressCountryCodeAX AddressCountryCode = "AX"
+	AddressCountryCodeAZ AddressCountryCode = "AZ"
+	AddressCountryCodeBA AddressCountryCode = "BA"
+	AddressCountryCodeBB AddressCountryCode = "BB"
+	AddressCountryCodeBD AddressCountryCode = "BD"
+	AddressCountryCodeBE AddressCountryCode = "BE"
+	AddressCountryCodeBF AddressCountryCode = "BF"
+	AddressCountryCodeBG AddressCountryCode = "BG"
+	AddressCountryCodeBH AddressCountryCode = "BH"
+	AddressCountryCodeBI AddressCountryCode = "BI"
+	AddressCountryCodeBJ AddressCountryCode = "BJ"
+	AddressCountryCodeBL AddressCountryCode = "BL"
+	AddressCountryCodeBM AddressCountryCode = "BM"
+	AddressCountryCodeBN AddressCountryCode = "BN"
+	AddressCountryCodeBO AddressCountryCode = "BO"
+	AddressCountryCodeBQ AddressCountryCode = "BQ"
+	AddressCountryCodeBR AddressCountryCode = "BR"
+	AddressCountryCodeBS AddressCountryCode = "BS"
+	AddressCountryCodeBT AddressCountryCode = "BT"
+	AddressCountryCodeBV AddressCountryCode = "BV"
+	AddressCountryCodeBW AddressCountryCode = "BW"
+	AddressCountryCodeBY AddressCountryCode = "BY"
+	AddressCountryCodeBZ AddressCountryCode = "BZ"
+	AddressCountryCodeCA AddressCountryCode = "CA"
+	AddressCountryCodeCC AddressCountryCode = "CC"
+	AddressCountryCodeCD AddressCountryCode = "CD"
+	AddressCountryCodeCF AddressCountryCode = "CF"
+	AddressCountryCodeCG AddressCountryCode = "CG"
+	AddressCountryCodeCH AddressCountryCode = "CH"
+	AddressCountryCodeCI AddressCountryCode = "CI"
+	AddressCountryCodeCK AddressCountryCode = "CK"
+	AddressCountryCodeCL AddressCountryCode = "CL"
+	AddressCountryCodeCM AddressCountryCode = "CM"
+	AddressCountryCodeCN AddressCountryCode = "CN"
+	AddressCountryCodeCO AddressCountryCode = "CO"
+	AddressCountryCodeCR AddressCountryCode = "CR"
+	AddressCountryCodeCU AddressCountryCode = "CU"
+	AddressCountryCodeCV AddressCountryCode = "CV"
+	AddressCountryCodeCW AddressCountryCode = "CW"
+	AddressCountryCodeCX AddressCountryCode = "CX"
+	AddressCountryCodeCY AddressCountryCode = "CY"
+	AddressCountryCodeCZ AddressCountryCode = "CZ"
+	AddressCountryCodeDE AddressCountryCode = "DE"
+	AddressCountryCodeDJ AddressCountryCode = "DJ"
+	AddressCountryCodeDK AddressCountryCode = "DK"
+	AddressCountryCodeDM AddressCountryCode = "DM"
+	AddressCountryCodeDO AddressCountryCode = "DO"
+	AddressCountryCodeDZ AddressCountryCode = "DZ"
+	AddressCountryCodeEC AddressCountryCode = "EC"
+	AddressCountryCodeEE AddressCountryCode = "EE"
+	AddressCountryCodeEG AddressCountryCode = "EG"
+	AddressCountryCodeEH AddressCountryCode = "EH"
+	AddressCountryCodeER AddressCountryCode = "ER"
+	AddressCountryCodeES AddressCountryCode = "ES"
+	AddressCountryCodeET AddressCountryCode = "ET"
+	AddressCountryCodeFI AddressCountryCode = "FI"
+	AddressCountryCodeFJ AddressCountryCode = "FJ"
+	AddressCountryCodeFK AddressCountryCode = "FK"
+	AddressCountryCodeFM AddressCountryCode = "FM"
+	AddressCountryCodeFO AddressCountryCode = "FO"
+	AddressCountryCodeFR AddressCountryCode = "FR"
+	AddressCountryCodeGA AddressCountryCode = "GA"
+	AddressCountryCodeGB AddressCountryCode = "GB"
+	AddressCountryCodeGD AddressCountryCode = "GD"
+	AddressCountryCodeGE AddressCountryCode = "GE"
+	AddressCountryCodeGF AddressCountryCode = "GF"
+	AddressCountryCodeGG AddressCountryCode = "GG"
+	AddressCountryCodeGH AddressCountryCode = "GH"
+	AddressCountryCodeGI AddressCountryCode = "GI"
+	AddressCountryCodeGL AddressCountryCode = "GL"
+	AddressCountryCodeGM AddressCountryCode = "GM"
+	AddressCountryCodeGN AddressCountryCode = "GN"
+	AddressCountryCodeGP AddressCountryCode = "GP"
+	AddressCountryCodeGQ AddressCountryCode = "GQ"
+	AddressCountryCodeGR AddressCountryCode = "GR"
+	AddressCountryCodeGS AddressCountryCode = "GS"
+	AddressCountryCodeGT AddressCountryCode = "GT"
+	AddressCountryCodeGU AddressCountryCode = "GU"
+	AddressCountryCodeGW AddressCountryCode = "GW"
+	AddressCountryCodeGY AddressCountryCode = "GY"
+	AddressCountryCodeHK AddressCountryCode = "HK"
+	AddressCountryCodeHM AddressCountryCode = "HM"
+	AddressCountryCodeHN AddressCountryCode = "HN"
+	AddressCountryCodeHR AddressCountryCode = "HR"
+	AddressCountryCodeHT AddressCountryCode = "HT"
+	AddressCountryCodeHU AddressCountryCode = "HU"
+	AddressCountryCodeID AddressCountryCode = "ID"
+	AddressCountryCodeIE AddressCountryCode = "IE"
+	AddressCountryCodeIL AddressCountryCode = "IL"
+	AddressCountryCodeIM AddressCountryCode = "IM"
+	AddressCountryCodeIN AddressCountryCode = "IN"
+	AddressCountryCodeIO AddressCountryCode = "IO"
+	AddressCountryCodeIQ AddressCountryCode = "IQ"
+	AddressCountryCodeIR AddressCountryCode = "IR"
+	AddressCountryCodeIS AddressCountryCode = "IS"
+	AddressCountryCodeIT AddressCountryCode = "IT"
+	AddressCountryCodeJE AddressCountryCode = "JE"
+	AddressCountryCodeJM AddressCountryCode = "JM"
+	AddressCountryCodeJO AddressCountryCode = "JO"
+	AddressCountryCodeJP AddressCountryCode = "JP"
+	AddressCountryCodeKE AddressCountryCode = "KE"
+	AddressCountryCodeKG AddressCountryCode = "KG"
+	AddressCountryCodeKH AddressCountryCode = "KH"
+	AddressCountryCodeKI AddressCountryCode = "KI"
+	AddressCountryCodeKM AddressCountryCode = "KM"
+	AddressCountryCodeKN AddressCountryCode = "KN"
+	AddressCountryCodeKP AddressCountryCode = "KP"
+	AddressCountryCodeKR AddressCountryCode = "KR"
+	AddressCountryCodeKW AddressCountryCode = "KW"
+	AddressCountryCodeKY AddressCountryCode = "KY"
+	AddressCountryCodeKZ AddressCountryCode = "KZ"
+	AddressCountryCodeLA AddressCountryCode = "LA"
+	AddressCountryCodeLB AddressCountryCode = "LB"
+	AddressCountryCodeLC AddressCountryCode = "LC"
+	AddressCountryCodeLI AddressCountryCode = "LI"
+	AddressCountryCodeLK AddressCountryCode = "LK"
+	AddressCountryCodeLR AddressCountryCode = "LR"
+	AddressCountryCodeLS AddressCountryCode = "LS"
+	AddressCountryCodeLT AddressCountryCode = "LT"
+	AddressCountryCodeLU AddressCountryCode = "LU"
+	AddressCountryCodeLV AddressCountryCode = "LV"
+	AddressCountryCodeLY AddressCountryCode = "LY"
+	AddressCountryCodeMA AddressCountryCode = "MA"
+	AddressCountryCodeMC AddressCountryCode = "MC"
+	AddressCountryCodeMD AddressCountryCode = "MD"
+	AddressCountryCodeME AddressCountryCode = "ME"
+	AddressCountryCodeMF AddressCountryCode = "MF"
+	AddressCountryCodeMG AddressCountryCode = "MG"
+	AddressCountryCodeMH AddressCountryCode = "MH"
+	AddressCountryCodeMK AddressCountryCode = "MK"
+	AddressCountryCodeML AddressCountryCode = "ML"
+	AddressCountryCodeMM AddressCountryCode = "MM"
+	AddressCountryCodeMN AddressCountryCode = "MN"
+	AddressCountryCodeMO AddressCountryCode = "MO"
+	AddressCountryCodeMP AddressCountryCode = "MP"
+	AddressCountryCodeMQ AddressCountryCode = "MQ"
+	AddressCountryCodeMR AddressCountryCode = "MR"
+	AddressCountryCodeMS AddressCountryCode = "MS"
+	AddressCountryCodeMT AddressCountryCode = "MT"
+	AddressCountryCodeMU AddressCountryCode = "MU"
+	AddressCountryCodeMV AddressCountryCode = "MV"
+	AddressCountryCodeMW AddressCountryCode = "MW"
+	AddressCountryCodeMX AddressCountryCode = "MX"
+	AddressCountryCodeMY AddressCountryCode = "MY"
+	AddressCountryCodeMZ AddressCountryCode = "MZ"
+	AddressCountryCodeNA AddressCountryCode = "NA"
+	AddressCountryCodeNC AddressCountryCode = "NC"
+	AddressCountryCodeNE AddressCountryCode = "NE"
+	AddressCountryCodeNF AddressCountryCode = "NF"
+	AddressCountryCodeNG AddressCountryCode = "NG"
+	AddressCountryCodeNI AddressCountryCode = "NI"
+	AddressCountryCodeNL AddressCountryCode = "NL"
+	AddressCountryCodeNO AddressCountryCode = "NO"
+	AddressCountryCodeNP AddressCountryCode = "NP"
+	AddressCountryCodeNR AddressCountryCode = "NR"
+	AddressCountryCodeNU AddressCountryCode = "NU"
+	AddressCountryCodeNZ AddressCountryCode = "NZ"
+	AddressCountryCodeOM AddressCountryCode = "OM"
+	AddressCountryCodePA AddressCountryCode = "PA"
+	AddressCountryCodePE AddressCountryCode = "PE"
+	AddressCountryCodePF AddressCountryCode = "PF"
+	AddressCountryCodePG AddressCountryCode = "PG"
+	AddressCountryCodePH AddressCountryCode = "PH"
+	AddressCountryCodePK AddressCountryCode = "PK"
+	AddressCountryCodePL AddressCountryCode = "PL"
+	AddressCountryCodePM AddressCountryCode = "PM"
+	AddressCountryCodePN AddressCountryCode = "PN"
+	AddressCountryCodePR AddressCountryCode = "PR"
+	AddressCountryCodePS AddressCountryCode = "PS"
+	AddressCountryCodePT AddressCountryCode = "PT"
+	AddressCountryCodePW AddressCountryCode = "PW"
+	AddressCountryCodePY AddressCountryCode = "PY"
+	AddressCountryCodeQA AddressCountryCode = "QA"
+	AddressCountryCodeRE AddressCountryCode = "RE"
+	AddressCountryCodeRO AddressCountryCode = "RO"
+	AddressCountryCodeRS AddressCountryCode = "RS"
+	AddressCountryCodeRU AddressCountryCode = "RU"
+	AddressCountryCodeRW AddressCountryCode = "RW"
+	AddressCountryCodeSA AddressCountryCode = "SA"
+	AddressCountryCodeSB AddressCountryCode = "SB"
+	AddressCountryCodeSC AddressCountryCode = "SC"
+	AddressCountryCodeSD AddressCountryCode = "SD"
+	AddressCountryCodeSE AddressCountryCode = "SE"
+	AddressCountryCodeSG AddressCountryCode = "SG"
+	AddressCountryCodeSH AddressCountryCode = "SH"
+	AddressCountryCodeSI AddressCountryCode = "SI"
+	AddressCountryCodeSJ AddressCountryCode = "SJ"
+	AddressCountryCodeSK AddressCountryCode = "SK"
+	AddressCountryCodeSL AddressCountryCode = "SL"
+	AddressCountryCodeSM AddressCountryCode = "SM"
+	AddressCountryCodeSN AddressCountryCode = "SN"
+	AddressCountryCodeSO AddressCountryCode = "SO"
+	AddressCountryCodeSR AddressCountryCode = "SR"
+	AddressCountryCodeSS AddressCountryCode = "SS"
+	AddressCountryCodeST AddressCountryCode = "ST"
+	AddressCountryCodeSV AddressCountryCode = "SV"
+	AddressCountryCodeSX AddressCountryCode = "SX"
+	AddressCountryCodeSY AddressCountryCode = "SY"
+	AddressCountryCodeSZ AddressCountryCode = "SZ"
+	AddressCountryCodeTC AddressCountryCode = "TC"
+	AddressCountryCodeTD AddressCountryCode = "TD"
+	AddressCountryCodeTF AddressCountryCode = "TF"
+	AddressCountryCodeTG AddressCountryCode = "TG"
+	AddressCountryCodeTH AddressCountryCode = "TH"
+	AddressCountryCodeTJ AddressCountryCode = "TJ"
+	AddressCountryCodeTK AddressCountryCode = "TK"
+	AddressCountryCodeTL AddressCountryCode = "TL"
+	AddressCountryCodeTM AddressCountryCode = "TM"
+	AddressCountryCodeTN AddressCountryCode = "TN"
+	AddressCountryCodeTO AddressCountryCode = "TO"
+	AddressCountryCodeTR AddressCountryCode = "TR"
+	AddressCountryCodeTT AddressCountryCode = "TT"
+	AddressCountryCodeTV AddressCountryCode = "TV"
+	AddressCountryCodeTW AddressCountryCode = "TW"
+	AddressCountryCodeTZ AddressCountryCode = "TZ"
+	AddressCountryCodeUA AddressCountryCode = "UA"
+	AddressCountryCodeUG AddressCountryCode = "UG"
+	AddressCountryCodeUM AddressCountryCode = "UM"
+	AddressCountryCodeUS AddressCountryCode = "US"
+	AddressCountryCodeUY AddressCountryCode = "UY"
+	AddressCountryCodeUZ AddressCountryCode = "UZ"
+	AddressCountryCodeVA AddressCountryCode = "VA"
+	AddressCountryCodeVC AddressCountryCode = "VC"
+	AddressCountryCodeVE AddressCountryCode = "VE"
+	AddressCountryCodeVG AddressCountryCode = "VG"
+	AddressCountryCodeVI AddressCountryCode = "VI"
+	AddressCountryCodeVN AddressCountryCode = "VN"
+	AddressCountryCodeVU AddressCountryCode = "VU"
+	AddressCountryCodeWF AddressCountryCode = "WF"
+	AddressCountryCodeWS AddressCountryCode = "WS"
+	AddressCountryCodeYE AddressCountryCode = "YE"
+	AddressCountryCodeYT AddressCountryCode = "YT"
+	AddressCountryCodeZA AddressCountryCode = "ZA"
+	AddressCountryCodeZM AddressCountryCode = "ZM"
+	AddressCountryCodeZW AddressCountryCode = "ZW"
+)
 
 type AddressListResponse struct {
 	Links PaginationLinks `json:"links,omitempty"`
@@ -41,19 +298,22 @@ type AddressListResponse struct {
 }
 
 type AddressResponse struct {
-	ID            Uuid   `json:"id,omitempty"`
-	Label         string `json:"label,omitempty"`
-	Country       string `json:"country,omitempty"`
-	FirstName     string `json:"first_name,omitempty"`
-	LastName      string `json:"last_name,omitempty"`
-	StreetNumber  string `json:"street_number,omitempty"`
-	StreetName    string `json:"street_name,omitempty"`
-	AddressType   any    `json:"address_type,omitempty"`
-	AddressNumber any    `json:"address_number,omitempty"`
-	City          string `json:"city,omitempty"`
-	State         string `json:"state,omitempty"`
-	PostalCode    string `json:"postal_code,omitempty"`
-	ZipCode       string `json:"zip_code,omitempty"`
+	ID               Uuid    `json:"id,omitempty"`
+	Label            string  `json:"label,omitempty"`
+	Country          string  `json:"country,omitempty"`
+	FirstName        string  `json:"first_name,omitempty"`
+	LastName         string  `json:"last_name,omitempty"`
+	StreetNumber     string  `json:"street_number,omitempty"`
+	StreetName       string  `json:"street_name,omitempty"`
+	AddressType      any     `json:"address_type,omitempty"`
+	AddressNumber    any     `json:"address_number,omitempty"`
+	City             string  `json:"city,omitempty"`
+	State            string  `json:"state,omitempty"`
+	PostalCode       string  `json:"postal_code,omitempty"`
+	ZipCode          string  `json:"zip_code,omitempty"`
+	EmergencyEnabled *bool   `json:"emergency_enabled,omitempty"`
+	Validated        *bool   `json:"validated,omitempty"`
+	ValidatedAt      *string `json:"validated_at,omitempty"`
 }
 
 type AddressType string
@@ -72,12 +332,13 @@ const (
 )
 
 type AssignedNumber struct {
-	ID          Uuid                 `json:"id,omitempty"`
-	State       *string              `json:"state,omitempty"`
-	CampaignID  *Uuid                `json:"campaign_id,omitempty"`
-	PhoneNumber *AssignedPhoneNumber `json:"phone_number,omitempty"`
-	CreatedAt   *string              `json:"created_at,omitempty"`
-	UpdatedAt   *string              `json:"updated_at,omitempty"`
+	ID                Uuid                 `json:"id,omitempty"`
+	State             *string              `json:"state,omitempty"`
+	CampaignID        *Uuid                `json:"campaign_id,omitempty"`
+	PhoneNumber       *AssignedPhoneNumber `json:"phone_number,omitempty"`
+	StatusCallbackURL *string              `json:"status_callback_url,omitempty"`
+	CreatedAt         *string              `json:"created_at,omitempty"`
+	UpdatedAt         *string              `json:"updated_at,omitempty"`
 }
 
 type AssignedNumberListResponse struct {
@@ -86,44 +347,46 @@ type AssignedNumberListResponse struct {
 }
 
 type AssignedPhoneNumber struct {
-	ID                *Uuid   `json:"id,omitempty"`
-	Name              *string `json:"name,omitempty"`
-	Number            *string `json:"number,omitempty"`
-	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
+	ID     *Uuid   `json:"id,omitempty"`
+	Name   *string `json:"name,omitempty"`
+	Number *string `json:"number,omitempty"`
 }
 
 type AvailablePhoneNumber struct {
-	Number       string                   `json:"number,omitempty"`
-	Region       *string                  `json:"region,omitempty"`
-	City         *string                  `json:"city,omitempty"`
-	RateCenter   *string                  `json:"rate_center,omitempty"`
-	Lata         *string                  `json:"lata,omitempty"`
-	Capabilities *PhoneNumberCapabilities `json:"capabilities,omitempty"`
+	Region                       *string                 `json:"region,omitempty"`
+	RateCenter                   *string                 `json:"rate_center,omitempty"`
+	Capabilities                 []PhoneNumberCapability `json:"capabilities,omitempty"`
+	E164                         *string                 `json:"e164,omitempty"`
+	NationalNumberFormatted      *string                 `json:"national_number_formatted,omitempty"`
+	InternationalNumberFormatted *string                 `json:"international_number_formatted,omitempty"`
+	CountryCode                  *string                 `json:"country_code,omitempty"`
 }
 
 type AvailablePhoneNumbersResponse struct {
-	Links *PaginationLinks       `json:"links,omitempty"`
+	Links map[string]any         `json:"links,omitempty"`
 	Data  []AvailablePhoneNumber `json:"data,omitempty"`
 }
 
 type Brand struct {
-	ID                Uuid    `json:"id,omitempty"`
-	State             *string `json:"state,omitempty"`
-	Name              *string `json:"name,omitempty"`
-	CompanyName       *string `json:"company_name,omitempty"`
-	ContactEmail      *string `json:"contact_email,omitempty"`
-	ContactPhone      *string `json:"contact_phone,omitempty"`
-	EinIssuingCountry *string `json:"ein_issuing_country,omitempty"`
-	LegalEntityType   *string `json:"legal_entity_type,omitempty"`
-	Ein               *string `json:"ein,omitempty"`
-	CompanyAddress    *string `json:"company_address,omitempty"`
-	CompanyVertical   *string `json:"company_vertical,omitempty"`
-	CompanyWebsite    *string `json:"company_website,omitempty"`
-	CspBrandReference *string `json:"csp_brand_reference,omitempty"`
-	CspSelfRegistered *bool   `json:"csp_self_registered,omitempty"`
-	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
-	CreatedAt         *string `json:"created_at,omitempty"`
-	UpdatedAt         *string `json:"updated_at,omitempty"`
+	ID                      Uuid     `json:"id,omitempty"`
+	State                   *string  `json:"state,omitempty"`
+	Name                    *string  `json:"name,omitempty"`
+	CompanyName             *string  `json:"company_name,omitempty"`
+	ContactEmail            *string  `json:"contact_email,omitempty"`
+	ContactPhone            *string  `json:"contact_phone,omitempty"`
+	EinIssuingCountry       *string  `json:"ein_issuing_country,omitempty"`
+	LegalEntityType         *string  `json:"legal_entity_type,omitempty"`
+	Ein                     *string  `json:"ein,omitempty"`
+	CompanyAddress          *string  `json:"company_address,omitempty"`
+	CompanyVertical         *string  `json:"company_vertical,omitempty"`
+	CspBrandReference       *string  `json:"csp_brand_reference,omitempty"`
+	CspSelfRegistered       *bool    `json:"csp_self_registered,omitempty"`
+	StatusCallbackURL       *string  `json:"status_callback_url,omitempty"`
+	CreatedAt               *string  `json:"created_at,omitempty"`
+	UpdatedAt               *string  `json:"updated_at,omitempty"`
+	SignalwireContactEmails []string `json:"signalwire_contact_emails,omitempty"`
+	LargeMessageLimit       *string  `json:"large_message_limit,omitempty"`
+	NumberPoolingForCompany *string  `json:"number_pooling_for_company,omitempty"`
 }
 
 type BrandListResponse struct {
@@ -132,23 +395,25 @@ type BrandListResponse struct {
 }
 
 type BrandResponse struct {
-	ID                Uuid    `json:"id,omitempty"`
-	State             *string `json:"state,omitempty"`
-	Name              *string `json:"name,omitempty"`
-	CompanyName       *string `json:"company_name,omitempty"`
-	ContactEmail      *string `json:"contact_email,omitempty"`
-	ContactPhone      *string `json:"contact_phone,omitempty"`
-	EinIssuingCountry *string `json:"ein_issuing_country,omitempty"`
-	LegalEntityType   *string `json:"legal_entity_type,omitempty"`
-	Ein               *string `json:"ein,omitempty"`
-	CompanyAddress    *string `json:"company_address,omitempty"`
-	CompanyVertical   *string `json:"company_vertical,omitempty"`
-	CompanyWebsite    *string `json:"company_website,omitempty"`
-	CspBrandReference *string `json:"csp_brand_reference,omitempty"`
-	CspSelfRegistered *bool   `json:"csp_self_registered,omitempty"`
-	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
-	CreatedAt         *string `json:"created_at,omitempty"`
-	UpdatedAt         *string `json:"updated_at,omitempty"`
+	ID                      Uuid     `json:"id,omitempty"`
+	State                   *string  `json:"state,omitempty"`
+	Name                    *string  `json:"name,omitempty"`
+	CompanyName             *string  `json:"company_name,omitempty"`
+	ContactEmail            *string  `json:"contact_email,omitempty"`
+	ContactPhone            *string  `json:"contact_phone,omitempty"`
+	EinIssuingCountry       *string  `json:"ein_issuing_country,omitempty"`
+	LegalEntityType         *string  `json:"legal_entity_type,omitempty"`
+	Ein                     *string  `json:"ein,omitempty"`
+	CompanyAddress          *string  `json:"company_address,omitempty"`
+	CompanyVertical         *string  `json:"company_vertical,omitempty"`
+	CspBrandReference       *string  `json:"csp_brand_reference,omitempty"`
+	CspSelfRegistered       *bool    `json:"csp_self_registered,omitempty"`
+	StatusCallbackURL       *string  `json:"status_callback_url,omitempty"`
+	CreatedAt               *string  `json:"created_at,omitempty"`
+	UpdatedAt               *string  `json:"updated_at,omitempty"`
+	SignalwireContactEmails []string `json:"signalwire_contact_emails,omitempty"`
+	LargeMessageLimit       *string  `json:"large_message_limit,omitempty"`
+	NumberPoolingForCompany *string  `json:"number_pooling_for_company,omitempty"`
 }
 
 type CallReceiveMode string
@@ -156,6 +421,7 @@ type CallReceiveMode string
 const (
 	CallReceiveModeVoice CallReceiveMode = "voice"
 	CallReceiveModeFax   CallReceiveMode = "fax"
+	CallReceiveModeNone  CallReceiveMode = "none"
 )
 
 type Campaign struct {
@@ -171,7 +437,6 @@ type Campaign struct {
 	Sample3                  *string  `json:"sample3,omitempty"`
 	Sample4                  *string  `json:"sample4,omitempty"`
 	Sample5                  *string  `json:"sample5,omitempty"`
-	DynamicTemplates         *string  `json:"dynamic_templates,omitempty"`
 	MessageFlow              *string  `json:"message_flow,omitempty"`
 	OptInMessage             *string  `json:"opt_in_message,omitempty"`
 	OptOutMessage            *string  `json:"opt_out_message,omitempty"`
@@ -179,7 +444,6 @@ type Campaign struct {
 	OptInKeywords            *string  `json:"opt_in_keywords,omitempty"`
 	OptOutKeywords           *string  `json:"opt_out_keywords,omitempty"`
 	HelpKeywords             *string  `json:"help_keywords,omitempty"`
-	NumberPoolingRequired    *bool    `json:"number_pooling_required,omitempty"`
 	NumberPoolingPerCampaign *string  `json:"number_pooling_per_campaign,omitempty"`
 	DirectLending            *bool    `json:"direct_lending,omitempty"`
 	EmbeddedLink             *bool    `json:"embedded_link,omitempty"`
@@ -190,6 +454,12 @@ type Campaign struct {
 	StatusCallbackURL        *string  `json:"status_callback_url,omitempty"`
 	CreatedAt                *string  `json:"created_at,omitempty"`
 	UpdatedAt                *string  `json:"updated_at,omitempty"`
+	DynamicMessages          *string  `json:"dynamic_messages,omitempty"`
+	RequestedThroughput      *string  `json:"requested_throughput,omitempty"`
+	DailyMessagesPerNumber   *string  `json:"daily_messages_per_number,omitempty"`
+	PrivacyPolicyLink        *string  `json:"privacy_policy_link,omitempty"`
+	PurchaseOrPortNumbers    *string  `json:"purchase_or_port_numbers,omitempty"`
+	SignalwireContactEmails  []string `json:"signalwire_contact_emails,omitempty"`
 }
 
 type CampaignListResponse struct {
@@ -210,7 +480,6 @@ type CampaignResponse struct {
 	Sample3                  *string  `json:"sample3,omitempty"`
 	Sample4                  *string  `json:"sample4,omitempty"`
 	Sample5                  *string  `json:"sample5,omitempty"`
-	DynamicTemplates         *string  `json:"dynamic_templates,omitempty"`
 	MessageFlow              *string  `json:"message_flow,omitempty"`
 	OptInMessage             *string  `json:"opt_in_message,omitempty"`
 	OptOutMessage            *string  `json:"opt_out_message,omitempty"`
@@ -218,7 +487,6 @@ type CampaignResponse struct {
 	OptInKeywords            *string  `json:"opt_in_keywords,omitempty"`
 	OptOutKeywords           *string  `json:"opt_out_keywords,omitempty"`
 	HelpKeywords             *string  `json:"help_keywords,omitempty"`
-	NumberPoolingRequired    *bool    `json:"number_pooling_required,omitempty"`
 	NumberPoolingPerCampaign *string  `json:"number_pooling_per_campaign,omitempty"`
 	DirectLending            *bool    `json:"direct_lending,omitempty"`
 	EmbeddedLink             *bool    `json:"embedded_link,omitempty"`
@@ -229,6 +497,12 @@ type CampaignResponse struct {
 	StatusCallbackURL        *string  `json:"status_callback_url,omitempty"`
 	CreatedAt                *string  `json:"created_at,omitempty"`
 	UpdatedAt                *string  `json:"updated_at,omitempty"`
+	DynamicMessages          *string  `json:"dynamic_messages,omitempty"`
+	RequestedThroughput      *string  `json:"requested_throughput,omitempty"`
+	DailyMessagesPerNumber   *string  `json:"daily_messages_per_number,omitempty"`
+	PrivacyPolicyLink        *string  `json:"privacy_policy_link,omitempty"`
+	PurchaseOrPortNumbers    *string  `json:"purchase_or_port_numbers,omitempty"`
+	SignalwireContactEmails  []string `json:"signalwire_contact_emails,omitempty"`
 }
 
 type CarrierLookupInfo struct {
@@ -241,6 +515,7 @@ type CarrierLookupInfo struct {
 	Jurisdiction *string `json:"jurisdiction,omitempty"`
 	Lec          *string `json:"lec,omitempty"`
 	Linetype     *string `json:"linetype,omitempty"`
+	Dnc          *string `json:"dnc,omitempty"`
 }
 
 type CnamInfo struct {
@@ -276,24 +551,27 @@ const (
 )
 
 type CreateAddressRequest struct {
-	Label         string       `json:"label,omitempty"`
-	Country       string       `json:"country,omitempty"`
-	FirstName     string       `json:"first_name,omitempty"`
-	LastName      string       `json:"last_name,omitempty"`
-	StreetNumber  string       `json:"street_number,omitempty"`
-	StreetName    string       `json:"street_name,omitempty"`
-	AddressType   *AddressType `json:"address_type,omitempty"`
-	AddressNumber *string      `json:"address_number,omitempty"`
-	City          string       `json:"city,omitempty"`
-	State         string       `json:"state,omitempty"`
-	PostalCode    string       `json:"postal_code,omitempty"`
+	Label              string             `json:"label,omitempty"`
+	Country            AddressCountryCode `json:"country,omitempty"`
+	FirstName          string             `json:"first_name,omitempty"`
+	LastName           string             `json:"last_name,omitempty"`
+	StreetNumber       string             `json:"street_number,omitempty"`
+	StreetName         string             `json:"street_name,omitempty"`
+	AddressType        *AddressType       `json:"address_type,omitempty"`
+	AddressNumber      *string            `json:"address_number,omitempty"`
+	City               string             `json:"city,omitempty"`
+	State              string             `json:"state,omitempty"`
+	PostalCode         string             `json:"postal_code,omitempty"`
+	EmergencyEnabled   *bool              `json:"emergency_enabled,omitempty"`
+	AutoCorrectAddress *bool              `json:"auto_correct_address,omitempty"`
 }
 
 type CreateCspBrandRequest struct {
-	CspSelfRegistered bool    `json:"csp_self_registered,omitempty"`
-	Name              string  `json:"name,omitempty"`
-	CspBrandReference string  `json:"csp_brand_reference,omitempty"`
-	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
+	CspSelfRegistered       bool    `json:"csp_self_registered,omitempty"`
+	Name                    string  `json:"name,omitempty"`
+	CspBrandReference       string  `json:"csp_brand_reference,omitempty"`
+	StatusCallbackURL       *string `json:"status_callback_url,omitempty"`
+	SignalwireContactEmails any     `json:"signalwire_contact_emails,omitempty"`
 }
 
 type CreateDomainApplicationRequest struct {
@@ -318,6 +596,7 @@ type CreateDomainApplicationRequest struct {
 	CallLamlApplicationID             *string                      `json:"call_laml_application_id,omitempty"`
 	CallVideoRoomID                   *Uuid                        `json:"call_video_room_id,omitempty"`
 	CallRelayScriptURL                *string                      `json:"call_relay_script_url,omitempty"`
+	CallRelayScriptURLMethod          *string                      `json:"call_relay_script_url_method,omitempty"`
 	CallDialogflowAgentID             *Uuid                        `json:"call_dialogflow_agent_id,omitempty"`
 	CallAiAgentID                     *Uuid                        `json:"call_ai_agent_id,omitempty"`
 	CallFlowID                        *Uuid                        `json:"call_flow_id,omitempty"`
@@ -327,22 +606,23 @@ type CreateDomainApplicationRequest struct {
 }
 
 type CreateManagedBrandRequest struct {
-	Name              string           `json:"name,omitempty"`
-	CompanyName       string           `json:"company_name,omitempty"`
-	ContactEmail      string           `json:"contact_email,omitempty"`
-	ContactPhone      string           `json:"contact_phone,omitempty"`
-	EinIssuingCountry string           `json:"ein_issuing_country,omitempty"`
-	LegalEntityType   LegalEntityType  `json:"legal_entity_type,omitempty"`
-	Ein               string           `json:"ein,omitempty"`
-	CompanyAddress    string           `json:"company_address,omitempty"`
-	CompanyVertical   *CompanyVertical `json:"company_vertical,omitempty"`
-	CompanyWebsite    string           `json:"company_website,omitempty"`
-	StatusCallbackURL *string          `json:"status_callback_url,omitempty"`
+	Name                    string           `json:"name,omitempty"`
+	CompanyName             string           `json:"company_name,omitempty"`
+	ContactEmail            string           `json:"contact_email,omitempty"`
+	ContactPhone            string           `json:"contact_phone,omitempty"`
+	EinIssuingCountry       string           `json:"ein_issuing_country,omitempty"`
+	LegalEntityType         LegalEntityType  `json:"legal_entity_type,omitempty"`
+	Ein                     string           `json:"ein,omitempty"`
+	CompanyAddress          string           `json:"company_address,omitempty"`
+	CompanyVertical         *CompanyVertical `json:"company_vertical,omitempty"`
+	CompanyWebsite          string           `json:"company_website,omitempty"`
+	StatusCallbackURL       *string          `json:"status_callback_url,omitempty"`
+	CspBrandReference       *string          `json:"csp_brand_reference,omitempty"`
+	SignalwireContactEmails any              `json:"signalwire_contact_emails,omitempty"`
 }
 
 type CreateManagedCampaignRequest struct {
 	Name                     string   `json:"name,omitempty"`
-	BrandID                  Uuid     `json:"brand_id,omitempty"`
 	SmsUseCase               string   `json:"sms_use_case,omitempty"`
 	SubUseCases              []string `json:"sub_use_cases,omitempty"`
 	CampaignVerifyToken      *string  `json:"campaign_verify_token,omitempty"`
@@ -369,6 +649,8 @@ type CreateManagedCampaignRequest struct {
 	LeadGeneration           bool     `json:"lead_generation,omitempty"`
 	TermsAndConditions       bool     `json:"terms_and_conditions,omitempty"`
 	StatusCallbackURL        *string  `json:"status_callback_url,omitempty"`
+	CspCampaignReference     *string  `json:"csp_campaign_reference,omitempty"`
+	SignalwireContactEmails  any      `json:"signalwire_contact_emails,omitempty"`
 }
 
 type CreateNumberGroupRequest struct {
@@ -382,15 +664,15 @@ type CreateOrderRequest struct {
 }
 
 type CreatePartnerCampaignRequest struct {
-	Name                 string  `json:"name,omitempty"`
-	BrandID              Uuid    `json:"brand_id,omitempty"`
-	CspCampaignReference string  `json:"csp_campaign_reference,omitempty"`
-	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
+	Name                    string  `json:"name,omitempty"`
+	CspCampaignReference    string  `json:"csp_campaign_reference,omitempty"`
+	StatusCallbackURL       *string `json:"status_callback_url,omitempty"`
+	SignalwireContactEmails any     `json:"signalwire_contact_emails,omitempty"`
 }
 
 type CreateQueueRequest struct {
-	Name    *string `json:"name,omitempty"`
-	MaxSize *int    `json:"max_size,omitempty"`
+	Name    string `json:"name,omitempty"`
+	MaxSize *int   `json:"max_size,omitempty"`
 }
 
 type CreateSipEndpointRequest struct {
@@ -420,6 +702,7 @@ type CreateSipEndpointRequest struct {
 	CallFlowVersion                   *string  `json:"call_flow_version,omitempty"`
 	CallAiAgentID                     *string  `json:"call_ai_agent_id,omitempty"`
 	CallRelayScriptURL                *string  `json:"call_relay_script_url,omitempty"`
+	CallRelayScriptURLMethod          *string  `json:"call_relay_script_url_method,omitempty"`
 }
 
 type CreateVerifiedCallerIDRequest struct {
@@ -620,12 +903,15 @@ type NumberGroupResponse struct {
 }
 
 type Order struct {
-	ID                Uuid    `json:"id,omitempty"`
-	State             *string `json:"state,omitempty"`
-	ProcessedAt       *string `json:"processed_at,omitempty"`
-	CreatedAt         *string `json:"created_at,omitempty"`
-	UpdatedAt         *string `json:"updated_at,omitempty"`
-	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
+	ID                Uuid             `json:"id,omitempty"`
+	State             *string          `json:"state,omitempty"`
+	ProcessedAt       *string          `json:"processed_at,omitempty"`
+	CreatedAt         *string          `json:"created_at,omitempty"`
+	UpdatedAt         *string          `json:"updated_at,omitempty"`
+	StatusCallbackURL *string          `json:"status_callback_url,omitempty"`
+	CampaignID        *string          `json:"campaign_id,omitempty"`
+	BrandID           *string          `json:"brand_id,omitempty"`
+	PhoneNumbers      []map[string]any `json:"phone_numbers,omitempty"`
 }
 
 type OrderListResponse struct {
@@ -634,12 +920,15 @@ type OrderListResponse struct {
 }
 
 type OrderResponse struct {
-	ID                Uuid    `json:"id,omitempty"`
-	State             *string `json:"state,omitempty"`
-	ProcessedAt       *string `json:"processed_at,omitempty"`
-	CreatedAt         *string `json:"created_at,omitempty"`
-	UpdatedAt         *string `json:"updated_at,omitempty"`
-	StatusCallbackURL *string `json:"status_callback_url,omitempty"`
+	ID                Uuid             `json:"id,omitempty"`
+	State             *string          `json:"state,omitempty"`
+	ProcessedAt       *string          `json:"processed_at,omitempty"`
+	CreatedAt         *string          `json:"created_at,omitempty"`
+	UpdatedAt         *string          `json:"updated_at,omitempty"`
+	StatusCallbackURL *string          `json:"status_callback_url,omitempty"`
+	CampaignID        *string          `json:"campaign_id,omitempty"`
+	BrandID           *string          `json:"brand_id,omitempty"`
+	PhoneNumbers      []map[string]any `json:"phone_numbers,omitempty"`
 }
 
 type PaginationLinks struct {
@@ -650,46 +939,48 @@ type PaginationLinks struct {
 }
 
 type PhoneNumber struct {
-	ID                                Uuid                    `json:"id,omitempty"`
-	Number                            string                  `json:"number,omitempty"`
-	Name                              any                     `json:"name,omitempty"`
-	Capabilities                      []PhoneNumberCapability `json:"capabilities,omitempty"`
-	NumberType                        PhoneNumberType         `json:"number_type,omitempty"`
-	E911AddressID                     any                     `json:"e911_address_id,omitempty"`
-	CreatedAt                         string                  `json:"created_at,omitempty"`
-	UpdatedAt                         string                  `json:"updated_at,omitempty"`
-	NextBilledAt                      any                     `json:"next_billed_at,omitempty"`
-	CallHandler                       any                     `json:"call_handler,omitempty"`
-	CallingHandlerResourceID          any                     `json:"calling_handler_resource_id,omitempty"`
-	CallReceiveMode                   CallReceiveMode         `json:"call_receive_mode,omitempty"`
-	CallRequestURL                    any                     `json:"call_request_url,omitempty"`
-	CallRequestMethod                 any                     `json:"call_request_method,omitempty"`
-	CallFallbackURL                   any                     `json:"call_fallback_url,omitempty"`
-	CallFallbackMethod                any                     `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackURL             any                     `json:"call_status_callback_url,omitempty"`
-	CallStatusCallbackMethod          any                     `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationID             any                     `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentID             any                     `json:"call_dialogflow_agent_id,omitempty"`
-	CallRelayTopic                    any                     `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackURL   any                     `json:"call_relay_topic_status_callback_url,omitempty"`
-	CallRelayScriptURL                any                     `json:"call_relay_script_url,omitempty"`
-	CallRelayContext                  any                     `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackURL any                     `json:"call_relay_context_status_callback_url,omitempty"`
-	CallRelayApplication              any                     `json:"call_relay_application,omitempty"`
-	CallRelayConnectorID              any                     `json:"call_relay_connector_id,omitempty"`
-	CallSIPEndpointID                 any                     `json:"call_sip_endpoint_id,omitempty"`
-	CallVertoResource                 any                     `json:"call_verto_resource,omitempty"`
-	CallVideoRoomID                   any                     `json:"call_video_room_id,omitempty"`
-	MessageHandler                    any                     `json:"message_handler,omitempty"`
-	MessagingHandlerResourceID        any                     `json:"messaging_handler_resource_id,omitempty"`
-	MessageRequestURL                 any                     `json:"message_request_url,omitempty"`
-	MessageRequestMethod              any                     `json:"message_request_method,omitempty"`
-	MessageFallbackURL                any                     `json:"message_fallback_url,omitempty"`
-	MessageFallbackMethod             any                     `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationID          any                     `json:"message_laml_application_id,omitempty"`
-	MessageRelayTopic                 any                     `json:"message_relay_topic,omitempty"`
-	MessageRelayContext               any                     `json:"message_relay_context,omitempty"`
-	CountryCode                       any                     `json:"country_code,omitempty"`
+	ID                                Uuid                      `json:"id,omitempty"`
+	Number                            string                    `json:"number,omitempty"`
+	Name                              any                       `json:"name,omitempty"`
+	Capabilities                      []PhoneNumberCapability   `json:"capabilities,omitempty"`
+	NumberType                        PhoneNumberType           `json:"number_type,omitempty"`
+	E911AddressID                     any                       `json:"e911_address_id,omitempty"`
+	E911Status                        any                       `json:"e911_status,omitempty"`
+	Cnam                              *string                   `json:"cnam,omitempty"`
+	CreatedAt                         string                    `json:"created_at,omitempty"`
+	UpdatedAt                         string                    `json:"updated_at,omitempty"`
+	NextBilledAt                      any                       `json:"next_billed_at,omitempty"`
+	CallHandler                       PhoneNumberCallHandler    `json:"call_handler,omitempty"`
+	CallingHandlerResourceID          any                       `json:"calling_handler_resource_id,omitempty"`
+	CallReceiveMode                   CallReceiveMode           `json:"call_receive_mode,omitempty"`
+	CallRequestURL                    any                       `json:"call_request_url,omitempty"`
+	CallRequestMethod                 any                       `json:"call_request_method,omitempty"`
+	CallFallbackURL                   any                       `json:"call_fallback_url,omitempty"`
+	CallFallbackMethod                any                       `json:"call_fallback_method,omitempty"`
+	CallStatusCallbackURL             any                       `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackMethod          any                       `json:"call_status_callback_method,omitempty"`
+	CallLamlApplicationID             any                       `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             any                       `json:"call_dialogflow_agent_id,omitempty"`
+	CallRelayTopic                    any                       `json:"call_relay_topic,omitempty"`
+	CallRelayTopicStatusCallbackURL   any                       `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayScriptURL                any                       `json:"call_relay_script_url,omitempty"`
+	CallRelayContext                  any                       `json:"call_relay_context,omitempty"`
+	CallRelayContextStatusCallbackURL any                       `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayApplication              any                       `json:"call_relay_application,omitempty"`
+	CallRelayConnectorID              any                       `json:"call_relay_connector_id,omitempty"`
+	CallSIPEndpointID                 any                       `json:"call_sip_endpoint_id,omitempty"`
+	CallVertoResource                 any                       `json:"call_verto_resource,omitempty"`
+	CallVideoRoomID                   any                       `json:"call_video_room_id,omitempty"`
+	MessageHandler                    PhoneNumberMessageHandler `json:"message_handler,omitempty"`
+	MessagingHandlerResourceID        any                       `json:"messaging_handler_resource_id,omitempty"`
+	MessageRequestURL                 any                       `json:"message_request_url,omitempty"`
+	MessageRequestMethod              any                       `json:"message_request_method,omitempty"`
+	MessageFallbackURL                any                       `json:"message_fallback_url,omitempty"`
+	MessageFallbackMethod             any                       `json:"message_fallback_method,omitempty"`
+	MessageLamlApplicationID          any                       `json:"message_laml_application_id,omitempty"`
+	MessageRelayTopic                 any                       `json:"message_relay_topic,omitempty"`
+	MessageRelayContext               any                       `json:"message_relay_context,omitempty"`
+	CountryCode                       any                       `json:"country_code,omitempty"`
 }
 
 type PhoneNumberCallHandler string
@@ -779,52 +1070,54 @@ const (
 )
 
 type PhoneNumberResponse struct {
-	ID                                Uuid                    `json:"id,omitempty"`
-	Number                            string                  `json:"number,omitempty"`
-	Name                              any                     `json:"name,omitempty"`
-	Capabilities                      []PhoneNumberCapability `json:"capabilities,omitempty"`
-	NumberType                        PhoneNumberType         `json:"number_type,omitempty"`
-	E911AddressID                     any                     `json:"e911_address_id,omitempty"`
-	CreatedAt                         string                  `json:"created_at,omitempty"`
-	UpdatedAt                         string                  `json:"updated_at,omitempty"`
-	NextBilledAt                      any                     `json:"next_billed_at,omitempty"`
-	CallHandler                       any                     `json:"call_handler,omitempty"`
-	CallingHandlerResourceID          any                     `json:"calling_handler_resource_id,omitempty"`
-	CallReceiveMode                   CallReceiveMode         `json:"call_receive_mode,omitempty"`
-	CallRequestURL                    any                     `json:"call_request_url,omitempty"`
-	CallRequestMethod                 any                     `json:"call_request_method,omitempty"`
-	CallFallbackURL                   any                     `json:"call_fallback_url,omitempty"`
-	CallFallbackMethod                any                     `json:"call_fallback_method,omitempty"`
-	CallStatusCallbackURL             any                     `json:"call_status_callback_url,omitempty"`
-	CallStatusCallbackMethod          any                     `json:"call_status_callback_method,omitempty"`
-	CallLamlApplicationID             any                     `json:"call_laml_application_id,omitempty"`
-	CallDialogflowAgentID             any                     `json:"call_dialogflow_agent_id,omitempty"`
-	CallRelayTopic                    any                     `json:"call_relay_topic,omitempty"`
-	CallRelayTopicStatusCallbackURL   any                     `json:"call_relay_topic_status_callback_url,omitempty"`
-	CallRelayScriptURL                any                     `json:"call_relay_script_url,omitempty"`
-	CallRelayContext                  any                     `json:"call_relay_context,omitempty"`
-	CallRelayContextStatusCallbackURL any                     `json:"call_relay_context_status_callback_url,omitempty"`
-	CallRelayApplication              any                     `json:"call_relay_application,omitempty"`
-	CallRelayConnectorID              any                     `json:"call_relay_connector_id,omitempty"`
-	CallSIPEndpointID                 any                     `json:"call_sip_endpoint_id,omitempty"`
-	CallVertoResource                 any                     `json:"call_verto_resource,omitempty"`
-	CallVideoRoomID                   any                     `json:"call_video_room_id,omitempty"`
-	MessageHandler                    any                     `json:"message_handler,omitempty"`
-	MessagingHandlerResourceID        any                     `json:"messaging_handler_resource_id,omitempty"`
-	MessageRequestURL                 any                     `json:"message_request_url,omitempty"`
-	MessageRequestMethod              any                     `json:"message_request_method,omitempty"`
-	MessageFallbackURL                any                     `json:"message_fallback_url,omitempty"`
-	MessageFallbackMethod             any                     `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationID          any                     `json:"message_laml_application_id,omitempty"`
-	MessageRelayTopic                 any                     `json:"message_relay_topic,omitempty"`
-	MessageRelayContext               any                     `json:"message_relay_context,omitempty"`
-	CountryCode                       any                     `json:"country_code,omitempty"`
+	ID                                Uuid                      `json:"id,omitempty"`
+	Number                            string                    `json:"number,omitempty"`
+	Name                              any                       `json:"name,omitempty"`
+	Capabilities                      []PhoneNumberCapability   `json:"capabilities,omitempty"`
+	NumberType                        PhoneNumberType           `json:"number_type,omitempty"`
+	E911AddressID                     any                       `json:"e911_address_id,omitempty"`
+	E911Status                        any                       `json:"e911_status,omitempty"`
+	Cnam                              *string                   `json:"cnam,omitempty"`
+	CreatedAt                         string                    `json:"created_at,omitempty"`
+	UpdatedAt                         string                    `json:"updated_at,omitempty"`
+	NextBilledAt                      any                       `json:"next_billed_at,omitempty"`
+	CallHandler                       PhoneNumberCallHandler    `json:"call_handler,omitempty"`
+	CallingHandlerResourceID          any                       `json:"calling_handler_resource_id,omitempty"`
+	CallReceiveMode                   CallReceiveMode           `json:"call_receive_mode,omitempty"`
+	CallRequestURL                    any                       `json:"call_request_url,omitempty"`
+	CallRequestMethod                 any                       `json:"call_request_method,omitempty"`
+	CallFallbackURL                   any                       `json:"call_fallback_url,omitempty"`
+	CallFallbackMethod                any                       `json:"call_fallback_method,omitempty"`
+	CallStatusCallbackURL             any                       `json:"call_status_callback_url,omitempty"`
+	CallStatusCallbackMethod          any                       `json:"call_status_callback_method,omitempty"`
+	CallLamlApplicationID             any                       `json:"call_laml_application_id,omitempty"`
+	CallDialogflowAgentID             any                       `json:"call_dialogflow_agent_id,omitempty"`
+	CallRelayTopic                    any                       `json:"call_relay_topic,omitempty"`
+	CallRelayTopicStatusCallbackURL   any                       `json:"call_relay_topic_status_callback_url,omitempty"`
+	CallRelayScriptURL                any                       `json:"call_relay_script_url,omitempty"`
+	CallRelayContext                  any                       `json:"call_relay_context,omitempty"`
+	CallRelayContextStatusCallbackURL any                       `json:"call_relay_context_status_callback_url,omitempty"`
+	CallRelayApplication              any                       `json:"call_relay_application,omitempty"`
+	CallRelayConnectorID              any                       `json:"call_relay_connector_id,omitempty"`
+	CallSIPEndpointID                 any                       `json:"call_sip_endpoint_id,omitempty"`
+	CallVertoResource                 any                       `json:"call_verto_resource,omitempty"`
+	CallVideoRoomID                   any                       `json:"call_video_room_id,omitempty"`
+	MessageHandler                    PhoneNumberMessageHandler `json:"message_handler,omitempty"`
+	MessagingHandlerResourceID        any                       `json:"messaging_handler_resource_id,omitempty"`
+	MessageRequestURL                 any                       `json:"message_request_url,omitempty"`
+	MessageRequestMethod              any                       `json:"message_request_method,omitempty"`
+	MessageFallbackURL                any                       `json:"message_fallback_url,omitempty"`
+	MessageFallbackMethod             any                       `json:"message_fallback_method,omitempty"`
+	MessageLamlApplicationID          any                       `json:"message_laml_application_id,omitempty"`
+	MessageRelayTopic                 any                       `json:"message_relay_topic,omitempty"`
+	MessageRelayContext               any                       `json:"message_relay_context,omitempty"`
+	CountryCode                       any                       `json:"country_code,omitempty"`
 }
 
 type PhoneNumberType string
 
 const (
-	PhoneNumberTypeTollFree PhoneNumberType = "toll-free"
+	PhoneNumberTypeTollfree PhoneNumberType = "tollfree"
 	PhoneNumberTypeLongcode PhoneNumberType = "longcode"
 )
 
@@ -846,7 +1139,8 @@ type PstnRecording struct {
 }
 
 type PurchasePhoneNumberRequest struct {
-	Number string `json:"number,omitempty"`
+	Number     string  `json:"number,omitempty"`
+	NumberType *string `json:"number_type,omitempty"`
 }
 
 type Queue struct {
@@ -904,6 +1198,23 @@ type QueueResponse struct {
 }
 
 type Recording any
+
+type RelayConferenceRecording struct {
+	ID                Uuid    `json:"id,omitempty"`
+	ProjectID         Uuid    `json:"project_id,omitempty"`
+	CreatedAt         string  `json:"created_at,omitempty"`
+	UpdatedAt         string  `json:"updated_at,omitempty"`
+	DurationInSeconds int     `json:"duration_in_seconds,omitempty"`
+	ErrorCode         *string `json:"error_code,omitempty"`
+	Price             float64 `json:"price,omitempty"`
+	PriceUnit         string  `json:"price_unit,omitempty"`
+	Status            string  `json:"status,omitempty"`
+	URL               string  `json:"url,omitempty"`
+	Stereo            bool    `json:"stereo,omitempty"`
+	ByteSize          *int    `json:"byte_size,omitempty"`
+	Track             string  `json:"track,omitempty"`
+	RelayConferenceID Uuid    `json:"relay_conference_id,omitempty"`
+}
 
 type RecordingListResponse struct {
 	Links PaginationLinks `json:"links,omitempty"`
@@ -1010,17 +1321,19 @@ type SipEndpoint struct {
 type SipEndpointCallHandler string
 
 const (
-	SipEndpointCallHandlerRelayContext     SipEndpointCallHandler = "relay_context"
-	SipEndpointCallHandlerRelayTopic       SipEndpointCallHandler = "relay_topic"
-	SipEndpointCallHandlerRelayApplication SipEndpointCallHandler = "relay_application"
-	SipEndpointCallHandlerRelayConnector   SipEndpointCallHandler = "relay_connector"
-	SipEndpointCallHandlerRelayScript      SipEndpointCallHandler = "relay_script"
-	SipEndpointCallHandlerLamlWebhooks     SipEndpointCallHandler = "laml_webhooks"
+	SipEndpointCallHandlerDefault          SipEndpointCallHandler = "default"
+	SipEndpointCallHandlerPassthrough      SipEndpointCallHandler = "passthrough"
+	SipEndpointCallHandlerBlockPstn        SipEndpointCallHandler = "block-pstn"
+	SipEndpointCallHandlerLamlWebhook      SipEndpointCallHandler = "laml_webhook"
 	SipEndpointCallHandlerLamlApplication  SipEndpointCallHandler = "laml_application"
 	SipEndpointCallHandlerDialogflow       SipEndpointCallHandler = "dialogflow"
+	SipEndpointCallHandlerRelayContext     SipEndpointCallHandler = "relay_context"
+	SipEndpointCallHandlerRelayApplication SipEndpointCallHandler = "relay_application"
+	SipEndpointCallHandlerRelayConnector   SipEndpointCallHandler = "relay_connector"
 	SipEndpointCallHandlerVideoRoom        SipEndpointCallHandler = "video_room"
-	SipEndpointCallHandlerCallFlow         SipEndpointCallHandler = "call_flow"
 	SipEndpointCallHandlerAiAgent          SipEndpointCallHandler = "ai_agent"
+	SipEndpointCallHandlerRelayScript      SipEndpointCallHandler = "relay_script"
+	SipEndpointCallHandlerCallFlow         SipEndpointCallHandler = "call_flow"
 )
 
 type SipEndpointListResponse struct {
@@ -1057,12 +1370,13 @@ type SipEndpointResponse struct {
 }
 
 type SipProfileResponse struct {
-	Domain            *string  `json:"domain,omitempty"`
-	DomainIdentifier  *string  `json:"domain_identifier,omitempty"`
-	DefaultCodecs     []string `json:"default_codecs,omitempty"`
-	DefaultCiphers    []string `json:"default_ciphers,omitempty"`
-	DefaultEncryption *string  `json:"default_encryption,omitempty"`
-	DefaultSendAs     *string  `json:"default_send_as,omitempty"`
+	Domain                *string  `json:"domain,omitempty"`
+	DomainIdentifier      *string  `json:"domain_identifier,omitempty"`
+	DefaultCodecs         []string `json:"default_codecs,omitempty"`
+	DefaultCiphers        []string `json:"default_ciphers,omitempty"`
+	DefaultEncryption     *string  `json:"default_encryption,omitempty"`
+	DefaultSendAs         *string  `json:"default_send_as,omitempty"`
+	DefaultOutboundPolicy *string  `json:"default_outbound_policy,omitempty"`
 }
 
 type SipRecording struct {
@@ -1110,7 +1424,9 @@ type Types_StatusCodes_ValidationError struct {
 }
 
 type UpdateCampaignRequest struct {
-	Name *string `json:"name,omitempty"`
+	Name                    *string `json:"name,omitempty"`
+	StatusCallbackURL       *string `json:"status_callback_url,omitempty"`
+	SignalwireContactEmails any     `json:"signalwire_contact_emails,omitempty"`
 }
 
 type UpdateDomainApplicationRequest struct {
@@ -1135,6 +1451,7 @@ type UpdateDomainApplicationRequest struct {
 	CallLamlApplicationID             *string                      `json:"call_laml_application_id,omitempty"`
 	CallVideoRoomID                   *Uuid                        `json:"call_video_room_id,omitempty"`
 	CallRelayScriptURL                *string                      `json:"call_relay_script_url,omitempty"`
+	CallRelayScriptURLMethod          *string                      `json:"call_relay_script_url_method,omitempty"`
 	CallDialogflowAgentID             *Uuid                        `json:"call_dialogflow_agent_id,omitempty"`
 	CallAiAgentID                     *Uuid                        `json:"call_ai_agent_id,omitempty"`
 	CallFlowID                        *Uuid                        `json:"call_flow_id,omitempty"`
@@ -1144,8 +1461,8 @@ type UpdateDomainApplicationRequest struct {
 }
 
 type UpdateNumberGroupRequest struct {
-	Name         string `json:"name,omitempty"`
-	StickySender *bool  `json:"sticky_sender,omitempty"`
+	Name         *string `json:"name,omitempty"`
+	StickySender *bool   `json:"sticky_sender,omitempty"`
 }
 
 type UpdatePhoneNumberRequest struct {
@@ -1163,6 +1480,7 @@ type UpdatePhoneNumberRequest struct {
 	CallRelayTopic                    *string                        `json:"call_relay_topic,omitempty"`
 	CallRelayTopicStatusCallbackURL   *string                        `json:"call_relay_topic_status_callback_url,omitempty"`
 	CallRelayScriptURL                *string                        `json:"call_relay_script_url,omitempty"`
+	CallRelayScriptURLMethod          *string                        `json:"call_relay_script_url_method,omitempty"`
 	CallRelayContext                  *string                        `json:"call_relay_context,omitempty"`
 	CallRelayContextStatusCallbackURL *string                        `json:"call_relay_context_status_callback_url,omitempty"`
 	CallRelayApplication              *string                        `json:"call_relay_application,omitempty"`
@@ -1190,14 +1508,14 @@ type UpdateQueueRequest struct {
 }
 
 type UpdateShortCodeRequest struct {
-	Name                     string                  `json:"name,omitempty"`
-	MessageHandler           ShortCodeMessageHandler `json:"message_handler,omitempty"`
-	MessageRequestURL        *string                 `json:"message_request_url,omitempty"`
-	MessageRequestMethod     *HttpMethod             `json:"message_request_method,omitempty"`
-	MessageFallbackURL       *string                 `json:"message_fallback_url,omitempty"`
-	MessageFallbackMethod    *HttpMethod             `json:"message_fallback_method,omitempty"`
-	MessageLamlApplicationID *Uuid                   `json:"message_laml_application_id,omitempty"`
-	MessageRelayContext      *string                 `json:"message_relay_context,omitempty"`
+	Name                     *string                  `json:"name,omitempty"`
+	MessageHandler           *ShortCodeMessageHandler `json:"message_handler,omitempty"`
+	MessageRequestURL        *string                  `json:"message_request_url,omitempty"`
+	MessageRequestMethod     *HttpMethod              `json:"message_request_method,omitempty"`
+	MessageFallbackURL       *string                  `json:"message_fallback_url,omitempty"`
+	MessageFallbackMethod    *HttpMethod              `json:"message_fallback_method,omitempty"`
+	MessageLamlApplicationID *Uuid                    `json:"message_laml_application_id,omitempty"`
+	MessageRelayContext      *string                  `json:"message_relay_context,omitempty"`
 }
 
 type UpdateSipEndpointRequest struct {
@@ -1227,18 +1545,20 @@ type UpdateSipEndpointRequest struct {
 	CallFlowVersion                   *string  `json:"call_flow_version,omitempty"`
 	CallAiAgentID                     *string  `json:"call_ai_agent_id,omitempty"`
 	CallRelayScriptURL                *string  `json:"call_relay_script_url,omitempty"`
+	CallRelayScriptURLMethod          *string  `json:"call_relay_script_url_method,omitempty"`
 }
 
 type UpdateSipProfileRequest struct {
-	DomainIdentifier  *string  `json:"domain_identifier,omitempty"`
-	DefaultCodecs     []string `json:"default_codecs,omitempty"`
-	DefaultCiphers    []string `json:"default_ciphers,omitempty"`
-	DefaultEncryption *string  `json:"default_encryption,omitempty"`
-	DefaultSendAs     *string  `json:"default_send_as,omitempty"`
+	DomainIdentifier      *string  `json:"domain_identifier,omitempty"`
+	DefaultCodecs         []string `json:"default_codecs,omitempty"`
+	DefaultCiphers        []string `json:"default_ciphers,omitempty"`
+	DefaultEncryption     *string  `json:"default_encryption,omitempty"`
+	DefaultSendAs         *string  `json:"default_send_as,omitempty"`
+	DefaultOutboundPolicy *string  `json:"default_outbound_policy,omitempty"`
 }
 
 type UpdateVerifiedCallerIDRequest struct {
-	Name string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
 }
 
 type VerifiedCallerID struct {
@@ -1287,6 +1607,123 @@ type WebRtcRecording struct {
 	ByteSize          *int    `json:"byte_size,omitempty"`
 	Track             string  `json:"track,omitempty"`
 	RelayWebrtcLegID  Uuid    `json:"relay_webrtc_leg_id,omitempty"`
+}
+
+type UpdateAddressRequest struct {
+	Label              *string             `json:"label,omitempty"`
+	Country            *AddressCountryCode `json:"country,omitempty"`
+	FirstName          *string             `json:"first_name,omitempty"`
+	LastName           *string             `json:"last_name,omitempty"`
+	StreetNumber       *string             `json:"street_number,omitempty"`
+	StreetName         *string             `json:"street_name,omitempty"`
+	AddressType        *AddressType        `json:"address_type,omitempty"`
+	AddressNumber      *string             `json:"address_number,omitempty"`
+	City               *string             `json:"city,omitempty"`
+	State              *string             `json:"state,omitempty"`
+	PostalCode         *string             `json:"postal_code,omitempty"`
+	EmergencyEnabled   *bool               `json:"emergency_enabled,omitempty"`
+	AutoCorrectAddress *bool               `json:"auto_correct_address,omitempty"`
+}
+
+type AddressCandidate struct {
+	StreetNumber string `json:"street_number,omitempty"`
+	StreetName   string `json:"street_name,omitempty"`
+	City         string `json:"city,omitempty"`
+	State        string `json:"state,omitempty"`
+	PostalCode   string `json:"postal_code,omitempty"`
+}
+
+type AddressValidationError struct {
+	Errors     []Types_StatusCodes_SpaceApiErrorItem `json:"errors,omitempty"`
+	Candidates []AddressCandidate                    `json:"candidates,omitempty"`
+}
+
+type UpdateBrandRequest struct {
+	Name                    *string          `json:"name,omitempty"`
+	CompanyName             *string          `json:"company_name,omitempty"`
+	ContactEmail            *string          `json:"contact_email,omitempty"`
+	ContactPhone            *string          `json:"contact_phone,omitempty"`
+	EinIssuingCountry       *string          `json:"ein_issuing_country,omitempty"`
+	LegalEntityType         *LegalEntityType `json:"legal_entity_type,omitempty"`
+	Ein                     *string          `json:"ein,omitempty"`
+	CompanyVertical         *CompanyVertical `json:"company_vertical,omitempty"`
+	CompanyWebsite          *string          `json:"company_website,omitempty"`
+	CompanyAddress          *string          `json:"company_address,omitempty"`
+	CspBrandReference       *string          `json:"csp_brand_reference,omitempty"`
+	StatusCallbackURL       *string          `json:"status_callback_url,omitempty"`
+	SignalwireContactEmails any              `json:"signalwire_contact_emails,omitempty"`
+}
+
+type Types_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute string `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
+}
+
+type BrandUpdateStatusCode422 struct {
+	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type AssignE911AddressRequest struct {
+	E911AddressID Uuid `json:"e911_address_id,omitempty"`
+}
+
+type PhoneNumberE911Status string
+
+const (
+	PhoneNumberE911StatusPending        PhoneNumberE911Status = "pending"
+	PhoneNumberE911StatusActive         PhoneNumberE911Status = "active"
+	PhoneNumberE911StatusFailed         PhoneNumberE911Status = "failed"
+	PhoneNumberE911StatusPendingRemoval PhoneNumberE911Status = "pending_removal"
+	PhoneNumberE911StatusUnregistered   PhoneNumberE911Status = "unregistered"
+)
+
+type CreatePhoneNumberCnamRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
+type PhoneNumberCnamStatus string
+
+const (
+	PhoneNumberCnamStatusPending    PhoneNumberCnamStatus = "pending"
+	PhoneNumberCnamStatusApproved   PhoneNumberCnamStatus = "approved"
+	PhoneNumberCnamStatusInReview   PhoneNumberCnamStatus = "in_review"
+	PhoneNumberCnamStatusRejected   PhoneNumberCnamStatus = "rejected"
+	PhoneNumberCnamStatusFailed     PhoneNumberCnamStatus = "failed"
+	PhoneNumberCnamStatusSuperseded PhoneNumberCnamStatus = "superseded"
+)
+
+type PhoneNumberCnamReason string
+
+const (
+	PhoneNumberCnamReasonOffensiveLanguage         PhoneNumberCnamReason = "offensive_language"
+	PhoneNumberCnamReasonImpersonation             PhoneNumberCnamReason = "impersonation"
+	PhoneNumberCnamReasonUnverifiedBrand           PhoneNumberCnamReason = "unverified_brand"
+	PhoneNumberCnamReasonImpliedTrustedInstitution PhoneNumberCnamReason = "implied_trusted_institution"
+	PhoneNumberCnamReasonScamWording               PhoneNumberCnamReason = "scam_wording"
+	PhoneNumberCnamReasonDeceptive                 PhoneNumberCnamReason = "deceptive"
+	PhoneNumberCnamReasonUnsupportedPersonalName   PhoneNumberCnamReason = "unsupported_personal_name"
+	PhoneNumberCnamReasonTooGeneric                PhoneNumberCnamReason = "too_generic"
+	PhoneNumberCnamReasonInvalidFormat             PhoneNumberCnamReason = "invalid_format"
+	PhoneNumberCnamReasonUnrelatedToBusiness       PhoneNumberCnamReason = "unrelated_to_business"
+	PhoneNumberCnamReasonNeedsDocumentation        PhoneNumberCnamReason = "needs_documentation"
+	PhoneNumberCnamReasonOtherComplianceConcern    PhoneNumberCnamReason = "other_compliance_concern"
+	PhoneNumberCnamReasonProcessingFailed          PhoneNumberCnamReason = "processing_failed"
+	PhoneNumberCnamReasonUnsupportedProvider       PhoneNumberCnamReason = "unsupported_provider"
+)
+
+type PhoneNumberCnamResponse struct {
+	Type           string                `json:"type,omitempty"`
+	ID             Uuid                  `json:"id,omitempty"`
+	PhoneNumberID  Uuid                  `json:"phone_number_id,omitempty"`
+	Name           string                `json:"name,omitempty"`
+	Status         PhoneNumberCnamStatus `json:"status,omitempty"`
+	Reason         any                   `json:"reason,omitempty"`
+	RequiredAction string                `json:"required_action,omitempty"`
+	CreatedAt      string                `json:"created_at,omitempty"`
+	UpdatedAt      string                `json:"updated_at,omitempty"`
 }
 
 type Uuid string

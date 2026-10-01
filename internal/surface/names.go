@@ -78,6 +78,11 @@ var nameCorrections = map[string]string{
 	// GoNameToSnake breaks at the X->P uppercase-run boundary ("remove_x_paths").
 	"RemoveXPaths": "remove_xpaths",
 
+	// `E911` ends in digits, so GoNameToSnake sees no lower->upper boundary
+	// before the next word and emits "assign_e911address".
+	"AssignE911Address": "assign_e911_address",
+	"RemoveE911Address": "remove_e911_address",
+
 	"NumberedBullets": "numberedBullets",
 }
 

@@ -12,6 +12,7 @@ package namespaces
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 )
 
@@ -195,4 +196,81 @@ func mergeExtra(body map[string]any, extra []map[string]any) {
 			body[k] = v // last-writer-wins; Extras is applied after the typed params
 		}
 	}
+}
+
+// decodeListResult decodes a top-level JSON ARRAY response into a typed slice.
+// The HTTP layer wraps a top-level array under the canonical "data" key (so every
+// verb keeps its map[string]any shape); this unwraps it into []T for the generated
+// methods whose spec success is `type: array, items: $ref` (the reference returns
+// list[Item]: GET /resources/ai_agents/voices, GET /space/payment_methods).
+func decodeListResult[T any](m map[string]any, err error) ([]T, error) {
+	if err != nil {
+		return nil, err
+	}
+	raw, mErr := json.Marshal(m["data"])
+	if mErr != nil {
+		return nil, mErr
+	}
+	var out []T
+	if uErr := json.Unmarshal(raw, &out); uErr != nil {
+		return nil, uErr
+	}
+	return out, nil
+}
+
+// The optional transport capabilities a generated method needs beyond the five
+// JSON verbs of HTTPClient. They are separate (unexported) interfaces so that
+// adding them does not widen HTTPClient — an HTTPClient implemented outside this
+// SDK keeps compiling, and only the methods that need a capability ask for it.
+// The SDK's own transport (the rest package's adapter) implements all three.
+
+// redirectGetter issues a GET whose success IS a redirect and returns its
+// Location without following it.
+type redirectGetter interface {
+	GetRedirectLocation(ctx context.Context, path string, params map[string]string, opts ...*RequestOptions) (string, error)
+}
+
+// textGetter issues a GET whose success body is a non-JSON media type and
+// returns it as text, sending the given headers (the media type's Accept).
+type textGetter interface {
+	GetText(ctx context.Context, path string, params map[string]string, headers map[string]string, opts ...*RequestOptions) (string, error)
+}
+
+// headerPoster issues a POST carrying extra request headers (an operation's
+// declared header parameters, e.g. Idempotency-Key).
+type headerPoster interface {
+	PostWithHeaders(ctx context.Context, path string, body map[string]any, params map[string]string, headers map[string]string, opts ...*RequestOptions) (map[string]any, error)
+}
+
+// errTransportCapability is returned when an HTTPClient lacks a capability a
+// generated method needs (only possible with a caller-supplied HTTPClient).
+var errTransportCapability = errors.New("signalwire rest: the HTTPClient does not support this request kind")
+
+// getRedirectLocation returns the URL path redirects to (the Location of its
+// 3xx), without following it or downloading anything; fetch it with any HTTP
+// client. An error status is returned as the transport's error.
+func getRedirectLocation(ctx context.Context, h HTTPClient, path string, params map[string]string, opts ...*RequestOptions) (string, error) {
+	g, ok := h.(redirectGetter)
+	if !ok {
+		return "", errTransportCapability
+	}
+	return g.GetRedirectLocation(ctx, path, params, opts...)
+}
+
+// getText returns the success body of a non-JSON GET as text.
+func getText(ctx context.Context, h HTTPClient, path string, params map[string]string, headers map[string]string, opts ...*RequestOptions) (string, error) {
+	g, ok := h.(textGetter)
+	if !ok {
+		return "", errTransportCapability
+	}
+	return g.GetText(ctx, path, params, headers, opts...)
+}
+
+// postWithHeaders POSTs body with the given extra request headers.
+func postWithHeaders(ctx context.Context, h HTTPClient, path string, body map[string]any, params map[string]string, headers map[string]string, opts ...*RequestOptions) (map[string]any, error) {
+	p, ok := h.(headerPoster)
+	if !ok {
+		return nil, errTransportCapability
+	}
+	return p.PostWithHeaders(ctx, path, body, params, headers, opts...)
 }

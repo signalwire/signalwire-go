@@ -63,21 +63,40 @@ type LogEventsListResponse struct {
 }
 
 type RelayVoiceLog struct {
-	ID            Uuid           `json:"id,omitempty"`
-	From          string         `json:"from,omitempty"`
-	To            string         `json:"to,omitempty"`
-	Source        VoiceSources   `json:"source,omitempty"`
-	Charge        float64        `json:"charge,omitempty"`
-	ChargeDetails []ChargeDetail `json:"charge_details,omitempty"`
-	CreatedAt     string         `json:"created_at,omitempty"`
-	Type          RelayVoiceType `json:"type,omitempty"`
-	URL           any            `json:"url,omitempty"`
-	Direction     VoiceDirection `json:"direction,omitempty"`
-	Status        VoiceLogStatus `json:"status,omitempty"`
-	Duration      any            `json:"duration,omitempty"`
-	DurationMs    any            `json:"duration_ms,omitempty"`
-	BillingMs     any            `json:"billing_ms,omitempty"`
-	ParentID      any            `json:"parent_id,omitempty"`
+	ID                       Uuid           `json:"id,omitempty"`
+	From                     string         `json:"from,omitempty"`
+	To                       string         `json:"to,omitempty"`
+	Source                   VoiceSources   `json:"source,omitempty"`
+	Charge                   float64        `json:"charge,omitempty"`
+	ChargeDetails            []ChargeDetail `json:"charge_details,omitempty"`
+	CreatedAt                string         `json:"created_at,omitempty"`
+	Type                     RelayVoiceType `json:"type,omitempty"`
+	URL                      any            `json:"url,omitempty"`
+	Direction                VoiceDirection `json:"direction,omitempty"`
+	Status                   VoiceLogStatus `json:"status,omitempty"`
+	Duration                 any            `json:"duration,omitempty"`
+	DurationMs               any            `json:"duration_ms,omitempty"`
+	BillingMs                any            `json:"billing_ms,omitempty"`
+	ParentID                 any            `json:"parent_id,omitempty"`
+	AudioInMos               any            `json:"audio_in_mos,omitempty"`
+	AudioInJitterMin         any            `json:"audio_in_jitter_min,omitempty"`
+	AudioInJitterMax         any            `json:"audio_in_jitter_max,omitempty"`
+	AudioOutJitterMin        any            `json:"audio_out_jitter_min,omitempty"`
+	AudioOutJitterMax        any            `json:"audio_out_jitter_max,omitempty"`
+	AudioOutJitterAvg        any            `json:"audio_out_jitter_avg,omitempty"`
+	AudioRttAvg              any            `json:"audio_rtt_avg,omitempty"`
+	AudioRttMin              any            `json:"audio_rtt_min,omitempty"`
+	AudioRttMax              any            `json:"audio_rtt_max,omitempty"`
+	AudioInMediaPacketCount  any            `json:"audio_in_media_packet_count,omitempty"`
+	AudioOutPacketCount      any            `json:"audio_out_packet_count,omitempty"`
+	AudioOutMediaPacketCount any            `json:"audio_out_media_packet_count,omitempty"`
+	AudioOutLost             any            `json:"audio_out_lost,omitempty"`
+	AudioInMeanInterval      any            `json:"audio_in_mean_interval,omitempty"`
+	AudioInDtmfPacketCount   any            `json:"audio_in_dtmf_packet_count,omitempty"`
+	AudioOutDtmfPacketCount  any            `json:"audio_out_dtmf_packet_count,omitempty"`
+	AudioInSkipPacketCount   any            `json:"audio_in_skip_packet_count,omitempty"`
+	AudioInFlushPacketCount  any            `json:"audio_in_flush_packet_count,omitempty"`
+	AudioInLargestJbSize     any            `json:"audio_in_largest_jb_size,omitempty"`
 }
 
 type RelayVoiceType string
@@ -122,6 +141,8 @@ const (
 )
 
 type VoiceLog any
+
+type VoiceLogListItem any
 
 type VoiceLogStatus string
 

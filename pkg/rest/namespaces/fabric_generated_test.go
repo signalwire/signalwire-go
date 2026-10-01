@@ -29,7 +29,7 @@ func TestFabricGen_AIAgents_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{"prompt": "x-1", "name": "x-1"})
+	_, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{"name": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestFabricGen_AIAgents_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_ai_agent", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{"prompt": "x-1", "name": "x-1"})
+	_, err := client.Fabric.AIAgents.Create(context.Background(), map[string]any{"name": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -174,6 +174,44 @@ func TestFabricGen_AIAgents_ListAddresses_Error(t *testing.T) {
 	}
 }
 
+func TestFabricGen_AIAgents_ListConversationLogs(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.AIAgents.ListConversationLogs(context.Background(), "x-1", nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.list_ai_agent_conversation_logs" {
+		t.Errorf("matched_route = %v want fabric.list_ai_agent_conversation_logs", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_AIAgents_ListConversationLogs_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.list_ai_agent_conversation_logs", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.AIAgents.ListConversationLogs(context.Background(), "x-1", nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
 func TestFabricGen_AIAgents_List(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
@@ -212,6 +250,44 @@ func TestFabricGen_AIAgents_List_Error(t *testing.T) {
 	}
 }
 
+func TestFabricGen_AIAgents_ListVoices(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.AIAgents.ListVoices(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.list_ai_agent_voices" {
+		t.Errorf("matched_route = %v want fabric.list_ai_agent_voices", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_AIAgents_ListVoices_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.list_ai_agent_voices", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.AIAgents.ListVoices(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
 func TestFabricGen_AIAgents_Update(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
@@ -241,6 +317,44 @@ func TestFabricGen_AIAgents_Update_Error(t *testing.T) {
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_ai_agent", 500, map[string]any{"error": "x"})
 	_, err := client.Fabric.AIAgents.Update(context.Background(), "x-1", map[string]any{})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_Addresses_Delete(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.Addresses.Delete(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "DELETE" {
+		t.Errorf("method = %q want DELETE", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.delete_fabric_address" {
+		t.Errorf("matched_route = %v want fabric.delete_fabric_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_Addresses_Delete_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.delete_fabric_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.Addresses.Delete(context.Background(), "x-1")
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -317,6 +431,196 @@ func TestFabricGen_Addresses_List_Error(t *testing.T) {
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.list_fabric_addresses", 500, map[string]any{"error": "x"})
 	_, err := client.Fabric.Addresses.List(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_AliasAddresses_Create(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.AliasAddresses.Create(context.Background(), map[string]any{"name": "x-1", "resource_id": "x-1"})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "POST" {
+		t.Errorf("method = %q want POST", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.create_alias_address" {
+		t.Errorf("matched_route = %v want fabric.create_alias_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_AliasAddresses_Create_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.create_alias_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.AliasAddresses.Create(context.Background(), map[string]any{"name": "x-1", "resource_id": "x-1"})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_AliasAddresses_Delete(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.AliasAddresses.Delete(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "DELETE" {
+		t.Errorf("method = %q want DELETE", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.delete_alias_address" {
+		t.Errorf("matched_route = %v want fabric.delete_alias_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_AliasAddresses_Delete_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.delete_alias_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.AliasAddresses.Delete(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_AliasAddresses_Get(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.AliasAddresses.Get(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.get_alias_address" {
+		t.Errorf("matched_route = %v want fabric.get_alias_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_AliasAddresses_Get_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.get_alias_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.AliasAddresses.Get(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_AliasAddresses_List(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.AliasAddresses.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.list_alias_addresses" {
+		t.Errorf("matched_route = %v want fabric.list_alias_addresses", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_AliasAddresses_List_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.list_alias_addresses", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.AliasAddresses.List(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_AliasAddresses_Update(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.AliasAddresses.Update(context.Background(), "x-1", map[string]any{})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "PATCH" {
+		t.Errorf("method = %q want PATCH", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.update_alias_address" {
+		t.Errorf("matched_route = %v want fabric.update_alias_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_AliasAddresses_Update_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.update_alias_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.AliasAddresses.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -523,7 +827,7 @@ func TestFabricGen_CXMLScripts_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CXMLScripts.Create(context.Background(), map[string]any{"display_name": "x-1", "contents": "x-1"})
+	_, err := client.Fabric.CXMLScripts.Create(context.Background(), map[string]any{"name": "x-1", "contents": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -544,7 +848,7 @@ func TestFabricGen_CXMLScripts_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_cxml_script", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CXMLScripts.Create(context.Background(), map[string]any{"display_name": "x-1", "contents": "x-1"})
+	_, err := client.Fabric.CXMLScripts.Create(context.Background(), map[string]any{"name": "x-1", "contents": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1245,7 +1549,7 @@ func TestFabricGen_CallFlows_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.CallFlows.Update(context.Background(), "x-1", map[string]any{})
+	_, err := client.Fabric.CallFlows.Update(context.Background(), "x-1", map[string]any{"document_version": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1266,7 +1570,7 @@ func TestFabricGen_CallFlows_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_call_flow", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.CallFlows.Update(context.Background(), "x-1", map[string]any{})
+	_, err := client.Fabric.CallFlows.Update(context.Background(), "x-1", map[string]any{"document_version": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1283,7 +1587,7 @@ func TestFabricGen_ConferenceRooms_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.ConferenceRooms.Create(context.Background(), map[string]any{"name": "x-1", "enable_room_previews": "x-1"})
+	_, err := client.Fabric.ConferenceRooms.Create(context.Background(), map[string]any{"name": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1304,7 +1608,7 @@ func TestFabricGen_ConferenceRooms_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_conference_room", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.ConferenceRooms.Create(context.Background(), map[string]any{"name": "x-1", "enable_room_previews": "x-1"})
+	_, err := client.Fabric.ConferenceRooms.Create(context.Background(), map[string]any{"name": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1473,7 +1777,7 @@ func TestFabricGen_ConferenceRooms_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.ConferenceRooms.Update(context.Background(), "x-1", map[string]any{"enable_room_previews": "x-1", "sync_audio_video": "x-1"})
+	_, err := client.Fabric.ConferenceRooms.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -1494,7 +1798,7 @@ func TestFabricGen_ConferenceRooms_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_conference_room", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.ConferenceRooms.Update(context.Background(), "x-1", map[string]any{"enable_room_previews": "x-1", "sync_audio_video": "x-1"})
+	_, err := client.Fabric.ConferenceRooms.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -1723,6 +2027,196 @@ func TestFabricGen_FreeSwitchConnectors_Update_Error(t *testing.T) {
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_freeswitch_connector", 500, map[string]any{"error": "x"})
 	_, err := client.Fabric.FreeSwitchConnectors.Update(context.Background(), "x-1", map[string]any{})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_Create(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.PhoneNumberAddresses.Create(context.Background(), map[string]any{"resource_id": "x-1", "handler_type": "x-1"})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "POST" {
+		t.Errorf("method = %q want POST", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.create_phone_number_address" {
+		t.Errorf("matched_route = %v want fabric.create_phone_number_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_Create_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.create_phone_number_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.PhoneNumberAddresses.Create(context.Background(), map[string]any{"resource_id": "x-1", "handler_type": "x-1"})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_Delete(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.PhoneNumberAddresses.Delete(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "DELETE" {
+		t.Errorf("method = %q want DELETE", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.delete_phone_number_address" {
+		t.Errorf("matched_route = %v want fabric.delete_phone_number_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_Delete_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.delete_phone_number_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.PhoneNumberAddresses.Delete(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_Get(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.PhoneNumberAddresses.Get(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.get_phone_number_address" {
+		t.Errorf("matched_route = %v want fabric.get_phone_number_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_Get_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.get_phone_number_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.PhoneNumberAddresses.Get(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_List(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.PhoneNumberAddresses.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.list_phone_number_addresses" {
+		t.Errorf("matched_route = %v want fabric.list_phone_number_addresses", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_List_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.list_phone_number_addresses", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.PhoneNumberAddresses.List(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_Update(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.PhoneNumberAddresses.Update(context.Background(), "x-1", map[string]any{})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "PATCH" {
+		t.Errorf("method = %q want PATCH", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.update_phone_number_address" {
+		t.Errorf("matched_route = %v want fabric.update_phone_number_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_PhoneNumberAddresses_Update_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.update_phone_number_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.PhoneNumberAddresses.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2036,6 +2530,82 @@ func TestFabricGen_Resources_AssignPhoneRoute_Error(t *testing.T) {
 	}
 }
 
+func TestFabricGen_Resources_AssignSIPEndpoint(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.Resources.AssignSIPEndpoint(context.Background(), "x-1", namespaces.GenericResourcesAssignSIPEndpointParams{Extras: map[string]any{"sip_endpoint_id": "x-1"}})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "POST" {
+		t.Errorf("method = %q want POST", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.assign_resource_sip_endpoint" {
+		t.Errorf("matched_route = %v want fabric.assign_resource_sip_endpoint", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_Resources_AssignSIPEndpoint_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.assign_resource_sip_endpoint", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.Resources.AssignSIPEndpoint(context.Background(), "x-1", namespaces.GenericResourcesAssignSIPEndpointParams{Extras: map[string]any{"sip_endpoint_id": "x-1"}})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_Resources_AssignWhatsappNumber(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.Resources.AssignWhatsappNumber(context.Background(), "x-1", namespaces.GenericResourcesAssignWhatsappNumberParams{Extras: map[string]any{"whatsapp_number_id": "x-1", "handler": "x-1"}})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "POST" {
+		t.Errorf("method = %q want POST", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.assign_resource_whatsapp_number" {
+		t.Errorf("matched_route = %v want fabric.assign_resource_whatsapp_number", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_Resources_AssignWhatsappNumber_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.assign_resource_whatsapp_number", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.Resources.AssignWhatsappNumber(context.Background(), "x-1", namespaces.GenericResourcesAssignWhatsappNumberParams{Extras: map[string]any{"whatsapp_number_id": "x-1", "handler": "x-1"}})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
 func TestFabricGen_Resources_Delete(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
@@ -2188,6 +2758,196 @@ func TestFabricGen_Resources_List_Error(t *testing.T) {
 	}
 }
 
+func TestFabricGen_SIPAddresses_Create(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.SIPAddresses.Create(context.Background(), map[string]any{"name": "x-1", "calling_handler_resource_id": "x-1"})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "POST" {
+		t.Errorf("method = %q want POST", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.create_sip_address" {
+		t.Errorf("matched_route = %v want fabric.create_sip_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_SIPAddresses_Create_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.create_sip_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.SIPAddresses.Create(context.Background(), map[string]any{"name": "x-1", "calling_handler_resource_id": "x-1"})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_SIPAddresses_Delete(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.SIPAddresses.Delete(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "DELETE" {
+		t.Errorf("method = %q want DELETE", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.delete_sip_address" {
+		t.Errorf("matched_route = %v want fabric.delete_sip_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_SIPAddresses_Delete_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.delete_sip_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.SIPAddresses.Delete(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_SIPAddresses_Get(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.SIPAddresses.Get(context.Background(), "x-1")
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.get_sip_address" {
+		t.Errorf("matched_route = %v want fabric.get_sip_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_SIPAddresses_Get_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.get_sip_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.SIPAddresses.Get(context.Background(), "x-1")
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_SIPAddresses_List(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.SIPAddresses.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "GET" {
+		t.Errorf("method = %q want GET", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.list_sip_addresses" {
+		t.Errorf("matched_route = %v want fabric.list_sip_addresses", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_SIPAddresses_List_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.list_sip_addresses", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.SIPAddresses.List(context.Background(), nil)
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
+func TestFabricGen_SIPAddresses_Update(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	_, err := client.Fabric.SIPAddresses.Update(context.Background(), "x-1", map[string]any{})
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	j := mock.Last(t)
+	if j.Method != "PATCH" {
+		t.Errorf("method = %q want PATCH", j.Method)
+	}
+	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.update_sip_address" {
+		t.Errorf("matched_route = %v want fabric.update_sip_address", j.MatchedRoute)
+	}
+}
+
+func TestFabricGen_SIPAddresses_Update_Error(t *testing.T) {
+	t.Parallel()
+	client, mock := mocktest.New(t)
+	if client == nil {
+		return
+	}
+	mock.Reset(t)
+	mock.PushScenario(t, "fabric.update_sip_address", 500, map[string]any{"error": "x"})
+	_, err := client.Fabric.SIPAddresses.Update(context.Background(), "x-1", map[string]any{})
+	var restErr *rest.SignalWireRestError
+	if !errors.As(err, &restErr) {
+		t.Fatalf("want *SignalWireRestError, got %v", err)
+	}
+	if restErr.StatusCode != 500 {
+		t.Errorf("status = %d want 500", restErr.StatusCode)
+	}
+}
+
 func TestFabricGen_SIPEndpoints_Create(t *testing.T) {
 	t.Parallel()
 	client, mock := mocktest.New(t)
@@ -2195,7 +2955,7 @@ func TestFabricGen_SIPEndpoints_Create(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.Create(context.Background(), map[string]any{"username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Create(context.Background(), map[string]any{"password": "x-1", "username": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2216,7 +2976,7 @@ func TestFabricGen_SIPEndpoints_Create_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.Create(context.Background(), map[string]any{"username": "x-1", "caller_id": "x-1", "send_as": "x-1", "ciphers": "x-1", "codecs": "x-1", "encryption": "x-1", "call_handler": "x-1", "calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Create(context.Background(), map[string]any{"password": "x-1", "username": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2385,7 +3145,7 @@ func TestFabricGen_SIPEndpoints_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPEndpoints.Update(context.Background(), "x-1", map[string]any{"calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2406,7 +3166,7 @@ func TestFabricGen_SIPEndpoints_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_sip_endpoint", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPEndpoints.Update(context.Background(), "x-1", map[string]any{"calling_handler_resource_id": "x-1"})
+	_, err := client.Fabric.SIPEndpoints.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -2613,7 +3373,7 @@ func TestFabricGen_SIPGateways_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.SIPGateways.Update(context.Background(), "x-1", map[string]any{})
+	_, err := client.Fabric.SIPGateways.Update(context.Background(), "x-1", map[string]any{"name": "x-1", "uri": "x-1", "encryption": "x-1", "ciphers": "x-1", "codecs": "x-1"})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -2634,7 +3394,7 @@ func TestFabricGen_SIPGateways_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_sip_gateway", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.SIPGateways.Update(context.Background(), "x-1", map[string]any{})
+	_, err := client.Fabric.SIPGateways.Update(context.Background(), "x-1", map[string]any{"name": "x-1", "uri": "x-1", "encryption": "x-1", "ciphers": "x-1", "codecs": "x-1"})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3449,7 +4209,7 @@ func TestFabricGen_Subscribers_Update(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Subscribers.Update(context.Background(), "x-1", map[string]any{"email": "x-1"})
+	_, err := client.Fabric.Subscribers.Update(context.Background(), "x-1", map[string]any{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3470,7 +4230,7 @@ func TestFabricGen_Subscribers_Update_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.update_subscriber", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Subscribers.Update(context.Background(), "x-1", map[string]any{"email": "x-1"})
+	_, err := client.Fabric.Subscribers.Update(context.Background(), "x-1", map[string]any{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)
@@ -3563,7 +4323,7 @@ func TestFabricGen_Tokens_CreateGuestToken(t *testing.T) {
 		return
 	}
 	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"allowed_addresses": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{})
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
@@ -3584,45 +4344,7 @@ func TestFabricGen_Tokens_CreateGuestToken_Error(t *testing.T) {
 	}
 	mock.Reset(t)
 	mock.PushScenario(t, "fabric.create_subscriber_guest_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{Extras: map[string]any{"allowed_addresses": "x-1"}})
-	var restErr *rest.SignalWireRestError
-	if !errors.As(err, &restErr) {
-		t.Fatalf("want *SignalWireRestError, got %v", err)
-	}
-	if restErr.StatusCode != 500 {
-		t.Errorf("status = %d want 500", restErr.StatusCode)
-	}
-}
-
-func TestFabricGen_Tokens_CreateInviteToken(t *testing.T) {
-	t.Parallel()
-	client, mock := mocktest.New(t)
-	if client == nil {
-		return
-	}
-	mock.Reset(t)
-	_, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"address_id": "x-1"}})
-	if err != nil {
-		t.Fatalf("call: %v", err)
-	}
-	j := mock.Last(t)
-	if j.Method != "POST" {
-		t.Errorf("method = %q want POST", j.Method)
-	}
-	if j.MatchedRoute == nil || *j.MatchedRoute != "fabric.create_subscriber_invite_token" {
-		t.Errorf("matched_route = %v want fabric.create_subscriber_invite_token", j.MatchedRoute)
-	}
-}
-
-func TestFabricGen_Tokens_CreateInviteToken_Error(t *testing.T) {
-	t.Parallel()
-	client, mock := mocktest.New(t)
-	if client == nil {
-		return
-	}
-	mock.Reset(t)
-	mock.PushScenario(t, "fabric.create_subscriber_invite_token", 500, map[string]any{"error": "x"})
-	_, err := client.Fabric.Tokens.CreateInviteToken(context.Background(), namespaces.FabricTokensCreateInviteTokenParams{Extras: map[string]any{"address_id": "x-1"}})
+	_, err := client.Fabric.Tokens.CreateGuestToken(context.Background(), namespaces.FabricTokensCreateGuestTokenParams{})
 	var restErr *rest.SignalWireRestError
 	if !errors.As(err, &restErr) {
 		t.Fatalf("want *SignalWireRestError, got %v", err)

@@ -139,7 +139,7 @@ type PostPromptSystemLogEntry struct {
 	Role      string `json:"role,omitempty" gen:"string"`
 	Content   string `json:"content,omitempty" gen:"string"`
 	Timestamp int    `json:"timestamp,omitempty" gen:"int"`
-	// Action closed set of 28 values, from two producers: `ai_conversation_system_log` (8); `tl_make_entry` (21). Derived from the call sites, not hand-listed.
+	// Action closed set of 27 values, from two producers: `ai_conversation_system_log` (7); `tl_make_entry` (21). Derived from the call sites, not hand-listed.
 	Action      string `json:"action,omitempty" gen:"string"`
 	Lang        string `json:"lang,omitempty" gen:"string"`
 	Tokens      int    `json:"tokens,omitempty" gen:"int"`
@@ -158,21 +158,21 @@ type PostPromptSwaigLogEntry struct {
 	CommandName string `json:"command_name,omitempty" gen:"string"`
 	CommandArg  string `json:"command_arg,omitempty" gen:"string"`
 	EpochTime   int    `json:"epoch_time,omitempty" gen:"int"`
-	// Native present and true for a NATIVE function, which has no SWAIG handle (actions.c:1954); absent otherwise
+	// Native present and true for a NATIVE function, which has no SWAIG handle (actions.c:2391); absent otherwise
 	Native string `json:"native,omitempty" gen:"string"`
-	// ActiveCount the function's remaining activation count, or "endless". Written only for a non-native function (actions.c:1968-1971), so it is absent whenever `native` is present.
+	// ActiveCount the function's remaining activation count, or "endless". Written only for a non-native function (actions.c:2406, :2408), so it is absent whenever `native` is present.
 	ActiveCount any           `json:"active_count,omitempty" gen:"union<int,string>"`
 	Url         string        `json:"url,omitempty" gen:"string"`
 	PostData    *SwaigRequest `json:"post_data,omitempty" gen:"class:signalwire.core.swaig_request_generated.SwaigRequest"`
-	// PostResponse the SWAIG webhook's response body, as returned (actions.c:2312). Mutually exclusive with delayed_post_response.
+	// PostResponse the SWAIG webhook's response body, as returned (actions.c:2806). Mutually exclusive with delayed_post_response.
 	PostResponse *SwaigResponse `json:"post_response,omitempty" gen:"class:signalwire.core.swaig_actions_generated.SwaigResponse"`
-	// DelayedPostResponse the SWAIG webhook's response body when it is held for post-processing instead of executed immediately (actions.c:2256). Mutually exclusive with post_response.
+	// DelayedPostResponse the SWAIG webhook's response body when it is held for post-processing instead of executed immediately (actions.c:2750). Mutually exclusive with post_response.
 	DelayedPostResponse *SwaigResponse `json:"delayed_post_response,omitempty" gen:"class:signalwire.core.swaig_actions_generated.SwaigResponse"`
 	McpUrl              string         `json:"mcp_url,omitempty" gen:"string"`
 	McpTool             string         `json:"mcp_tool,omitempty" gen:"string"`
-	// McpResponse the MCP tool's raw result text, as returned by mcp_call_tool (actions.c:2158). Not parsed JSON.
+	// McpResponse the MCP tool's raw result text, as returned by mcp_call_tool (actions.c:2614). Not parsed JSON.
 	McpResponse string `json:"mcp_response,omitempty" gen:"string"`
-	// McpError present and true when the MCP tool returned no result (actions.c:2162); absent otherwise
+	// McpError present and true when the MCP tool returned no result (actions.c:2618); absent otherwise
 	McpError string `json:"mcp_error,omitempty" gen:"string"`
 }
 
@@ -207,7 +207,6 @@ type PostPromptTiming struct {
 type PostPromptStampsUs struct {
 	SpeechStart    int `json:"speech_start,omitempty" gen:"int"`
 	LastWordEnd    int `json:"last_word_end,omitempty" gen:"int"`
-	SuspectedEnd   int `json:"suspected_end,omitempty" gen:"int"`
 	TurnDecided    int `json:"turn_decided,omitempty" gen:"int"`
 	StatusPushed   int `json:"status_pushed,omitempty" gen:"int"`
 	RequestDetect  int `json:"request_detect,omitempty" gen:"int"`

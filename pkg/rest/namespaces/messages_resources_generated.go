@@ -21,14 +21,19 @@ func NewMessages(client HTTPClient) *Messages {
 
 // MessagesCreateParams holds the named optional parameters for Messages.Create.
 type MessagesCreateParams struct {
-	To              string         `sw:"required"`
-	From            string         `sw:"required"`
-	Body            *string        `sw:"optional"`
-	Media           []string       `sw:"optional"`
-	SendAsMms       *bool          `sw:"optional"`
-	StatusCallback  *string        `sw:"optional"`
-	CustomVariables map[string]any `sw:"optional"`
-	Extras          map[string]any `sw:"optional"`
+	To                       string         `sw:"required"`
+	From                     string         `sw:"required"`
+	Body                     *string        `sw:"optional"`
+	Media                    []string       `sw:"optional"`
+	SendAsMms                *bool          `sw:"optional"`
+	StatusCallback           *string        `sw:"optional"`
+	CustomVariables          map[string]any `sw:"optional"`
+	MessageType              *string        `sw:"optional"`
+	TemplateID               *string        `sw:"optional"`
+	HeaderTemplateParameters map[string]any `sw:"optional"`
+	BodyTemplateParameters   map[string]any `sw:"optional"`
+	ButtonTemplateParameters []string       `sw:"optional"`
+	Extras                   map[string]any `sw:"optional"`
 }
 
 func (r *Messages) Create(ctx context.Context, params MessagesCreateParams, opts ...*RequestOptions) (*Message, error) {
@@ -50,19 +55,36 @@ func (r *Messages) Create(ctx context.Context, params MessagesCreateParams, opts
 	if params.CustomVariables != nil {
 		body["custom_variables"] = params.CustomVariables
 	}
+	if params.MessageType != nil {
+		body["message_type"] = params.MessageType
+	}
+	if params.TemplateID != nil {
+		body["template_id"] = params.TemplateID
+	}
+	if params.HeaderTemplateParameters != nil {
+		body["header_template_parameters"] = params.HeaderTemplateParameters
+	}
+	if params.BodyTemplateParameters != nil {
+		body["body_template_parameters"] = params.BodyTemplateParameters
+	}
+	if params.ButtonTemplateParameters != nil {
+		body["button_template_parameters"] = params.ButtonTemplateParameters
+	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[Message](r.HTTP.Post(ctx, r.Base, body, nil, opts...))
 }
 
 // MessagesUpdateParams holds the named optional parameters for Messages.Update.
 type MessagesUpdateParams struct {
-	Body   string         `sw:"required"`
+	Body   *string        `sw:"optional"`
 	Extras map[string]any `sw:"optional"`
 }
 
 func (r *Messages) Update(ctx context.Context, id string, params MessagesUpdateParams, opts ...*RequestOptions) (*Message, error) {
 	body := map[string]any{}
-	body["body"] = params.Body
+	if params.Body != nil {
+		body["body"] = params.Body
+	}
 	mergeExtra(body, []map[string]any{params.Extras})
 	return decodeResult[Message](r.HTTP.Patch(ctx, r.Path(id), body, opts...))
 }

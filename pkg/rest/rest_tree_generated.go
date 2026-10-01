@@ -39,11 +39,15 @@ type _GeneratedResourceTree struct {
 	Projects        *namespaces.Projects
 	PubSub          *namespaces.PubSubNamespace
 	Chat            *namespaces.ChatNamespace
+	Space           *namespaces.SpaceNamespace
+	Whatsapp        *namespaces.WhatsappNamespace
 }
 
-// wireGeneratedTree constructs every flat resource + container from the given
-// HTTPClient. The hand RestClient calls this after building its HTTP layer.
-func (t *_GeneratedResourceTree) wireGeneratedTree(client namespaces.HTTPClient) {
+// wireGeneratedTree constructs every flat resource + container. client carries
+// the project token; patClient the Personal Access Token (the namespaces whose
+// spec security requires it). The hand RestClient calls this after building
+// its HTTP layer.
+func (t *_GeneratedResourceTree) wireGeneratedTree(client, patClient namespaces.HTTPClient) {
 	t.Fabric = namespaces.NewFabricNamespace(client)
 	t.Calling = namespaces.NewCallingNamespace(client)
 	t.PhoneNumbers = namespaces.NewPhoneNumbersNamespace(client)
@@ -66,4 +70,6 @@ func (t *_GeneratedResourceTree) wireGeneratedTree(client namespaces.HTTPClient)
 	t.Projects = namespaces.NewProjects(client)
 	t.PubSub = namespaces.NewPubSubNamespace(client)
 	t.Chat = namespaces.NewChatNamespace(client)
+	t.Space = namespaces.NewSpaceNamespace(patClient)
+	t.Whatsapp = namespaces.NewWhatsappNamespace(client)
 }
