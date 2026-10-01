@@ -214,6 +214,8 @@ var optionsStructUnfoldMethods = map[string]string{
 	"signalwire.core.swml_builder.SWMLBuilder.play":                    "PlayOptions",
 	"signalwire.core.swml_builder.SWMLBuilder.ai":                      "AIOptions",
 	"signalwire.core.swml_builder.SWMLBuilder.answer":                  "AnswerOptions",
+	"signalwire.core.post_prompt.dialogue_turns":                       "DialogueOptions",
+	"signalwire.core.mixins.web_mixin.WebMixin.mount":                  "MountOptions",
 	"signalwire.core.function_result.FunctionResult.connect":           "ConnectOptions",
 	"signalwire.core.function_result.FunctionResult.wait_for_user":     "WaitForUserOptions",
 	"signalwire.core.function_result.FunctionResult.hold":              "HoldOptions",
@@ -345,6 +347,8 @@ var handOptionsStructs = map[string]bool{
 	"PlayOptions":         true,
 	"AIOptions":           true,
 	"AnswerOptions":       true,
+	"DialogueOptions":     true,
+	"MountOptions":        true,
 	"ConnectOptions":      true,
 	"WaitForUserOptions":  true,
 	"HoldOptions":         true,
@@ -368,6 +372,21 @@ type paramsStructField struct {
 	// cannot spell (a scalar union such as hold's `prompt: str | int`) states
 	// the type it implements instead of being recorded as an erased `any`.
 	canon string
+	// kind, when non-empty, is the reference param kind from a `kind:"..."`
+	// tag (e.g. "keyword" for a keyword-only `*, roles=...` param).
+	kind string
+}
+
+// structTag reads one key off a struct field tag ("" when absent).
+func structTag(tag *ast.BasicLit, key string) string {
+	if tag == nil {
+		return ""
+	}
+	lit, err := strconv.Unquote(tag.Value)
+	if err != nil {
+		return ""
+	}
+	return reflect.StructTag(lit).Get(key)
 }
 
 // genCanonTag reads a `gen:"<canonical type>"` tag off a struct field ("" when
@@ -1227,8 +1246,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 						typeStr := exprString(f.Type)
 						req := swRequiredTag(f.Tag)
 						canon := genCanonTag(f.Tag)
+						kind := structTag(f.Tag, "kind")
 						for _, n := range f.Names {
-							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr, required: req, canon: canon})
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr, required: req, canon: canon, kind: kind})
 						}
 					}
 					paramsStructFields[ts.Name.Name] = fields
@@ -2578,6 +2598,16 @@ func loadAliases(path string) (map[string]string, error) {
 	return doc.Aliases.Go, nil
 }
 
+// ctxTypeFolds folds ONE Go type at ONE signature slot (keyed by the enumerator's
+// context string: "<qualified python member>[->]" for a return) to the
+// reference's class, where a global alias would be wrong. SpiderSkill.Session
+// returns the stdlib *http.Client that IS the reference's `session`
+// (_PublicSession) — but *http.Client elsewhere (AIChatClient's http_client) is
+// a different reference type, so the fold is scoped to this slot.
+var ctxTypeFolds = map[string]struct{ goType, canon string }{
+	"signalwire.skills.spider.skill.SpiderSkill.session[->]": {"*http.Client", "class:signalwire.utils.url_validator._PublicSession"},
+}
+
 // goLocalAliases holds Go-specific named-type → canonical-type expansions that
 // the shared porting-sdk/type_aliases.yaml does not carry (they name Go-only
 // SDK types). Applied on top of the loaded aliases (loaded entries win).
@@ -2592,6 +2622,14 @@ var goLocalAliases = map[string]string{
 	"swaig.ToolHandler":  "callable<list<any>,any>",
 	"TypedHandler":       "callable<list<any>,any>",
 	"swaig.TypedHandler": "callable<list<any>,any>",
+	// agent.CallEndHandler = func(callLog []map[string]any, rawData map[string]any)
+	// — the reference's on_call_end handler (call_log, raw_data).
+	"CallEndHandler":       "callable<list<list<dict<string,any>>,dict<string,any>>,void>",
+	"agent.CallEndHandler": "callable<list<list<dict<string,any>>,dict<string,any>>,void>",
+	// agent.DynamicConfigCallback = func(query, body, headers, agent) — the
+	// reference's per-request configuration callback.
+	"DynamicConfigCallback":       "callable<list<dict<string,any>,dict<string,any>,dict<string,any>,any>,void>",
+	"agent.DynamicConfigCallback": "callable<list<dict<string,any>,dict<string,any>,dict<string,any>,any>,void>",
 	// namespaces.Paginator is the value CrudResource.Paginate returns — the
 	// Go-idiom equivalent of Python ReadResource.paginate()'s PaginatedIterator,
 	// and (since plan 6.2-go retired the orphan rest.PaginatedIterator) the port's
@@ -2702,6 +2740,9 @@ func translateType(t string, aliases map[string]string, ctx string) (string, *tr
 	// either the defining package or an importer.
 	if canon, ok := closedSetUnions[t]; ok {
 		return canon, nil
+	}
+	if fold, ok := ctxTypeFolds[ctx]; ok && fold.goType == t {
+		return fold.canon, nil
 	}
 	// http.Header is Go's (nil-able) response-header map. The reference spells the
 	// 6.6 `headers` ctor param `optional<dict<string,string>>`; fold the stdlib type
@@ -3218,7 +3259,7 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 						fieldRequired = *f.required
 					}
 					params = append(params, canonicalParam{
-						Name: goFieldToPython(f.name), Type: fCanon,
+						Name: goFieldToPython(f.name), Kind: f.kind, Type: fCanon,
 						Required: boolPtr(fieldRequired),
 					})
 				}

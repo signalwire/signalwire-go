@@ -66,6 +66,7 @@ var StructTable = map[string][]ClassTarget{
 				"ClearSwaigQueryParams": "clear_swaig_query_params",
 				"EnableSIPRouting":      "enable_sip_routing",
 				"OnDebugEvent":          "on_debug_event",
+				"OnCallEnd":             "on_call_end",
 				"OnSummary":             "on_summary",
 				"RegisterSIPUsername":   "register_sip_username",
 				"SetPostPromptURL":      "set_post_prompt_url",
@@ -204,6 +205,8 @@ var StructTable = map[string][]ClassTarget{
 				"Serve":                    "serve",
 				"AsRouter":                 "as_router",
 				"SetDynamicConfigCallback": "set_dynamic_config_callback",
+				"AddPerCallConfig":         "add_per_call_config",
+				"Mount":                    "mount",
 				"ManualSetProxyURL":        "manual_set_proxy_url",
 				"EnableDebugRoutes":        "enable_debug_routes",
 				"OnRequest":                "on_request",
@@ -925,6 +928,10 @@ var StructTable = map[string][]ClassTarget{
 		Module: "signalwire.ai_chat.client", Class: "ChatResponse",
 		SyntheticMethods: []string{"__init__"},
 	}},
+	"postprompt.NormalizedPostPrompt": {{
+		Module: "signalwire.core.post_prompt", Class: "NormalizedPostPrompt",
+		SyntheticMethods: []string{"__init__"},
+	}},
 	"aichat.ChatLog": {{
 		Module: "signalwire.ai_chat.client", Class: "ChatLog",
 		SyntheticMethods: []string{"__init__"},
@@ -1313,6 +1320,9 @@ var StructTable = map[string][]ClassTarget{
 		Module: "signalwire.skills.spider.skill", Class: "SpiderSkill",
 		Methods: map[string]string{
 			"RemoveXPaths": "remove_xpaths",
+			// The public-URL HTTP client the skill fetches with (the reference's
+			// `session` attribute, a _PublicSession).
+			"Session": "session",
 		},
 	}},
 	// DELETED: "builtin.MCPGatewaySkill".
@@ -1590,6 +1600,17 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	"security.ValidateRequest":                {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
 	"security.ValidateWebhookSignatureSHA256": {Module: "signalwire.core.security.webhook_validator", Name: "validate_webhook_signature_sha256"},
 
+	// Client capability declarations (signalwire.core.capabilities).
+	"capabilities.UserVariables":        {Module: "signalwire.core.capabilities", Name: "user_variables"},
+	"capabilities.DeclaredCapabilities": {Module: "signalwire.core.capabilities", Name: "declared_capabilities"},
+	"capabilities.HasCapability":        {Module: "signalwire.core.capabilities", Name: "has_capability"},
+
+	// Post-prompt normalization (signalwire.core.post_prompt).
+	"postprompt.StripJSONFence":      {Module: "signalwire.core.post_prompt", Name: "strip_json_fence"},
+	"postprompt.ParsePostPromptData": {Module: "signalwire.core.post_prompt", Name: "parse_post_prompt_data"},
+	"postprompt.DialogueTurns":       {Module: "signalwire.core.post_prompt", Name: "dialogue_turns"},
+	"postprompt.NormalizePostPrompt": {Module: "signalwire.core.post_prompt", Name: "normalize_post_prompt"},
+
 	// Decomposed webhook-validation core — the framework-free decision unit
 	// signalwire.core.security.webhook_middleware.validate(method,url,headers,
 	// body) -> optional<(status,headers,body)>. Go exposes it as
@@ -1716,7 +1737,7 @@ var SkillContractTable = []SkillContract{
 	// list of XPath expressions), expressed in Go as the RemoveXPaths accessor
 	// over the unexported field — an accessor folds to the same member name.
 	{GoStruct: "spider.SpiderSkill", Module: "signalwire.skills.spider.skill", ClassName: "SpiderSkill",
-		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "remove_xpaths", "setup"},
+		Methods:   []string{"cleanup", "get_hints", "get_instance_key", "get_parameter_schema", "register_tools", "remove_xpaths", "session", "setup"},
 		Synthetic: []string{"__init__"}},
 	{GoStruct: "builtin.SWMLTransferSkill", Module: "signalwire.skills.swml_transfer.skill", ClassName: "SWMLTransferSkill",
 		Methods: []string{"get_hints", "get_instance_key", "get_parameter_schema", "get_prompt_sections", "register_tools", "setup"}},
@@ -1795,6 +1816,11 @@ func SkillLeafToGoMethod(leaf string) string {
 		// SpiderSkill (the prefilled XPath list stripped before text extraction),
 		// expressed in Go as an accessor over the unexported removeXPaths field.
 		return "RemoveXPaths"
+	case "session":
+		// Not a SkillBase contract method: the reference SpiderSkill's public
+		// `session` attribute (its _PublicSession HTTP client), expressed in Go
+		// as the Session accessor.
+		return "Session"
 	}
 	panic(fmt.Sprintf("surface: no Go member mapping for skill contract leaf %q", leaf))
 }

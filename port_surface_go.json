@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ dc7efdb4ffae0f8a4bd208a257d5fd5f866d0654",
+  "generated_from": "signalwire-go (go-native) @ 60e8bc204d610f7d8ddb05523eb38e5e1bb05ee5",
   "modules": {
     "agent": {
       "classes": {
@@ -14,6 +14,7 @@
           "AddLanguageTyped",
           "AddMcpServer",
           "AddPatternHint",
+          "AddPerCallConfig",
           "AddPostAiVerb",
           "AddPostAnswerVerb",
           "AddPreAnswerVerb",
@@ -56,7 +57,9 @@
           "ListSkills",
           "ListToolNames",
           "ManualSetProxyURL",
+          "Mount",
           "NativeFunctions",
+          "OnCallEnd",
           "OnDebugEvent",
           "OnFunctionCall",
           "OnRequest",
@@ -129,6 +132,7 @@
           "SubstituteVars"
         ],
         "MCPServerConfig": [],
+        "MountOptions": [],
         "ToolDefinition": [
           "IsSecure",
           "ValidateArgs"
@@ -377,6 +381,14 @@
         "NewWeatherAPI",
         "NewWebSearch",
         "NewWikipediaSearch"
+      ]
+    },
+    "capabilities": {
+      "classes": {},
+      "functions": [
+        "DeclaredCapabilities",
+        "HasCapability",
+        "UserVariables"
       ]
     },
     "contexts": {
@@ -1117,6 +1129,18 @@
         "WithTitle"
       ]
     },
+    "postprompt": {
+      "classes": {
+        "DialogueOptions": [],
+        "NormalizedPostPrompt": []
+      },
+      "functions": [
+        "DialogueTurns",
+        "NormalizePostPrompt",
+        "ParsePostPromptData",
+        "StripJSONFence"
+      ]
+    },
     "prefabs": {
       "classes": {
         "Amenity": [],
@@ -1781,6 +1805,7 @@
           "GetParameterSchema",
           "RegisterTools",
           "RemoveXPaths",
+          "Session",
           "SetRemoveXPaths",
           "Setup",
           "SupportsMultipleInstances"

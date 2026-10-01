@@ -44,6 +44,12 @@ type ToolHandler func(args map[string]any, rawData map[string]any) *swaig.Functi
 // full context about the inbound request.
 type DynamicConfigCallback func(queryParams map[string]string, bodyParams map[string]any, headers map[string]string, agent *AgentBase)
 
+// CallEndHandler receives the conversation when a call ends: callLog is the
+// call log as the platform recorded it (resolved from call_log or
+// raw_call_log), rawData the complete SWAIG request (incl. global_data and
+// call_id). See AgentBase.OnCallEnd.
+type CallEndHandler func(callLog []map[string]any, rawData map[string]any)
+
 // SummaryCallback is called when a post-prompt summary arrives.
 type SummaryCallback func(summary map[string]any, rawData map[string]any)
 
@@ -377,7 +383,15 @@ type AgentBase struct {
 	recordStereo    bool
 
 	// Web/HTTP
-	dynamicConfigCallback    DynamicConfigCallback
+	dynamicConfigCallback DynamicConfigCallback
+	// perCallConfigs is the composable per-request configuration chain
+	// (AddPerCallConfig); SetDynamicConfigCallback replaces it. Rebound, never
+	// appended in place, so an ephemeral copy never writes into the master's.
+	perCallConfigs []DynamicConfigCallback
+	// callEndHandlers run, in order, when the call ends (OnCallEnd).
+	callEndHandlers []CallEndHandler
+	// mounts are the extra handlers served alongside the agent's routes (Mount).
+	mounts                   []mountedHandler
 	onSwmlRequestHook        OnSwmlRequestHook
 	webhookURL               string
 	postPromptURL            string
@@ -2046,11 +2060,126 @@ func (a *AgentBase) ResetContexts() *AgentBase {
 
 // SetDynamicConfigCallback sets a callback invoked on each request to allow
 // per-request agent customisation.
+//
+// It replaces any configuration registered before (including callbacks added
+// with AddPerCallConfig); nil clears it. Prefer AddPerCallConfig, which composes.
 func (a *AgentBase) SetDynamicConfigCallback(cb DynamicConfigCallback) *AgentBase {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.dynamicConfigCallback = cb
+	if cb == nil {
+		a.perCallConfigs = nil
+	} else {
+		a.perCallConfigs = []DynamicConfigCallback{cb}
+	}
 	return a
+}
+
+// AddPerCallConfig registers a per-request configuration callback, keeping any
+// already set. Same signature and contract as SetDynamicConfigCallback, except
+// callbacks accumulate: they run in registration order against the same
+// EPHEMERAL per-request agent (configure that, never the receiver), so a later
+// one sees what an earlier one configured. A base type and an embedding type,
+// or an agent and a mixin, can each register what they own without knowing the
+// other exists.
+func (a *AgentBase) AddPerCallConfig(cb DynamicConfigCallback) *AgentBase {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	chain := make([]DynamicConfigCallback, 0, len(a.perCallConfigs)+1)
+	chain = append(chain, a.perCallConfigs...)
+	chain = append(chain, cb)
+	a.perCallConfigs = chain
+	a.dynamicConfigCallback = composeConfigs(chain)
+	return a
+}
+
+// composeConfigs folds a callback chain into one DynamicConfigCallback that
+// runs every callback in order.
+func composeConfigs(chain []DynamicConfigCallback) DynamicConfigCallback {
+	if len(chain) == 1 {
+		return chain[0]
+	}
+	return func(q map[string]string, b map[string]any, h map[string]string, agent *AgentBase) {
+		for _, cb := range chain {
+			cb(q, b, h, agent)
+		}
+	}
+}
+
+// OnCallEnd registers a handler that runs when the call ends, with the
+// transcript. Handlers run in registration order. It wraps the platform's
+// reserved hangup_hook function, which fires on hangup and is never offered to
+// the model, so it cannot be called early or skipped.
+//
+// Registering a handler also turns on the swaig_post_conversation param:
+// call_log is a CONDITIONAL field of the SWAIG request, and without that param
+// the hook still fires but carries no transcript — indistinguishable from the
+// hook never having been registered. If the param was explicitly set to false
+// it is left alone and a warning is logged.
+//
+// A handler's failure (panic) is recovered and logged rather than propagated:
+// a failing teardown handler must not turn into a failed hangup, nor stop the
+// handlers after it.
+//
+// It returns handler, mirroring the reference's decorator form.
+func (a *AgentBase) OnCallEnd(handler CallEndHandler) CallEndHandler {
+	a.mu.Lock()
+	first := len(a.callEndHandlers) == 0
+	chain := make([]CallEndHandler, 0, len(a.callEndHandlers)+1)
+	chain = append(chain, a.callEndHandlers...)
+	chain = append(chain, handler)
+	a.callEndHandlers = chain
+	if first {
+		if v, set := a.params["swaig_post_conversation"]; set && v == false {
+			a.Logger.Warn("[signalwire] on_call_end handlers are registered but " +
+				"swaig_post_conversation is explicitly false -- they will receive an empty call_log")
+		} else if !set {
+			a.params["swaig_post_conversation"] = true
+		}
+	}
+	a.mu.Unlock()
+	if first {
+		a.DefineTool(ToolDefinition{
+			Name:        "hangup_hook",
+			Description: "Internal: fires when the call ends.",
+			Parameters:  map[string]any{},
+			Handler:     a.runCallEndHandlers,
+		})
+	}
+	return handler
+}
+
+// runCallEndHandlers is the reserved hangup_hook handler: it passes the call log
+// to each call-end handler, isolating failures.
+func (a *AgentBase) runCallEndHandlers(_ map[string]any, rawData map[string]any) *swaig.FunctionResult {
+	if rawData == nil {
+		rawData = map[string]any{}
+	}
+	// Both spellings are seen in the wild depending on engine.
+	entries, _ := rawData["call_log"].([]any)
+	if len(entries) == 0 {
+		entries, _ = rawData["raw_call_log"].([]any)
+	}
+	callLog := make([]map[string]any, 0, len(entries))
+	for _, e := range entries {
+		if m, ok := e.(map[string]any); ok {
+			callLog = append(callLog, m)
+		}
+	}
+	a.mu.RLock()
+	handlers := a.callEndHandlers
+	a.mu.RUnlock()
+	for _, h := range handlers {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					a.Logger.Error("call_end_handler_failed: %v", r)
+				}
+			}()
+			h(callLog, rawData)
+		}()
+	}
+	return swaig.NewFunctionResult("")
 }
 
 // ManualSetProxyURL overrides the proxy URL base used for webhook URL generation.
@@ -3481,6 +3610,51 @@ func (a *AgentBase) Serve() error {
 	return a.RunContext(context.Background())
 }
 
+// mountedHandler is one extra handler registered with Mount.
+type mountedHandler struct {
+	prefix  string
+	name    string
+	handler http.Handler
+}
+
+// MountOptions carries the optional parameters of [AgentBase.Mount].
+type MountOptions struct {
+	// Prefix is the path prefix to serve the handler under (no trailing slash).
+	// The prefix is stripped before the handler sees the request path. Empty
+	// mounts the handler as the fallback for every path the agent's own routes
+	// do not claim.
+	Prefix string `sw:"optional" kind:"keyword"`
+	// Name labels the mount in the startup log.
+	Name *string `kind:"keyword"`
+}
+
+// Mount serves an extra handler (a chat gateway, static files, a health probe)
+// alongside this agent's own routes, on every server the agent builds (Run,
+// Serve, AsRouter). The agent's own routes keep precedence: a mount never
+// shadows the SWML, SWAIG or post-prompt endpoints.
+//
+//	agent.Mount(gateway.Router(), agent.MountOptions{Prefix: "/chat"})
+//	agent.Mount(http.FileServer(http.Dir("web")), agent.MountOptions{Prefix: "/demo"})
+func (a *AgentBase) Mount(handler http.Handler, opts MountOptions) *AgentBase {
+	prefix := strings.TrimRight(opts.Prefix, "/")
+	name := ""
+	if opts.Name != nil {
+		name = *opts.Name
+	}
+	a.mu.Lock()
+	mounts := make([]mountedHandler, 0, len(a.mounts)+1)
+	mounts = append(mounts, a.mounts...)
+	mounts = append(mounts, mountedHandler{prefix: prefix, name: name, handler: handler})
+	a.mounts = mounts
+	a.mu.Unlock()
+	display := prefix
+	if display == "" {
+		display = "/"
+	}
+	a.Logger.Info("agent_route_mounted: prefix=%s name=%s", display, name)
+	return a
+}
+
 // AsRouter returns an http.Handler for embedding in a custom server.
 func (a *AgentBase) AsRouter() http.Handler {
 	return a.buildMux()
@@ -3700,6 +3874,28 @@ func (a *AgentBase) buildMux() *http.ServeMux {
 		}
 		mux.HandleFunc(path, a.withAuth(a.withSignedPost(a.handleSWML)))
 		mux.HandleFunc(path+"/", a.withAuth(a.withSignedPost(a.handleSWML)))
+	}
+
+	// Mounted handlers (Mount). ServeMux picks the most specific pattern, so a
+	// mount never shadows the agent's own routes; a mount at "/" is skipped when
+	// the agent itself serves "/" (Handle would panic on the duplicate pattern).
+	a.mu.RLock()
+	mounts := a.mounts
+	a.mu.RUnlock()
+	rootClaimed := swmlRoute == "/"
+	for _, m := range mounts {
+		if m.prefix == "" {
+			if rootClaimed {
+				a.Logger.Warn("mount at / skipped: the agent's own route is /; mount under a prefix")
+				continue
+			}
+			rootClaimed = true
+			mux.Handle("/", m.handler)
+			continue
+		}
+		h := http.StripPrefix(m.prefix, m.handler)
+		mux.Handle(m.prefix+"/", h)
+		mux.Handle(m.prefix, h)
 	}
 
 	return mux

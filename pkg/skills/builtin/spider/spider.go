@@ -71,6 +71,10 @@ type SpiderSkill struct {
 	// state. Mirrors the reference's SpiderSkill.remove_xpaths attribute.
 	removeXPaths []string
 
+	// session is the public-URL HTTP client (Session); built on first use.
+	sessionMu sync.Mutex
+	session   *http.Client
+
 	// LRU-style bounded cache (map + ordered keys via slice)
 	cacheMu    sync.Mutex
 	cache      map[string][]byte
@@ -383,7 +387,7 @@ func (s *SpiderSkill) fetchURL(urlStr string) ([]byte, error) {
 		s.cacheMu.Unlock()
 	}
 
-	client := &http.Client{Timeout: time.Duration(s.timeout) * time.Second}
+	client := s.Session()
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return nil, err

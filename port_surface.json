@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ dc7efdb4ffae0f8a4bd208a257d5fd5f866d0654",
+  "generated_from": "signalwire-go @ 60e8bc204d610f7d8ddb05523eb38e5e1bb05ee5",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -151,6 +151,7 @@
           "get_name",
           "handle_request",
           "native_functions",
+          "on_call_end",
           "on_debug_event",
           "on_summary",
           "pom",
@@ -180,6 +181,14 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.capabilities": {
+      "classes": {},
+      "functions": [
+        "declared_capabilities",
+        "has_capability",
+        "user_variables"
+      ]
     },
     "signalwire.core.config_loader": {
       "classes": {
@@ -470,9 +479,11 @@
     "signalwire.core.mixins.web_mixin": {
       "classes": {
         "WebMixin": [
+          "add_per_call_config",
           "as_router",
           "enable_debug_routes",
           "manual_set_proxy_url",
+          "mount",
           "on_request",
           "on_swml_request",
           "register_routing_callback",
@@ -501,6 +512,25 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.post_prompt": {
+      "classes": {
+        "NormalizedPostPrompt": [
+          "__init__",
+          "call_id",
+          "conversation_id",
+          "dialogue",
+          "medium",
+          "raw",
+          "summary"
+        ]
+      },
+      "functions": [
+        "dialogue_turns",
+        "normalize_post_prompt",
+        "parse_post_prompt_data",
+        "strip_json_fence"
+      ]
     },
     "signalwire.core.post_prompt_generated": {
       "classes": {
@@ -3356,6 +3386,7 @@
           "get_parameter_schema",
           "register_tools",
           "remove_xpaths",
+          "session",
           "setup"
         ]
       },
