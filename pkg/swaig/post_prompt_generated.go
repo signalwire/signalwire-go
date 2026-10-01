@@ -159,7 +159,7 @@ type PostPromptSwaigLogEntry struct {
 	CommandArg  string `json:"command_arg,omitempty" gen:"string"`
 	EpochTime   int    `json:"epoch_time,omitempty" gen:"int"`
 	// Native present and true for a NATIVE function, which has no SWAIG handle (actions.c:2391); absent otherwise
-	Native string `json:"native,omitempty" gen:"string"`
+	Native bool `json:"native,omitempty" gen:"bool"`
 	// ActiveCount the function's remaining activation count, or "endless". Written only for a non-native function (actions.c:2406, :2408), so it is absent whenever `native` is present.
 	ActiveCount any           `json:"active_count,omitempty" gen:"union<int,string>"`
 	Url         string        `json:"url,omitempty" gen:"string"`
@@ -173,7 +173,7 @@ type PostPromptSwaigLogEntry struct {
 	// McpResponse the MCP tool's raw result text, as returned by mcp_call_tool (actions.c:2614). Not parsed JSON.
 	McpResponse string `json:"mcp_response,omitempty" gen:"string"`
 	// McpError present and true when the MCP tool returned no result (actions.c:2618); absent otherwise
-	McpError string `json:"mcp_error,omitempty" gen:"string"`
+	McpError bool `json:"mcp_error,omitempty" gen:"bool"`
 }
 
 type PostPromptTimesEntry struct {

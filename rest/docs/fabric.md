@@ -152,9 +152,9 @@ cXML applications support list/get/update/delete but not create:
 ```go
 apps, err := client.Fabric.CXMLApplications.List(context.Background(), nil)
 app, err := client.Fabric.CXMLApplications.Get(context.Background(), "app-uuid", nil)
-voiceUrl := "https://example.com/voice"
+callURL := "https://example.com/voice"
 _, err = client.Fabric.CXMLApplications.Update(context.Background(), "app-uuid", namespaces.CxmlApplicationsResourceUpdateParams{
-	VoiceURL: &voiceUrl,
+	CallRequestURL: &callURL,
 })
 _, err = client.Fabric.CXMLApplications.Delete(context.Background(), "app-uuid")
 

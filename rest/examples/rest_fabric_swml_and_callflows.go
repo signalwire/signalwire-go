@@ -101,7 +101,7 @@ func main() {
 		}
 	} else {
 		for _, v := range versions.Data {
-			fmt.Printf("  - Version: %v\n", v.Version)
+			fmt.Printf("  - Version: %v\n", v.DocumentVersion)
 		}
 	}
 

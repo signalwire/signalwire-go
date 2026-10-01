@@ -4,45 +4,48 @@
 //   go run ./cmd/generate-swml-verbs
 //
 // The typed SWML verb CONFIG surface: one struct per schema.json $defs entry
-// (object -> struct; non-object -> defined-type alias) + the flattened <Verb>Config
-// payload shapes the SWML builder verb methods accept. Open shape; extra keys tolerated.
+// (object -> struct; non-object -> defined-type alias), inline objects hoisted to
+// named structs, + the flattened <Verb>Config payload shapes the SWML builder verb
+// methods accept. Deprecated verbs are not emitted. Open shape; extra keys tolerated.
 
 package swml
 
+import "github.com/signalwire/signalwire-go/v3/pkg/swaig"
+
 type AI struct {
 	// Ai Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Ai any `json:"ai,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	Ai any `json:"ai,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.AiConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type AiSidecar struct {
 	// AiSidecar Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	AiSidecar any `json:"ai_sidecar,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	AiSidecar any `json:"ai_sidecar,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.AiSidecarConfig,list<any>,float,string>"`
 }
 
 type AmazonBedrock struct {
 	// AmazonBedrock Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	AmazonBedrock any `json:"amazon_bedrock,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	AmazonBedrock any `json:"amazon_bedrock,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.AmazonBedrockConfig,list<any>,float,string>"`
 }
 
 type Answer struct {
 	// Answer Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Answer any `json:"answer,omitempty" gen:"union<dict<string,any>,list<any>>"`
+	Answer any `json:"answer,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.AnswerConfig,list<union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 }
 
 type BindDigit struct {
 	// BindDigit Bind DTMF digit actions.
-	BindDigit map[string]any `json:"bind_digit,omitempty" gen:"dict<string,any>"`
+	BindDigit *BindDigitConfig `json:"bind_digit,omitempty" gen:"class:signalwire.core.swml_verbs_generated.BindDigitConfig"`
 }
 
 type CallDeviceStream struct {
-	AuthorizationBearerToken any            `json:"authorization_bearer_token,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Codec                    any            `json:"codec,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	CustomParameters         map[string]any `json:"custom_parameters,omitempty" gen:"dict<string,any>"`
-	Name                     any            `json:"name,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Realtime                 any            `json:"realtime,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	StatusUrl                any            `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	StatusUrlMethod          any            `json:"status_url_method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Url                      any            `json:"url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	AuthorizationBearerToken any `json:"authorization_bearer_token,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Codec                    any `json:"codec,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	CustomParameters         any `json:"custom_parameters,omitempty" gen:"any"`
+	Name                     any `json:"name,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Realtime                 any `json:"realtime,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	StatusUrl                any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	StatusUrlMethod          any `json:"status_url_method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Url                      any `json:"url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 }
 
 type CallPayParameters struct {
@@ -67,17 +70,17 @@ type CallPayPromptsActions struct {
 
 type ClearDigitBindings struct {
 	// ClearDigitBindings Clear all digit bindings.
-	ClearDigitBindings map[string]any `json:"clear_digit_bindings,omitempty" gen:"dict<string,any>"`
+	ClearDigitBindings *ClearDigitBindingsConfig `json:"clear_digit_bindings,omitempty" gen:"class:signalwire.core.swml_verbs_generated.ClearDigitBindingsConfig"`
 }
 
 type Cond struct {
 	// Cond Body shape enforced by is_valid_cond_method, swml_schema.c:1271.
-	Cond []map[string]any `json:"cond,omitempty" gen:"list<dict<string,any>>"`
+	Cond []*CondItem `json:"cond,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.CondItem>"`
 }
 
 type Connect struct {
 	// Connect Dial a SIP URI or phone number.
-	Connect any `json:"connect,omitempty" gen:"dict<string,any>"`
+	Connect *ConnectConfig `json:"connect,omitempty" gen:"class:signalwire.core.swml_verbs_generated.ConnectConfig"`
 }
 
 // ConnectDevice Body shape enforced by CHECK_swml_connect_device, swml_schema.c.
@@ -86,8 +89,8 @@ type ConnectDevice struct {
 	CallStateEvents          any                 `json:"call_state_events,omitempty" gen:"union<list<string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	CallStateUrl             any                 `json:"call_state_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	Codec                    any                 `json:"codec,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Codecs                   any                 `json:"codecs,omitempty" gen:"union<string,list<dict<string,any>>>"`
-	Confirm                  any                 `json:"confirm,omitempty" gen:"union<union<string,list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,dict<string,any>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Codecs                   any                 `json:"codecs,omitempty" gen:"union<string,list<any>>"`
+	Confirm                  any                 `json:"confirm,omitempty" gen:"union<union<string,list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.ConnectDeviceConfirm>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	ConfirmTimeout           any                 `json:"confirm_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	CustomParameters         any                 `json:"custom_parameters,omitempty" gen:"union<dict<string,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	Encryption               any                 `json:"encryption,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
@@ -134,10 +137,10 @@ type Context struct {
 }
 
 type DataMap struct {
-	Contexts    any            `json:"contexts,omitempty" gen:"union<optional<list<any>>,bool,float,dict<string,any>,string>"`
-	Expressions any            `json:"expressions,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.Expression>,class:signalwire.core.swml_verbs_generated.Expression>"`
-	Output      *SwaigResponse `json:"output,omitempty" gen:"class:signalwire.core.swml_verbs_generated.SwaigResponse"`
-	Webhooks    any            `json:"webhooks,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.Webhook>,class:signalwire.core.swml_verbs_generated.Webhook>"`
+	Contexts    any                  `json:"contexts,omitempty" gen:"union<optional<list<any>>,bool,float,dict<string,any>,string>"`
+	Expressions any                  `json:"expressions,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.Expression>,class:signalwire.core.swml_verbs_generated.Expression>"`
+	Output      *swaig.SwaigResponse `json:"output,omitempty" gen:"class:signalwire.core.swaig_actions_generated.SwaigResponse"`
+	Webhooks    any                  `json:"webhooks,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.Webhook>,class:signalwire.core.swml_verbs_generated.Webhook>"`
 }
 
 type Denoise struct {
@@ -147,46 +150,36 @@ type Denoise struct {
 
 type DetectMachine struct {
 	// DetectMachine Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	DetectMachine any `json:"detect_machine,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
-}
-
-type Dial struct {
-	// Dial Dial out to one or more endpoints (deprecated).
-	Dial any `json:"dial,omitempty" gen:"dict<string,any>"`
+	DetectMachine any `json:"detect_machine,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.DetectMachineConfig,list<any>,float,string>"`
 }
 
 type Echo struct {
 	// Echo Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Echo any `json:"echo,omitempty" gen:"union<dict<string,any>,list<any>>"`
+	Echo any `json:"echo,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.EchoConfig,list<union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>>,int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 }
 
 type EnterQueue struct {
 	// EnterQueue Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	EnterQueue any `json:"enter_queue,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
-}
-
-type Eval struct {
-	// Eval Evaluate expressions and assign to variables (deprecated).
-	Eval map[string]any `json:"eval,omitempty" gen:"dict<string,any>"`
+	EnterQueue any `json:"enter_queue,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.EnterQueueConfig,list<any>,float,string>"`
 }
 
 type Execute struct {
 	// Execute Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Execute any `json:"execute,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	Execute any `json:"execute,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.ExecuteConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type ExecuteRpc struct {
 	// ExecuteRpc Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	ExecuteRpc any `json:"execute_rpc,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	ExecuteRpc any `json:"execute_rpc,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.ExecuteRpcConfig,list<any>,float,string>"`
 }
 
 // Expression Without one of `expr` / `string` and `output`, a Expression has no effect: it is accepted and ignored, not rejected.
 type Expression struct {
-	Pattern       string         `json:"pattern,omitempty" gen:"string"`
-	Expr          string         `json:"expr,omitempty" gen:"string"`
-	NomatchOutput *SwaigResponse `json:"nomatch-output,omitempty" gen:"class:signalwire.core.swml_verbs_generated.SwaigResponse"`
-	Output        *SwaigResponse `json:"output,omitempty" gen:"class:signalwire.core.swml_verbs_generated.SwaigResponse"`
-	String        string         `json:"string,omitempty" gen:"string"`
+	Pattern       string               `json:"pattern,omitempty" gen:"string"`
+	Expr          string               `json:"expr,omitempty" gen:"string"`
+	NomatchOutput *swaig.SwaigResponse `json:"nomatch-output,omitempty" gen:"class:signalwire.core.swaig_actions_generated.SwaigResponse"`
+	Output        *swaig.SwaigResponse `json:"output,omitempty" gen:"class:signalwire.core.swaig_actions_generated.SwaigResponse"`
+	String        string               `json:"string,omitempty" gen:"string"`
 }
 
 // Foreach Without `append`, `input_key` and `output_key`, a Foreach has no effect: it is accepted and ignored, not rejected.
@@ -199,27 +192,22 @@ type Foreach struct {
 
 type Goto struct {
 	// Goto Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Goto any `json:"goto,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	Goto any `json:"goto,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.GotoConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type Hangup struct {
 	// Hangup Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Hangup any `json:"hangup,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
-}
-
-type If struct {
-	// If Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	If any `json:"if,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	Hangup any `json:"hangup,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.HangupConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type JoinConference struct {
 	// JoinConference Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	JoinConference any `json:"join_conference,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	JoinConference any `json:"join_conference,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.JoinConferenceConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type JoinRoom struct {
 	// JoinRoom Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	JoinRoom any `json:"join_room,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	JoinRoom any `json:"join_room,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.JoinRoomConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 // JsonSchema A JSON Schema (draft 2020-12). The value is forwarded verbatim to the receiving model API, which owns this contract; the engine does not inspect it.
@@ -227,7 +215,7 @@ type JsonSchema struct {
 	Title                 string              `json:"title,omitempty" gen:"string"`
 	Description           string              `json:"description,omitempty" gen:"string"`
 	Type                  any                 `json:"type,omitempty" gen:"union<string,list<string>>"`
-	Const                 map[string]any      `json:"const,omitempty" gen:"dict<string,any>"`
+	Const                 any                 `json:"const,omitempty" gen:"any"`
 	Enum                  []any               `json:"enum,omitempty" gen:"list<any>"`
 	Format                string              `json:"format,omitempty" gen:"string"`
 	Pattern               string              `json:"pattern,omitempty" gen:"string"`
@@ -241,7 +229,7 @@ type JsonSchema struct {
 	MaxItems              int                 `json:"maxItems,omitempty" gen:"int"`
 	MinProperties         int                 `json:"minProperties,omitempty" gen:"int"`
 	MaxProperties         int                 `json:"maxProperties,omitempty" gen:"int"`
-	Default               map[string]any      `json:"default,omitempty" gen:"dict<string,any>"`
+	Default               any                 `json:"default,omitempty" gen:"any"`
 	Examples              []any               `json:"examples,omitempty" gen:"list<any>"`
 	Deprecated            bool                `json:"deprecated,omitempty" gen:"bool"`
 	Properties            map[string]any      `json:"properties,omitempty" gen:"dict<string,union<class:signalwire.core.swml_verbs_generated.JsonSchema,bool>>"`
@@ -276,7 +264,7 @@ type JsonSchemaUnion struct {
 	Title                 string              `json:"title,omitempty" gen:"string"`
 	Description           string              `json:"description,omitempty" gen:"string"`
 	Type                  any                 `json:"type,omitempty" gen:"union<string,list<string>>"`
-	Const                 map[string]any      `json:"const,omitempty" gen:"dict<string,any>"`
+	Const                 any                 `json:"const,omitempty" gen:"any"`
 	Enum                  []any               `json:"enum,omitempty" gen:"list<any>"`
 	Format                string              `json:"format,omitempty" gen:"string"`
 	Pattern               string              `json:"pattern,omitempty" gen:"string"`
@@ -290,7 +278,7 @@ type JsonSchemaUnion struct {
 	MaxItems              int                 `json:"maxItems,omitempty" gen:"int"`
 	MinProperties         int                 `json:"minProperties,omitempty" gen:"int"`
 	MaxProperties         int                 `json:"maxProperties,omitempty" gen:"int"`
-	Default               map[string]any      `json:"default,omitempty" gen:"dict<string,any>"`
+	Default               any                 `json:"default,omitempty" gen:"any"`
 	Examples              []any               `json:"examples,omitempty" gen:"list<any>"`
 	Deprecated            bool                `json:"deprecated,omitempty" gen:"bool"`
 	Nullable              bool                `json:"nullable,omitempty" gen:"bool"`
@@ -309,7 +297,7 @@ type JsonSchemaUnion struct {
 	DependentRequired     map[string][]string `json:"dependentRequired,omitempty" gen:"dict<string,list<string>>"`
 	DependentSchemas      map[string]any      `json:"dependentSchemas,omitempty" gen:"dict<string,union<class:signalwire.core.swml_verbs_generated.JsonSchemaUnion,bool>>"`
 	Else                  any                 `json:"else,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.JsonSchemaUnion,bool>"`
-	Example               map[string]any      `json:"example,omitempty" gen:"dict<string,any>"`
+	Example               any                 `json:"example,omitempty" gen:"any"`
 	If                    any                 `json:"if,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.JsonSchemaUnion,bool>"`
 	MaxContains           int                 `json:"maxContains,omitempty" gen:"int"`
 	MinContains           int                 `json:"minContains,omitempty" gen:"int"`
@@ -325,32 +313,32 @@ type JsonSchemaUnion struct {
 
 type Label struct {
 	// Label Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Label any `json:"label,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	Label any `json:"label,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.LabelConfig,list<string>,float,string>"`
 }
 
 type LiveTranscribe struct {
 	// LiveTranscribe Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	LiveTranscribe any `json:"live_transcribe,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	LiveTranscribe any `json:"live_transcribe,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.LiveTranscribeConfig,list<any>,float,string>"`
 }
 
 type LiveTranslate struct {
 	// LiveTranslate Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	LiveTranslate any `json:"live_translate,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	LiveTranslate any `json:"live_translate,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.LiveTranslateConfig,list<any>,float,string>"`
 }
 
 type Pay struct {
 	// Pay Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Pay any `json:"pay,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	Pay any `json:"pay,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.PayConfig,list<union<any,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>>,float,string>"`
 }
 
 type Play struct {
 	// Play Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Play any `json:"play,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	Play any `json:"play,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.PlayConfig,list<string>,float,string>"`
 }
 
 type Prompt struct {
 	// Prompt Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Prompt any `json:"prompt,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	Prompt any `json:"prompt,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.PromptConfig,list<union<string,union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>,union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>>>,float,string>"`
 }
 
 // PromptPomSection Without one of `body` / `bullets` / `subsections`, the object has no effect: it is accepted and ignored, not rejected.
@@ -365,22 +353,22 @@ type PromptPomSection struct {
 
 type ReceiveFax struct {
 	// ReceiveFax Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	ReceiveFax any `json:"receive_fax,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	ReceiveFax any `json:"receive_fax,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.ReceiveFaxConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type Record struct {
 	// Record Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Record any `json:"record,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	Record any `json:"record,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.RecordConfig,list<any>,float,string>"`
 }
 
 type RecordCall struct {
 	// RecordCall Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	RecordCall any `json:"record_call,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	RecordCall any `json:"record_call,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.RecordCallConfig,list<any>,float,string>"`
 }
 
 type Request struct {
 	// Request Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Request any `json:"request,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	Request any `json:"request,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.RequestConfig,list<any>,float,string>"`
 }
 
 type Return struct {
@@ -405,7 +393,7 @@ type RingbackConfig struct {
 
 type SIPRefer struct {
 	// SipRefer Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	SipRefer any `json:"sip_refer,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	SipRefer any `json:"sip_refer,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.SipReferConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type SWMLMethod any
@@ -419,17 +407,17 @@ type Section struct {
 
 type SendDigits struct {
 	// SendDigits Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	SendDigits any `json:"send_digits,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	SendDigits any `json:"send_digits,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.SendDigitsConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type SendFax struct {
 	// SendFax Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	SendFax any `json:"send_fax,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	SendFax any `json:"send_fax,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.SendFaxConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type SendSMS struct {
 	// SendSms Send an outbound SMS or MMS message to a PSTN phone number.
-	SendSms map[string]any `json:"send_sms,omitempty" gen:"dict<string,any>"`
+	SendSms *SendSmsConfig `json:"send_sms,omitempty" gen:"class:signalwire.core.swml_verbs_generated.SendSmsConfig"`
 }
 
 type Set struct {
@@ -439,17 +427,17 @@ type Set struct {
 
 type SetCapabilities struct {
 	// SetCapabilities Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	SetCapabilities any `json:"set_capabilities,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	SetCapabilities any `json:"set_capabilities,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.SetCapabilitiesConfig,list<any>,float,string>"`
 }
 
 type SetMeta struct {
 	// SetMeta Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	SetMeta any `json:"set_meta,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	SetMeta any `json:"set_meta,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.SetMetaConfig,list<any>,float,string>"`
 }
 
 type Sleep struct {
 	// Sleep Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Sleep any `json:"sleep,omitempty" gen:"union<dict<string,any>,list<any>>"`
+	Sleep any `json:"sleep,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.SleepConfig,list<union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>>,int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 }
 
 type Step struct {
@@ -475,75 +463,37 @@ type StopDenoise struct {
 
 type StopRecordCall struct {
 	// StopRecordCall Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	StopRecordCall any `json:"stop_record_call,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	StopRecordCall any `json:"stop_record_call,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.StopRecordCallConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type StopStream struct {
 	// StopStream Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	StopStream any `json:"stop_stream,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	StopStream any `json:"stop_stream,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.StopStreamConfig,list<union<any,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type StopTap struct {
 	// StopTap Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	StopTap any `json:"stop_tap,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	StopTap any `json:"stop_tap,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.StopTapConfig,list<union<any,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type Stream struct {
 	// Stream Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Stream any `json:"stream,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
-}
-
-type SwaigAction struct {
-	SWML                      any              `json:"SWML,omitempty" gen:"union<string,dict<string,any>>"`
-	AddDynamicHints           []any            `json:"add_dynamic_hints,omitempty" gen:"list<union<dict<string,any>,string>>"`
-	BackToBackFunctions       any              `json:"back_to_back_functions,omitempty" gen:"union<bool,string>"`
-	ChangeContext             string           `json:"change_context,omitempty" gen:"string"`
-	ChangeStep                string           `json:"change_step,omitempty" gen:"string"`
-	ChangeVoice               any              `json:"change_voice,omitempty" gen:"union<string,dict<string,any>>"`
-	ClearDynamicHints         any              `json:"clear_dynamic_hints,omitempty" gen:"union<bool,string>"`
-	ContextSwitch             any              `json:"context_switch,omitempty" gen:"union<string,dict<string,any>>"`
-	EndOfSpeechTimeout        int              `json:"end_of_speech_timeout,omitempty" gen:"int"`
-	ExtensiveData             any              `json:"extensive_data,omitempty" gen:"union<bool,string>"`
-	FunctionsOnSpeakerTimeout any              `json:"functions_on_speaker_timeout,omitempty" gen:"union<bool,string>"`
-	Hangup                    any              `json:"hangup,omitempty" gen:"union<bool,string>"`
-	Hold                      any              `json:"hold,omitempty" gen:"union<int,string,dict<string,any>>"`
-	PlaybackBg                any              `json:"playback_bg,omitempty" gen:"union<string,dict<string,any>>"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty" gen:"string"`
-	Say                       string           `json:"say,omitempty" gen:"string"`
-	SetGlobalData             map[string]any   `json:"set_global_data,omitempty" gen:"dict<string,any>"`
-	SetMetaData               map[string]any   `json:"set_meta_data,omitempty" gen:"dict<string,any>"`
-	Settings                  map[string]any   `json:"settings,omitempty" gen:"dict<string,any>"`
-	SpeechEventTimeout        int              `json:"speech_event_timeout,omitempty" gen:"int"`
-	Stop                      any              `json:"stop,omitempty" gen:"union<bool,string>"`
-	StopPlaybackBg            any              `json:"stop_playback_bg,omitempty" gen:"optional<union<bool,string,int,dict<string,any>,list<any>>>"`
-	ToggleFunctions           []map[string]any `json:"toggle_functions,omitempty" gen:"list<dict<string,any>>"`
-	Transfer                  any              `json:"transfer,omitempty" gen:"union<string,dict<string,any>>"`
-	UnsetGlobalData           any              `json:"unset_global_data,omitempty" gen:"union<string,list<string>>"`
-	UnsetMetaData             any              `json:"unset_meta_data,omitempty" gen:"union<string,list<string>>"`
-	UserEvent                 map[string]any   `json:"user_event,omitempty" gen:"dict<string,any>"`
-	UserInput                 string           `json:"user_input,omitempty" gen:"string"`
-	WaitForUser               any              `json:"wait_for_user,omitempty" gen:"union<bool,int,string>"`
-}
-
-type SwaigResponse struct {
-	Action      any  `json:"action,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.SwaigAction,list<class:signalwire.core.swml_verbs_generated.SwaigAction>>"`
-	PostProcess bool `json:"post_process,omitempty" gen:"bool"`
-	Response    any  `json:"response,omitempty" gen:"union<string,dict<string,any>>"`
+	Stream any `json:"stream,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.StreamConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type Switch struct {
 	// Switch Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Switch any `json:"switch,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	Switch any `json:"switch,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.SwitchConfig,list<any>,float,string>"`
 }
 
 type Tap struct {
 	// Tap Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Tap any `json:"tap,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	Tap any `json:"tap,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.TapConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type Transcribe struct {
 	// Transcribe Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Transcribe any `json:"transcribe,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	Transcribe any `json:"transcribe,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.TranscribeConfig,list<any>,float,string>"`
 }
 
 type TranscribeStop struct {
@@ -553,7 +503,7 @@ type TranscribeStop struct {
 
 type Transfer struct {
 	// Transfer Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	Transfer any `json:"transfer,omitempty" gen:"union<dict<string,any>,list<any>,float>"`
+	Transfer any `json:"transfer,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.TransferConfig,list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,float,union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>"`
 }
 
 type Unset struct {
@@ -563,22 +513,789 @@ type Unset struct {
 
 type UserEvent struct {
 	// UserEvent Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911.
-	UserEvent any `json:"user_event,omitempty" gen:"union<dict<string,any>,list<any>,float,string>"`
+	UserEvent any `json:"user_event,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.UserEventConfig,list<any>,float,string>"`
 }
 
 // Webhook Without one of `expressions` / `output` and `url`, a Webhook has no effect: it is accepted and ignored, not rejected.
 type Webhook struct {
-	ErrorKeys         any            `json:"error_keys,omitempty" gen:"union<list<any>,string>"`
-	Expressions       any            `json:"expressions,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.Expression>,class:signalwire.core.swml_verbs_generated.Expression>"`
-	Foreach           *Foreach       `json:"foreach,omitempty" gen:"class:signalwire.core.swml_verbs_generated.Foreach"`
-	FormParam         string         `json:"form_param,omitempty" gen:"string"`
-	Headers           map[string]any `json:"headers,omitempty" gen:"dict<string,any>"`
-	InputArgsAsParams bool           `json:"input_args_as_params,omitempty" gen:"bool"`
-	Method            string         `json:"method,omitempty" gen:"string"`
-	Output            *SwaigResponse `json:"output,omitempty" gen:"class:signalwire.core.swml_verbs_generated.SwaigResponse"`
-	Params            any            `json:"params,omitempty" gen:"union<optional<list<any>>,bool,float,dict<string,any>,string>"`
-	RequireArgs       any            `json:"require_args,omitempty" gen:"union<list<any>,string>"`
-	Url               string         `json:"url,omitempty" gen:"string"`
+	ErrorKeys         any                  `json:"error_keys,omitempty" gen:"union<list<any>,string>"`
+	Expressions       any                  `json:"expressions,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.Expression>,class:signalwire.core.swml_verbs_generated.Expression>"`
+	Foreach           *Foreach             `json:"foreach,omitempty" gen:"class:signalwire.core.swml_verbs_generated.Foreach"`
+	FormParam         string               `json:"form_param,omitempty" gen:"string"`
+	Headers           map[string]any       `json:"headers,omitempty" gen:"dict<string,any>"`
+	InputArgsAsParams bool                 `json:"input_args_as_params,omitempty" gen:"bool"`
+	Method            string               `json:"method,omitempty" gen:"string"`
+	Output            *swaig.SwaigResponse `json:"output,omitempty" gen:"class:signalwire.core.swaig_actions_generated.SwaigResponse"`
+	Params            any                  `json:"params,omitempty" gen:"union<optional<list<any>>,bool,float,dict<string,any>,string>"`
+	RequireArgs       any                  `json:"require_args,omitempty" gen:"union<list<any>,string>"`
+	Url               string               `json:"url,omitempty" gen:"string"`
+}
+
+// AiConfig Creates an AI agent that conducts voice conversations using automatic speech recognition (ASR),
+type AiConfig struct {
+	// SWAIG An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue.
+	SWAIG any `json:"SWAIG,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.AiSWAIGItem>,class:signalwire.core.swml_verbs_generated.AiSWAIG>"`
+	Agent any `json:"agent,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Engine The engine to use for the language. For example, 'elevenlabs'.
+	Engine any `json:"engine,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// GlobalData A key-value object for storing data that persists throughout the AI session.
+	GlobalData map[string]any `json:"global_data,omitempty" gen:"dict<string,any>"`
+	// Hints Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately.
+	Hints []any `json:"hints,omitempty" gen:"list<union<class:signalwire.core.swml_verbs_generated.AiHintsItem,string>>"`
+	// Languages An array of JSON objects defining supported languages in the conversation.
+	Languages    []*AiLanguagesItem `json:"languages,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiLanguagesItem>"`
+	Multilingual *AiMultilingual    `json:"multilingual,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiMultilingual"`
+	// Params An object of any necessary parameters for the API call. The key is the parameter name and the value is the parameter value.
+	Params *AiParams `json:"params,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiParams"`
+	// PostPrompt The final set of instructions and configuration settings to send to the agent.
+	PostPrompt             *AiPostPrompt `json:"post_prompt,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiPostPrompt"`
+	PostPromptAuthPassword any           `json:"post_prompt_auth_password,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	PostPromptAuthUser     any           `json:"post_prompt_auth_user,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// PostPromptUrl The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`.
+	PostPromptUrl any `json:"post_prompt_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Prompt Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations.
+	Prompt *AiPrompt `json:"prompt,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiPrompt"`
+	// Pronounce An array of JSON objects to clarify the AI's pronunciation of words or expressions.
+	Pronounce []*AiPronounceItem `json:"pronounce,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiPronounceItem>"`
+	// Voice Voice to use for the language. String format: `<engine id>.<voice id>`.
+	Voice any `json:"voice,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// AiSWAIGItem Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected.
+type AiSWAIGItem struct {
+	Description         string              `json:"description,omitempty" gen:"string"`
+	Active              any                 `json:"active,omitempty" gen:"union<bool,float,string>"`
+	Argument            *JsonSchemaUnion    `json:"argument,omitempty" gen:"class:signalwire.core.swml_verbs_generated.JsonSchemaUnion"`
+	DataMap             *DataMap            `json:"data_map,omitempty" gen:"class:signalwire.core.swml_verbs_generated.DataMap"`
+	Fillers             *AiSWAIGItemFillers `json:"fillers,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGItemFillers"`
+	Function            string              `json:"function,omitempty" gen:"string"`
+	MetaData            map[string]any      `json:"meta_data,omitempty" gen:"dict<string,any>"`
+	MetaDataToken       string              `json:"meta_data_token,omitempty" gen:"string"`
+	Parameters          *JsonSchemaUnion    `json:"parameters,omitempty" gen:"class:signalwire.core.swml_verbs_generated.JsonSchemaUnion"`
+	Purpose             string              `json:"purpose,omitempty" gen:"string"`
+	SkipFillers         any                 `json:"skip_fillers,omitempty" gen:"union<bool,string>"`
+	WaitFile            string              `json:"wait_file,omitempty" gen:"string"`
+	WaitFileLoops       any                 `json:"wait_file_loops,omitempty" gen:"union<float,string>"`
+	WaitForFillers      any                 `json:"wait_for_fillers,omitempty" gen:"union<bool,string>"`
+	WebHookAuthPass     string              `json:"web_hook_auth_pass,omitempty" gen:"string"`
+	WebHookAuthPassword string              `json:"web_hook_auth_password,omitempty" gen:"string"`
+	WebHookAuthUser     string              `json:"web_hook_auth_user,omitempty" gen:"string"`
+	WebHookUrl          string              `json:"web_hook_url,omitempty" gen:"string"`
+}
+
+type AiSWAIGItemFillers struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIG struct {
+	Defaults        *AiSWAIGDefaults         `json:"defaults,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGDefaults"`
+	Functions       []*AiSWAIGFunctionsItem  `json:"functions,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiSWAIGFunctionsItem>"`
+	Hooks           []*AiSWAIGHooksItem      `json:"hooks,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiSWAIGHooksItem>"`
+	Includes        []*AiSWAIGIncludesItem   `json:"includes,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiSWAIGIncludesItem>"`
+	InternalFillers *AiSWAIGInternalFillers  `json:"internal_fillers,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillers"`
+	McpServers      []*AiSWAIGMcpServersItem `json:"mcp_servers,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiSWAIGMcpServersItem>"`
+	NativeFunctions []string                 `json:"native_functions,omitempty" gen:"list<string>"`
+}
+
+type AiSWAIGDefaults struct {
+	MetaData            any    `json:"meta_data,omitempty" gen:"any"`
+	MetaDataToken       string `json:"meta_data_token,omitempty" gen:"string"`
+	WebHookAuthPass     string `json:"web_hook_auth_pass,omitempty" gen:"string"`
+	WebHookAuthPassword string `json:"web_hook_auth_password,omitempty" gen:"string"`
+	WebHookAuthUser     string `json:"web_hook_auth_user,omitempty" gen:"string"`
+	WebHookUrl          string `json:"web_hook_url,omitempty" gen:"string"`
+}
+
+// AiSWAIGFunctionsItem Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected.
+type AiSWAIGFunctionsItem struct {
+	Description         string                       `json:"description,omitempty" gen:"string"`
+	Active              any                          `json:"active,omitempty" gen:"union<bool,float,string>"`
+	Argument            *JsonSchemaUnion             `json:"argument,omitempty" gen:"class:signalwire.core.swml_verbs_generated.JsonSchemaUnion"`
+	DataMap             *DataMap                     `json:"data_map,omitempty" gen:"class:signalwire.core.swml_verbs_generated.DataMap"`
+	Fillers             *AiSWAIGFunctionsItemFillers `json:"fillers,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGFunctionsItemFillers"`
+	Function            string                       `json:"function,omitempty" gen:"string"`
+	MetaData            map[string]any               `json:"meta_data,omitempty" gen:"dict<string,any>"`
+	MetaDataToken       string                       `json:"meta_data_token,omitempty" gen:"string"`
+	Parameters          *JsonSchemaUnion             `json:"parameters,omitempty" gen:"class:signalwire.core.swml_verbs_generated.JsonSchemaUnion"`
+	Purpose             string                       `json:"purpose,omitempty" gen:"string"`
+	SkipFillers         any                          `json:"skip_fillers,omitempty" gen:"union<bool,string>"`
+	WaitFile            string                       `json:"wait_file,omitempty" gen:"string"`
+	WaitFileLoops       any                          `json:"wait_file_loops,omitempty" gen:"union<float,string>"`
+	WaitForFillers      any                          `json:"wait_for_fillers,omitempty" gen:"union<bool,string>"`
+	WebHookAuthPass     string                       `json:"web_hook_auth_pass,omitempty" gen:"string"`
+	WebHookAuthPassword string                       `json:"web_hook_auth_password,omitempty" gen:"string"`
+	WebHookAuthUser     string                       `json:"web_hook_auth_user,omitempty" gen:"string"`
+	WebHookUrl          string                       `json:"web_hook_url,omitempty" gen:"string"`
+}
+
+type AiSWAIGFunctionsItemFillers struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+// AiSWAIGHooksItem Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected.
+type AiSWAIGHooksItem struct {
+	Description         string                   `json:"description,omitempty" gen:"string"`
+	Active              any                      `json:"active,omitempty" gen:"union<bool,float,string>"`
+	Argument            *JsonSchemaUnion         `json:"argument,omitempty" gen:"class:signalwire.core.swml_verbs_generated.JsonSchemaUnion"`
+	DataMap             *DataMap                 `json:"data_map,omitempty" gen:"class:signalwire.core.swml_verbs_generated.DataMap"`
+	Fillers             *AiSWAIGHooksItemFillers `json:"fillers,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGHooksItemFillers"`
+	Function            string                   `json:"function,omitempty" gen:"string"`
+	MetaData            map[string]any           `json:"meta_data,omitempty" gen:"dict<string,any>"`
+	MetaDataToken       string                   `json:"meta_data_token,omitempty" gen:"string"`
+	Parameters          *JsonSchemaUnion         `json:"parameters,omitempty" gen:"class:signalwire.core.swml_verbs_generated.JsonSchemaUnion"`
+	Purpose             string                   `json:"purpose,omitempty" gen:"string"`
+	SkipFillers         any                      `json:"skip_fillers,omitempty" gen:"union<bool,string>"`
+	WaitFile            string                   `json:"wait_file,omitempty" gen:"string"`
+	WaitFileLoops       any                      `json:"wait_file_loops,omitempty" gen:"union<float,string>"`
+	WaitForFillers      any                      `json:"wait_for_fillers,omitempty" gen:"union<bool,string>"`
+	WebHookAuthPass     string                   `json:"web_hook_auth_pass,omitempty" gen:"string"`
+	WebHookAuthPassword string                   `json:"web_hook_auth_password,omitempty" gen:"string"`
+	WebHookAuthUser     string                   `json:"web_hook_auth_user,omitempty" gen:"string"`
+	WebHookUrl          string                   `json:"web_hook_url,omitempty" gen:"string"`
+}
+
+type AiSWAIGHooksItemFillers struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+// AiSWAIGIncludesItem Without `functions` and `url`, the element has no effect: it is accepted and ignored, not rejected.
+type AiSWAIGIncludesItem struct {
+	AuthPassword string         `json:"auth_password,omitempty" gen:"string"`
+	AuthUser     string         `json:"auth_user,omitempty" gen:"string"`
+	Functions    []any          `json:"functions,omitempty" gen:"list<any>"`
+	MetaData     map[string]any `json:"meta_data,omitempty" gen:"dict<string,any>"`
+	Url          string         `json:"url,omitempty" gen:"string"`
+}
+
+type AiSWAIGInternalFillers struct {
+	AdjustResponseLatency *AiSWAIGInternalFillersAdjustResponseLatency `json:"adjust_response_latency,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersAdjustResponseLatency"`
+	ChangeContext         *AiSWAIGInternalFillersChangeContext         `json:"change_context,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersChangeContext"`
+	CheckTime             *AiSWAIGInternalFillersCheckTime             `json:"check_time,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersCheckTime"`
+	GetIdealStrategy      *AiSWAIGInternalFillersGetIdealStrategy      `json:"get_ideal_strategy,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersGetIdealStrategy"`
+	GetVisualInput        *AiSWAIGInternalFillersGetVisualInput        `json:"get_visual_input,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersGetVisualInput"`
+	NextStep              *AiSWAIGInternalFillersNextStep              `json:"next_step,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersNextStep"`
+	PauseConversation     *AiSWAIGInternalFillersPauseConversation     `json:"pause_conversation,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersPauseConversation"`
+	WaitForUser           *AiSWAIGInternalFillersWaitForUser           `json:"wait_for_user,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersWaitForUser"`
+	WaitSeconds           *AiSWAIGInternalFillersWaitSeconds           `json:"wait_seconds,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiSWAIGInternalFillersWaitSeconds"`
+}
+
+type AiSWAIGInternalFillersAdjustResponseLatency struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGInternalFillersChangeContext struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGInternalFillersCheckTime struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGInternalFillersGetIdealStrategy struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGInternalFillersGetVisualInput struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGInternalFillersNextStep struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGInternalFillersPauseConversation struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGInternalFillersWaitForUser struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGInternalFillersWaitSeconds struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiSWAIGMcpServersItem struct {
+	Headers      map[string]any `json:"headers,omitempty" gen:"dict<string,any>"`
+	ResourceVars map[string]any `json:"resource_vars,omitempty" gen:"dict<string,any>"`
+	Resources    any            `json:"resources,omitempty" gen:"union<bool,string>"`
+	Url          string         `json:"url,omitempty" gen:"string"`
+}
+
+type AiHintsItem struct {
+	Pattern    string `json:"pattern,omitempty" gen:"string"`
+	Hint       string `json:"hint,omitempty" gen:"string"`
+	IgnoreCase any    `json:"ignore_case,omitempty" gen:"union<bool,string>"`
+	Replace    string `json:"replace,omitempty" gen:"string"`
+}
+
+// AiLanguagesItem Without one of `code` / `listen_language`, `name` and `voice`, the element has no effect: it is accepted and ignored, not rejected.
+type AiLanguagesItem struct {
+	AutoEmotion       any                    `json:"auto_emotion,omitempty" gen:"union<bool,string>"`
+	AutoSpeed         any                    `json:"auto_speed,omitempty" gen:"union<bool,string>"`
+	Code              any                    `json:"code,omitempty" gen:"union<list<any>,string>"`
+	DoubleTurnFillers []any                  `json:"double_turn_fillers,omitempty" gen:"list<any>"`
+	Engine            string                 `json:"engine,omitempty" gen:"string"`
+	Fillers           []any                  `json:"fillers,omitempty" gen:"list<any>"`
+	FunctionFillers   []any                  `json:"function_fillers,omitempty" gen:"list<any>"`
+	ListenLanguage    any                    `json:"listen_language,omitempty" gen:"union<list<any>,string>"`
+	Model             string                 `json:"model,omitempty" gen:"string"`
+	Name              string                 `json:"name,omitempty" gen:"string"`
+	Params            *AiLanguagesItemParams `json:"params,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiLanguagesItemParams"`
+	Pronounce         []any                  `json:"pronounce,omitempty" gen:"list<any>"`
+	SpeechFillers     []any                  `json:"speech_fillers,omitempty" gen:"list<any>"`
+	TurnFillers       []any                  `json:"turn_fillers,omitempty" gen:"list<any>"`
+	Voice             string                 `json:"voice,omitempty" gen:"string"`
+}
+
+type AiLanguagesItemParams struct {
+	Emotion      string `json:"emotion,omitempty" gen:"string"`
+	Pitch        any    `json:"pitch,omitempty" gen:"union<float,string>"`
+	Similarity   any    `json:"similarity,omitempty" gen:"union<float,string>"`
+	SpeakingRate any    `json:"speakingRate,omitempty" gen:"union<float,string>"`
+	Speed        any    `json:"speed,omitempty" gen:"union<float,string>"`
+	Stability    any    `json:"stability,omitempty" gen:"union<float,string>"`
+	Streaming    any    `json:"streaming,omitempty" gen:"union<bool,string>"`
+	Temperature  any    `json:"temperature,omitempty" gen:"union<float,string>"`
+	Vol          any    `json:"vol,omitempty" gen:"union<float,string>"`
+}
+
+type AiMultilingual struct {
+	Allowed         []any   `json:"allowed,omitempty" gen:"list<any>"`
+	Engine          string  `json:"engine,omitempty" gen:"string"`
+	Fillers         any     `json:"fillers,omitempty" gen:"union<list<any>,class:signalwire.core.swml_verbs_generated.AiMultilingualFillers>"`
+	FunctionFillers any     `json:"function_fillers,omitempty" gen:"union<list<any>,class:signalwire.core.swml_verbs_generated.AiMultilingualFunctionFillers>"`
+	Languages       []any   `json:"languages,omitempty" gen:"list<any>"`
+	MinSwitchWords  float64 `json:"min_switch_words,omitempty" gen:"float"`
+	Model           string  `json:"model,omitempty" gen:"string"`
+	Provider        string  `json:"provider,omitempty" gen:"string"`
+	StartLanguage   string  `json:"start_language,omitempty" gen:"string"`
+	TurnFillers     any     `json:"turn_fillers,omitempty" gen:"union<list<any>,class:signalwire.core.swml_verbs_generated.AiMultilingualTurnFillers>"`
+}
+
+type AiMultilingualFillers struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiMultilingualFunctionFillers struct {
+	Default any `json:"default,omitempty" gen:"any"`
+	Auto    any `json:"auto,omitempty" gen:"any"`
+}
+
+type AiMultilingualTurnFillers struct {
+	Default any `json:"default,omitempty" gen:"any"`
+}
+
+// AiParams An object of any necessary parameters for the API call. The key is the parameter name and the value is the parameter value.
+type AiParams struct {
+	AcknowledgeInterruptions    any                  `json:"acknowledge_interruptions,omitempty" gen:"union<int,string,bool>"`
+	AcousticEotGateProb         any                  `json:"acoustic_eot_gate_prob,omitempty" gen:"union<float,string>"`
+	AcousticEotTrustProb        any                  `json:"acoustic_eot_trust_prob,omitempty" gen:"union<float,string>"`
+	AiModel                     string               `json:"ai_model,omitempty" gen:"string"`
+	AiName                      string               `json:"ai_name,omitempty" gen:"string"`
+	AiVolume                    any                  `json:"ai_volume,omitempty" gen:"union<int,string>"`
+	AppName                     string               `json:"app_name,omitempty" gen:"string"`
+	AsrDiarize                  any                  `json:"asr_diarize,omitempty" gen:"union<bool,float,string>"`
+	AsrParams                   map[string]any       `json:"asr_params,omitempty" gen:"dict<string,any>"`
+	AsrSmartFormat              any                  `json:"asr_smart_format,omitempty" gen:"union<bool,float,string>"`
+	AsrSpeakerAffinity          any                  `json:"asr_speaker_affinity,omitempty" gen:"union<bool,float,string>"`
+	AttentionEscalatePrompt     string               `json:"attention_escalate_prompt,omitempty" gen:"string"`
+	AttentionTimeout            any                  `json:"attention_timeout,omitempty" gen:"union<int,string>"`
+	AttentionTimeoutPrompt      string               `json:"attention_timeout_prompt,omitempty" gen:"string"`
+	AuthToken                   string               `json:"auth_token,omitempty" gen:"string"`
+	AutoCorrect                 any                  `json:"auto_correct,omitempty" gen:"union<bool,float,string>"`
+	AzureStreamFirst            any                  `json:"azure_stream_first,omitempty" gen:"union<bool,float,string>"`
+	AzureTtsKey                 string               `json:"azure_tts_key,omitempty" gen:"string"`
+	BackgroundFile              string               `json:"background_file,omitempty" gen:"string"`
+	BackgroundFileLoops         any                  `json:"background_file_loops,omitempty" gen:"union<int,string>"`
+	BackgroundFileVolume        any                  `json:"background_file_volume,omitempty" gen:"union<int,string>"`
+	BargeFunctions              any                  `json:"barge_functions,omitempty" gen:"union<bool,float,string>"`
+	BargeMatchString            string               `json:"barge_match_string,omitempty" gen:"string"`
+	BargeMinWords               any                  `json:"barge_min_words,omitempty" gen:"union<int,string>"`
+	BillAllTts                  any                  `json:"bill_all_tts,omitempty" gen:"union<bool,float,string>"`
+	Cache                       any                  `json:"cache,omitempty" gen:"union<bool,float,string>"`
+	CallUuid                    string               `json:"call_uuid,omitempty" gen:"string"`
+	CartesiaKey                 string               `json:"cartesia_key,omitempty" gen:"string"`
+	CartesiaModel               string               `json:"cartesia_model,omitempty" gen:"string"`
+	CartesiaStreamFirst         any                  `json:"cartesia_stream_first,omitempty" gen:"union<bool,float,string>"`
+	Confidence                  any                  `json:"confidence,omitempty" gen:"union<float,string>"`
+	Conscience                  string               `json:"conscience,omitempty" gen:"string"`
+	ConversationId              string               `json:"conversation_id,omitempty" gen:"string"`
+	ConversationSlidingWindow   any                  `json:"conversation_sliding_window,omitempty" gen:"union<int,string>"`
+	Convo                       []*AiParamsConvoItem `json:"convo,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiParamsConvoItem>"`
+	DebugWebhookLevel           any                  `json:"debug_webhook_level,omitempty" gen:"union<int,string>"`
+	DebugWebhookUrl             string               `json:"debug_webhook_url,omitempty" gen:"string"`
+	DeepgramKeyOverride         string               `json:"deepgram_key_override,omitempty" gen:"string"`
+	DeepgramStreamFirst         any                  `json:"deepgram_stream_first,omitempty" gen:"union<bool,float,string>"`
+	DeepgramTtsKey              string               `json:"deepgram_tts_key,omitempty" gen:"string"`
+	DeepgramUrlOverride         string               `json:"deepgram_url_override,omitempty" gen:"string"`
+	DeveloperPrompt             string               `json:"developer_prompt,omitempty" gen:"string"`
+	DigitTerminators            string               `json:"digit_terminators,omitempty" gen:"string"`
+	DigitTimeout                any                  `json:"digit_timeout,omitempty" gen:"union<int,string>"`
+	Direction                   string               `json:"direction,omitempty" gen:"string"`
+	DoubleTurnFillerEveryN      any                  `json:"double_turn_filler_every_n,omitempty" gen:"union<float,string>"`
+	DoubleTurnFillerMinMs       any                  `json:"double_turn_filler_min_ms,omitempty" gen:"union<float,string>"`
+	DoubleTurnModel             string               `json:"double_turn_model,omitempty" gen:"string"`
+	DoubleTurnPrompt            string               `json:"double_turn_prompt,omitempty" gen:"string"`
+	DoubleTurnWaitMs            any                  `json:"double_turn_wait_ms,omitempty" gen:"union<float,string>"`
+	DoubleTurns                 any                  `json:"double_turns,omitempty" gen:"union<bool,string>"`
+	ElevenLabsKey               string               `json:"eleven_labs_key,omitempty" gen:"string"`
+	ElevenLabsModel             string               `json:"eleven_labs_model,omitempty" gen:"string"`
+	ElevenLabsSimilarity        any                  `json:"eleven_labs_similarity,omitempty" gen:"union<float,string>"`
+	ElevenLabsStability         any                  `json:"eleven_labs_stability,omitempty" gen:"union<float,string>"`
+	ElevenLabsStreamFirst       any                  `json:"eleven_labs_stream_first,omitempty" gen:"union<bool,float,string>"`
+	EnableBarge                 any                  `json:"enable_barge,omitempty" gen:"union<string,bool>"`
+	EnableInnerDialog           any                  `json:"enable_inner_dialog,omitempty" gen:"union<bool,string>"`
+	EnablePause                 any                  `json:"enable_pause,omitempty" gen:"union<bool,string>"`
+	EnableTextNormalization     string               `json:"enable_text_normalization,omitempty" gen:"string"`
+	EnableThinking              any                  `json:"enable_thinking,omitempty" gen:"union<bool,string>"`
+	EnableTurnDetection         any                  `json:"enable_turn_detection,omitempty" gen:"union<bool,string>"`
+	EnableVision                any                  `json:"enable_vision,omitempty" gen:"union<bool,string>"`
+	EndOfSpeechTimeout          any                  `json:"end_of_speech_timeout,omitempty" gen:"union<int,string>"`
+	EnergyLevel                 any                  `json:"energy_level,omitempty" gen:"union<float,string>"`
+	EscalateAfterMs             any                  `json:"escalate_after_ms,omitempty" gen:"union<int,string>"`
+	EscalateAfterTurns          any                  `json:"escalate_after_turns,omitempty" gen:"union<int,string>"`
+	EventWebhookUrl             string               `json:"event_webhook_url,omitempty" gen:"string"`
+	Ext                         string               `json:"ext,omitempty" gen:"string"`
+	FirstWordTimeout            any                  `json:"first_word_timeout,omitempty" gen:"union<int,string>"`
+	FishKey                     string               `json:"fish_key,omitempty" gen:"string"`
+	FishModel                   string               `json:"fish_model,omitempty" gen:"string"`
+	FunctionFillerSequenceGapMs any                  `json:"function_filler_sequence_gap_ms,omitempty" gen:"union<float,string>"`
+	FunctionWaitForTalking      any                  `json:"function_wait_for_talking,omitempty" gen:"union<bool,float,string>"`
+	FunctionsOnNoResponse       any                  `json:"functions_on_no_response,omitempty" gen:"union<bool,float,string>"`
+	GrokKey                     string               `json:"grok_key,omitempty" gen:"string"`
+	GroqTtsKey                  string               `json:"groq_tts_key,omitempty" gen:"string"`
+	HardStopPrompt              string               `json:"hard_stop_prompt,omitempty" gen:"string"`
+	HardStopTime                string               `json:"hard_stop_time,omitempty" gen:"string"`
+	HoldMusic                   string               `json:"hold_music,omitempty" gen:"string"`
+	HoldOnProcess               any                  `json:"hold_on_process,omitempty" gen:"union<bool,float,string>"`
+	InactivityTimeout           any                  `json:"inactivity_timeout,omitempty" gen:"union<int,string>"`
+	InitialSleepMs              any                  `json:"initial_sleep_ms,omitempty" gen:"union<int,string>"`
+	InnerDialog                 *AiParamsInnerDialog `json:"inner_dialog,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiParamsInnerDialog"`
+	InnerDialogModel            string               `json:"inner_dialog_model,omitempty" gen:"string"`
+	// InnerDialogPrompt The default applies only when `enable_inner_dialog` / `inner_dialog_scorecard` enables it; otherwise the value stays unset.
+	InnerDialogPrompt              string            `json:"inner_dialog_prompt,omitempty" gen:"string"`
+	InnerDialogScorecard           any               `json:"inner_dialog_scorecard,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.AiParamsInnerDialogScorecard>"`
+	InputPollFreq                  any               `json:"input_poll_freq,omitempty" gen:"union<int,string>"`
+	InterruptOnNoise               any               `json:"interrupt_on_noise,omitempty" gen:"union<int,string,bool>"`
+	InterruptPrompt                string            `json:"interrupt_prompt,omitempty" gen:"string"`
+	InworldApikey                  string            `json:"inworld_apikey,omitempty" gen:"string"`
+	InworldKey                     string            `json:"inworld_key,omitempty" gen:"string"`
+	InworldModel                   string            `json:"inworld_model,omitempty" gen:"string"`
+	Language                       string            `json:"language,omitempty" gen:"string"`
+	LanguagesEnabled               any               `json:"languages_enabled,omitempty" gen:"union<bool,float,string>"`
+	LipsyncDebug                   any               `json:"lipsync_debug,omitempty" gen:"union<bool,float,string>"`
+	LlmDiarizeAware                any               `json:"llm_diarize_aware,omitempty" gen:"union<bool,float,string>"`
+	LocalTz                        string            `json:"local_tz,omitempty" gen:"string"`
+	MaxEmotion                     any               `json:"max_emotion,omitempty" gen:"union<int,string>"`
+	MaxResponseTokens              any               `json:"max_response_tokens,omitempty" gen:"union<float,string>"`
+	MinUtteranceMs                 any               `json:"min_utterance_ms,omitempty" gen:"union<int,string>"`
+	MinimaxKey                     string            `json:"minimax_key,omitempty" gen:"string"`
+	MinimaxModel                   string            `json:"minimax_model,omitempty" gen:"string"`
+	MistralKey                     string            `json:"mistral_key,omitempty" gen:"string"`
+	MistralModel                   string            `json:"mistral_model,omitempty" gen:"string"`
+	Model                          string            `json:"model,omitempty" gen:"string"`
+	OpenaiAsrEngine                string            `json:"openai_asr_engine,omitempty" gen:"string"`
+	OpenaiAzure                    any               `json:"openai_azure,omitempty" gen:"union<bool,float,string>"`
+	OpenaiGcloudVersion            string            `json:"openai_gcloud_version,omitempty" gen:"string"`
+	OpenaiStreamFirst              any               `json:"openai_stream_first,omitempty" gen:"union<bool,float,string>"`
+	OpenaiTtsKey                   string            `json:"openai_tts_key,omitempty" gen:"string"`
+	OpenaiTtsUrl                   string            `json:"openai_tts_url,omitempty" gen:"string"`
+	OutboundAttentionTimeout       any               `json:"outbound_attention_timeout,omitempty" gen:"union<int,string>"`
+	PcmChannels                    any               `json:"pcm_channels,omitempty" gen:"union<int,string>"`
+	PcmRate                        any               `json:"pcm_rate,omitempty" gen:"union<int,string>"`
+	PersistGlobalData              any               `json:"persist_global_data,omitempty" gen:"union<bool,string>"`
+	PomFormat                      string            `json:"pom_format,omitempty" gen:"string"`
+	Provider                       string            `json:"provider,omitempty" gen:"string"`
+	PvtParams                      string            `json:"pvt_params,omitempty" gen:"string"`
+	Realtime                       *AiParamsRealtime `json:"realtime,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiParamsRealtime"`
+	RedactPrompt                   string            `json:"redact_prompt,omitempty" gen:"string"`
+	RimeApikey                     string            `json:"rime_apikey,omitempty" gen:"string"`
+	RimeKey                        string            `json:"rime_key,omitempty" gen:"string"`
+	RimeModel                      string            `json:"rime_model,omitempty" gen:"string"`
+	RimeStreamFirst                any               `json:"rime_stream_first,omitempty" gen:"union<bool,float,string>"`
+	SampleRate                     any               `json:"sample_rate,omitempty" gen:"union<int,string>"`
+	SaveConversation               any               `json:"save_conversation,omitempty" gen:"union<bool,float,string>"`
+	SendSingleLlmResponse          any               `json:"send_single_llm_response,omitempty" gen:"union<bool,float,string>"`
+	Similarity                     any               `json:"similarity,omitempty" gen:"union<float,string>"`
+	SmallestKey                    string            `json:"smallest_key,omitempty" gen:"string"`
+	SmallestModel                  string            `json:"smallest_model,omitempty" gen:"string"`
+	SpeakWhenSpokenTo              any               `json:"speak_when_spoken_to,omitempty" gen:"union<bool,string>"`
+	Speaker                        string            `json:"speaker,omitempty" gen:"string"`
+	SpeechEventTimeout             any               `json:"speech_event_timeout,omitempty" gen:"union<int,string>"`
+	SpeechGenQuickStops            any               `json:"speech_gen_quick_stops,omitempty" gen:"union<int,string>"`
+	SpeechTimeout                  any               `json:"speech_timeout,omitempty" gen:"union<int,string>"`
+	SpeechifyKey                   string            `json:"speechify_key,omitempty" gen:"string"`
+	SpeechifyLoudnessNormalization any               `json:"speechify_loudness_normalization,omitempty" gen:"union<bool,float,string>"`
+	SpeechifyModel                 string            `json:"speechify_model,omitempty" gen:"string"`
+	SpeechifyOutputFormat          string            `json:"speechify_output_format,omitempty" gen:"string"`
+	SpeechifyStreamFirst           any               `json:"speechify_stream_first,omitempty" gen:"union<bool,float,string>"`
+	SpeechifyTextNormalization     any               `json:"speechify_text_normalization,omitempty" gen:"union<bool,float,string>"`
+	Speed                          any               `json:"speed,omitempty" gen:"union<float,string>"`
+	Stability                      any               `json:"stability,omitempty" gen:"union<float,string>"`
+	StartPaused                    any               `json:"start_paused,omitempty" gen:"union<bool,string>"`
+	StaticGreeting                 string            `json:"static_greeting,omitempty" gen:"string"`
+	StaticGreetingNoBarge          any               `json:"static_greeting_no_barge,omitempty" gen:"union<bool,float,string>"`
+	StreamFirst                    any               `json:"stream_first,omitempty" gen:"union<bool,float,string>"`
+	Streaming                      any               `json:"streaming,omitempty" gen:"union<bool,float,string>"`
+	StrictMode                     string            `json:"strict_mode,omitempty" gen:"string"`
+	SummaryMode                    string            `json:"summary_mode,omitempty" gen:"string"`
+	SwaigAllowSettings             any               `json:"swaig_allow_settings,omitempty" gen:"union<bool,float,string>"`
+	SwaigAllowSwml                 any               `json:"swaig_allow_swml,omitempty" gen:"union<bool,float,string>"`
+	SwaigPostConversation          any               `json:"swaig_post_conversation,omitempty" gen:"union<bool,float,string>"`
+	SwaigPostSwmlVars              any               `json:"swaig_post_swml_vars,omitempty" gen:"union<list<string>,bool,string>"`
+	SwaigSetGlobalData             any               `json:"swaig_set_global_data,omitempty" gen:"union<bool,float,string>"`
+	TargetFirstSegmentMs           any               `json:"target_first_segment_ms,omitempty" gen:"union<int,string>"`
+	TextNormalizationFarDir        string            `json:"text_normalization_far_dir,omitempty" gen:"string"`
+	ThinkingModel                  string            `json:"thinking_model,omitempty" gen:"string"`
+	ToolResultDistill              any               `json:"tool_result_distill,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.AiParamsToolResultDistill>"`
+	TransferSummary                any               `json:"transfer_summary,omitempty" gen:"union<bool,float,string>"`
+	TransparentBarge               any               `json:"transparent_barge,omitempty" gen:"union<bool,float,string>"`
+	TransparentBargeMaxTime        any               `json:"transparent_barge_max_time,omitempty" gen:"union<int,string>"`
+	TtsNumberFormat                string            `json:"tts_number_format,omitempty" gen:"string"`
+	TurnDetection                  any               `json:"turn_detection,omitempty" gen:"union<bool,string>"`
+	TurnDetectionMinLength         any               `json:"turn_detection_min_length,omitempty" gen:"union<int,string>"`
+	TurnDetectionTimeout           any               `json:"turn_detection_timeout,omitempty" gen:"union<int,string>"`
+	TurnFillerEveryN               any               `json:"turn_filler_every_n,omitempty" gen:"union<float,string>"`
+	TurnFillerMinMs                any               `json:"turn_filler_min_ms,omitempty" gen:"union<float,string>"`
+	TurnFillerSources              string            `json:"turn_filler_sources,omitempty" gen:"string"`
+	Url                            string            `json:"url,omitempty" gen:"string"`
+	UtilityModel                   string            `json:"utility_model,omitempty" gen:"string"`
+	VadConfig                      string            `json:"vad_config,omitempty" gen:"string"`
+	VideoFps                       any               `json:"video_fps,omitempty" gen:"union<int,string>"`
+	VideoIdleFile                  string            `json:"video_idle_file,omitempty" gen:"string"`
+	VideoListeningFile             string            `json:"video_listening_file,omitempty" gen:"string"`
+	VideoScale                     string            `json:"video_scale,omitempty" gen:"string"`
+	VideoTalkingFile               string            `json:"video_talking_file,omitempty" gen:"string"`
+	VisionModel                    string            `json:"vision_model,omitempty" gen:"string"`
+	VoiceName                      string            `json:"voice_name,omitempty" gen:"string"`
+	Vol                            any               `json:"vol,omitempty" gen:"union<int,string>"`
+	WaitForUser                    any               `json:"wait_for_user,omitempty" gen:"union<bool,float,string>"`
+	WakePrefix                     string            `json:"wake_prefix,omitempty" gen:"string"`
+}
+
+type AiParamsConvoItem struct {
+	Content    string `json:"content,omitempty" gen:"string"`
+	Lang       string `json:"lang,omitempty" gen:"string"`
+	Role       string `json:"role,omitempty" gen:"string"`
+	ToolCallId string `json:"tool_call_id,omitempty" gen:"string"`
+	ToolCalls  []any  `json:"tool_calls,omitempty" gen:"list<any>"`
+}
+
+type AiParamsInnerDialog struct {
+	SWAIG *AiParamsInnerDialogSWAIG `json:"SWAIG,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiParamsInnerDialogSWAIG"`
+}
+
+type AiParamsInnerDialogSWAIG struct {
+	Defaults  *AiParamsInnerDialogSWAIGDefaults `json:"defaults,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AiParamsInnerDialogSWAIGDefaults"`
+	Functions []any                             `json:"functions,omitempty" gen:"list<any>"`
+}
+
+type AiParamsInnerDialogSWAIGDefaults struct {
+	WebHookAuthPass     string `json:"web_hook_auth_pass,omitempty" gen:"string"`
+	WebHookAuthPassword string `json:"web_hook_auth_password,omitempty" gen:"string"`
+	WebHookAuthUser     string `json:"web_hook_auth_user,omitempty" gen:"string"`
+	WebHookUrl          string `json:"web_hook_url,omitempty" gen:"string"`
+}
+
+type AiParamsInnerDialogScorecard struct {
+	Dials   []any `json:"dials,omitempty" gen:"list<any>"`
+	Replace any   `json:"replace,omitempty" gen:"union<bool,string>"`
+}
+
+type AiParamsRealtime struct {
+	InputTranscription   string `json:"input_transcription,omitempty" gen:"string"`
+	LocalVad             any    `json:"local_vad,omitempty" gen:"union<bool,string>"`
+	LocalVadFrameMs      any    `json:"local_vad_frame_ms,omitempty" gen:"union<float,string>"`
+	LocalVadThreshold    any    `json:"local_vad_threshold,omitempty" gen:"union<float,string>"`
+	NoiseReduction       string `json:"noise_reduction,omitempty" gen:"string"`
+	PacketsPerSend       any    `json:"packets_per_send,omitempty" gen:"union<float,string>"`
+	ReasoningEffort      string `json:"reasoning_effort,omitempty" gen:"string"`
+	Speed                any    `json:"speed,omitempty" gen:"union<float,string>"`
+	Temperature          any    `json:"temperature,omitempty" gen:"union<float,string>"`
+	ToolModel            string `json:"tool_model,omitempty" gen:"string"`
+	VadEagerness         string `json:"vad_eagerness,omitempty" gen:"string"`
+	VadPrefixPaddingMs   any    `json:"vad_prefix_padding_ms,omitempty" gen:"union<float,string>"`
+	VadSilenceDurationMs any    `json:"vad_silence_duration_ms,omitempty" gen:"union<float,string>"`
+	VadThreshold         any    `json:"vad_threshold,omitempty" gen:"union<float,string>"`
+	VadType              string `json:"vad_type,omitempty" gen:"string"`
+	Voice                string `json:"voice,omitempty" gen:"string"`
+}
+
+type AiParamsToolResultDistill struct {
+	Enabled  any     `json:"enabled,omitempty" gen:"union<bool,string>"`
+	MinChars float64 `json:"min_chars,omitempty" gen:"float"`
+	Model    string  `json:"model,omitempty" gen:"string"`
+	Prompt   string  `json:"prompt,omitempty" gen:"string"`
+}
+
+// AiPostPrompt The final set of instructions and configuration settings to send to the agent.
+type AiPostPrompt struct {
+	FrequencyPenalty    any                    `json:"frequency_penalty,omitempty" gen:"any"`
+	MaxCompletionTokens float64                `json:"max_completion_tokens,omitempty" gen:"float"`
+	MaxTokens           float64                `json:"max_tokens,omitempty" gen:"float"`
+	Model               string                 `json:"model,omitempty" gen:"string"`
+	Pom                 []*AiPostPromptPomItem `json:"pom,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiPostPromptPomItem>"`
+	PresencePenalty     any                    `json:"presence_penalty,omitempty" gen:"any"`
+	ReasoningEffort     string                 `json:"reasoning_effort,omitempty" gen:"string"`
+	Temperature         float64                `json:"temperature,omitempty" gen:"float"`
+	Text                string                 `json:"text,omitempty" gen:"string"`
+	TopP                float64                `json:"top_p,omitempty" gen:"float"`
+	Verbosity           string                 `json:"verbosity,omitempty" gen:"string"`
+}
+
+// AiPostPromptPomItem Without one of `body` / `bullets` / `subsections`, the element has no effect: it is accepted and ignored, not rejected.
+type AiPostPromptPomItem struct {
+	Title           string `json:"title,omitempty" gen:"string"`
+	Body            string `json:"body,omitempty" gen:"string"`
+	Bullets         []any  `json:"bullets,omitempty" gen:"list<any>"`
+	Numbered        bool   `json:"numbered,omitempty" gen:"bool"`
+	NumberedBullets bool   `json:"numberedBullets,omitempty" gen:"bool"`
+	Subsections     []any  `json:"subsections,omitempty" gen:"list<any>"`
+}
+
+// AiPrompt Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations.
+type AiPrompt struct {
+	Contexts            map[string]*Context `json:"contexts,omitempty" gen:"dict<string,class:signalwire.core.swml_verbs_generated.Context>"`
+	FrequencyPenalty    any                 `json:"frequency_penalty,omitempty" gen:"any"`
+	MaxCompletionTokens float64             `json:"max_completion_tokens,omitempty" gen:"float"`
+	MaxTokens           float64             `json:"max_tokens,omitempty" gen:"float"`
+	Model               string              `json:"model,omitempty" gen:"string"`
+	Pom                 []*AiPromptPomItem  `json:"pom,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AiPromptPomItem>"`
+	PresencePenalty     any                 `json:"presence_penalty,omitempty" gen:"any"`
+	ReasoningEffort     string              `json:"reasoning_effort,omitempty" gen:"string"`
+	Steps               []*Step             `json:"steps,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.Step>"`
+	Temperature         float64             `json:"temperature,omitempty" gen:"float"`
+	Text                string              `json:"text,omitempty" gen:"string"`
+	TopP                float64             `json:"top_p,omitempty" gen:"float"`
+	Verbosity           string              `json:"verbosity,omitempty" gen:"string"`
+}
+
+// AiPromptPomItem Without one of `body` / `bullets` / `subsections`, the element has no effect: it is accepted and ignored, not rejected.
+type AiPromptPomItem struct {
+	Title           string `json:"title,omitempty" gen:"string"`
+	Body            string `json:"body,omitempty" gen:"string"`
+	Bullets         []any  `json:"bullets,omitempty" gen:"list<any>"`
+	Numbered        bool   `json:"numbered,omitempty" gen:"bool"`
+	NumberedBullets bool   `json:"numberedBullets,omitempty" gen:"bool"`
+	Subsections     []any  `json:"subsections,omitempty" gen:"list<any>"`
+}
+
+// AiPronounceItem Without `replace` and `with`, the element has no effect: it is accepted and ignored, not rejected.
+type AiPronounceItem struct {
+	IgnoreCase any    `json:"ignore_case,omitempty" gen:"union<bool,float,string>"`
+	Replace    string `json:"replace,omitempty" gen:"string"`
+	With       string `json:"with,omitempty" gen:"string"`
+}
+
+// AiSidecarConfig Start ai_sidecar mode — live_transcribe with an LLM/SWAIG/MCP loop on top.
+type AiSidecarConfig struct {
+	// SWAIG SWAIG functions and MCP servers available to the sidecar.
+	SWAIG any `json:"SWAIG,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.AiSidecarSWAIG,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Action Summarize the conversation instead of starting a sidecar. When you include `action.summarize`,
+	Action any `json:"action,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// CustomerRole Which leg is the customer, used as the turn-end trigger source. **Default:** `remote-caller`.
+	CustomerRole any `json:"customer_role,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Direction The call legs to observe. Both legs are required — a single-leg value is rejected. When omitted, both legs are observed. **Default:** both legs (`remote-caller` and `local-caller`).
+	Direction any `json:"direction,omitempty" gen:"union<list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// GlobalData A key-value object of data that is available throughout the sidecar session. You can reference it in the prompt with variable expansion, and it is included in the requests sent to your tools.
+	GlobalData any `json:"global_data,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Hints Hints that improve speech recognition of specific terms, such as product names, competitor names, jargon, or customer names. Strongly recommended.
+	Hints any `json:"hints,omitempty" gen:"union<list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Lang The conversation language as a single BCP-47 tag. Sets the speech recognition language and is shared with the model as a hint.
+	Lang any `json:"lang,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Model The model used for the sidecar's advice and its end-of-call summaries. Suggested values: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-4.1-nano`. **Default:** `gpt-4o-mini`.
+	Model any `json:"model,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Params Tuning options for the sidecar.
+	Params any `json:"params,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.AiSidecarParams,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Permissions SWAIG permission overrides. Defaults to all permissions enabled.
+	Permissions any `json:"permissions,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.AiSidecarPermissions,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Prompt The prompt used to write the summary. May be given as a string, or as an object with a `file` key naming a file to read it from. Defaults to `Be helpful.`
+	Prompt any `json:"prompt,omitempty" gen:"union<union<class:signalwire.core.swml_verbs_generated.AiSidecarPrompt,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Url The webhook URL the sidecar POSTs its callbacks to. Receives both transcription events and sidecar callbacks.
+	Url any `json:"url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type AiSidecarSWAIG struct {
+	Defaults   any `json:"defaults,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.AiSidecarSWAIGDefaults,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Functions  any `json:"functions,omitempty" gen:"union<list<union<class:signalwire.core.swml_verbs_generated.AiSidecarSWAIGFunctionsItem,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	McpServers any `json:"mcp_servers,omitempty" gen:"union<list<any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type AiSidecarSWAIGDefaults struct {
+	WebHookAuthPass     any `json:"web_hook_auth_pass,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	WebHookAuthPassword any `json:"web_hook_auth_password,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	WebHookAuthUser     any `json:"web_hook_auth_user,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	WebHookUrl          any `json:"web_hook_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// AiSidecarSWAIGFunctionsItem Without `function`, the element has no effect: it is accepted and ignored, not rejected.
+type AiSidecarSWAIGFunctionsItem struct {
+	Description         any `json:"description,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Function            any `json:"function,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Parameters          any `json:"parameters,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.JsonSchemaUnion,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Purpose             any `json:"purpose,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	WebHookAuthPass     any `json:"web_hook_auth_pass,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	WebHookAuthPassword any `json:"web_hook_auth_password,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	WebHookAuthUser     any `json:"web_hook_auth_user,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	WebHookUrl          any `json:"web_hook_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type AiSidecarParams struct {
+	ActOnChannel        any `json:"act_on_channel,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	AiSummary           any `json:"ai_summary,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	AiSummaryPrompt     any `json:"ai_summary_prompt,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Debug               any `json:"debug,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DebugLevel          any `json:"debug_level,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DeepgramKeyOverride any `json:"deepgram_key_override,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DeepgramUrlOverride any `json:"deepgram_url_override,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	FinalSummary        any `json:"final_summary,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	IdleTimeoutMs       any `json:"idle_timeout_ms,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	LiveEvents          any `json:"live_events,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	MaxHistoryTokens    any `json:"max_history_tokens,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	MaxItersPerTick     any `json:"max_iters_per_tick,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	MinIntervalMs       any `json:"min_interval_ms,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SpeechEngine        any `json:"speech_engine,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SpeechTimeout       any `json:"speech_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SummaryModel        any `json:"summary_model,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	TranscribePrompt    any `json:"transcribe_prompt,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VadSilenceMs        any `json:"vad_silence_ms,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VadThresh           any `json:"vad_thresh,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VerboseUtterances   any `json:"verbose_utterances,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type AiSidecarPermissions struct {
+	SwaigAllowSettings any `json:"swaig_allow_settings,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SwaigAllowSwml     any `json:"swaig_allow_swml,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SwaigSetGlobalData any `json:"swaig_set_global_data,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type AiSidecarPrompt struct {
+	File any `json:"file,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// AmazonBedrockConfig Creates a new Bedrock AI Agent
+type AmazonBedrockConfig struct {
+	// SWAIG An object holding the user-defined functions/endpoints that can be executed during the dialogue. The engine reads two keys off it: `functions`, the array of function definitions, and `defaults`, an object of settings applied to each of them.
+	SWAIG           *AmazonBedrockSWAIG `json:"SWAIG,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AmazonBedrockSWAIG"`
+	AppName         string              `json:"app_name,omitempty" gen:"string"`
+	AssistantName   string              `json:"assistant_name,omitempty" gen:"string"`
+	AssistantPrompt string              `json:"assistant_prompt,omitempty" gen:"string"`
+	ConversationId  string              `json:"conversation_id,omitempty" gen:"string"`
+	// GlobalData A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script
+	GlobalData     map[string]any               `json:"global_data,omitempty" gen:"dict<string,any>"`
+	GreetingPrompt *AmazonBedrockGreetingPrompt `json:"greeting_prompt,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AmazonBedrockGreetingPrompt"`
+	// Params A JSON object containing parameters as key-value pairs.
+	Params *AmazonBedrockParams `json:"params,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AmazonBedrockParams"`
+	// PostPrompt The final set of instructions and configuration settings to send to the agent.
+	PostPrompt *AmazonBedrockPostPrompt `json:"post_prompt,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AmazonBedrockPostPrompt"`
+	// PostPromptUrl The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`.
+	PostPromptUrl string `json:"post_prompt_url,omitempty" gen:"string"`
+	// Prompt Establishes the initial set of instructions and settings to configure the agent.
+	Prompt               *AmazonBedrockPrompt `json:"prompt,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AmazonBedrockPrompt"`
+	TranscriptWebhookUrl string               `json:"transcript_webhook_url,omitempty" gen:"string"`
+}
+
+// AmazonBedrockSWAIG An object holding the user-defined functions/endpoints that can be executed during the dialogue. The engine reads two keys off it: `functions`, the array of function definitions, and `defaults`, an object of settings applied to each of them.
+type AmazonBedrockSWAIG struct {
+	Defaults  *AmazonBedrockSWAIGDefaults        `json:"defaults,omitempty" gen:"class:signalwire.core.swml_verbs_generated.AmazonBedrockSWAIGDefaults"`
+	Functions []*AmazonBedrockSWAIGFunctionsItem `json:"functions,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AmazonBedrockSWAIGFunctionsItem>"`
+}
+
+type AmazonBedrockSWAIGDefaults struct {
+	WebHookUrl string `json:"web_hook_url,omitempty" gen:"string"`
+}
+
+// AmazonBedrockSWAIGFunctionsItem Without `description` and `function`, `SWAIG` (checked only where amazon_bedrock discards the result) has no effect: it is accepted and ignored, not rejected.
+type AmazonBedrockSWAIGFunctionsItem struct {
+	Description   string         `json:"description,omitempty" gen:"string"`
+	DataMap       *DataMap       `json:"data_map,omitempty" gen:"class:signalwire.core.swml_verbs_generated.DataMap"`
+	Function      string         `json:"function,omitempty" gen:"string"`
+	MetaData      map[string]any `json:"meta_data,omitempty" gen:"dict<string,any>"`
+	MetaDataToken string         `json:"meta_data_token,omitempty" gen:"string"`
+	Parameters    *JsonSchema    `json:"parameters,omitempty" gen:"class:signalwire.core.swml_verbs_generated.JsonSchema"`
+	WebHookUrl    string         `json:"web_hook_url,omitempty" gen:"string"`
+}
+
+type AmazonBedrockGreetingPrompt struct {
+	Role string `json:"role,omitempty" gen:"string"`
+	Text string `json:"text,omitempty" gen:"string"`
+}
+
+// AmazonBedrockParams A JSON object containing parameters as key-value pairs.
+type AmazonBedrockParams struct {
+	// AttentionTimeout Effective range 1000..60000 (0 is also accepted). A value outside it is ignored by the engine rather than rejected.
+	AttentionTimeout        any    `json:"attention_timeout,omitempty" gen:"union<float,string>"`
+	CompactConversationTime string `json:"compact_conversation_time,omitempty" gen:"string"`
+	CompactStrategy         string `json:"compact_strategy,omitempty" gen:"string"`
+	// HardStopPrompt The default applies only when `hard_stop_time` enables it; otherwise the value stays unset.
+	HardStopPrompt string `json:"hard_stop_prompt,omitempty" gen:"string"`
+	HardStopTime   string `json:"hard_stop_time,omitempty" gen:"string"`
+	// InactivityTimeout Effective range 10000..3600000 (0 is also accepted). A value outside it is ignored by the engine rather than rejected.
+	InactivityTimeout  any    `json:"inactivity_timeout,omitempty" gen:"union<float,string>"`
+	VideoIdleFile      string `json:"video_idle_file,omitempty" gen:"string"`
+	VideoListeningFile string `json:"video_listening_file,omitempty" gen:"string"`
+	VideoTalkingFile   string `json:"video_talking_file,omitempty" gen:"string"`
+}
+
+// AmazonBedrockPostPrompt The final set of instructions and configuration settings to send to the agent.
+type AmazonBedrockPostPrompt struct {
+	Pom  []*AmazonBedrockPostPromptPomItem `json:"pom,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AmazonBedrockPostPromptPomItem>"`
+	Text string                            `json:"text,omitempty" gen:"string"`
+}
+
+// AmazonBedrockPostPromptPomItem Without one of `body` / `bullets` / `subsections`, the element has no effect: it is accepted and ignored, not rejected.
+type AmazonBedrockPostPromptPomItem struct {
+	Title           string `json:"title,omitempty" gen:"string"`
+	Body            string `json:"body,omitempty" gen:"string"`
+	Bullets         []any  `json:"bullets,omitempty" gen:"list<any>"`
+	Numbered        bool   `json:"numbered,omitempty" gen:"bool"`
+	NumberedBullets bool   `json:"numberedBullets,omitempty" gen:"bool"`
+	Subsections     []any  `json:"subsections,omitempty" gen:"list<any>"`
+}
+
+// AmazonBedrockPrompt Establishes the initial set of instructions and settings to configure the agent.
+type AmazonBedrockPrompt struct {
+	Pom         []*AmazonBedrockPromptPomItem `json:"pom,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.AmazonBedrockPromptPomItem>"`
+	Temperature any                           `json:"temperature,omitempty" gen:"union<float,string>"`
+	Text        string                        `json:"text,omitempty" gen:"string"`
+	TopP        any                           `json:"top_p,omitempty" gen:"union<float,string>"`
+	VoiceId     string                        `json:"voice_id,omitempty" gen:"string"`
+}
+
+// AmazonBedrockPromptPomItem Without one of `body` / `bullets` / `subsections`, the element has no effect: it is accepted and ignored, not rejected.
+type AmazonBedrockPromptPomItem struct {
+	Title           string `json:"title,omitempty" gen:"string"`
+	Body            string `json:"body,omitempty" gen:"string"`
+	Bullets         []any  `json:"bullets,omitempty" gen:"list<any>"`
+	Numbered        bool   `json:"numbered,omitempty" gen:"bool"`
+	NumberedBullets bool   `json:"numberedBullets,omitempty" gen:"bool"`
+	Subsections     []any  `json:"subsections,omitempty" gen:"list<any>"`
+}
+
+// AnswerConfig Answer incoming call and set an optional maximum duration.
+type AnswerConfig struct {
+	// Codecs Comma-separated string of codecs to offer. Valid codecs are: PCMU, PCMA, G722, G729, AMR-WB, OPUS, VP8, H264.
+	Codecs any `json:"codecs,omitempty" gen:"union<union<string,list<string>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MaxDuration Maximum duration in seconds for the call. Defaults to `14400` seconds (4 hours).
+	MaxDuration any `json:"max_duration,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Password Password to use for SIP authentication.
+	Password any `json:"password,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Username Username to use for SIP authentication.
+	Username any `json:"username,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 }
 
 // BindDigitConfig Bind DTMF digit actions.
@@ -595,6 +1312,12 @@ type ClearDigitBindingsConfig struct {
 	Realm string `json:"realm,omitempty" gen:"string"`
 }
 
+type CondItem struct {
+	Else []*SWMLMethod `json:"else,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.SWMLMethod>"`
+	Then []*SWMLMethod `json:"then,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.SWMLMethod>"`
+	When string        `json:"when,omitempty" gen:"string"`
+}
+
 // ConnectConfig Dial a SIP URI or phone number.
 type ConnectConfig struct {
 	// AnswerOnBridge Delay answer until the B-leg answers.
@@ -606,9 +1329,9 @@ type ConnectConfig struct {
 	CallStateUrl any `json:"call_state_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	Codec        any `json:"codec,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// Codecs Comma-separated string of codecs to offer.
-	Codecs any `json:"codecs,omitempty" gen:"union<union<string,list<dict<string,any>>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Codecs any `json:"codecs,omitempty" gen:"union<union<string,list<any>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// Confirm Confirmation to execute when the call is connected. Can be either:
-	Confirm any `json:"confirm,omitempty" gen:"union<union<string,list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,dict<string,any>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Confirm any `json:"confirm,omitempty" gen:"union<union<string,list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.ConnectConfirm>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// ConfirmTimeout The amount of time, in seconds, to wait for the `confirm` URL to return a response
 	ConfirmTimeout   any `json:"confirm_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	CustomParameters any `json:"custom_parameters,omitempty" gen:"union<dict<string,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
@@ -630,9 +1353,9 @@ type ConnectConfig struct {
 	Password any `json:"password,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	Realtime any `json:"realtime,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// Result Action to take based on the result of the call. This will run once the peer leg of the call has ended.
-	Result any `json:"result,omitempty" gen:"union<list<dict<string,any>>,dict<string,any>>"`
+	Result any `json:"result,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.ConnectResultItem>,class:signalwire.core.swml_verbs_generated.ConnectResult>"`
 	// Ringback Ringback to play while the call is connecting: a URL, a list of URLs, or a play object (`url` / `urls` / `volume`). `false` turns the generated ringback off and passes the far end's early media through. If not specified, plays audio from the provider.
-	Ringback any `json:"ringback,omitempty" gen:"union<bool,string,list<any>,class:signalwire.core.swml_verbs_generated.RingbackConfig>"`
+	Ringback any `json:"ringback,omitempty" gen:"union<bool,string,list<string>,class:signalwire.core.swml_verbs_generated.RingbackConfig>"`
 	// Serial Array of destination objects to dial in order. Each destination is tried sequentially — if the current destination does not answer, the next one in the array is attempted.
 	Serial []*ConnectDevice `json:"serial,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.ConnectDevice>"`
 	// SerialParallel Two-dimensional array combining serial and parallel strategies.
@@ -642,7 +1365,7 @@ type ConnectConfig struct {
 	// StatusUrl HTTP or HTTPS URL to deliver connect status events.
 	StatusUrl       any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	StatusUrlMethod any `json:"status_url_method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	StopAllOnReject any `json:"stop_all_on_reject,omitempty" gen:"union<union<list<dict<string,any>>,bool,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	StopAllOnReject any `json:"stop_all_on_reject,omitempty" gen:"union<union<list<any>,bool,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// Timeout Time, in seconds, to wait for the call to be answered.
 	Timeout any `json:"timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 	// To Destination to dial. Can be:
@@ -653,34 +1376,523 @@ type ConnectConfig struct {
 	WebrtcMedia any `json:"webrtc_media,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 }
 
-// DialConfig Dial out to one or more endpoints (deprecated).
-type DialConfig struct {
-	AnswerOnBridge    any                      `json:"answer_on_bridge,omitempty" gen:"union<bool,string>"`
-	CallStateEvents   any                      `json:"call_state_events,omitempty" gen:"union<list<string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	CallStateUrl      any                      `json:"call_state_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Codecs            any                      `json:"codecs,omitempty" gen:"union<union<string,list<dict<string,any>>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Confirm           any                      `json:"confirm,omitempty" gen:"union<union<string,list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,dict<string,any>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	ConfirmTimeout    any                      `json:"confirm_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	DestSwml          any                      `json:"dest_swml,omitempty" gen:"union<string,dict<string,any>,list<dict<string,any>>>"`
-	Encryption        any                      `json:"encryption,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	ExecuteAfterQueue any                      `json:"execute_after_queue,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	From              any                      `json:"from,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	FromName          any                      `json:"from_name,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Headers           []*ConnectSipHeader      `json:"headers,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.ConnectSipHeader>"`
-	MaxDuration       any                      `json:"max_duration,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Parallel          []*ConnectDevice         `json:"parallel,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.ConnectDevice>"`
-	Password          any                      `json:"password,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Result            map[string]any           `json:"result,omitempty" gen:"dict<string,any>"`
-	Ringback          any                      `json:"ringback,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.RingbackConfig,list<any>,string>"`
-	Serial            []*ConnectDevice         `json:"serial,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.ConnectDevice>"`
-	SerialParallel    []*ConnectSerialParallel `json:"serial_parallel,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.ConnectSerialParallel>"`
-	SessionTimeout    any                      `json:"session_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	StatusUrl         any                      `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	StopAllOnReject   any                      `json:"stop_all_on_reject,omitempty" gen:"union<union<list<dict<string,any>>,bool,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Timeout           any                      `json:"timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	To                any                      `json:"to,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	Username          any                      `json:"username,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
-	WebrtcMedia       any                      `json:"webrtc_media,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+type ConnectConfirm struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+type ConnectResultItem struct {
+	Else []*SWMLMethod `json:"else,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.SWMLMethod>"`
+	Then []*SWMLMethod `json:"then,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.SWMLMethod>"`
+	When string        `json:"when,omitempty" gen:"string"`
+}
+
+// ConnectResult Execute different instructions based on a variable's value.
+type ConnectResult struct {
+	// Default Array of SWML methods to execute if no `case` matches. If omitted and no case
+	Default any `json:"default,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.ConnectResultDefault>"`
+	// Case Map of values to arrays of SWML methods to execute. The key is the value to compare
+	Case map[string]any `json:"case,omitempty" gen:"dict<string,union<list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.ConnectResultCaseValue>>"`
+	// Variable Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`).
+	Variable any `json:"variable,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type ConnectResultDefault struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+type ConnectResultCaseValue struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+type ConnectDeviceConfirm struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+// DetectMachineConfig A detection method that combines AMD (Answering Machine Detection) and fax detection.
+type DetectMachineConfig struct {
+	// DetectMessageEnd If `true`, stops detection on beep / end of voicemail greeting. Default `false`.
+	DetectMessageEnd any `json:"detect_message_end,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Detectors Comma-separated string of detectors to enable. Valid values: `amd`, `fax`.
+	Detectors any `json:"detectors,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// EndSilenceTimeout How long to wait for voice to finish. Default `1.0`.
+	EndSilenceTimeout any `json:"end_silence_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// InitialTimeout How long to wait for initial voice before giving up. Default `4.5`.
+	InitialTimeout any `json:"initial_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MachineReadyTimeout How long to wait for voice to finish before firing READY event. Default is `end_silence_timeout`.
+	MachineReadyTimeout any `json:"machine_ready_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MachineVoiceThreshold The number of seconds of ongoing voice activity required to classify as MACHINE. Default `1.25`.
+	MachineVoiceThreshold any `json:"machine_voice_threshold,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MachineWordsThreshold The minimum number of words that must be detected in a single utterance before classifying the call as MACHINE. Default `6`.
+	MachineWordsThreshold any `json:"machine_words_threshold,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl The http(s) URL to deliver detector events to.
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Timeout The max time to run detector. Default `30.0` seconds.
+	Timeout any `json:"timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Tone The tone to detect, will only receive remote side tone. Default `CED`.
+	Tone any `json:"tone,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Wait If false, the detector will run asynchronously and status_url must be set.
+	Wait any `json:"wait,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// EchoConfig Echo audio back to the caller.
+type EchoConfig struct {
+	Timeout any `json:"timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// EnterQueueConfig Place the current call in a named queue where it will wait to be connected to an available agent or resource.
+type EnterQueueConfig struct {
+	ExecuteAfterQueue any `json:"execute_after_queue,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// QueueName Name of the queue to enter. If a queue with this name does not exist, it will be automatically created.
+	QueueName any `json:"queue_name,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl HTTP or HTTPS URL to deliver queue status events. Default not set
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// WaitTime Maximum time in seconds to wait in the queue before timeout. Default `180`
+	WaitTime any `json:"wait_time,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// WaitUrl URL for media to play while waiting in the queue. Default hold music will be played if not set
+	WaitUrl    any `json:"wait_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	WhisperUrl any `json:"whisper_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// ExecuteConfig Execute a specified section or URL as a subroutine, and upon completion, return to the current document.
+type ExecuteConfig struct {
+	// Dest Name of the section to execute. Must reference a section in the current document.
+	Dest any `json:"dest,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Meta User-defined metadata, ignored by SignalWire
+	Meta map[string]any `json:"meta,omitempty" gen:"dict<string,any>"`
+	// OnReturn The list of SWML instructions to be executed when the executed section or URL returns
+	OnReturn any `json:"on_return,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.ExecuteOnReturn>"`
+	// Params Parameters accessible as `params.*` in the called section. Replaces (does not merge with) any outer `params` from the caller.
+	Params any `json:"params,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Result Action to take based on the result of the call. This will run once the peer leg of the call has ended.
+	Result any `json:"result,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.ExecuteResultItem>,class:signalwire.core.swml_verbs_generated.ExecuteResult>"`
+}
+
+type ExecuteOnReturn struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+type ExecuteResultItem struct {
+	Else []*SWMLMethod `json:"else,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.SWMLMethod>"`
+	Then []*SWMLMethod `json:"then,omitempty" gen:"list<class:signalwire.core.swml_verbs_generated.SWMLMethod>"`
+	When string        `json:"when,omitempty" gen:"string"`
+}
+
+// ExecuteResult Execute different instructions based on a variable's value.
+type ExecuteResult struct {
+	// Default Array of SWML methods to execute if no `case` matches. If omitted and no case
+	Default any `json:"default,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.ExecuteResultDefault>"`
+	// Case Map of values to arrays of SWML methods to execute. The key is the value to compare
+	Case map[string]any `json:"case,omitempty" gen:"dict<string,union<list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.ExecuteResultCaseValue>>"`
+	// Variable Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`).
+	Variable any `json:"variable,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type ExecuteResultDefault struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+type ExecuteResultCaseValue struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+// ExecuteRpcConfig Execute a remote procedure call.
+type ExecuteRpcConfig struct {
+	CallId any `json:"call_id,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Method any `json:"method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	NodeId any `json:"node_id,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Params any `json:"params,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// GotoConfig Jump to a label, optionally based on a condition.
+type GotoConfig struct {
+	// Label Label to jump to. Must reference a `label` step in the current section or in a section that encloses it.
+	Label any `json:"label,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Max Maximum number of times this `goto` can jump to its label. Once the limit is reached,
+	Max any `json:"max,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// When A JavaScript condition that determines whether to perform the jump. If the condition evaluates to true, the jump is executed. If omitted, the jump is unconditional.
+	When any `json:"when,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// HangupConfig End the call with an optional reason.
+type HangupConfig struct {
+	// Reason The reason for hanging up the call.
+	Reason any `json:"reason,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// JoinConferenceConfig Join an ad-hoc audio conference.
+type JoinConferenceConfig struct {
+	// Beep Sets the behavior of the beep sound when joining or leaving the conference. Default `\"true\"`.
+	Beep any `json:"beep,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Coach Coach accepts a call SID of a call that is currently connected to an in-progress conference.
+	Coach           any `json:"coach,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	EmitCallQuality any `json:"emit_call_quality,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// EndOnExit Ends the conference when the main participant leaves. This means the end action will not wait on more participants to leave before ending. Default `false`.
+	EndOnExit any `json:"end_on_exit,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MaxParticipants The maximum number of participants allowed in the conference. If the limit is reached, new participants will not be able to join. Default `100000`.
+	MaxParticipants any `json:"max_participants,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Meta            any `json:"meta,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.JoinConferenceMeta,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	MinParticipants any `json:"min_participants,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Muted Whether to join the conference in a muted state. If set to `true`, the participant will be muted upon joining. Default `false`.
+	Muted any `json:"muted,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Name A friendly name to identify the stream at the WebSocket endpoint. Default not set
+	Name any `json:"name,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Record Enables or disables recording of the conference. Default `\"do-not-record\"`.
+	Record any `json:"record,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// RecordingStatusCallback The URL to which recording status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set
+	RecordingStatusCallback any `json:"recording_status_callback,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// RecordingStatusCallbackEvent Space-separated list of one or more events to send to the recording status callback URL.
+	RecordingStatusCallbackEvent any `json:"recording_status_callback_event,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// RecordingStatusCallbackEventType The content type used when sending recording status events to the recording status callback URL. Defaults to `relay`. An unlisted value is rejected rather than falling back to the default.
+	RecordingStatusCallbackEventType any `json:"recording_status_callback_event_type,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// RecordingStatusCallbackMethod The HTTP method to use when sending recording status events to the recording status callback URL. Default `\"POST\"`.
+	RecordingStatusCallbackMethod any `json:"recording_status_callback_method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Region Specifies the geographical region where the conference will be hosted. Default not set
+	Region any `json:"region,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StartOnEnter Starts the conference when the main participant joins. This means the start action will not wait on more participants to join before starting. Default `true`.
+	StartOnEnter any `json:"start_on_enter,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusCallback The URL to which status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set
+	StatusCallback any `json:"status_callback,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusCallbackEvent Space-separated list of one or more events to send to the status callback URL.
+	StatusCallbackEvent any `json:"status_callback_event,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusCallbackEventType The content type used when sending status events to the status callback URL. Default not set
+	StatusCallbackEventType any `json:"status_callback_event_type,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusCallbackMethod The HTTP method to use when sending status events to the status callback URL. Default `\"POST\"`.
+	StatusCallbackMethod any `json:"status_callback_method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Stream Attach a bidirectional WebSocket stream to the conference. Conference audio is streamed to
+	Stream any `json:"stream,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.CallDeviceStream,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Trim If set to `trim-silence`, it will remove silence from the start of the recording. If set to `do-not-trim`, it will keep the silence. Default `\"trim-silence\"`.
+	Trim         any `json:"trim,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Video        any `json:"video,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VideoLayout  any `json:"video_layout,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VideoPreview any `json:"video_preview,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VideoQuality any `json:"video_quality,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// WaitUrl A URL that will play media when the conference is put on hold. Default hold music will be played if not set
+	WaitUrl any `json:"wait_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type JoinConferenceMeta struct {
+	Private any `json:"private,omitempty" gen:"any"`
+	Public  any `json:"public,omitempty" gen:"any"`
+}
+
+// JoinRoomConfig Join a RELAY room. If the room doesn't exist, it creates a new room.
+type JoinRoomConfig struct {
+	// Name Name of the room to join. Allowed characters: A-Z, a-z, 0-9, underscore, and hyphen.
+	Name any `json:"name,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// LabelConfig Mark any point of the SWML section with a label so that goto can jump to it.
+type LabelConfig struct {
+	// Label Mark any point of the SWML section with a label so that `goto` can jump to it. Must be
+	Label string `json:"label,omitempty" gen:"string"`
+}
+
+// LiveTranscribeConfig Start live transcription of the call. The transcription will be sent to the specified webhook URL.
+type LiveTranscribeConfig struct {
+	// Action The action to perform during live transcription.
+	Action any `json:"action,omitempty" gen:"union<union<string,class:signalwire.core.swml_verbs_generated.LiveTranscribeAction>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Hints  any `json:"hints,omitempty" gen:"union<list<union<union<class:signalwire.core.swml_verbs_generated.LiveTranscribeHintsItem,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type LiveTranscribeAction struct {
+	Start     any `json:"start,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.LiveTranscribeActionStart,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Stop      any `json:"stop,omitempty" gen:"any"`
+	Summarize any `json:"summarize,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.LiveTranscribeActionSummarize,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// LiveTranscribeActionStart Without `direction` and `lang`, `action` (checked only where live_transcribe discards the result) has no effect: it is accepted and ignored, not rejected.
+type LiveTranscribeActionStart struct {
+	AiSummary           any `json:"ai_summary,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	AiSummaryPrompt     any `json:"ai_summary_prompt,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DebugLevel          any `json:"debug_level,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DeepgramKeyOverride any `json:"deepgram_key_override,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DeepgramUrlOverride any `json:"deepgram_url_override,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Direction           any `json:"direction,omitempty" gen:"union<list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Hints               any `json:"hints,omitempty" gen:"union<list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Lang                any `json:"lang,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	LiveEvents          any `json:"live_events,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SpeechEngine        any `json:"speech_engine,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SpeechTimeout       any `json:"speech_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VadSilenceMs        any `json:"vad_silence_ms,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VadThresh           any `json:"vad_thresh,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VerboseUtterances   any `json:"verbose_utterances,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Webhook             any `json:"webhook,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type LiveTranscribeActionSummarize struct {
+	AiModel       any `json:"ai_model,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Prompt        any `json:"prompt,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SummaryPrompt any `json:"summary_prompt,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Webhook       any `json:"webhook,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type LiveTranscribeHintsItem struct {
+	Pattern    any `json:"pattern,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Hint       any `json:"hint,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	IgnoreCase any `json:"ignore_case,omitempty" gen:"union<union<bool,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Replace    any `json:"replace,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// LiveTranslateConfig Start live translation of the call. The translation will be sent to the specified webhook URL.
+type LiveTranslateConfig struct {
+	// Action The action to perform during live translation.
+	Action any `json:"action,omitempty" gen:"union<union<string,class:signalwire.core.swml_verbs_generated.LiveTranslateAction>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type LiveTranslateAction struct {
+	Inject    any `json:"inject,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.LiveTranslateActionInject,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Start     any `json:"start,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.LiveTranslateActionStart,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Stop      any `json:"stop,omitempty" gen:"any"`
+	Summarize any `json:"summarize,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.LiveTranslateActionSummarize,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// LiveTranslateActionInject Without `direction` and `message`, `action` (checked only where live_translate discards the result) has no effect: it is accepted and ignored, not rejected.
+type LiveTranslateActionInject struct {
+	Direction any `json:"direction,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Message   any `json:"message,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// LiveTranslateActionStart Without `direction`, `from_lang` and `to_lang`, `action` (checked only where live_translate discards the result) has no effect: it is accepted and ignored, not rejected.
+type LiveTranslateActionStart struct {
+	AiSummary              any `json:"ai_summary,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	AiSummaryPrompt        any `json:"ai_summary_prompt,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DebugLevel             any `json:"debug_level,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DeepgramKeyOverride    any `json:"deepgram_key_override,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	DeepgramUrlOverride    any `json:"deepgram_url_override,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Direction              any `json:"direction,omitempty" gen:"union<list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	FilterFrom             any `json:"filter_from,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	FilterTo               any `json:"filter_to,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	FromLang               any `json:"from_lang,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	FromVoice              any `json:"from_voice,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	FromVoiceParams        any `json:"from_voice_params,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	LiveEvents             any `json:"live_events,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Mode                   any `json:"mode,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SpeechEngine           any `json:"speech_engine,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SpeechTimeout          any `json:"speech_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	ToLang                 any `json:"to_lang,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	ToVoice                any `json:"to_voice,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	ToVoiceParams          any `json:"to_voice_params,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	TranslationModel       any `json:"translation_model,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	TranslationModelParams any `json:"translation_model_params,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VadSilenceMs           any `json:"vad_silence_ms,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	VadThresh              any `json:"vad_thresh,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Webhook                any `json:"webhook,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type LiveTranslateActionSummarize struct {
+	Prompt        any `json:"prompt,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SummaryPrompt any `json:"summary_prompt,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Webhook       any `json:"webhook,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// PayConfig Enables secure payment processing during voice calls. When implemented, it manages the entire payment flow
+type PayConfig struct {
+	// Description Custom description of the payment provided in the request.
+	Description     any `json:"description,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	BankAccountType any `json:"bank_account_type,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// ChargeAmount The amount to charge against payment method passed in the request. `Float` value with no currency prefix passed as string.
+	ChargeAmount any `json:"charge_amount,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Currency Uses the ISO 4217 currency code of the charge amount.
+	Currency any `json:"currency,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Input The method of how to collect the payment details. Currently only `dtmf` mode is supported.
+	Input any `json:"input,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Language Language to use for prompts being played to the caller by the `pay` method.
+	Language any `json:"language,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MaxAttempts Number of times the `pay` method will retry to collect payment details.
+	MaxAttempts any `json:"max_attempts,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MinPostalCodeLength The minimum length of the postal code the user must enter.
+	MinPostalCodeLength any `json:"min_postal_code_length,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Parameters Array of parameter objects to pass to your payment processor. The parameters are user-defined key-value pairs.
+	Parameters any `json:"parameters,omitempty" gen:"union<list<union<class:signalwire.core.swml_verbs_generated.CallPayParameters,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// PaymentConnectorUrl The URL to make POST requests with all the gathered payment details.
+	PaymentConnectorUrl any `json:"payment_connector_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// PaymentMethod Indicates the payment method which is going to be used in this payment request, `credit-card` or `ach-debit`. Default is `credit-card`.
+	PaymentMethod any `json:"payment_method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// PostalCode Takes `true`, `false` or real postalcode (if it's known beforehand) to let pay method know whether to prompt for postal code. Default is `true`.
+	PostalCode any `json:"postal_code,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Prompts Array of prompt objects for customizing the audio prompts during different stages of the payment process.
+	Prompts  any `json:"prompts,omitempty" gen:"union<list<union<class:signalwire.core.swml_verbs_generated.CallPayPrompts,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	SayVoice any `json:"say_voice,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SecurityCode Takes true or false to let pay method know whether to prompt for security code.
+	SecurityCode any `json:"security_code,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl The URL to send requests for each status change during the payment process.
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Timeout Limit in seconds that pay method waits for the caller to press another digit before moving on to validate the digits captured.
+	Timeout any `json:"timeout,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// TokenType Whether the payment is a one off payment or re-occurring.
+	TokenType any `json:"token_type,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// ValidCardTypes List of payment cards allowed to use in the requested payment process separated by space.
+	ValidCardTypes any `json:"valid_card_types,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Voice Text-to-speech voice to use. Please refer to [TTS documentation](/docs/platform/voice/tts) for more information.
+	Voice any `json:"voice,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// PlayConfig Play file(s), ringtones, speech or silence.
+type PlayConfig struct {
+	// AutoAnswer If `true`, the call will automatically answer as the sound is playing. If `false`, you will start playing the audio during early media. Default `true`.
+	AutoAnswer any `json:"auto_answer,omitempty" gen:"union<union<bool,string>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Loop       any `json:"loop,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SayGender Gender to use for the text to speech.
+	SayGender any `json:"say_gender,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SayLanguage The language to use for the text to speech.
+	SayLanguage any `json:"say_language,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SayVoice The voice to use for the text to speech.
+	SayVoice any `json:"say_voice,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl http or https URL to deliver play status events
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Url URL to play.
+	Url string `json:"url,omitempty" gen:"string"`
+	// Urls Array of URLs to play.
+	Urls []string `json:"urls,omitempty" gen:"list<string>"`
+	// Volume Volume level for the audio file.
+	Volume any `json:"volume,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// PromptConfig Play a prompt and wait for input. The input can be received either as digits from the keypad,
+type PromptConfig struct {
+	// DigitTimeout Time in seconds to wait for next digit.
+	DigitTimeout any `json:"digit_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// InitialTimeout Time in seconds to wait for start of input.
+	InitialTimeout any `json:"initial_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MaxDigits Number of digits to collect.
+	MaxDigits any `json:"max_digits,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Play URL or array of URLs to play.
+	Play any `json:"play,omitempty" gen:"union<class:signalwire.core.swml_verbs_generated.RingbackConfig,list<string>,string>"`
+	// SayGender The gender to use for the text to speech.
+	SayGender any `json:"say_gender,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SayLanguage The language to use for the text to speech.
+	SayLanguage any `json:"say_language,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SayVoice The voice to use for the text to speech.
+	SayVoice any `json:"say_voice,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SpeechEndTimeout Time in seconds to wait for end of speech utterance.
+	SpeechEndTimeout any `json:"speech_end_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SpeechEngine The engine that is selected for speech recognition. The engine must support the specified language.
+	SpeechEngine any `json:"speech_engine,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SpeechHints Expected words or phrases to help the speech recognition.
+	SpeechHints []string `json:"speech_hints,omitempty" gen:"list<string>"`
+	// SpeechLanguage Language to detect speech in.
+	SpeechLanguage any `json:"speech_language,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SpeechTimeout Max time in seconds to wait for speech result.
+	SpeechTimeout any `json:"speech_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl http or https URL to deliver prompt status events
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Terminators Digits that terminate digit collection.
+	Terminators any    `json:"terminators,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Url         string `json:"url,omitempty" gen:"string"`
+	// Volume Volume level for the audio file.
+	Volume any `json:"volume,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// ReceiveFaxConfig Receive a fax being delivered to this call.
+type ReceiveFaxConfig struct {
+	// StatusUrl http or https URL to deliver receive_fax status events
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// RecordConfig Record the call audio in the foreground, pausing further SWML execution until recording ends.
+type RecordConfig struct {
+	// Format The format to record in. Can be `wav`, `mp3`, or `mp4`.
+	Format any `json:"format,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Beep Play a beep before recording.
+	Beep any `json:"beep,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Direction Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says.
+	Direction any `json:"direction,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// EndSilenceTimeout Time in seconds to wait in silence before ending the recording.
+	EndSilenceTimeout any `json:"end_silence_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// InitialTimeout Time in seconds to wait for the start of speech.
+	InitialTimeout any `json:"initial_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// InputSensitivity How sensitive the recording voice activity detector is to background noise.
+	InputSensitivity any `json:"input_sensitivity,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MaxLength Maximum length of the recording in seconds.
+	MaxLength any `json:"max_length,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl URL to send recording status events to.
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Stereo If true, record in stereo.
+	Stereo any `json:"stereo,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Terminators String of digits that will stop the recording when pressed. Default is `\"#\"`.
+	Terminators any `json:"terminators,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// RecordCallConfig Record call in the background.
+type RecordCallConfig struct {
+	// Format The format to record in. It can be `wav`, `mp3`, or `mp4`.
+	Format any `json:"format,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Beep Play a beep before recording.
+	Beep any `json:"beep,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// ControlId Identifier for this recording, to use with `stop_record_call`.
+	ControlId any `json:"control_id,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Direction Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says.
+	Direction any `json:"direction,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// EndSilenceTimeout Time in seconds to wait in silence before ending the recording. Must be at least `1`; `0` and fractional values below `1` are rejected.
+	EndSilenceTimeout any `json:"end_silence_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// InitialTimeout Time in seconds to wait for the start of speech. Must be at least `1`; `0` and fractional values below `1` are rejected.
+	InitialTimeout any `json:"initial_timeout,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// InputSensitivity How sensitive the recording voice activity detector is to background noise.
+	InputSensitivity any `json:"input_sensitivity,omitempty" gen:"union<float,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// MaxLength Maximum length of the recording in seconds.
+	MaxLength any `json:"max_length,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl http or https URL to deliver record_call status events
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Stereo If `true`, record in stereo.
+	Stereo any `json:"stereo,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Terminators String of digits that will stop the recording when pressed. Default is `\"\"` (empty).
+	Terminators any `json:"terminators,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// RequestConfig Send a GET, POST, PUT, or DELETE request to a remote URL.
+type RequestConfig struct {
+	// Body Request body. Objects are JSON-encoded automatically.
+	Body any `json:"body,omitempty" gen:"union<dict<string,any>,list<any>,string,float,bool>"`
+	// ConnectTimeout Maximum time in seconds to wait for a connection. Defaults to `5` when the key is absent, and is clamped to a maximum of `30`. Fractional input is truncated to an integer.
+	ConnectTimeout any `json:"connect_timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Headers HTTP headers to include with the request, as a map of header name to value. Each value must be a string.
+	Headers map[string]any `json:"headers,omitempty" gen:"dict<string,any>"`
+	// Method The HTTP method to be used for the request. Can be `GET`, `POST`, `PUT`, or `DELETE`.
+	Method any `json:"method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// SaveVariables If `true`, parse the JSON response into `request_response.*` variables.
+	SaveVariables any `json:"save_variables,omitempty" gen:"union<bool,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Timeout Timeout in seconds. Defaults to `5` when the key is absent, and is clamped to a maximum of `30`. Fractional input is truncated to an integer.
+	Timeout any `json:"timeout,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Url Endpoint to call. Must be a publicly reachable URL.
+	Url any `json:"url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// SipReferConfig Send SIP REFER to a SIP call.
+type SipReferConfig struct {
+	// Password Password to use for SIP authentication.
+	Password any `json:"password,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl The HTTP or HTTPS URL to send status callback events to.
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	To        any `json:"to,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// ToUri The SIP URI to send the REFER to.
+	ToUri any `json:"to_uri,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Username Username to use for SIP authentication.
+	Username any `json:"username,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// SendDigitsConfig Send digit presses as DTMF tones.
+type SendDigitsConfig struct {
+	// Digits The digits to send. Valid values are 0123456789*#ABCDWw. Character W is a 1 second delay, and w is a 500ms delay.
+	Digits any `json:"digits,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// SendFaxConfig Send a fax.
+type SendFaxConfig struct {
+	// Document URL to the PDF document to fax.
+	Document any `json:"document,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// HeaderInfo Header text to include on the fax.
+	HeaderInfo any `json:"header_info,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Identity Station identity to report.
+	Identity any `json:"identity,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl http or https URL to deliver send_fax status events
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 }
 
 // SendSmsConfig Send an outbound SMS or MMS message to a PSTN phone number.
@@ -699,4 +1911,118 @@ type SendSmsConfig struct {
 	Tags []string `json:"tags,omitempty" gen:"list<string>"`
 	// ToNumber Phone number to send SMS message to in E.164 format.
 	ToNumber any `json:"to_number,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// SetCapabilitiesConfig Override subscriber capabilities
+type SetCapabilitiesConfig struct {
+	Capabilities any `json:"capabilities,omitempty" gen:"union<list<union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// SetMetaConfig Add customer metadata to call and conference events
+type SetMetaConfig struct {
+	Private any `json:"private,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	Public  any `json:"public,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// SleepConfig Pause execution for a specified duration.
+type SleepConfig struct {
+	// Duration The amount of time to sleep in milliseconds.
+	Duration any `json:"duration,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// StopRecordCallConfig Stop an active background recording.
+type StopRecordCallConfig struct {
+	// ControlId Identifier for the recording to stop.
+	ControlId any `json:"control_id,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// StopStreamConfig Stop streaming call audio.
+type StopStreamConfig struct {
+	// ControlId ID of the stream to stop.
+	ControlId any `json:"control_id,omitempty" gen:"union<any,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// StopTapConfig Stop an active tap stream.
+type StopTapConfig struct {
+	// ControlId ID of the tap to stop.
+	ControlId any `json:"control_id,omitempty" gen:"union<any,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// StreamConfig Stream call audio to a WebSocket endpoint.
+type StreamConfig struct {
+	// AuthorizationBearerToken Bearer token sent as an `Authorization` header during the WebSocket handshake.
+	AuthorizationBearerToken any `json:"authorization_bearer_token,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Codec Codec to use for the streamed audio. Freeform and endpoint-specific.
+	Codec any `json:"codec,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// ControlId Identifier for this stream to use with `stop_stream`. If not set, one is generated and stored in the `stream_control_id` variable.
+	ControlId any `json:"control_id,omitempty" gen:"union<any,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// CustomParameters Custom key-value pairs sent to the WebSocket endpoint in the start message.
+	CustomParameters map[string]any `json:"custom_parameters,omitempty" gen:"dict<string,any>"`
+	// Name Friendly name for the stream.
+	Name any `json:"name,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl HTTP or HTTPS URL to deliver stream status events.
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrlMethod HTTP method used to deliver stream status events to `status_url`.
+	StatusUrlMethod any `json:"status_url_method,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Track Audio track to stream:
+	Track any `json:"track,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Url Secure WebSocket URI (wss://) to stream the call audio to.
+	Url any `json:"url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// SwitchConfig Execute different instructions based on a variable's value.
+type SwitchConfig struct {
+	// Default Array of SWML methods to execute if no `case` matches. If omitted and no case
+	Default any `json:"default,omitempty" gen:"union<list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.SwitchDefault>"`
+	// Case Map of values to arrays of SWML methods to execute. The key is the value to compare
+	Case map[string]any `json:"case,omitempty" gen:"dict<string,union<list<class:signalwire.core.swml_verbs_generated.SWMLMethod>,class:signalwire.core.swml_verbs_generated.SwitchCaseValue>>"`
+	// Variable Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`).
+	Variable any `json:"variable,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+type SwitchDefault struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+type SwitchCaseValue struct {
+	Code map[string]any `json:"code,omitempty" gen:"dict<string,any>"`
+	Meta any            `json:"meta,omitempty" gen:"any"`
+}
+
+// TapConfig Start background call tap. Media is streamed over Websocket or RTP to customer controlled URI.
+type TapConfig struct {
+	// Codec Codec to use for the tap media stream.
+	Codec any `json:"codec,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// ControlId Identifier for this tap to use with `stop_tap`.
+	ControlId any `json:"control_id,omitempty" gen:"union<any,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Direction Direction of the audio to tap:
+	Direction any `json:"direction,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// RtpPtime If `uri` is a `rtp://` this will set the packetization time of the media in milliseconds.
+	RtpPtime any `json:"rtp_ptime,omitempty" gen:"union<int,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// StatusUrl http or https URL to deliver tap status events
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Uri Destination of the tap media stream: rtp://IP:port, ws://example.com, or wss://example.com.
+	Uri any `json:"uri,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// TranscribeConfig Start transcription on the call.
+type TranscribeConfig struct {
+	// StatusUrl An HTTP or HTTPS URL that receives the status callback when the transcription finishes
+	StatusUrl any `json:"status_url,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// TransferConfig Transfer the execution of the script to a different SWML section, URL, or Relay application.
+type TransferConfig struct {
+	// Dest URL (`http` or `https`) to fetch the new SWML document from. Authentication can
+	Dest any `json:"dest,omitempty" gen:"union<string,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+	// Meta User data, ignored by SignalWire.
+	Meta map[string]any `json:"meta,omitempty" gen:"dict<string,any>"`
+	// Params Parameters to include in the request body of the fetch. Available as `params.*` in the transferred document.
+	Params any `json:"params,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
+}
+
+// UserEventConfig Allows the user to set and send events to the connected client on the call.
+type UserEventConfig struct {
+	Event any `json:"event,omitempty" gen:"union<dict<string,any>,class:signalwire.core.swml_verbs_generated.SWMLVar>"`
 }

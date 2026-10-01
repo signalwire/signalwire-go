@@ -41,5 +41,13 @@ type PubSubToken struct {
 }
 
 type PubSubToken422Error struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []PubsubTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type PubsubTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
 }

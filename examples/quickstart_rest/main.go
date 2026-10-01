@@ -35,7 +35,7 @@ func main() {
 
 	if _, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
-		To:   "+15551234567",
+		To:   ptr("+15551234567"),
 		URL:  ptr("https://example.com/call-handler"),
 	}); err != nil {
 		fmt.Printf("Dial failed: %v\n", err)

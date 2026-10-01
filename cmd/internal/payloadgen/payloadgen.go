@@ -48,7 +48,14 @@ type schema struct {
 	Nullable             bool
 	XSDKEnumLiteral      []any
 	XSDKWiden            bool
-	raw                  map[string]any
+	Title                string
+	Deprecated           bool
+	XAPIState            string
+	PrefixItems          []*schema
+	// keys records which keywords the source node carried (presence, not value),
+	// so a presence-only combinator can be recognized (see presenceOnly).
+	keys map[string]bool
+	raw  map[string]any
 }
 
 type propEntry struct {
@@ -68,11 +75,20 @@ func parseSchemaNode(node *yaml.Node) *schema {
 	if node.Kind != yaml.MappingNode {
 		return &schema{}
 	}
-	s := &schema{raw: map[string]any{}}
+	s := &schema{raw: map[string]any{}, keys: map[string]bool{}}
 	for i := 0; i+1 < len(node.Content); i += 2 {
 		key := node.Content[i].Value
 		val := node.Content[i+1]
+		s.keys[key] = true
 		switch key {
+		case "title":
+			s.Title = val.Value
+		case "deprecated":
+			_ = val.Decode(&s.Deprecated)
+		case "x-api-state":
+			s.XAPIState = val.Value
+		case "prefixItems":
+			s.PrefixItems = parseSchemaList(val)
 		case "$ref":
 			s.Ref = val.Value
 		case "type":
@@ -469,6 +485,15 @@ type gen struct {
 	// err is the first cross-file resolution failure seen while building type
 	// expressions. The Emit* entry points return it instead of a source string.
 	err error
+	// refGoPkg qualifies a same-document ref whose Go type lives in ANOTHER Go
+	// package (the SWML file's SwaigResponse/SwaigAction refs -> swaig.X); usedPkgs
+	// records which qualifiers an emission actually used, for the import block.
+	refGoPkg map[string]string
+	usedPkgs map[string]bool
+	// kindDefs resolves $refs for the scalar allOf intersection (scalarKinds); set
+	// only on the SWML-verb path (nil disables the intersection, keeping the SWAIG
+	// outputs on their historical dict fallback — mirrors the reference _kind_defs).
+	kindDefs map[string]*schema
 }
 
 // newGen builds a gen with the cross-file resolver wired to specRoot (the porting-sdk
@@ -537,19 +562,25 @@ func (g *gen) canonicalType(s *schema) string {
 		return g.classRef(g.refName(s.Ref))
 	}
 	if s.Const != nil {
-		return "string"
+		return literalKind(s.Const, "canon")
 	}
 	if len(s.Enum) > 0 {
-		return "string"
+		return literalKind(s.Enum[0], "canon")
 	}
 	if len(s.AllOf) == 1 {
 		return g.canonicalType(s.AllOf[0])
 	}
 	if len(s.AllOf) > 1 {
+		if t, ok := g.scalarAllOfIntersection(s.AllOf); ok {
+			return t
+		}
 		return "dict<string,any>"
 	}
 	if u := union(s); u != nil {
 		return g.canonicalUnion(u)
+	}
+	if s.keys != nil && len(s.keys) == 0 {
+		return "any" // the empty schema admits every value
 	}
 	tl := s.typeList()
 	if len(tl) > 1 {
@@ -592,13 +623,21 @@ func (g *gen) canonicalScalar(s *schema) string {
 	case "null":
 		return "optional<any>"
 	case "array":
+		// A tuple-form array (prefixItems, no items) — a SWML verb's positional-array
+		// body — types its elements as the union of the prefix item types.
+		if len(s.PrefixItems) > 0 && s.Items == nil {
+			var elems []string
+			for _, p := range s.PrefixItems {
+				elems = append(elems, g.canonicalType(p))
+			}
+			return wrap("list<" + dedupUnion(elems) + ">")
+		}
 		return wrap("list<" + g.canonicalType(s.Items) + ">")
 	case "object", "":
 		if len(s.Properties) > 0 {
 			return wrap("dict<string,any>")
 		}
-		if ap, ok := s.AdditionalProperties.(map[string]any); ok {
-			apSch := parseSchemaFromMap(ap)
+		if apSch := additionalSchema(s); apSch != nil {
 			return wrap("dict<string," + g.canonicalType(apSch) + ">")
 		}
 		return wrap("dict<string,any>")
@@ -688,10 +727,21 @@ func (g *gen) goType(s *schema) string {
 		if isWholeFileJSONRef(s.Ref) {
 			return "map[string]any"
 		}
-		return "*" + g.refName(s.Ref)
+		name := g.refName(s.Ref)
+		if pkg, ok := g.refGoPkg[name]; ok {
+			if g.usedPkgs == nil {
+				g.usedPkgs = map[string]bool{}
+			}
+			g.usedPkgs[pkg] = true
+			return "*" + pkg + "." + name
+		}
+		return "*" + name
 	}
-	if s.Const != nil || len(s.Enum) > 0 {
-		return "string"
+	if s.Const != nil {
+		return literalKind(s.Const, "go")
+	}
+	if len(s.Enum) > 0 {
+		return literalKind(s.Enum[0], "go")
 	}
 	if len(s.AllOf) == 1 {
 		return g.goType(s.AllOf[0])
@@ -701,6 +751,9 @@ func (g *gen) goType(s *schema) string {
 	}
 	if union(s) != nil {
 		return "any"
+	}
+	if s.keys != nil && len(s.keys) == 0 {
+		return "any" // the empty schema admits every value
 	}
 	tl := s.typeList()
 	if len(tl) > 1 {
@@ -721,12 +774,24 @@ func (g *gen) goType(s *schema) string {
 		if len(s.Properties) > 0 {
 			return "map[string]any"
 		}
-		if ap, ok := s.AdditionalProperties.(map[string]any); ok {
-			return "map[string]" + g.goType(parseSchemaFromMap(ap))
+		if apSch := additionalSchema(s); apSch != nil {
+			return "map[string]" + g.goType(apSch)
 		}
 		return "map[string]any"
 	}
 	return "any"
+}
+
+// additionalSchema returns the additionalProperties value schema (a decoded map, or
+// a *schema after the SWML hoist rewrote it), or nil.
+func additionalSchema(s *schema) *schema {
+	switch ap := s.AdditionalProperties.(type) {
+	case map[string]any:
+		return parseSchemaFromMap(ap)
+	case *schema:
+		return ap
+	}
+	return nil
 }
 
 func parseSchemaFromMap(m map[string]any) *schema {
@@ -1042,15 +1107,44 @@ var handWrittenVerbs = map[string]bool{
 	"answer": true, "hangup": true, "ai": true, "play": true, "say": true,
 }
 
-// EmitSwmlVerbs mirrors generate_swml_verbs: one decl per schema.json $defs entry
-// (object -> struct; else -> alias) + the flattened <Verb>Config structs from
-// SWMLMethod.anyOf. raw is the schema.json bytes.
+// EmitSwmlVerbs mirrors generate_swml_verbs: the deprecated verbs are dropped
+// (dropDeprecatedSwmlVerbs), inline objects are hoisted to named $defs
+// (hoistInlineObjects), then one decl per $defs entry (object -> struct; else ->
+// alias) — minus the SWAIG envelope types, which pkg/swaig owns — plus a flattened
+// <Verb>Config for a verb body with no single config type. raw is the
+// schema.json bytes.
 func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay, specRoot string) (string, error) {
 	defs, order, err := loadJSONDefs(raw)
 	if err != nil {
 		return "", err
 	}
-	g := newGen(canonModule("swml"), specRoot, nil, ov)
+	defs, order, _ = dropDeprecatedSwmlVerbs(defs, order)
+	verbRoots := map[string]string{}
+	if sm := defs["SWMLMethod"]; sm != nil {
+		for _, arm := range sm.AnyOf {
+			wrapper := refNameRaw(arm.Ref)
+			if w := defs[wrapper]; w != nil && len(w.Properties) > 0 {
+				verbRoots[wrapper] = w.Properties[0].name
+			}
+		}
+	}
+	defs, order = hoistInlineObjects(defs, order, verbRoots)
+
+	present := map[string]bool{}
+	for _, n := range swaigEnvelopeTypes {
+		if defs[n] != nil {
+			present[n] = true
+		}
+	}
+	refModule := map[string]string{}
+	refGoPkg := map[string]string{}
+	for n := range present {
+		refModule[n] = canonModule("swaig_actions")
+		refGoPkg[n] = "swaig"
+	}
+	g := newGen(canonModule("swml"), specRoot, refModule, ov)
+	g.refGoPkg = refGoPkg
+	g.kindDefs = defs
 	var decls []string
 	declared := map[string]bool{}
 	emit := func(name string, s *schema) {
@@ -1061,6 +1155,9 @@ func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay, specRoot string) (string, er
 		decls = append(decls, g.declaration(name, s))
 	}
 	for _, name := range order {
+		if isSwaigEnvelopeOwned(name, present) {
+			continue // declared by pkg/swaig (and its hoisted interiors)
+		}
 		emit(name, defs[name])
 	}
 	if sm := defs["SWMLMethod"]; sm != nil {
@@ -1075,8 +1172,11 @@ func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay, specRoot string) (string, er
 				continue
 			}
 			inner := wdef.Properties[0].sch
-			if inner.typeStr() == "string" || inner.Ref != "" {
+			if inner == nil || inner.typeStr() == "string" {
 				continue
+			}
+			if verbConfigRef(defs, inner) != "" {
+				continue // the hoisted <Verb>Config (or the body's own $ref) is the config
 			}
 			hasInlineProps := inner.typeStr() == "object" && len(inner.Properties) > 0
 			if len(inner.OneOf) == 0 && !hasInlineProps {
@@ -1098,12 +1198,15 @@ func EmitSwmlVerbs(raw []byte, ov *overlay.Overlay, specRoot string) (string, er
 		return "", g.err
 	}
 	body := strings.Join(decls, "\n")
-	src := fmt.Sprintf(genHeaderTmpl,
+	header := fmt.Sprintf(genHeaderTmpl,
 		"generate-swml-verbs",
 		"porting-sdk/schema.json ($defs)",
-		"The typed SWML verb CONFIG surface: one struct per schema.json $defs entry\n// (object -> struct; non-object -> defined-type alias) + the flattened <Verb>Config\n// payload shapes the SWML builder verb methods accept. Open shape; extra keys tolerated.",
-		"swml") + "\n" + body
-	return src, nil
+		"The typed SWML verb CONFIG surface: one struct per schema.json $defs entry\n// (object -> struct; non-object -> defined-type alias), inline objects hoisted to\n// named structs, + the flattened <Verb>Config payload shapes the SWML builder verb\n// methods accept. Deprecated verbs are not emitted. Open shape; extra keys tolerated.",
+		"swml")
+	if g.usedPkgs["swaig"] {
+		header += "\nimport \"github.com/signalwire/signalwire-go/v3/pkg/swaig\"\n"
+	}
+	return header + "\n" + body, nil
 }
 
 // refNameRaw is the RAW (un-typeName'd) final segment of a ref, used to index the SWML
@@ -1164,4 +1267,145 @@ func flattenUnion(defs map[string]*schema, s *schema) []propEntry {
 	}
 	walk(s)
 	return out
+}
+
+// scalarKinds returns the JSON scalar kinds a schema admits ("*" = anything), or
+// ok=false when it admits a non-scalar (object, array, unresolvable ref) — mirrors
+// the reference _scalar_kinds.
+func (g *gen) scalarKinds(s *schema, depth int) (map[string]bool, bool) {
+	if s == nil || depth > 8 {
+		return nil, false
+	}
+	if s.Ref != "" {
+		if g.kindDefs == nil {
+			return nil, false
+		}
+		return g.scalarKinds(g.kindDefs[refNameRaw(s.Ref)], depth+1)
+	}
+	if u := union(s); u != nil {
+		out := map[string]bool{}
+		for _, arm := range u {
+			k, ok := g.scalarKinds(arm, depth+1)
+			if !ok {
+				return nil, false
+			}
+			for kk := range k {
+				out[kk] = true
+			}
+		}
+		return out, true
+	}
+	onlyProse := true
+	for k := range s.keys {
+		if k != "description" && k != "title" {
+			onlyProse = false
+		}
+	}
+	if s.keys != nil && onlyProse {
+		return map[string]bool{"*": true}, true
+	}
+	tl := s.typeList()
+	if len(tl) == 0 {
+		return nil, false
+	}
+	out := map[string]bool{}
+	for _, t := range tl {
+		switch t {
+		case "string", "integer", "number", "boolean", "null":
+			out[t] = true
+		default:
+			return nil, false
+		}
+	}
+	return out, true
+}
+
+// kindsOverlap reports whether some value of kinds arm is admitted by allowed
+// (integer is a subset of number).
+func kindsOverlap(arm, allowed map[string]bool) bool {
+	if allowed["*"] {
+		return true
+	}
+	for k := range arm {
+		if allowed[k] {
+			return true
+		}
+	}
+	return arm["integer"] && allowed["number"]
+}
+
+// scalarAllOfIntersection types an allOf of SCALAR constraints as their
+// intersection (the SWML bare-scalar shorthand allOf[anyOf[string, number],
+// anyOf[<param type>, SWMLVar]]): each arm of the LAST member is kept when every
+// member admits some value of its kind; an unconstrained {} arm there expands into
+// the other members' arms. ok=false keeps the caller's fallback — mirrors the
+// reference _scalar_allof_intersection.
+func (g *gen) scalarAllOfIntersection(members []*schema) (string, bool) {
+	if g.kindDefs == nil || len(members) < 2 {
+		return "", false
+	}
+	memberKinds := make([]map[string]bool, len(members))
+	for i, m := range members {
+		k, ok := g.scalarKinds(m, 0)
+		if !ok {
+			return "", false
+		}
+		memberKinds[i] = k
+	}
+	armsOf := func(m *schema) []*schema {
+		if u := union(m); u != nil {
+			return u
+		}
+		return []*schema{m}
+	}
+	var candidates []*schema
+	for _, arm := range armsOf(members[len(members)-1]) {
+		k, ok := g.scalarKinds(arm, 0)
+		if ok && len(k) == 1 && k["*"] {
+			for _, m := range members[:len(members)-1] {
+				candidates = append(candidates, armsOf(m)...)
+			}
+			continue
+		}
+		candidates = append(candidates, arm)
+	}
+	var kept []string
+	for _, arm := range candidates {
+		ak, ok := g.scalarKinds(arm, 0)
+		if !ok {
+			return "", false
+		}
+		all := true
+		for _, mk := range memberKinds {
+			if !kindsOverlap(ak, mk) {
+				all = false
+				break
+			}
+		}
+		if all {
+			kept = append(kept, g.canonicalType(arm))
+		}
+	}
+	if len(kept) == 0 {
+		return "", false
+	}
+	return dedupUnion(kept), true
+}
+
+// literalKind is the type of a const/enum literal value — the reference types a
+// literal by its value (Literal[True] is a bool, Literal["x"] a str). form "canon"
+// returns the audit spelling, "go" the Go runtime type.
+func literalKind(v any, form string) string {
+	switch v.(type) {
+	case bool:
+		return "bool"
+	case int, int64, uint64:
+		return "int"
+	case float64:
+		if form == "go" {
+			return "float64"
+		}
+		return "float"
+	}
+	return "string"
 }

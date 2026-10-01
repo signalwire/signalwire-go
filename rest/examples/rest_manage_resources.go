@@ -70,16 +70,17 @@ func main() {
 		fmt.Printf("  Search failed: %v\n", err)
 	} else {
 		for _, n := range available.Data {
-			fmt.Printf("  - %v\n", n.Number)
+			fmt.Printf("  - %v\n", deref(n.E164))
 		}
 	}
 
 	// 4. Place a test call (requires valid numbers)
 	fmt.Println("\nPlacing a test call...")
 	callURL := "https://example.com/call-handler"
+	callTo := "+15551234567"
 	result, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
-		To:   "+15551234567",
+		To:   &callTo,
 		URL:  &callURL,
 	})
 	if err != nil {
@@ -100,4 +101,12 @@ func main() {
 	} else {
 		fmt.Println("  Deleted.")
 	}
+}
+
+// deref returns the pointed-to string, or "" for nil.
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

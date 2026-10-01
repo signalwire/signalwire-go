@@ -4,10 +4,12 @@
 
 <!-- snippet: no-compile illustrative API signature (reference only) -->
 ```go
-func rest.NewRestClient(project, token, space string) (*rest.RestClient, error)
+func rest.NewRestClient(project, token, space string, opts ...rest.RestClientOption) (*rest.RestClient, error)
 //   project -> SIGNALWIRE_PROJECT_ID
 //   token   -> SIGNALWIRE_API_TOKEN
 //   space   -> SIGNALWIRE_SPACE
+//   rest.WithPersonalAccessToken(pat) -> SIGNALWIRE_PERSONAL_ACCESS_TOKEN
+//   rest.WithRequestOptions(&rest.RequestOptions{...})  (client-default timeout/retries)
 ```
 
 <!-- snippet-setup -->
@@ -28,9 +30,26 @@ var (
 )
 ```
 
-All parameters fall back to their corresponding environment variables when passed as empty strings. An error is returned if any are missing.
+All parameters fall back to their corresponding environment variables when passed as empty strings. An error is returned when the space is missing, or when neither a complete project + token pair nor a personal access token is available.
 
-Authentication uses HTTP Basic Auth (`project:token`).
+Authentication uses HTTP Basic Auth (`project:token`) for every project-scoped resource.
+
+### Space Administration API (`client.Space`)
+
+`client.Space` (members, billing, usage, balance, payment methods, space settings)
+is served only to a user's **Personal Access Token**, sent as HTTP Basic with an
+empty username. Pass it with `rest.WithPersonalAccessToken`, or set
+`SIGNALWIRE_PERSONAL_ACCESS_TOKEN`. A client may carry either credential or both;
+calling a resource whose credential is missing returns an error.
+
+```go
+admin, err := rest.NewRestClient("", "", "example.signalwire.com",
+	rest.WithPersonalAccessToken("pat_..."))
+if err == nil {
+	members, _ := admin.Space.Members.List(context.Background(), nil)
+	_ = members
+}
+```
 
 ```go
 // Explicit credentials

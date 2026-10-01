@@ -38,9 +38,10 @@ func main() {
 	fmt.Println("Dialing outbound call...")
 	callID := "demo-call-id"
 	callURL := "https://example.com/call-handler"
+	callTo := "+15551234567"
 	call, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
-		To:   "+15551234567",
+		To:   &callTo,
 		URL:  &callURL,
 	})
 	if err != nil {
@@ -178,7 +179,7 @@ func main() {
 
 	// 8. End the call
 	fmt.Println("\nEnding call...")
-	hangupReason := namespaces.HangupReasonHangup
+	hangupReason := string(namespaces.HangupReasonHangup)
 	_, err = client.Calling.End(context.Background(), callID, namespaces.CallingNamespaceEndParams{Reason: &hangupReason})
 	if err != nil {
 		var restErr *rest.SignalWireRestError

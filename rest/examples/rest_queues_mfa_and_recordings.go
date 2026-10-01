@@ -126,8 +126,10 @@ func main() {
 		if first, ok := recordings.Data[0].(map[string]any); ok {
 			if id, ok := first["id"].(string); ok {
 				recDetail, err := client.Recordings.Get(context.Background(), id, nil)
-				if err == nil {
-					fmt.Printf("  Recording: %vs, %v\n", recDetail["duration"], recDetail["format"])
+				if err == nil && recDetail != nil {
+					if m, ok := (*recDetail).(map[string]any); ok {
+						fmt.Printf("  Recording: %vs, %v\n", m["duration"], m["format"])
+					}
 				}
 			}
 		}

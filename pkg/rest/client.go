@@ -408,7 +408,8 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 		parent, cancel = context.WithCancel(ctx)
 		defer cancel()
 		// Cancel the derived context when the abort_signal fires (AfterFunc runs
-		// immediately if it is already cancelled). ctx cancelling still cancels
+		// in its own goroutine, even for an already-cancelled signal — hence the
+		// direct check in the loop below). ctx cancelling still cancels
 		// `parent` directly (it is the parent), so BOTH sources compose.
 		stop := context.AfterFunc(opts.abortSignal, cancel)
 		defer stop()
@@ -420,6 +421,16 @@ func (c *HTTPClient) doRequestContextOpts(ctx context.Context, method, path stri
 		// Cooperative cancellation BEFORE the attempt: a cancelled parent (the
 		// AbortSignal or caller ctx) surfaces as the typed transport error with
 		// NO send, mirroring the Python reference's pre-attempt abort check.
+		// The abort_signal is checked DIRECTLY as well as through `parent`:
+		// context.AfterFunc runs its callback in its own goroutine even when the
+		// signal is already cancelled, so for a pre-cancelled signal `parent` may
+		// not be cancelled yet when the first attempt starts — the request would
+		// race out to the server.
+		if opts.abortSignal != nil {
+			if err := opts.abortSignal.Err(); err != nil {
+				return nil, "", NewSignalWireRestTransportError(err, "request cancelled by abort_signal", c.buildURL(path, params), method)
+			}
+		}
 		if err := parent.Err(); err != nil {
 			return nil, "", NewSignalWireRestTransportError(err, "request cancelled by abort_signal", c.buildURL(path, params), method)
 		}

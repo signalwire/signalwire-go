@@ -302,8 +302,8 @@ func (c *CallingNamespace) Disconnect(ctx context.Context, callID string, params
 
 // CallingNamespacePlayParams holds the named optional parameters for CallingNamespace.Play.
 type CallingNamespacePlayParams struct {
-	ControlID string           `sw:"required"`
 	Play      []map[string]any `sw:"required"`
+	ControlID *string          `sw:"optional"`
 	Direction *string          `sw:"optional"`
 	Gender    *string          `sw:"optional"`
 	Language  *string          `sw:"optional"`
@@ -316,9 +316,11 @@ type CallingNamespacePlayParams struct {
 
 func (c *CallingNamespace) Play(ctx context.Context, callID string, params CallingNamespacePlayParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
-	body["control_id"] = params.ControlID
 	if params.Play != nil {
 		body["play"] = params.Play
+	}
+	if params.ControlID != nil {
+		body["control_id"] = params.ControlID
 	}
 	if params.Direction != nil {
 		body["direction"] = params.Direction
@@ -342,6 +344,7 @@ func (c *CallingNamespace) Play(ctx context.Context, callID string, params Calli
 		body["volume"] = params.Volume
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
+	autofillUUID(body, "control_id")
 	return decodeResult[CallResponse](c.execute(ctx, "calling.play", callID, body, opts...))
 }
 
@@ -401,20 +404,29 @@ func (c *CallingNamespace) PlayVolume(ctx context.Context, callID string, params
 
 // CallingNamespaceRecordParams holds the named optional parameters for CallingNamespace.Record.
 type CallingNamespaceRecordParams struct {
-	ControlID string               `sw:"required"`
-	Record    RelayCallRecordInner `sw:"required"`
-	StatusURL *string              `sw:"optional"`
-	Extras    map[string]any       `sw:"optional"`
+	ControlID *string               `sw:"optional"`
+	Record    *RelayCallRecordInner `sw:"optional"`
+	StatusURL *string               `sw:"optional"`
+	Audio     *RelayCallRecordAudio `sw:"optional"`
+	Extras    map[string]any        `sw:"optional"`
 }
 
 func (c *CallingNamespace) Record(ctx context.Context, callID string, params CallingNamespaceRecordParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
-	body["control_id"] = params.ControlID
-	body["record"] = params.Record
+	if params.ControlID != nil {
+		body["control_id"] = params.ControlID
+	}
+	if params.Record != nil {
+		body["record"] = params.Record
+	}
 	if params.StatusURL != nil {
 		body["status_url"] = params.StatusURL
 	}
+	if params.Audio != nil {
+		body["record"] = mergeCompatKwarg(body["record"], "audio", params.Audio)
+	}
 	mergeExtra(body, []map[string]any{params.Extras})
+	autofillUUID(body, "control_id")
 	return decodeResult[CallResponse](c.execute(ctx, "calling.record", callID, body, opts...))
 }
 
@@ -463,9 +475,9 @@ func (c *CallingNamespace) RecordStop(ctx context.Context, callID string, params
 
 // CallingNamespaceCollectParams holds the named optional parameters for CallingNamespace.Collect.
 type CallingNamespaceCollectParams struct {
-	ControlID        string                       `sw:"required"`
 	Continue         *bool                        `sw:"optional"`
 	Continuous       *bool                        `sw:"optional"`
+	ControlID        *string                      `sw:"optional"`
 	Digits           *RelayCallCollectDigitsInner `sw:"optional"`
 	InitialTimeout   *float64                     `sw:"optional"`
 	PartialResults   *bool                        `sw:"optional"`
@@ -478,12 +490,14 @@ type CallingNamespaceCollectParams struct {
 
 func (c *CallingNamespace) Collect(ctx context.Context, callID string, params CallingNamespaceCollectParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
-	body["control_id"] = params.ControlID
 	if params.Continue != nil {
 		body["continue"] = params.Continue
 	}
 	if params.Continuous != nil {
 		body["continuous"] = params.Continuous
+	}
+	if params.ControlID != nil {
+		body["control_id"] = params.ControlID
 	}
 	if params.Digits != nil {
 		body["digits"] = params.Digits
@@ -507,6 +521,7 @@ func (c *CallingNamespace) Collect(ctx context.Context, callID string, params Ca
 		body["status_url"] = params.StatusURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
+	autofillUUID(body, "control_id")
 	return decodeResult[CallResponse](c.execute(ctx, "calling.collect", callID, body, opts...))
 }
 
@@ -538,8 +553,8 @@ func (c *CallingNamespace) CollectStartInputTimers(ctx context.Context, callID s
 
 // CallingNamespaceDetectParams holds the named optional parameters for CallingNamespace.Detect.
 type CallingNamespaceDetectParams struct {
-	ControlID string         `sw:"required"`
 	Detect    map[string]any `sw:"required"`
+	ControlID *string        `sw:"optional"`
 	StatusURL *string        `sw:"optional"`
 	Timeout   *float64       `sw:"optional"`
 	Extras    map[string]any `sw:"optional"`
@@ -547,9 +562,11 @@ type CallingNamespaceDetectParams struct {
 
 func (c *CallingNamespace) Detect(ctx context.Context, callID string, params CallingNamespaceDetectParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
-	body["control_id"] = params.ControlID
 	if params.Detect != nil {
 		body["detect"] = params.Detect
+	}
+	if params.ControlID != nil {
+		body["control_id"] = params.ControlID
 	}
 	if params.StatusURL != nil {
 		body["status_url"] = params.StatusURL
@@ -558,6 +575,7 @@ func (c *CallingNamespace) Detect(ctx context.Context, callID string, params Cal
 		body["timeout"] = params.Timeout
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
+	autofillUUID(body, "control_id")
 	return decodeResult[CallResponse](c.execute(ctx, "calling.detect", callID, body, opts...))
 }
 
@@ -576,24 +594,27 @@ func (c *CallingNamespace) DetectStop(ctx context.Context, callID string, params
 
 // CallingNamespaceTapParams holds the named optional parameters for CallingNamespace.Tap.
 type CallingNamespaceTapParams struct {
-	ControlID string         `sw:"required"`
 	Device    map[string]any `sw:"required"`
 	Tap       RelayTap       `sw:"required"`
+	ControlID *string        `sw:"optional"`
 	StatusURL *string        `sw:"optional"`
 	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Tap(ctx context.Context, callID string, params CallingNamespaceTapParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
-	body["control_id"] = params.ControlID
 	if params.Device != nil {
 		body["device"] = params.Device
 	}
 	body["tap"] = params.Tap
+	if params.ControlID != nil {
+		body["control_id"] = params.ControlID
+	}
 	if params.StatusURL != nil {
 		body["status_url"] = params.StatusURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
+	autofillUUID(body, "control_id")
 	return decodeResult[CallResponse](c.execute(ctx, "calling.tap", callID, body, opts...))
 }
 
@@ -612,10 +633,10 @@ func (c *CallingNamespace) TapStop(ctx context.Context, callID string, params Ca
 
 // CallingNamespaceStreamParams holds the named optional parameters for CallingNamespace.Stream.
 type CallingNamespaceStreamParams struct {
-	ControlID                string         `sw:"required"`
 	URL                      string         `sw:"required"`
 	AuthorizationBearerToken *string        `sw:"optional"`
 	Codec                    *string        `sw:"optional"`
+	ControlID                *string        `sw:"optional"`
 	CustomParameters         map[string]any `sw:"optional"`
 	Name                     *string        `sw:"optional"`
 	StatusURL                *string        `sw:"optional"`
@@ -626,13 +647,15 @@ type CallingNamespaceStreamParams struct {
 
 func (c *CallingNamespace) Stream(ctx context.Context, callID string, params CallingNamespaceStreamParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
-	body["control_id"] = params.ControlID
 	body["url"] = params.URL
 	if params.AuthorizationBearerToken != nil {
 		body["authorization_bearer_token"] = params.AuthorizationBearerToken
 	}
 	if params.Codec != nil {
 		body["codec"] = params.Codec
+	}
+	if params.ControlID != nil {
+		body["control_id"] = params.ControlID
 	}
 	if params.CustomParameters != nil {
 		body["custom_parameters"] = params.CustomParameters
@@ -650,6 +673,7 @@ func (c *CallingNamespace) Stream(ctx context.Context, callID string, params Cal
 		body["track"] = params.Track
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
+	autofillUUID(body, "control_id")
 	return decodeResult[CallResponse](c.execute(ctx, "calling.stream", callID, body, opts...))
 }
 
@@ -690,18 +714,21 @@ func (c *CallingNamespace) DenoiseStop(ctx context.Context, callID string, param
 
 // CallingNamespaceTranscribeParams holds the named optional parameters for CallingNamespace.Transcribe.
 type CallingNamespaceTranscribeParams struct {
-	ControlID string         `sw:"required"`
+	ControlID *string        `sw:"optional"`
 	StatusURL *string        `sw:"optional"`
 	Extras    map[string]any `sw:"optional"`
 }
 
 func (c *CallingNamespace) Transcribe(ctx context.Context, callID string, params CallingNamespaceTranscribeParams, opts ...*RequestOptions) (*CallResponse, error) {
 	body := map[string]any{}
-	body["control_id"] = params.ControlID
+	if params.ControlID != nil {
+		body["control_id"] = params.ControlID
+	}
 	if params.StatusURL != nil {
 		body["status_url"] = params.StatusURL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
+	autofillUUID(body, "control_id")
 	return decodeResult[CallResponse](c.execute(ctx, "calling.transcribe", callID, body, opts...))
 }
 

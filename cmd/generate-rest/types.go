@@ -76,7 +76,7 @@ func typeGoName(raw string) string {
 
 // refLeafGoName resolves a $ref to the sanitised Go type name of its leaf.
 func refLeafGoName(ref string) string {
-	return typeGoName(refLeaf(ref))
+	return localTypeName(refLeaf(ref))
 }
 
 // ---------------------------------------------------------------------------
@@ -155,9 +155,27 @@ func goFieldType(schemas, node *yaml.Node) string {
 		return "map[string]any"
 	}
 
-	// oneOf / anyOf → `any` (Go has no union type).
-	if seqChild(node, "oneOf") != nil || seqChild(node, "anyOf") != nil {
-		return "any"
+	// oneOf / anyOf → `any` (Go has no union type) — unless every arm resolves to
+	// the SAME Go type, in which case the union IS that type (the reference dedupes
+	// union members the same way: a union of inline-object arms, or of presence-only
+	// `required` arms, is one dict[str, Any] — RelayCallPlayInner, ConnectDevice*).
+	for _, comb := range []string{"oneOf", "anyOf"} {
+		if arms := seqChild(node, comb); arms != nil {
+			common := ""
+			for i, arm := range arms.Content {
+				t := goFieldType(schemas, arm)
+				if i == 0 {
+					common = t
+				} else if t != common {
+					common = ""
+					break
+				}
+			}
+			if common != "" && common != "any" {
+				return common
+			}
+			return "any"
+		}
 	}
 
 	t, _ := schemaType(node)
@@ -226,7 +244,7 @@ func isObjectSchema(node *yaml.Node) bool {
 // defined-string type + a typed const block; scalar/array/union schemas become
 // alias types.
 func emitTypeDecl(b *strings.Builder, schemas *yaml.Node, rawName string, node *yaml.Node) {
-	goName := typeGoName(rawName)
+	goName := localTypeName(rawName)
 
 	// Object → struct. rawName (the components/schemas key) is the SPEC schema
 	// name the overlay scope matches against — NOT goName (the emitted Go type).
@@ -426,7 +444,7 @@ func emitTypesFile(sd *specDoc) (string, error) {
 	for i := 0; i+1 < len(schemas.Content); i += 2 {
 		rawName := schemas.Content[i].Value
 		node := schemas.Content[i+1]
-		goName := typeGoName(rawName)
+		goName := localTypeName(rawName)
 		// x-sdk-enum markup: emit an ADDITIONAL named public enum type (the reference
 		// exports it as public API, e.g. PhoneCallHandler, so callers can write
 		// PhoneCallHandler.AiAgent instead of the bare string). Emitted BEFORE the

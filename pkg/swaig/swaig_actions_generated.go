@@ -10,7 +10,7 @@
 package swaig
 
 type ChangeVoiceAction struct {
-	Voice map[string]any `json:"voice,omitempty" gen:"dict<string,any>"`
+	Voice any `json:"voice,omitempty" gen:"any"`
 }
 
 type ContextSwitchAction struct {
@@ -69,7 +69,7 @@ type SwaigAction struct {
 	// PlaybackBg Play an audio file in the background. `{wait:true}` makes the agent wait for it. Replaces any currently-open background file
 	PlaybackBg any `json:"playback_bg,omitempty" gen:"union<string,class:signalwire.core.swaig_actions_generated.PlaybackBgAction>"`
 	// ReplaceInHistory Replace the function call's text in conversation history. A string is stored prefixed with `~LN(<language>)-; `; `true` stores an empty string
-	ReplaceInHistory any `json:"replace_in_history,omitempty" gen:"string"`
+	ReplaceInHistory any `json:"replace_in_history,omitempty" gen:"union<string,bool>"`
 	// Say Speak text immediately via TTS, then wait for speaking to finish. Also logs `tl_manual_say`
 	Say string `json:"say,omitempty" gen:"string"`
 	// SetGlobalData Merge keys into global data, then refresh prompt vars. Gated by `swaig_set_global_data`

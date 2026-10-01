@@ -14,6 +14,8 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // HTTPClient is the interface that namespace implementations use to make HTTP
@@ -273,4 +275,33 @@ func postWithHeaders(ctx context.Context, h HTTPClient, path string, body map[st
 		return nil, errTransportCapability
 	}
 	return p.PostWithHeaders(ctx, path, body, params, headers, opts...)
+}
+
+// autofillUUID sets body[key] to a fresh UUIDv4 when the caller left it unset (a
+// server-required id the SDK generates — the RELAY control_id idiom).
+func autofillUUID(body map[string]any, key string) {
+	if _, ok := body[key]; !ok {
+		body[key] = uuid.NewString()
+	}
+}
+
+// mergeCompatKwarg returns the nested object root with leaf set to value: a
+// compatibility kwarg sent INTO a nested wire key (calling.record `audio` ->
+// params.record.audio). An existing root (a map or a typed struct) keeps its
+// other keys.
+func mergeCompatKwarg(root any, leaf string, value any) map[string]any {
+	out := map[string]any{}
+	switch r := root.(type) {
+	case nil:
+	case map[string]any:
+		for k, v := range r {
+			out[k] = v
+		}
+	default:
+		if raw, err := json.Marshal(r); err == nil {
+			_ = json.Unmarshal(raw, &out)
+		}
+	}
+	out[leaf] = value
+	return out
 }

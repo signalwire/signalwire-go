@@ -64,11 +64,19 @@ type MessageLog struct {
 }
 
 type MessageLogShowStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []MessageTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type MessageLogsListStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []MessageTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type MessageTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
 }
 
 type WhatsappBusiness struct {
@@ -177,7 +185,7 @@ type WhatsappTemplateDeleteResponse struct {
 }
 
 type WhatsappStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []MessageTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type WhatsappTemplateErrorItem struct {

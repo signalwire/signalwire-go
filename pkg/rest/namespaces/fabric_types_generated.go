@@ -117,7 +117,7 @@ type AIAgentCreateRequest struct {
 }
 
 type AIAgentCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type AIAgentListResponse struct {
@@ -159,7 +159,7 @@ type AIAgentUpdateRequest struct {
 }
 
 type AIAgentUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type AIParams struct {
@@ -364,7 +364,7 @@ type Action struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -390,15 +390,15 @@ type AudioChannel struct {
 }
 
 type CXMLScript struct {
-	ID                   Uuid   `json:"id,omitempty"`
-	Contents             string `json:"contents,omitempty"`
-	RequestCount         int    `json:"request_count,omitempty"`
-	LastAccessedAt       any    `json:"last_accessed_at,omitempty"`
-	RequestURL           string `json:"request_url,omitempty"`
-	ScriptType           string `json:"script_type,omitempty"`
-	Name                 string `json:"name,omitempty"`
-	StatusCallbackURL    any    `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod any    `json:"status_callback_method,omitempty"`
+	ID                   Uuid    `json:"id,omitempty"`
+	Contents             string  `json:"contents,omitempty"`
+	RequestCount         int     `json:"request_count,omitempty"`
+	LastAccessedAt       any     `json:"last_accessed_at,omitempty"`
+	RequestURL           string  `json:"request_url,omitempty"`
+	ScriptType           string  `json:"script_type,omitempty"`
+	Name                 string  `json:"name,omitempty"`
+	StatusCallbackURL    any     `json:"status_callback_url,omitempty"`
+	StatusCallbackMethod *string `json:"status_callback_method,omitempty"`
 }
 
 type CXMLScriptAddressListResponse struct {
@@ -416,13 +416,13 @@ type CXMLScriptAddressPaginationResponse struct {
 type CXMLScriptCreateRequest struct {
 	Contents             string  `json:"contents,omitempty"`
 	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod any     `json:"status_callback_method,omitempty"`
+	StatusCallbackMethod *string `json:"status_callback_method,omitempty"`
 	Name                 string  `json:"name,omitempty"`
 	ScriptType           *string `json:"script_type,omitempty"`
 }
 
 type CXMLScriptCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type CXMLScriptListResponse struct {
@@ -443,13 +443,13 @@ type CXMLScriptResponse struct {
 type CXMLScriptUpdateRequest struct {
 	Contents             *string `json:"contents,omitempty"`
 	StatusCallbackURL    *string `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod any     `json:"status_callback_method,omitempty"`
+	StatusCallbackMethod *string `json:"status_callback_method,omitempty"`
 	Name                 *string `json:"name,omitempty"`
 	ScriptType           *string `json:"script_type,omitempty"`
 }
 
 type CXMLScriptUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type CXMLWebhook struct {
@@ -457,11 +457,11 @@ type CXMLWebhook struct {
 	Name                  string                 `json:"name,omitempty"`
 	UsedFor               CxmlWebhookUsedForType `json:"used_for,omitempty"`
 	PrimaryRequestURL     string                 `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any                    `json:"primary_request_method,omitempty"`
+	PrimaryRequestMethod  string                 `json:"primary_request_method,omitempty"`
 	FallbackRequestURL    any                    `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any                    `json:"fallback_request_method,omitempty"`
+	FallbackRequestMethod string                 `json:"fallback_request_method,omitempty"`
 	StatusCallbackURL     any                    `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any                    `json:"status_callback_method,omitempty"`
+	StatusCallbackMethod  string                 `json:"status_callback_method,omitempty"`
 }
 
 type CXMLWebhookAddressListResponse struct {
@@ -480,15 +480,15 @@ type CXMLWebhookCreateRequest struct {
 	Name                  *string                 `json:"name,omitempty"`
 	UsedFor               *CxmlWebhookUsedForType `json:"used_for,omitempty"`
 	PrimaryRequestURL     string                  `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any                     `json:"primary_request_method,omitempty"`
+	PrimaryRequestMethod  *string                 `json:"primary_request_method,omitempty"`
 	FallbackRequestURL    *string                 `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any                     `json:"fallback_request_method,omitempty"`
+	FallbackRequestMethod *string                 `json:"fallback_request_method,omitempty"`
 	StatusCallbackURL     *string                 `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any                     `json:"status_callback_method,omitempty"`
+	StatusCallbackMethod  *string                 `json:"status_callback_method,omitempty"`
 }
 
 type CXMLWebhookCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type CXMLWebhookListResponse struct {
@@ -517,15 +517,15 @@ type CXMLWebhookUpdateRequest struct {
 	Name                  *string                 `json:"name,omitempty"`
 	UsedFor               *CxmlWebhookUsedForType `json:"used_for,omitempty"`
 	PrimaryRequestURL     *string                 `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any                     `json:"primary_request_method,omitempty"`
+	PrimaryRequestMethod  *string                 `json:"primary_request_method,omitempty"`
 	FallbackRequestURL    *string                 `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any                     `json:"fallback_request_method,omitempty"`
+	FallbackRequestMethod *string                 `json:"fallback_request_method,omitempty"`
 	StatusCallbackURL     *string                 `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any                     `json:"status_callback_method,omitempty"`
+	StatusCallbackMethod  *string                 `json:"status_callback_method,omitempty"`
 }
 
 type CXMLWebhookUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type CallFlow struct {
@@ -555,7 +555,7 @@ type CallFlowCreateRequest struct {
 }
 
 type CallFlowCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type CallFlowListResponse struct {
@@ -581,7 +581,7 @@ type CallFlowUpdateRequest struct {
 }
 
 type CallFlowUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type CallFlowVersion struct {
@@ -711,7 +711,7 @@ type ConferenceRoomCreateRequest struct {
 }
 
 type ConferenceRoomCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type ConferenceRoomListResponse struct {
@@ -745,7 +745,7 @@ type ConferenceRoomUpdateRequest struct {
 }
 
 type ConferenceRoomUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type Contexts map[string]any
@@ -832,7 +832,7 @@ type CxmlApplicationUpdateRequest struct {
 }
 
 type CxmlApplicationUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type DataMap struct {
@@ -894,7 +894,7 @@ type DialogflowAgentUpdateRequest struct {
 }
 
 type DialogflowAgentUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type Direction string
@@ -913,11 +913,23 @@ type DomainApplicationAssignRequest struct {
 }
 
 type DomainApplicationCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type FabricDomainApplicationResponse struct {
+	ID          Uuid         `json:"id,omitempty"`
+	Name        string       `json:"name,omitempty"`
+	DisplayName string       `json:"display_name,omitempty"`
+	CoverURL    string       `json:"cover_url,omitempty"`
+	PreviewURL  string       `json:"preview_url,omitempty"`
+	Locked      bool         `json:"locked,omitempty"`
+	Channels    AudioChannel `json:"channels,omitempty"`
+	Type        string       `json:"type,omitempty"`
+	ResourceID  *string      `json:"resource_id,omitempty"`
 }
 
 type EmbedTokenCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type EmbedsTokensRequest struct {
@@ -1059,7 +1071,7 @@ type FreeswitchConnectorCreateRequest struct {
 }
 
 type FreeswitchConnectorCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type FreeswitchConnectorListResponse struct {
@@ -1084,7 +1096,7 @@ type FreeswitchConnectorUpdateRequest struct {
 }
 
 type FreeswitchConnectorUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type FunctionFillers struct {
@@ -1144,7 +1156,7 @@ type FunctionParameters struct {
 }
 
 type GuestTokenCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type LanguageParams struct {
@@ -1202,23 +1214,23 @@ type PhoneRouteAssignRequest struct {
 }
 
 type PhoneRouteCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type PhoneRouteResponse struct {
-	ID          Uuid    `json:"id,omitempty"`
-	Name        string  `json:"name,omitempty"`
-	DisplayName string  `json:"display_name,omitempty"`
-	CoverURL    string  `json:"cover_url,omitempty"`
-	PreviewURL  string  `json:"preview_url,omitempty"`
-	Locked      bool    `json:"locked,omitempty"`
-	Channels    any     `json:"channels,omitempty"`
-	Type        string  `json:"type,omitempty"`
-	ResourceID  *string `json:"resource_id,omitempty"`
+	ID          Uuid           `json:"id,omitempty"`
+	Name        string         `json:"name,omitempty"`
+	DisplayName string         `json:"display_name,omitempty"`
+	CoverURL    string         `json:"cover_url,omitempty"`
+	PreviewURL  string         `json:"preview_url,omitempty"`
+	Locked      bool           `json:"locked,omitempty"`
+	Channels    map[string]any `json:"channels,omitempty"`
+	Type        string         `json:"type,omitempty"`
+	ResourceID  *string        `json:"resource_id,omitempty"`
 }
 
 type RefreshTokenStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type RelayApplication struct {
@@ -1247,7 +1259,7 @@ type RelayApplicationCreateRequest struct {
 }
 
 type RelayApplicationCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type RelayApplicationListResponse struct {
@@ -1272,7 +1284,7 @@ type RelayApplicationUpdateRequest struct {
 }
 
 type RelayApplicationUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type ResourceAddressListResponse struct {
@@ -1412,13 +1424,13 @@ type ResourceResponseSWMLWebhook struct {
 }
 
 type ResourceResponseSipEndpoint struct {
-	ID          Uuid        `json:"id,omitempty"`
-	ProjectID   Uuid        `json:"project_id,omitempty"`
-	DisplayName string      `json:"display_name,omitempty"`
-	CreatedAt   string      `json:"created_at,omitempty"`
-	UpdatedAt   string      `json:"updated_at,omitempty"`
-	Type        string      `json:"type,omitempty"`
-	SIPEndpoint SipEndpoint `json:"sip_endpoint,omitempty"`
+	ID          Uuid              `json:"id,omitempty"`
+	ProjectID   Uuid              `json:"project_id,omitempty"`
+	DisplayName string            `json:"display_name,omitempty"`
+	CreatedAt   string            `json:"created_at,omitempty"`
+	UpdatedAt   string            `json:"updated_at,omitempty"`
+	Type        string            `json:"type,omitempty"`
+	SIPEndpoint FabricSipEndpoint `json:"sip_endpoint,omitempty"`
 }
 
 type ResourceResponseSipGateway struct {
@@ -1446,15 +1458,15 @@ type ResourceSipEndpointAssignRequest struct {
 }
 
 type ResourceSipEndpointCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type ResourceSipEndpointUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type ResourceSubSipEndpointCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SWAIGDefaults struct {
@@ -1497,11 +1509,11 @@ type SWMLWebhook struct {
 	Name                  string `json:"name,omitempty"`
 	UsedFor               string `json:"used_for,omitempty"`
 	PrimaryRequestURL     string `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any    `json:"primary_request_method,omitempty"`
+	PrimaryRequestMethod  string `json:"primary_request_method,omitempty"`
 	FallbackRequestURL    any    `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any    `json:"fallback_request_method,omitempty"`
+	FallbackRequestMethod string `json:"fallback_request_method,omitempty"`
 	StatusCallbackURL     any    `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any    `json:"status_callback_method,omitempty"`
+	StatusCallbackMethod  string `json:"status_callback_method,omitempty"`
 }
 
 type SWMLWebhookAddressListResponse struct {
@@ -1520,11 +1532,11 @@ type SWMLWebhookCreateRequest struct {
 	Name                  *string `json:"name,omitempty"`
 	UsedFor               *string `json:"used_for,omitempty"`
 	PrimaryRequestURL     string  `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any     `json:"primary_request_method,omitempty"`
+	PrimaryRequestMethod  *string `json:"primary_request_method,omitempty"`
 	FallbackRequestURL    *string `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any     `json:"fallback_request_method,omitempty"`
+	FallbackRequestMethod *string `json:"fallback_request_method,omitempty"`
 	StatusCallbackURL     *string `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any     `json:"status_callback_method,omitempty"`
+	StatusCallbackMethod  *string `json:"status_callback_method,omitempty"`
 }
 
 type SWMLWebhookListResponse struct {
@@ -1553,11 +1565,23 @@ type SWMLWebhookUpdateRequest struct {
 	Name                  *string `json:"name,omitempty"`
 	UsedFor               *string `json:"used_for,omitempty"`
 	PrimaryRequestURL     *string `json:"primary_request_url,omitempty"`
-	PrimaryRequestMethod  any     `json:"primary_request_method,omitempty"`
+	PrimaryRequestMethod  *string `json:"primary_request_method,omitempty"`
 	FallbackRequestURL    *string `json:"fallback_request_url,omitempty"`
-	FallbackRequestMethod any     `json:"fallback_request_method,omitempty"`
+	FallbackRequestMethod *string `json:"fallback_request_method,omitempty"`
 	StatusCallbackURL     *string `json:"status_callback_url,omitempty"`
-	StatusCallbackMethod  any     `json:"status_callback_method,omitempty"`
+	StatusCallbackMethod  *string `json:"status_callback_method,omitempty"`
+}
+
+type FabricSipEndpoint struct {
+	ID                       Uuid      `json:"id,omitempty"`
+	Username                 string    `json:"username,omitempty"`
+	CallerID                 string    `json:"caller_id,omitempty"`
+	SendAs                   string    `json:"send_as,omitempty"`
+	Ciphers                  []Ciphers `json:"ciphers,omitempty"`
+	Codecs                   []Codecs  `json:"codecs,omitempty"`
+	Encryption               string    `json:"encryption,omitempty"`
+	CallHandler              string    `json:"call_handler,omitempty"`
+	CallingHandlerResourceID any       `json:"calling_handler_resource_id,omitempty"`
 }
 
 type SipEndpointAddressListResponse struct {
@@ -1585,7 +1609,12 @@ type SipEndpointCreateRequest struct {
 }
 
 type SipEndpointCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type FabricSipEndpointListResponse struct {
+	Data  []FabricSipEndpointResponse   `json:"data,omitempty"`
+	Links SipEndpointPaginationResponse `json:"links,omitempty"`
 }
 
 type SipEndpointPaginationResponse struct {
@@ -1593,6 +1622,16 @@ type SipEndpointPaginationResponse struct {
 	First string  `json:"first,omitempty"`
 	Next  *string `json:"next,omitempty"`
 	Prev  *string `json:"prev,omitempty"`
+}
+
+type FabricSipEndpointResponse struct {
+	ID          Uuid              `json:"id,omitempty"`
+	ProjectID   Uuid              `json:"project_id,omitempty"`
+	DisplayName string            `json:"display_name,omitempty"`
+	Type        string            `json:"type,omitempty"`
+	CreatedAt   string            `json:"created_at,omitempty"`
+	UpdatedAt   string            `json:"updated_at,omitempty"`
+	SIPEndpoint FabricSipEndpoint `json:"sip_endpoint,omitempty"`
 }
 
 type SipEndpointUpdateRequest struct {
@@ -1608,7 +1647,7 @@ type SipEndpointUpdateRequest struct {
 }
 
 type SipEndpointUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SipGateway struct {
@@ -1633,7 +1672,7 @@ type SipGatewayAddressPaginationResponse struct {
 }
 
 type SipGatewayCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SipGatewayListResponse struct {
@@ -1699,7 +1738,7 @@ type SubscriberAddressesResponse struct {
 }
 
 type SubscriberCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SubscriberGuestTokenCreateRequest struct {
@@ -1848,11 +1887,11 @@ type SubscriberTokenResponse struct {
 }
 
 type SubscriberTokenStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SubscriberUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SwmlScript struct {
@@ -1873,7 +1912,7 @@ type SwmlScriptCreateRequest struct {
 }
 
 type SwmlScriptCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SwmlScriptListResponse struct {
@@ -1906,15 +1945,23 @@ type SwmlScriptUpdateRequest struct {
 }
 
 type SwmlScriptUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SwmlWebhookCreateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type SwmlWebhookUpdateStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type FabricTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
 }
 
 type Types_StatusCodes_StatusCode403 struct {
@@ -1922,7 +1969,7 @@ type Types_StatusCodes_StatusCode403 struct {
 }
 
 type Types_StatusCodes_StatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []FabricTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type CxmlWebhookUsedForType string
@@ -2084,15 +2131,15 @@ type WhatsappNumberAssignRequest struct {
 }
 
 type WhatsappNumberAddressResponse struct {
-	ID          Uuid   `json:"id,omitempty"`
-	ResourceID  any    `json:"resource_id,omitempty"`
-	Name        string `json:"name,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	Type        string `json:"type,omitempty"`
-	CoverURL    string `json:"cover_url,omitempty"`
-	PreviewURL  string `json:"preview_url,omitempty"`
-	Locked      bool   `json:"locked,omitempty"`
-	Channels    any    `json:"channels,omitempty"`
+	ID          Uuid           `json:"id,omitempty"`
+	ResourceID  any            `json:"resource_id,omitempty"`
+	Name        string         `json:"name,omitempty"`
+	DisplayName string         `json:"display_name,omitempty"`
+	Type        string         `json:"type,omitempty"`
+	CoverURL    string         `json:"cover_url,omitempty"`
+	PreviewURL  string         `json:"preview_url,omitempty"`
+	Locked      bool           `json:"locked,omitempty"`
+	Channels    map[string]any `json:"channels,omitempty"`
 }
 
 type Step struct {

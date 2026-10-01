@@ -227,7 +227,7 @@ func main() {
 
 	if _, err := client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From: "+15559876543",
-		To:   "+15551234567",
+		To:   ptr("+15551234567"),
 		URL:  ptr("https://example.com/call-handler"),
 	}); err != nil {
 		fmt.Printf("Dial failed: %v\n", err)
@@ -241,7 +241,7 @@ func main() {
 func ptr[T any](v T) *T { return &v }
 ```
 
-- 22 namespaced API surfaces: Fabric (16 sub-resources), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, Messages, Projects, and more
+- 24 namespaced API surfaces: Fabric (16 sub-resources), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, Messages, Projects, and more
 - Shared `http.Client` for connection pooling
 - Typed params and responses -- generated `*Params` structs and `*Response` wrapper types per operation (from the spec-driven REST generator)
 

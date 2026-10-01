@@ -1144,14 +1144,15 @@ func extraMethods(rm *resourceMarkup, emb embedInfo, sd *specDoc) []methodMarkup
 	var out []methodMarkup
 	for _, mm := range rm.methods {
 		if provided[mm.name] {
-			// Inherited — unless it is an explicit sibling-path override
-			// (list_addresses on a singular sub-path).
+			// Inherited — unless it is an explicit list_addresses declaration: the
+			// markup declaring it overrides the base method (the reference emits
+			// the declared op as a typed override). On the collection path the
+			// outer method shadows the embedded CrudWithAddresses.ListAddresses
+			// (same route, typed return); on a singular sibling path the embed is
+			// the plain *CrudResource (embedFor), so it is the only route either way.
 			if mm.name == "list_addresses" {
-				if op, ok := sd.opIndex[mm.op]; ok {
-					if _, sibling := rm.relativeTail(sd.serverPath, op.path); sibling {
-						out = append(out, mm)
-						continue
-					}
+				if _, ok := sd.opIndex[mm.op]; ok {
+					out = append(out, mm)
 				}
 			}
 			continue
@@ -1418,6 +1419,47 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 		if ctErr != nil {
 			return ctErr
 		}
+		mk, mkErr := commandParamMarkup(sd, schemaByCmd[cmd])
+		if mkErr != nil {
+			return fmt.Errorf("command %q: %w", cmd, mkErr)
+		}
+		if len(mk.positional) > 0 {
+			return fmt.Errorf("command %q: x-sdk-positional is not supported by the Go emitter", cmd)
+		}
+		// x-sdk-autofill: uuid4 — a server-required id the SDK generates when the
+		// caller omits it (the RELAY control_id idiom), so the param is optional;
+		// a compat kwarg's nested root is optional too (the kwarg can fill it).
+		for f := range mk.autofill {
+			cmdFieldReq[f] = false
+		}
+		for _, ck := range mk.compat {
+			cmdFieldReq[ck.root] = false
+		}
+		// required-first (property order), then the rest — the reference order.
+		{
+			inFields := map[string]bool{}
+			for _, f := range fields {
+				inFields[f] = true
+			}
+			var reqd, rest []string
+			for _, f := range mk.order {
+				if !inFields[f] {
+					continue
+				}
+				if cmdFieldReq[f] {
+					reqd = append(reqd, f)
+				} else {
+					rest = append(rest, f)
+				}
+			}
+			reqd = append(reqd, rest...)
+			fields = reqd
+			for f := range inFields {
+				if !containsStr(fields, f) {
+					return fmt.Errorf("command %q: param %q missing from the property order", cmd, f)
+				}
+			}
+		}
 		withID := !commandsWithoutID[cmd]
 		// §5/§6/§4a: the command's typed params collapse into a named params STRUCT
 		// (idiomatic Go options struct, not flat positionals); a leading callID stays
@@ -1444,6 +1486,16 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 			fieldPtr[f] = isNilableGoType(ftype)
 			fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, ftype, cmdFieldReq[f]))
 		}
+		compatField := map[string]string{}
+		for _, ck := range mk.compat {
+			fn := structFieldName(ck.arg)
+			for used[fn] {
+				fn += "_"
+			}
+			used[fn] = true
+			compatField[ck.arg] = fn
+			fieldDefs = append(fieldDefs, paramsStructFieldDef(fn, optionalGoType(ck.goType), false))
+		}
 		fieldDefs = append(fieldDefs, paramsStructFieldDef("Extras", "map[string]any", false))
 		fmt.Fprintf(b, "// %s holds the named optional parameters for %s.%s.\ntype %s struct {\n%s\n}\n\n",
 			structName, goName, mName, structName, strings.Join(fieldDefs, "\n"))
@@ -1469,7 +1521,16 @@ func emitCommandDispatch(b *strings.Builder, rm *resourceMarkup, sd *specDoc, go
 				fmt.Fprintf(b, "\tbody[%q] = params.%s\n", f, fieldParam[f])
 			}
 		}
+		for _, ck := range mk.compat {
+			fn := compatField[ck.arg]
+			fmt.Fprintf(b, "\tif params.%s != nil {\n\t\tbody[%q] = mergeCompatKwarg(body[%q], %q, params.%s)\n\t}\n", fn, ck.root, ck.root, ck.leaf, fn)
+		}
 		b.WriteString("\tmergeExtra(body, []map[string]any{params.Extras})\n")
+		for _, f := range fields {
+			if mk.autofill[f] {
+				fmt.Fprintf(b, "\tautofillUUID(body, %q)\n", f)
+			}
+		}
 		callID := `""`
 		if withID {
 			callID = "callID"
@@ -2633,7 +2694,29 @@ func run() error {
 		return realDir
 	}
 	var outs []outFile
+	// Cross-spec type-name collisions with DIFFERENT schemas: the later spec's type
+	// gets a spec-qualified Go name (collide.go).
+	order := make([]string, 0, len(specs)+len(typesOnlySpecs))
+	rawPaths := map[string]string{}
 	for _, sd := range specs {
+		order = append(order, sd.name)
+		rawPaths[sd.name] = sd.rawPath
+	}
+	for _, ns := range typesOnlySpecs {
+		order = append(order, ns)
+		rawPaths[ns] = filepath.Join(psdk, "rest-apis", ns, "openapi.yaml")
+	}
+	typeRenames, err := computeTypeRenames(order, rawPaths)
+	if err != nil {
+		return err
+	}
+	for _, ns := range order {
+		for bare, qualified := range typeRenames[ns] {
+			generatedTypeRenames[qualified] = bare
+		}
+	}
+	for _, sd := range specs {
+		curRenames = typeRenames[sd.name]
 		src, err := emitSpecFile(sd, bases)
 		if err != nil {
 			return err
@@ -2660,6 +2743,7 @@ func run() error {
 	// via a minimal types-only spec doc (emitTypesFile only needs name + rawPath).
 	// Matches the reference (python swml_webhooks_types_generated.py, TS PlatformContracts).
 	for _, ns := range typesOnlySpecs {
+		curRenames = typeRenames[ns]
 		tspec := &specDoc{
 			name:    ns,
 			rawPath: filepath.Join(psdk, "rest-apis", ns, "openapi.yaml"),
@@ -2678,6 +2762,9 @@ func run() error {
 	// no longer emitted here — they moved to the standalone cmd/generate-relay-protocol
 	// command (one of the fixed 5 cross-port generators). This generator emits only
 	// the REST resource/types/client-tree/struct-table surface.
+
+	curRenames = nil
+	outs = append(outs, outFile{path: filepath.Join(dir(surfaceDir), "gen_type_renames_generated.go"), src: emitTypeRenamesTable()})
 
 	placed := resolvePlacement(specs)
 	nsTree, restTree := emitClientTree(placed)
@@ -2728,4 +2815,114 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// commandMarkup is the x-sdk-* command-param markup of one command's params schema.
+type commandMarkup struct {
+	autofill   map[string]bool // x-sdk-autofill: uuid4
+	positional map[string]bool // x-sdk-positional
+	compat     []compatKwarg   // x-sdk-compat-kwargs
+	order      []string        // params property order (first-seen, combinators first)
+}
+
+// compatKwarg is an SDK kwarg kept for compatibility that is sent INTO a nested
+// wire key (calling.record `audio` -> params.record.audio).
+type compatKwarg struct {
+	arg, root, leaf string
+	goType          string
+}
+
+// commandParamMarkup reads the command params schema's per-field x-sdk-autofill /
+// x-sdk-positional markup and its x-sdk-compat-kwargs (mirrors the reference
+// command emitter). Unknown autofill generators and malformed compat entries fail
+// loud.
+func commandParamMarkup(sd *specDoc, requestSchema string) (commandMarkup, error) {
+	mk := commandMarkup{autofill: map[string]bool{}, positional: map[string]bool{}}
+	schemas, err := componentsSchemas(sd)
+	if err != nil {
+		return mk, err
+	}
+	sch := resolveSchema(schemas, mapChild(schemas, requestSchema))
+	params := resolveSchema(schemas, mapChild(mapChild(sch, "properties"), "params"))
+	if params == nil {
+		return mk, nil
+	}
+	fieldNode := map[string]*yaml.Node{}
+	var walk func(n *yaml.Node)
+	// Reference order (_flatten_union): allOf parts, then own properties, then the
+	// anyOf/oneOf variants.
+	walk = func(n *yaml.Node) {
+		n = resolveSchema(schemas, n)
+		if n == nil {
+			return
+		}
+		if lst := mapChild(n, "allOf"); lst != nil && lst.Kind == yaml.SequenceNode {
+			for _, br := range lst.Content {
+				walk(br)
+			}
+		}
+		if props := mapChild(n, "properties"); props != nil && props.Kind == yaml.MappingNode {
+			for i := 0; i+1 < len(props.Content); i += 2 {
+				if _, seen := fieldNode[props.Content[i].Value]; !seen {
+					fieldNode[props.Content[i].Value] = props.Content[i+1]
+					mk.order = append(mk.order, props.Content[i].Value)
+				}
+			}
+		}
+		for _, comb := range []string{"anyOf", "oneOf"} {
+			if lst := mapChild(n, comb); lst != nil && lst.Kind == yaml.SequenceNode {
+				for _, br := range lst.Content {
+					walk(br)
+				}
+			}
+		}
+	}
+	walk(params)
+	for f, n := range fieldNode {
+		switch v := scalarChild(n, "x-sdk-autofill"); v {
+		case "":
+		case "uuid4":
+			mk.autofill[f] = true
+		default:
+			return mk, fmt.Errorf("%s: x-sdk-autofill %q is not a known generator (uuid4)", f, v)
+		}
+		if scalarChild(n, "x-sdk-positional") == "true" {
+			mk.positional[f] = true
+		}
+	}
+	if ck := mapChild(params, "x-sdk-compat-kwargs"); ck != nil && ck.Kind == yaml.MappingNode {
+		for i := 0; i+1 < len(ck.Content); i += 2 {
+			arg := ck.Content[i].Value
+			into := strings.Split(scalarChild(ck.Content[i+1], "into"), ".")
+			if len(into) != 2 || fieldNode[arg] != nil || fieldNode[into[0]] == nil {
+				return mk, fmt.Errorf("x-sdk-compat-kwargs.%s into %q must name <existing param>.<key> and must not shadow a param", arg, strings.Join(into, "."))
+			}
+			root := resolveSchema(schemas, fieldNode[into[0]])
+			var leafNode *yaml.Node
+			var findLeaf func(n *yaml.Node)
+			findLeaf = func(n *yaml.Node) {
+				n = resolveSchema(schemas, n)
+				if n == nil || leafNode != nil {
+					return
+				}
+				if p := mapChild(mapChild(n, "properties"), into[1]); p != nil {
+					leafNode = p
+					return
+				}
+				for _, comb := range []string{"allOf", "anyOf", "oneOf"} {
+					if lst := mapChild(n, comb); lst != nil && lst.Kind == yaml.SequenceNode {
+						for _, br := range lst.Content {
+							findLeaf(br)
+						}
+					}
+				}
+			}
+			findLeaf(root)
+			if leafNode == nil {
+				return mk, fmt.Errorf("x-sdk-compat-kwargs.%s: %q not found", arg, strings.Join(into, "."))
+			}
+			mk.compat = append(mk.compat, compatKwarg{arg: arg, root: into[0], leaf: into[1], goType: paramGoType(schemas, leafNode)})
+		}
+	}
+	return mk, nil
 }

@@ -22,11 +22,14 @@ package swml
 // unset (anyOf of string / array). Four of the five have object branches whose
 // keys are perfectly enumerable.
 //
-// The semantic: a config satisfying a union satisfies SOME branch, so the known
-// keys are the UNION of the object branches' keys, and a key belonging to no
-// branch belongs to no valid document. Non-object branches contribute nothing
+// The semantic (#223, porting-sdk docs/legacy-census/DISC-g-d21.md): a union's
+// ONE closed object arm is the object form of the body, and its keys are
+// enforced; zero or several closed object arms disengage the shallow check (the
+// deep validator owns those shapes). Non-object branches contribute nothing
 // (they constrain the config to not be an object at all — a different question).
-// unset has no object branch, so it correctly stays disengaged.
+// unset has no object branch, so it correctly stays disengaged. In the
+// fanned-out schema every verb body is object | positional array | bare scalar,
+// so each of these resolves to its single object arm.
 
 import (
 	"sort"
@@ -44,11 +47,11 @@ var unionShapedVerbs = []struct {
 	wantCount int
 }{
 	{"sleep", "duration", map[string]any{"duration": 5000}, 1},
-	{"play", "url", map[string]any{"url": "https://example.test/a.mp3"}, 8},
+	{"play", "url", map[string]any{"url": "https://example.test/a.mp3"}, 9},
 	{"send_sms", "body", map[string]any{
 		"to_number": "+15551110000", "from_number": "+15552220000", "body": "hi",
-	}, 6},
-	{"connect", "to", map[string]any{"to": "sip:alice@example.test"}, 22},
+	}, 7},
+	{"connect", "to", map[string]any{"to": "sip:alice@example.test"}, 31},
 }
 
 // TestUnionShapedVerbsResolveAKeySet is the direct negative control: before the
@@ -119,10 +122,14 @@ func TestUnionShapedVerbsAcceptLegitimateConfigs(t *testing.T) {
 //   - set   — an OPEN object (unevaluatedProperties:{} with no `not`, zero
 //     declared properties): a free-form variable bag by design.
 //   - unset — a union with no object branch (string | array of string).
-//   - cond / label / return — array / string / untyped, not objects at all.
+//   - cond — an array, not an object at all.
+//   - return — its only object arm is OPEN (no declared properties, no close).
+//
+// (label is no longer here: the fanned-out schema gives it a closed object arm,
+// {label: ...}, beside the bare-string shorthand.)
 func TestNonEnumerableConfigsStayDisengaged(t *testing.T) {
 	su := NewSchemaUtils()
-	for _, verb := range []string{"set", "unset", "cond", "label", "return"} {
+	for _, verb := range []string{"set", "unset", "cond", "return"} {
 		if _, ok := su.verbTopLevelPropertyNames(verb); ok {
 			t.Errorf("%s has no closed key-set in the schema; the shallow check "+
 				"must stay disengaged rather than invent one", verb)

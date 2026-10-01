@@ -113,6 +113,19 @@ func mappingPairs(node *yaml.Node) [][2]*yaml.Node {
 //     method the vendored spec does NOT register. Carried rather than dropped,
 //     because dropping them would silently shrink the port surface relative to the
 //     legacy tree, which had no such distinction.
+//
+// carriedBy is the `extracted_by` stamp spec_pipeline writes on every block it
+// carries from the switchblade extractor (relay_protocol_shapes._CARRIED_BY).
+const carriedBy = "scripts/extract_relay_schemas.py"
+
+// scalarValue is a nil-safe scalar read.
+func scalarValue(n *yaml.Node) string {
+	if n == nil {
+		return ""
+	}
+	return n.Value
+}
+
 func relayShapes(psdk, phase string) ([]relayShape, error) {
 	keys, ok := phaseKeys[phase]
 	if !ok {
@@ -132,7 +145,14 @@ func relayShapes(psdk, phase string) ([]relayShape, error) {
 		if carrier == nil {
 			continue
 		}
-		if node := mapChild(carrier, shapeKey); node != nil && node.Kind == yaml.MappingNode {
+		// ONLY the switchblade-carried block. mod_infrastructure e28a3743 began
+		// publishing its OWN `response.result` on the 9 `verto.*` methods — the
+		// engine's JSON-RPC `result`, a different fact under the same key. The
+		// carriage stamps `extracted_by` on every block it writes, and that stamp
+		// (not the key) is what makes a node this reader's to serve (mirrors
+		// relay_protocol_shapes.shapes, _CARRIED_BY).
+		if node := mapChild(carrier, shapeKey); node != nil && node.Kind == yaml.MappingNode &&
+			scalarValue(mapChild(node, "extracted_by")) == carriedBy {
 			byMethod[method] = node
 		}
 	}

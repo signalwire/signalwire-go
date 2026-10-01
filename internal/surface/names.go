@@ -100,7 +100,7 @@ func GoNameToPython(s string) string {
 // the carrier TYPE is unexported.
 //
 // `_GeneratedResourceTree` is the only one. `rest.RestClient` embeds it, and its
-// 22 fields (`Fabric`, `Calling`, `Video`, …) are the client's namespace
+// 24 fields (`Fabric`, `Calling`, `Video`, …) are the client's namespace
 // accessors — the exact members the reference exposes as `client.fabric`,
 // `client.calling`, `client.video`. The leading underscore keeps the tree TYPE
 // off the public surface (and is required: Go forbids embedding a cross-package

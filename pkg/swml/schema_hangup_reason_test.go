@@ -118,16 +118,31 @@ func TestReasonAcceptedByServiceHangup(t *testing.T) {
 func TestSchemaPublishesTheEngineValues(t *testing.T) {
 	su := reasonTestSU(t)
 
-	params := su.GetVerbParameters("hangup")
+	// The verb body is a union (object | positional array | bare-string
+	// shorthand); reason lives on its object arm, and may itself be a union of
+	// the enum and a SWMLVar.
+	params := hangupObjectArmProperties(t, su)
 	reason, ok := params["reason"].(map[string]any)
 	if !ok {
-		t.Fatalf("hangup.reason not found in verb parameters: %#v", params)
+		t.Fatalf("hangup.reason not found in the hangup object arm: %#v", params)
 	}
 	if _, has := reason["x-sdk-widen"]; has {
 		t.Errorf("hangup.reason must NOT carry x-sdk-widen — the marker told the SDK " +
 			"to stop validating a field the engine DOES validate")
 	}
 	raw, ok := reason["enum"].([]any)
+	if !ok {
+		if arms, isUnion := reason["anyOf"].([]any); isUnion {
+			for _, a := range arms {
+				if am, _ := a.(map[string]any); am != nil {
+					if e, has := am["enum"].([]any); has {
+						raw, ok = e, true
+						break
+					}
+				}
+			}
+		}
+	}
 	if !ok {
 		t.Fatalf("hangup.reason must publish an enum; got %#v", reason)
 	}
@@ -144,4 +159,28 @@ func TestSchemaPublishesTheEngineValues(t *testing.T) {
 			t.Errorf("hangup.reason enum[%d] = %q, want %q (relay_apis.c:1105)", i, got[i], want)
 		}
 	}
+}
+
+// hangupObjectArmProperties returns the `properties` of the hangup verb body's
+// object arm (the body itself when it is a plain object).
+func hangupObjectArmProperties(t *testing.T, su *SchemaUtils) map[string]any {
+	t.Helper()
+	v, ok := su.verbs["hangup"]
+	if !ok {
+		t.Fatalf("hangup verb missing from the schema")
+	}
+	props, _ := v.Definition["properties"].(map[string]any)
+	body, _ := props["hangup"].(map[string]any)
+	candidates := []any{body}
+	if arms, isUnion := body["anyOf"].([]any); isUnion {
+		candidates = arms
+	}
+	for _, c := range candidates {
+		cm, _ := c.(map[string]any)
+		if p, has := cm["properties"].(map[string]any); has && cm["type"] == "object" {
+			return p
+		}
+	}
+	t.Fatalf("hangup body has no object arm: %#v", body)
+	return nil
 }

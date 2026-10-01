@@ -240,7 +240,13 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				if !isStruct && !surfacedEnum {
 					continue
 				}
-				genTypeSurface = append(genTypeSurface, genType{module: module, name: ts.Name.Name})
+				name := ts.Name.Name
+				// A spec-qualified collision rename (VideoStream) is the reference's
+				// per-spec class of the bare name (video_types_generated.Stream).
+				if bare, ok := surfacepkg.GeneratedTypeRenames[name]; ok {
+					name = bare
+				}
+				genTypeSurface = append(genTypeSurface, genType{module: module, name: name})
 			}
 		}
 		return nil
@@ -623,7 +629,7 @@ type moduleInventory struct {
 // own plus the ones Go promotes through the anonymous-embed chain.
 //
 // `rest.RestClient` is why this exists: it declares NO exported fields of its
-// own. All 22 namespace accessors (`Fabric`, `Calling`, `Video`, …) live on the
+// own. All 24 namespace accessors (`Fabric`, `Calling`, `Video`, …) live on the
 // generated `_GeneratedResourceTree` it embeds, and Go promotes them so
 // `client.Fabric` resolves on the client exactly as the reference's
 // `client.fabric` does. A walker that reads only own fields sees none of them
@@ -1196,24 +1202,6 @@ type sigSnapshot struct {
 // folded elsewhere). Scalar state (`string`, `int`, …) is not class-typed and is
 // not imported, keeping go's two oracles (surface + signatures) consistent BY
 // CONSTRUCTION exactly as the Python pair is.
-// pythonReservedWords are identifiers the Python reference generator cannot surface
-// as a member name — it drops them to a comment (the same set the SIGNATURE diff
-// tolerates as reserved-word leaves, e.g. `else`/`from`). Go legitimately emits such a
-// wire-field accessor, but importing it as a composition attribute would surface a
-// member the reference can never have → a phantom addition. Exclude them here; the
-// signature side already carries the reserved-word leaf, so the two oracles stay
-// consistent (the member is present in signatures, absent from surface — matching the
-// reference on BOTH sides).
-var pythonReservedWords = map[string]bool{
-	"else": true, "from": true, "import": true, "class": true, "def": true,
-	"return": true, "global": true, "lambda": true, "pass": true, "raise": true,
-	"yield": true, "async": true, "await": true, "with": true, "as": true,
-	"not": true, "and": true, "or": true, "is": true, "in": true, "if": true,
-	"elif": true, "while": true, "for": true, "try": true, "except": true,
-	"finally": true, "del": true, "assert": true, "break": true, "continue": true,
-	"nonlocal": true, "None": true, "True": true, "False": true,
-}
-
 func isCompositionReturn(ret string) bool {
 	if strings.HasPrefix(ret, "union<") {
 		return false
@@ -1253,12 +1241,6 @@ func enrichCompositionAttributes(snapshot *surface, repoRoot string) error {
 		for cls, sce := range sinv.Classes {
 			var comp []string
 			for m, msig := range sce.Methods {
-				// A reserved-word leaf (`else`, `from`, …) cannot be a reference
-				// surface member — the Python generator drops it. Emitting it here
-				// would be a phantom addition; skip it (it stays on the signature side).
-				if pythonReservedWords[m] {
-					continue
-				}
 				nonSelf := false
 				for _, p := range msig.Params {
 					if p.Kind != "self" {

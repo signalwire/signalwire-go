@@ -20,21 +20,208 @@ type AI struct {
 }
 
 type AIObject struct {
-	SWAIG                  any            `json:"SWAIG,omitempty"`
-	Agent                  any            `json:"agent,omitempty"`
-	Engine                 any            `json:"engine,omitempty"`
-	GlobalData             map[string]any `json:"global_data,omitempty"`
-	Hints                  []any          `json:"hints,omitempty"`
-	Languages              []Languages    `json:"languages,omitempty"`
-	Multilingual           map[string]any `json:"multilingual,omitempty"`
-	Params                 *AIParams      `json:"params,omitempty"`
-	PostPrompt             *AIPostPrompt  `json:"post_prompt,omitempty"`
-	PostPromptAuthPassword any            `json:"post_prompt_auth_password,omitempty"`
-	PostPromptAuthUser     any            `json:"post_prompt_auth_user,omitempty"`
-	PostPromptURL          any            `json:"post_prompt_url,omitempty"`
-	Prompt                 *AIPrompt      `json:"prompt,omitempty"`
-	Pronounce              []Pronounce    `json:"pronounce,omitempty"`
-	Voice                  any            `json:"voice,omitempty"`
+	SWAIG                  any              `json:"SWAIG,omitempty"`
+	Agent                  any              `json:"agent,omitempty"`
+	Engine                 any              `json:"engine,omitempty"`
+	GlobalData             map[string]any   `json:"global_data,omitempty"`
+	Hints                  []any            `json:"hints,omitempty"`
+	Languages              []Languages      `json:"languages,omitempty"`
+	Multilingual           map[string]any   `json:"multilingual,omitempty"`
+	Params                 *CallingAIParams `json:"params,omitempty"`
+	PostPrompt             *AIPostPrompt    `json:"post_prompt,omitempty"`
+	PostPromptAuthPassword any              `json:"post_prompt_auth_password,omitempty"`
+	PostPromptAuthUser     any              `json:"post_prompt_auth_user,omitempty"`
+	PostPromptURL          any              `json:"post_prompt_url,omitempty"`
+	Prompt                 *AIPrompt        `json:"prompt,omitempty"`
+	Pronounce              []Pronounce      `json:"pronounce,omitempty"`
+	Voice                  any              `json:"voice,omitempty"`
+}
+
+type CallingAIParams struct {
+	AcknowledgeInterruptions    any                          `json:"acknowledge_interruptions,omitempty"`
+	AcousticEotGateProb         any                          `json:"acoustic_eot_gate_prob,omitempty"`
+	AcousticEotTrustProb        any                          `json:"acoustic_eot_trust_prob,omitempty"`
+	AiModel                     *string                      `json:"ai_model,omitempty"`
+	AiName                      *string                      `json:"ai_name,omitempty"`
+	AiVolume                    any                          `json:"ai_volume,omitempty"`
+	AppName                     *string                      `json:"app_name,omitempty"`
+	AsrDiarize                  any                          `json:"asr_diarize,omitempty"`
+	AsrParams                   map[string]any               `json:"asr_params,omitempty"`
+	AsrSmartFormat              any                          `json:"asr_smart_format,omitempty"`
+	AsrSpeakerAffinity          any                          `json:"asr_speaker_affinity,omitempty"`
+	AttentionEscalatePrompt     *string                      `json:"attention_escalate_prompt,omitempty"`
+	AttentionTimeout            any                          `json:"attention_timeout,omitempty"`
+	AttentionTimeoutPrompt      *string                      `json:"attention_timeout_prompt,omitempty"`
+	AuthToken                   *string                      `json:"auth_token,omitempty"`
+	AutoCorrect                 any                          `json:"auto_correct,omitempty"`
+	AzureStreamFirst            any                          `json:"azure_stream_first,omitempty"`
+	AzureTtsKey                 *string                      `json:"azure_tts_key,omitempty"`
+	BackgroundFile              *string                      `json:"background_file,omitempty"`
+	BackgroundFileLoops         any                          `json:"background_file_loops,omitempty"`
+	BackgroundFileVolume        any                          `json:"background_file_volume,omitempty"`
+	BargeFunctions              any                          `json:"barge_functions,omitempty"`
+	BargeMatchString            *string                      `json:"barge_match_string,omitempty"`
+	BargeMinWords               any                          `json:"barge_min_words,omitempty"`
+	BillAllTts                  any                          `json:"bill_all_tts,omitempty"`
+	Cache                       any                          `json:"cache,omitempty"`
+	CallUUID                    *string                      `json:"call_uuid,omitempty"`
+	CartesiaKey                 *string                      `json:"cartesia_key,omitempty"`
+	CartesiaModel               *string                      `json:"cartesia_model,omitempty"`
+	CartesiaStreamFirst         any                          `json:"cartesia_stream_first,omitempty"`
+	Confidence                  any                          `json:"confidence,omitempty"`
+	Conscience                  *string                      `json:"conscience,omitempty"`
+	ConversationID              *string                      `json:"conversation_id,omitempty"`
+	ConversationSlidingWindow   any                          `json:"conversation_sliding_window,omitempty"`
+	Convo                       []CallingConversationMessage `json:"convo,omitempty"`
+	DebugWebhookLevel           any                          `json:"debug_webhook_level,omitempty"`
+	DebugWebhookURL             *string                      `json:"debug_webhook_url,omitempty"`
+	DeepgramKeyOverride         *string                      `json:"deepgram_key_override,omitempty"`
+	DeepgramStreamFirst         any                          `json:"deepgram_stream_first,omitempty"`
+	DeepgramTtsKey              *string                      `json:"deepgram_tts_key,omitempty"`
+	DeepgramURLOverride         *string                      `json:"deepgram_url_override,omitempty"`
+	DeveloperPrompt             *string                      `json:"developer_prompt,omitempty"`
+	DigitTerminators            *string                      `json:"digit_terminators,omitempty"`
+	DigitTimeout                any                          `json:"digit_timeout,omitempty"`
+	Direction                   *CallingDirection            `json:"direction,omitempty"`
+	DoubleTurnFillerEveryN      any                          `json:"double_turn_filler_every_n,omitempty"`
+	DoubleTurnFillerMinMs       any                          `json:"double_turn_filler_min_ms,omitempty"`
+	DoubleTurnModel             *string                      `json:"double_turn_model,omitempty"`
+	DoubleTurnPrompt            *string                      `json:"double_turn_prompt,omitempty"`
+	DoubleTurnWaitMs            any                          `json:"double_turn_wait_ms,omitempty"`
+	DoubleTurns                 any                          `json:"double_turns,omitempty"`
+	ElevenLabsKey               *string                      `json:"eleven_labs_key,omitempty"`
+	ElevenLabsModel             *string                      `json:"eleven_labs_model,omitempty"`
+	ElevenLabsSimilarity        any                          `json:"eleven_labs_similarity,omitempty"`
+	ElevenLabsStability         any                          `json:"eleven_labs_stability,omitempty"`
+	ElevenLabsStreamFirst       any                          `json:"eleven_labs_stream_first,omitempty"`
+	EnableBarge                 any                          `json:"enable_barge,omitempty"`
+	EnableInnerDialog           any                          `json:"enable_inner_dialog,omitempty"`
+	EnablePause                 any                          `json:"enable_pause,omitempty"`
+	EnableTextNormalization     *string                      `json:"enable_text_normalization,omitempty"`
+	EnableThinking              any                          `json:"enable_thinking,omitempty"`
+	EnableTurnDetection         any                          `json:"enable_turn_detection,omitempty"`
+	EnableVision                any                          `json:"enable_vision,omitempty"`
+	EndOfSpeechTimeout          any                          `json:"end_of_speech_timeout,omitempty"`
+	EnergyLevel                 any                          `json:"energy_level,omitempty"`
+	EscalateAfterMs             any                          `json:"escalate_after_ms,omitempty"`
+	EscalateAfterTurns          any                          `json:"escalate_after_turns,omitempty"`
+	EventWebhookURL             *string                      `json:"event_webhook_url,omitempty"`
+	Ext                         *string                      `json:"ext,omitempty"`
+	FirstWordTimeout            any                          `json:"first_word_timeout,omitempty"`
+	FishKey                     *string                      `json:"fish_key,omitempty"`
+	FishModel                   *string                      `json:"fish_model,omitempty"`
+	FunctionFillerSequenceGapMs any                          `json:"function_filler_sequence_gap_ms,omitempty"`
+	FunctionWaitForTalking      any                          `json:"function_wait_for_talking,omitempty"`
+	FunctionsOnNoResponse       any                          `json:"functions_on_no_response,omitempty"`
+	GrokKey                     *string                      `json:"grok_key,omitempty"`
+	GroqTtsKey                  *string                      `json:"groq_tts_key,omitempty"`
+	HardStopPrompt              *string                      `json:"hard_stop_prompt,omitempty"`
+	HardStopTime                *string                      `json:"hard_stop_time,omitempty"`
+	HoldMusic                   *string                      `json:"hold_music,omitempty"`
+	HoldOnProcess               any                          `json:"hold_on_process,omitempty"`
+	InactivityTimeout           any                          `json:"inactivity_timeout,omitempty"`
+	InitialSleepMs              any                          `json:"initial_sleep_ms,omitempty"`
+	InnerDialog                 map[string]any               `json:"inner_dialog,omitempty"`
+	InnerDialogModel            *string                      `json:"inner_dialog_model,omitempty"`
+	InnerDialogPrompt           *string                      `json:"inner_dialog_prompt,omitempty"`
+	InnerDialogScorecard        any                          `json:"inner_dialog_scorecard,omitempty"`
+	InputPollFreq               any                          `json:"input_poll_freq,omitempty"`
+	InterruptOnNoise            any                          `json:"interrupt_on_noise,omitempty"`
+	InterruptPrompt             *string                      `json:"interrupt_prompt,omitempty"`
+	InworldApikey               *string                      `json:"inworld_apikey,omitempty"`
+	InworldKey                  *string                      `json:"inworld_key,omitempty"`
+	InworldModel                *string                      `json:"inworld_model,omitempty"`
+	Language                    *string                      `json:"language,omitempty"`
+	// Deprecated: languages_enabled
+	LanguagesEnabled               any            `json:"languages_enabled,omitempty"`
+	LipsyncDebug                   any            `json:"lipsync_debug,omitempty"`
+	LlmDiarizeAware                any            `json:"llm_diarize_aware,omitempty"`
+	LocalTz                        *string        `json:"local_tz,omitempty"`
+	MaxEmotion                     any            `json:"max_emotion,omitempty"`
+	MaxResponseTokens              any            `json:"max_response_tokens,omitempty"`
+	MinUtteranceMs                 any            `json:"min_utterance_ms,omitempty"`
+	MinimaxKey                     *string        `json:"minimax_key,omitempty"`
+	MinimaxModel                   *string        `json:"minimax_model,omitempty"`
+	MistralKey                     *string        `json:"mistral_key,omitempty"`
+	MistralModel                   *string        `json:"mistral_model,omitempty"`
+	Model                          *string        `json:"model,omitempty"`
+	OpenaiAsrEngine                *string        `json:"openai_asr_engine,omitempty"`
+	OpenaiAzure                    any            `json:"openai_azure,omitempty"`
+	OpenaiGcloudVersion            *string        `json:"openai_gcloud_version,omitempty"`
+	OpenaiStreamFirst              any            `json:"openai_stream_first,omitempty"`
+	OpenaiTtsKey                   *string        `json:"openai_tts_key,omitempty"`
+	OpenaiTtsURL                   *string        `json:"openai_tts_url,omitempty"`
+	OutboundAttentionTimeout       any            `json:"outbound_attention_timeout,omitempty"`
+	PcmChannels                    any            `json:"pcm_channels,omitempty"`
+	PcmRate                        any            `json:"pcm_rate,omitempty"`
+	PersistGlobalData              any            `json:"persist_global_data,omitempty"`
+	PomFormat                      *string        `json:"pom_format,omitempty"`
+	Provider                       *string        `json:"provider,omitempty"`
+	PvtParams                      *string        `json:"pvt_params,omitempty"`
+	Realtime                       map[string]any `json:"realtime,omitempty"`
+	RedactPrompt                   *string        `json:"redact_prompt,omitempty"`
+	RimeApikey                     *string        `json:"rime_apikey,omitempty"`
+	RimeKey                        *string        `json:"rime_key,omitempty"`
+	RimeModel                      *string        `json:"rime_model,omitempty"`
+	RimeStreamFirst                any            `json:"rime_stream_first,omitempty"`
+	SampleRate                     any            `json:"sample_rate,omitempty"`
+	SaveConversation               any            `json:"save_conversation,omitempty"`
+	SendSingleLlmResponse          any            `json:"send_single_llm_response,omitempty"`
+	Similarity                     any            `json:"similarity,omitempty"`
+	SmallestKey                    *string        `json:"smallest_key,omitempty"`
+	SmallestModel                  *string        `json:"smallest_model,omitempty"`
+	SpeakWhenSpokenTo              any            `json:"speak_when_spoken_to,omitempty"`
+	Speaker                        *string        `json:"speaker,omitempty"`
+	SpeechEventTimeout             any            `json:"speech_event_timeout,omitempty"`
+	SpeechGenQuickStops            any            `json:"speech_gen_quick_stops,omitempty"`
+	SpeechTimeout                  any            `json:"speech_timeout,omitempty"`
+	SpeechifyKey                   *string        `json:"speechify_key,omitempty"`
+	SpeechifyLoudnessNormalization any            `json:"speechify_loudness_normalization,omitempty"`
+	SpeechifyModel                 *string        `json:"speechify_model,omitempty"`
+	SpeechifyOutputFormat          *string        `json:"speechify_output_format,omitempty"`
+	SpeechifyStreamFirst           any            `json:"speechify_stream_first,omitempty"`
+	SpeechifyTextNormalization     any            `json:"speechify_text_normalization,omitempty"`
+	Speed                          any            `json:"speed,omitempty"`
+	Stability                      any            `json:"stability,omitempty"`
+	StartPaused                    any            `json:"start_paused,omitempty"`
+	StaticGreeting                 *string        `json:"static_greeting,omitempty"`
+	StaticGreetingNoBarge          any            `json:"static_greeting_no_barge,omitempty"`
+	StreamFirst                    any            `json:"stream_first,omitempty"`
+	Streaming                      any            `json:"streaming,omitempty"`
+	StrictMode                     *string        `json:"strict_mode,omitempty"`
+	SummaryMode                    *string        `json:"summary_mode,omitempty"`
+	SwaigAllowSettings             any            `json:"swaig_allow_settings,omitempty"`
+	SwaigAllowSwml                 any            `json:"swaig_allow_swml,omitempty"`
+	SwaigPostConversation          any            `json:"swaig_post_conversation,omitempty"`
+	SwaigPostSwmlVars              any            `json:"swaig_post_swml_vars,omitempty"`
+	SwaigSetGlobalData             any            `json:"swaig_set_global_data,omitempty"`
+	TargetFirstSegmentMs           any            `json:"target_first_segment_ms,omitempty"`
+	TextNormalizationFarDir        *string        `json:"text_normalization_far_dir,omitempty"`
+	ThinkingModel                  *string        `json:"thinking_model,omitempty"`
+	ToolResultDistill              any            `json:"tool_result_distill,omitempty"`
+	TransferSummary                any            `json:"transfer_summary,omitempty"`
+	TransparentBarge               any            `json:"transparent_barge,omitempty"`
+	TransparentBargeMaxTime        any            `json:"transparent_barge_max_time,omitempty"`
+	TtsNumberFormat                *string        `json:"tts_number_format,omitempty"`
+	TurnDetection                  any            `json:"turn_detection,omitempty"`
+	TurnDetectionMinLength         any            `json:"turn_detection_min_length,omitempty"`
+	TurnDetectionTimeout           any            `json:"turn_detection_timeout,omitempty"`
+	TurnFillerEveryN               any            `json:"turn_filler_every_n,omitempty"`
+	TurnFillerMinMs                any            `json:"turn_filler_min_ms,omitempty"`
+	TurnFillerSources              *string        `json:"turn_filler_sources,omitempty"`
+	URL                            *string        `json:"url,omitempty"`
+	UtilityModel                   *string        `json:"utility_model,omitempty"`
+	VadConfig                      *string        `json:"vad_config,omitempty"`
+	VideoFps                       any            `json:"video_fps,omitempty"`
+	VideoIdleFile                  *string        `json:"video_idle_file,omitempty"`
+	VideoListeningFile             *string        `json:"video_listening_file,omitempty"`
+	VideoScale                     *string        `json:"video_scale,omitempty"`
+	VideoTalkingFile               *string        `json:"video_talking_file,omitempty"`
+	VisionModel                    *string        `json:"vision_model,omitempty"`
+	VoiceName                      *string        `json:"voice_name,omitempty"`
+	Vol                            any            `json:"vol,omitempty"`
+	WaitForUser                    any            `json:"wait_for_user,omitempty"`
+	WakePrefix                     *string        `json:"wake_prefix,omitempty"`
 }
 
 type AIPostPrompt struct {
@@ -42,7 +229,7 @@ type AIPostPrompt struct {
 	MaxCompletionTokens *float64       `json:"max_completion_tokens,omitempty"`
 	MaxTokens           *float64       `json:"max_tokens,omitempty"`
 	Model               *string        `json:"model,omitempty"`
-	Pom                 []POM          `json:"pom,omitempty"`
+	Pom                 []CallingPOM   `json:"pom,omitempty"`
 	PresencePenalty     map[string]any `json:"presence_penalty,omitempty"`
 	ReasoningEffort     *string        `json:"reasoning_effort,omitempty"`
 	Temperature         *float64       `json:"temperature,omitempty"`
@@ -56,7 +243,7 @@ type AIPostPromptPom struct {
 	MaxCompletionTokens *float64       `json:"max_completion_tokens,omitempty"`
 	MaxTokens           *float64       `json:"max_tokens,omitempty"`
 	Model               *string        `json:"model,omitempty"`
-	Pom                 []POM          `json:"pom,omitempty"`
+	Pom                 []CallingPOM   `json:"pom,omitempty"`
 	PresencePenalty     map[string]any `json:"presence_penalty,omitempty"`
 	ReasoningEffort     *string        `json:"reasoning_effort,omitempty"`
 	Temperature         *float64       `json:"temperature,omitempty"`
@@ -70,7 +257,7 @@ type AIPostPromptText struct {
 	MaxCompletionTokens *float64       `json:"max_completion_tokens,omitempty"`
 	MaxTokens           *float64       `json:"max_tokens,omitempty"`
 	Model               *string        `json:"model,omitempty"`
-	Pom                 []POM          `json:"pom,omitempty"`
+	Pom                 []CallingPOM   `json:"pom,omitempty"`
 	PresencePenalty     map[string]any `json:"presence_penalty,omitempty"`
 	ReasoningEffort     *string        `json:"reasoning_effort,omitempty"`
 	Temperature         *float64       `json:"temperature,omitempty"`
@@ -80,7 +267,7 @@ type AIPostPromptText struct {
 }
 
 type AIPrompt struct {
-	Contexts            *Contexts        `json:"contexts,omitempty"`
+	Contexts            *CallingContexts `json:"contexts,omitempty"`
 	FrequencyPenalty    map[string]any   `json:"frequency_penalty,omitempty"`
 	MaxCompletionTokens *float64         `json:"max_completion_tokens,omitempty"`
 	MaxTokens           *float64         `json:"max_tokens,omitempty"`
@@ -88,7 +275,7 @@ type AIPrompt struct {
 	Pom                 []map[string]any `json:"pom,omitempty"`
 	PresencePenalty     map[string]any   `json:"presence_penalty,omitempty"`
 	ReasoningEffort     *string          `json:"reasoning_effort,omitempty"`
-	Steps               []Step           `json:"steps,omitempty"`
+	Steps               []CallingStep    `json:"steps,omitempty"`
 	Temperature         *float64         `json:"temperature,omitempty"`
 	Text                *string          `json:"text,omitempty"`
 	TopP                *float64         `json:"top_p,omitempty"`
@@ -96,7 +283,7 @@ type AIPrompt struct {
 }
 
 type AIPromptPom struct {
-	Contexts            *Contexts        `json:"contexts,omitempty"`
+	Contexts            *CallingContexts `json:"contexts,omitempty"`
 	FrequencyPenalty    map[string]any   `json:"frequency_penalty,omitempty"`
 	MaxCompletionTokens *float64         `json:"max_completion_tokens,omitempty"`
 	MaxTokens           *float64         `json:"max_tokens,omitempty"`
@@ -104,7 +291,7 @@ type AIPromptPom struct {
 	Pom                 []map[string]any `json:"pom,omitempty"`
 	PresencePenalty     map[string]any   `json:"presence_penalty,omitempty"`
 	ReasoningEffort     *string          `json:"reasoning_effort,omitempty"`
-	Steps               []Step           `json:"steps,omitempty"`
+	Steps               []CallingStep    `json:"steps,omitempty"`
 	Temperature         *float64         `json:"temperature,omitempty"`
 	Text                *string          `json:"text,omitempty"`
 	TopP                *float64         `json:"top_p,omitempty"`
@@ -112,7 +299,7 @@ type AIPromptPom struct {
 }
 
 type AIPromptText struct {
-	Contexts            *Contexts        `json:"contexts,omitempty"`
+	Contexts            *CallingContexts `json:"contexts,omitempty"`
 	FrequencyPenalty    map[string]any   `json:"frequency_penalty,omitempty"`
 	MaxCompletionTokens *float64         `json:"max_completion_tokens,omitempty"`
 	MaxTokens           *float64         `json:"max_tokens,omitempty"`
@@ -120,11 +307,43 @@ type AIPromptText struct {
 	Pom                 []map[string]any `json:"pom,omitempty"`
 	PresencePenalty     map[string]any   `json:"presence_penalty,omitempty"`
 	ReasoningEffort     *string          `json:"reasoning_effort,omitempty"`
-	Steps               []Step           `json:"steps,omitempty"`
+	Steps               []CallingStep    `json:"steps,omitempty"`
 	Temperature         *float64         `json:"temperature,omitempty"`
 	Text                *string          `json:"text,omitempty"`
 	TopP                *float64         `json:"top_p,omitempty"`
 	Verbosity           *string          `json:"verbosity,omitempty"`
+}
+
+type CallingAction struct {
+	SWML                      any              `json:"SWML,omitempty"`
+	AddDynamicHints           []any            `json:"add_dynamic_hints,omitempty"`
+	BackToBackFunctions       any              `json:"back_to_back_functions,omitempty"`
+	ChangeContext             *string          `json:"change_context,omitempty"`
+	ChangeStep                *string          `json:"change_step,omitempty"`
+	ChangeVoice               any              `json:"change_voice,omitempty"`
+	ClearDynamicHints         *bool            `json:"clear_dynamic_hints,omitempty"`
+	ContextSwitch             any              `json:"context_switch,omitempty"`
+	EndOfSpeechTimeout        *int             `json:"end_of_speech_timeout,omitempty"`
+	ExtensiveData             *bool            `json:"extensive_data,omitempty"`
+	FunctionsOnSpeakerTimeout *bool            `json:"functions_on_speaker_timeout,omitempty"`
+	Hangup                    *bool            `json:"hangup,omitempty"`
+	Hold                      any              `json:"hold,omitempty"`
+	PlaybackBg                any              `json:"playback_bg,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
+	Say                       *string          `json:"say,omitempty"`
+	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
+	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
+	Settings                  map[string]any   `json:"settings,omitempty"`
+	SpeechEventTimeout        *int             `json:"speech_event_timeout,omitempty"`
+	Stop                      *bool            `json:"stop,omitempty"`
+	StopPlaybackBg            *bool            `json:"stop_playback_bg,omitempty"`
+	ToggleFunctions           []map[string]any `json:"toggle_functions,omitempty"`
+	Transfer                  any              `json:"transfer,omitempty"`
+	UnsetGlobalData           any              `json:"unset_global_data,omitempty"`
+	UnsetMetaData             any              `json:"unset_meta_data,omitempty"`
+	UserEvent                 map[string]any   `json:"user_event,omitempty"`
+	UserInput                 *string          `json:"user_input,omitempty"`
+	WaitForUser               any              `json:"wait_for_user,omitempty"`
 }
 
 type AllOfProperty struct {
@@ -166,6 +385,8 @@ type ArrayProperty struct {
 	Items       SchemaType       `json:"items,omitempty"`
 }
 
+type CallingAttentionTimeout int
+
 type BedrockParams struct {
 	AttentionTimeout        any     `json:"attention_timeout,omitempty"`
 	CompactConversationTime *string `json:"compact_conversation_time,omitempty"`
@@ -197,13 +418,13 @@ type BedrockSWAIG struct {
 }
 
 type BedrockSWAIGFunction struct {
-	Description   *string        `json:"description,omitempty"`
-	DataMap       *DataMap       `json:"data_map,omitempty"`
-	Function      *string        `json:"function,omitempty"`
-	MetaData      map[string]any `json:"meta_data,omitempty"`
-	MetaDataToken *string        `json:"meta_data_token,omitempty"`
-	Parameters    *JsonSchema    `json:"parameters,omitempty"`
-	WebHookURL    *string        `json:"web_hook_url,omitempty"`
+	Description   *string         `json:"description,omitempty"`
+	DataMap       *CallingDataMap `json:"data_map,omitempty"`
+	Function      *string         `json:"function,omitempty"`
+	MetaData      map[string]any  `json:"meta_data,omitempty"`
+	MetaDataToken *string         `json:"meta_data_token,omitempty"`
+	Parameters    *JsonSchema     `json:"parameters,omitempty"`
+	WebHookURL    *string         `json:"web_hook_url,omitempty"`
 }
 
 type BooleanProperty struct {
@@ -226,7 +447,7 @@ type CallAIMessageResetParams struct {
 }
 
 type CallCreate422Error struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []CallingTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }
 
 type CallCreateParamsSWML struct {
@@ -310,7 +531,7 @@ type CallLeg struct {
 	Duration      any             `json:"duration,omitempty"`
 	DurationMs    any             `json:"duration_ms,omitempty"`
 	BillingMs     any             `json:"billing_ms,omitempty"`
-	Type          any             `json:"type,omitempty"`
+	Type          string          `json:"type,omitempty"`
 	QosMetrics    any             `json:"qos_metrics,omitempty"`
 	ParentID      any             `json:"parent_id,omitempty"`
 }
@@ -624,7 +845,7 @@ type ChangeContextAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -656,7 +877,7 @@ type ChangeStepAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -704,13 +925,13 @@ type Connect struct {
 	Connect ConnectDeviceSingle `json:"connect,omitempty"`
 }
 
-type ConnectDeviceParallel any
+type ConnectDeviceParallel map[string]any
 
-type ConnectDeviceSerial any
+type ConnectDeviceSerial map[string]any
 
-type ConnectDeviceSerialParallel any
+type ConnectDeviceSerialParallel map[string]any
 
-type ConnectDeviceSingle any
+type ConnectDeviceSingle map[string]any
 
 type ConnectHeaders struct {
 	Name  string `json:"name,omitempty"`
@@ -728,14 +949,14 @@ type ConstProperty struct {
 }
 
 type ContextPOMSteps struct {
-	Name          string   `json:"name,omitempty"`
-	StepCriteria  *string  `json:"step_criteria,omitempty"`
-	Functions     []string `json:"functions,omitempty"`
-	ValidContexts []string `json:"valid_contexts,omitempty"`
-	SkipUserTurn  any      `json:"skip_user_turn,omitempty"`
-	End           *bool    `json:"end,omitempty"`
-	ValidSteps    []string `json:"valid_steps,omitempty"`
-	Pom           []POM    `json:"pom,omitempty"`
+	Name          string       `json:"name,omitempty"`
+	StepCriteria  *string      `json:"step_criteria,omitempty"`
+	Functions     []string     `json:"functions,omitempty"`
+	ValidContexts []string     `json:"valid_contexts,omitempty"`
+	SkipUserTurn  any          `json:"skip_user_turn,omitempty"`
+	End           *bool        `json:"end,omitempty"`
+	ValidSteps    []string     `json:"valid_steps,omitempty"`
+	Pom           []CallingPOM `json:"pom,omitempty"`
 }
 
 type ContextSteps any
@@ -755,7 +976,7 @@ type ContextSwitchAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -783,25 +1004,44 @@ type ContextTextSteps struct {
 	Text          string   `json:"text,omitempty"`
 }
 
+type CallingContexts map[string]any
+
 type ContextsObject any
 
 type ContextsPOMObject struct {
-	Steps        []ContextSteps    `json:"steps,omitempty"`
-	Isolated     *bool             `json:"isolated,omitempty"`
-	EnterFillers []FunctionFillers `json:"enter_fillers,omitempty"`
-	ExitFillers  []FunctionFillers `json:"exit_fillers,omitempty"`
-	Pom          []POM             `json:"pom,omitempty"`
+	Steps        []ContextSteps           `json:"steps,omitempty"`
+	Isolated     *bool                    `json:"isolated,omitempty"`
+	EnterFillers []CallingFunctionFillers `json:"enter_fillers,omitempty"`
+	ExitFillers  []CallingFunctionFillers `json:"exit_fillers,omitempty"`
+	Pom          []CallingPOM             `json:"pom,omitempty"`
 }
 
 type ContextsTextObject struct {
-	Steps        []ContextSteps    `json:"steps,omitempty"`
-	Isolated     *bool             `json:"isolated,omitempty"`
-	EnterFillers []FunctionFillers `json:"enter_fillers,omitempty"`
-	ExitFillers  []FunctionFillers `json:"exit_fillers,omitempty"`
-	Text         *string           `json:"text,omitempty"`
+	Steps        []ContextSteps           `json:"steps,omitempty"`
+	Isolated     *bool                    `json:"isolated,omitempty"`
+	EnterFillers []CallingFunctionFillers `json:"enter_fillers,omitempty"`
+	ExitFillers  []CallingFunctionFillers `json:"exit_fillers,omitempty"`
+	Text         *string                  `json:"text,omitempty"`
 }
 
+type CallingConversationMessage struct {
+	Content    *string                  `json:"content,omitempty"`
+	Lang       *string                  `json:"lang,omitempty"`
+	Role       *CallingConversationRole `json:"role,omitempty"`
+	ToolCallID *string                  `json:"tool_call_id,omitempty"`
+	ToolCalls  []any                    `json:"tool_calls,omitempty"`
+}
+
+type CallingConversationRole string
+
 type CustomTranslationFilter string
+
+type CallingDataMap struct {
+	Contexts    any            `json:"contexts,omitempty"`
+	Expressions any            `json:"expressions,omitempty"`
+	Output      *CallingOutput `json:"output,omitempty"`
+	Webhooks    any            `json:"webhooks,omitempty"`
+}
 
 type Denoise struct {
 	Denoise any `json:"denoise,omitempty"`
@@ -810,6 +1050,8 @@ type Denoise struct {
 type DetectMachine struct {
 	DetectMachine any `json:"detect_machine,omitempty"`
 }
+
+type CallingDirection string
 
 type EnterQueue struct {
 	EnterQueue any `json:"enter_queue,omitempty"`
@@ -834,6 +1076,14 @@ type ExecuteSwitch struct {
 	Variable any            `json:"variable,omitempty"`
 }
 
+type CallingExpression struct {
+	Pattern       *string        `json:"pattern,omitempty"`
+	Expr          *string        `json:"expr,omitempty"`
+	NomatchOutput *CallingOutput `json:"nomatch-output,omitempty"`
+	Output        *CallingOutput `json:"output,omitempty"`
+	String        *string        `json:"string,omitempty"`
+}
+
 type FabricDeviceLeg struct {
 	ID            Uuid            `json:"id,omitempty"`
 	From          string          `json:"from,omitempty"`
@@ -848,29 +1098,85 @@ type FabricDeviceLeg struct {
 	Type          string          `json:"type,omitempty"`
 }
 
+type CallingFunctionFillers struct {
+	Default map[string]any `json:"default,omitempty"`
+	Auto    map[string]any `json:"auto,omitempty"`
+}
+
+type CallingFunctionParameters struct {
+	Title                 *string        `json:"title,omitempty"`
+	Description           *string        `json:"description,omitempty"`
+	Type                  any            `json:"type,omitempty"`
+	Const                 map[string]any `json:"const,omitempty"`
+	Enum                  []any          `json:"enum,omitempty"`
+	Format                *string        `json:"format,omitempty"`
+	Pattern               *string        `json:"pattern,omitempty"`
+	Minimum               *float64       `json:"minimum,omitempty"`
+	Maximum               *float64       `json:"maximum,omitempty"`
+	ExclusiveMinimum      *float64       `json:"exclusiveMinimum,omitempty"`
+	ExclusiveMaximum      *float64       `json:"exclusiveMaximum,omitempty"`
+	MinLength             *int           `json:"minLength,omitempty"`
+	MaxLength             *int           `json:"maxLength,omitempty"`
+	MinItems              *int           `json:"minItems,omitempty"`
+	MaxItems              *int           `json:"maxItems,omitempty"`
+	MinProperties         *int           `json:"minProperties,omitempty"`
+	MaxProperties         *int           `json:"maxProperties,omitempty"`
+	Default               map[string]any `json:"default,omitempty"`
+	Examples              []any          `json:"examples,omitempty"`
+	Deprecated            *bool          `json:"deprecated,omitempty"`
+	Nullable              *bool          `json:"nullable,omitempty"`
+	Properties            map[string]any `json:"properties,omitempty"`
+	Required              []string       `json:"required,omitempty"`
+	PrefixItems           []any          `json:"prefixItems,omitempty"`
+	Items                 any            `json:"items,omitempty"`
+	PropertyNames         any            `json:"propertyNames,omitempty"`
+	AdditionalProperties  any            `json:"additionalProperties,omitempty"`
+	UnevaluatedProperties any            `json:"unevaluatedProperties,omitempty"`
+	OneOf                 []any          `json:"oneOf,omitempty"`
+	AnyOf                 []any          `json:"anyOf,omitempty"`
+	AllOf                 []any          `json:"allOf,omitempty"`
+	Not                   any            `json:"not,omitempty"`
+	Contains              any            `json:"contains,omitempty"`
+	DependentRequired     map[string]any `json:"dependentRequired,omitempty"`
+	DependentSchemas      map[string]any `json:"dependentSchemas,omitempty"`
+	Else                  any            `json:"else,omitempty"`
+	Example               map[string]any `json:"example,omitempty"`
+	If                    any            `json:"if,omitempty"`
+	MaxContains           *int           `json:"maxContains,omitempty"`
+	MinContains           *int           `json:"minContains,omitempty"`
+	MultipleOf            *float64       `json:"multipleOf,omitempty"`
+	PatternProperties     map[string]any `json:"patternProperties,omitempty"`
+	PropertyOrdering      []string       `json:"propertyOrdering,omitempty"`
+	ReadOnly              *bool          `json:"readOnly,omitempty"`
+	Then                  any            `json:"then,omitempty"`
+	UnevaluatedItems      any            `json:"unevaluatedItems,omitempty"`
+	UniqueItems           *bool          `json:"uniqueItems,omitempty"`
+	WriteOnly             *bool          `json:"writeOnly,omitempty"`
+}
+
 type Goto struct {
 	Goto any `json:"goto,omitempty"`
 }
 
 type HangUpHookSWAIGFunction struct {
-	Description         *string             `json:"description,omitempty"`
-	Active              any                 `json:"active,omitempty"`
-	Argument            *FunctionParameters `json:"argument,omitempty"`
-	DataMap             *DataMap            `json:"data_map,omitempty"`
-	Fillers             *FunctionFillers    `json:"fillers,omitempty"`
-	Function            *string             `json:"function,omitempty"`
-	MetaData            map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken       *string             `json:"meta_data_token,omitempty"`
-	Parameters          *FunctionParameters `json:"parameters,omitempty"`
-	Purpose             *string             `json:"purpose,omitempty"`
-	SkipFillers         any                 `json:"skip_fillers,omitempty"`
-	WaitFile            *string             `json:"wait_file,omitempty"`
-	WaitFileLoops       any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers      any                 `json:"wait_for_fillers,omitempty"`
-	WebHookAuthPass     *string             `json:"web_hook_auth_pass,omitempty"`
-	WebHookAuthPassword *string             `json:"web_hook_auth_password,omitempty"`
-	WebHookAuthUser     *string             `json:"web_hook_auth_user,omitempty"`
-	WebHookURL          *string             `json:"web_hook_url,omitempty"`
+	Description         *string                    `json:"description,omitempty"`
+	Active              any                        `json:"active,omitempty"`
+	Argument            *CallingFunctionParameters `json:"argument,omitempty"`
+	DataMap             *CallingDataMap            `json:"data_map,omitempty"`
+	Fillers             *CallingFunctionFillers    `json:"fillers,omitempty"`
+	Function            *string                    `json:"function,omitempty"`
+	MetaData            map[string]any             `json:"meta_data,omitempty"`
+	MetaDataToken       *string                    `json:"meta_data_token,omitempty"`
+	Parameters          *CallingFunctionParameters `json:"parameters,omitempty"`
+	Purpose             *string                    `json:"purpose,omitempty"`
+	SkipFillers         any                        `json:"skip_fillers,omitempty"`
+	WaitFile            *string                    `json:"wait_file,omitempty"`
+	WaitFileLoops       any                        `json:"wait_file_loops,omitempty"`
+	WaitForFillers      any                        `json:"wait_for_fillers,omitempty"`
+	WebHookAuthPass     *string                    `json:"web_hook_auth_pass,omitempty"`
+	WebHookAuthPassword *string                    `json:"web_hook_auth_password,omitempty"`
+	WebHookAuthUser     *string                    `json:"web_hook_auth_user,omitempty"`
+	WebHookURL          *string                    `json:"web_hook_url,omitempty"`
 }
 
 type Hangup struct {
@@ -892,7 +1198,7 @@ type HangupAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -942,7 +1248,7 @@ type HoldAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1013,58 +1319,70 @@ type Label struct {
 	Label any `json:"label,omitempty"`
 }
 
+type CallingLanguageParams struct {
+	Emotion      *string `json:"emotion,omitempty"`
+	Pitch        any     `json:"pitch,omitempty"`
+	Similarity   any     `json:"similarity,omitempty"`
+	SpeakingRate any     `json:"speakingRate,omitempty"`
+	Speed        any     `json:"speed,omitempty"`
+	Stability    any     `json:"stability,omitempty"`
+	Streaming    any     `json:"streaming,omitempty"`
+	Temperature  any     `json:"temperature,omitempty"`
+	Vol          any     `json:"vol,omitempty"`
+}
+
 type Languages struct {
-	AutoEmotion       any             `json:"auto_emotion,omitempty"`
-	AutoSpeed         any             `json:"auto_speed,omitempty"`
-	Code              any             `json:"code,omitempty"`
-	DoubleTurnFillers []any           `json:"double_turn_fillers,omitempty"`
-	Engine            *string         `json:"engine,omitempty"`
-	Fillers           []any           `json:"fillers,omitempty"`
-	FunctionFillers   []any           `json:"function_fillers,omitempty"`
-	ListenLanguage    any             `json:"listen_language,omitempty"`
-	Model             *string         `json:"model,omitempty"`
-	Name              *string         `json:"name,omitempty"`
-	Params            *LanguageParams `json:"params,omitempty"`
-	Pronounce         []any           `json:"pronounce,omitempty"`
-	SpeechFillers     []any           `json:"speech_fillers,omitempty"`
-	TurnFillers       []any           `json:"turn_fillers,omitempty"`
-	Voice             *string         `json:"voice,omitempty"`
+	AutoEmotion       any                    `json:"auto_emotion,omitempty"`
+	AutoSpeed         any                    `json:"auto_speed,omitempty"`
+	Code              any                    `json:"code,omitempty"`
+	DoubleTurnFillers []any                  `json:"double_turn_fillers,omitempty"`
+	Engine            *string                `json:"engine,omitempty"`
+	Fillers           []any                  `json:"fillers,omitempty"`
+	FunctionFillers   []any                  `json:"function_fillers,omitempty"`
+	ListenLanguage    any                    `json:"listen_language,omitempty"`
+	Model             *string                `json:"model,omitempty"`
+	Name              *string                `json:"name,omitempty"`
+	Params            *CallingLanguageParams `json:"params,omitempty"`
+	Pronounce         []any                  `json:"pronounce,omitempty"`
+	SpeechFillers     []any                  `json:"speech_fillers,omitempty"`
+	TurnFillers       []any                  `json:"turn_fillers,omitempty"`
+	Voice             *string                `json:"voice,omitempty"`
 }
 
 type LanguagesWithFillers struct {
-	AutoEmotion       any             `json:"auto_emotion,omitempty"`
-	AutoSpeed         any             `json:"auto_speed,omitempty"`
-	Code              any             `json:"code,omitempty"`
-	DoubleTurnFillers []any           `json:"double_turn_fillers,omitempty"`
-	Engine            *string         `json:"engine,omitempty"`
-	Fillers           []any           `json:"fillers,omitempty"`
-	FunctionFillers   []any           `json:"function_fillers,omitempty"`
-	ListenLanguage    any             `json:"listen_language,omitempty"`
-	Model             *string         `json:"model,omitempty"`
-	Name              *string         `json:"name,omitempty"`
-	Params            *LanguageParams `json:"params,omitempty"`
-	Pronounce         []any           `json:"pronounce,omitempty"`
-	SpeechFillers     []any           `json:"speech_fillers,omitempty"`
-	TurnFillers       []any           `json:"turn_fillers,omitempty"`
-	Voice             *string         `json:"voice,omitempty"`
+	AutoEmotion       any                    `json:"auto_emotion,omitempty"`
+	AutoSpeed         any                    `json:"auto_speed,omitempty"`
+	Code              any                    `json:"code,omitempty"`
+	DoubleTurnFillers []any                  `json:"double_turn_fillers,omitempty"`
+	Engine            *string                `json:"engine,omitempty"`
+	Fillers           []any                  `json:"fillers,omitempty"`
+	FunctionFillers   []any                  `json:"function_fillers,omitempty"`
+	ListenLanguage    any                    `json:"listen_language,omitempty"`
+	Model             *string                `json:"model,omitempty"`
+	Name              *string                `json:"name,omitempty"`
+	Params            *CallingLanguageParams `json:"params,omitempty"`
+	Pronounce         []any                  `json:"pronounce,omitempty"`
+	SpeechFillers     []any                  `json:"speech_fillers,omitempty"`
+	TurnFillers       []any                  `json:"turn_fillers,omitempty"`
+	Voice             *string                `json:"voice,omitempty"`
 }
 
 type LanguagesWithSoloFillers struct {
-	AutoEmotion       any             `json:"auto_emotion,omitempty"`
-	AutoSpeed         any             `json:"auto_speed,omitempty"`
-	Code              any             `json:"code,omitempty"`
-	DoubleTurnFillers []any           `json:"double_turn_fillers,omitempty"`
-	Engine            *string         `json:"engine,omitempty"`
-	Fillers           []any           `json:"fillers,omitempty"`
-	FunctionFillers   []any           `json:"function_fillers,omitempty"`
-	ListenLanguage    any             `json:"listen_language,omitempty"`
-	Model             *string         `json:"model,omitempty"`
-	Name              *string         `json:"name,omitempty"`
-	Params            *LanguageParams `json:"params,omitempty"`
-	Pronounce         []any           `json:"pronounce,omitempty"`
-	SpeechFillers     []any           `json:"speech_fillers,omitempty"`
-	TurnFillers       []any           `json:"turn_fillers,omitempty"`
-	Voice             *string         `json:"voice,omitempty"`
+	AutoEmotion       any                    `json:"auto_emotion,omitempty"`
+	AutoSpeed         any                    `json:"auto_speed,omitempty"`
+	Code              any                    `json:"code,omitempty"`
+	DoubleTurnFillers []any                  `json:"double_turn_fillers,omitempty"`
+	Engine            *string                `json:"engine,omitempty"`
+	Fillers           []any                  `json:"fillers,omitempty"`
+	FunctionFillers   []any                  `json:"function_fillers,omitempty"`
+	ListenLanguage    any                    `json:"listen_language,omitempty"`
+	Model             *string                `json:"model,omitempty"`
+	Name              *string                `json:"name,omitempty"`
+	Params            *CallingLanguageParams `json:"params,omitempty"`
+	Pronounce         []any                  `json:"pronounce,omitempty"`
+	SpeechFillers     []any                  `json:"speech_fillers,omitempty"`
+	TurnFillers       []any                  `json:"turn_fillers,omitempty"`
+	Voice             *string                `json:"voice,omitempty"`
 }
 
 type LiveTranscribe struct {
@@ -1131,6 +1449,21 @@ type ObjectProperty struct {
 
 type OneOfProperty struct {
 	OneOf []SchemaType `json:"oneOf,omitempty"`
+}
+
+type CallingOutput struct {
+	Action      any   `json:"action,omitempty"`
+	PostProcess *bool `json:"post_process,omitempty"`
+	Response    any   `json:"response,omitempty"`
+}
+
+type CallingPOM struct {
+	Title           *string `json:"title,omitempty"`
+	Body            *string `json:"body,omitempty"`
+	Bullets         []any   `json:"bullets,omitempty"`
+	Numbered        *bool   `json:"numbered,omitempty"`
+	NumberedBullets *bool   `json:"numberedBullets,omitempty"`
+	Subsections     []any   `json:"subsections,omitempty"`
 }
 
 type Pay struct {
@@ -1210,7 +1543,7 @@ type PlaybackBGAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1300,34 +1633,43 @@ type SMSWithMedia struct {
 }
 
 type SWAIG struct {
-	Defaults        *SWAIGDefaults        `json:"defaults,omitempty"`
-	Functions       []SWAIGFunction       `json:"functions,omitempty"`
-	Hooks           []map[string]any      `json:"hooks,omitempty"`
-	Includes        []SWAIGIncludes       `json:"includes,omitempty"`
-	InternalFillers *SWAIGInternalFiller  `json:"internal_fillers,omitempty"`
-	McpServers      []map[string]any      `json:"mcp_servers,omitempty"`
-	NativeFunctions []SWAIGNativeFunction `json:"native_functions,omitempty"`
+	Defaults        *CallingSWAIGDefaults        `json:"defaults,omitempty"`
+	Functions       []SWAIGFunction              `json:"functions,omitempty"`
+	Hooks           []map[string]any             `json:"hooks,omitempty"`
+	Includes        []SWAIGIncludes              `json:"includes,omitempty"`
+	InternalFillers *CallingSWAIGInternalFiller  `json:"internal_fillers,omitempty"`
+	McpServers      []map[string]any             `json:"mcp_servers,omitempty"`
+	NativeFunctions []CallingSWAIGNativeFunction `json:"native_functions,omitempty"`
+}
+
+type CallingSWAIGDefaults struct {
+	MetaData            map[string]any `json:"meta_data,omitempty"`
+	MetaDataToken       *string        `json:"meta_data_token,omitempty"`
+	WebHookAuthPass     *string        `json:"web_hook_auth_pass,omitempty"`
+	WebHookAuthPassword *string        `json:"web_hook_auth_password,omitempty"`
+	WebHookAuthUser     *string        `json:"web_hook_auth_user,omitempty"`
+	WebHookURL          *string        `json:"web_hook_url,omitempty"`
 }
 
 type SWAIGFunction struct {
-	Description         *string             `json:"description,omitempty"`
-	Active              any                 `json:"active,omitempty"`
-	Argument            *FunctionParameters `json:"argument,omitempty"`
-	DataMap             *DataMap            `json:"data_map,omitempty"`
-	Fillers             *FunctionFillers    `json:"fillers,omitempty"`
-	Function            *string             `json:"function,omitempty"`
-	MetaData            map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken       *string             `json:"meta_data_token,omitempty"`
-	Parameters          *FunctionParameters `json:"parameters,omitempty"`
-	Purpose             *string             `json:"purpose,omitempty"`
-	SkipFillers         any                 `json:"skip_fillers,omitempty"`
-	WaitFile            *string             `json:"wait_file,omitempty"`
-	WaitFileLoops       any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers      any                 `json:"wait_for_fillers,omitempty"`
-	WebHookAuthPass     *string             `json:"web_hook_auth_pass,omitempty"`
-	WebHookAuthPassword *string             `json:"web_hook_auth_password,omitempty"`
-	WebHookAuthUser     *string             `json:"web_hook_auth_user,omitempty"`
-	WebHookURL          *string             `json:"web_hook_url,omitempty"`
+	Description         *string                    `json:"description,omitempty"`
+	Active              any                        `json:"active,omitempty"`
+	Argument            *CallingFunctionParameters `json:"argument,omitempty"`
+	DataMap             *CallingDataMap            `json:"data_map,omitempty"`
+	Fillers             *CallingFunctionFillers    `json:"fillers,omitempty"`
+	Function            *string                    `json:"function,omitempty"`
+	MetaData            map[string]any             `json:"meta_data,omitempty"`
+	MetaDataToken       *string                    `json:"meta_data_token,omitempty"`
+	Parameters          *CallingFunctionParameters `json:"parameters,omitempty"`
+	Purpose             *string                    `json:"purpose,omitempty"`
+	SkipFillers         any                        `json:"skip_fillers,omitempty"`
+	WaitFile            *string                    `json:"wait_file,omitempty"`
+	WaitFileLoops       any                        `json:"wait_file_loops,omitempty"`
+	WaitForFillers      any                        `json:"wait_for_fillers,omitempty"`
+	WebHookAuthPass     *string                    `json:"web_hook_auth_pass,omitempty"`
+	WebHookAuthPassword *string                    `json:"web_hook_auth_password,omitempty"`
+	WebHookAuthUser     *string                    `json:"web_hook_auth_user,omitempty"`
+	WebHookURL          *string                    `json:"web_hook_url,omitempty"`
 }
 
 type SWAIGIncludes struct {
@@ -1337,6 +1679,20 @@ type SWAIGIncludes struct {
 	MetaData     map[string]any `json:"meta_data,omitempty"`
 	URL          *string        `json:"url,omitempty"`
 }
+
+type CallingSWAIGInternalFiller struct {
+	AdjustResponseLatency map[string]any `json:"adjust_response_latency,omitempty"`
+	ChangeContext         map[string]any `json:"change_context,omitempty"`
+	CheckTime             map[string]any `json:"check_time,omitempty"`
+	GetIdealStrategy      map[string]any `json:"get_ideal_strategy,omitempty"`
+	GetVisualInput        map[string]any `json:"get_visual_input,omitempty"`
+	NextStep              map[string]any `json:"next_step,omitempty"`
+	PauseConversation     map[string]any `json:"pause_conversation,omitempty"`
+	WaitForUser           map[string]any `json:"wait_for_user,omitempty"`
+	WaitSeconds           map[string]any `json:"wait_seconds,omitempty"`
+}
+
+type CallingSWAIGNativeFunction string
 
 type SWMLAction struct {
 	SWML                      any              `json:"SWML,omitempty"`
@@ -1353,7 +1709,7 @@ type SWMLAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1394,7 +1750,7 @@ type SayAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1448,7 +1804,7 @@ type SetGlobalDataAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1480,7 +1836,7 @@ type SetMetaDataAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1513,24 +1869,24 @@ type StartAction struct {
 }
 
 type StartUpHookSWAIGFunction struct {
-	Description         *string             `json:"description,omitempty"`
-	Active              any                 `json:"active,omitempty"`
-	Argument            *FunctionParameters `json:"argument,omitempty"`
-	DataMap             *DataMap            `json:"data_map,omitempty"`
-	Fillers             *FunctionFillers    `json:"fillers,omitempty"`
-	Function            *string             `json:"function,omitempty"`
-	MetaData            map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken       *string             `json:"meta_data_token,omitempty"`
-	Parameters          *FunctionParameters `json:"parameters,omitempty"`
-	Purpose             *string             `json:"purpose,omitempty"`
-	SkipFillers         any                 `json:"skip_fillers,omitempty"`
-	WaitFile            *string             `json:"wait_file,omitempty"`
-	WaitFileLoops       any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers      any                 `json:"wait_for_fillers,omitempty"`
-	WebHookAuthPass     *string             `json:"web_hook_auth_pass,omitempty"`
-	WebHookAuthPassword *string             `json:"web_hook_auth_password,omitempty"`
-	WebHookAuthUser     *string             `json:"web_hook_auth_user,omitempty"`
-	WebHookURL          *string             `json:"web_hook_url,omitempty"`
+	Description         *string                    `json:"description,omitempty"`
+	Active              any                        `json:"active,omitempty"`
+	Argument            *CallingFunctionParameters `json:"argument,omitempty"`
+	DataMap             *CallingDataMap            `json:"data_map,omitempty"`
+	Fillers             *CallingFunctionFillers    `json:"fillers,omitempty"`
+	Function            *string                    `json:"function,omitempty"`
+	MetaData            map[string]any             `json:"meta_data,omitempty"`
+	MetaDataToken       *string                    `json:"meta_data_token,omitempty"`
+	Parameters          *CallingFunctionParameters `json:"parameters,omitempty"`
+	Purpose             *string                    `json:"purpose,omitempty"`
+	SkipFillers         any                        `json:"skip_fillers,omitempty"`
+	WaitFile            *string                    `json:"wait_file,omitempty"`
+	WaitFileLoops       any                        `json:"wait_file_loops,omitempty"`
+	WaitForFillers      any                        `json:"wait_for_fillers,omitempty"`
+	WebHookAuthPass     *string                    `json:"web_hook_auth_pass,omitempty"`
+	WebHookAuthPassword *string                    `json:"web_hook_auth_password,omitempty"`
+	WebHookAuthUser     *string                    `json:"web_hook_auth_user,omitempty"`
+	WebHookURL          *string                    `json:"web_hook_url,omitempty"`
 }
 
 type StopAction struct {
@@ -1548,7 +1904,7 @@ type StopAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1584,7 +1940,7 @@ type StopPlaybackBGAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1641,24 +1997,24 @@ type SummarizeAction struct {
 type SummarizeActionUnion any
 
 type SummarizeConversationSWAIGFunction struct {
-	Description         *string             `json:"description,omitempty"`
-	Active              any                 `json:"active,omitempty"`
-	Argument            *FunctionParameters `json:"argument,omitempty"`
-	DataMap             *DataMap            `json:"data_map,omitempty"`
-	Fillers             *FunctionFillers    `json:"fillers,omitempty"`
-	Function            *string             `json:"function,omitempty"`
-	MetaData            map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken       *string             `json:"meta_data_token,omitempty"`
-	Parameters          *FunctionParameters `json:"parameters,omitempty"`
-	Purpose             *string             `json:"purpose,omitempty"`
-	SkipFillers         any                 `json:"skip_fillers,omitempty"`
-	WaitFile            *string             `json:"wait_file,omitempty"`
-	WaitFileLoops       any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers      any                 `json:"wait_for_fillers,omitempty"`
-	WebHookAuthPass     *string             `json:"web_hook_auth_pass,omitempty"`
-	WebHookAuthPassword *string             `json:"web_hook_auth_password,omitempty"`
-	WebHookAuthUser     *string             `json:"web_hook_auth_user,omitempty"`
-	WebHookURL          *string             `json:"web_hook_url,omitempty"`
+	Description         *string                    `json:"description,omitempty"`
+	Active              any                        `json:"active,omitempty"`
+	Argument            *CallingFunctionParameters `json:"argument,omitempty"`
+	DataMap             *CallingDataMap            `json:"data_map,omitempty"`
+	Fillers             *CallingFunctionFillers    `json:"fillers,omitempty"`
+	Function            *string                    `json:"function,omitempty"`
+	MetaData            map[string]any             `json:"meta_data,omitempty"`
+	MetaDataToken       *string                    `json:"meta_data_token,omitempty"`
+	Parameters          *CallingFunctionParameters `json:"parameters,omitempty"`
+	Purpose             *string                    `json:"purpose,omitempty"`
+	SkipFillers         any                        `json:"skip_fillers,omitempty"`
+	WaitFile            *string                    `json:"wait_file,omitempty"`
+	WaitFileLoops       any                        `json:"wait_file_loops,omitempty"`
+	WaitForFillers      any                        `json:"wait_for_fillers,omitempty"`
+	WebHookAuthPass     *string                    `json:"web_hook_auth_pass,omitempty"`
+	WebHookAuthPassword *string                    `json:"web_hook_auth_password,omitempty"`
+	WebHookAuthUser     *string                    `json:"web_hook_auth_user,omitempty"`
+	WebHookURL          *string                    `json:"web_hook_url,omitempty"`
 }
 
 type Switch struct {
@@ -1684,7 +2040,7 @@ type ToggleFunctionsAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1743,6 +2099,14 @@ const (
 	TranslationFilterPresetGenZ         TranslationFilterPreset = "gen-z"
 )
 
+type CallingTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
+}
+
 type Unset struct {
 	Unset any `json:"unset,omitempty"`
 }
@@ -1762,7 +2126,7 @@ type UnsetGlobalDataAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1794,7 +2158,7 @@ type UnsetMetaDataAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1830,7 +2194,7 @@ type UserInputAction struct {
 	Hangup                    *bool            `json:"hangup,omitempty"`
 	Hold                      any              `json:"hold,omitempty"`
 	PlaybackBg                any              `json:"playback_bg,omitempty"`
-	ReplaceInHistory          any              `json:"replace_in_history,omitempty"`
+	ReplaceInHistory          *string          `json:"replace_in_history,omitempty"`
 	Say                       *string          `json:"say,omitempty"`
 	SetGlobalData             map[string]any   `json:"set_global_data,omitempty"`
 	SetMetaData               map[string]any   `json:"set_meta_data,omitempty"`
@@ -1848,27 +2212,41 @@ type UserInputAction struct {
 }
 
 type UserSWAIGFunction struct {
-	Description         *string             `json:"description,omitempty"`
-	Active              any                 `json:"active,omitempty"`
-	Argument            *FunctionParameters `json:"argument,omitempty"`
-	DataMap             *DataMap            `json:"data_map,omitempty"`
-	Fillers             *FunctionFillers    `json:"fillers,omitempty"`
-	Function            *string             `json:"function,omitempty"`
-	MetaData            map[string]any      `json:"meta_data,omitempty"`
-	MetaDataToken       *string             `json:"meta_data_token,omitempty"`
-	Parameters          *FunctionParameters `json:"parameters,omitempty"`
-	Purpose             *string             `json:"purpose,omitempty"`
-	SkipFillers         any                 `json:"skip_fillers,omitempty"`
-	WaitFile            *string             `json:"wait_file,omitempty"`
-	WaitFileLoops       any                 `json:"wait_file_loops,omitempty"`
-	WaitForFillers      any                 `json:"wait_for_fillers,omitempty"`
-	WebHookAuthPass     *string             `json:"web_hook_auth_pass,omitempty"`
-	WebHookAuthPassword *string             `json:"web_hook_auth_password,omitempty"`
-	WebHookAuthUser     *string             `json:"web_hook_auth_user,omitempty"`
-	WebHookURL          *string             `json:"web_hook_url,omitempty"`
+	Description         *string                    `json:"description,omitempty"`
+	Active              any                        `json:"active,omitempty"`
+	Argument            *CallingFunctionParameters `json:"argument,omitempty"`
+	DataMap             *CallingDataMap            `json:"data_map,omitempty"`
+	Fillers             *CallingFunctionFillers    `json:"fillers,omitempty"`
+	Function            *string                    `json:"function,omitempty"`
+	MetaData            map[string]any             `json:"meta_data,omitempty"`
+	MetaDataToken       *string                    `json:"meta_data_token,omitempty"`
+	Parameters          *CallingFunctionParameters `json:"parameters,omitempty"`
+	Purpose             *string                    `json:"purpose,omitempty"`
+	SkipFillers         any                        `json:"skip_fillers,omitempty"`
+	WaitFile            *string                    `json:"wait_file,omitempty"`
+	WaitFileLoops       any                        `json:"wait_file_loops,omitempty"`
+	WaitForFillers      any                        `json:"wait_for_fillers,omitempty"`
+	WebHookAuthPass     *string                    `json:"web_hook_auth_pass,omitempty"`
+	WebHookAuthPassword *string                    `json:"web_hook_auth_password,omitempty"`
+	WebHookAuthUser     *string                    `json:"web_hook_auth_user,omitempty"`
+	WebHookURL          *string                    `json:"web_hook_url,omitempty"`
 }
 
 type ValidConfirmMethods any
+
+type CallingWebhook struct {
+	ErrorKeys         any             `json:"error_keys,omitempty"`
+	Expressions       any             `json:"expressions,omitempty"`
+	Foreach           *CallingForeach `json:"foreach,omitempty"`
+	FormParam         *string         `json:"form_param,omitempty"`
+	Headers           map[string]any  `json:"headers,omitempty"`
+	InputArgsAsParams *bool           `json:"input_args_as_params,omitempty"`
+	Method            *string         `json:"method,omitempty"`
+	Output            *CallingOutput  `json:"output,omitempty"`
+	Params            any             `json:"params,omitempty"`
+	RequireArgs       any             `json:"require_args,omitempty"`
+	URL               *string         `json:"url,omitempty"`
+}
 
 type Play_url string
 
@@ -1888,6 +2266,22 @@ type StopStream struct {
 	StopStream any `json:"stop_stream,omitempty"`
 }
 
+type CallingStep struct {
+	End            any                       `json:"end,omitempty"`
+	Functions      []any                     `json:"functions,omitempty"`
+	GatherInfo     map[string]any            `json:"gather_info,omitempty"`
+	History        *string                   `json:"history,omitempty"`
+	Name           *string                   `json:"name,omitempty"`
+	Pom            []CallingPromptPomSection `json:"pom,omitempty"`
+	Reset          map[string]any            `json:"reset,omitempty"`
+	SkipToNextStep any                       `json:"skip_to_next_step,omitempty"`
+	SkipUserTurn   any                       `json:"skip_user_turn,omitempty"`
+	StepCriteria   *string                   `json:"step_criteria,omitempty"`
+	Text           *string                   `json:"text,omitempty"`
+	ValidContexts  []string                  `json:"valid_contexts,omitempty"`
+	ValidSteps     []string                  `json:"valid_steps,omitempty"`
+}
+
 type SetMeta struct {
 	SetMeta any `json:"set_meta,omitempty"`
 }
@@ -1904,6 +2298,15 @@ type RingbackConfig struct {
 
 type Ring struct {
 	Ring any `json:"ring,omitempty"`
+}
+
+type CallingPromptPomSection struct {
+	Title           *string                   `json:"title,omitempty"`
+	Body            *string                   `json:"body,omitempty"`
+	Bullets         []string                  `json:"bullets,omitempty"`
+	Numbered        *bool                     `json:"numbered,omitempty"`
+	NumberedBullets *bool                     `json:"numberedBullets,omitempty"`
+	Subsections     []CallingPromptPomSection `json:"subsections,omitempty"`
 }
 
 type JsonSchema struct {
@@ -1954,12 +2357,38 @@ type JsonSchema struct {
 	WriteOnly             *bool          `json:"writeOnly,omitempty"`
 }
 
+type CallingForeach struct {
+	Append    *string `json:"append,omitempty"`
+	InputKey  *string `json:"input_key,omitempty"`
+	Max       any     `json:"max,omitempty"`
+	OutputKey *string `json:"output_key,omitempty"`
+}
+
 type ExecuteRpc struct {
 	ExecuteRPC any `json:"execute_rpc,omitempty"`
 }
 
 type Echo struct {
 	Echo any `json:"echo,omitempty"`
+}
+
+type CallingContext struct {
+	Consolidate   any                       `json:"consolidate,omitempty"`
+	EnterFillers  map[string]any            `json:"enter_fillers,omitempty"`
+	ExitFillers   map[string]any            `json:"exit_fillers,omitempty"`
+	FullReset     any                       `json:"full_reset,omitempty"`
+	History       *string                   `json:"history,omitempty"`
+	InitialStep   *string                   `json:"initial_step,omitempty"`
+	Isolated      any                       `json:"isolated,omitempty"`
+	Pom           []CallingPromptPomSection `json:"pom,omitempty"`
+	PostPrompt    map[string]any            `json:"post_prompt,omitempty"`
+	Prompt        *string                   `json:"prompt,omitempty"`
+	Reset         any                       `json:"reset,omitempty"`
+	Steps         []CallingStep             `json:"steps,omitempty"`
+	SystemPrompt  *string                   `json:"system_prompt,omitempty"`
+	UserPrompt    *string                   `json:"user_prompt,omitempty"`
+	ValidContexts []any                     `json:"valid_contexts,omitempty"`
+	ValidSteps    []any                     `json:"valid_steps,omitempty"`
 }
 
 type ConnectSerialParallel []ConnectDevice
@@ -2018,7 +2447,7 @@ type RelayIsReset struct {
 	UserPrompt   map[string]any `json:"user_prompt,omitempty"`
 }
 
-type RelayCallPlayInner any
+type RelayCallPlayInner map[string]any
 
 type RelayCallPlayAudio struct {
 	URL string `json:"url,omitempty"`
@@ -2071,7 +2500,7 @@ type RelayCallCollectSpeechInner struct {
 	SpeechTimeout     *float64 `json:"speech_timeout,omitempty"`
 }
 
-type RelayCallDetectInner any
+type RelayCallDetectInner map[string]any
 
 type RelayCallDetectFax struct {
 	Tone *string `json:"tone,omitempty"`
@@ -2091,7 +2520,7 @@ type RelayCallDetectDigit struct {
 	Digits *string `json:"digits,omitempty"`
 }
 
-type RelayCallTapDevice any
+type RelayCallTapDevice map[string]any
 
 type RelayCallTapDeviceRtp struct {
 	Addr  string  `json:"addr,omitempty"`

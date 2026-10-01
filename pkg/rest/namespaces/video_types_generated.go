@@ -261,7 +261,7 @@ type ListRoomsResponse struct {
 
 type ListStreamsResponse struct {
 	Links PaginationLinks `json:"links,omitempty"`
-	Data  []Stream        `json:"data,omitempty"`
+	Data  []VideoStream   `json:"data,omitempty"`
 }
 
 type Log struct {
@@ -544,6 +544,25 @@ type RoomTokenResponse struct {
 	Token string `json:"token,omitempty"`
 }
 
+type VideoStream struct {
+	ID         string `json:"id,omitempty"`
+	URL        any    `json:"url,omitempty"`
+	StreamType any    `json:"stream_type,omitempty"`
+	Width      any    `json:"width,omitempty"`
+	Height     any    `json:"height,omitempty"`
+	Fps        any    `json:"fps,omitempty"`
+	CreatedAt  string `json:"created_at,omitempty"`
+	UpdatedAt  string `json:"updated_at,omitempty"`
+}
+
+type VideoTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
+}
+
 type UpdateConferenceRequest struct {
 	DisplayName        *string         `json:"display_name,omitempty"`
 	Description        *string         `json:"description,omitempty"`
@@ -620,5 +639,5 @@ const (
 )
 
 type VideoStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []VideoTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
 }

@@ -112,11 +112,11 @@ type GenericResourcesAssignDomainApplicationParams struct {
 	Extras              map[string]any `sw:"optional"`
 }
 
-func (r *GenericResources) AssignDomainApplication(ctx context.Context, id string, params GenericResourcesAssignDomainApplicationParams, opts ...*RequestOptions) (*DomainApplicationResponse, error) {
+func (r *GenericResources) AssignDomainApplication(ctx context.Context, id string, params GenericResourcesAssignDomainApplicationParams, opts ...*RequestOptions) (*FabricDomainApplicationResponse, error) {
 	body := map[string]any{}
 	body["domain_application_id"] = params.DomainApplicationID
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[DomainApplicationResponse](r.HTTP.Post(ctx, r.Path(id, "domain_applications"), body, nil, opts...))
+	return decodeResult[FabricDomainApplicationResponse](r.HTTP.Post(ctx, r.Path(id, "domain_applications"), body, nil, opts...))
 }
 
 // GenericResourcesAssignSIPEndpointParams holds the named optional parameters for GenericResources.AssignSIPEndpoint.
@@ -175,6 +175,10 @@ func NewCallFlowsResource(client HTTPClient) *CallFlowsResource {
 	return &CallFlowsResource{NewCrudWithAddressesPUT(client, "/api/fabric/resources/call_flows")}
 }
 
+func (r *CallFlowsResource) ListAddresses(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*CallFlowAddressListResponse, error) {
+	return decodeResult[CallFlowAddressListResponse](r.HTTP.Get(ctx, r.Path(id, "addresses"), params, opts...))
+}
+
 func (r *CallFlowsResource) ListVersions(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*CallFlowVersionListResponse, error) {
 	return decodeResult[CallFlowVersionListResponse](r.HTTP.Get(ctx, r.Path(id, "versions"), params, opts...))
 }
@@ -191,6 +195,10 @@ type ConferenceRoomsResource struct {
 // NewConferenceRoomsResource constructs a ConferenceRoomsResource bound to base path "/api/fabric/resources/conference_rooms".
 func NewConferenceRoomsResource(client HTTPClient) *ConferenceRoomsResource {
 	return &ConferenceRoomsResource{NewCrudWithAddressesPUT(client, "/api/fabric/resources/conference_rooms")}
+}
+
+func (r *ConferenceRoomsResource) ListAddresses(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*ConferenceRoomAddressListResponse, error) {
+	return decodeResult[ConferenceRoomAddressListResponse](r.HTTP.Get(ctx, r.Path(id, "addresses"), params, opts...))
 }
 
 // CxmlApplicationsResource is a client for the "CxmlApplications" resource of the SignalWire fabric API.

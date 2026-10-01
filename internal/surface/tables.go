@@ -967,6 +967,10 @@ var StructTable = map[string][]ClassTarget{
 			"Put":           "put",
 			"Patch":         "patch",
 			"Delete":        "delete",
+			// A GET whose success is a non-JSON body / a redirect (the reference's
+			// get_text / get_redirect_location).
+			"GetText":             "get_text",
+			"GetRedirectLocation": "get_redirect_location",
 		},
 	}},
 	// The one Go rest.SignalWireRestError struct projects onto BOTH Python REST
@@ -1094,6 +1098,14 @@ var StructTable = map[string][]ClassTarget{
 	"namespaces.RegistryNamespace": {{
 		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "RegistryNamespace",
 		Methods: map[string]string{"NewRegistryNamespace": "__init__"},
+	}},
+	"namespaces.SpaceNamespace": {{
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "SpaceNamespace",
+		Methods: map[string]string{"NewSpaceNamespace": "__init__"},
+	}},
+	"namespaces.WhatsappNamespace": {{
+		Module: "signalwire.rest.namespaces._client_tree_generated", Class: "WhatsappNamespace",
+		Methods: map[string]string{"NewWhatsappNamespace": "__init__"},
 	}},
 
 	// --- contexts package -------------------------------------------------

@@ -34,9 +34,10 @@ func main() {
 	results, _ := client.PhoneNumbers.Search(context.Background(), map[string]string{"areacode": "512"})
 
 	// Place a call via REST
+	to := "+15551234567"
 	_, _ = client.Calling.Dial(context.Background(), namespaces.CallingNamespaceDialParams{
 		From:   "+15559876543",
-		To:     "+15551234567",
+		To:     &to,
 		Extras: map[string]any{"url": "https://example.com/call-handler"},
 	})
 

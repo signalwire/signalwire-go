@@ -172,7 +172,8 @@ Note: carrier and CNAM lookups are billable.
 ```go
 codes, err := client.ShortCodes.List(context.Background(), nil)
 code, err := client.ShortCodes.Get(context.Background(), "sc-uuid", nil)
-_, err = client.ShortCodes.Update(context.Background(), "sc-uuid", namespaces.ShortCodesNamespaceUpdateParams{Name: "Alerts"})
+codeName := "Alerts"
+_, err = client.ShortCodes.Update(context.Background(), "sc-uuid", namespaces.ShortCodesNamespaceUpdateParams{Name: &codeName})
 
 _, _ = codes, code
 ```
@@ -323,7 +324,8 @@ _, err = client.Video.ConferenceTokens.Reset(context.Background(), "token-uuid")
 
 // Streams
 stream, err := client.Video.Streams.Get(context.Background(), "stream-uuid", nil)
-_, err = client.Video.Streams.Update(context.Background(), "stream-uuid", namespaces.VideoStreamsUpdateParams{URL: "rtmp://example.com/new"})
+newURL := "rtmp://example.com/new"
+_, err = client.Video.Streams.Update(context.Background(), "stream-uuid", namespaces.VideoStreamsUpdateParams{URL: &newURL})
 _, err = client.Video.Streams.Delete(context.Background(), "stream-uuid")
 
 _, _, _, _ = rooms, room, token, sessions

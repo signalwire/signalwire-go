@@ -5,10 +5,10 @@ All notable changes to the SignalWire AI Agents Go SDK are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/). Versions are
 published as git tags (`v<MAJOR>.<MINOR>.<PATCH>`) resolved by the Go module proxy.
 
-## 3.0.0
+## 3.0.2
 
 First release of the generated-REST surface. Unreleased — no `v3.x` tag has been
-pushed; the version below is intent. `port_signatures.baseline.json` carries the
+pushed (the last published tag is v1.1.0); this is the version `main` declares. `port_signatures.baseline.json` carries the
 separate SemVer *floor* (`baseline_version`) that the SEMVER-DIFF gate diffs against;
 that floor is a snapshot identifier and is deliberately not renumbered with this entry.
 

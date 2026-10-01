@@ -40,7 +40,7 @@ func main() {
 		fmt.Printf("  Search failed: %v\n", err)
 	} else {
 		for _, num := range available.Data {
-			fmt.Printf("  - %v\n", num.Number)
+			fmt.Printf("  - %v\n", deref(num.E164))
 		}
 	}
 
@@ -48,8 +48,8 @@ func main() {
 	fmt.Println("\nPurchasing a phone number...")
 	var numID string
 	numberE164 := "+15125551234"
-	if available != nil && len(available.Data) > 0 {
-		numberE164 = available.Data[0].Number
+	if available != nil && len(available.Data) > 0 && available.Data[0].E164 != nil {
+		numberE164 = *available.Data[0].E164
 	}
 	number, err := client.PhoneNumbers.Create(context.Background(), map[string]any{"number": numberE164})
 	if err != nil {
@@ -224,4 +224,12 @@ func main() {
 			fmt.Printf("  Released number %s\n", numID)
 		}
 	}
+}
+
+// deref returns the pointed-to string, or "" for nil.
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

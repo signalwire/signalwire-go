@@ -130,8 +130,17 @@ var optionalTailVariadicMethods = map[string]bool{
 // dict[str, str] | None = None); Go NewSignalWireRestError reads only
 // `headers[0]` and treats an empty variadic as nil (client.go), i.e. exactly
 // "zero or one", never a list.
-var optionalTailVariadicComposite = map[string]bool{
-	"signalwire.rest._base.SignalWireRestError.__init__": true,
+//
+// The value is the reference param KIND to record ("" = positional-or-keyword):
+// HttpClient.get / post / get_text take `headers` keyword-only (`*, headers: dict[str,
+// str] | None = None`); Go's HTTPClient.Get/Post/GetText spell it as the trailing
+// `headers ...map[string]string`, folded by mergeHeaders (later maps win; an empty
+// variadic is nil), i.e. "zero or one" in practice.
+var optionalTailVariadicComposite = map[string]string{
+	"signalwire.rest._base.SignalWireRestError.__init__": "",
+	"signalwire.rest._base.HttpClient.get":               "keyword",
+	"signalwire.rest._base.HttpClient.post":              "keyword",
+	"signalwire.rest._base.HttpClient.get_text":          "keyword",
 }
 
 // optionalScalarVariadicElemTypes are the element types for which a TRAILING
@@ -414,6 +423,11 @@ var scalarAliasLeaf = map[string]string{
 // genLeaf returns the canonical leaf name for a generated type name (folding the
 // exported scalar-format aliases back to their lowercase oracle leaf).
 func genLeaf(t string) string {
+	// A spec-qualified collision rename (VideoStream) stands for the reference's
+	// per-spec class of the bare name (video_types_generated.Stream).
+	if bare, ok := surfacepkg.GeneratedTypeRenames[t]; ok {
+		t = bare
+	}
 	if leaf, ok := scalarAliasLeaf[t]; ok {
 		return leaf
 	}
@@ -2438,7 +2452,7 @@ func embeddedTypeNames(st *ast.StructType) []string {
 // (that is Go's own shallower-depth selector rule).
 //
 // Field promotion is why `RestClient` needed this: the hand client declares NO
-// exported fields of its own. All 22 namespace accessors (`Fabric`, `Calling`,
+// exported fields of its own. All 24 namespace accessors (`Fabric`, `Calling`,
 // `Video`, …) live on the generated `_GeneratedResourceTree` it embeds, and Go
 // promotes them so `client.Fabric.AIAgents.List(...)` resolves on the client
 // exactly as the reference's `client.fabric.ai_agents.list()` does. A walker
@@ -3244,14 +3258,16 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 		// optionalTailVariadicComposite: a trailing variadic of a non-scalar that
 		// the body reads as "zero or one" rather than as a list. Reclassify to the
 		// ELEMENT type, preserving whatever optional<> the element already carries.
-		if pi == len(sig.params)-1 && strings.HasPrefix(p.typeStr, "...") &&
-			optionalTailVariadicComposite[ctx] {
+		if kind, ok := optionalTailVariadicComposite[ctx]; ok && pi == len(sig.params)-1 && strings.HasPrefix(p.typeStr, "...") {
 			elemCanon, fail := translateType(strings.TrimPrefix(p.typeStr, "..."), aliases, ctx)
 			if fail != nil {
 				failures = append(failures, *fail)
 			} else {
+				if !strings.HasPrefix(elemCanon, "optional<") {
+					elemCanon = "optional<" + elemCanon + ">"
+				}
 				params = append(params, canonicalParam{
-					Name: goNameToSnake(p.name), Type: elemCanon,
+					Name: goNameToSnake(p.name), Kind: kind, Type: elemCanon,
 					Required: boolPtr(false),
 				})
 				continue

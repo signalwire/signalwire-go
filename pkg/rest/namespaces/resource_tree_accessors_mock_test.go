@@ -9,10 +9,10 @@
 // signalwire.rest.client.RestClient is reachable in Go through the embedded
 // _GeneratedResourceTree — client.Calling, client.Fabric, client.Video, ….
 //
-// Go promotes an embedded struct's fields, so the 22 tree fields resolve on
-// *RestClient exactly as the reference's 22 properties resolve on its client.
+// Go promotes an embedded struct's fields, so the 24 tree fields resolve on
+// *RestClient exactly as the reference's 24 properties resolve on its client.
 // A source-level enumerator that does not follow the embed sees zero of them
-// and reports 22 phantom "missing-port" drifts; this test is the runtime
+// and reports 24 phantom "missing-port" drifts; this test is the runtime
 // regression guard that keeps the accessors honest independent of whatever
 // the enumerator can or cannot see.
 
@@ -36,7 +36,7 @@ func isNilPointer(v any) bool {
 	return rv.Kind() == reflect.Pointer && rv.IsNil()
 }
 
-// TestResourceTreeAccessors_AllPromotedAndWired asserts that all 22 namespace
+// TestResourceTreeAccessors_AllPromotedAndWired asserts that all 24 namespace
 // accessors the reference declares on RestClient are reachable on the Go client
 // through the embed AND are non-nil (i.e. wireGeneratedTree ran for each).
 //
@@ -78,10 +78,12 @@ func TestResourceTreeAccessors_AllPromotedAndWired(t *testing.T) {
 		{"sip_profile", client.SIPProfile},
 		{"verified_callers", client.VerifiedCallers},
 		{"video", client.Video},
+		{"space", client.Space},
+		{"whatsapp", client.Whatsapp},
 	}
 
-	if len(accessors) != 22 {
-		t.Fatalf("expected 22 reference accessors, listed %d", len(accessors))
+	if len(accessors) != 24 {
+		t.Fatalf("expected 24 reference accessors, listed %d", len(accessors))
 	}
 
 	for _, a := range accessors {

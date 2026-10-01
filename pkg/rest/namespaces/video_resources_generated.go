@@ -51,11 +51,11 @@ type VideoConferencesCreateStreamParams struct {
 	Extras map[string]any `sw:"optional"`
 }
 
-func (r *VideoConferences) CreateStream(ctx context.Context, id string, params VideoConferencesCreateStreamParams, opts ...*RequestOptions) (*Stream, error) {
+func (r *VideoConferences) CreateStream(ctx context.Context, id string, params VideoConferencesCreateStreamParams, opts ...*RequestOptions) (*VideoStream, error) {
 	body := map[string]any{}
 	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil, opts...))
+	return decodeResult[VideoStream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil, opts...))
 }
 
 // VideoRoomRecordings is a client for the "VideoRoomRecordings" resource of the SignalWire video API.
@@ -233,11 +233,11 @@ type VideoRoomsCreateStreamParams struct {
 	Extras map[string]any `sw:"optional"`
 }
 
-func (r *VideoRooms) CreateStream(ctx context.Context, id string, params VideoRoomsCreateStreamParams, opts ...*RequestOptions) (*Stream, error) {
+func (r *VideoRooms) CreateStream(ctx context.Context, id string, params VideoRoomsCreateStreamParams, opts ...*RequestOptions) (*VideoStream, error) {
 	body := map[string]any{}
 	body["url"] = params.URL
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil, opts...))
+	return decodeResult[VideoStream](r.HTTP.Post(ctx, r.Path(id, "streams"), body, nil, opts...))
 }
 
 // VideoStreams is a client for the "VideoStreams" resource of the SignalWire video API.
@@ -250,8 +250,8 @@ func NewVideoStreams(client HTTPClient) *VideoStreams {
 	return &VideoStreams{Resource{HTTP: client, Base: "/api/video/streams"}}
 }
 
-func (r *VideoStreams) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*Stream, error) {
-	return decodeResult[Stream](r.HTTP.Get(ctx, r.Path(id), params, opts...))
+func (r *VideoStreams) Get(ctx context.Context, id string, params map[string]string, opts ...*RequestOptions) (*VideoStream, error) {
+	return decodeResult[VideoStream](r.HTTP.Get(ctx, r.Path(id), params, opts...))
 }
 
 // VideoStreamsUpdateParams holds the named optional parameters for VideoStreams.Update.
@@ -260,13 +260,13 @@ type VideoStreamsUpdateParams struct {
 	Extras map[string]any `sw:"optional"`
 }
 
-func (r *VideoStreams) Update(ctx context.Context, id string, params VideoStreamsUpdateParams, opts ...*RequestOptions) (*Stream, error) {
+func (r *VideoStreams) Update(ctx context.Context, id string, params VideoStreamsUpdateParams, opts ...*RequestOptions) (*VideoStream, error) {
 	body := map[string]any{}
 	if params.URL != nil {
 		body["url"] = params.URL
 	}
 	mergeExtra(body, []map[string]any{params.Extras})
-	return decodeResult[Stream](r.HTTP.Put(ctx, r.Path(id), body, opts...))
+	return decodeResult[VideoStream](r.HTTP.Put(ctx, r.Path(id), body, opts...))
 }
 
 func (r *VideoStreams) Delete(ctx context.Context, id string, opts ...*RequestOptions) (map[string]any, error) {

@@ -52,7 +52,15 @@ type TokenUpdateResponse struct {
 }
 
 type TokenStatusCode422 struct {
-	Errors []Types_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+	Errors []ProjectTypes_StatusCodes_RestApiErrorItem `json:"errors,omitempty"`
+}
+
+type ProjectTypes_StatusCodes_RestApiErrorItem struct {
+	Type      string `json:"type,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Attribute any    `json:"attribute,omitempty"`
+	URL       string `json:"url,omitempty"`
 }
 
 type UpdateTokenRequest struct {

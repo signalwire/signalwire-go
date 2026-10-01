@@ -127,12 +127,12 @@ func TestServiceAllVerbMethods(t *testing.T) {
 		{"JoinConference", func() error { return svc.JoinConference(map[string]any{"name": "conf1"}) }},
 		{"Prompt", func() error { return svc.Prompt(map[string]any{"play": "say:hi"}) }},
 		{"EnterQueue", func() error {
-			return svc.EnterQueue(map[string]any{"queue_name": "q", "transfer_after_bridge": "main"})
+			return svc.EnterQueue(map[string]any{"queue_name": "q", "execute_after_queue": "main"})
 		}},
 		{"Request", func() error {
 			return svc.Request(map[string]any{"url": "http://x", "method": "GET"})
 		}},
-		{"Pay", func() error { return svc.Pay(map[string]any{"payment_connector_url": "http://x"}) }},
+		{"Pay", func() error { return svc.Pay(map[string]any{"payment_connector_url": "https://x.example"}) }},
 		{"DetectMachine", func() error { return svc.DetectMachine(map[string]any{}) }},
 		// live_transcribe / live_translate take a typed action; "stop" (a string
 		// const) is the minimal valid action per the schema. The wrappers accept
