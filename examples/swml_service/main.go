@@ -35,7 +35,7 @@ func main() {
 
 	// Build the SWML document: answer, greet, prompt, and route
 	maxDuration := 7200
-	must("answer", svc.Answer(&maxDuration, nil))
+	must("answer", svc.Answer(swml.AnswerOptions{MaxDuration: &maxDuration}))
 
 	welcome := "say:Welcome to our service. Press 1 for sales, 2 for support, or 3 to leave a message."
 	must("play", svc.Play(swml.PlayOptions{URL: &welcome}))

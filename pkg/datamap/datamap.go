@@ -271,6 +271,13 @@ func (dm *DataMap) Params(data map[string]any) *DataMap {
 	return dm
 }
 
+// Body sets the JSON request body for the current webhook — the same as Params.
+// The platform reads a webhook's body from its `params` field and has no `body`
+// field, so this sets `params` (see Params).
+func (dm *DataMap) Body(data map[string]any) *DataMap {
+	return dm.Params(data)
+}
+
 // Foreach configures array processing for the current webhook response.
 func (dm *DataMap) Foreach(config map[string]any) *DataMap {
 	dm.foreachConfig = config
@@ -419,9 +426,13 @@ func (dm *DataMap) ToSwaigFunction() map[string]any {
 // type-level spelling that distinguishes an optional composite from a required
 // one.
 //
+// body, when non-nil, is the webhook's JSON request body (set as its params; a
+// webhook with a body is sent as a POST).
+//
 //sw:param parameters optional
 //sw:param headers optional
-func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, errorKeys []string) *DataMap {
+//sw:param body optional
+func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, body map[string]any, errorKeys []string) *DataMap {
 	// An empty method would otherwise reach the webhook as a blank HTTP verb.
 	if method == "" {
 		method = "GET"
@@ -446,6 +457,11 @@ func CreateSimpleAPITool(name, url, responseTemplate string, parameters map[stri
 
 	// Add webhook
 	dm.Webhook(method, url, headers, "", false, nil)
+
+	// Add body if provided; the platform sends params as the body.
+	if len(body) > 0 {
+		dm.Params(body)
+	}
 
 	// Add error keys if provided
 	if len(errorKeys) > 0 {

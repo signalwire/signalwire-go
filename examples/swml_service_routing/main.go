@@ -34,7 +34,7 @@ func main() {
 	)
 
 	// Build the default (main) SWML document
-	must("answer", svc.Answer(nil, nil))
+	must("answer", svc.Answer(swml.AnswerOptions{}))
 	greeting := "say:Hello from the main service!"
 	must("play", svc.Play(swml.PlayOptions{URL: &greeting}))
 	must("hangup", svc.Hangup(nil))

@@ -54,7 +54,8 @@ type WebhookRejection struct {
 // *WebhookRejection carrying the (status, headers, body) an HTTP layer should
 // send to reject the request.
 //
-// It pulls X-SignalWire-Signature (falling back to the legacy
+// It checks X-SignalWire-Sha256-Signature first when present, then pulls
+// X-SignalWire-Signature (falling back to the legacy
 // X-Twilio-Signature alias for cXML compatibility, per webhooks.md §"The
 // Header"), then delegates the actual HMAC check to ValidateWebhookSignatureE.
 // A missing header or a bad signature both reject with 403 and no detail; a
@@ -67,6 +68,16 @@ type WebhookRejection struct {
 func Validate(method, url string, headers map[string]string, body string, signingKey string) *WebhookRejection {
 	if signingKey == "" {
 		panic(ErrMissingSigningKey)
+	}
+
+	// Prefer the stronger SHA-256 signature when the platform sends it
+	// (X-SignalWire-Sha256-Signature): same Scheme A message, SHA-256 hash. Fall
+	// back to the SHA-1 header so deployments on older platform builds — and the
+	// cXML/form Scheme B path — keep validating.
+	if sig256 := headerLookup(headers, "X-SignalWire-Sha256-Signature"); sig256 != "" {
+		if ValidateWebhookSignatureSHA256(signingKey, sig256, url, body) {
+			return nil
+		}
 	}
 
 	sig := headerLookup(headers, "X-SignalWire-Signature")

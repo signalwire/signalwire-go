@@ -213,6 +213,7 @@ var optionalRequestOptionsTailMethods = map[string]bool{
 var optionsStructUnfoldMethods = map[string]string{
 	"signalwire.core.swml_builder.SWMLBuilder.play":                    "PlayOptions",
 	"signalwire.core.swml_builder.SWMLBuilder.ai":                      "AIOptions",
+	"signalwire.core.swml_builder.SWMLBuilder.answer":                  "AnswerOptions",
 	"signalwire.core.function_result.FunctionResult.connect":           "ConnectOptions",
 	"signalwire.core.function_result.FunctionResult.wait_for_user":     "WaitForUserOptions",
 	"signalwire.core.function_result.FunctionResult.hold":              "HoldOptions",
@@ -343,6 +344,7 @@ var aiChatCtorSigs = map[string]canonicalSignature{
 var handOptionsStructs = map[string]bool{
 	"PlayOptions":         true,
 	"AIOptions":           true,
+	"AnswerOptions":       true,
 	"ConnectOptions":      true,
 	"WaitForUserOptions":  true,
 	"HoldOptions":         true,
@@ -361,6 +363,24 @@ type paramsStructField struct {
 	// (`[]T` / `map[K]V`) is spelled identically whether the spec requires it or
 	// not, so pointer-ness alone cannot recover its contract.
 	required *bool
+	// canon, when non-empty, is the field's declared canonical type from a
+	// `gen:"<type>"` struct tag: a hand options field whose reference type Go
+	// cannot spell (a scalar union such as hold's `prompt: str | int`) states
+	// the type it implements instead of being recorded as an erased `any`.
+	canon string
+}
+
+// genCanonTag reads a `gen:"<canonical type>"` tag off a struct field ("" when
+// absent).
+func genCanonTag(tag *ast.BasicLit) string {
+	if tag == nil {
+		return ""
+	}
+	lit, err := strconv.Unquote(tag.Value)
+	if err != nil {
+		return ""
+	}
+	return reflect.StructTag(lit).Get("gen")
 }
 
 // swRequiredTag reads the generated `sw:"required"` / `sw:"optional"` tag off a
@@ -1206,8 +1226,9 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 					for _, f := range st.Fields.List {
 						typeStr := exprString(f.Type)
 						req := swRequiredTag(f.Tag)
+						canon := genCanonTag(f.Tag)
 						for _, n := range f.Names {
-							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr, required: req})
+							fields = append(fields, paramsStructField{name: n.Name, typeStr: typeStr, required: req, canon: canon})
 						}
 					}
 					paramsStructFields[ts.Name.Name] = fields
@@ -3168,6 +3189,9 @@ func toCanonicalSignature(sig *goSignature, aliases map[string]string, isMethod 
 						continue
 					}
 					fCanon, fail := translateType(f.typeStr, aliases, ctx+"["+f.name+"]")
+					if f.canon != "" {
+						fCanon, fail = f.canon, nil
+					}
 					if fail != nil {
 						failures = append(failures, *fail)
 						continue

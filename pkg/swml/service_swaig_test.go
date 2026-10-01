@@ -186,7 +186,7 @@ func TestServiceSidecarPatternEmitsVerbAndRegistersTool(t *testing.T) {
 
 	// 1. Build the SWML — answer + ai_sidecar verb config. ai_sidecar isn't
 	// in the schema yet, so add it directly to the document.
-	if err := svc.Answer(nil, nil); err != nil {
+	if err := svc.Answer(AnswerOptions{}); err != nil {
 		t.Fatalf("Answer: %v", err)
 	}
 	if err := svc.GetDocument().AddVerbToSection("main", "ai_sidecar", map[string]any{

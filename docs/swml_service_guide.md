@@ -59,7 +59,7 @@ func main() {
 	)
 
 	// Build the SWML document with typed verb methods.
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 
 	greeting := "say:Hello, thank you for calling our service."
 	svc.Play(swml.PlayOptions{URL: &greeting})
@@ -289,7 +289,7 @@ import "github.com/signalwire/signalwire-go/v3/pkg/swml"
 func buildDocument(svc *swml.Service, requestData map[string]any) {
 	// Reset the document to start fresh.
 	svc.ResetDocument()
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 
 	// Add custom verbs based on the request data.
 	if callerType, _ := requestData["caller_type"].(string); callerType == "vip" {
@@ -379,7 +379,7 @@ func main() {
 	)
 
 	// Build the main (default) document.
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 	greeting := "say:Hello from the main service!"
 	svc.Play(swml.PlayOptions{URL: &greeting})
 	svc.Hangup(nil)
@@ -510,7 +510,7 @@ func buildVoicemailDocument(svc *swml.Service) {
 	svc.ResetDocument()
 
 	// Answer the call.
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 
 	// Play the greeting.
 	greeting := "say:Hello, you've reached the voicemail service. Please leave a message after the beep."
@@ -570,7 +570,7 @@ func buildCallRouterDocument(svc *swml.Service, requestData map[string]any) {
 
 	// Create a new document.
 	svc.ResetDocument()
-	svc.Answer(nil, nil)
+	svc.Answer(swml.AnswerOptions{})
 
 	// Get routing parameters.
 	department, _ := requestData["department"].(string)

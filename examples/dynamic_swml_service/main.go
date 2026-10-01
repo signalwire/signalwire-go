@@ -36,7 +36,7 @@ func main() {
 	)
 
 	// Build a default SWML document
-	must("answer", svc.Answer(nil, nil))
+	must("answer", svc.Answer(swml.AnswerOptions{}))
 	greeting := "say:Hello, thank you for calling our service."
 	must("play", svc.Play(swml.PlayOptions{URL: &greeting}))
 	must("prompt", svc.Prompt(map[string]any{

@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ c584c113ec4e3135fd80f21dd52230aae6321ec9 (go/ast walker)",
+  "generated_from": "signalwire-go @ dc7efdb4ffae0f8a4bd208a257d5fd5f866d0654 (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -2588,6 +2588,20 @@
               ],
               "returns": "void"
             },
+            "body": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict\u003cstring,any\u003e",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.data_map.DataMap"
+            },
             "description": {
               "params": [
                 {
@@ -2892,6 +2906,11 @@
               "required": false
             },
             {
+              "name": "body",
+              "type": "dict\u003cstring,any\u003e",
+              "required": false
+            },
+            {
               "name": "error_keys",
               "type": "list\u003cstring\u003e",
               "required": false
@@ -3106,7 +3125,7 @@
                 },
                 {
                   "name": "prompt",
-                  "type": "any",
+                  "type": "optional\u003cunion\u003cstring,int\u003e\u003e",
                   "required": false
                 },
                 {
@@ -3842,9 +3861,9 @@
         "strip_control_chars": {
           "params": [
             {
-              "name": "event_dict",
-              "type": "dict\u003cstring,any\u003e",
-              "required": true
+              "name": "args",
+              "type": "list\u003cany\u003e",
+              "required": false
             }
           ],
           "returns": "dict\u003cstring,any\u003e"
@@ -6703,6 +6722,31 @@
             }
           ],
           "returns": "bool"
+        },
+        "validate_webhook_signature_sha256": {
+          "params": [
+            {
+              "name": "signing_key",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "signature",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "raw_body",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
         }
       }
     },
@@ -7995,6 +8039,16 @@
                 },
                 {
                   "name": "codecs",
+                  "type": "optional\u003cunion\u003clist\u003cstring\u003e,string\u003e\u003e",
+                  "required": false
+                },
+                {
+                  "name": "username",
+                  "type": "optional\u003cstring\u003e",
+                  "required": false
+                },
+                {
+                  "name": "password",
                   "type": "optional\u003cstring\u003e",
                   "required": false
                 }
@@ -8054,6 +8108,16 @@
                 {
                   "name": "auto_answer",
                   "type": "optional\u003cbool\u003e",
+                  "required": false
+                },
+                {
+                  "name": "loop",
+                  "type": "optional\u003cint\u003e",
+                  "required": false
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional\u003cstring\u003e",
                   "required": false
                 }
               ],

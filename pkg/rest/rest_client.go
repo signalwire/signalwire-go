@@ -180,34 +180,42 @@ type missingCredential struct{ msg string }
 
 func (m missingCredential) err() error { return errors.New(m.msg) }
 
+// Get fails with the missing-credential error.
 func (m missingCredential) Get(context.Context, string, map[string]string, ...*RequestOptions) (map[string]any, error) {
 	return nil, m.err()
 }
 
+// Post fails with the missing-credential error.
 func (m missingCredential) Post(context.Context, string, map[string]any, map[string]string, ...*RequestOptions) (map[string]any, error) {
 	return nil, m.err()
 }
 
+// Put fails with the missing-credential error.
 func (m missingCredential) Put(context.Context, string, map[string]any, ...*RequestOptions) (map[string]any, error) {
 	return nil, m.err()
 }
 
+// Patch fails with the missing-credential error.
 func (m missingCredential) Patch(context.Context, string, map[string]any, ...*RequestOptions) (map[string]any, error) {
 	return nil, m.err()
 }
 
+// Delete fails with the missing-credential error.
 func (m missingCredential) Delete(context.Context, string, ...*RequestOptions) (map[string]any, error) {
 	return nil, m.err()
 }
 
+// GetText fails with the missing-credential error.
 func (m missingCredential) GetText(context.Context, string, map[string]string, map[string]string, ...*RequestOptions) (string, error) {
 	return "", m.err()
 }
 
+// GetRedirectLocation fails with the missing-credential error.
 func (m missingCredential) GetRedirectLocation(context.Context, string, map[string]string, ...*RequestOptions) (string, error) {
 	return "", m.err()
 }
 
+// PostWithHeaders fails with the missing-credential error.
 func (m missingCredential) PostWithHeaders(context.Context, string, map[string]any, map[string]string, map[string]string, ...*RequestOptions) (map[string]any, error) {
 	return nil, m.err()
 }

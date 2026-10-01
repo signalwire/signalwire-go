@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go (go-native) @ c584c113ec4e3135fd80f21dd52230aae6321ec9",
+  "generated_from": "signalwire-go (go-native) @ dc7efdb4ffae0f8a4bd208a257d5fd5f866d0654",
   "modules": {
     "agent": {
       "classes": {
@@ -460,6 +460,7 @@
     "datamap": {
       "classes": {
         "DataMap": [
+          "Body",
           "Description",
           "ErrorKeys",
           "Expression",
@@ -1661,6 +1662,7 @@
         "ValidateRequestE",
         "ValidateWebhookSignature",
         "ValidateWebhookSignatureE",
+        "ValidateWebhookSignatureSHA256",
         "WebhookMiddleware",
         "WithConfigFile",
         "WithDebugMode",
@@ -1904,6 +1906,7 @@
           "GetVerbName",
           "ValidateConfig"
         ],
+        "AnswerOptions": [],
         "Document": [
           "AddSection",
           "AddVerb",

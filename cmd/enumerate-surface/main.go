@@ -982,6 +982,7 @@ var optionsPlumbingStructs = map[string]bool{
 	"aichat.SummarizeOptions": true,
 	// swml/swaig per-call options (unfolded via optionsStructUnfoldMethods)
 	"swml.PlayOptions":          true,
+	"swml.AnswerOptions":        true,
 	"swml.AIOptions":            true,
 	"swaig.ConnectOptions":      true,
 	"swaig.WaitForUserOptions":  true,

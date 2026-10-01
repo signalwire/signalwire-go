@@ -3,7 +3,9 @@ package security
 import (
 	"crypto/hmac"
 	"crypto/sha1" //nolint:gosec // G505: mirrors the production import — HMAC-SHA1 is mandated by the cross-SDK webhook signature contract (Compat/Twilio compatibility); used inside HMAC, not as a bare digest. The test must compute the same MAC to verify it.
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"net/url"
 	"sort"
@@ -343,5 +345,27 @@ func TestImplementation_UsesConstantTimeCompare(t *testing.T) {
 	}
 	if safeStringEq("abc", "abcd") {
 		t.Fatalf("safeStringEq should reject length-mismatched strings")
+	}
+}
+
+// TestValidateWebhookSignatureSHA256: hex(HMAC-SHA256(key, url+body)) validates;
+// a wrong body or empty signature does not.
+func TestValidateWebhookSignatureSHA256(t *testing.T) {
+	key, url, body := "PSKtest1234567890abcdef", "https://example.ngrok.io/webhook", `{"event":"call.state"}`
+	mac := hmac.New(sha256.New, []byte(key))
+	mac.Write([]byte(url + body))
+	sig := hex.EncodeToString(mac.Sum(nil))
+	if !ValidateWebhookSignatureSHA256(key, sig, url, body) {
+		t.Fatal("valid SHA-256 signature rejected")
+	}
+	if ValidateWebhookSignatureSHA256(key, sig, url, body+" ") {
+		t.Error("signature over a different body accepted")
+	}
+	if ValidateWebhookSignatureSHA256(key, "", url, body) {
+		t.Error("empty signature accepted")
+	}
+	// The middleware core prefers the SHA-256 header.
+	if rej := Validate("POST", url, map[string]string{"X-SignalWire-Sha256-Signature": sig}, body, key); rej != nil {
+		t.Errorf("Validate with only a valid SHA-256 header rejected: %+v", rej)
 	}
 }

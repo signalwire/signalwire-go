@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-go @ c584c113ec4e3135fd80f21dd52230aae6321ec9",
+  "generated_from": "signalwire-go @ dc7efdb4ffae0f8a4bd208a257d5fd5f866d0654",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -285,6 +285,7 @@
       "classes": {
         "DataMap": [
           "__init__",
+          "body",
           "description",
           "error_keys",
           "expression",
@@ -574,7 +575,8 @@
       "classes": {},
       "functions": [
         "validate_request",
-        "validate_webhook_signature"
+        "validate_webhook_signature",
+        "validate_webhook_signature_sha256"
       ]
     },
     "signalwire.core.security_config": {

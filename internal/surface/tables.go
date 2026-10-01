@@ -1586,8 +1586,9 @@ var FreeFnTable = map[string]struct{ Module, Name string }{
 	// Webhook signature validation — Python ships these as module-level free
 	// functions in signalwire.core.security.webhook_validator. Go exposes
 	// them as ValidateWebhookSignature / ValidateRequest in pkg/security.
-	"security.ValidateWebhookSignature": {Module: "signalwire.core.security.webhook_validator", Name: "validate_webhook_signature"},
-	"security.ValidateRequest":          {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
+	"security.ValidateWebhookSignature":       {Module: "signalwire.core.security.webhook_validator", Name: "validate_webhook_signature"},
+	"security.ValidateRequest":                {Module: "signalwire.core.security.webhook_validator", Name: "validate_request"},
+	"security.ValidateWebhookSignatureSHA256": {Module: "signalwire.core.security.webhook_validator", Name: "validate_webhook_signature_sha256"},
 
 	// Decomposed webhook-validation core — the framework-free decision unit
 	// signalwire.core.security.webhook_middleware.validate(method,url,headers,

@@ -2347,6 +2347,7 @@ weather := datamap.CreateSimpleAPITool(
 	},
 	"GET",                                      // method
 	map[string]string{"X-API-Key": "your-api-key"}, // headers
+	nil,                                        // body
 	[]string{"error"},                          // errorKeys
 )
 _ = weather

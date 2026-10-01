@@ -808,17 +808,44 @@ func (s *Service) validateVerb(verbName string, config any) error {
 // These are generated from the schema verb list. The AI verb is included here
 // but AgentBase will override it with its own implementation.
 
-// Answer adds the answer verb to the document.
-// maxDuration sets the maximum call duration in seconds (optional).
-// codecs sets a comma-separated list of allowed codecs (optional).
-// They ride as the max_duration and codecs keys of the answer verb.
-func (s *Service) Answer(maxDuration *int, codecs *string) error {
+// AnswerOptions carries the optional parameters of [Service.Answer]. Set only the
+// fields you need; the zero value answers with the platform defaults.
+type AnswerOptions struct {
+	// MaxDuration is the maximum call duration in seconds.
+	MaxDuration *int
+	// Codecs is the codecs to offer (PCMU, PCMA, G722, G729, AMR-WB, OPUS, VP8,
+	// H264): a comma-separated string or a []string. nil omits it.
+	Codecs any `sw:"optional" gen:"optional<union<list<string>,string>>"`
+	// Username is the username to use for SIP authentication.
+	Username *string
+	// Password is the password to use for SIP authentication.
+	Password *string
+}
+
+// Answer adds the answer verb to the document. The options ride as the
+// max_duration, codecs, username and password keys of the answer verb.
+//
+//	svc.Answer(swml.AnswerOptions{})                       // defaults
+//	svc.Answer(swml.AnswerOptions{MaxDuration: &seconds})
+func (s *Service) Answer(opts AnswerOptions) error {
 	cfg := map[string]any{}
-	if maxDuration != nil {
-		cfg["max_duration"] = *maxDuration
+	if opts.MaxDuration != nil {
+		cfg["max_duration"] = *opts.MaxDuration
 	}
-	if codecs != nil {
-		cfg["codecs"] = *codecs
+	switch c := opts.Codecs.(type) {
+	case nil:
+	case *string:
+		if c != nil {
+			cfg["codecs"] = *c
+		}
+	default:
+		cfg["codecs"] = c
+	}
+	if opts.Username != nil {
+		cfg["username"] = *opts.Username
+	}
+	if opts.Password != nil {
+		cfg["password"] = *opts.Password
 	}
 	return s.ExecuteVerb("answer", cfg)
 }
@@ -851,6 +878,10 @@ type PlayOptions struct {
 	SayLanguage *string
 	SayGender   *string
 	AutoAnswer  *bool
+	// Loop is how many times to play (0 = until the call ends).
+	Loop *int
+	// StatusURL is an http(s) URL to deliver play status events to.
+	StatusURL *string
 }
 
 // Play adds the play verb.
@@ -859,7 +890,7 @@ type PlayOptions struct {
 // SayVoice, SayLanguage, SayGender configure text-to-speech (optional).
 // AutoAnswer controls whether to auto-answer the call (optional).
 // The fields ride as the url / urls / volume / say_voice / say_language /
-// say_gender / auto_answer keys of the play verb.
+// say_gender / auto_answer / loop / status_url keys of the play verb.
 //
 // Pass a PlayOptions value:
 //
@@ -891,6 +922,12 @@ func (s *Service) Play(opts PlayOptions) error {
 	}
 	if opts.AutoAnswer != nil {
 		cfg["auto_answer"] = *opts.AutoAnswer
+	}
+	if opts.Loop != nil {
+		cfg["loop"] = *opts.Loop
+	}
+	if opts.StatusURL != nil {
+		cfg["status_url"] = *opts.StatusURL
 	}
 	return s.ExecuteVerb("play", cfg)
 }

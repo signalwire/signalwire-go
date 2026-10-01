@@ -256,7 +256,7 @@ type HoldOptions struct {
 	//
 	// A string is the prompt. An int is treated as the timeout (the reference's
 	// back-compat for hold(120)); any other value is ignored.
-	Prompt any `sw:"optional"`
+	Prompt any `sw:"optional" gen:"optional<union<string,int>>"`
 	// Timeout is the hold timeout in seconds, clamped to [0, 900]. nil = 300.
 	// A pointer because 0 is a meaningful timeout, distinct from "not supplied".
 	Timeout *int

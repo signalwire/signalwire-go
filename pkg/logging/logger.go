@@ -149,7 +149,20 @@ func stripControlCharsValue(value string) string {
 // event map, preventing log injection. Non-string values pass through untouched
 // (the reference's `isinstance(value, str)` guard). The map is modified in place
 // and returned, mirroring the reference's structlog processor.
-func StripControlChars(eventDict map[string]any) map[string]any {
+//
+// It accepts the event dict alone (StripControlChars(event)) or a processor-style
+// call whose LAST argument is the event dict (StripControlChars(logger, method,
+// event)), mirroring the reference's strip_control_chars(*args). It returns nil
+// when called with no arguments or when the last argument is not a
+// map[string]any.
+func StripControlChars(args ...any) map[string]any {
+	if len(args) == 0 {
+		return nil
+	}
+	eventDict, ok := args[len(args)-1].(map[string]any)
+	if !ok {
+		return nil
+	}
 	for key, value := range eventDict {
 		if s, ok := value.(string); ok {
 			eventDict[key] = stripControlCharsValue(s)

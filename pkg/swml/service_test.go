@@ -43,7 +43,7 @@ func TestServiceVerbMethods(t *testing.T) {
 
 	// Test Answer verb with typed params
 	maxDur := 300
-	err := svc.Answer(&maxDur, nil)
+	err := svc.Answer(AnswerOptions{MaxDuration: &maxDur})
 	if err != nil {
 		t.Fatalf("Answer failed: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestServiceAllVerbMethods(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Answer", func() error { return svc.Answer(nil, nil) }},
+		{"Answer", func() error { return svc.Answer(AnswerOptions{}) }},
 		{"Hangup", func() error { return svc.Hangup(nil) }},
 		{"Play", func() error { u := "say:hello"; return svc.Play(PlayOptions{URL: &u}) }},
 		{"Record", func() error { return svc.Record(map[string]any{}) }},
@@ -166,7 +166,7 @@ func TestServiceExecuteVerbInvalid(t *testing.T) {
 func TestServiceRender(t *testing.T) {
 	svc := NewService(WithName("test"))
 	maxDur2 := 300
-	if err := svc.Answer(&maxDur2, nil); err != nil {
+	if err := svc.Answer(AnswerOptions{MaxDuration: &maxDur2}); err != nil {
 		t.Fatalf("Answer: %v", err)
 	}
 	playURL2 := "https://example.com/audio.mp3"
@@ -215,7 +215,7 @@ func TestServiceGetFullURL(t *testing.T) {
 
 func TestServiceOnRequest(t *testing.T) {
 	svc := NewService(WithName("test"))
-	if err := svc.Answer(nil, nil); err != nil {
+	if err := svc.Answer(AnswerOptions{}); err != nil {
 		t.Fatalf("Answer: %v", err)
 	}
 
@@ -227,7 +227,7 @@ func TestServiceOnRequest(t *testing.T) {
 
 func TestServiceRoutingCallback(t *testing.T) {
 	svc := NewService(WithName("test"), WithBasicAuth("u", "p"))
-	if err := svc.Answer(nil, nil); err != nil {
+	if err := svc.Answer(AnswerOptions{}); err != nil {
 		t.Fatalf("Answer: %v", err)
 	}
 
@@ -463,5 +463,35 @@ func TestServiceAIWireShapePOM(t *testing.T) {
 	entries, ok := prompt["pom"].([]any)
 	if !ok || len(entries) != 1 {
 		t.Fatalf("ai.prompt.pom is %T (want array of 1); doc=%s", prompt["pom"], rendered)
+	}
+}
+
+// TestAnswerSIPAuthAndPlayLoopStatus: answer carries username/password and play
+// carries loop/status_url (python SWMLBuilder.answer / play).
+func TestAnswerSIPAuthAndPlayLoopStatus(t *testing.T) {
+	svc := NewService(WithName("t"), WithBasicAuth("u", "p"))
+	user, pass := "alice", "s3cret"
+	if err := svc.Answer(AnswerOptions{Username: &user, Password: &pass}); err != nil {
+		t.Fatalf("Answer: %v", err)
+	}
+	u, loop, status := "https://example.com/a.mp3", 3, "https://example.com/status"
+	if err := svc.Play(PlayOptions{URL: &u, Loop: &loop, StatusURL: &status}); err != nil {
+		t.Fatalf("Play: %v", err)
+	}
+	doc := svc.GetDocument().ToMap()
+	sections, _ := doc["sections"].(map[string]any)
+	main, _ := sections["main"].([]any)
+	if len(main) != 2 {
+		t.Fatalf("main = %#v", main)
+	}
+	v0, _ := main[0].(map[string]any)
+	ans, _ := v0["answer"].(map[string]any)
+	if ans["username"] != "alice" || ans["password"] != "s3cret" {
+		t.Errorf("answer = %#v", ans)
+	}
+	v1, _ := main[1].(map[string]any)
+	play, _ := v1["play"].(map[string]any)
+	if play["loop"] != 3 || play["status_url"] != status {
+		t.Errorf("play = %#v", play)
 	}
 }

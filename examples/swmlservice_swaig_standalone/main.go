@@ -45,7 +45,7 @@ func main() {
 
 	// 1. Build a minimal SWML document. Any verbs are fine — the SWAIG HTTP
 	//    surface is independent of what the document contains.
-	if err := svc.Answer(nil, nil); err != nil {
+	if err := svc.Answer(swml.AnswerOptions{}); err != nil {
 		fmt.Printf("answer error: %v\n", err)
 		return
 	}

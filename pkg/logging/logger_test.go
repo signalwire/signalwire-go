@@ -286,3 +286,17 @@ func captureLog(t *testing.T, emit func(*Logger)) string {
 	}
 	return buf.String()
 }
+
+// TestStripControlCharsProcessorCall: the reference's strip_control_chars(*args)
+// takes the event dict as its LAST positional argument (structlog's
+// (logger, method_name, event_dict) processor call).
+func TestStripControlCharsProcessorCall(t *testing.T) {
+	event := map[string]any{"msg": "a\x1bb"}
+	out := StripControlChars(nil, "info", event)
+	if out["msg"] != "ab" {
+		t.Errorf("msg = %q, want %q", out["msg"], "ab")
+	}
+	if StripControlChars() != nil {
+		t.Error("no arguments must return nil")
+	}
+}
