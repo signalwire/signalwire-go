@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated_from": "signalwire-go @ 3939539b2c6131b23a1b2ae355dbc67c6f33591c (go/ast walker)",
+  "generated_from": "signalwire-go @ 1b80dc4a923120a8c5f2db54ba1cc0e75d9d6f1c (go/ast walker)",
   "modules": {
     "signalwire": {
       "functions": {
@@ -8505,7 +8505,7 @@
                   "required": true
                 }
               ],
-              "returns": "list\u003cany\u003e"
+              "returns": "tuple\u003cbool,list\u003cstring\u003e\u003e"
             },
             "wait_file": {
               "params": [
