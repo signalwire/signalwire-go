@@ -170,13 +170,13 @@ type ChatGateway struct {
 	// WindowSeconds is the length of the window MaxNewConversations counts over.
 	WindowSeconds int
 
-	client      *Client
-	ownsClient  bool
-	secret      []byte
-	mu          sync.Mutex
-	mints       []time.Time
-	turns       map[string]turnCount
-	now         func() time.Time
+	client     *Client
+	ownsClient bool
+	secret     []byte
+	mu         sync.Mutex
+	mints      []time.Time
+	turns      map[string]turnCount
+	now        func() time.Time
 }
 
 type turnCount struct {

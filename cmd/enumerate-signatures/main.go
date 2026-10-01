@@ -1265,7 +1265,7 @@ func parseFile(path string, structs map[string]*goStructFacts, funcs map[string]
 				if handOptionsStructs[ts.Name.Name] && st.Fields != nil {
 					var fields []paramsStructField
 					for _, f := range st.Fields.List {
-						typeStr := exprString(f.Type)
+						typeStr := qualifyBareIdent(exprString(f.Type), pkgName)
 						req := swRequiredTag(f.Tag)
 						canon := genCanonTag(f.Tag)
 						kind := structTag(f.Tag, "kind")
@@ -3058,6 +3058,33 @@ func lookupClassRef(sel string) string {
 		return "class:" + targets[0].Module + "." + targets[0].Class
 	}
 	return ""
+}
+
+// qualifyBareIdent qualifies a bare exported type name in an options-struct
+// field (`*Client`, `[]Thing`) with the declaring package (`*aichat.Client`), so
+// translation resolves it through the StructTable by its full key. Unqualified, it
+// falls to lookupClassRefByShort, which picks among every package's same-named
+// type (aichat.Client vs relay.Client) in map order.
+func qualifyBareIdent(t, pkg string) string {
+	prefix := ""
+	rest := t
+	for {
+		switch {
+		case strings.HasPrefix(rest, "*"):
+			prefix += "*"
+			rest = rest[1:]
+			continue
+		case strings.HasPrefix(rest, "[]"):
+			prefix += "[]"
+			rest = rest[2:]
+			continue
+		}
+		break
+	}
+	if rest == "" || strings.ContainsAny(rest, ".[](), ") || rest[0] < 'A' || rest[0] > 'Z' {
+		return t
+	}
+	return prefix + pkg + "." + rest
 }
 
 // lookupClassRefByShort searches StructTable for any entry whose name
