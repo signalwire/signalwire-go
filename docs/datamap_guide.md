@@ -33,7 +33,7 @@ A comprehensive guide to understanding, implementing, and testing DataMap config
 - [5.1 Webhook Structure](#51-webhook-structure)
 - [5.2 HTTP Methods and Headers](#52-http-methods-and-headers)
 - [5.3 Request Body Construction](#53-request-body-construction)
-- [5.4 Sequential Webhook Processing](#54-sequential-webhook-processing)
+- [5.4 Which Webhook Runs](#54-which-webhook-runs)
 - [5.5 Webhook Failure Detection](#55-webhook-failure-detection)
 
 ### 6. Response Processing and Data Handling
@@ -74,7 +74,7 @@ A comprehensive guide to understanding, implementing, and testing DataMap config
 - [11.4 Debugging DataMap Execution](#114-debugging-datamap-execution)
 
 ### 12. Advanced Patterns and Best Practices
-- [12.1 Multiple Webhook Fallback Chains](#121-multiple-webhook-fallback-chains)
+- [12.1 Multiple Webhooks](#121-multiple-webhooks)
 - [12.2 Complex Template Expressions](#122-complex-template-expressions)
 - [12.3 Dynamic API Endpoint Selection](#123-dynamic-api-endpoint-selection)
 - [12.4 Response Transformation Patterns](#124-response-transformation-patterns)
@@ -117,9 +117,9 @@ DataMap is a serverless function execution system within SignalWire AI Agents th
 - **Serverless Architecture**: No need to host webhook endpoints
 - **Built-in HTTP Client**: Native HTTP request capabilities
 - **Template-Based Configuration**: Declarative API integration using template expansion
-- **Sequential Processing**: Multiple webhook fallback support
+- **Ordered Processing**: Expressions first, then one webhook request, then a fallback output
 - **Response Transformation**: Built-in data processing and formatting
-- **Error Handling**: Automatic failure detection and fallback mechanisms
+- **Error Handling**: Failure detection through error keys, with a fallback output
 
 **DataMap Execution Flow:**
 ```
@@ -201,7 +201,6 @@ a.DefineTool(agent.ToolDefinition{
     "webhooks": [{
       "url": "https://api.example.com/search",
       "method": "POST",
-      "headers": {"Content-Type": "application/json"},
       "params": {"query": "${args.query}"},
       "output": {"response": "Found: ${array[0].text}"},
       "error_keys": ["error"]
@@ -236,7 +235,7 @@ DataMap integrates with SWML (SignalWire Markup Language) through the AI verb's 
 - **Automatic Validation**: Parameter validation based on JSON schema
 - **Context Awareness**: Access to conversation state and SWML variables
 - **Action Generation**: Can produce SWML actions for call control
-- **Error Recovery**: Built-in fallback mechanisms maintain conversation flow
+- **Error Recovery**: A fallback output keeps the conversation going when an API fails
 
 ### 1.4 When to Use DataMap
 
@@ -251,7 +250,7 @@ DataMap integrates with SWML (SignalWire Markup Language) through the AI verb's 
 - Simple to moderate API integration complexity
 - Read-heavy operations (GET, POST with JSON)
 - Services with predictable response formats
-- Scenarios requiring fallback mechanisms
+- Scenarios where a fixed reply is enough when the API fails
 - Development teams without DevOps infrastructure
 
 **Consider Traditional Webhooks When:**
@@ -292,7 +291,7 @@ DataMap execution occurs entirely within the SignalWire infrastructure, followin
 **Processing Modules:**
 - **Function Router**: Determines if function is DataMap or webhook
 - **Context Builder**: Assembles variable context from function arguments and SWML state
-- **Template Engine**: Expands variables in URLs, headers, and request bodies
+- **Template Engine**: Expands variables in URLs, request bodies and outputs; header values are sent as written
 - **HTTP Client**: Executes HTTP requests with timeout and error handling
 - **Response Processor**: Parses and validates HTTP responses
 - **Foreach Engine**: Processes array data with template expansion
@@ -307,28 +306,30 @@ DataMap processing follows a strict sequential order that ensures deterministic 
 {
   "expressions": [
     {
+      "string": "${args.query}",
       "pattern": "simple query",
       "output": {"response": "This is a simple response for: ${args.query}"}
     }
   ]
 }
 ```
-- Pattern matching against function arguments
-- Early exit if pattern matches
+- Each expression expands its `string` template, such as `${args.query}`, and searches the result for its `pattern`, a PCRE regular expression that can match anywhere in it. The match ignores case, unless the pattern is written as `/pattern/flags`, where `i` ignores case and `s` lets `.` match a newline
+- An expression with no `string` never matches
+- Expressions are tried in order; the first match's `output` ends the function. An expression's `nomatch-output`, when it has one, is used when its pattern doesn't match, so it ends the function too
 - Bypasses HTTP requests for known cases
 
-**2. Webhook Sequential Processing**
+**2. Webhook Processing**
 ```json
 {
   "webhooks": [
-    {"url": "https://primary-api.com/search", "...": "..."},
-    {"url": "https://fallback-api.com/search", "...": "..."}
+    {"url": "https://api.example.com/by-zip?zip=${enc:args.zip}", "require_args": ["zip"], "...": "..."},
+    {"url": "https://api.example.com/by-city?city=${enc:args.city}", "require_args": ["city"], "...": "..."}
   ]
 }
 ```
-- Process webhooks in array order
-- Stop at first successful webhook
-- Each webhook has independent configuration
+- The platform goes through the webhooks in array order and requests the first eligible one. It skips a webhook, without a request, when none of its `require_args` are present, or when it has neither `output` nor `expressions`
+- It requests only that webhook. If the request fails, it doesn't try the next webhook; the DataMap-level `output` runs instead
+- The webhook evaluates its own `foreach`, then `expressions`, then `output` when its response arrives
 
 **3. Foreach Processing (Per Successful Webhook)**
 ```json
@@ -354,8 +355,11 @@ DataMap processing follows a strict sequential order that ensures deterministic 
   }
 }
 ```
-- Webhook-level output (if webhook succeeds)
-- DataMap-level fallback output (if all webhooks fail)
+- Webhook-level output (if the webhook succeeds, and none of its expressions produced an output)
+- DataMap-level fallback output (if the webhook failed, no webhook was eligible, or the webhook produced no output)
+- A generic error for the AI if nothing produced an output
+
+The first valid `output` anywhere ends the function, like a `return` statement.
 
 **Processing Flow Diagram:**
 ```
@@ -368,88 +372,80 @@ Function Call
 └─────────────┘            └──────────────┘
      │ No
      ▼
-┌─────────────┐
-│  Webhook 1  │────┐
-│   Success?  │    │
-└─────────────┘    │
-     │ No          │ Yes
-     ▼             ▼
-┌─────────────┐  ┌─────────────┐
-│  Webhook 2  │  │   Foreach   │
-│   Success?  │  │ Processing  │
-└─────────────┘  └─────────────┘
-     │ No          │
-     ▼             ▼
-┌─────────────┐  ┌─────────────┐
-│  Fallback   │  │   Webhook   │
-│   Output    │  │   Output    │
-└─────────────┘  └─────────────┘
+┌─────────────┐   None    ┌─────────────┐
+│    First    │───────────│  Fallback   │
+│   eligible  │           │   Output    │
+│   webhook   │           └─────────────┘
+└─────────────┘                  ▲
+     │                           │
+     ▼                           │
+┌─────────────┐     No           │
+│  Success?   │──────────────────┤
+└─────────────┘                  │
+     │ Yes                       │
+     ▼                           │
+┌─────────────┐  No output       │
+│  Foreach,   │──────────────────┘
+│ expressions,│
+│   output    │
+└─────────────┘
 ```
 
 ### 2.3 Context and Variable Scope
 
-DataMap maintains a hierarchical context system that provides access to various data sources during template expansion:
+Every template reads from one JSON object, the template data, and names a path from its root: `${args.query}` walks from the root into `args` and then `query`. The platform builds two different sets of template data, so what a template can read depends on where it is.
 
-**Context Hierarchy:**
-```
-┌────────────────────────────────────────┐
-│                args                    │ ← Function arguments
-│  ┌──────────────────────────────────┐  │
-│  │            response              │  │ ← HTTP response object
-│  │  ┌────────────────────────────┐  │  │
-│  │  │          this             │  │  │ ← Current foreach item
-│  │  │                           │  │  │
-│  │  └────────────────────────────┘  │  │
-│  └──────────────────────────────────┘  │
-└────────────────────────────────────────┘
-```
+**The call data.** The top-level `expressions` and `output`, and a webhook's `url` and `params`, read the call data. Its root holds:
 
-**Variable Sources:**
+- `args`: the arguments the AI extracted for this call, by parameter name. Example: `${args.query}`.
+- `global_data`: the application's global data, as the agent set it with `SetGlobalData()` or an action changed it. Example: `${global_data.api_token}`.
+- `meta_data`: the metadata store the function shares with the others that have the same metadata token. As each function loads, the platform merges its `meta_data` over the AI's `global_data`, key by key, and adds the result to the store, so a later function's key replaces an earlier one's. The SDK sets no token, so the platform derives one from the function's webhook URL and credentials; a DataMap function has no URL of its own, so all of an agent's DataMap functions share one store. Example: `${meta_data.table.sales}`.
+- Details of the call: `call_id`, `ai_session_id`, `conversation_id`, `function` (the function's name), `caller_id_name`, `caller_id_num`, `project_id`, `space_id` and `app_name`.
+- The prompt variables, built-in variables describing the call and the AI session, merged into the root: `${time_of_day}`. The top-level `output` can also read them as `${prompt_vars.time_of_day}`.
+- `input`, which is empty here.
 
-1. **Function Arguments** (`args.*`)
-   - Direct access to function call parameters
-   - Available throughout entire execution
-   - Example: `${args.query}`, `${args.filters}`
+**The webhook's response.** A webhook's `foreach`, `expressions` and `output` read the JSON its API returned, and nothing else from the call data at the root. If the response is an object, its fields are read directly: a response of `{"total": 25, "results": [...]}` gives `${total}` and `${results[0].title}`. There is no `response.` prefix. If the response is an array, it's under `array`: `${array[0].joke}`. The platform adds three fields to it:
 
-2. **HTTP Response Data** (`response.*` or `array.*`)
-   - Response object for object responses
-   - Array data for array responses
-   - Available after successful webhook execution
+- `input`: a copy of the call data. An argument is `${input.args.query}`, the metadata `${input.meta_data.table}`, and the call ID `${input.call_id}`. `${args.query}` is empty here, unless the response has an `args` field of its own.
+- `global_data`: `${global_data.api_token}`, as in the call data.
+- `prompt_vars`: `${prompt_vars.time_of_day}`.
 
-3. **Global Data** (`global_data.*`)
-   - Agent-level configuration and state
-   - SWML prompt variables
-   - Conversation context
+A response field with the same name as one of these hides it. During a `foreach`, `this` is the current element of the array it walks, as in `${this.title}`, and the text it builds is stored under its `output_key`, as in `${formatted_results}`.
 
-4. **Foreach Context** (`this.*`)
-   - Current item during foreach processing
-   - Only available within foreach append templates
-   - Dynamic scope based on array iteration
-
-**Context Evolution:**
+**Context evolution:**
 ```javascript
-// Initial context
-{
-  "args": {"query": "SignalWire", "count": 3}
-}
-
-// After webhook success (object response)
+// The call data: the top-level expressions and output, and a webhook's url and params
 {
   "args": {"query": "SignalWire", "count": 3},
-  "response": {"results": [...], "total": 25}
+  "global_data": {...},
+  "meta_data": {...},
+  "call_id": "...",
+  "input": {}
 }
 
-// After webhook success (array response)
+// After a webhook returns the object {"results": [...], "total": 25}
 {
-  "args": {"query": "SignalWire", "count": 3},
-  "array": [{"title": "...", "text": "..."}, ...]
+  "results": [{"title": "...", "text": "..."}, ...],
+  "total": 25,
+  "prompt_vars": {...},
+  "global_data": {...},
+  "input": {"args": {"query": "SignalWire", "count": 3}, "call_id": "...", ...}
 }
 
-// During foreach processing
+// After a webhook returns an array
 {
-  "args": {"query": "SignalWire", "count": 3},
-  "array": [...],
-  "this": {"title": "Current Item", "text": "Current content"}
+  "array": [{"title": "...", "text": "..."}, ...],
+  "prompt_vars": {...},
+  "global_data": {...},
+  "input": {"args": {"query": "SignalWire", "count": 3}, ...}
+}
+
+// While a foreach walks "results"
+{
+  "results": [...],
+  "this": {"title": "Current item", "text": "Current content"},
+  "input": {"args": {"query": "SignalWire", "count": 3}, ...},
+  ...
 }
 ```
 
@@ -471,14 +467,14 @@ DataMap functions execute in a serverless environment with specific characterist
    └── Build initial context
 
 2. Template Expansion
-   ├── Expand webhook URLs and headers
+   ├── Expand webhook URLs
    ├── Expand request body parameters
    └── Prepare HTTP request configuration
 
 3. HTTP Request Execution
    ├── Make HTTP request with timeouts
    ├── Handle network errors
-   └── Parse response (JSON/text)
+   └── Parse the JSON response
 
 4. Response Processing
    ├── Validate response structure
@@ -503,7 +499,7 @@ DataMap functions execute in a serverless environment with specific characterist
 - **Scalability**: Automatic scaling based on demand
 
 **Resource Limits:**
-- HTTP request timeout: ~30 seconds
+- HTTP request timeout: 30 seconds to connect, and 120 seconds for the whole request
 - Response size limits: Reasonable API response sizes
 - Memory constraints: Optimized for typical API responses
 - Concurrent execution: Platform-managed scaling
@@ -549,7 +545,7 @@ DataMap configurations follow a specific JSON schema that defines how external A
 2. **DataMap Configuration** (`data_map`)
    - `expressions`: Optional pattern-based early return logic
    - `webhooks`: Array of HTTP request configurations
-   - `output`: Fallback output when all webhooks fail
+   - `output`: Fallback output, used when no expression or webhook produced one
 
 **Minimal DataMap Example:**
 ```json
@@ -565,11 +561,10 @@ DataMap configurations follow a specific JSON schema that defines how external A
   },
   "data_map": {
     "webhooks": [{
-      "url": "https://api.example.com/search",
+      "url": "https://api.example.com/search?q=${enc:args.query}",
       "method": "GET",
-      "headers": {"Authorization": "Bearer ${global_data.api_token}"},
-      "params": {"q": "${args.query}"},
-      "output": {"response": "Result: ${response.data}"}
+      "headers": {"Authorization": "Bearer YOUR_API_TOKEN"},
+      "output": {"response": "Result: ${data}"}
     }]
   }
 }
@@ -655,10 +650,8 @@ DataMap configurations can include nested objects and complex data structures fo
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -685,7 +678,7 @@ DataMap configurations can include nested objects and complex data structures fo
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -694,9 +687,9 @@ DataMap configurations can include nested objects and complex data structures fo
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -807,54 +800,75 @@ When validation fails, the AI agent receives clear error messages:
 
 ### 4.1 Template Syntax Overview
 
-Template expansion allows you to dynamically construct URLs, headers, and request bodies based on function arguments and context variables. Understanding the syntax and usage is essential for effective DataMap configuration.
+Template expansion builds URLs, request parameters and responses from the call's data. SignalWire's platform expands templates when it runs your `data_map` function; the SDK never evaluates one itself.
 
-**Template Syntax:**
+**Variables.** `${path}` is replaced by the value at `path` in the template data (see [2.3](#23-context-and-variable-scope)). `%{path}` means the same. A path uses dots for object fields and a zero-based `[n]` for an array element, as in `${args.filters.category}` and `${results[0].title}`; a negative `n` counts from the end, so `${results[-1].title}` is the last one. Field names match without regard to case. Each name takes one index, so `${grid[0][1]}` doesn't resolve. If the path doesn't resolve, the template becomes an empty string.
+
+A string value is inserted as it is. Any other value is inserted as JSON, and a number that isn't whole prints with six decimal places, so `72.5` becomes `72.500000`. An object or array inserted into an `output` string makes that output invalid JSON, and the function then returns nothing, so insert strings and numbers there.
+
+**Prefix helpers.** Inside `${...}`, a helper name and a colon before the path transform the value:
+
+| Helper | What it does | Example |
+|---|---|---|
+| `lc` | Lowercases the value's ASCII letters | `${lc:args.department}` |
+| `enc` | URL-encodes the value | `${enc:args.query}` |
+| `fmt_ph` | Formats a phone number in the national format, assuming the US for a number with no country code. A number it can't validate becomes `INVALID NUMBER` | `${fmt_ph:args.phone}` |
+
+Helper names match without regard to case, and helpers chain. Whatever order they're written in, they apply in a fixed order: `fmt_ph`, then `lc`, then `enc`. So `${lc:enc:args.location}` and `${enc:lc:args.location}` both take the value of `args.location`, lowercase it, then URL-encode it. The built-in weather skill builds its request URL this way:
+
 ```
-${expression}
+https://api.weatherapi.com/v1/current.json?key=KEY&q=${lc:enc:args.location}
 ```
 
-**Expression Types:**
-- **Variable**: `${args.query}`, `${global_data.api_token}`
-- **Function**: `${function_name(args)}`
-- **Conditional**: `${if(condition, true_value, false_value)}`
-- **Array Access**: `${array[index].property}`
-- **Object Access**: `${object.property}`
-- **Built-in Functions**: `${length(array)}`, `${now()}`
+`enc` encodes as FreeSWITCH's `switch_url_encode` function does. It encodes spaces, control characters, bytes outside ASCII, and `#`, `%`, `&`, `+`, `:`, `;`, `<`, `=`, `>`, `?`, `@`, `[`, `\`, `]`, `^`, `{`, `|`, `}`, `"` and the backtick. It leaves letters, digits and `/ , $ ! ' ( ) * - . _ ~` as they are, so an encoded value can still contain `/` and `,`. A `%` followed by two uppercase hex digits is left alone too, so an already-encoded value isn't encoded twice.
+
+SignalWire's template reference also writes the encoder as `${enc:url:args.query}`. The platform doesn't read `url:` as part of the helper: it reads the path `url:args.query`, which doesn't exist, so that template expands to an empty string. Write `${enc:args.query}`.
+
+**Nested templates** expand from the inside out. In `${meta_data.contacts.${lc:args.department}}`, the inner template turns "Sales" into `sales`, and the outer one then reads `meta_data.contacts.sales`. Nesting works one level deep, and the inner template's value always becomes part of the outer path: `${lc:${args.department}}` reads a field named after the department, not the department lowercased.
+
+**`@{...}` functions** take arguments after a space:
+
+| Function | Syntax | What it does |
+|---|---|---|
+| `strftime_tz` | `@{strftime_tz <timezone> <format>}` | The current date and time in a time zone, with strftime codes: `@{strftime_tz America/Chicago %Y-%m-%d %H:%M:%S}` |
+| `fmt_ph` | `@{fmt_ph <format> <number>}` or `@{fmt_ph <format>:sep:<separator> <number>}` | Formats a phone number as `national` (the default), `international`, `RFC3966` or `e164`, optionally with a separator between digit groups for text-to-speech: `@{fmt_ph national:sep:- ${caller_id_num}}` |
+| `expr` | `@{expr <expression>}` | Arithmetic on literal numbers, with `+ - * /` and parentheses; it can't read variables: `@{expr (100 - 25) / 5}` |
+| `echo` | `@{echo <text>}` | Returns its argument, for debugging expansion: `@{echo ${args.input}}` |
+| `separate` | `@{separate <text>}` | Puts a space between characters, so text-to-speech spells out codes: `@{separate ${args.code}}` reads "ABC123" as "A B C 1 2 3" |
+| `sleep` | `@{sleep <seconds>}` | Pauses for that many seconds. Delays can cause timeouts, so use it sparingly |
+
+Template functions work in SWAIG contexts only: `data_map` expressions, webhooks and output, responses from SWAIG function webhooks, and AI prompt variable expansion. Other SWML methods don't expand them.
 
 ### 4.2 Variable Types and Sources
 
-DataMap supports a variety of variable types and sources that can be accessed during template expansion:
-
-**Variable Sources:**
-- **Function Arguments** (`args.*`)
-- **HTTP Response Data** (`response.*` or `array.*`)
-- **Global Data** (`global_data.*`)
-- **Foreach Context** (`this.*`)
+- **Function arguments**: `${args.query}` in the call data, and `${input.args.query}` in a webhook's `foreach`, `expressions` and `output`
+- **Webhook response fields**, at the root: `${total}`, `${results[0].title}`, and `${array[0].text}` for an array response
+- **Global data**: `${global_data.api_token}`, in either set of data
+- **Function metadata**: `${meta_data.table}` in the call data, and `${input.meta_data.table}` after a webhook responds
+- **Call details**: `${call_id}` and `${caller_id_num}` in the call data, and `${input.call_id}` after a webhook responds
+- **Foreach**: `${this.title}` while walking an array, and the `output_key` it fills, such as `${formatted_results}`
 
 ### 4.3 Array and Object Access Patterns
 
-DataMap provides flexible access patterns for array and object data:
+**Array access:**
+```
+${results[0].title}
+${array[0].joke}
+```
 
-**Array Access:**
+**Object access:**
 ```
-${array[index].property}
-```
-
-**Object Access:**
-```
-${object.property}
+${current.condition.text}
+${args.filters.category}
 ```
 
 ### 4.4 Context-Specific Variables
 
-DataMap provides context-specific variables that can be used in template expansion:
-
-**Context-Specific Variables:**
-- **Function Arguments**: `${args.query}`, `${args.filters}`
-- **HTTP Response Data**: `${response.data}`, `${array[0].text}`
-- **Global Data**: `${global_data.api_token}`, `${global_data.prompt_variables}`
-- **Foreach Context**: `${this.title}`, `${this.text}`
+- In the top-level `expressions`, and a webhook's `url` and `params`: the call data, with `args`, `global_data`, `meta_data`, the call details and the prompt variables at the root. The response doesn't exist yet, and `input` is empty.
+- In a webhook's `foreach`, `expressions` and `output`: the response's fields (or `array`), `global_data`, `prompt_vars`, and the call data under `input`. Write an argument as `${input.args.query}`; `${args.query}` is empty here.
+- In a `foreach` `append` template: also `this`, the current element.
+- In the top-level `output`, which runs when no expression or webhook produced an output: the call data, as in a webhook's `url`, plus `prompt_vars`.
+- In a webhook's `headers`: nothing. Header values are sent as written.
 
 ### 4.5 Template Expansion Examples
 
@@ -872,11 +886,10 @@ DataMap provides context-specific variables that can be used in template expansi
   },
   "data_map": {
     "webhooks": [{
-      "url": "https://api.example.com/search",
+      "url": "https://api.example.com/search?q=${enc:args.query}",
       "method": "GET",
-      "headers": {"Authorization": "Bearer ${global_data.api_token}"},
-      "params": {"q": "${args.query}"},
-      "output": {"response": "Result: ${response.data}"}
+      "headers": {"Authorization": "Bearer YOUR_API_TOKEN"},
+      "output": {"response": "Result: ${data}"}
     }]
   }
 }
@@ -909,10 +922,8 @@ DataMap provides context-specific variables that can be used in template expansi
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -939,7 +950,7 @@ DataMap provides context-specific variables that can be used in template expansi
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -948,9 +959,9 @@ DataMap provides context-specific variables that can be used in template expansi
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -973,105 +984,95 @@ DataMap provides context-specific variables that can be used in template expansi
 
 ### 5.1 Webhook Structure
 
-DataMap functions can be configured with multiple webhooks to handle different scenarios and provide fallback mechanisms:
+Each entry in `webhooks` describes one HTTP request, with these fields:
 
-**Webhook Configuration:**
-```json
-{
-  "webhooks": [
-    {"url": "https://primary-api.com/search", "...": "..."},
-    {"url": "https://fallback-api.com/search", "...": "..."}
-  ]
-}
-```
+| Field | Required | What it does |
+|---|---|---|
+| `url` | Yes | The endpoint. Templates in it are expanded against the call data before the request, as in `https://api.example.com/weather?q=${enc:args.city}`. Credentials can go in it as `https://user:password@host/...`, and are sent as basic authentication. |
+| `method` | Yes | `GET` or `POST`. The platform sends a `POST` when this is `POST`, in any case, or when the webhook has `params`, and a `GET` otherwise, so `PUT`, `PATCH` and `DELETE` go out as `GET`. |
+| `headers` | No | Headers to send, such as `Authorization`. Their values are sent as written: templates in them aren't expanded. |
+| `params` | No | The request's JSON body. Templates in the values are expanded against the call data first. A webhook with `params` is sent as a `POST`. The SDK sets this with `Params()`. `Body()` writes a `body` field, which the platform doesn't read, so use `Params()`. |
+| `form_param` | No | Sends the expanded `params` JSON, URL-encoded, as one form field with this name, instead of as a JSON body. |
+| `input_args_as_params` | No | When true, the function's arguments are merged into `params`, replacing any with the same name. With no `params`, they become the whole body. Either way the request is a `POST`. |
+| `require_args` | No | Arguments of which at least one must be present for this request to be made. When none are, the webhook is skipped and the next one is considered. |
+| `error_keys` | No | Top-level keys that mark a response as a failure when they're present in it, whatever their value. See [5.5](#55-webhook-failure-detection). |
+| `foreach`, `expressions`, `output` | No | Evaluated in that order when the response arrives. A webhook needs `output` or `expressions`, or it's skipped. See [section 7](#7-foreach-processing-and-array-iteration) and [section 8](#8-output-generation-and-result-formatting). |
+
+SignalWire's SWML reference names the `require_args` field `required_args`. The platform reads `require_args`, which is what the SDK writes.
 
 ### 5.2 HTTP Methods and Headers
 
-DataMap functions can use various HTTP methods and headers to customize request configurations:
+The platform sends only `GET` and `POST` requests. A webhook is a `POST` when its `method` is `POST` or it has `params`, and its body is the expanded `params` object, as JSON; a `POST` without `params` has no body. Anything else is a `GET`, with no body, so a `GET`'s query parameters go in the URL, as in `https://api.example.com/search?q=${enc:args.query}`.
 
-**HTTP Method Examples:**
-- **GET**: Retrieving data from a server
-- **POST**: Sending data to a server for processing
-- **PUT**: Updating existing data on a server
-- **DELETE**: Removing data from a server
-
-**HTTP Header Examples:**
-- **Authorization**: Used for authentication and access control
-- **Content-Type**: Specifies the format of the request body
-- **Accept**: Specifies the format of the response body
-- **X-Request-ID**: Used for request tracking and correlation
+The platform sets `Content-Type` itself, to `application/json`, or to `application/x-www-form-urlencoded` with `form_param`, and sends `User-Agent: SignalWire-CallFabric/1.0`. The webhook's `headers` are added as written. Templates in header values aren't expanded, so a header can't read `${global_data.api_token}`: build the value in Go when you create the DataMap, for example from `os.Getenv`.
 
 ### 5.3 Request Body Construction
 
-DataMap functions can construct request bodies dynamically based on function arguments and context variables:
+`params` is the body. For example, this webhook:
 
-**Request Body Examples:**
-- **Simple Query**: `${args.query}`
-- **Complex Query**: `${function_name(args)}`
-- **JSON Object**: `${json_object}`
-- **Formatted String**: `${formatted_string}`
+```json
+{
+  "url": "https://api.example.com/weather",
+  "method": "POST",
+  "params": {"call_id": "${call_id}", "city": "${args.location}"},
+  "output": {"response": "The weather in ${city} is ${temp} degrees and ${conditions}."}
+}
+```
 
-### 5.4 Sequential Webhook Processing
+sends `{"call_id": "...", "city": "New York"}`. Its output then reads `city`, `temp` and `conditions` from the root of the JSON the API returns. With `input_args_as_params: true` and no `params`, the body is the arguments themselves, such as `{"location": "New York"}`.
 
-DataMap functions can be configured to process multiple webhooks in sequence:
+### 5.4 Which Webhook Runs
 
-**Sequential Webhook Configuration:**
+The platform requests one webhook per call: the first in array order that's eligible. A webhook isn't eligible when none of its `require_args` are present, or when it has neither `output` nor `expressions`, and the platform skips it without a request. Once it has requested a webhook, it doesn't request another, whether that one succeeds or fails.
+
+So a second webhook isn't a fallback for the first. It's useful when `require_args` choose between them:
+
 ```json
 {
   "webhooks": [
-    {"url": "https://primary-api.com/search", "...": "..."},
-    {"url": "https://fallback-api.com/search", "...": "..."}
+    {"url": "https://api.example.com/by-zip?zip=${enc:args.zip}", "require_args": ["zip"], "...": "..."},
+    {"url": "https://api.example.com/by-city?city=${enc:args.city}", "require_args": ["city"], "...": "..."}
   ]
 }
 ```
+
+With a `zip` argument, the first webhook runs; with only a `city`, the second. For a fallback when the API fails, use the DataMap-level `output` (see [8.2](#82-datamap-level-fallback-output)).
 
 ### 5.5 Webhook Failure Detection
 
-DataMap functions can be configured to handle webhook failures and provide fallback mechanisms:
+A requested webhook fails when:
 
-**Webhook Failure Configuration:**
-```json
-{
-  "webhooks": [
-    {"url": "https://primary-api.com/search", "...": "..."},
-    {"url": "https://fallback-api.com/search", "...": "..."}
-  ]
-}
-```
+- The request itself fails, such as on a connection error or a timeout. The platform marks the response with `protocol_error`.
+- The body is empty or isn't JSON, which the platform marks with `parse_error`.
+- The response has one of the webhook's `error_keys` at its top level, whatever the value: `"error_keys": ["error"]` fails `{"error": null}` as well as `{"error": "Not found"}`.
+
+An HTTP status outside 200-299 isn't a failure by itself. The platform adds the status to the response as `http_code`, only when it's outside that range, so `${http_code}` can report it, and `"error_keys": ["http_code"]` makes any such status a failure.
+
+When the webhook fails, the platform doesn't try the next one. The top-level `output` runs; without one, the AI gets the generic error "There was an error processing this request."
 
 ## 6. Response Processing and Data Handling
 
 ### 6.1 Response Data Structure
 
-DataMap functions can return various types of response data:
-
-**Response Data Types:**
-- **Text**: Simple text response
-- **JSON**: Structured data in JSON format
-- **Array**: List of data items
-- **Object**: Key-value pairs
+A webhook's response is parsed as JSON, and becomes the root of the template data for its `foreach`, `expressions` and `output`, with the call data under `input` (see [2.3](#23-context-and-variable-scope)).
 
 ### 6.2 Array vs Object Response Handling
 
-DataMap functions can handle both array and object responses:
+An object response's fields are read from the root, with no prefix. For this response:
 
-**Array Response Example:**
 ```json
-{
-  "response": {
-    "results": [{"title": "...", "text": "..."}, ...]
-  }
-}
+{"results": [{"title": "Rates", "text": "..."}], "total": 25}
 ```
 
-**Object Response Example:**
+`${total}` is `25` and `${results[0].title}` is `Rates`.
+
+An array response is under `array`. For this response:
+
 ```json
-{
-  "response": {
-    "results": {"total": 25, "data": [...]}
-  }
-}
+[{"joke": "Why did the webhook cross the road?"}]
 ```
+
+`${array[0].joke}` is the joke.
 
 ### 6.3 Error Response Processing
 
@@ -1107,7 +1108,14 @@ DataMap functions can define custom error keys to provide more detailed error in
 
 ### 7.1 Foreach Configuration
 
-DataMap functions can be configured to process array data:
+`foreach` turns an array in the webhook's response into text for the output:
+
+- `input_key` (required): the path to the array in the response, such as `results`, or `data.items` for a nested one.
+- `output_key` (required): where the built text is stored; the output reads it as `${formatted_results}`.
+- `append` (required): a template added to the text once per element. `${this}` is the current element, and `${this.title}` its field; the rest of the response, `input` and `global_data` stay readable.
+- `max`: the most elements to use, from the start of the array. Zero or less means all of them.
+
+Without all three required fields, or when `input_key` isn't an array, the platform skips the `foreach`, and `${formatted_results}` is empty.
 
 **Foreach Configuration Example:**
 ```json
@@ -1121,14 +1129,11 @@ DataMap functions can be configured to process array data:
 }
 ```
 
+For a response of `{"results": [{"title": "Rates"}, {"title": "Coverage"}]}`, `${formatted_results}` is `Result: Rates` and `Result: Coverage`, one per line.
+
 ### 7.2 Array Data Sources
 
-DataMap functions can use various array data sources:
-
-**Array Data Sources:**
-- **Function Results**: `${response.results}`
-- **Global Data**: `${global_data.array}`
-- **Foreach Context**: `${this.array}`
+`input_key` is the path to an array in the webhook's response, such as `results` or `data.items`. It's written without `${...}`: it's a path, not a template.
 
 ### 7.3 Template Expansion in Foreach
 
@@ -1153,8 +1158,8 @@ DataMap functions can concatenate and format string data:
 **String Concatenation Example:**
 ```json
 {
-  "response": {
-    "formatted_results": "Result: ${this.title}\n"
+  "output": {
+    "response": "${total} results for ${input.args.query}:\n${formatted_results}"
   }
 }
 ```
@@ -1181,21 +1186,21 @@ DataMap functions can return output directly from webhook responses:
 **Webhook Output Example:**
 ```json
 {
-  "response": {
-    "formatted_results": "Result: ${this.title}\n"
+  "output": {
+    "response": "Found ${total} results:\n${formatted_results}"
   }
 }
 ```
 
 ### 8.2 DataMap-Level Fallback Output
 
-DataMap functions can provide a fallback output when all webhooks fail:
+A DataMap function's top-level `output` runs when no expression matched and the webhook stage produced no result: the webhook that was requested failed, no webhook was eligible, or the webhook produced no output. Its templates read the call data, so an argument is `${args.query}`:
 
 **Fallback Output Example:**
 ```json
 {
   "output": {
-    "response": "Search service unavailable"
+    "response": "Search is unavailable right now, so I couldn't look up ${args.query}."
   }
 }
 ```
@@ -1207,9 +1212,7 @@ DataMap functions can return both response text and SWML actions:
 **Response vs Action Output Example:**
 ```json
 {
-  "response": {
-    "formatted_results": "Result: ${this.title}\n"
-  },
+  "response": "Found ${total} results",
   "action": [{"SWML": {"version": "1.0.0", "...": "..."}}]
 }
 ```
@@ -1258,10 +1261,8 @@ DataMap functions can be integrated with the skills system:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -1288,7 +1289,7 @@ DataMap functions can be integrated with the skills system:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -1297,9 +1298,9 @@ DataMap functions can be integrated with the skills system:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -1349,10 +1350,8 @@ DataMap functions can be created based on skills:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -1379,7 +1378,7 @@ DataMap functions can be created based on skills:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -1388,9 +1387,9 @@ DataMap functions can be created based on skills:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -1440,10 +1439,8 @@ DataMap functions can be configured based on skill patterns:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -1470,7 +1467,7 @@ DataMap functions can be configured based on skill patterns:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -1479,9 +1476,9 @@ DataMap functions can be configured based on skill patterns:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -1531,10 +1528,8 @@ DataMap functions can be used across multiple instances:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -1561,7 +1556,7 @@ DataMap functions can be used across multiple instances:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -1570,9 +1565,9 @@ DataMap functions can be used across multiple instances:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -1624,10 +1619,8 @@ DataMap functions can be used for various API integration scenarios:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -1654,7 +1647,7 @@ DataMap functions can be used for various API integration scenarios:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -1663,9 +1656,9 @@ DataMap functions can be used for various API integration scenarios:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -1715,10 +1708,8 @@ DataMap functions can be used for knowledge base searches:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -1745,7 +1736,7 @@ DataMap functions can be used for knowledge base searches:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -1754,9 +1745,9 @@ DataMap functions can be used for knowledge base searches:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -1806,10 +1797,8 @@ DataMap functions can be used for external service integrations:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -1836,7 +1825,7 @@ DataMap functions can be used for external service integrations:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -1845,9 +1834,9 @@ DataMap functions can be used for external service integrations:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -1868,7 +1857,7 @@ DataMap functions can be used for external service integrations:
 
 ### 10.4 Multi-Step Processing Workflows
 
-DataMap functions can be used for multi-step processing workflows:
+A DataMap function makes at most one HTTP request per call: the platform requests the first eligible webhook in its `webhooks` array and no other (see [5.4](#54-which-webhook-runs)). So one webhook can't read another's response, and a workflow with several requests needs a Go tool function, or one DataMap function per step for the AI to call in turn. This example makes one request:
 
 **Multi-Step Processing Workflow Example:**
 ```json
@@ -1897,10 +1886,8 @@ DataMap functions can be used for multi-step processing workflows:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -1927,7 +1914,7 @@ DataMap functions can be used for multi-step processing workflows:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -1936,9 +1923,9 @@ DataMap functions can be used for multi-step processing workflows:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -1990,10 +1977,8 @@ DataMap functions can be developed and tested locally:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2020,7 +2005,7 @@ DataMap functions can be developed and tested locally:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2029,9 +2014,9 @@ DataMap functions can be developed and tested locally:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2081,10 +2066,8 @@ DataMap functions can be configured with environment variables:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2111,7 +2094,7 @@ DataMap functions can be configured with environment variables:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2120,9 +2103,9 @@ DataMap functions can be configured with environment variables:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2172,10 +2155,8 @@ DataMap functions can be tested using command-line tools:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2202,7 +2183,7 @@ DataMap functions can be tested using command-line tools:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2211,9 +2192,9 @@ DataMap functions can be tested using command-line tools:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2263,10 +2244,8 @@ DataMap functions can be debugged using various tools:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2293,7 +2272,7 @@ DataMap functions can be debugged using various tools:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2302,9 +2281,9 @@ DataMap functions can be debugged using various tools:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2336,8 +2315,8 @@ import "github.com/signalwire/signalwire-go/v3/pkg/datamap"
 
 weather := datamap.CreateSimpleAPITool(
 	"get_weather",
-	"https://api.weather.com/v1/current?key=API_KEY&q=${location}",
-	"Weather: ${response.current.condition.text}, ${response.current.temp_f}°F",
+	"https://api.weather.com/v1/current?key=API_KEY&q=${enc:args.location}",
+	"Weather: ${current.condition.text}, ${current.temp_f}°F",
 	map[string]map[string]any{
 		"location": {
 			"type":        "string",
@@ -2383,17 +2362,18 @@ control.
 		swaig.NewFunctionResult("").AddAction("next", true), nil)
 ```
 
-### 12.1 Multiple Webhook Fallback Chains
+### 12.1 Multiple Webhooks
 
-DataMap functions can be configured with multiple webhooks to handle different scenarios and provide fallback mechanisms:
+A DataMap function can list several webhooks, but the platform requests only one per call: the first whose `require_args` are met. Use `require_args` to pick an endpoint by which arguments the AI supplied, and the DataMap-level `output` as the fallback when the request fails (see [5.4](#54-which-webhook-runs)):
 
 **Multiple Webhook Configuration Example:**
 ```json
 {
   "webhooks": [
-    {"url": "https://primary-api.com/search", "...": "..."},
-    {"url": "https://fallback-api.com/search", "...": "..."}
-  ]
+    {"url": "https://api.example.com/orders/${enc:args.order_id}", "require_args": ["order_id"], "...": "..."},
+    {"url": "https://api.example.com/orders?email=${enc:args.email}", "require_args": ["email"], "...": "..."}
+  ],
+  "output": {"response": "The order service is unavailable right now."}
 }
 ```
 
@@ -2428,10 +2408,8 @@ DataMap functions can use complex template expressions to handle advanced scenar
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2458,7 +2436,7 @@ DataMap functions can use complex template expressions to handle advanced scenar
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2467,9 +2445,9 @@ DataMap functions can use complex template expressions to handle advanced scenar
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2519,10 +2497,8 @@ DataMap functions can dynamically select API endpoints based on function argumen
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2549,7 +2525,7 @@ DataMap functions can dynamically select API endpoints based on function argumen
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2558,9 +2534,9 @@ DataMap functions can dynamically select API endpoints based on function argumen
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2610,10 +2586,8 @@ DataMap functions can transform response data based on function arguments:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2640,7 +2614,7 @@ DataMap functions can transform response data based on function arguments:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2649,9 +2623,9 @@ DataMap functions can transform response data based on function arguments:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2674,9 +2648,8 @@ DataMap functions can transform response data based on function arguments:
 
 ### 13.1 HTTP Error Codes and Handling
 
-DataMap functions can handle various HTTP error codes:
+A status outside 200-299 doesn't fail a webhook by itself. When the API returns one with a JSON body, the platform adds the status to the response as `http_code`, and the webhook's `output` runs as usual. To treat such a status as a failure, list `http_code` in `error_keys`; to report it, read `${http_code}` in the output. For an API that returns this with a 400 status:
 
-**HTTP Error Handling Example:**
 ```json
 {
   "error": "API request failed",
@@ -2687,9 +2660,11 @@ DataMap functions can handle various HTTP error codes:
 }
 ```
 
+`"error_keys": ["error"]` or `"error_keys": ["http_code"]` fails the webhook, and the DataMap-level `output` runs. See [5.5](#55-webhook-failure-detection).
+
 ### 13.2 Network Timeout and Retry Logic
 
-DataMap functions can handle network timeouts and implement retry logic:
+A DataMap function has no configurable timeout or retry count. The platform allows 30 seconds to connect and 120 seconds for the whole request, and doesn't retry. A second entry in the `webhooks` array isn't tried when the first fails; set a DataMap-level `output` for that case, as this example does:
 
 **Network Timeout and Retry Example:**
 ```json
@@ -2718,10 +2693,8 @@ DataMap functions can handle network timeouts and implement retry logic:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2748,7 +2721,7 @@ DataMap functions can handle network timeouts and implement retry logic:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2757,9 +2730,9 @@ DataMap functions can handle network timeouts and implement retry logic:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2809,10 +2782,8 @@ DataMap functions can implement graceful degradation strategies:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2839,7 +2810,7 @@ DataMap functions can implement graceful degradation strategies:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2848,9 +2819,9 @@ DataMap functions can implement graceful degradation strategies:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2900,10 +2871,8 @@ DataMap functions can be monitored and observed using various tools:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -2930,7 +2899,7 @@ DataMap functions can be monitored and observed using various tools:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -2939,9 +2908,9 @@ DataMap functions can be monitored and observed using various tools:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -2993,10 +2962,8 @@ DataMap functions can be configured with API keys:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3023,7 +2990,7 @@ DataMap functions can be configured with API keys:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3032,9 +2999,9 @@ DataMap functions can be configured with API keys:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3084,10 +3051,8 @@ DataMap functions can be configured with secure headers:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3114,7 +3079,7 @@ DataMap functions can be configured with secure headers:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3123,9 +3088,9 @@ DataMap functions can be configured with secure headers:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3175,10 +3140,8 @@ DataMap functions should validate and sanitize input data:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3205,7 +3168,7 @@ DataMap functions should validate and sanitize input data:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3214,9 +3177,9 @@ DataMap functions should validate and sanitize input data:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3266,10 +3229,8 @@ DataMap functions should consider rate limiting:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3296,7 +3257,7 @@ DataMap functions should consider rate limiting:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3305,9 +3266,9 @@ DataMap functions should consider rate limiting:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3359,10 +3320,8 @@ DataMap functions can optimize request configurations:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3389,7 +3348,7 @@ DataMap functions can optimize request configurations:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3398,9 +3357,9 @@ DataMap functions can optimize request configurations:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3450,10 +3409,8 @@ DataMap functions can manage response sizes:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3480,7 +3437,7 @@ DataMap functions can manage response sizes:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3489,9 +3446,9 @@ DataMap functions can manage response sizes:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3541,10 +3498,8 @@ DataMap functions can implement caching strategies:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3571,7 +3526,7 @@ DataMap functions can implement caching strategies:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3580,9 +3535,9 @@ DataMap functions can implement caching strategies:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3632,10 +3587,8 @@ DataMap functions should consider execution time:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3662,7 +3615,7 @@ DataMap functions should consider execution time:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3671,9 +3624,9 @@ DataMap functions should consider execution time:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3725,10 +3678,8 @@ DataMap functions can be migrated from traditional webhooks:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3755,7 +3706,7 @@ DataMap functions can be migrated from traditional webhooks:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3764,9 +3715,9 @@ DataMap functions can be migrated from traditional webhooks:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3816,10 +3767,8 @@ DataMap functions can support legacy configurations:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3846,7 +3795,7 @@ DataMap functions can support legacy configurations:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3855,9 +3804,9 @@ DataMap functions can support legacy configurations:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3907,10 +3856,8 @@ DataMap functions should be compatible with different versions:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -3937,7 +3884,7 @@ DataMap functions should be compatible with different versions:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -3946,9 +3893,9 @@ DataMap functions should be compatible with different versions:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
@@ -3998,10 +3945,8 @@ DataMap functions can implement gradual migration strategies:
         "url": "https://api.primary.com/v2/search",
         "method": "POST",
         "headers": {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${global_data.primary_token}",
-          "X-Client-Version": "2.1",
-          "X-Request-ID": "${args.request_id}"
+          "Authorization": "Bearer YOUR_API_TOKEN",
+          "X-Client-Version": "2.1"
         },
         "params": {
           "query": {
@@ -4028,7 +3973,7 @@ DataMap functions can implement gradual migration strategies:
           "append": "## ${this.title}\n${this.excerpt}\n**Score:** ${this.relevance_score}\n\n"
         },
         "output": {
-          "response": "Found ${response.total} results:\n\n${formatted_results}",
+          "response": "Found ${total} results:\n\n${formatted_results}",
           "action": [
             {
               "SWML": {
@@ -4037,9 +3982,9 @@ DataMap functions can implement gradual migration strategies:
                   "main": [
                     {
                       "set": {
-                        "last_search_query": "${args.query}",
-                        "last_search_results": "${response.total}",
-                        "search_timestamp": "${response.timestamp}"
+                        "last_search_query": "${input.args.query}",
+                        "last_search_results": "${total}",
+                        "search_timestamp": "${timestamp}"
                       }
                     }
                   ]
