@@ -1493,31 +1493,47 @@ dm.Parameter("categories", "array", "Search categories to include", false, nil)
 ##### `Webhook(method, url string, headers map[string]string, formParam string, inputArgsAsParams bool, requireArgs []string) *DataMap`
 Configure an HTTP API call. Pass `nil` for `headers`/`requireArgs`, `""` for `formParam`, and `false` for `inputArgsAsParams` when unused.
 
+**Parameters:**
+- `method`: "GET" or "POST". The platform sends a POST when this is "POST" or the webhook has params, and a GET otherwise, so "PUT", "PATCH" and "DELETE" are sent as GET
+- `url`: API endpoint URL (supports `${variable}` substitution)
+- `headers`: HTTP headers to send, as written. The platform doesn't expand templates in header values
+- `formParam`: Send the JSON params as a single form field with this name
+- `inputArgsAsParams`: Merge the function's arguments into the params, the JSON body, which makes the request a POST
+- `requireArgs`: Skip this webhook, without a request, unless at least one of these arguments is present
+
+The platform requests the first webhook whose `requireArgs` are met, and no other. When that webhook fails, it doesn't try the next one; the `FallbackOutput()` runs.
+
 **Variable Substitution in URLs:**
 - `${args.parameter_name}`: Function argument values
 - `${global_data.key}`: Call-wide data store (user info, call state — NOT credentials)
-- `${meta_data.call_id}`: Call and function metadata
+- `${meta_data.key}`: The function's metadata
+- `${call_id}`: The call's ID; other call details, such as `${caller_id_num}`, are at the root too
 
 ```go
 // Simple GET request with parameter substitution
-dm.Webhook("GET", "https://api.weather.com/v1/current?key=API_KEY&q=${args.location}", nil, "", false, nil)
+dm.Webhook("GET", "https://api.weather.com/v1/current?key=API_KEY&q=${enc:args.location}", nil, "", false, nil)
 
-// POST request with authentication headers
+// POST request with an authentication header
 dm.Webhook("POST", "https://api.company.com/search",
 	map[string]string{
 		"Authorization": "Bearer YOUR_TOKEN",
-		"Content-Type":  "application/json",
 	}, "", false, nil)
 
 // Webhook that requires specific arguments
-dm.Webhook("GET", "https://api.service.com/data?id=${args.customer_id}", nil, "", false, []string{"customer_id"})
+dm.Webhook("GET", "https://api.service.com/data?id=${enc:args.customer_id}", nil, "", false, []string{"customer_id"})
 ```
 
 ##### `Body(data map[string]any) *DataMap`
-Set the JSON body for POST/PUT requests (supports `${variable}` substitution).
+Set a `body` field on the current webhook. The platform doesn't read a `body` field: it reads the request body from `params`, so the data set here isn't sent. Use `Params()` instead.
+
+##### `Params(data map[string]any) *DataMap`
+Set the request's JSON body. The platform sends `params` as the body, not as URL query parameters, so a webhook with params is sent as a POST whatever its method. For a GET, put query parameters in the URL, as in `"https://api.example.com/weather?q=${enc:args.location}"`.
+
+Templates in the values are expanded against the call data, such as `${args.location}`.
 
 ```go
-dm.Body(map[string]any{
+// A JSON body with substitution
+dm.Params(map[string]any{
 	"query": "${args.search_term}",
 	"limit": 5,
 	"filters": map[string]any{
@@ -1525,36 +1541,33 @@ dm.Body(map[string]any{
 		"active":   true,
 	},
 })
-```
 
-##### `Params(data map[string]any) *DataMap`
-Set URL query parameters (supports `${variable}` substitution).
-
-```go
+// Body with call-related data (NOT sensitive info)
 dm.Params(map[string]any{
-	"api_key": "YOUR_API_KEY",
-	"q":       "${args.location}",
-	"units":   "${args.units}",
-	"lang":    "en",
+	"customer_id": "${global_data.customer_id}",
+	"request_id":  "${call_id}",
+	"search":      "${args.query}",
 })
 ```
 
 #### Multiple Webhooks and Fallbacks
 
-DataMap supports multiple webhook configurations for fallback scenarios — each `Webhook`/`Output` pair defines one attempt, and `FallbackOutput` is used if they all fail:
+The platform requests one webhook per call: the first whose `requireArgs` are met. It doesn't try a later webhook when that one fails; the `FallbackOutput()` runs instead. Several webhooks are useful when `requireArgs` choose between them:
 
 ```go
-dm = datamap.New("search_with_fallback").
-	Purpose("Search with multiple API fallbacks").
-	Parameter("query", "string", "Search query", true, nil).
-	// Primary API
-	Webhook("GET", "https://api.primary.com/search?q=${args.query}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Primary result: ${title}")).
-	// Fallback API
-	Webhook("GET", "https://api.fallback.com/search?q=${args.query}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Fallback result: ${title}")).
-	// Final fallback if all APIs fail
-	FallbackOutput(swaig.NewFunctionResult("Sorry, all search services are currently unavailable"))
+// Look an order up by its number, or else by the customer's email
+dm = datamap.New("find_order").
+	Purpose("Find an order by its number or the customer email").
+	Parameter("order_id", "string", "Order number", false, nil).
+	Parameter("email", "string", "Customer email address", false, nil).
+	// Requested when the AI supplied an order number
+	Webhook("GET", "https://api.example.com/orders/${enc:args.order_id}", nil, "", false, []string{"order_id"}).
+	Output(swaig.NewFunctionResult("Order ${id}: ${status}")).
+	// Requested when it supplied only an email
+	Webhook("GET", "https://api.example.com/orders?email=${enc:args.email}", nil, "", false, []string{"email"}).
+	Output(swaig.NewFunctionResult("Latest order for ${input.args.email}: ${array[0].status}")).
+	// Used when the webhook that ran fails, or neither argument was supplied
+	FallbackOutput(swaig.NewFunctionResult("Sorry, the order service is unavailable right now"))
 ```
 
 ### Response Processing
@@ -1568,21 +1581,23 @@ Set the response template for successful API calls.
 - `${field}`: fields of the API's JSON response, read from the root with no prefix
 - `${nested.field}`: nested response fields
 - `${array[0].field}`: elements of a response that is a JSON array
-- `${args.parameter}`: Original function arguments
+- `${input.args.parameter}`: Original function arguments. The call data is under `input` in an output, so `${args.parameter}` is empty there
+- `${input.call_id}`, `${input.meta_data.key}`: the call details and the function's metadata
 - `${global_data.key}`: Call-wide data store
+- `${prompt_vars.key}`: the prompt variables
 
 ```go
 // Simple response template
-dm.Output(swaig.NewFunctionResult("Weather in ${args.location}: ${current.condition.text}, ${current.temp_f}°F"))
+dm.Output(swaig.NewFunctionResult("Weather in ${input.args.location}: ${current.condition.text}, ${current.temp_f}°F"))
 
 // Response with actions
 dm.Output(swaig.NewFunctionResult("Found ${total_results} results").
-	UpdateGlobalData(map[string]any{"last_search": "${args.query}"}).
+	UpdateGlobalData(map[string]any{"last_search": "${input.args.query}"}).
 	AddAction("play", "search_complete.mp3"))
 ```
 
 ##### `FallbackOutput(result *swaig.FunctionResult) *DataMap`
-Set the response used when all webhooks fail.
+Set the top-level output. The platform uses it when no expression matched and the webhook stage produced no result: the webhook it requested failed, or no webhook was eligible. Its templates read the call data, where an argument is `${args.x}`.
 
 ```go
 dm.FallbackOutput(swaig.NewFunctionResult("Sorry, the service is temporarily unavailable. Please try again later.").
@@ -1634,6 +1649,7 @@ controlMap := datamap.New("file_control").
 	Purpose("Control file playback").
 	Parameter("command", "string", "Playback command", true, nil).
 	Parameter("filename", "string", "File to control", false, nil).
+	Parameter("level", "string", "Volume level, from 0 to 10", false, nil).
 	// Start commands
 	Expression("${args.command}", `start|play|begin`,
 		swaig.NewFunctionResult("Starting playback").
@@ -1644,31 +1660,31 @@ controlMap := datamap.New("file_control").
 		swaig.NewFunctionResult("Stopping playback").
 			AddAction("stop_playback", true),
 		nil).
-	// Volume commands
-	Expression("${args.command}", `volume (\d+)`,
-		swaig.NewFunctionResult("Setting volume to ${match.1}").
-			AddAction("set_volume", "${match.1}"),
+	// Volume commands, with the level in its own argument
+	Expression("${args.command}", `volume`,
+		swaig.NewFunctionResult("Setting volume to ${args.level}").
+			AddAction("set_volume", "${args.level}"),
 		nil)
 _ = controlMap
 ```
 
-**Pattern Matching Variables:**
-- `${match.0}`: Full match
-- `${match.1}`, `${match.2}`, etc.: Capture groups
-- `${match.group_name}`: Named capture groups
+**Pattern Matching:**
+The platform expands the test value against the call data and searches it for the pattern, a regular expression that can match anywhere in the value, without regard to case unless it's written as `/pattern/flags`. It doesn't expose capture groups to templates, so a value the output needs should come from its own argument, as `level` does here. Expressions run in order, and the first that produces an output ends the function.
 
 ### Error Handling
 
 ##### `ErrorKeys(keys []string) *DataMap`
-Specify response fields that indicate errors.
+Specify response fields that indicate errors, for the current webhook. The webhook fails when its JSON response has any of these fields at the top level, whatever the value, and the `FallbackOutput()` runs. An HTTP status outside 200-299 isn't a failure by itself: the platform adds an `http_code` field to such a response, so list `http_code` to fail on it.
 
 ```go
 // Treat these response fields as errors
-dm.ErrorKeys([]string{"error", "error_message", "status_code"})
+dm.ErrorKeys([]string{"error", "error_message", "http_code"})
+
+// If the API returns {"error": "Not found"}, or any status outside 200-299, the webhook fails
 ```
 
 ##### `GlobalErrorKeys(keys []string) *DataMap`
-Set global error keys for all webhooks in this DataMap.
+Set a top-level `error_keys` field. The platform ignores it, and checks only each webhook's own error keys, so call `ErrorKeys()` after the webhook instead.
 
 ```go
 dm.GlobalErrorKeys([]string{"error", "message", "code"})
@@ -1677,19 +1693,14 @@ dm.GlobalErrorKeys([]string{"error", "message", "code"})
 ### Advanced Configuration
 
 ##### `WebhookExpressions(expressions []map[string]any) *DataMap`
-Add expression-based webhook selection.
+Attach expressions to the current webhook, storing them under its `expressions` field. Each expression needs the same `string`, `pattern` and `output` keys as `Expression()`. They run after the webhook's `foreach`, against its response, and the first that produces an output replaces the webhook's own output. Their templates read the response's fields from the root, and the call data under `input`, such as `${input.args.id}`.
 
 ```go
 dm.WebhookExpressions([]map[string]any{
 	{
-		"test":    "${args.type}",
-		"pattern": "weather",
-		"webhook": map[string]any{"method": "GET", "url": "https://weather-api.com/current?q=${args.location}"},
-	},
-	{
-		"test":    "${args.type}",
-		"pattern": "news",
-		"webhook": map[string]any{"method": "GET", "url": "https://news-api.com/search?q=${args.query}"},
+		"string":  "${status}",
+		"pattern": "^shipped$",
+		"output":  map[string]any{"response": "Order ${input.args.id} has shipped"},
 	},
 })
 ```
@@ -1703,8 +1714,8 @@ weatherTool := datamap.New("get_weather").
 	Purpose("Get current weather information").
 	Parameter("location", "string", "City name or ZIP code", true, nil).
 	Parameter("units", "string", "Temperature units", false, []string{"celsius", "fahrenheit"}).
-	Webhook("GET", "https://api.weather.com/v1/current?key=API_KEY&q=${args.location}&units=${args.units}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Weather in ${args.location}: ${current.condition.text}, ${current.temp_f}°F")).
+	Webhook("GET", "https://api.weather.com/v1/current?key=API_KEY&q=${enc:args.location}&units=${enc:args.units}", nil, "", false, nil).
+	Output(swaig.NewFunctionResult("Weather in ${input.args.location}: ${current.condition.text}, ${current.temp_f}°F")).
 	ErrorKeys([]string{"error"})
 
 // Register with agent
@@ -1720,7 +1731,7 @@ searchTool := datamap.New("search_knowledge").
 	Parameter("category", "string", "Search category", false, []string{"docs", "faq", "policies"}).
 	Webhook("POST", "https://api.company.com/search",
 		map[string]string{"Authorization": "Bearer TOKEN"}, "", false, nil).
-	Body(map[string]any{
+	Params(map[string]any{
 		"query":    "${args.query}",
 		"category": "${args.category}",
 		"limit":    5,
@@ -1780,13 +1791,13 @@ The SDK provides helper functions for common DataMap patterns:
 
 ##### `CreateSimpleAPITool(name, url, responseTemplate string, parameters map[string]map[string]any, method string, headers map[string]string, body map[string]any, errorKeys []string) *DataMap`
 
-Create a simple API integration tool.
+Create a simple API integration tool. `body` is set with `Body()`, which the platform doesn't send (see `Body()`), so pass `nil` and put the query in the URL.
 
 ```go
 weather := datamap.CreateSimpleAPITool(
 	"get_weather",
-	"https://api.weather.com/v1/current?key=API_KEY&q=${args.location}",
-	"Weather in ${args.location}: ${current.condition.text}",
+	"https://api.weather.com/v1/current?key=API_KEY&q=${enc:args.location}",
+	"Weather in ${input.args.location}: ${current.condition.text}",
 	map[string]map[string]any{
 		"location": {"type": "string", "description": "City name", "required": true},
 	},
@@ -1798,22 +1809,27 @@ a.RegisterSwaigFunction(weather.ToSwaigFunction())
 
 ##### `CreateExpressionTool(name string, patterns map[string]ExpressionPattern, parameters map[string]map[string]any) *DataMap`
 
-Create a pattern-based tool without API calls. An `ExpressionPattern` pairs a regex `Pattern` with a `*swaig.FunctionResult` `Result`.
+Create a pattern-based tool without API calls. The map's key is the test value, and an `ExpressionPattern` pairs a regex `Pattern` with a `*swaig.FunctionResult` `Result`.
 
 ```go
 fileControl := datamap.CreateExpressionTool(
 	"file_control",
 	map[string]datamap.ExpressionPattern{
-		"start": {Pattern: `start.*`, Result: swaig.NewFunctionResult("").AddAction("start_playback", true)},
-		"stop":  {Pattern: `stop.*`, Result: swaig.NewFunctionResult("").AddAction("stop_playback", true)},
+		"${args.command}": {
+			Pattern: `start|play`,
+			Result:  swaig.NewFunctionResult("Starting playback").AddAction("start_playback", map[string]any{"file": "${args.filename}"}),
+		},
 	},
 	map[string]map[string]any{
-		"command": {"type": "string", "description": "Playback command", "required": true},
+		"command":  {"type": "string", "description": "Playback command", "required": true},
+		"filename": {"type": "string", "description": "File to play"},
 	},
 )
 
 a.RegisterSwaigFunction(fileControl.ToSwaigFunction())
 ```
+
+A map holds one pattern per test value. For several patterns on the same value, chain `Expression()` calls instead.
 
 ### Method Chaining
 
@@ -1821,15 +1837,13 @@ All DataMap methods return the receiver, enabling fluent chaining:
 
 ```go
 completeTool := datamap.New("comprehensive_search").
-	Purpose("Comprehensive search with fallbacks").
+	Purpose("Search the knowledge base").
 	Parameter("query", "string", "Search query", true, nil).
 	Parameter("category", "string", "Search category", false, []string{"all", "docs", "faq"}).
-	Webhook("GET", "https://primary-api.com/search?q=${args.query}&cat=${args.category}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Primary: ${title}")).
-	Webhook("GET", "https://backup-api.com/search?q=${args.query}", nil, "", false, nil).
-	Output(swaig.NewFunctionResult("Backup: ${title}")).
-	FallbackOutput(swaig.NewFunctionResult("All search services unavailable")).
-	ErrorKeys([]string{"error", "message"})
+	Webhook("GET", "https://api.example.com/search?q=${enc:args.query}&cat=${enc:args.category}", nil, "", false, nil).
+	Output(swaig.NewFunctionResult("Top result: ${title}")).
+	ErrorKeys([]string{"error", "message"}).
+	FallbackOutput(swaig.NewFunctionResult("Search is unavailable right now"))
 _ = completeTool
 ```
 

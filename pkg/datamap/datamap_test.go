@@ -30,7 +30,7 @@ func TestFluentBuilderChain(t *testing.T) {
 		Webhook("GET", "https://api.weather.com/v1?q=${args.city}&units=${args.units}", map[string]string{
 			"Authorization": "Bearer token123",
 		}, "", false, nil).
-		Output(swaig.NewFunctionResult("Weather in ${args.city}: ${temp}"))
+		Output(swaig.NewFunctionResult("Weather in ${input.args.city}: ${temp}"))
 
 	if dm.functionName != "weather" {
 		t.Errorf("expected functionName %q, got %q", "weather", dm.functionName)
@@ -69,7 +69,7 @@ func TestToSwaigFunctionBasic(t *testing.T) {
 		Purpose("Greet user").
 		Parameter("name", "string", "User name", true, nil).
 		Webhook("GET", "https://example.com/greet?name=${args.name}", nil, "", false, nil).
-		Output(swaig.NewFunctionResult("Hello ${args.name}!"))
+		Output(swaig.NewFunctionResult("Hello ${input.args.name}!"))
 
 	result := dm.ToSwaigFunction()
 
@@ -135,8 +135,8 @@ func TestToSwaigFunctionBasic(t *testing.T) {
 	if !ok {
 		t.Fatal("expected webhook output to be map[string]any")
 	}
-	if output["response"] != "Hello ${args.name}!" {
-		t.Errorf("expected output response %q, got %v", "Hello ${args.name}!", output["response"])
+	if output["response"] != "Hello ${input.args.name}!" {
+		t.Errorf("expected output response %q, got %v", "Hello ${input.args.name}!", output["response"])
 	}
 }
 

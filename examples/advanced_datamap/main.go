@@ -3,8 +3,8 @@
 // Example: advanced_datamap
 //
 // Advanced DataMap features: expressions with regex patterns, webhooks with
-// body/headers/form_param, foreach array processing, multi-webhook fallback
-// chains, and global error keys.
+// body/headers/form_param, foreach array processing, and choosing a webhook
+// with require_args, with a fallback output.
 package main
 
 import (
@@ -56,19 +56,22 @@ func main() {
 	a.RegisterSwaigFunction(commandDM.ToSwaigFunction())
 
 	// ---- DataMap 2: Webhook with headers, form_param, and require_args ----
+	// The platform requests one webhook per call: the first whose require_args
+	// are met. Here the first webhook runs when the AI supplies data to send,
+	// and the second when it supplies only the action. When the webhook that
+	// ran fails, the fallback output runs; the platform doesn't try the other.
 	advancedAPI := datamap.New("advanced_api_tool").
 		Purpose("API tool with advanced webhook features").
 		Parameter("action", "string", "Action to perform", true, nil).
 		Parameter("data", "string", "Data to send", false, nil).
+		// Requested when there's data to send
 		Webhook("POST", "https://api.example.com/advanced",
-			map[string]string{
-				"Authorization": "Bearer YOUR_TOKEN",
-				"User-Agent":    "SignalWire-Agent/1.0",
-			},
-			"payload",          // form_param: sends body as a form parameter
-			true,               // inputArgsAsParams: merge function args into params
-			[]string{"action"}, // requireArgs: only execute if action is present
+			map[string]string{"Authorization": "Bearer YOUR_TOKEN"},
+			"payload",        // form_param: send the body as one form field
+			true,             // inputArgsAsParams: the arguments become the body
+			[]string{"data"}, // requireArgs: only when data is provided
 		).
+		// Post-webhook expressions pick a reply from the response
 		WebhookExpressions([]map[string]any{
 			{
 				"string":  "${status}",
@@ -81,16 +84,18 @@ func main() {
 				"output":  map[string]any{"response": "API Error: ${error_message}"},
 			},
 		}).
-		Output(swaig.NewFunctionResult("Result: ${data}")).
-		// Second webhook as fallback
-		Webhook("GET", "https://backup-api.example.com/simple",
+		// Used when neither expression matches
+		Output(swaig.NewFunctionResult("The API returned ${status} for ${input.args.action}")).
+		ErrorKeys([]string{"fault", "exception"}).
+		// Requested when there's no data: the action goes in the URL
+		Webhook("GET", "https://api.example.com/simple?q=${enc:args.action}",
 			map[string]string{"Accept": "application/json"},
 			"", false, nil,
 		).
-		Params(map[string]any{"q": "${args.action}"}).
-		Output(swaig.NewFunctionResult("Backup result: ${data}")).
-		FallbackOutput(swaig.NewFunctionResult("All APIs are currently unavailable")).
-		GlobalErrorKeys([]string{"error", "fault", "exception"})
+		Output(swaig.NewFunctionResult("Result: ${data}")).
+		ErrorKeys([]string{"error", "fault", "exception"}).
+		// Used when the webhook that ran fails
+		FallbackOutput(swaig.NewFunctionResult("The API is unavailable right now"))
 
 	a.RegisterSwaigFunction(advancedAPI.ToSwaigFunction())
 
@@ -100,11 +105,9 @@ func main() {
 		Parameter("name", "string", "User name", true, nil).
 		Parameter("email", "string", "User email", true, nil).
 		Parameter("message", "string", "Message content", true, nil).
+		// With form_param, the platform sets the form Content-Type itself
 		Webhook("POST", "https://forms.example.com/submit",
-			map[string]string{
-				"Content-Type": "application/x-www-form-urlencoded",
-				"X-API-Key":    "YOUR_API_KEY",
-			},
+			map[string]string{"X-API-Key": "YOUR_API_KEY"},
 			"form_data", false, nil,
 		).
 		Params(map[string]any{
@@ -112,7 +115,7 @@ func main() {
 			"email":   "${args.email}",
 			"message": "${args.message}",
 		}).
-		Output(swaig.NewFunctionResult("Form submitted successfully for ${args.name}")).
+		Output(swaig.NewFunctionResult("Form submitted successfully for ${input.args.name}")).
 		ErrorKeys([]string{"error", "validation_errors"})
 
 	a.RegisterSwaigFunction(formDM.ToSwaigFunction())
@@ -122,21 +125,19 @@ func main() {
 		Purpose("Search and format results from API").
 		Parameter("query", "string", "Search query", true, nil).
 		Parameter("limit", "string", "Maximum results", false, nil).
-		Webhook("GET", "https://search-api.example.com/search",
+		// A GET's query goes in the URL: params would be a JSON body, and
+		// make the request a POST
+		Webhook("GET", "https://search-api.example.com/search?q=${enc:args.query}&max_results=${enc:args.limit}",
 			map[string]string{"Authorization": "Bearer YOUR_SEARCH_TOKEN"},
 			"", false, nil,
 		).
-		Params(map[string]any{
-			"q":           "${args.query}",
-			"max_results": "${args.limit}",
-		}).
 		Foreach(map[string]any{
 			"input_key":  "results",
 			"output_key": "formatted_results",
 			"max":        5,
 			"append":     "Title: ${this.title}\n${this.summary}\nURL: ${this.url}\n\n",
 		}).
-		Output(swaig.NewFunctionResult("Search results for \"${args.query}\":\n\n${formatted_results}")).
+		Output(swaig.NewFunctionResult("Search results for \"${input.args.query}\":\n\n${formatted_results}")).
 		ErrorKeys([]string{"error"})
 
 	a.RegisterSwaigFunction(searchDM.ToSwaigFunction())

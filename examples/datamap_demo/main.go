@@ -38,7 +38,7 @@ func main() {
 			nil, "", false, nil,
 		).
 		Output(swaig.NewFunctionResult(
-			"Weather in ${args.location}: ${current.condition.text}, " +
+			"Weather in ${input.args.location}: ${current.condition.text}, " +
 				"Temperature: ${current.temp_f}°F (${current.temp_c}°C), " +
 				"Humidity: ${current.humidity}%, " +
 				"Wind: ${current.wind_mph} mph",
