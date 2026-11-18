@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/v3/pkg/skills"
@@ -269,6 +270,51 @@ func TestDataSphereServerlessSetup(t *testing.T) {
 	tools := s.RegisterTools()
 	if len(tools) == 0 {
 		t.Error("datasphere_serverless RegisterTools() returned empty")
+	}
+}
+
+// datasphereServerlessDataMap returns the data_map of the registered
+// datasphere_serverless tool.
+func datasphereServerlessDataMap(t *testing.T) map[string]any {
+	t.Helper()
+	s := skills.GetSkillFactory("datasphere_serverless")(map[string]any{
+		"space_name":  "test",
+		"project_id":  "proj123",
+		"token":       "tok123",
+		"document_id": "doc123",
+	})
+	if !s.Setup() {
+		t.Fatal("datasphere_serverless Setup() returned false with all params")
+	}
+	return s.RegisterTools()[0].SwaigFields["data_map"].(map[string]any)
+}
+
+// TestDataSphereServerlessWebhookOutputReadsQueryFromInput checks that the
+// webhook output names the query through ${input.args.query}. A webhook's
+// output expands against the API response, with the call's data under
+// "input", so ${args.query} there would expand to nothing.
+func TestDataSphereServerlessWebhookOutputReadsQueryFromInput(t *testing.T) {
+	dm := datasphereServerlessDataMap(t)
+	webhook := dm["webhooks"].([]map[string]any)[0]
+	response := webhook["output"].(map[string]any)["response"]
+	want := "I found results for \"${input.args.query}\":\n\n${formatted_results}"
+	if response != want {
+		t.Errorf("webhook output response = %q, want %q", response, want)
+	}
+}
+
+// TestDataSphereServerlessParamsAndFallbackReadQueryFromArgs checks that the
+// webhook params and the fallback output, which expand against the call's
+// data, keep ${args.query}.
+func TestDataSphereServerlessParamsAndFallbackReadQueryFromArgs(t *testing.T) {
+	dm := datasphereServerlessDataMap(t)
+	webhook := dm["webhooks"].([]map[string]any)[0]
+	if got := webhook["params"].(map[string]any)["query_string"]; got != "${args.query}" {
+		t.Errorf("webhook params query_string = %q, want %q", got, "${args.query}")
+	}
+	fallback, _ := dm["output"].(map[string]any)["response"].(string)
+	if !strings.Contains(fallback, "${args.query}") {
+		t.Errorf("fallback output response = %q, want it to contain %q", fallback, "${args.query}")
 	}
 }
 

@@ -152,8 +152,12 @@ func (s *DataSphereServerlessSkill) RegisterTools() []skills.ToolRegistration {
 								"max":        s.count,
 								"append":     "=== RESULT ===\n${this.text}\n" + strings.Repeat("=", 50) + "\n\n",
 							},
+							// A webhook's output expands against the API response, with the
+							// call's data under "input", so the query is ${input.args.query}
+							// here. The params above and the fallback output below expand
+							// against the call's data, where it is ${args.query}.
 							"output": map[string]any{
-								"response": `I found results for "${args.query}":` + "\n\n${formatted_results}",
+								"response": `I found results for "${input.args.query}":` + "\n\n${formatted_results}",
 							},
 						},
 					},

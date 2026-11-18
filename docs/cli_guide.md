@@ -160,9 +160,20 @@ swaig-test --url http://localhost:3000/ --exec search --param query="SignalWire"
 swaig-test --url http://localhost:3000/ --verbose --exec get_joke --param type=dadjokes
 ```
 
-External-webhook functions and DataMap functions execute exactly the same way —
-the running agent forwards the call as it would in production, so the CLI needs
-no special flags for them.
+`--exec` runs the function's handler in the agent. It doesn't run DataMap
+functions as the platform does:
+
+- In production, SignalWire runs a DataMap function itself: it expands the
+  templates, sends the webhook request and builds the output. The agent never
+  gets the call.
+- `--exec` on a DataMap function sends the call to the agent's `/swaig`
+  endpoint. A function with no Go handler returns an error. Some skills also
+  register an optional local handler; `--exec` runs that handler, which is a
+  separate implementation and not the DataMap.
+
+To check a DataMap function locally, use `--list-tools` or `--dump-swml` to
+inspect its definition. To check template expansion and webhook processing,
+call the function on SignalWire.
 
 ## Logging and Output Control
 
