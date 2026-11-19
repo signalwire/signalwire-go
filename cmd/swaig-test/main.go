@@ -573,7 +573,9 @@ func doListTools(baseURL, user, pass string, cfg config) error {
 	fmt.Printf("Available SWAIG functions (%d):\n\n", len(functions))
 	for _, fn := range functions {
 		name, _ := fn["function"].(string)
-		purpose, _ := fn["purpose"].(string)
+		// The agent renders description and parameters; accept the older
+		// purpose and argument names too.
+		purpose := firstNonEmptyString(fn, "purpose", "description")
 		if name == "" {
 			continue
 		}
@@ -584,7 +586,7 @@ func doListTools(baseURL, user, pass string, cfg config) error {
 		}
 
 		// Show parameters if present
-		if arg, ok := fn["argument"].(map[string]interface{}); ok {
+		if arg := firstMap(fn, "argument", "parameters"); arg != nil {
 			if props, ok := arg["properties"].(map[string]interface{}); ok && len(props) > 0 {
 				fmt.Printf("    Parameters:\n")
 				for pName, pDef := range props {

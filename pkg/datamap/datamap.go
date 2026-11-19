@@ -9,8 +9,8 @@
 //	dm := datamap.New("get_weather").
 //		Purpose("Get current weather information").
 //		Parameter("location", "string", "City name", true, nil).
-//		Webhook("GET", "https://api.weather.com/v1/current?q=${location}", nil, "", false, nil).
-//		Output(swaig.NewFunctionResult("Weather: ${response.current.condition.text}"))
+//		Webhook("GET", "https://api.weather.com/v1/current?q=${enc:args.location}", nil, "", false, nil).
+//		Output(swaig.NewFunctionResult("Weather: ${current.condition.text}"))
 package datamap
 
 import (

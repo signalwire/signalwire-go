@@ -128,9 +128,11 @@ func (s *WeatherAPISkill) RegisterTools() []skills.ToolRegistration {
 							"output": map[string]any{
 								"response": weatherTemplate,
 							},
+							// The platform reads error_keys on the webhook only. It adds
+							// http_code to the response when the status is not 2xx.
+							"error_keys": []string{"error", "http_code"},
 						},
 					},
-					"error_keys": []string{"error"},
 					"output": map[string]any{
 						"response": "Sorry, I cannot get weather information right now. Please try again later or check if the location name is correct.",
 					},

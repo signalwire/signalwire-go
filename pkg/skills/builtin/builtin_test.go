@@ -2,6 +2,8 @@ package builtin
 
 import (
 	"os"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/signalwire/signalwire-go/v3/pkg/skills"
@@ -269,6 +271,144 @@ func TestDataSphereServerlessSetup(t *testing.T) {
 	tools := s.RegisterTools()
 	if len(tools) == 0 {
 		t.Error("datasphere_serverless RegisterTools() returned empty")
+	}
+}
+
+// datasphereServerlessDataMap returns the data_map of the registered
+// datasphere_serverless tool.
+func datasphereServerlessDataMap(t *testing.T) map[string]any {
+	t.Helper()
+	s := skills.GetSkillFactory("datasphere_serverless")(map[string]any{
+		"space_name":  "test",
+		"project_id":  "proj123",
+		"token":       "tok123",
+		"document_id": "doc123",
+	})
+	if !s.Setup() {
+		t.Fatal("datasphere_serverless Setup() returned false with all params")
+	}
+	return s.RegisterTools()[0].SwaigFields["data_map"].(map[string]any)
+}
+
+// TestDataSphereServerlessWebhookOutputReadsQueryFromInput checks that the
+// webhook output names the query through ${input.args.query}. A webhook's
+// output expands against the API response, with the call's data under
+// "input", so ${args.query} there would expand to nothing.
+func TestDataSphereServerlessWebhookOutputReadsQueryFromInput(t *testing.T) {
+	dm := datasphereServerlessDataMap(t)
+	webhook := dm["webhooks"].([]map[string]any)[0]
+	response := webhook["output"].(map[string]any)["response"]
+	want := "I found results for \"${input.args.query}\":\n\n${formatted_results}"
+	if response != want {
+		t.Errorf("webhook output response = %q, want %q", response, want)
+	}
+}
+
+// TestDataSphereServerlessParamsAndFallbackReadQueryFromArgs checks that the
+// webhook params and the fallback output, which expand against the call's
+// data, keep ${args.query}.
+func TestDataSphereServerlessParamsAndFallbackReadQueryFromArgs(t *testing.T) {
+	dm := datasphereServerlessDataMap(t)
+	webhook := dm["webhooks"].([]map[string]any)[0]
+	if got := webhook["params"].(map[string]any)["query_string"]; got != "${args.query}" {
+		t.Errorf("webhook params query_string = %q, want %q", got, "${args.query}")
+	}
+	fallback, _ := dm["output"].(map[string]any)["response"].(string)
+	if !strings.Contains(fallback, "${args.query}") {
+		t.Errorf("fallback output response = %q, want it to contain %q", fallback, "${args.query}")
+	}
+}
+
+// TestDataMapSkillsErrorKeysOnWebhook checks that each DataMap skill puts
+// error_keys on its webhook, where the platform reads it, and not at the
+// data_map level, where the platform ignores it. http_code makes a non-2xx
+// response a failure, so the fallback output runs.
+func TestDataMapSkillsErrorKeysOnWebhook(t *testing.T) {
+	for _, tc := range []struct {
+		skill  string
+		params map[string]any
+	}{
+		{"datasphere_serverless", map[string]any{
+			"space_name": "test", "project_id": "proj123", "token": "tok123", "document_id": "doc123",
+		}},
+		{"weather_api", map[string]any{"api_key": "test-key"}},
+		{"api_ninjas_trivia", map[string]any{"api_key": "test-key"}},
+	} {
+		t.Run(tc.skill, func(t *testing.T) {
+			s := skills.GetSkillFactory(tc.skill)(tc.params)
+			if !s.Setup() {
+				t.Fatalf("%s Setup() returned false", tc.skill)
+			}
+			dm := s.RegisterTools()[0].SwaigFields["data_map"].(map[string]any)
+			webhook := dm["webhooks"].([]map[string]any)[0]
+			got, _ := webhook["error_keys"].([]string)
+			want := []string{"error", "http_code"}
+			if strings.Join(got, ",") != strings.Join(want, ",") {
+				t.Errorf("webhook error_keys = %v, want %v", got, want)
+			}
+			if _, ok := dm["error_keys"]; ok {
+				t.Errorf("data_map has error_keys %v; the platform reads them only on a webhook", dm["error_keys"])
+			}
+		})
+	}
+}
+
+// TestDataSphereServerlessNoResultsExpression checks that a search with no
+// chunks gives the no-results message. The expression reads the empty
+// formatted_results, and its output reads the query from the webhook scope.
+func TestDataSphereServerlessNoResultsExpression(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		params map[string]any
+		want   string
+	}{
+		{
+			name: "default message",
+			want: "I couldn't find any relevant information for '${input.args.query}' in the knowledge base. " +
+				"Try rephrasing your question or asking about a different topic.",
+		},
+		{
+			name:   "configured message",
+			params: map[string]any{"no_results_message": "Nothing on ${args.query} (${global_data.topic})"},
+			want:   "Nothing on ${input.args.query} (${global_data.topic})",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			params := map[string]any{
+				"space_name":  "test",
+				"project_id":  "proj123",
+				"token":       "tok123",
+				"document_id": "doc123",
+			}
+			for k, v := range tc.params {
+				params[k] = v
+			}
+			s := skills.GetSkillFactory("datasphere_serverless")(params)
+			if !s.Setup() {
+				t.Fatal("datasphere_serverless Setup() returned false with all params")
+			}
+			dm := s.RegisterTools()[0].SwaigFields["data_map"].(map[string]any)
+			webhook := dm["webhooks"].([]map[string]any)[0]
+
+			exprs, _ := webhook["expressions"].([]map[string]any)
+			if len(exprs) != 1 {
+				t.Fatalf("webhook expressions = %v, want one", webhook["expressions"])
+			}
+			expr := exprs[0]
+			if expr["string"] != "${formatted_results}" {
+				t.Errorf("expression string = %q, want %q", expr["string"], "${formatted_results}")
+			}
+			re := regexp.MustCompile(expr["pattern"].(string))
+			if !re.MatchString("") {
+				t.Errorf("expression pattern %q does not match empty results", expr["pattern"])
+			}
+			if re.MatchString("=== RESULT ===\nsome text\n") {
+				t.Errorf("expression pattern %q matches non-empty results", expr["pattern"])
+			}
+			if got := expr["output"].(map[string]any)["response"]; got != tc.want {
+				t.Errorf("expression output response = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 
