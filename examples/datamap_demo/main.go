@@ -43,6 +43,9 @@ func main() {
 				"Humidity: ${current.humidity}%, " +
 				"Wind: ${current.wind_mph} mph",
 		)).
+		// The API's error object, or a non-2xx status (http_code), fails the
+		// webhook, so the fallback output runs
+		ErrorKeys([]string{"error", "http_code"}).
 		FallbackOutput(swaig.NewFunctionResult(
 			"Sorry, I could not retrieve the weather for that location.",
 		))

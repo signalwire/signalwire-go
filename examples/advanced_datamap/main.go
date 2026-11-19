@@ -86,14 +86,14 @@ func main() {
 		}).
 		// Used when neither expression matches
 		Output(swaig.NewFunctionResult("The API returned ${status} for ${input.args.action}")).
-		ErrorKeys([]string{"fault", "exception"}).
+		ErrorKeys([]string{"fault", "exception", "http_code"}).
 		// Requested when there's no data: the action goes in the URL
 		Webhook("GET", "https://api.example.com/simple?q=${enc:args.action}",
 			map[string]string{"Accept": "application/json"},
 			"", false, nil,
 		).
 		Output(swaig.NewFunctionResult("Result: ${data}")).
-		ErrorKeys([]string{"error", "fault", "exception"}).
+		ErrorKeys([]string{"error", "fault", "exception", "http_code"}).
 		// Used when the webhook that ran fails
 		FallbackOutput(swaig.NewFunctionResult("The API is unavailable right now"))
 
@@ -116,7 +116,7 @@ func main() {
 			"message": "${args.message}",
 		}).
 		Output(swaig.NewFunctionResult("Form submitted successfully for ${input.args.name}")).
-		ErrorKeys([]string{"error", "validation_errors"})
+		ErrorKeys([]string{"error", "validation_errors", "http_code"})
 
 	a.RegisterSwaigFunction(formDM.ToSwaigFunction())
 
@@ -138,7 +138,7 @@ func main() {
 			"append":     "Title: ${this.title}\n${this.summary}\nURL: ${this.url}\n\n",
 		}).
 		Output(swaig.NewFunctionResult("Search results for \"${input.args.query}\":\n\n${formatted_results}")).
-		ErrorKeys([]string{"error"})
+		ErrorKeys([]string{"error", "http_code"})
 
 	a.RegisterSwaigFunction(searchDM.ToSwaigFunction())
 

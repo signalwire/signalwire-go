@@ -1615,7 +1615,7 @@ Process array responses by iterating over elements.
 ```go
 // Simple array processing
 dm = datamap.New("search_docs").
-	Webhook("GET", "https://api.docs.com/search?q=${args.query}", nil, "", false, nil).
+	Webhook("GET", "https://api.docs.com/search?q=${enc:args.query}", nil, "", false, nil).
 	Foreach(map[string]any{
 		"input_key":  "results",           // Key in the response holding the array
 		"output_key": "formatted_results", // Name of the built string variable
@@ -2122,7 +2122,7 @@ apiKey := "your-api-key"
 tool := datamap.New("custom_function").
 	Description("Custom API integration").
 	Parameter("query", "string", "Search query", true, nil).
-	Webhook("GET", "https://api.example.com/search?key="+apiKey+"&q=${args.query}", nil, "", false, nil).
+	Webhook("GET", "https://api.example.com/search?key="+apiKey+"&q=${enc:args.query}", nil, "", false, nil).
 	Output(swaig.NewFunctionResult("Found: ${title}"))
 
 a.RegisterSwaigFunction(tool.ToSwaigFunction())

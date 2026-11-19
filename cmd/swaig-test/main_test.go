@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -520,6 +522,48 @@ func TestDoListTools(t *testing.T) {
 	err := doListTools(srv.URL, "", "", cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// TestDoListToolsRendersAgentKeys checks that --list-tools prints the
+// description and parameters of a function as the agent renders it, with
+// "description" and "parameters" (not "purpose" and "argument").
+func TestDoListToolsRendersAgentKeys(t *testing.T) {
+	swmlDoc := `{"version": "1.0.0", "sections": {"main": [{"ai": {"SWAIG": {"functions": [
+		{"function": "search_knowledge",
+		 "description": "Search the knowledge base",
+		 "parameters": {"type": "object", "properties": {
+		   "query": {"type": "string", "description": "The search query"}}},
+		 "data_map": {"webhooks": [{"url": "https://example.com", "output": {"response": "ok"}}]}}
+	]}}}]}}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(swmlDoc))
+	}))
+	defer srv.Close()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stdout := os.Stdout
+	os.Stdout = w
+	err = doListTools(srv.URL, "", "", config{})
+	os.Stdout = stdout
+	_ = w.Close()
+	out, _ := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := "Available SWAIG functions (1):\n\n" +
+		"  search_knowledge\n" +
+		"    Search the knowledge base\n" +
+		"    Parameters:\n" +
+		"      --query (string): The search query\n\n"
+	if string(out) != want {
+		t.Errorf("list-tools output =\n%s\nwant\n%s", out, want)
 	}
 }
 

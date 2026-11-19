@@ -152,16 +152,31 @@ func (s *DataSphereServerlessSkill) RegisterTools() []skills.ToolRegistration {
 								"max":        s.count,
 								"append":     "=== RESULT ===\n${this.text}\n" + strings.Repeat("=", 50) + "\n\n",
 							},
-							// A webhook's output expands against the API response, with the
-							// call's data under "input", so the query is ${input.args.query}
-							// here. The params above and the fallback output below expand
-							// against the call's data, where it is ${args.query}.
+							// A webhook's output and expressions expand against the API
+							// response, with the call's data under "input", so the query
+							// is ${input.args.query} here. The params above and the
+							// fallback output below expand against the call's data, where
+							// it is ${args.query}.
+							//
+							// No chunks leaves formatted_results empty: the expression
+							// then gives the no-results message instead of the output.
+							"expressions": []map[string]any{
+								{
+									"string":  "${formatted_results}",
+									"pattern": `^\s*$`,
+									"output": map[string]any{
+										"response": strings.ReplaceAll(s.noResultsMessage, "${args.", "${input.args."),
+									},
+								},
+							},
 							"output": map[string]any{
 								"response": `I found results for "${input.args.query}":` + "\n\n${formatted_results}",
 							},
+							// The platform reads error_keys on the webhook only. It adds
+							// http_code to the response when the status is not 2xx.
+							"error_keys": []string{"error", "http_code"},
 						},
 					},
-					"error_keys": []string{"error"},
 					"output": map[string]any{
 						"response": s.noResultsMessage,
 					},

@@ -111,7 +111,9 @@ swaig-test --example my_example --list-tools
 ## List Available Functions
 
 `--list-tools` prints every SWAIG function the running agent has registered,
-including DataMap (serverless) functions and external-webhook functions:
+including DataMap (serverless) functions and external-webhook functions. For
+each function, it prints the name, the description, and the parameters. It
+doesn't print a DataMap function's templates; `--dump-swml` shows them.
 
 ```bash
 swaig-test --url http://localhost:3000/ --list-tools
@@ -120,10 +122,18 @@ swaig-test --url http://localhost:3000/ --list-tools
 **Example output:**
 
 ```
-Available SWAIG functions:
-  search_knowledge - DataMap function (serverless)
-    Config: {"webhooks": [...], "output": {...}}
-  calculate - Perform mathematical calculations and return the result
+Available SWAIG functions (2):
+
+  search_knowledge
+    Search the knowledge base for information (serverless)
+    Parameters:
+      --query (string): The search query
+
+  get_weather
+    Get current weather information for a location
+    Parameters:
+      --location (string): City name or zip code
+
 ```
 
 ## Test SWML Generation
@@ -171,9 +181,14 @@ functions as the platform does:
   register an optional local handler; `--exec` runs that handler, which is a
   separate implementation and not the DataMap.
 
-To check a DataMap function locally, use `--list-tools` or `--dump-swml` to
-inspect its definition. To check template expansion and webhook processing,
-call the function on SignalWire.
+To check a DataMap function locally, inspect its definition:
+
+- `--dump-swml` shows the whole `data_map`, with its templates, webhooks and
+  outputs.
+- `--list-tools` shows only the function's name, description and parameters.
+
+The CLI doesn't expand templates or send the webhook request. To check template
+expansion and webhook processing, call the function on SignalWire.
 
 ## Logging and Output Control
 

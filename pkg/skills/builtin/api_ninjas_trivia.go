@@ -132,7 +132,7 @@ func (s *APINinjasTriviaSkill) RegisterTools() []skills.ToolRegistration {
 		base = "https://api.api-ninjas.com"
 	}
 	base = strings.TrimRight(base, "/")
-	webhookURL := base + "/v1/trivia?category=%{args.category}"
+	webhookURL := base + "/v1/trivia?category=%{enc:args.category}"
 
 	return []skills.ToolRegistration{
 		{
@@ -164,9 +164,11 @@ func (s *APINinjasTriviaSkill) RegisterTools() []skills.ToolRegistration {
 							"output": map[string]any{
 								"response": "Category %{array[0].category} question: %{array[0].question} Answer: %{array[0].answer}, be sure to give the user time to answer before saying the answer.",
 							},
+							// The platform reads error_keys on the webhook only. It adds
+							// http_code to the response when the status is not 2xx.
+							"error_keys": []string{"error", "http_code"},
 						},
 					},
-					"error_keys": []string{"error"},
 					"output": map[string]any{
 						"response": "Sorry, I cannot get trivia questions right now. Please try again later.",
 					},
